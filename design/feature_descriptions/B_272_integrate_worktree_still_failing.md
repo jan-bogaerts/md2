@@ -3,7 +3,7 @@ author:
 id: B_272
 internalId: 03ba1df1-2c57-4c20-b3f8-cfff40547b34
 title: integrate worktree still failing
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,20 @@ agents:
 policy:
 branch: b_272_integrate_worktree_still_failing
 worktree: 2
+after: 55646f70-22ca-4ed7-a4b6-d2e0276d1923
+changedFiles:
+  - design/architecture/data_saving_and_commits.md
+  - desktop/src/actions/action/action_files.js
+  - desktop/src/actions/activity/activity_files.js
+  - desktop/src/actions/activity/activity_files.test.mjs
+  - desktop/src/actions/agent/usage_metrics_service.js
+  - desktop/src/actions/agent/usage_metrics_service.test.mjs
+  - desktop/src/git/worktree_service.js
+  - desktop/src/project/project_files.js
+  - desktop/src/project/project_files.test.mjs
+  - desktop/src/project/uncommitted_project_writes.js
+  - desktop/src/project/uncommitted_project_writes.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
 ---
 still getting this error:
 
