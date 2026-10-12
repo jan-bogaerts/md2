@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "733d678c-49a7-4409-9fa2-5fb384821513",
+      "cardPath": "design/feature_descriptions/F_422_check_if_possible_to_switch_agent_accounts.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/F_422_check_if_possible_to_switch_agent_accounts.md, check what is possible. report your findings, be short and to the point",
+          "id": "submission-9ef7d640-c8f9-4b51-9e67-d0b9f132757b",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-12T12:40:32.880Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-6bf2bd79-0a8a-4eb4-9ee5-f47287822712",
+      "providerSessions": [],
+      "startedAt": "2026-10-12T12:40:32.880Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-12T12:40:32.880Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "733d678c-49a7-4409-9fa2-5fb384821513",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
