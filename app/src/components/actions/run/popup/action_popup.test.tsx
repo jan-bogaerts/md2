@@ -420,6 +420,24 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
     })
 
+    it('opens conversation search after clicking message text', async () => {
+        const user = userEvent.setup()
+        const conversation = agentConversation({
+            actionId: 'respond',
+            entries: [{ content: 'Conversation needle', id: 'message-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
+        })
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([conversation])
+        actionService.loadFromFiles([file(agentDefinition('respond', { label: 'Respond' }))])
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+
+        const searchButton = screen.getByRole('button', { name: 'Find in conversation' })
+        await waitFor(() => expect(searchButton).toBeEnabled())
+        await user.click(screen.getByText('Conversation needle'))
+        await user.keyboard('{Control>}f{/Control}')
+
+        expect(screen.getByRole('search', { name: 'Conversation search' })).toBeInTheDocument()
+    })
+
     it('places the command splitter between input and independently scrolling history', async () => {
         window.md2Actions = {
             loadActionRunHistory: vi.fn(async () => [{

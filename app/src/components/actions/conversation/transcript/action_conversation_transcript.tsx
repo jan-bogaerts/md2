@@ -127,7 +127,7 @@ export const ActionConversationTranscript = memo(function ActionConversationTran
     }, [handleViewportResize])
 
     return (
-        <Stack aria-label="Conversation chat" onScroll={handleScroll} ref={viewportRef} spacing={1}
+        <Stack aria-label="Conversation chat" onScroll={handleScroll} ref={viewportRef} spacing={1} tabIndex={-1}
             sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowX: 'hidden', overflowY: 'auto' }}>
             {tracker ? <ActionConversationHistory commands={commands} tracker={tracker} /> : null}
             {tracker ? <ActionConversationEvolvingGroups commands={commands} tracker={tracker} /> : null}
