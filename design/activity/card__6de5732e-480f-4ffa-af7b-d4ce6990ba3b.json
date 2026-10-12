@@ -483,13 +483,50 @@
         "costUsd": 0.6943012000000001
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "6de5732e-480f-4ffa-af7b-d4ce6990ba3b",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "a7ad544958c0fd5902976026923789f35caf8500",
+          "committedAt": "2026-10-12T14:33:43+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_421_sequence_popup_improvements.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 26
+        }
+      ],
+      "completedAt": "2026-10-12T12:33:43.885Z",
+      "conversationIds": [
+        "agent-029c725e-69bb-4932-8af6-db4505fe65df"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-493cbc03-243f-4015-9f62-71852926b4d8",
+      "origin": {
+        "cardInternalId": "6de5732e-480f-4ffa-af7b-d4ce6990ba3b",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-029c725e-69bb-4932-8af6-db4505fe65df",
+      "startedAt": "2026-10-12T12:32:32.007Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
