@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 125558
+        "usedTokens": 135744
       },
       "entries": [
         {
@@ -877,10 +877,11 @@
           "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-66",
           "kind": "event",
           "label": "AskUserQuestion",
+          "output": "The user answered: \"Some desktop-written activity files are already dirty before integration starts. How should integration handle them?\"=\"Track and commit (Recommended)\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
           "providerItemId": "toolu_01Lrdm7NHDeQDh1PdqYEyxnc",
           "sequence": 66,
-          "status": "inProgress",
-          "timestamp": "2026-10-12T11:11:39.131Z",
+          "status": "completed",
+          "timestamp": "2026-10-12T11:12:09.947Z",
           "type": "tool.AskUserQuestion"
         },
         {
@@ -919,22 +920,164 @@
           "role": "user",
           "sequence": 68,
           "timestamp": "2026-10-12T11:12:09.937Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-69",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfxF3BXXhnbMxiNBgdiZu:thinking:0",
+          "sequence": 69,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-12T11:12:26.095Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\desktop\\\\src\\\\git\\\\git_commands.js\",\"offset\":225,\"limit\":60}",
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-70",
+          "kind": "event",
+          "label": "Read",
+          "output": "225\t        if (typeof filePath !== 'string' || filePath.length === 0) throw new Error('Invalid tracked file path');\n226\t        const resolvedPath = ensureInsideRoot(resolvedRoot, path.resolve(resolvedRoot, filePath));\n227\t        const relativePath = path.relative(resolvedRoot, resolvedPath);\n228\t        if (relativePath.length === 0) throw new Error('Tracked file path must identify a file');\n229\t\n230\t        return relativePath.replace(/\\\\/gu, '/');\n231\t    }))];\n232\t}\n233\t\n234\tasync function hasStagedPathChanges(rootPath, filePaths) {\n235\t    try {\n236\t        await runGit(rootPath, [LITERAL_PATHSPEC_ARGUMENT, 'diff', '--cached', '--quiet', '--', ...filePaths]);\n237\t\n238\t        return false;\n239\t    } catch (error) {\n240\t        if (error && typeof error === 'object' && error.code === 1) return true;\n241\t\n242\t        throw error;\n243\t    }\n244\t}\n245\t\n246\tasync function commitTrackedPathsNow(rootPath, filePaths, message) {\n247\t    await runGit(rootPath, [LITERAL_PATHSPEC_ARGUMENT, 'add', '--', ...filePaths]);\n248\t    if (!await hasStagedPathChanges(rootPath, filePaths)) return null;\n249\t\n250\t    await runGit(rootPath, [LITERAL_PATHSPEC_ARGUMENT, 'commit', '--only', '-m', message, '--', ...filePaths]);\n251\t\n252\t    return runGit(rootPath, ['rev-parse', 'HEAD']);\n253\t}\n254\t\n255\t/** Serialize a commit scoped to selected paths and return its hash, or null for no changes/cancellation. */\n256\tfunction commitTrackedPaths(rootPath, filePaths, message, signal) {\n257\t    if (typeof message !== 'string' || message.length === 0) throw new Error('Missing tracked commit message');\n258\t    const resolvedRoot = path.resolve(rootPath);\n259\t    const trackedPaths = normalizeTrackedPaths(resolvedRoot, filePaths);\n260\t    if (trackedPaths.length === 0) return Promise.resolve(null);\n261\t    return withGitIndexMutation(resolvedRoot, () => (\n262\t        signal?.aborted ? null : commitTrackedPathsNow(resolvedRoot, trackedPaths, message)\n263\t    ));\n264\t}\n265\t\n266\t/** Resolve stable metadata required to retain and display one commit reference. */\n267\tasync function resolveCommitMetadata(rootPath, commit) {\n268\t    if (typeof commit !== 'string' || commit.length === 0) throw new Error('Missing commit hash');\n269\t    const resolvedRoot = path.resolve(rootPath);\n270\t    const fullCommit = await runGit(resolvedRoot, ['rev-parse', `${commit}^{commit}`]);\n271\t    const committedAt = await runGit(resolvedRoot, ['show', '-s', '--format=%cI', fullCommit]);\n272\t    const changedPathsOutput = await runGit(resolvedRoot, ['diff-tree', '--root', '--no-commit-id', '--name-only', '-r', fullCommit]);\n273\t    const filePaths = changedPathsOutput.split(/\\r?\\n/u).filter((filePath) => filePath.length > 0);\n274\t    const parents = (await runGit(resolvedRoot, ['rev-list', '--parents', '-n', '1', fullCommit])).split(/\\s+/u);\n275\t    const shortStatOutput = parents.length === 1\n276\t        ? await runGit(resolvedRoot, ['diff-tree', '--root', '--shortstat', '--no-commit-id', '-r', fullCommit])\n277\t        : await runGit(resolvedRoot, ['diff', '--shortstat', `${fullCommit}^`, fullCommit]);\n278\t    const { deletions, filesChanged, insertions } = parseShortStat(shortStatOutput);\n279\t\n280\t    if (committedAt.length === 0) throw new Error(`Git returned no timestamp for commit ${fullCommit}`);\n281\t\n282\t    return { commit: fullCommit, committedAt, deletions, filePaths, filesChanged, insertions };\n283\t}\n284\t",
+          "providerItemId": "toolu_01D2CbCZatuGtYgwGyWARuGj",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-10-12T11:12:26.914Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"queueActivityUpdate\\\\(|queueProjectUsageUpdate\\\\(\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\desktop\\\\src\",\"glob\":\"!*.test.mjs\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-71",
+          "kind": "event",
+          "label": "Grep",
+          "output": "desktop\\src\\actions\\activity\\activity_files.js:128:function queueActivityUpdate(filePath, update) {\ndesktop\\src\\actions\\activity\\activity_files.js:144:    const activity = await queueActivityUpdate(absolutePath, async () => {\ndesktop\\src\\actions\\activity\\activity_files.js:159:    await queueActivityUpdate(absolutePath, async () => {\ndesktop\\src\\actions\\activity\\activity_files.js:173:    return queueActivityUpdate(absolutePath, async () => {\ndesktop\\src\\actions\\activity\\activity_files.js:196:        return queueActivityUpdate(absolutePath, async () => {\ndesktop\\src\\actions\\activity\\activity_files.js:266:    return queueActivityUpdate(absolutePath, async () => {\ndesktop\\src\\actions\\activity\\activity_files.js:300:    return queueActivityUpdate(absolutePath, async () => {\ndesktop\\src\\actions\\activity\\activity_files.js:388:    return queueActivityUpdate(absolutePath, async () => {\ndesktop\\src\\actions\\activity\\activity_files.js:424:    return queueActivityUpdate(absolutePath, async () => {\ndesktop\\src\\actions\\agent\\agent_conversation_persistence.js:44:    return queueActivityUpdate(absolutePath, async () => {\ndesktop\\src\\actions\\agent\\project_agent_token_usage.js:26:function queueProjectUsageUpdate(filePath, update) {\ndesktop\\src\\actions\\agent\\project_agent_token_usage.js:160:    return queueProjectUsageUpdate(summaryPath, () => queueActivityUpdate(activityPath, async () => {",
+          "providerItemId": "toolu_01JGf7p7fcyMYjVTEkCwPves",
+          "sequence": 71,
+          "status": "completed",
+          "timestamp": "2026-10-12T11:12:28.150Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-72",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfxF4XZZreYsJv2LYD9Ju:thinking:0",
+          "sequence": 72,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-12T11:12:50.819Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nWriting doc.",
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 73,
+          "timestamp": "2026-10-12T11:12:50.821Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_272_integrate_worktree_still_failing.md",
+          "deletions": 1,
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-74",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_272_integrate_worktree_still_failing.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01DgZcxdiZPPf2LqoUsyKdi3",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-10-12T11:12:51.848Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_272_integrate_worktree_still_failing.md",
+          "deletions": 1,
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-75",
+          "insertions": 73,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_272_integrate_worktree_still_failing.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01XQdNrV72dsHyHhQwRAQnWK",
+          "sequence": 75,
+          "status": "completed",
+          "timestamp": "2026-10-12T11:13:18.377Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-76",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfxF8EW1rQJYwbqoZermg:thinking:0",
+          "sequence": 76,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-12T11:13:25.913Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI added `Current state`, `Implementation details` and `Acceptance criteria` to `design/feature_descriptions/B_272_integrate_worktree_still_failing.md` and set `status: ready for implementation`. Nothing is staged or committed.\n\n**Why integration still fails.** The desktop process writes some files straight into the main project folder (the primary worktree), mostly agent activity files. The renderer's save step doesn't know about these files, and they don't wait for an integration that is already running. This breaks integration in two ways:\n- **Already dirty before integration starts:** some writes are never committed, such as marking a conversation as viewed or agent progress saves. The clean check then fails on every attempt until something else commits the file. Your current `git status` shows one: `design/activity/card__55646f70….json`.\n- **Written during integration:** a running agent can save progress between the renderer's save step and the desktop's clean check.\n\nRenderer saves are not the problem: each one writes and commits in one locked step.\n\n**Planned fix, following your direction:**\n- Every desktop write into the primary worktree goes through `projectOperationCoordinator`, the lock integration already holds for its whole run. Writes requested during integration wait in memory and run when it finishes.\n- A new class, `uncommitted_project_writes`, keeps a list of files the desktop wrote but didn't commit. Inside that lock, integration commits those files and the usage metrics file in one commit, then integrates. Nothing changes on disk until the process ends.\n- The renderer save step stays as it is: one pass, no extra saves.\n- The existing clean check stays. Files left dirty after that commit come from outside the app, such as your own edits. The error message will list them by name.\n\nThe doc covers your two answers: a stale write is committed only if the desktop tracked it as its own write, and agents editing files in the primary worktree are out of scope.\n\n**Trade-off:** while an integration runs, agent event handling pauses until it finishes. The agent process itself keeps running.\n\nImplementing this also means updating `design/architecture/data_saving_and_commits.md` (one line about the shared lock), and that step is in the doc. I have not edited that file.",
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-turn-1-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 77,
+          "timestamp": "2026-10-12T11:13:26.924Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-02ad58ee-49ff-4ef9-9da2-30c44ed4be8e",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "5c20d746-5986-4c92-8d08-b0994db4d97f",
+          "createdAt": "2026-10-12T11:13:26.924Z",
+          "lastUsedAt": "2026-10-12T11:13:26.924Z",
+          "synchronizedThroughMessageId": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-turn-1-assistant-6",
+          "usageBaseline": {
+            "costUsd": 1.9246480000000004,
+            "resultId": "69dd7885-47ac-4ef5-8335-1e3d8ae9ea04",
+            "tokens": {
+              "cachedInputTokens": 2873403,
+              "inputTokens": 62,
+              "outputTokens": 20365,
+              "reasoningTokens": 0,
+              "totalTokens": 2893830
+            }
+          }
+        }
+      ],
       "startedAt": "2026-10-12T11:06:19.815Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 69048,
-          "toolMs": 36277
+          "reasoningMs": 111542,
+          "toolMs": 65897
         },
         "elapsedMs": 134781,
         "runningStartedAt": "2026-10-12T11:12:09.937Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 2873403,
+        "inputTokens": 62,
+        "outputTokens": 20365,
+        "reasoningTokens": 0,
+        "totalTokens": 2893830,
+        "costUsd": 1.9246480000000004
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
