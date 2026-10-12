@@ -1077,6 +1077,32 @@
   "origin": {
     "kind": "project"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-10-12T09:36:05.727Z",
+      "conversationIds": [
+        "agent-d6619310-b57c-44ba-88ab-194a4ecf6d3a"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-6-luna",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-6-luna",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-54e2cf67-e077-49d5-82ee-8e566745926e",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
+      "rootActionLabel": "write release note",
+      "rootConversationId": "agent-d6619310-b57c-44ba-88ab-194a4ecf6d3a",
+      "startedAt": "2026-10-12T09:34:29.696Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
