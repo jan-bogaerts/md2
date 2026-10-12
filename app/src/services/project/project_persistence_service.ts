@@ -24,6 +24,7 @@ const INITIAL_SNAPSHOT: ProjectPersistenceSnapshot = {
     hasPendingSave: false,
     localSaveState: 'saved',
 }
+const MAX_FLUSH_PASSES = 5
 
 export class ProjectPersistenceService extends EventTarget {
     private dependencies: ProjectPersistenceServiceDependencies | null = null
@@ -56,25 +57,26 @@ export class ProjectPersistenceService extends EventTarget {
 
     async flushPendingChanges() {
         const { actionService, dataService, openFilesService } = this.requireDependencies()
-        if (!stageMarkdownEditors()) throw new Error('A Markdown editor could not stage its pending changes')
-        if (actionService.draftStore.hasPendingDrafts()) await actionService.draftStore.flushDrafts()
-        for (const document of openFilesService.getRegisteredDocuments()) {
-            if (document.kind === 'card' && document.dirty) {
-                dataService.cards.updateCardBody(document.path, document.getDraft().content, document.createSaveReference())
+        for (let pass = 0; pass < MAX_FLUSH_PASSES; pass += 1) {
+            if (!stageMarkdownEditors()) throw new Error('A Markdown editor could not stage its pending changes')
+            if (actionService.draftStore.hasPendingDrafts()) await actionService.draftStore.flushDrafts()
+            for (const document of openFilesService.getRegisteredDocuments()) {
+                if (document.kind === 'card' && document.dirty) {
+                    dataService.cards.updateCardBody(document.path, document.getDraft().content, document.createSaveReference())
+                }
+                if (document.kind === 'instruction' && document.dirty) {
+                    const file = { content: document.getDraft().content, path: document.path }
+                    dataService.scheduleFileCommit(file, `Update ${file.path}`, document.createSaveReference())
+                }
             }
-            if (document.kind === 'instruction' && document.dirty) {
-                const file = { content: document.getDraft().content, path: document.path }
-                dataService.scheduleFileCommit(file, `Update ${file.path}`, document.createSaveReference())
-            }
+            if (dataService.getPersistenceSnapshot().hasPendingFileCommit) await dataService.cards.flushPendingCommits()
+            await dataService.drainPendingStorageWrites()
+            this.reconcileSnapshot()
+            if (this.getPendingSaveBlockers().length === 0) return
         }
-        if (dataService.getPersistenceSnapshot().hasPendingFileCommit) await dataService.cards.flushPendingCommits()
-        await dataService.drainPendingStorageWrites()
-        this.reconcileSnapshot()
 
         const pendingSaveBlockers = this.getPendingSaveBlockers()
-        if (pendingSaveBlockers.length > 0) {
-            throw new Error(`Pending changes remain after flush: ${pendingSaveBlockers.join(', ')}`)
-        }
+        throw new Error(`Pending changes remain after flush: ${pendingSaveBlockers.join(', ')}`)
     }
 
     private readonly handleDependencyChanged = () => {
@@ -114,7 +116,7 @@ export class ProjectPersistenceService extends EventTarget {
             .map(({ kind, path }) => `${kind} document ${path}`)
         const blockers = [...dirtyDocuments]
         if (actionService.draftStore.hasPendingDrafts()) blockers.push('action drafts')
-        if (hasPendingFileCommit) blockers.push('file commit batch')
+        if (hasPendingFileCommit) blockers.push(`file commit batch: ${dataService.describePendingFileCommits().join(', ')}`)
         if (isSaving) blockers.push('storage writes')
 
         return blockers

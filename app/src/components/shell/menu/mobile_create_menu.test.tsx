@@ -30,7 +30,7 @@ describe('MobileCreateMenu', () => {
         const props = renderCreateMenu()
 
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
-        expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['New card', 'New action', 'New diagram'])
+        expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['New card', 'New action', 'New diagram', 'Add sequence'])
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card' }))
         expect(props.onCreateCard).toHaveBeenCalledOnce()
 
@@ -81,7 +81,7 @@ describe('MobileCreateMenu', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
         const menuItems = screen.getAllByRole('menuitem')
-        expect(menuItems.map((item) => item.textContent)).toEqual(['New card', 'New action', 'New diagram'])
+        expect(menuItems.map((item) => item.textContent)).toEqual(['New card', 'New action', 'New diagram', 'Add sequence'])
         disabledStates.forEach((isDisabled, index) => {
             if (isDisabled) expect(menuItems[index]).toHaveAttribute('aria-disabled', 'true')
             else expect(menuItems[index]).not.toHaveAttribute('aria-disabled', 'true')

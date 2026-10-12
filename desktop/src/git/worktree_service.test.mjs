@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, realpath, rm, stat, writeFile } from 'node:fs/
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { runGit } = require('./git_commands');
@@ -287,6 +287,8 @@ describe('WorktreeService merge conflict lifecycle', () => {
         try {
             await service.startProject(project);
             await commitConflictingChanges(repository);
+            await runGit(repository.primaryPath, ['add', 'base.txt']);
+            await runGit(repository.primaryPath, ['commit', '-m', 'Primary conflict']);
             await service.refreshLocal();
             const linkedCheckpoint = await runGit(repository.linkedPath, ['rev-parse', 'HEAD']);
 
@@ -314,6 +316,8 @@ describe('WorktreeService merge conflict lifecycle', () => {
         try {
             await service.startProject(project);
             await commitConflictingChanges(repository);
+            await runGit(repository.primaryPath, ['add', 'base.txt']);
+            await runGit(repository.primaryPath, ['commit', '-m', 'Primary conflict']);
             await service.refreshLocal();
             const linkedCheckpoint = await runGit(repository.linkedPath, ['rev-parse', 'HEAD']);
             const outcome = await service.integrate(project, 'feature', { cardInternalId: 'card-1', projectFolder: 'design' });
@@ -344,6 +348,8 @@ describe('WorktreeService merge conflict lifecycle', () => {
         try {
             await service.startProject(project);
             await commitConflictingChanges(repository);
+            await runGit(repository.primaryPath, ['add', 'base.txt']);
+            await runGit(repository.primaryPath, ['commit', '-m', 'Primary conflict']);
             await service.refreshLocal();
             const outcome = await service.integrate(project, 'feature', { cardInternalId: 'card-1', projectFolder: 'design' });
             await writeFile(join(outcome.session.repositoryRoot, 'base.txt'), 'resolved\n');
@@ -372,6 +378,8 @@ describe('WorktreeService merge conflict lifecycle', () => {
         try {
             await service.startProject(project);
             await commitConflictingChanges(repository);
+            await runGit(repository.primaryPath, ['add', 'base.txt']);
+            await runGit(repository.primaryPath, ['commit', '-m', 'Primary conflict']);
             await service.refreshLocal();
             const outcome = await service.integrate(project, 'feature', { cardInternalId: 'card-1', projectFolder: 'design' });
             await writeFile(join(repository.linkedPath, 'base.txt'), 'resolved\n');
@@ -434,6 +442,27 @@ describe('WorktreeService merge conflict lifecycle', () => {
 });
 
 describe('WorktreeService integration synchronization', () => {
+    it('refuses later primary changes without creating a checkpoint commit', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+
+        try {
+            await service.startProject(project);
+            await commitLinkedChange(repository.linkedPath);
+            await writeFile(join(repository.primaryPath, 'later.txt'), 'later\n');
+            const previousCommit = await runGit(repository.primaryPath, ['rev-parse', 'HEAD']);
+
+            await expect(service.integrate(project, 'feature')).rejects.toThrow('Primary worktree changed after pending saves were flushed');
+
+            expect(await runGit(repository.primaryPath, ['rev-parse', 'HEAD'])).toBe(previousCommit);
+            expect(await runGit(repository.primaryPath, ['status', '--porcelain'])).toContain('later.txt');
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
     it('moves linked branch to squash commit before publishing integration state', async () => {
         const repository = await createRepository();
         const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
@@ -445,6 +474,8 @@ describe('WorktreeService integration synchronization', () => {
             await service.startProject(project);
             await commitLinkedChange(repository.linkedPath);
             await service.refreshLocal();
+            const readAllRecords = vi.spyOn(service, 'readWorktreeRecords');
+            const revalidateRecord = vi.spyOn(service, 'revalidateRecord');
 
             const integration = await service.integrate(project, 'feature');
             const linkedCommit = await runGit(repository.linkedPath, ['rev-parse', 'HEAD']);
@@ -456,6 +487,8 @@ describe('WorktreeService integration synchronization', () => {
             expect(finalRecord.branch).toBe('feature');
             expect(finalRecord.status.baseAhead).toBe(0);
             expect(finalRecord.status.baseBehind).toBe(0);
+            expect(readAllRecords).toHaveBeenCalledOnce();
+            expect(revalidateRecord).toHaveBeenCalledOnce();
             await expect(service.integrate(project, 'feature')).rejects.toThrow('Linked worktree has no changes to integrate');
         } finally {
             service.stopProject();
@@ -527,10 +560,12 @@ describe('WorktreeService local branch deletion', () => {
 
         try {
             await service.startProject(project);
+            const readAllRecords = vi.spyOn(service, 'readWorktreeRecords');
             await service.park(project, 'feature');
             await service.deleteBranch(project, 'feature');
 
             expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('');
+            expect(readAllRecords).not.toHaveBeenCalled();
         } finally {
             service.stopProject();
             await rm(repository.folderPath, { force: true, recursive: true });

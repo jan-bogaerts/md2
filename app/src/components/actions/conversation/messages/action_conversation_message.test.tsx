@@ -32,6 +32,7 @@ function renderMessages() {
     const tracker = {
         getConversation: () => conversation,
         getConversationStatus: () => conversation.status,
+        getPrompt: () => undefined,
         subscribeConversationStatus: () => () => undefined,
     } as unknown as ActionConversationChatlogTracker;
     render(
@@ -100,6 +101,7 @@ function renderMessage(entry: AgentConversationMessageEntry, status: AgentConver
     const tracker = {
         getConversation: () => conversation,
         getConversationStatus: () => conversation.status,
+        getPrompt: () => undefined,
         subscribeConversationStatus: () => () => undefined,
     } as unknown as ActionConversationChatlogTracker;
 

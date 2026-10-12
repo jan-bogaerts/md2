@@ -1,5 +1,6 @@
 import { useCellValues } from '@mdxeditor/editor';
-import { Redo, Undo } from '@mui/icons-material';
+import Redo from '@mui/icons-material/Redo';
+import Undo from '@mui/icons-material/Undo';
 import { IconButton, Tooltip } from '@mui/material';
 import { useCallback } from 'react';
 import { markdownSourceCanRedo$, markdownSourceCanUndo$, markdownSourceController$ } from './markdown_source_cell';

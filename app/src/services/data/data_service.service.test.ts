@@ -26,6 +26,22 @@ describe('DataService', () => {
         openFilesService.clear()
     })
 
+    it('queues desktop integration history for normal project persistence', async () => {
+        configService.init()
+        const activityPath = 'design/activity/card__card-1.json'
+        const file = { content: '{"records":[]}', path: activityPath }
+        const storage = createStorage({ loadTextFile: vi.fn(async () => file) })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await service.queueIntegratedActivity(activityPath)
+
+        expect(storage.loadTextFile).toHaveBeenCalledWith(expect.objectContaining({ branch: 'main' }), activityPath)
+        expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(true)
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
     it('publishes a scoped worktree update after applying a branch-only card change', async () => {
         configService.init();
         const service = createDataService();
@@ -376,8 +392,7 @@ describe('DataService', () => {
         await actionService.draftStore.flushDrafts()
 
         firstCommit.resolve([])
-        await expect(initialFlush).rejects.toThrow('Pending changes remain after flush')
-        await projectPersistenceService.flushPendingChanges()
+        await expect(initialFlush).resolves.toBeUndefined()
 
         const requests = vi.mocked(storage.commit).mock.calls.map(([request]) => request)
         expect(requests[0].files).toEqual([expect.objectContaining({ path: 'actions/new-action.json' })])

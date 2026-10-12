@@ -1,6 +1,8 @@
 import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material'
 import type { MouseEvent } from 'react'
 import { useState } from 'react'
+import { hasSequenceScheduleBackend } from '../../../data/electron_action_bridge';
+import { cardPopupService } from '../../../services/card_popup_service';
 import Plus from 'mdi-material-ui/Plus'
 import type { EmptyDiagramChoice } from '../../../services/diagrams/empty_diagram_factory'
 import { EMPTY_DIAGRAM_CHOICES } from '../../../services/diagrams/empty_diagram_factory'
@@ -49,6 +51,11 @@ export function MobileCreateMenu(props: MobileCreateMenuProps) {
         void onCreateAction()
     }
 
+    const handleCreateSequence = (event: MouseEvent<HTMLElement>) => {
+        cardPopupService.openSequence(event.currentTarget);
+        handleCloseMenu();
+    };
+
     const handleCreateCard = () => {
         handleCloseMenu()
         onCreateCard()
@@ -77,6 +84,9 @@ export function MobileCreateMenu(props: MobileCreateMenuProps) {
                 <MenuItem disabled={isNewCardDisabled} onClick={handleCreateCard}>New card</MenuItem>
                 <MenuItem disabled={isNewActionDisabled} onClick={handleCreateAction}>New action</MenuItem>
                 <MenuItem disabled={isNewDiagramDisabled} onClick={handleOpenDiagramMenu}>New diagram</MenuItem>
+                <MenuItem disabled={isNewCardDisabled || !hasSequenceScheduleBackend()} onClick={handleCreateSequence}>
+                    Add sequence
+                </MenuItem>
             </Menu>
             <Menu anchorEl={diagramAnchorElement} onClose={handleCloseDiagramMenu} open={!!diagramAnchorElement}>
                 {EMPTY_DIAGRAM_CHOICES.map((choice) => (

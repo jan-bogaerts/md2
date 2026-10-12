@@ -492,4 +492,23 @@ describe('CommitBatcher', () => {
         await batcher.flush()
         expect(commit.mock.calls[0][0].files).toEqual([{ content: 'other', path: 'other.md' }])
     })
+
+    it('describes each queued change with kind, target path and messages', () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = createBatcher(commit)
+        batcher.schedule('main', [{ content: 'first', kind: 'file', path: 'notes.md' }], 'Update notes.md')
+        batcher.schedule('main', [{ content: 'second', kind: 'file', path: 'notes.md' }], 'Retitle notes.md')
+        batcher.schedule('main', [{
+            actionId: 'review',
+            content: 'action',
+            kind: 'action',
+            path: 'actions/review-code.json',
+            sourcePath: 'actions/review.json',
+        }], 'Rename action')
+
+        expect(batcher.describePendingChanges()).toEqual([
+            'file notes.md (Update notes.md; Retitle notes.md)',
+            'action actions/review-code.json (Rename action)',
+        ])
+    })
 })

@@ -39,3 +39,24 @@ describe('cardSequenceActions', () => {
         expect(cardSequenceActions([action('all')], [], DEFAULT_CARD_TYPES, [])).toEqual([])
     })
 })
+
+describe('sequence worktree availability', () => {
+    it('evaluates selected checkout directly, without card header assignment or global worktree state', () => {
+        const selectedCard = card('one', 'F-1', 'todo');
+        const records = [{
+            branch: 'selected', error: null, parkingBranch: null, path: 'C:/linked', valid: true,
+            status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },
+        }];
+        const actions = [action('all'), action('selected', { worktree: '1' }), action('other', { worktree: '2' })];
+        expect(cardSequenceActions(actions, [selectedCard], DEFAULT_CARD_TYPES, records, 'selected').map(({ id }) => id))
+            .toEqual(['all', 'selected']);
+        expect(selectedCard.header.worktreeValue).toBeNull();
+        expect(cardSequenceActions(actions, [selectedCard], DEFAULT_CARD_TYPES, records, 'missing')).toEqual([]);
+    });
+
+    it.each(['2', 'invalid'])('rejects cards with existing %s assignment', (value) => {
+        const assignedCard = card('one', 'F-1', 'todo');
+        assignedCard.header.worktreeValue = value;
+        expect(cardSequenceActions([action('all')], [assignedCard], DEFAULT_CARD_TYPES, [])).toEqual([]);
+    });
+});

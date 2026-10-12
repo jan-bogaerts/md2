@@ -195,7 +195,7 @@ describe('CardOperations', () => {
         expect(committedPaths).not.toContain('design/architecture/notes.md')
     })
 
-    it('creates cards with commits and auto-pushes when configured', async () => {
+    it('queues a created card for the shared commit batch and auto-pushes after flush', async () => {
         configService.init()
         const storage = createStorage()
         const service = createDataService()
@@ -204,8 +204,27 @@ describe('CardOperations', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
 
+        expect(storage.commit).not.toHaveBeenCalled()
+        expect(service.hasPendingFile('design/F-4-new-card.md')).toBe(true)
+        await service.cards.flushPendingCommits()
         expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Create design/F-4-new-card.md' }) as CommitRequest)
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+    })
+
+    it('includes edits made before the first flush in the created card commit', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        const file = await service.cards.createCard({ body: 'Initial body', title: 'New Card', type: 'feature' }, 'new')
+        service.cards.updateCardBody(file.path, 'Edited body')
+        await service.cards.flushPendingCommits()
+
+        expect(storage.commit).toHaveBeenCalledOnce()
+        expect(vi.mocked(storage.commit).mock.calls[0][0].files[0].content).toContain('Edited body')
+        expect(service.hasPendingFile(file.path)).toBe(false)
     })
 
     it('imports unseen Sentry issues with sequential IDs in one commit and one local batch', async () => {
@@ -380,9 +399,12 @@ describe('CardOperations', () => {
         expect(file.path).toBe('design/F-4-new-card.md')
         expect(parseCard).toHaveBeenCalledOnce()
         expect(added).toHaveBeenCalledOnce()
-        expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+        expect(storage.push).not.toHaveBeenCalled()
+        const flush = service.cards.flushPendingCommits()
+        await vi.waitFor(() => expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' }))
         pendingPush.resolve()
-        await vi.waitFor(() => expect(pushFinished).toHaveBeenCalledOnce())
+        await flush
+        expect(pushFinished).toHaveBeenCalledOnce()
     })
 
     it('keeps the created card stable when storage returns its SHA', async () => {
@@ -402,6 +424,7 @@ describe('CardOperations', () => {
         service.addEventListener(CARD_CHANGED_EVENT, changed)
 
         const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
+        await service.cards.flushPendingCommits()
 
         expect(added).toHaveBeenCalledOnce()
         const changedPaths = changed.mock.calls.map(([event]) => (
@@ -529,7 +552,7 @@ describe('CardOperations', () => {
         expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(repositoryListCallsBeforeDelete)
     })
 
-    it('keeps a created card when auto-push fails after the commit succeeds', async () => {
+    it('keeps a created card when batched auto-push fails after the commit succeeds', async () => {
         configService.init()
         const pushError = new Error('GitHub denied write access')
         const storage = createStorage({
@@ -546,12 +569,12 @@ describe('CardOperations', () => {
             service.init({ storage })
             await service.projectLoading.openProject({ branch: 'main', id: 'project' })
             const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
+            await expect(service.cards.flushPendingCommits()).rejects.toThrow('GitHub denied write access')
 
             expect(file.path).toBe('design/F-4-new-card.md')
             expect(service.getState().snapshot?.activeCards.some((card) => card.path === file.path)).toBe(true)
-            expect(errors.messages).toContain(
-                'Card created locally, but GitHub push failed. Use Push after resolving the GitHub access problem. GitHub denied write access',
-            )
+            expect(errors.messages).toContain('GitHub denied write access')
+            expect(service.hasPendingFile(file.path)).toBe(false)
             expect(captureError).toHaveBeenCalledWith(pushError)
             expect(trackEvent).toHaveBeenCalledWith('create_card')
         } finally {
@@ -570,9 +593,14 @@ describe('CardOperations', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await service.cards.createCard({ body: '', title: 'New Job', type: 'job' }, 'new')
         await service.cards.createCard({ body: '', title: 'New Bug', type: 'bug' }, 'new')
+        await service.cards.flushPendingCommits()
 
-        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ files: [expect.objectContaining({ path: 'design/J-1-new-job.md' })] }) as CommitRequest)
-        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ files: [expect.objectContaining({ path: 'design/B-1-new-bug.md' })] }) as CommitRequest)
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({
+            files: expect.arrayContaining([
+                expect.objectContaining({ path: 'design/J-1-new-job.md' }),
+                expect.objectContaining({ path: 'design/B-1-new-bug.md' }),
+            ]),
+        }) as CommitRequest)
     })
 
     it('creates a card in the requested initial state', async () => {
@@ -604,7 +632,7 @@ describe('CardOperations', () => {
         trackEvent.mockRestore()
     })
 
-    it('does not emit create card usage when persistence fails', async () => {
+    it('retains a created card in the pending batch when persistence fails', async () => {
         configService.init()
         const storage = createStorage({
             commit: vi.fn(async () => {
@@ -618,8 +646,10 @@ describe('CardOperations', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         trackEvent.mockClear()
 
-        await expect(service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')).rejects.toThrow('commit failed')
-        expect(trackEvent).not.toHaveBeenCalledWith('create_card')
+        const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
+        await expect(service.cards.flushPendingCommits()).rejects.toThrow('commit failed')
+        expect(service.hasPendingFile(file.path)).toBe(true)
+        expect(trackEvent).toHaveBeenCalledWith('create_card')
 
         trackEvent.mockRestore()
     })
@@ -632,6 +662,7 @@ describe('CardOperations', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
+        await service.cards.flushPendingCommits()
 
         expect(storage.commit).toHaveBeenCalledTimes(1)
         expect(storage.push).not.toHaveBeenCalled()

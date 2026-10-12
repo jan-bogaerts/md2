@@ -29,9 +29,9 @@ async function sendStreamingMessage(service, run, content, submissionId) {
     const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
     transitionConversationStatus(run.conversation, state, timestamp, run.phases);
     run.turnActive = true;
-    await service.persistCheckpoint(run);
     emitRunEvent(run, { type: 'userMessage', userMessage });
     emitRunEvent(run, { state, type: 'state' });
+    await service.persistCheckpoint(run);
 }
 
 function sendMessage(service, run, content, submissionId) {
@@ -95,9 +95,9 @@ function answerQuestion(service, run, requestId, answers) {
         }
         const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
         transitionConversationStatus(run.conversation, state, timestamp, run.phases);
-        await service.persistCheckpoint(run);
         emitRunEvent(run, { requestId, state, type: 'questionAnswered', userMessage });
         emitRunEvent(run, { state, type: 'state' });
+        await service.persistCheckpoint(run);
     });
 }
 
@@ -127,14 +127,14 @@ function dismissQuestions(service, run, requestId) {
         }
         const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
         transitionConversationStatus(run.conversation, state, timestamp, run.phases);
+        emitRunEvent(run, { event, requestId, state, type: 'questionDismissed' });
+        emitRunEvent(run, { state, type: 'state' });
         let persistenceError = null;
         try {
             await service.persistCheckpoint(run);
         } catch (error) {
             persistenceError = error;
         }
-        emitRunEvent(run, { event, requestId, state, type: 'questionDismissed' });
-        emitRunEvent(run, { state, type: 'state' });
         if (persistenceError) {
             throw new Error(
                 'Questions dismissed, but conversation checkpoint could not be saved',

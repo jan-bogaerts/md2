@@ -92,7 +92,7 @@ export class CardOperations {
     }
 
     async createCard(draft: CardDraft, initialState: string) {
-        const { config, project } = this.context.requireProject('create a card')
+        const { commitBatcher, config, project } = this.context.requireProject('create a card')
         const { dependencies } = this.context
 
         const file = createCardFile(
@@ -104,12 +104,11 @@ export class CardOperations {
             draft,
         )
         dependencies.addCreatedCardFile(file, config.workingFolder)
-        await this.context.commitCreatedFiles({
-            branch: project.branch,
-            files: [file],
-            message: `Create ${file.path}`,
-        })
-        void this.context.pushCreatedItem('Card')
+        const card = dependencies.requireCard(file.path)
+        const cardInternalId = card.header.internalId
+        if (!cardInternalId) throw new Error(`Cannot create a card without an internal ID: ${file.path}`)
+        const change = { cardInternalId, kind: 'card' as const, path: file.path }
+        commitBatcher.schedule(project.branch, [change], `Create ${file.path}`)
 
         telemetryService.trackEvent('create_card')
 

@@ -4,8 +4,10 @@ import {
     type TriggerFn,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin'
 import { useCellValue } from '@mdxeditor/editor'
-import type { TextNode } from 'lexical'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { COMMAND_PRIORITY_HIGH, type TextNode } from 'lexical';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { RESET_MARKDOWN_DRAFT_COMMAND } from '../data_sources/reset_markdown_draft_command';
 import { markdownFileSearchConfig$ } from './markdown_file_search_config_cell'
 import { renderFileSearchMenu } from './markdown_file_search_menu_renderer'
 import { MarkdownFileSearchOption } from './markdown_file_search_option'
@@ -17,6 +19,7 @@ import { matchFileSearchTriggerForFiles } from './markdown_file_search_trigger'
 
 /** Shows repository files at the caret after the user types `@`. */
 export function MarkdownFileSearchTypeaheadPlugin() {
+    const [editor] = useLexicalComposerContext();
     const { overlayContainer, repositoryFiles } = useCellValue(markdownFileSearchConfig$)
     const hasCapturedAnchorRef = useRef(false)
     const [anchorRect, setAnchorRect] = useState<MarkdownFileSearchAnchorRect | null>(null)
@@ -47,6 +50,14 @@ export function MarkdownFileSearchTypeaheadPlugin() {
         hasCapturedAnchorRef.current = false
         setAnchorRect(null)
     }, [])
+
+    const handleDraftReset = useCallback(() => {
+        handleClose();
+        setQuery(null);
+        return false;
+    }, [handleClose]);
+    useEffect(() => editor.registerCommand(RESET_MARKDOWN_DRAFT_COMMAND, handleDraftReset, COMMAND_PRIORITY_HIGH),
+        [editor, handleDraftReset]);
 
     const handleSelectOption = useCallback((
         option: MarkdownFileSearchOption,

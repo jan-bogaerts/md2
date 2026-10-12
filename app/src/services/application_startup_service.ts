@@ -8,6 +8,7 @@ import { actionRunSettingsService } from './actions/action_run_settings_service'
 import { actionService } from './actions/action_service'
 import { activeScheduleService } from './actions/active_schedule_service'
 import { agentCapabilitiesService } from './agents/agent_capabilities_service'
+import { mergeAgentProfiles } from '../data/agent_profiles'
 import { codexCliUpdateService } from './agents/codex_cli_update_service'
 import { codexRateLimitService } from './agents/codex_rate_limit_service'
 import { claudeRateLimitService } from './agents/claude_rate_limit_service'
@@ -33,6 +34,7 @@ export interface ApplicationStartupSnapshot {
 export interface ApplicationStartupDependencies {
     getGithubAccessToken(): string | null
     initializeAgentCapabilities(): Promise<void>
+    refreshStartupModelCatalogs(): Promise<void>
     initializeServices(): void
     restoreGithubSession(): Promise<void>
     restoreLastProject(accessToken: string | null): Promise<ProjectOpenResolution | null>
@@ -62,6 +64,9 @@ function initializeServices() {
 const DEFAULT_DEPENDENCIES: ApplicationStartupDependencies = {
     getGithubAccessToken: () => githubAuthService.getAccessToken(),
     initializeAgentCapabilities: () => agentCapabilitiesService.initialize(),
+    refreshStartupModelCatalogs: () => agentCapabilitiesService.refreshStartupCatalogs(
+        mergeAgentProfiles(configService.get('desktop.agentProfiles')),
+    ),
     initializeServices,
     restoreGithubSession: () => githubAuthService.restoreSession(),
     restoreLastProject: (accessToken) => projectSessionService.restoreLastProject(accessToken),
@@ -97,6 +102,7 @@ export class ApplicationStartupService extends EventTarget {
                 this.dependencies.initializeAgentCapabilities(),
             ])
             const resolution = await this.dependencies.restoreLastProject(this.dependencies.getGithubAccessToken())
+            await this.dependencies.refreshStartupModelCatalogs()
             this.setSnapshot({ error: null, phase: 'ready', projectOpenResolution: resolution })
         } catch (error) {
             const message = isProjectLoadErrorReported(error)

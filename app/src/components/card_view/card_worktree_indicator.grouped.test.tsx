@@ -71,12 +71,12 @@ describe('CardWorktreeIndicator', () => {
         expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', 'feature')
     })
 
-    it('shows an out-of-bounds index in an error state', async () => {
+    it('shows an unavailable assigned branch in an error state', async () => {
         renderIndicator(card(3), [])
-        const button = screen.getByRole('button', { name: /F-1: missing folder/u })
+        const button = screen.getByRole('button', { name: /F-1: unavailable assignment/u })
         fireEvent.mouseOver(button)
 
-        expect(await screen.findByText(/Worktree assignment error: Configured worktree 3 does not exist/u)).toBeInTheDocument()
+        expect(await screen.findByText(/Worktree assignment error: Assigned worktree branch "feature" is unavailable/u)).toBeInTheDocument()
         expect(button).toHaveStyle({ color: 'rgb(211, 47, 47)' })
     })
 

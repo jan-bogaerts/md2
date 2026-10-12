@@ -68,7 +68,6 @@ class ActionRunnerService {
         this.actionDefinitionCache = dependencies?.actionDefinitionCache
             ?? (this.localGitService ? new ActionDefinitionCache({ localGitService: this.localGitService }) : null);
         this.agentExecutor = new ActionAgentExecutor({
-            agentModelCatalogService: dependencies?.agentModelCatalogService,
             agentConfigProvider: this.agentConfigProvider,
             agentRunnerService: this.agentRunnerService,
             localGitService: this.localGitService,
@@ -169,6 +168,12 @@ class ActionRunnerService {
 
     async start(request, options = {}) {
         const startRequest = validateStartRequest(request);
+        if (startRequest.context.sequenceId || startRequest.context.sequenceCheckoutPath) {
+            if (!options.sequenceId || options.sequenceId !== startRequest.context.sequenceId
+                || !startRequest.context.sequenceCheckoutPath) {
+                throw new Error('Sequence checkout context requires its scheduler owner');
+            }
+        }
         this.requireReady();
         assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);
         const origin = activityOrigin(startRequest.context);
@@ -526,8 +531,11 @@ class ActionRunnerService {
         run.finishAgent();
     }
 
-    handleCardStateChange(cardInternalId, state) {
-        for (const run of this.runs.values()) run.handleCardStateChange(cardInternalId, state);
+    handleCardStateChange(cardInternalId, state, checkoutPath = null) {
+        for (const run of this.runs.values()) {
+            if ((run.context?.sequenceCheckoutPath ?? null) !== checkoutPath) continue;
+            run.handleCardStateChange(cardInternalId, state);
+        }
     }
 
     requireActionsFolder() {

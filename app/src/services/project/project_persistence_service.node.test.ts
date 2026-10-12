@@ -19,6 +19,7 @@ class TestActionService extends EventTarget {
 class TestDataService extends EventTarget {
     private readonly saveReferences: OpenDocumentSaveReference[] = []
     snapshot: DataPersistenceSnapshot = { hasPendingFileCommit: false, hasPendingPush: false, isSaving: false }
+    pendingFileCommits: string[] = []
     readonly cards = {
         flushPendingCommits: vi.fn(async () => {
             this.saveReferences.splice(0).forEach(({ acknowledge }) => acknowledge())
@@ -36,6 +37,7 @@ class TestDataService extends EventTarget {
         this.snapshot = { ...this.snapshot, hasPendingFileCommit: true }
     })
     getPersistenceSnapshot() { return this.snapshot }
+    describePendingFileCommits() { return this.pendingFileCommits }
     publishPersistenceChange() { this.dispatchEvent(new Event('persistenceChanged')) }
 }
 
@@ -176,6 +178,49 @@ describe('ProjectPersistenceService', () => {
         await expect(service.flushPendingChanges()).rejects.toThrow(
             'Pending changes remain after flush: card document design/card.md',
         )
+    })
+
+    it('names the queued changes that remain in the commit batch after a flush', async () => {
+        const { dataService, service } = initService()
+        dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
+        dataService.cards.flushPendingCommits.mockImplementation(async () => {
+            dataService.pendingFileCommits = ['card design/card.md (Update design/card.md)']
+        })
+
+        await expect(service.flushPendingChanges()).rejects.toThrow(
+            'Pending changes remain after flush: file commit batch: card design/card.md (Update design/card.md)',
+        )
+    })
+
+    it('commits changes queued while an earlier commit pass is active', async () => {
+        const { dataService, service } = initService()
+        dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
+        dataService.cards.flushPendingCommits.mockImplementationOnce(async () => {
+            dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
+        })
+
+        await service.flushPendingChanges()
+
+        expect(dataService.cards.flushPendingCommits).toHaveBeenCalledTimes(2)
+        expect(service.getSnapshot().hasPendingSave).toBe(false)
+    })
+
+    it('stages action drafts created while a commit pass is active', async () => {
+        const { actionService, dataService, service } = initService()
+        dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
+        dataService.cards.flushPendingCommits.mockImplementationOnce(async () => {
+            actionService.pendingDrafts = true
+            dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: false }
+        })
+        actionService.draftStore.flushDrafts.mockImplementationOnce(async () => {
+            actionService.pendingDrafts = false
+            dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
+        })
+
+        await service.flushPendingChanges()
+
+        expect(actionService.draftStore.flushDrafts).toHaveBeenCalledOnce()
+        expect(dataService.cards.flushPendingCommits).toHaveBeenCalledTimes(2)
     })
 
     it('drains storage writes before reporting success', async () => {

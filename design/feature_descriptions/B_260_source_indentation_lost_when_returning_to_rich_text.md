@@ -3,6 +3,7 @@ id: B_260
 internalId: ef3c3a56-28a9-4ca5-9402-16972e140c01
 title: Source indentation is lost when returning to Rich text
 status: new
+after: e461b100-4b8f-435e-9c0f-81426d7fdb47
 ---
 
 Reported during review of [PR #29](https://github.com/jan-bogaerts/md2/pull/29), head `146ca4bb105c90cab3739d7f6356096608d6dfd8`. Fix after the PR is merged.

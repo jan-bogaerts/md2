@@ -4,7 +4,47 @@ import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../
 import { activeScheduleService } from '../../../../services/actions/active_schedule_service'
 import { dataService } from '../../../../services/data/data_service'
 import { projectAccessService } from '../../../../services/project/project_access_service'
-import { defaultConvertPromptToAction, defaultScheduleAction } from './action_popup_defaults'
+import { projectPersistenceService } from '../../../../services/project/project_persistence_service';
+import { actionService } from '../../../../services/actions/action_service';
+import { defaultConvertPromptToAction, defaultPreparePrompt, defaultScheduleAction } from './action_popup_defaults';
+
+describe('defaultPreparePrompt', () => {
+    afterEach(() => {
+        setActionBridgeOverride(null);
+        vi.restoreAllMocks();
+    });
+
+    it.each([true, false])('flushes only pending action definitions before preparation: pending=%s', async (pending) => {
+        const prepared = { prompt: 'Current definition' };
+        const prepareActionPrompt = vi.fn(async () => prepared);
+        setActionBridgeOverride({ prepareActionPrompt } as unknown as ElectronActionBridge);
+        vi.spyOn(actionService.draftStore, 'hasPendingDrafts').mockReturnValue(pending);
+        const flushDrafts = vi.spyOn(actionService.draftStore, 'flushDrafts').mockResolvedValue();
+        const flushProject = vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockResolvedValue();
+        const action = { id: 'review' } as ActionDefinition;
+        const context = { cardInternalId: 'card-1', kind: 'card' as const };
+
+        await expect(defaultPreparePrompt(action, context)).resolves.toBe(prepared);
+
+        expect(flushDrafts).toHaveBeenCalledTimes(pending ? 1 : 0);
+        expect(flushProject).not.toHaveBeenCalled();
+        expect(prepareActionPrompt).toHaveBeenCalledWith({ actionId: action.id, context });
+        if (pending) {
+            expect(flushDrafts.mock.invocationCallOrder[0]).toBeLessThan(prepareActionPrompt.mock.invocationCallOrder[0]);
+        }
+    });
+
+    it('reports action flush failure without preparing stale definitions', async () => {
+        const failure = new Error('Action save failed');
+        const prepareActionPrompt = vi.fn();
+        setActionBridgeOverride({ prepareActionPrompt } as unknown as ElectronActionBridge);
+        vi.spyOn(actionService.draftStore, 'hasPendingDrafts').mockReturnValue(true);
+        vi.spyOn(actionService.draftStore, 'flushDrafts').mockRejectedValue(failure);
+
+        await expect(defaultPreparePrompt({ id: 'review' } as ActionDefinition, { kind: 'project' })).rejects.toBe(failure);
+        expect(prepareActionPrompt).not.toHaveBeenCalled();
+    });
+});
 
 describe('defaultScheduleAction', () => {
     afterEach(() => {

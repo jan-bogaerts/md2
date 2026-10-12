@@ -17,9 +17,10 @@ const popperPropsSpy = vi.hoisted(() => vi.fn<(props: CapturedPopperProps) => vo
 const imagePluginSpy = vi.hoisted(() => vi.fn<(options?: CapturedImagePluginOptions) => object>(() => ({})))
 
 vi.mock('@mdxeditor/editor', async () => {
+    const actual = await vi.importActual<typeof import('@mdxeditor/editor')>('@mdxeditor/editor');
     const stub = await import('../../test/mdx_editor_stub')
 
-    return { ...stub, imagePlugin: imagePluginSpy }
+    return { ...actual, ...stub, imagePlugin: imagePluginSpy };
 })
 
 vi.mock('@mui/material', async (importOriginal) => {

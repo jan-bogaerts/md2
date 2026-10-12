@@ -103,3 +103,14 @@ describe('CardSequenceDraftService', () => {
         })
     })
 })
+
+describe('sequence worktree draft', () => {
+    it('includes optional assignment in registration without replacing card identities', () => {
+        const service = readyService();
+        service.setWorktreeBranch('selected');
+        expect(service.createRegistrationRequest()).toMatchObject({ cardInternalIds: ['card-1'], worktreeBranch: 'selected' });
+        service.setWorktreeBranch('');
+        expect(service.createRegistrationRequest()).not.toHaveProperty('worktreeBranch');
+        service.close();
+    });
+});

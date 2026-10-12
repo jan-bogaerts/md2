@@ -11,6 +11,7 @@ const {
 const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = require('../schedule/schedule_timers');
 const { accountResetObservations, trackerKey } = require('../schedule/schedule_account_snapshots');
 const { resolveScheduledCardContext } = require('../schedule/scheduled_card_context');
+const { SequenceWorktreeExecution } = require('../schedule/sequence_worktree_execution');
 const { ScheduledCardSequenceEngine } = require('../schedule/scheduled_card_sequence_engine');
 const { allocateActionRunId } = require('./action_runner_service');
 
@@ -143,12 +144,29 @@ class ActionSchedulerService {
             generation,
             project: this.project,
         };
+        const worktreeExecution = new SequenceWorktreeExecution({
+            project: this.project,
+            projectFolder: paths.projectFolder,
+            activeCardsFolder: this.activeCardsFolder,
+            worktreeService: this.worktreeService,
+            localGitService: this.localGitService,
+            saveSequence: (sequence) => this.saveSequence(sequence, executionContext),
+            onStateChange: (cardInternalId, state, checkoutPath) => (
+                this.handleSequenceCheckoutState(cardInternalId, state, checkoutPath, generation)
+            ),
+            onError: (scheduleId, error) => this.sequenceEngine.failExternal(scheduleId, error),
+            isCancelled: (scheduleId) => (
+                generation !== this.projectGeneration || this.sequenceEngine.cancelledSchedules.has(scheduleId)
+            ),
+        });
         this.sequenceEngine = new ScheduledCardSequenceEngine({
+            worktreeExecution,
+            reportError: (error) => this.reportError(error),
             actionRunnerService: this.actionRunnerService,
             allocateRunId: allocateActionRunId,
             isCurrent: () => generation === this.projectGeneration,
             loadSchedules: () => this.loadSchedules(executionContext),
-            resolveCardContext: (cardInternalId) => this.resolveCardContext(cardInternalId, executionContext),
+            resolveCardContext: (cardInternalId, sequence) => this.resolveSequenceCardContext(cardInternalId, sequence, executionContext),
             saveSequence: (sequence) => this.saveSequence(sequence, executionContext),
             states: this.configuredStates,
         });
@@ -172,6 +190,7 @@ class ActionSchedulerService {
     }
 
     clearProjectState() {
+        this.sequenceEngine?.worktreeExecution?.stop();
         this.projectGeneration += 1;
         clearScheduleTimers(this.timers, this.clearTimeout);
         this.accountResetObservations.clear();
@@ -205,7 +224,16 @@ class ActionSchedulerService {
 
     async registerSequenceSchedule(request) {
         const registration = validateSequenceRegistrationRequest(request);
+        for (const cardInternalId of registration.cardInternalIds) {
+            const context = await this.resolveSequenceCardContext(cardInternalId);
+            if (!context) throw new Error(`Sequence card not found: ${cardInternalId}`);
+        }
+        if (registration.worktreeBranch !== undefined) {
+            if (typeof registration.worktreeBranch !== 'string' || !registration.worktreeBranch) throw new Error('Missing sequence worktree branch');
+            await this.worktreeService.resolveBranch(this.requireCurrentProject(), registration.worktreeBranch);
+        }
         const schedule = {
+            ...(registration.worktreeBranch ? { worktreeBranch: registration.worktreeBranch } : {}),
             actionCompleted: false,
             actionId: registration.actionId,
             cardInternalIds: registration.cardInternalIds,
@@ -352,6 +380,13 @@ class ActionSchedulerService {
         await reconcileScheduleTimers(schedules, dependencies);
         for (const schedule of schedules) {
             if (schedule.kind !== 'sequence') continue;
+            if (options.startup && schedule.status === 'failed') {
+                try {
+                    await this.sequenceEngine.recoverHistory(schedule.id);
+                } catch (error) {
+                    this.reportError(error);
+                }
+            }
             if (schedule.status === 'running') await this.sequenceEngine.activate(schedule.id);
             if (schedule.status === 'pending' && schedule.trigger.type === 'now') await this.fireSchedule(schedule.id);
         }
@@ -534,6 +569,28 @@ class ActionSchedulerService {
             : schedule.context;
         const request = { actionId: schedule.actionId, context, runInput: {} };
         await this.actionRunnerService.start(request, { interactive: false, runId });
+    }
+
+    async handleSequenceCheckoutState(cardInternalId, state, checkoutPath, generation) {
+        if (generation !== this.projectGeneration) return;
+        await this.sequenceEngine.handleCardStateChange(cardInternalId, state, checkoutPath);
+        this.actionRunnerService.handleCardStateChange(cardInternalId, state, checkoutPath);
+    }
+
+    async resolveSequenceCardContext(cardInternalId, sequence = null, executionContext = null) {
+        const primaryContext = await this.resolveCardContext(cardInternalId, executionContext);
+        if (primaryContext.worktree !== undefined || primaryContext.worktreeError) throw new Error(`Sequence card already has a worktree assignment: ${cardInternalId}`);
+        if (!sequence?.branchProgress) return primaryContext;
+        const project = executionContext?.project ?? this.requireCurrentProject();
+        const checkoutPath = sequence.branchProgress.checkoutPath;
+        const checkoutProject = { ...project, rootPath: checkoutPath, id: checkoutPath, branch: sequence.branchProgress.expectedBranch };
+        const activeCardsFolder = executionContext?.activeCardsFolder ?? this.activeCardsFolder;
+        const { files } = await this.localGitService.loadProject(checkoutProject, activeCardsFolder);
+        const cardTypes = executionContext?.cardTypes ?? this.cardTypes;
+        const context = resolveScheduledCardContext(files, cardTypes, cardInternalId, []);
+        if (context.worktree !== undefined || context.worktreeError) throw new Error(`Sequence checkout card already has a worktree assignment: ${cardInternalId}`);
+
+        return this.sequenceEngine.worktreeExecution.context(sequence, context);
     }
 
     async resolveCardContext(cardInternalId, executionContext = null) {

@@ -84,3 +84,10 @@ describe('actionWorktreeContext', () => {
         expect(actionWorktreeContext(worktrees, '2', undefined, undefined)).toEqual({ worktree: '2' });
     });
 });
+
+describe('invalid scheduled card assignments', () => {
+    it.each(['', '\n  - 2'])('retains invalid assignment %s as an error', (value) => {
+        const file = { content: `---\nid: F_1\ninternalId: card-1\nstatus: todo\ntitle: Card\nworktree: ${value}\n---\n`, path: 'card.md' };
+        expect(resolveScheduledCardContext([file], cardTypes, 'card-1', []).worktreeError).toContain('Invalid worktree assignment');
+    });
+});

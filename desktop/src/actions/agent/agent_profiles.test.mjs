@@ -10,13 +10,13 @@ const {
     buildResumeAgentCommand,
     defaultModelForProfile,
     normalizeAgentProfiles,
-    resolveAgentCommand,
     supportsAgentStreaming,
     supportsPermissionMode,
     validateAgentProfiles,
     validatePermissionMode,
     validateThinkingLevel,
 } = require('./agent_profiles.mjs');
+const { resolveAgentExecution } = require('./agent_execution');
 
 function agentConfig(activeAgent, model, agentProfiles, thinkingLevel = 'none', permissionMode = 'ask-for-approval') {
     return {
@@ -28,7 +28,7 @@ function agentConfig(activeAgent, model, agentProfiles, thinkingLevel = 'none', 
 describe('agent profile resolution', () => {
     it('uses profile default model when config model is empty', () => {
         const profiles = [{ command: ['codex'], defaultModel: 'gpt-5', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }];
-        const result = resolveAgentCommand(agentConfig('codex', '', profiles));
+        const result = resolveAgentExecution(agentConfig('codex', '', profiles));
 
         expect(result).toMatchObject({
             agent: 'codex',
@@ -126,26 +126,26 @@ describe('agent profile resolution', () => {
         const config = agentConfig('codex', 'gpt-5', profiles, 'medium');
 
         const permissionArguments = ['--sandbox', 'workspace-write', '--ask-for-approval', 'on-request'];
-        expect(resolveAgentCommand(config, { thinkingLevel: 'low' })).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=low', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'low'});
-        expect(resolveAgentCommand(config)).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=medium', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'medium'});
-        expect(resolveAgentCommand(agentConfig('codex', 'gpt-5', profiles))).toMatchObject({ command: ['codex', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'none' });
+        expect(resolveAgentExecution(config, { thinkingLevel: 'low' })).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=low', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'low'});
+        expect(resolveAgentExecution(config)).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=medium', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'medium'});
+        expect(resolveAgentExecution(agentConfig('codex', 'gpt-5', profiles))).toMatchObject({ command: ['codex', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'none' });
     });
 
     it('rejects unavailable remembered active agents instead of replacing them', () => {
         expect(BUILTIN_AGENT_PROFILES.map((profile) => profile.name)).not.toContain('system');
-        expect(() => resolveAgentCommand(agentConfig('system', '', BUILTIN_AGENT_PROFILES)))
+        expect(() => resolveAgentExecution(agentConfig('system', '', BUILTIN_AGENT_PROFILES)))
             .toThrow('Unknown agent profile: system');
     });
 
     it('rejects stale action overrides when their agent profile is missing', () => {
         const config = agentConfig('claude', 'sonnet', BUILTIN_AGENT_PROFILES, 'medium');
 
-        expect(() => resolveAgentCommand(config, {agent: 'missing', model: 'removed-model', thinkingLevel: 'high'})).toThrow('Unknown agent profile: missing');
+        expect(() => resolveAgentExecution(config, {agent: 'missing', model: 'removed-model', thinkingLevel: 'high'})).toThrow('Unknown agent profile: missing');
     });
 
     it('still resolves user-defined free-form command profiles', () => {
         const profiles = [{ command: ['custom-agent', '--flag'], models: ['custom'], name: 'local' }];
-        const result = resolveAgentCommand(agentConfig('local', '', profiles));
+        const result = resolveAgentExecution(agentConfig('local', '', profiles));
 
         expect(result).toMatchObject({ agent: 'local', command: ['custom-agent', '--flag'], model: 'custom' });
     });

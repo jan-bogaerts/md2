@@ -11,12 +11,13 @@ import type { ActionConversationChatlogTracker } from '../transcript/action_conv
 import type { ActionConversationCommandOperations } from '../state/action_conversation_command_service'
 import { ActionConversationMessageCommands } from './action_conversation_message_commands'
 import { ActionConversationCodeBlock } from './action_conversation_code_block';
+import { ActionConversationTable } from './action_conversation_table';
 import { ActionQueuedPromptRow } from '../transcript/action_queued_prompt';
 
 const subscribeNoPrompt = () => () => undefined;
 const getNoPrompt = () => null;
 
-const MARKDOWN_COMPONENTS = { a: ActionConversationLink, pre: ActionConversationCodeBlock };
+const MARKDOWN_COMPONENTS = { a: ActionConversationLink, pre: ActionConversationCodeBlock, table: ActionConversationTable };
 
 interface ActionConversationMessageProps {
     commands: ActionConversationCommandOperations

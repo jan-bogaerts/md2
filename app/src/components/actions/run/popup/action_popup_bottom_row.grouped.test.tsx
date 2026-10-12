@@ -13,6 +13,7 @@ import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionConversationStore } from '../../conversation/state/action_conversation_store'
 import { ActionHistoryStore } from '../state/action_history_store'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
+import { ActionRunDisabledMessage } from './action_run_disabled_message'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionScheduleStore } from '../schedule/action_schedule_store'
@@ -111,7 +112,7 @@ function renderBottomRow(
         </AppThemeProvider>,
     )
 
-    return { conversationStore: activeConversationStore, unrelatedRender }
+    return { conversationStore: activeConversationStore, scheduleStore, settingsStore, unrelatedRender }
 }
 
 describe('ActionPopupBottomRow', () => {
@@ -138,6 +139,28 @@ describe('ActionPopupBottomRow', () => {
         window.matchMedia = originalMatchMedia
         vi.restoreAllMocks()
     })
+
+    it.each(['initial load', 'manual refresh'] as const)('keeps Send ready without a refresh message during %s', (phase) => {
+        const snapshot = {
+            catalog: phase === 'manual refresh' ? snapshotCatalogFixture('codex').catalog : null,
+            error: null, loading: true,
+        };
+        vi.mocked(agentCapabilitiesService.getCatalogSnapshot).mockReturnValue(snapshot);
+        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan');
+        const { settingsStore } = renderBottomRow();
+        render(<AppThemeProvider><ActionRunDisabledMessage action={action} settingsStore={settingsStore} /></AppThemeProvider>);
+
+        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+        expect(screen.queryByText('Refreshing model capabilities')).not.toBeInTheDocument();
+    });
+
+    it.each([null, 'Discovery failed'])('keeps Send enabled for an unadvertised model with catalog error %s', (error) => {
+        vi.mocked(agentCapabilitiesService.getCatalogSnapshot).mockReturnValue({catalog: { agent: 'codex', models: [] }, error, loading: false});
+        const selectedAction = { ...action, agent: 'codex', model: 'unlisted-model', thinkingLevel: 'high', speedMode: 'fast' } as ActionDefinition;
+        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan');
+        renderBottomRow(selectedAction);
+        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+    });
 
     it('uses an outer size container and keeps usage out of the overflow-safe control row', () => {
         renderBottomRow()
@@ -253,6 +276,61 @@ describe('ActionPopupBottomRow', () => {
         expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
     })
+
+    it('rebinds readiness to explicitly selected conversation without losing other drafts', async () => {
+        const source = waitingConversation(action.id);
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(source);
+        const conversationStore = createConversationStore(action.id, context);
+        conversationStore.updateConversation(source);
+        const freshDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false });
+        freshDraft.edit('New conversation text');
+        const selectedDraft = actionPromptDraftService.getDraft(action.id, context, source.id, { prepare: false });
+        renderBottomRow(action, conversationStore);
+        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+        await act(async () => conversationStore.select(source.id));
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument();
+        act(() => freshDraft.edit('New conversation updated'));
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument();
+        act(() => selectedDraft.replace('Selected external text'));
+        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+        await act(async () => conversationStore.select(''));
+        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+        expect(freshDraft.getSnapshot()).toBe('New conversation updated');
+        expect(selectedDraft.getSnapshot()).toBe('Selected external text');
+    });
+
+    it('keeps Schedule open during nonempty waiting edits and closes it when text becomes whitespace', async () => {
+        const source = waitingConversation(action.id);
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source]);
+        const conversationStore = createConversationStore(action.id, context);
+        await conversationStore.load();
+        const draft = actionPromptDraftService.getDraft(action.id, context, source.id, { prepare: false });
+        draft.edit('Continue');
+        const { scheduleStore } = renderBottomRow(action, conversationStore);
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule' }));
+        expect(scheduleStore.getOpenSnapshot()).toBe(true);
+        act(() => draft.edit('Continue with more text'));
+        expect(scheduleStore.getOpenSnapshot()).toBe(true);
+        expect(screen.getByRole('button', { name: 'Schedule' })).toHaveAttribute('aria-expanded', 'true');
+        act(() => draft.edit('   '));
+        expect(scheduleStore.getOpenSnapshot()).toBe(false);
+        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument();
+    });
+
+    it('updates command readiness after local edits and external replacement', () => {
+        const commandAction: ActionDefinition = { ...action, command: 'run', id: 'command', label: 'Command', type: 'command' };
+        const draft = actionPromptDraftService.getDraft(commandAction.id, context, null, { initialValue: 'run', prepare: false });
+        renderBottomRow(commandAction);
+        expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled();
+        act(() => draft.edit('run more'));
+        expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled();
+        act(() => draft.edit('   '));
+        expect(screen.getByRole('button', { name: 'Run' })).toBeDisabled();
+        act(() => draft.replace('external command'));
+        expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Schedule' })).toBeEnabled();
+    });
 
     it('keeps a live run and its draft untouched while historical conversation is selected', async () => {
         let listener: ((event: ActionRunEvent) => void) | null = null

@@ -1,3 +1,5 @@
+import { dataService } from '../../../../services/data/data_service';
+import { isSequenceCardAssigned } from './card_sequence_eligibility';
 import type { SequenceScheduleRegistrationRequest } from '../../../../data/electron_action_bridge'
 import type { ScheduleTrigger } from '../../../../data/action_schedule_types'
 import type { ActionScheduleTriggerSources } from '../schedule/action_schedule_trigger'
@@ -7,7 +9,17 @@ import type { ActionScheduleSnapshot, ActionScheduleTriggerType } from '../sched
 export type CardSequenceTriggerType = ActionScheduleTriggerType | 'now'
 export type CardSequenceSubmitStatus = 'idle' | 'submitting'
 
+interface CardSequenceCardSource {
+    assigned: boolean;
+    cardInternalId: string;
+    id: string;
+    path: string;
+    state: string | null;
+    title: string;
+}
+
 export interface CardSequenceDraftSnapshot {
+    cardSources: readonly CardSequenceCardSource[];
     actionId: string
     agent: string
     canSubmit: boolean
@@ -23,6 +35,7 @@ export interface CardSequenceDraftSnapshot {
     triggerType: CardSequenceTriggerType
     validationMessage: string | null
     windowId: string
+    worktreeBranch: string;
 }
 
 interface CardSequenceValidationSources {
@@ -42,6 +55,7 @@ const EMPTY_SOURCES: CardSequenceValidationSources = {
 
 function initialSnapshot(): CardSequenceDraftSnapshot {
     return {
+        cardSources: [],
         actionId: '',
         agent: '',
         canSubmit: false,
@@ -57,6 +71,7 @@ function initialSnapshot(): CardSequenceDraftSnapshot {
         triggerType: 'now',
         validationMessage: 'Add at least one card',
         windowId: '',
+        worktreeBranch: '',
     }
 }
 
@@ -94,6 +109,8 @@ function selectedTrigger(snapshot: CardSequenceDraftSnapshot, sources: CardSeque
 
 function validationMessage(snapshot: CardSequenceDraftSnapshot, sources: CardSequenceValidationSources): string | null {
     if (snapshot.cardInternalIds.length === 0) return 'Add at least one card'
+    const cards = dataService.getState().snapshot?.activeCards ?? [];
+    if (cards.some((card) => snapshot.cardInternalIds.includes(card.header.internalId!) && isSequenceCardAssigned(card))) return 'Sequence cards cannot have a worktree assignment';
     if (!sources.cardsAvailable) return 'Every sequence card must remain active'
     if (!snapshot.actionId || !sources.actionIds.includes(snapshot.actionId)) return 'Select an action available for every card'
     if (!snapshot.readyState || !sources.readyStates.includes(snapshot.readyState)) return 'Select a configured ready state'
@@ -132,6 +149,28 @@ export class CardSequenceDraftService extends EventTarget {
         this.publish(initialSnapshot())
     }
 
+    /** Refresh only fields used by sequence choices and action applicability. */
+    refreshCardSources() {
+        if (!this.snapshot.open) return;
+        const cards = dataService.getState().snapshot?.activeCards ?? [];
+        const cardSources = cards.map((card) => ({
+            assigned: isSequenceCardAssigned(card),
+            cardInternalId: card.header.internalId ?? '',
+            id: card.header.id,
+            path: card.path,
+            state: card.header.status,
+            title: card.header.title,
+        }));
+        const previous = this.snapshot.cardSources;
+        const unchanged = previous.length === cardSources.length && cardSources.every((source, index) => (
+            source.assigned === previous[index].assigned && source.cardInternalId === previous[index].cardInternalId
+            && source.id === previous[index].id && source.path === previous[index].path
+            && source.state === previous[index].state && source.title === previous[index].title
+        ));
+        if (unchanged) return;
+        this.publishValidated({ ...this.snapshot, cardSources });
+    }
+
     updateSources(sources: CardSequenceValidationSources) {
         this.sources = sources
         const actionId = sources.actionIds.includes(this.snapshot.actionId) ? this.snapshot.actionId : ''
@@ -151,6 +190,11 @@ export class CardSequenceDraftService extends EventTarget {
 
     addCard(cardInternalId: string, beforeCardInternalId: string | null = null) {
         if (!cardInternalId) throw new Error('Cannot add a sequence card without an internal ID')
+        const card = dataService.getState().snapshot?.activeCards.find(({ header }) => header.internalId === cardInternalId);
+        if (card && isSequenceCardAssigned(card)) {
+            this.publish({ ...this.snapshot, validationMessage: 'Sequence cards cannot have a worktree assignment' });
+            return;
+        }
         if (this.snapshot.cardInternalIds.includes(cardInternalId)) return
 
         const beforeIndex = beforeCardInternalId === null
@@ -186,6 +230,10 @@ export class CardSequenceDraftService extends EventTarget {
     selectCard(cardInternalId: string | null) {
         if (cardInternalId !== null && !this.snapshot.cardInternalIds.includes(cardInternalId)) return
         this.publish({ ...this.snapshot, selectedCardInternalId: cardInternalId })
+    }
+
+    setWorktreeBranch(worktreeBranch: string) {
+        this.publishValidated({ ...this.snapshot, worktreeBranch });
     }
 
     setActionId(actionId: string) {
@@ -229,6 +277,7 @@ export class CardSequenceDraftService extends EventTarget {
         if (message) throw new Error(message)
 
         return {
+            ...(this.snapshot.worktreeBranch ? { worktreeBranch: this.snapshot.worktreeBranch } : {}),
             actionId: this.snapshot.actionId,
             cardInternalIds: [...this.snapshot.cardInternalIds],
             readyState: this.snapshot.readyState,

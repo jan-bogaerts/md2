@@ -4,6 +4,7 @@ const path = require('node:path');
 const { promisify } = require('node:util');
 
 const execAsync = promisify(exec);
+const { checkoutOwnershipService } = require('./checkout_ownership_service');
 const { describeGitIndexLock } = require('./git_lock_diagnostics');
 const { withGitIndexMutation } = require('./git_index_coordinator');
 const { GitProcess, formatGitCommand, gitTimeoutPolicy } = require('./git_process');
@@ -352,6 +353,7 @@ async function assertGitRoot(rootPath) {
 
 async function runCommand(project, command) {
     const rootPath = requireRootPath(project);
+    checkoutOwnershipService.assertAvailable(rootPath);
     await assertGitRoot(rootPath);
     if (typeof command !== 'string' || command.length === 0) throw new Error('Missing command text');
 

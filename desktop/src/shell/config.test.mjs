@@ -83,7 +83,7 @@ describe('readDesktopConfig', () => {
         const store = createFakeStore({ [DESKTOP_CONFIG_STORE_KEY]: { agent: 'claude' } });
 
         expect(readDesktopConfig(store, {})).toEqual({
-            agentSelection: selection('claude', 'default'),
+            agentSelection: selection('claude', 'default', 'medium'),
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
@@ -131,7 +131,7 @@ describe('readDesktopConfig', () => {
     });
 
 
-    it('drops invalid stored profiles and keeps the valid ones', () => {
+    it('keeps custom profiles with optional empty model suggestions', () => {
         const store = createFakeStore({
             [DESKTOP_CONFIG_STORE_KEY]: {
                 agentProfiles: [
@@ -141,7 +141,12 @@ describe('readDesktopConfig', () => {
             },
         });
 
-        expect(readDesktopConfig(store, {})).toMatchObject({agentProfiles: [{ command: ['other-agent'], models: ['other-model'], name: 'other' }]});
+        expect(readDesktopConfig(store, {})).toMatchObject({
+            agentProfiles: [
+                { command: ['custom-agent'], defaultThinkingLevel: 'none', models: [], name: 'custom' },
+                { command: ['other-agent'], defaultThinkingLevel: 'none', models: ['other-model'], name: 'other' },
+            ],
+        });
     });
 
     it('falls back to the built-in profiles when no stored profile is valid', () => {

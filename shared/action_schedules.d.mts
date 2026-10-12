@@ -1,3 +1,4 @@
+import type { SequenceBranchProgress } from './sequence_branch_progress.mjs';
 import type { ActionContext } from '../app/src/data/action_context'
 
 export const ACTION_SCHEDULES_FILE: '.md2-schedules.json'
@@ -46,6 +47,8 @@ export interface ActionSchedule extends ScheduleBase {
 }
 
 export interface SequenceSchedule extends ScheduleBase {
+    worktreeBranch?: string;
+    branchProgress?: SequenceBranchProgress;
     actionCompleted: boolean
     actionId: string
     cardInternalIds: string[]

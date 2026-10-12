@@ -1,4 +1,4 @@
-import { snapshotCatalogFixture } from '../../../../test/agent_catalog_fixture';
+import { agentCatalogFixture, snapshotCatalogFixture } from '../../../../test/agent_catalog_fixture';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -21,12 +21,13 @@ import { RemoteControlConnectionError, RemoteControlStorageService } from '../..
 import { worktreeService } from '../../../../services/project/worktree_service'
 import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
 import { openFilesService } from '../../../../services/open_files_service'
+import type { MarkdownEditorHandle } from '../../../editor/markdown_editor';
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { createAppTheme } from '../../../../theme/app_theme'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
 import { useMarkdownTypeaheadStackPosition } from '../../../editor/typeahead/markdown_typeahead_layer_context'
 import { configService } from '../../../../services/config/config_service'
-import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
+import { BUILTIN_AGENT_PROFILES, mergeAgentProfiles } from '../../../../data/agent_profiles'
 import { createActivityFile, type CardActivityFile } from '../../../../../../shared/card_activity.mjs'
 
 const renderProbes = vi.hoisted(() => ({
@@ -39,18 +40,15 @@ const renderProbes = vi.hoisted(() => ({
     logError: vi.fn(),
     phraseButtons: vi.fn(),
     popup: vi.fn(),
+    bottomRow: vi.fn(),
+    promptMenu: vi.fn(),
+    markdownEditor: vi.fn(),
     selector: vi.fn(),
 }))
 
 function appRegion(element: HTMLElement) {
     return (element.style as unknown as Record<string, string>).WebkitAppRegion
 }
-
-// Import the two used icons directly instead of loading the package's entire icon catalogue in Node.
-vi.mock('@mui/icons-material', async () => {
-    const [redo, undo] = await Promise.all([import('@mui/icons-material/Redo'), import('@mui/icons-material/Undo')]);
-    return { Redo: redo.default, Undo: undo.default };
-});
 
 vi.mock('../../agent/action_agent_prompt', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../../agent/action_agent_prompt')>()
@@ -78,6 +76,42 @@ vi.mock('../../agent/action_agent_selectors', async (importOriginal) => {
         },
     }
 })
+
+vi.mock('./action_popup_bottom_row', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./action_popup_bottom_row')>();
+    return {
+        ...actual,
+        ActionPopupBottomRow: function ActionPopupBottomRowRenderProbe(props: Parameters<typeof actual.ActionPopupBottomRow>[0]) {
+            renderProbes.bottomRow();
+            return actual.ActionPopupBottomRow(props);
+        },
+    };
+});
+
+vi.mock('./action_prompt_menu', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./action_prompt_menu')>();
+    return {
+        ...actual,
+        ActionPromptMenu: function ActionPromptMenuRenderProbe(props: Parameters<typeof actual.ActionPromptMenu>[0]) {
+            renderProbes.promptMenu();
+            return actual.ActionPromptMenu(props);
+        },
+    };
+});
+
+vi.mock('../../../editor/markdown_editor', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../../editor/markdown_editor')>();
+    const { forwardRef, createElement } = await import('react');
+    return {
+        ...actual,
+        MarkdownEditor: forwardRef<MarkdownEditorHandle, Parameters<typeof actual.MarkdownEditor>[0]>(function MarkdownEditorRenderProbe(
+            props: Parameters<typeof actual.MarkdownEditor>[0], ref,
+        ) {
+            renderProbes.markdownEditor();
+            return createElement(actual.MarkdownEditor, { ...props, ref });
+        }),
+    };
+});
 
 vi.mock('../../conversation/picker/action_conversation_picker', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../../conversation/picker/action_conversation_picker')>()
@@ -220,6 +254,15 @@ function mockCodexAvailable() {
     vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { codex: { available: true, error: null } } }})
 }
 
+function mockCustomCatalog() {
+    const profile = mergeAgentProfiles([{command: ['custom'], defaultThinkingLevel: 'none', models: ['host-model'], name: 'custom'}]).find(({ name }) => name === 'custom');
+    if (!profile) throw new Error('Missing custom test profile');
+    const snapshot = { catalog: agentCatalogFixture(profile), error: null, loading: false };
+    vi.mocked(agentCapabilitiesService.getCatalogSnapshot).mockImplementation(
+        (key) => key === 'custom' ? snapshot : snapshotCatalogFixture(key),
+    );
+}
+
 function setMobileBreakpoint(matches: boolean) {
     window.matchMedia = ((query: string) => ({
         addEventListener: vi.fn(),
@@ -304,6 +347,7 @@ describe('ActionPopup', () => {
             flushPendingChanges: vi.fn(async () => undefined),
             projectFolderProvider: () => 'design',
             projectProvider: () => project,
+            queueIntegratedActivity: vi.fn(async () => undefined),
             snapshotProvider: () => null,
             storageProvider: () => storage,
             unassignCardWorktree: vi.fn(),
@@ -555,6 +599,7 @@ describe('ActionPopup', () => {
         renderPopup()
         const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
 
+        fireEvent.change(prompt, { target: { value: 'earlier command' } });
         fireEvent.change(prompt, { target: { value: 'focus this run' } })
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
@@ -895,6 +940,34 @@ describe('ActionPopup', () => {
         expect(renderProbes.chat).not.toHaveBeenCalled()
     })
 
+    it.each(['agent', 'command'] as const)(
+        'keeps unrelated controls and editor wrapper stable during repeated nonempty %s edits', async (actionType) => {
+            window.md2Actions = {
+                onActionRun: vi.fn(() => vi.fn()),
+                prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+            } as unknown as typeof window.md2Actions;
+            const definition = actionType === 'agent' ? agentDefinition('review') : commandDefinition('review');
+            actionService.loadFromFiles([file(definition)]);
+            renderPopup();
+            const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox');
+            await waitFor(() => expect(prompt).toHaveValue(actionType === 'agent' ? 'Plan' : 'run'));
+            Object.values(renderProbes).forEach((probe) => probe.mockClear());
+
+            fireEvent.change(prompt, { target: { value: 'Draft' } });
+            fireEvent.change(prompt, { target: { value: 'Draft more' } });
+            fireEvent.change(prompt, { target: { value: 'Draft more text' } });
+            fireEvent.blur(prompt);
+            await act(async () => undefined);
+
+            expect(prompt).toHaveValue('Draft more text');
+            expect(renderProbes.agentPrompt).not.toHaveBeenCalled();
+            expect(renderProbes.bottomRow).not.toHaveBeenCalled();
+            expect(renderProbes.agentSelectors).not.toHaveBeenCalled();
+            expect(renderProbes.promptMenu).not.toHaveBeenCalled();
+            expect(renderProbes.markdownEditor).not.toHaveBeenCalled();
+        },
+    );
+
     it('does not render popup roots or leaves for another context run', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null
@@ -1101,6 +1174,97 @@ describe('ActionPopup', () => {
         expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'true')
     })
 
+    it('keeps frame and editor mounted while preserving rapid agent drafts and command transitions', async () => {
+        const user = userEvent.setup();
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([]);
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async ({ actionId }: { actionId: string }) => ({ prompt: `${actionId} prompt` })),
+        } as unknown as typeof window.md2Actions;
+        mockCodexAvailable();
+        actionService.loadFromFiles([
+            file(agentDefinition('first-agent', { label: 'First agent' })),
+            file(agentDefinition('second-agent', { label: 'Second agent' })),
+            file(commandDefinition('command', { label: 'Command' })),
+        ]);
+        renderPopup();
+        const frame = screen.getByRole('dialog', { name: 'Run actions' });
+        const header = screen.getByTestId('action-popup-fixed-header');
+        const actions = screen.getByRole('group', { name: 'Actions' });
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox');
+        await waitFor(() => expect(prompt).toHaveValue('first-agent prompt'));
+        await userEvent.click(screen.getByRole('button', { name: 'Expand upward' }));
+        const expandedStyle = frame.getAttribute('style');
+        await userEvent.clear(prompt);
+        await user.paste('First edited draft');
+        await userEvent.click(within(actions).getByRole('button', { name: 'Second agent' }));
+        await waitFor(() => expect(prompt).toHaveValue('second-agent prompt'));
+        await userEvent.clear(prompt);
+        await user.paste('Second edited draft');
+        await userEvent.click(within(actions).getByRole('button', { name: 'First agent' }));
+        expect(prompt).toHaveValue('First edited draft');
+        await userEvent.click(within(actions).getByRole('button', { name: 'Second agent' }));
+        expect(prompt).toHaveValue('Second edited draft');
+        expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toBe(prompt);
+        expect(screen.getByRole('dialog', { name: 'Run actions' })).toBe(frame);
+        expect(screen.getByTestId('action-popup-fixed-header')).toBe(header);
+        expect(screen.getByRole('group', { name: 'Actions' })).toBe(actions);
+        expect(frame.getAttribute('style')).toBe(expandedStyle);
+        expect(screen.getByRole('button', { name: 'Collapse downward' })).toBeInTheDocument();
+        await userEvent.click(within(actions).getByRole('button', { name: 'Command' }));
+        const commandPrompt = within(screen.getByLabelText('Prompt')).getByRole('textbox');
+        expect(commandPrompt).not.toBe(prompt);
+        expect(commandPrompt).toHaveValue('run');
+        expect(screen.queryByRole('combobox', { name: 'Conversation history' })).not.toBeInTheDocument();
+        expect(screen.getByRole('dialog', { name: 'Run actions' })).toBe(frame);
+        await userEvent.click(within(actions).getByRole('button', { name: 'First agent' }));
+        expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('First edited draft');
+    });
+
+    it('reports action-definition flush failure and keeps the prompt read-only', async () => {
+        const failure = new Error('Action definition save failed');
+        const report = vi.spyOn(dialogService, 'error').mockReturnValue({critical: false, id: 1, message: failure.message, severity: 'error', title: 'Preparation failed'});
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([]);
+        vi.spyOn(actionService.draftStore, 'hasPendingDrafts').mockReturnValue(true);
+        vi.spyOn(actionService.draftStore, 'flushDrafts').mockRejectedValue(failure);
+        actionService.loadFromFiles([file(agentDefinition('flush-failure', { label: 'Review' }))]);
+        renderPopup();
+        await waitFor(() => expect(report).toHaveBeenCalledWith(failure, { fallbackMessage: 'Could not prepare action prompt' }));
+        expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveAttribute('readonly');
+        expect(window.md2Actions?.prepareActionPrompt).not.toHaveBeenCalled();
+    });
+
+    it('keeps late preparation in its owning draft during A-to-B-to-A switches', async () => {
+        const user = userEvent.setup();
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([]);
+        let resolveFirst: ((prepared: { prompt: string }) => void) | null = null;
+        const firstPreparation = new Promise<{ prompt: string }>((resolve) => { resolveFirst = resolve; });
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async ({ actionId }: { actionId: string }) => actionId === 'first-agent'
+                ? await firstPreparation : { prompt: 'Second prepared prompt' }),
+        } as unknown as typeof window.md2Actions;
+        mockCodexAvailable();
+        actionService.loadFromFiles([
+            file(agentDefinition('first-agent', { label: 'First agent' })),
+            file(agentDefinition('second-agent', { label: 'Second agent' })),
+        ]);
+        renderPopup();
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox');
+        await waitFor(() => expect(window.md2Actions?.prepareActionPrompt).toHaveBeenCalledWith({actionId: 'first-agent', context}));
+        expect(prompt).toHaveAttribute('readonly');
+        await userEvent.click(screen.getByRole('button', { name: 'Second agent' }));
+        await waitFor(() => expect(prompt).toHaveValue('Second prepared prompt'));
+        await userEvent.clear(prompt);
+        await user.paste('Second local edit');
+        await act(async () => { resolveFirst?.({ prompt: 'Late first prompt' }); });
+        expect(prompt).toHaveValue('Second local edit');
+        await userEvent.click(screen.getByRole('button', { name: 'First agent' }));
+        expect(prompt).toHaveValue('Late first prompt');
+        expect(prompt).not.toHaveAttribute('readonly');
+        expect(window.md2Actions?.prepareActionPrompt).toHaveBeenCalledTimes(2);
+    });
+
     it('prefills every new agent draft while switching actions', async () => {
         window.md2Actions = {
             onActionRun: vi.fn(() => vi.fn()),
@@ -1148,6 +1312,7 @@ describe('ActionPopup', () => {
             mergeConflictResolverCommand: '',
         })
         vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { custom: { available: true, error: null } } }})
+        mockCustomCatalog();
         renderPopup()
         
 
@@ -1175,6 +1340,7 @@ describe('ActionPopup', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Custom prompt' }))
         const prompt = within(await screen.findByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Earlier prompt' } });
         fireEvent.change(prompt, { target: { value: 'Explain this change' } })
         await waitFor(() => expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled())
         if (submission === 'Send button') fireEvent.click(screen.getByRole('button', { name: 'Send' }))
@@ -1237,6 +1403,7 @@ describe('ActionPopup', () => {
             agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['host-model'], name: 'custom' }],
         })
         vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { custom: { available: true, error: null } } }})
+        mockCustomCatalog();
         window.md2Actions = {
             onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
@@ -2329,6 +2496,11 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled()
 
         delete window.md2Actions
+        act(() => {
+            const availability = { error: null, loading: false, values: { codex: { available: true, error: null } } };
+            vi.mocked(agentCapabilitiesService.getSnapshot).mockReturnValue({ availability });
+            agentCapabilitiesService.dispatchEvent(new Event('changed'));
+        });
         fireEvent.change(prompt, { target: { value: 'Draft without backend' } })
         expect(prompt).not.toHaveAttribute('readonly')
         expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
@@ -3388,7 +3560,7 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('menuitem', { name: /removed-agent — unavailable/u })).toHaveClass('Mui-selected')
         fireEvent.keyDown(screen.getByRole('menu', { name: 'Agent choices' }), { key: 'ArrowLeft' })
         fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }))
-        expect(screen.getByRole('menuitem', { name: 'removed-model — unavailable' })).toHaveClass('Mui-selected')
+        expect(screen.getByRole('menuitem', { name: 'removed-model' })).toHaveClass('Mui-selected')
         fireEvent.keyDown(screen.getByRole('menu', { name: 'Model choices' }), { key: 'ArrowLeft' })
         fireEvent.click(screen.getByRole('menuitem', { name: 'Thinking level' }))
         expect(screen.getByRole('menuitem', { name: 'high — unavailable' })).toHaveClass('Mui-selected')
@@ -3878,6 +4050,11 @@ describe('ActionPopup', () => {
         })
 
         it('still drags the popup when the pointer press starts on the id badge', () => {
+            window.md2Actions = {
+                loadActionRunHistory: vi.fn(async () => []),
+                loadCardActivity: vi.fn(async () => createActivityFile({ cardInternalId: 'card-1', kind: 'card' })),
+                onActionRun: vi.fn(() => vi.fn()),
+            } as unknown as typeof window.md2Actions;
             mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])
 
             renderDraggablePopup({ ...context, cardInternalId: 'card-1' })
@@ -3891,6 +4068,16 @@ describe('ActionPopup', () => {
             expect(dialog.style.left).toBe('40px')
             expect(dialog.style.top).toBe('30px')
             fireEvent.pointerUp(window)
+            fireEvent.click(screen.getByRole('button', { name: 'Second action' }));
+            expect(screen.getByRole('dialog')).toBe(dialog);
+            expect(dialog.style.left).toBe('40px');
+            expect(dialog.style.top).toBe('30px');
+            vi.spyOn(dialog, 'getBoundingClientRect').mockReturnValue(new DOMRect(40, 30, 400, 450));
+            fireEvent.pointerDown(badge('F-010'), { clientX: 140, clientY: 130 });
+            fireEvent.pointerMove(window, { clientX: 160, clientY: 150 });
+            expect(dialog.style.left).toBe('60px');
+            expect(dialog.style.top).toBe('50px');
+            fireEvent.pointerUp(window);
         })
 
         it('shows no tooltip for the Project badge', async () => {

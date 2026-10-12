@@ -367,11 +367,15 @@ class ActionRun {
     }
 
     async run() {
-        return runWithGitOperationContext({ runId: this.runId }, () => this.runWithContext());
+        return runWithGitOperationContext({ runId: this.runId, checkoutOwnerId: this.context.sequenceId }, () => this.runWithContext());
     }
 
     async runWithContext() {
-        if (this.compactOnly) return this.runCompactOnly();
+        if (this.compactOnly) {
+            return this.actionWorktreeRunService.runWithCardLock(
+                this.project, this.context, () => this.runCompactOnly(), { signal: this.controller.signal },
+            );
+        }
         this.publish(this.rootAction, 'main', 'running', { type: 'run' });
         let result;
         try {

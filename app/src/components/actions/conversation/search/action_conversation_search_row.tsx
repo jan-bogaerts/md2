@@ -1,5 +1,6 @@
 import ArrowDownwardOutlined from '@mui/icons-material/ArrowDownwardOutlined'
 import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
+import Close from 'mdi-material-ui/Close'
 import SearchOutlined from '@mui/icons-material/SearchOutlined'
 import { Box, IconButton, InputAdornment, TextField, ToggleButton, Tooltip, Typography } from '@mui/material'
 import { useSyncExternalStore, type ChangeEvent, type KeyboardEvent } from 'react'
@@ -51,6 +52,9 @@ export function ActionConversationSearchRow({ service }: ActionConversationSearc
     }
     const handleCaseToggle = () => {
         service.toggleCaseSensitive()
+    }
+    const handleClose = () => {
+        service.closeSearch()
     }
 
     return (
@@ -111,6 +115,11 @@ export function ActionConversationSearchRow({ service }: ActionConversationSearc
                 >
                     Aa
                 </ToggleButton>
+            </Tooltip>
+            <Tooltip title="Close search">
+                <IconButton aria-label="Close search" onClick={handleClose} size="small">
+                    <Close fontSize="small" />
+                </IconButton>
             </Tooltip>
         </Box>
     )

@@ -91,6 +91,23 @@ describe('RemoteControlService push protocol', () => {
             expect(cleanups.get(method)).toHaveBeenCalledOnce();
         }
     });
+    it('pushes shared model lists through remote subscriptions and cleans up', async () => {
+        const cleanup = vi.fn();
+        const dispatcher = { invoke: vi.fn(() => cleanup) };
+        const service = new RemoteControlService(dispatcher);
+        const client = createClient();
+        const result = await service.invoke(client, 'onAgentModelCatalogChanged', [], 'models-request');
+        const callback = dispatcher.invoke.mock.calls[0][1][0];
+        const catalog = { agent: 'codex', models: [{ id: 'shared-model', displayName: 'Shared model', hidden: false }] };
+        callback(catalog);
+        expect(JSON.parse(client.send.mock.calls[0][0])).toEqual({
+            event: 'agentModelCatalog',
+            payload: { catalog, requestId: 'models-request', subscriptionId: result.subscriptionId },
+        });
+        service.unsubscribe(client, [result.subscriptionId]);
+        expect(cleanup).toHaveBeenCalledOnce();
+    });
+
     it('sends the error code and marker fields so remote clients can recover', async () => {
         const missingWorkingFolder = new Error('Working folder is missing: design/feature_descriptions');
         missingWorkingFolder.code = 'missing-working-folder';

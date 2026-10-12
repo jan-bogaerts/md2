@@ -16,6 +16,7 @@ changedFiles:
   - app/src/services/release_operations.ts
   - desktop/src/actions/activity/activity_files.js
   - desktop/src/actions/activity/activity_files.test.mjs
+after: d99027a1-b108-4f1e-9f66-c669b4394cf0
 ---
 after running 'finish release' we get a lot of these errors:
 

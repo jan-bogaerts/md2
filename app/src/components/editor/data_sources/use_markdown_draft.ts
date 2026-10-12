@@ -24,8 +24,13 @@ export function useMarkdownDraft(
         replaceMarkdown(draft.getSnapshot())
         bindDraft(draft)
 
-        return draft.subscribeEditor(() => replaceMarkdown(draft.getSnapshot()))
-    }, [bindDraft, draft, replaceMarkdown])
+        const unsubscribe = draft.subscribeEditor(() => replaceMarkdown(draft.getSnapshot()));
+        return () => {
+            unsubscribe();
+            flush();
+            bindDraft(undefined);
+        };
+    }, [bindDraft, draft, flush, replaceMarkdown])
 
     useEffect(() => {
         if (!draft) return undefined

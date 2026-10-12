@@ -88,21 +88,6 @@ function readOptionalPositiveNumber(value, fieldName) {
     return value
 }
 
-function readModels(value, fieldName) {
-    if (!Array.isArray(value)) throw new Error(`Invalid agent profile field: ${fieldName}`)
-    if (value.length === 0) throw new Error(`Empty agent profile field: ${fieldName}`)
-
-    const models = value.map((model, index) => {
-        const validatedModel = requireString(model, `${fieldName}[${index}]`)
-        if (validatedModel.trim() !== validatedModel) throw new Error(`Invalid agent profile field: ${fieldName}[${index}]`)
-
-        return validatedModel
-    })
-    if (new Set(models).size !== models.length) throw new Error(`Duplicate agent profile model in: ${fieldName}`)
-
-    return models
-}
-
 function readCommand(value, fieldName) {
     if (!Array.isArray(value)) throw new Error(`Invalid agent profile field: ${fieldName}`)
     if (value.length === 0) throw new Error(`Empty agent profile field: ${fieldName}`)
@@ -115,15 +100,11 @@ function validateAgentProfile(profile, index, names) {
     const name = requireString(profile.name, `desktop.agentProfiles[${index}].name`)
     if (names.has(name)) throw new Error(`Duplicate agent profile: ${name}`)
 
-    const models = readModels(profile.models, `desktop.agentProfiles[${index}].models`)
     const defaultModel = readOptionalString(profile.defaultModel, `desktop.agentProfiles[${index}].defaultModel`)
     const monthlySubscriptionCostUsd = readOptionalPositiveNumber(
         profile.monthlySubscriptionCostUsd,
         `desktop.agentProfiles[${index}].monthlySubscriptionCostUsd`,
     )
-    if (defaultModel && !supportsModelDiscovery({ name }) && !models.includes(defaultModel)) {
-        throw new Error(`Invalid default model for agent profile ${name}: ${defaultModel}`)
-    }
     const defaultThinkingLevel = validateThinkingLevel(
         profile.defaultThinkingLevel,
         `desktop.agentProfiles[${index}].defaultThinkingLevel`,
@@ -138,7 +119,7 @@ function validateAgentProfile(profile, index, names) {
         defaultThinkingLevel,
         ...(profile.modelArgument !== undefined ? { modelArgument: requireString(profile.modelArgument, `desktop.agentProfiles[${index}].modelArgument`) } : {}),
         ...(monthlySubscriptionCostUsd !== undefined ? { monthlySubscriptionCostUsd } : {}),
-        models,
+        models: profile.models ?? [],
         name,
         ...(profile.resumeCommand !== undefined ? { resumeCommand: readCommand(profile.resumeCommand, `desktop.agentProfiles[${index}].resumeCommand`) } : {}),
     }
@@ -201,19 +182,6 @@ export function validateAgentSelection(profiles, selection, source) {
         // Tag with a routing code so callers map the failure to a control without inspecting text.
         const error = new Error(`Unknown agent profile in ${source}: ${selection.agent}`)
         error.code = 'unknown-agent'
-        throw error
-    }
-    let allowedModels
-    try {
-        allowedModels = readModels(profile.models, `agent profile ${selection.agent}.models`)
-    } catch (cause) {
-        const error = new Error(`Invalid model list for agent profile ${selection.agent} in ${source}`, { cause })
-        error.code = 'invalid-model-list'
-        throw error
-    }
-    if (!supportsModelDiscovery(profile) && selection.model.length > 0 && !allowedModels.includes(selection.model)) {
-        const error = new Error(`Unknown model for agent profile ${selection.agent} in ${source}: ${selection.model}`)
-        error.code = 'unknown-model'
         throw error
     }
     if (selection.thinkingLevel !== undefined) {

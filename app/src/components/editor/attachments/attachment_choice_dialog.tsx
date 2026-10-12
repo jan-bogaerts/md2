@@ -1,6 +1,14 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material'
 import { useSyncExternalStore } from 'react'
+import type { Theme } from '@mui/material/styles'
 import { attachmentChoiceService } from '../../../services/attachments/attachment_choice_service'
+import { cardPopupService, subscribeCardPopups } from '../../../services/card_popup_service'
+import { OVERLAY_LAYER_OFFSET } from '../../resizable_popper'
+
+/** Number of open card popups; the dialog must stack above all of them. */
+function getPopupCount() {
+    return cardPopupService.getSnapshot().length
+}
 
 /** Application-wide choice shown once for each file selection or drop. */
 export function AttachmentChoiceDialog() {
@@ -9,12 +17,14 @@ export function AttachmentChoiceDialog() {
         attachmentChoiceService.getSnapshot,
         attachmentChoiceService.getSnapshot,
     )
+    const popupCount = useSyncExternalStore(subscribeCardPopups, getPopupCount, getPopupCount)
     const cancel = () => attachmentChoiceService.cancel()
     const copy = () => attachmentChoiceService.select('copy')
     const useOriginal = () => attachmentChoiceService.select('original')
+    const dialogSx = { zIndex: (theme: Theme) => theme.zIndex.modal + popupCount + OVERLAY_LAYER_OFFSET }
 
     return (
-        <Dialog aria-labelledby="attachment-choice-title" onClose={cancel} open={snapshot !== null}>
+        <Dialog aria-labelledby="attachment-choice-title" onClose={cancel} open={snapshot !== null} sx={dialogSx}>
             <DialogTitle id="attachment-choice-title">
                 Attach {snapshot?.fileCount ?? 0} file{snapshot?.fileCount === 1 ? '' : 's'}
             </DialogTitle>

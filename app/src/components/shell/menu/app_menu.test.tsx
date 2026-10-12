@@ -282,7 +282,7 @@ describe('AppMenu', () => {
         expect(screen.getByRole('dialog', { name: 'Active schedules' })).toBeInTheDocument()
     })
 
-    it('opens a fresh sequence draft from the Run menu when backend API is available', async () => {
+    it('opens a sequence beside creation controls and keeps it absent from Run', async () => {
         await activateLocalProject(createBridge())
         setActionBridgeOverride({
             onActionRun: vi.fn(() => vi.fn()),
@@ -290,8 +290,10 @@ describe('AppMenu', () => {
         } as unknown as ElectronActionBridge)
         renderMenu()
 
-        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Home' }))
         fireEvent.click(screen.getByRole('button', { name: 'Add sequence' }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+        expect(screen.queryByRole('button', { name: 'Add sequence' })).not.toBeInTheDocument();
 
         expect(cardSequenceDraftService.getSnapshot()).toMatchObject({ cardInternalIds: [], open: true })
     })
@@ -768,8 +770,7 @@ describe('AppMenu', () => {
 
         const agent = screen.getByRole('combobox', { name: 'Default agent' })
         expect(agent).toHaveTextContent('removed-agent — unavailable')
-        expect(screen.getByRole('textbox', { name: 'Default model' })).toHaveValue('removed-model')
-        expect(screen.getByText('Unavailable')).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('removed-model')
         expect(screen.getByRole('combobox', { name: 'Default reasoning level' })).toHaveTextContent('high — unavailable')
         fireEvent.mouseOver(agent)
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Unknown agent profile in desktop agent selection: removed-agent')

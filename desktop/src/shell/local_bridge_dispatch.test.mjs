@@ -63,6 +63,8 @@ function createDispatch(options = {}) {
     const localGitService = {
         loadAgentConversation: vi.fn(async (_project, reference) => ({ id: 'conversation-1', path: reference })),
         appendAndCommitSystemActivity: vi.fn(async () => undefined),
+        appendSystemActivity: vi.fn(async () => ({ relativePath: 'design/activity/card__card-1.json' })),
+        resolveActivityPath: vi.fn(() => ({ relativePath: 'design/activity/card__card-1.json' })),
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         closeWaitingActivityConversation: vi.fn(async (_project, reference, status) => ({ path: reference, status })),
@@ -151,7 +153,7 @@ function createDispatch(options = {}) {
     };
     const mergeConflictService = {
         addEventListener: vi.fn(),
-        getInternalSession: vi.fn(() => null),
+        getInternalSession: vi.fn(() => ({ id: 'session-1', projectBranch: 'main', projectId: 'local', projectRoot: 'C:/repo' })),
         getSnapshot: vi.fn(() => null),
         launchResolver: vi.fn(),
         markResolved: vi.fn(),
@@ -175,6 +177,10 @@ function createDispatch(options = {}) {
         calculate: vi.fn(async () => ({ stats: { actions: [], conversations: [] }, warnings: [] })),
         cancel: vi.fn(async () => undefined),
     };
+    const projectOperationCoordinator = options.projectOperationCoordinator
+        ?? { run: vi.fn(async (_rootPath, operation) => operation()) };
+    const usageMetricsService = options.usageMetricsService
+        ?? { flushPendingChanges: vi.fn(async () => undefined) };
     const dispatch = createLocalBridgeDispatch({
         agentModelCatalogService,
         actionRunnerService,
@@ -191,11 +197,13 @@ function createDispatch(options = {}) {
         openProjectFolder: options.openProjectFolder,
         openProjectSubFolder: options.openProjectSubFolder,
         openWorktreeFolder: options.openWorktreeFolder,
+        projectOperationCoordinator,
         projectStatsWorkerService,
         readDesktopConfig: () => desktopConfig,
         saveDesktopConfig,
         showItemInFolder: options.showItemInFolder,
         updateCodexCli,
+        usageMetricsService,
         worktreeService,
     });
 
@@ -211,9 +219,11 @@ function createDispatch(options = {}) {
         diffService,
         localGitService,
         mergeConflictService,
+        projectOperationCoordinator,
         projectStatsWorkerService,
         saveDesktopConfig,
         updateCodexCli,
+        usageMetricsService,
         worktreeService,
     };
 }
@@ -244,17 +254,32 @@ function backendCardWatcher(localGitService) {
 }
 
 describe('createLocalBridgeDispatch', () => {
-    it('discovers catalogs for a draft client in the requested checkout across both bridge surfaces', async () => {
+    it('reads a global catalog across both bridge surfaces', async () => {
         const { dispatch, agentModelCatalogService } = createDispatch();
         const profile = { name: 'codex', command: ['/draft/client'], models: ['gpt-6.1-sol'] };
-        const project = { branch: 'topic', id: '/worktree', rootPath: '/worktree' };
-        const request = { agent: 'codex', profile, project, refresh: true };
+        const request = { agent: 'codex', profile, refresh: true };
 
         await dispatch.dataBridge.loadAgentModelCatalog(request);
         await dispatch.actionBridge.loadAgentModelCatalog(request);
 
-        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(1, profile, '/worktree', true);
-        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(2, profile, '/worktree', true);
+        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(1, profile, true);
+        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(2, profile, true);
+    });
+
+    it('shares refreshed model lists between subscribed bridge surfaces', () => {
+        const { dispatch, agentModelCatalogService } = createDispatch();
+        const local = vi.fn();
+        const remote = vi.fn();
+        const unsubscribe = dispatch.dataBridge.onAgentModelCatalogChanged(local);
+        dispatch.actionBridge.onAgentModelCatalogChanged(remote);
+        const catalog = { agent: 'codex', models: [{ id: 'shared-model', displayName: 'Shared', hidden: false }] };
+        agentModelCatalogService.publish(catalog);
+        expect(local).toHaveBeenCalledWith(catalog);
+        expect(remote).toHaveBeenCalledWith(catalog);
+        unsubscribe();
+        agentModelCatalogService.publish(catalog);
+        expect(local).toHaveBeenCalledOnce();
+        expect(remote).toHaveBeenCalledTimes(2);
     });
 
     it('rejects mismatched catalog profiles and malformed refresh requests before discovery', async () => {
@@ -342,7 +367,7 @@ describe('createLocalBridgeDispatch', () => {
         await expect(dispatch.actionBridge.generateWorktreeDiff({ worktree: 1, worktreeBranch: 'feature' })).resolves.toBe(result);
 
         expect(diffService.generateWorktreeDiff).toHaveBeenCalledWith(project, { worktree: 1, worktreeBranch: 'feature' }, worktreeService);
-        expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
+        expect(localGitService.appendSystemActivity).not.toHaveBeenCalled();
     });
 
     it('exposes account-wide Codex runtime state without execution context', async () => {
@@ -465,6 +490,8 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadProjectRoot).toHaveBeenCalledOnce();
         expect(actionSchedulerService.startProject).toHaveBeenCalledOnce();
         expect(worktreeService.startProject).toHaveBeenCalledOnce();
+        const worktreeStartupOrder = worktreeService.startProject.mock.invocationCallOrder[0];
+        expect(worktreeStartupOrder).toBeLessThan(actionSchedulerService.startProject.mock.invocationCallOrder[0]);
     });
 
     it('retries service startup after a failed activation of the same project', async () => {
@@ -631,7 +658,7 @@ describe('createLocalBridgeDispatch', () => {
         expect(worktreeService.pull).toHaveBeenCalledWith(project, 'feature');
         expect(worktreeService.push).toHaveBeenCalledWith(project, 'feature');
         expect(worktreeService.refreshRemote).toHaveBeenCalledWith(project);
-        expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
+        expect(localGitService.appendSystemActivity).not.toHaveBeenCalled();
     });
 
     it('tracks a card integration under its stable internal id', async () => {
@@ -649,7 +676,7 @@ describe('createLocalBridgeDispatch', () => {
             projectFolder: 'design',
         });
         expect(localGitService.resolveCommitMetadata).toHaveBeenCalledWith(project.rootPath, 'a'.repeat(40));
-        expect(localGitService.appendAndCommitSystemActivity).toHaveBeenCalledWith(
+        expect(localGitService.appendSystemActivity).toHaveBeenCalledWith(
             project,
             'design',
             origin,
@@ -668,43 +695,82 @@ describe('createLocalBridgeDispatch', () => {
                 origin,
                 type: 'system',
             },
-            'Record Integrate into project activity',
         );
-        expect(worktreeService.synchronize).toHaveBeenCalledWith(project, 'feature');
-        expect(localGitService.appendAndCommitSystemActivity.mock.invocationCallOrder[0])
-            .toBeLessThan(worktreeService.synchronize.mock.invocationCallOrder[0]);
+        expect(worktreeService.synchronize).not.toHaveBeenCalled();
+        expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
+    });
+
+    it('flushes metrics before integration and writes activity after the coordinated repository operation', async () => {
+        const calls = [];
+        const projectOperationCoordinator = {
+            run: vi.fn(async (_rootPath, operation) => {
+                calls.push('operation-start');
+                const result = await operation();
+                calls.push('operation-end');
+
+                return result;
+            }),
+        };
+        const usageMetricsService = { flushPendingChanges: vi.fn(async () => { calls.push('metrics'); }) };
+        const { dispatch, localGitService, worktreeService } = createDispatch({ projectOperationCoordinator, usageMetricsService });
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        worktreeService.integrate.mockImplementation(async () => {
+            calls.push('integrate');
+
+            return { branch: 'main', commit: 'a'.repeat(40), status: 'completed' };
+        });
+        localGitService.appendSystemActivity.mockImplementation(async () => {
+            calls.push('activity');
+
+            return { relativePath: 'design/activity/card__card-1.json' };
+        });
+
+        await dispatch.dataBridge.integrateWorktree({
+            cardInternalId: 'card-1',
+            project,
+            projectFolder: 'design',
+            worktree: 1,
+            worktreeBranch: 'feature',
+        });
+
+        expect(calls).toEqual([
+            'operation-start',
+            'metrics',
+            'integrate',
+            'operation-end',
+            'activity',
+        ]);
     });
 
     it('reports history persistence failure after successful card integration', async () => {
         const { dispatch, localGitService, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
-        localGitService.appendAndCommitSystemActivity.mockRejectedValueOnce(new Error('activity commit failed'));
+        localGitService.appendSystemActivity.mockRejectedValueOnce(new Error('activity write failed'));
 
         await expect(dispatch.dataBridge.integrateWorktree({
             cardInternalId: 'card-1',
             project,
             projectFolder: 'design',
             worktree: 1, worktreeBranch: 'feature',
-        })).rejects.toThrow('Worktree integrated, but card history tracking failed: activity commit failed');
+        })).rejects.toThrow('Worktree integrated, but card history tracking failed: activity write failed');
 
         expect(worktreeService.integrate).toHaveBeenCalledOnce();
         expect(worktreeService.synchronize).not.toHaveBeenCalled();
     });
 
-    it('reports linked-worktree synchronization failure after card history is tracked', async () => {
+    it('does not synchronize the linked worktree again after integration', async () => {
         const { dispatch, localGitService, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
-        worktreeService.synchronize.mockRejectedValueOnce(new Error('reset failed'));
 
-        await expect(dispatch.dataBridge.integrateWorktree({
+        await dispatch.dataBridge.integrateWorktree({
             cardInternalId: 'card-1',
             project,
             projectFolder: 'design',
             worktree: 1, worktreeBranch: 'feature',
-        })).rejects.toThrow('Worktree integrated and card history tracked, but linked worktree synchronization failed: reset failed');
+        });
 
-        expect(localGitService.appendAndCommitSystemActivity).toHaveBeenCalledOnce();
-        expect(worktreeService.synchronize).toHaveBeenCalledWith(project, 'feature');
+        expect(localGitService.appendSystemActivity).toHaveBeenCalledOnce();
+        expect(worktreeService.synchronize).not.toHaveBeenCalled();
         expect(worktreeService.park).not.toHaveBeenCalled();
     });
 
@@ -720,7 +786,7 @@ describe('createLocalBridgeDispatch', () => {
             worktree: 1, worktreeBranch: 'feature',
         })).rejects.toThrow('squash failed');
 
-        expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
+        expect(localGitService.appendSystemActivity).not.toHaveBeenCalled();
         expect(worktreeService.synchronize).not.toHaveBeenCalled();
     });
 
@@ -737,7 +803,7 @@ describe('createLocalBridgeDispatch', () => {
             worktree: 1, worktreeBranch: 'feature',
         })).resolves.toEqual({ session, status: 'conflict' });
 
-        expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
+        expect(localGitService.appendSystemActivity).not.toHaveBeenCalled();
     });
 
     it('keeps final conflict session until integration finalization succeeds', async () => {
@@ -751,7 +817,7 @@ describe('createLocalBridgeDispatch', () => {
             worktree: 1, worktreeBranch: 'feature',
         };
         worktreeService.continueConflict.mockResolvedValueOnce({ branch: 'main', commit: 'a'.repeat(40), session, status: 'completed' });
-        localGitService.appendAndCommitSystemActivity.mockRejectedValueOnce(new Error('disk full'));
+        localGitService.appendSystemActivity.mockRejectedValueOnce(new Error('disk full'));
 
         await expect(dispatch.dataBridge.continueMergeConflict({ sessionId: 'session-1' }))
             .rejects.toThrow('card history tracking failed: disk full');
@@ -759,15 +825,15 @@ describe('createLocalBridgeDispatch', () => {
 
         worktreeService.continueConflict.mockResolvedValueOnce({ branch: 'main', commit: 'a'.repeat(40), session, status: 'completed' });
         await expect(dispatch.dataBridge.continueMergeConflict({ sessionId: 'session-1' }))
-            .resolves.toEqual({ cardInternalId: 'card-1', status: 'completed' });
+            .resolves.toEqual({ activityPath: 'design/activity/card__card-1.json', cardInternalId: 'card-1', status: 'completed' });
         expect(worktreeService.completeConflict).toHaveBeenCalledWith({ sessionId: 'session-1' });
         expect(mergeConflictService.updateMetadata).toHaveBeenCalledWith({ sessionId: 'session-1' }, { activityTracked: true });
     });
 
-    it('does not duplicate tracked activity when conflict finalization is retried after synchronization fails', async () => {
-        const { dispatch, localGitService, mergeConflictService, worktreeService } = createDispatch();
+    it('does not synchronize the linked worktree again after conflict integration', async () => {
+        const { dispatch, localGitService, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
-        const initialSession = {
+        const session = {
             id: 'session-1',
             metadata: { cardInternalId: 'card-1', deleteBranch: false, projectFolder: 'design' },
             projectBranch: project.branch,
@@ -775,20 +841,35 @@ describe('createLocalBridgeDispatch', () => {
             projectRoot: project.rootPath,
             worktree: 1, worktreeBranch: 'feature',
         };
-        const retrySession = { ...initialSession, metadata: { ...initialSession.metadata, activityTracked: true } };
-        worktreeService.continueConflict
-            .mockResolvedValueOnce({ branch: 'main', commit: 'a'.repeat(40), session: initialSession, status: 'completed' })
-            .mockResolvedValueOnce({ branch: 'main', commit: 'a'.repeat(40), session: retrySession, status: 'completed' });
-        mergeConflictService.updateMetadata.mockImplementation((_request, updates) => ({ ...initialSession.metadata, ...updates }));
-        worktreeService.synchronizeConflict.mockRejectedValueOnce(new Error('locked'));
+        worktreeService.continueConflict.mockResolvedValueOnce({ branch: 'main', commit: 'a'.repeat(40), session, status: 'completed' });
 
         await expect(dispatch.dataBridge.continueMergeConflict({ sessionId: 'session-1' }))
-            .rejects.toThrow('linked worktree synchronization failed: locked');
-        await expect(dispatch.dataBridge.continueMergeConflict({ sessionId: 'session-1' }))
-            .resolves.toEqual({ cardInternalId: 'card-1', status: 'completed' });
+            .resolves.toMatchObject({ activityPath: 'design/activity/card__card-1.json', cardInternalId: 'card-1', status: 'completed' });
 
-        expect(localGitService.appendAndCommitSystemActivity).toHaveBeenCalledOnce();
-        expect(worktreeService.synchronizeConflict).toHaveBeenCalledTimes(2);
+        expect(localGitService.appendSystemActivity).toHaveBeenCalledOnce();
+        expect(worktreeService.synchronizeConflict).not.toHaveBeenCalled();
+    });
+
+    it('does not repeat branch deletion when history write is retried', async () => {
+        const { dispatch, localGitService, mergeConflictService, worktreeService } = createDispatch();
+        const session = {
+            id: 'session-1', metadata: { branchName: 'feature', cardInternalId: 'card-1', deleteBranch: true, projectFolder: 'design' },
+            projectBranch: 'main', projectId: 'local', projectRoot: 'C:/repo', worktree: 1, worktreeBranch: 'feature',
+        };
+        mergeConflictService.updateMetadata.mockImplementation((_request, updates) => {
+            session.metadata = { ...session.metadata, ...updates };
+
+            return session.metadata;
+        });
+        worktreeService.continueConflict.mockImplementation(async () => ({ branch: 'main', commit: 'a'.repeat(40), session, status: 'completed' }));
+        localGitService.appendSystemActivity.mockRejectedValueOnce(new Error('disk full'));
+
+        await expect(dispatch.dataBridge.continueMergeConflict({ sessionId: 'session-1' })).rejects.toThrow('disk full');
+        expect(worktreeService.completeConflict).not.toHaveBeenCalled();
+        await expect(dispatch.dataBridge.continueMergeConflict({ sessionId: 'session-1' })).resolves.toMatchObject({ branchDeleted: true });
+
+        expect(worktreeService.deleteBranchConflict).toHaveBeenCalledOnce();
+        expect(localGitService.appendSystemActivity).toHaveBeenCalledTimes(2);
     });
 
     it('delegates primary pull and refreshes monitored state after push', async () => {
@@ -1011,12 +1092,15 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.start).toHaveBeenCalledWith(request, { interactive: false });
     });
 
-    it('owns search-agent command and prompt construction in Electron', async () => {
-        const { agentRunnerService, dispatch } = createDispatch();
+    it('owns search-agent command and prompt construction without reading models', async () => {
+        const { agentModelCatalogService, agentRunnerService, dispatch } = createDispatch();
+        agentModelCatalogService.load.mockRejectedValue(new Error('Model catalog unavailable'));
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         await dispatch.dataBridge.loadProject(project, 'design');
 
         await dispatch.actionBridge.runSearchRegexpAgent('find beta cards', vi.fn());
+
+        expect(agentModelCatalogService.load).not.toHaveBeenCalled();
 
         expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({
             activityOrigin: { kind: 'project' },

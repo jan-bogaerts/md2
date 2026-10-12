@@ -1,7 +1,8 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-const { ensureInsideRoot } = require('../../git/git_commands');
+const { commitTrackedPaths, ensureInsideRoot, pathExists } = require('../../git/git_commands');
+const { projectOperationCoordinator } = require('../../project/project_operation_coordinator');
 
 const CSV_COLUMNS = [
     'recorded_at',
@@ -331,11 +332,14 @@ function usageMetricsPath(project, projectFolder) {
 class UsageMetricsService {
     constructor(dependencies = {}) {
         this.appendFile = dependencies.appendFile ?? fs.appendFile;
+        this.commitTrackedPaths = dependencies.commitTrackedPaths ?? commitTrackedPaths;
         this.errorReporter = dependencies.errorReporter ?? (() => undefined);
+        this.projectOperationCoordinator = dependencies.projectOperationCoordinator ?? projectOperationCoordinator;
         this.readFile = dependencies.readFile ?? fs.readFile;
         this.fileStates = new Map();
         this.fileWrites = new Map();
         this.filePath = null;
+        this.rootPath = null;
     }
 
     /** Binds metrics storage to the one active primary project. */
@@ -343,12 +347,19 @@ class UsageMetricsService {
         const filePath = usageMetricsPath(project, projectFolder);
         if (!filePath) throw new Error('Invalid usage metrics project');
         this.filePath = filePath;
+        this.rootPath = project.rootPath;
     }
 
     requireFilePath() {
         if (!this.filePath) throw new Error('Usage metrics project is not active');
 
         return this.filePath;
+    }
+
+    requireRootPath() {
+        if (!this.rootPath) throw new Error('Usage metrics project is not active');
+
+        return this.rootPath;
     }
 
     async recordTokenUsage(provider, usageValue, recordedAtValue) {
@@ -398,7 +409,8 @@ class UsageMetricsService {
 
     async runNonFatal(filePath, operation) {
         try {
-            return await this.enqueue(filePath, operation);
+            const rootPath = this.requireRootPath();
+            return await this.enqueue(filePath, () => this.projectOperationCoordinator.run(rootPath, operation));
         } catch (error) {
             try {
                 await this.errorReporter(error);
@@ -449,6 +461,15 @@ class UsageMetricsService {
         await this.appendFile(filePath, content, 'utf8');
         state.hasContent = true;
         state.needsRecordSeparator = false;
+    }
+
+    /** Commits only the metrics file before an operation that requires a clean primary worktree. */
+    async flushPendingChanges() {
+        const filePath = this.requireFilePath();
+        const rootPath = this.requireRootPath();
+        if (!await pathExists(filePath)) return null;
+
+        return this.commitTrackedPaths(rootPath, [filePath], 'Update usage metrics');
     }
 }
 

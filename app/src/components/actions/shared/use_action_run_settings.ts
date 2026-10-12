@@ -8,10 +8,9 @@ import {
     validateAgentSelection,
     validateThinkingLevel,
     supportsThinkingLevel,
+    THINKING_LEVELS,
 } from '../../../data/agent_profiles'
-import { findCatalogModel, modelFastTier, modelThinkingLevels } from '../../../data/agent_model_catalog';
 import { agentModelOptions } from '../../../data/agent_model_options';
-import { agentCatalogSelectionError } from '../../../data/agent_catalog_selection';
 import {
     DEFAULT_AGENT_SELECTION,
     projectAgentSelection,
@@ -25,7 +24,6 @@ import { useAgentCapabilities } from '../../hooks/use_agent_capabilities'
 import { useConfigValueOrFallback, useHasDesktopConfig } from '../../hooks/use_config_value'
 import { useProjectReadOnly } from '../../hooks/use_project_read_only'
 import { useAgentModelCatalog } from '../../hooks/use_agent_model_catalog';
-import { useActionCatalogProject } from '../../hooks/use_action_catalog_project';
 
 function agentSelectionError(agentProfiles: ReturnType<typeof mergeAgentProfiles>, selection: ReturnType<typeof projectAgentSelection>) {
     try {
@@ -75,19 +73,11 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
     const { agent, permissionMode, thinkingLevel, speedMode } = projectedSelection
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
     const model = projectedSelection.model || (selectedAgentProfile ? defaultModelForProfile(selectedAgentProfile) : '');
-    const catalogProject = useActionCatalogProject(store);
-    const modelCatalog = useAgentModelCatalog(action.type === 'agent' ? selectedAgentProfile : null, catalogProject.project);
+    const modelCatalog = useAgentModelCatalog(action.type === 'agent' ? selectedAgentProfile : null);
     const modelOptions = agentModelOptions(modelCatalog.catalog, model);
-    const advertisedModel = modelCatalog.catalog ? findCatalogModel(modelCatalog.catalog, model) : null;
-    const thinkingLevelOptions = modelThinkingLevels(agent, advertisedModel)
+    const thinkingLevelOptions = THINKING_LEVELS
         .filter((level) => !!selectedAgentProfile && supportsThinkingLevel(selectedAgentProfile, level));
-    const fastAvailable = !!modelCatalog.catalog && !modelCatalog.stale && !modelCatalog.error
-        && !!modelFastTier(modelCatalog.catalog, advertisedModel);
-    const speedSupported = modelCatalog.catalog?.provider === 'openai' && agent === 'codex';
-    const selectionValidationError = action.type === 'agent'
-        ? agentSelectionError(agentProfiles, projectedSelection)
-            ?? agentCatalogSelectionError(modelCatalog.catalog, { ...projectedSelection, model })
-        : null;
+    const selectionValidationError = action.type === 'agent' ? agentSelectionError(agentProfiles, projectedSelection) : null;
     const permissionModeSupported = !!selectedAgentProfile && supportsPermissionMode(selectedAgentProfile)
     const selectedAvailability = capabilities.availability.values[agent]
     const selectedAgentAvailable = action.type !== 'agent'
@@ -109,13 +99,7 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
                                 ? 'Checking agent executable availability'
                                 : action.type === 'agent' && !selectedAgentAvailable
                                     ? selectedAvailability?.error ?? capabilities.availability.error ?? `Agent executable is unavailable for ${agent}`
-                                    : action.type === 'agent' && catalogProject.error
-                                        ? catalogProject.error
-                                        : action.type === 'agent' && modelCatalog.error
-                                            ? modelCatalog.error
-                                            : action.type === 'agent' && (modelCatalog.loading || !modelCatalog.catalog || modelCatalog.stale)
-                                                ? 'Refreshing model capabilities'
-                                                : null
+                                    : null
     return {
         agent,
         agentAvailability: capabilities.availability.values,
@@ -131,8 +115,6 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
         modelOptions,
         modelCatalog,
         thinkingLevelOptions,
-        fastAvailable,
-        speedSupported,
         speedMode,
         selectionSources: resolutionSources,
         selectionValidationError,

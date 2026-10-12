@@ -1,11 +1,13 @@
 import {
-    Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, Typography,
+    Box, Button, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, Typography, useMediaQuery, useTheme,
 } from '@mui/material'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { useEffect, useMemo, useSyncExternalStore, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useSyncExternalStore, type KeyboardEvent } from 'react'
+import { ResizablePopper } from '../../../resizable_popper';
+import { cardPopupService, subscribeCardPopups } from '../../../../services/card_popup_service';
 import type { ProjectSnapshot } from '../../../../data/data_types'
-import { dataService } from '../../../../services/data/data_service'
+import { CARD_ADDED_EVENT, CARD_REMOVED_EVENT, cardCollectionFieldChangedEvent, dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { useActions } from '../../../hooks/use_actions'
 import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
@@ -22,7 +24,13 @@ import { CARD_SEQUENCE_DROP_ID, cardSequenceItemId } from './card_sequence_dnd'
 import { registerCardSequence } from './card_sequence_registration'
 import { CardSequenceRow } from './card_sequence_row'
 
-const EMPTY_CARDS: ProjectSnapshot['activeCards'] = []
+const EMPTY_CARDS: ProjectSnapshot['activeCards'] = [];
+const SEQUENCE_POPUP_INITIAL_SIZE = { height: 620, width: 760 };
+const CARD_SOURCE_EVENTS = [
+    CARD_ADDED_EVENT, CARD_REMOVED_EVENT, 'changed',
+    cardCollectionFieldChangedEvent('identity'), cardCollectionFieldChangedEvent('status'),
+    cardCollectionFieldChangedEvent('title'), cardCollectionFieldChangedEvent('worktree'),
+];
 
 function subscribeActiveCards(listener: () => void) {
     dataService.addEventListener('changed', listener)
@@ -52,6 +60,12 @@ interface CardSequenceDialogProps {
 
 /** Wide ordered-card sequence builder hosted inside board DnD context. */
 export function CardSequenceDialog({ service = cardSequenceDraftService }: CardSequenceDialogProps) {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const entries = useSyncExternalStore(subscribeCardPopups, () => cardPopupService.getSnapshot());
+    const entry = entries.find(({ kind }) => kind === 'sequence');
+    const stackPosition = entry ? entries.indexOf(entry) : 0;
+    const visible = !isMobile || !entry || entries.at(-1)?.id === entry.id;
     const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot)
     const activeCards = useSyncExternalStore(subscribeActiveCards, getActiveCards, getActiveCards)
     const { actions } = useActions()
@@ -59,26 +73,41 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
     const worktrees = useWorktrees();
     const claudeState = useClaudeRateLimits()
     const codexState = useCodexRateLimits()
+    const handleCardSourcesChange = useCallback(() => service.refreshCardSources(), [service]);
+    useEffect(() => {
+        if (!snapshot.open) return;
+        handleCardSourcesChange();
+        CARD_SOURCE_EVENTS.forEach((event) => dataService.addEventListener(event, handleCardSourcesChange));
+
+        return () => CARD_SOURCE_EVENTS.forEach((event) => dataService.removeEventListener(event, handleCardSourcesChange));
+    }, [handleCardSourcesChange, snapshot.open]);
     const { setNodeRef } = useDroppable({ id: CARD_SEQUENCE_DROP_ID })
     const selectedCards = useMemo(() => snapshot.cardInternalIds.flatMap((cardInternalId) => {
-        const card = activeCards.find(({ header }) => header.internalId === cardInternalId)
+        const source = snapshot.cardSources.find((candidate) => candidate.cardInternalId === cardInternalId);
+        const card = source ? activeCards.find(({ header }) => header.internalId === source.cardInternalId) : null;
 
-        return card ? [card] : []
-    }), [activeCards, snapshot.cardInternalIds])
+        return card ? [card] : [];
+    }), [activeCards, snapshot.cardInternalIds, snapshot.cardSources])
     const availableActions = useMemo(
-        () => cardSequenceActions(actions, selectedCards, projectConfig?.cardTypes ?? [], worktrees),
-        [actions, projectConfig?.cardTypes, selectedCards, worktrees],
+        () => cardSequenceActions(actions, selectedCards, projectConfig?.cardTypes ?? [], worktrees, snapshot.worktreeBranch),
+        [actions, projectConfig?.cardTypes, selectedCards, worktrees, snapshot.worktreeBranch],
     )
     const readyStates = useMemo(() => scheduleTargetStates(projectConfig?.states), [projectConfig?.states])
     const accountTrackers = useMemo(() => accountTrackerOptions(claudeState, codexState), [claudeState, codexState])
     const triggerCards = useMemo(
-        () => cardScheduleOptions(activeCards, undefined)
-            .filter(({ cardInternalId }) => !snapshot.cardInternalIds.includes(cardInternalId)),
-        [activeCards, snapshot.cardInternalIds],
+        () => cardScheduleOptions(activeCards.filter(({ header }) => (
+            snapshot.cardSources.some(({ cardInternalId }) => cardInternalId === header.internalId)
+        )), undefined).filter(({ cardInternalId }) => !snapshot.cardInternalIds.includes(cardInternalId)),
+        [activeCards, snapshot.cardInternalIds, snapshot.cardSources],
     )
     const addableCards = useMemo(
-        () => activeCards.filter(({ header }) => !!header.internalId && !snapshot.cardInternalIds.includes(header.internalId)),
-        [activeCards, snapshot.cardInternalIds],
+        () => snapshot.cardSources.flatMap(({ assigned, cardInternalId }) => {
+            if (assigned || !cardInternalId || snapshot.cardInternalIds.includes(cardInternalId)) return [];
+            const card = activeCards.find(({ header }) => header.internalId === cardInternalId);
+
+            return card ? [card] : [];
+        }),
+        [activeCards, snapshot.cardInternalIds, snapshot.cardSources],
     )
 
     useEffect(() => {
@@ -90,8 +119,15 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
         })
     }, [accountTrackers, availableActions, readyStates, selectedCards.length, service, snapshot.cardInternalIds.length, triggerCards])
 
-    const handleClose = () => service.close()
+    const handleClose = () => {
+        if (entry) cardPopupService.close(entry.id);
+        service.close();
+    };
+    const handleActivate = () => {
+        if (entry) cardPopupService.activate(entry.id);
+    };
     const handleActionSelect = (actionId: string) => service.setActionId(actionId)
+    const handleWorktreeChange = (event: { target: { value: unknown } }) => service.setWorktreeBranch(event.target.value as string);
     const handleReadyStateChange = (event: { target: { value: unknown } }) => service.setReadyState(event.target.value as string)
     const handleTriggerChange = (change: ScheduleTriggerFieldsChange) => {
         if (change.type === 'trigger-type') service.setTriggerType(change.triggerType)
@@ -111,7 +147,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
         service.setSubmitting(true)
         try {
             await registerCardSequence(service.createRegistrationRequest())
-            service.close()
+            handleClose();
         } catch (error) {
             service.setSubmitting(false)
             dialogService.error(error, { fallbackMessage: 'Card sequence could not be registered' })
@@ -121,19 +157,21 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
     const sortableIds = snapshot.cardInternalIds.map(cardSequenceItemId)
 
     return (
-        <Dialog
-            aria-modal={false}
-            disableEnforceFocus
-            disableScrollLock
-            fullWidth
-            hideBackdrop
-            maxWidth="md"
+        <ResizablePopper
+            anchorElement={entry ? (entry.anchorElement.isConnected ? entry.anchorElement : entry.fallbackAnchorElement) : null}
+            constrainSizeToViewport
+            draggable
+            initialSize={SEQUENCE_POPUP_INITIAL_SIZE}
+            labelId="card-sequence-title"
+            onActivate={handleActivate}
             onClose={handleClose}
-            open={snapshot.open}
-            sx={{ pointerEvents: 'none', '& .MuiDialog-paper': { maxHeight: '82vh', pointerEvents: 'auto' } }}
+            open={snapshot.open && !!entry && visible}
+            paperSx={{ display: 'flex', flexDirection: 'column' }}
+            resizeLabel="Resize card sequence"
+            stackPosition={stackPosition}
         >
             <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
-                <DialogTitle>Add card sequence</DialogTitle>
+                <DialogTitle data-popper-drag-handle id="card-sequence-title">Add card sequence</DialogTitle>
                 <Box sx={{ px: 3, pb: 2 }}>
                     <CardSequenceActionSelector
                         actions={availableActions}
@@ -142,7 +180,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
                     />
                 </Box>
             </Box>
-            <DialogContent onKeyDown={handleKeyDown} sx={{ display: 'flex', gap: 2, minHeight: 0, overflowY: 'auto', py: 2 }}>
+            <DialogContent onKeyDown={handleKeyDown} sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 2, minHeight: 0, overflowY: 'auto', py: 2 }}>
                 <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
                     <Box sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
                         <Typography color="text.secondary" variant="subtitle2">Cards</Typography>
@@ -181,6 +219,13 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
                     </Box>
                 </Stack>
                 <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography color="text.secondary" variant="caption">Worktree</Typography>
+                    <Select inputProps={{ 'aria-label': 'Sequence worktree' }} onChange={handleWorktreeChange} size="small" value={snapshot.worktreeBranch}>
+                        <MenuItem value="">Unassigned</MenuItem>
+                        {worktrees.map(({ branch, path, valid }, index) => (
+                            <MenuItem disabled={!valid} key={path} value={branch ?? undefined}>{index + 1}: {branch}</MenuItem>
+                        ))}
+                    </Select>
                     <Typography color="text.secondary" variant="caption">Ready state</Typography>
                     <Select inputProps={{ 'aria-label': 'Ready state' }} onChange={handleReadyStateChange} size="small" value={snapshot.readyState}>
                         {readyStates.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
@@ -202,6 +247,6 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
                 <Button disabled={snapshot.submitStatus === 'submitting'} onClick={handleClose} variant="outlined">Cancel</Button>
                 <Button disabled={!snapshot.canSubmit} onClick={handleSubmit} variant="contained">{submitLabel}</Button>
             </DialogActions>
-        </Dialog>
+        </ResizablePopper>
     )
 }

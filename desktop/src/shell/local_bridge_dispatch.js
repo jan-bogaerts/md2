@@ -1,3 +1,4 @@
+const { resolveAgentExecution } = require('../actions/agent/agent_execution');
 const { findAgentProfile } = require('../actions/agent/agent_profiles.mjs');
 const { CardStateTracker } = require('../actions/card/card_state_tracker');
 const { ConversationViewEvents } = require('../actions/activity/conversation_view_events');
@@ -40,7 +41,7 @@ function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
 }
 
-async function loadAgentModelCatalog(dependencies, currentProject, request) {
+async function loadAgentModelCatalog(dependencies, request) {
     const { agentModelCatalogService, desktopConfigStore, readDesktopConfig } = dependencies;
     if (!agentModelCatalogService) throw new Error('Agent model catalog service is not available');
     if (!request || typeof request.agent !== 'string' || request.agent.length === 0) throw new Error('Missing catalog agent');
@@ -48,9 +49,8 @@ async function loadAgentModelCatalog(dependencies, currentProject, request) {
     const { agentProfiles } = readDesktopConfig(desktopConfigStore);
     const profile = request.profile === undefined ? findAgentProfile(agentProfiles, request.agent) : request.profile;
     if (!profile || profile.name !== request.agent) throw new Error('Catalog profile does not match its agent');
-    const cwd = request.project === undefined ? currentProject?.rootPath ?? process.cwd() : request.project?.rootPath;
 
-    return await agentModelCatalogService.load(profile, cwd, request.refresh === true);
+    return await agentModelCatalogService.load(profile, request.refresh === true);
 }
 
 function createLocalBridgeDispatch(dependencies) {
@@ -70,11 +70,13 @@ function createLocalBridgeDispatch(dependencies) {
         openProjectFolder,
         openProjectSubFolder,
         openWorktreeFolder,
+        projectOperationCoordinator,
         projectStatsWorkerService,
         readDesktopConfig,
         saveDesktopConfig,
         showItemInFolder,
         updateCodexCli,
+        usageMetricsService,
         worktreeService,
     } = dependencies;
     let currentLocalProject = null;
@@ -173,8 +175,8 @@ function createLocalBridgeDispatch(dependencies) {
         currentLocalProject = project;
         await startCardStateDetection(project, projectPaths.projectFolder);
         if (actionRunnerService) await actionRunnerService.startProject(project, projectPaths, projectConfig?.states);
-        if (actionSchedulerService) await actionSchedulerService.startProject(project, projectPaths, projectConfig);
         await worktreeService.startProject(project);
+        if (actionSchedulerService) await actionSchedulerService.startProject(project, projectPaths, projectConfig);
         // Account usage polls run in this folder: Claude's per-folder trust question blocks a poll
         // started anywhere it has never run, which is why the poll waits for a project at all.
         if (agentRunnerService) {
@@ -183,6 +185,14 @@ function createLocalBridgeDispatch(dependencies) {
         }
         projectServicesReady = true;
     }
+
+    const onAgentModelCatalogChanged = (callback) => {
+        const handleCatalog = (event) => callback(event.detail);
+        agentModelCatalogService.addEventListener('catalog', handleCatalog);
+        for (const catalog of agentModelCatalogService.catalogs.values()) callback(catalog);
+
+        return () => agentModelCatalogService.removeEventListener('catalog', handleCatalog);
+    };
 
     const dataBridge = {
         calculateActivityStats: (project, paths, calculationId) => {
@@ -252,7 +262,8 @@ function createLocalBridgeDispatch(dependencies) {
             return agentExecutableAvailability(agentProfiles);
         },
         loadDesktopConfig: () => readDesktopConfig(desktopConfigStore),
-        loadAgentModelCatalog: (request) => loadAgentModelCatalog(dependencies, currentLocalProject, request),
+        loadAgentModelCatalog: (request) => loadAgentModelCatalog(dependencies, request),
+        onAgentModelCatalogChanged,
         loadFile: (project, path) => localGitService.loadFile(project, path),
         loadTextFile: (project, path) => localGitService.loadTextFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
@@ -298,31 +309,60 @@ function createLocalBridgeDispatch(dependencies) {
         integrateWorktree: async (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree integration request');
             const metadata = worktreeIntegrationMetadata(request);
-            const integration = await worktreeService.integrate(request.project, request.worktreeBranch, metadata);
+            const result = await projectOperationCoordinator.run(request.project.rootPath, async () => {
+                await usageMetricsService.flushPendingChanges();
+                const integration = await worktreeService.integrate(request.project, request.worktreeBranch, metadata);
+                if (integration.status === 'conflict') return { integration, progress: metadata };
+                const progress = await finalizeIntegrationRepository(
+                    request.project,
+                    request.worktreeBranch,
+                    metadata,
+                    false,
+                );
+
+                return { integration, progress };
+            });
+            const { integration, progress } = result;
             if (integration.status === 'conflict') return integration;
 
-            await finalizeIntegration(request.project, request.worktreeBranch, integration, metadata, false);
+            const activityPath = await recordIntegrationActivity(request.project, integration, progress, false);
 
-            return { status: 'completed' };
+            return { ...(activityPath ? { activityPath } : {}), status: 'completed' };
         },
         abortMergeConflict: (request) => worktreeService.abortConflict(request),
         continueMergeConflict: async (request) => {
-            const outcome = await worktreeService.continueConflict(request);
+            const session = mergeConflictService.getInternalSession();
+            if (!session) throw new Error('No active merge conflict session');
+            const result = await projectOperationCoordinator.run(session.projectRoot, async () => {
+                await usageMetricsService.flushPendingChanges();
+                const outcome = await worktreeService.continueConflict(request);
+                if (outcome.status === 'conflict') return { outcome, progress: session.metadata };
+                const progress = await finalizeIntegrationRepository(
+                    { branch: session.projectBranch, id: session.projectId, rootPath: session.projectRoot },
+                    session.worktreeBranch,
+                    outcome.session.metadata,
+                    true,
+                    request,
+                );
+
+                return { outcome, progress };
+            });
+            const { outcome, progress } = result;
             if (outcome.status === 'conflict') return outcome;
-            const session = outcome.session;
-            await finalizeIntegration(
-                { branch: session.projectBranch, id: session.projectId, rootPath: session.projectRoot },
-                session.worktreeBranch,
+            const completedSession = outcome.session;
+            const activityPath = await recordIntegrationActivity(
+                { branch: completedSession.projectBranch, id: completedSession.projectId, rootPath: completedSession.projectRoot },
                 outcome,
-                session.metadata,
+                progress,
                 true,
                 request,
             );
             worktreeService.completeConflict(request);
 
             return {
-                ...(session.metadata.cardInternalId ? { cardInternalId: session.metadata.cardInternalId } : {}),
-                ...(session.metadata.deleteBranch ? { branchDeleted: true } : {}),
+                ...(activityPath ? { activityPath } : {}),
+                ...(completedSession.metadata.cardInternalId ? { cardInternalId: completedSession.metadata.cardInternalId } : {}),
+                ...(completedSession.metadata.deleteBranch ? { branchDeleted: true } : {}),
                 status: 'completed',
             };
         },
@@ -402,61 +442,59 @@ function createLocalBridgeDispatch(dependencies) {
         ),
     };
 
-    async function finalizeIntegration(project, worktreeBranch, integration, metadata, activeConflict, conflictRequest = null) {
+    async function finalizeIntegrationRepository(project, worktreeBranch, metadata, activeConflict, conflictRequest = null) {
+        let progress = metadata;
+        if (progress.deleteBranch) {
+            try {
+                if (activeConflict) {
+                    if (!progress.worktreeParked) {
+                        await worktreeService.parkConflict(project);
+                        progress = { ...progress, ...mergeConflictService.updateMetadata(conflictRequest, { worktreeParked: true }) };
+                    }
+                    if (!progress.branchDeleted) {
+                        await worktreeService.deleteBranchConflict(project, progress.branchName);
+                        progress = { ...progress, ...mergeConflictService.updateMetadata(conflictRequest, { branchDeleted: true }) };
+                    }
+                } else {
+                    await worktreeService.park(project, worktreeBranch);
+                    await worktreeService.deleteBranch(project, progress.branchName);
+                }
+            } catch (error) {
+                throw new Error(`Worktree integrated, but branch cleanup failed: ${errorMessage(error)}`, { cause: error });
+            }
+        }
+
+        return progress;
+    }
+
+    async function recordIntegrationActivity(project, integration, progress, activeConflict, conflictRequest = null) {
         if (!integration || typeof integration.commit !== 'string' || typeof integration.branch !== 'string') {
             throw new Error('Worktree integration returned no commit metadata');
         }
-        let progress = metadata;
         const tracking = progress.cardInternalId && typeof progress.projectFolder === 'string'
             ? { cardInternalId: progress.cardInternalId, projectFolder: progress.projectFolder }
             : null;
-        if (tracking && !progress.activityTracked) {
-            try {
-                const commitMetadata = await localGitService.resolveCommitMetadata(project.rootPath, integration.commit);
-                const origin = { cardInternalId: tracking.cardInternalId, kind: 'card' };
-                const commit = { ...commitMetadata, branch: integration.branch };
-                const record = {
-                    commits: [commit],
-                    completedAt: commitMetadata.committedAt,
-                    label: INTEGRATION_ACTIVITY_LABEL,
-                    origin,
-                    type: 'system',
-                };
-                await localGitService.appendAndCommitSystemActivity(
-                    project,
-                    tracking.projectFolder,
-                    origin,
-                    record,
-                    `Record ${INTEGRATION_ACTIVITY_LABEL} activity`,
-                );
-                if (activeConflict) progress = mergeConflictService.updateMetadata(conflictRequest, { activityTracked: true });
-            } catch (error) {
-                throw new Error(`Worktree integrated, but card history tracking failed: ${errorMessage(error)}`, { cause: error });
-            }
+        if (!tracking) return null;
+        const origin = { cardInternalId: tracking.cardInternalId, kind: 'card' };
+        if (progress.activityTracked) {
+            return localGitService.resolveActivityPath(project.rootPath, tracking.projectFolder, origin).relativePath;
         }
-        if (tracking && !progress.worktreeSynchronized) {
-            try {
-                if (activeConflict) await worktreeService.synchronizeConflict(project);
-                else await worktreeService.synchronize(project, worktreeBranch);
-                if (activeConflict) progress = mergeConflictService.updateMetadata(conflictRequest, { worktreeSynchronized: true });
-            } catch (error) {
-                throw new Error(`Worktree integrated and card history tracked, but linked worktree synchronization failed: ${errorMessage(error)}`, { cause: error });
-            }
-        }
-        if (!progress.deleteBranch) return;
         try {
-            if (activeConflict) {
-                if (!progress.worktreeParked) {
-                    await worktreeService.parkConflict(project);
-                    progress = mergeConflictService.updateMetadata(conflictRequest, { worktreeParked: true });
-                }
-                await worktreeService.deleteBranchConflict(project, progress.branchName);
-            } else {
-                await worktreeService.park(project, worktreeBranch);
-                await worktreeService.deleteBranch(project, progress.branchName);
-            }
+            const commitMetadata = await localGitService.resolveCommitMetadata(project.rootPath, integration.commit);
+            const commit = { ...commitMetadata, branch: integration.branch };
+            const record = {
+                commits: [commit],
+                completedAt: commitMetadata.committedAt,
+                label: INTEGRATION_ACTIVITY_LABEL,
+                origin,
+                type: 'system',
+            };
+            const result = await localGitService.appendSystemActivity(project, tracking.projectFolder, origin, record);
+            if (activeConflict) mergeConflictService.updateMetadata(conflictRequest, { activityTracked: true });
+
+            return result.relativePath;
         } catch (error) {
-            throw new Error(`Worktree integrated, but branch cleanup failed: ${errorMessage(error)}`, { cause: error });
+            throw new Error(`Worktree integrated, but card history tracking failed: ${errorMessage(error)}`, { cause: error });
         }
     }
 
@@ -554,7 +592,8 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.cancel(runId);
         },
-        loadAgentModelCatalog: (request) => loadAgentModelCatalog(dependencies, currentLocalProject, request),
+        loadAgentModelCatalog: (request) => loadAgentModelCatalog(dependencies, request),
+        onAgentModelCatalogChanged,
         answerActionInput: (runId, response) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
@@ -638,10 +677,9 @@ function createLocalBridgeDispatch(dependencies) {
         runSearchRegexpAgent: async (input, callback) => {
             if (typeof input !== 'string' || input.length === 0) throw new Error('Missing regular expression search input');
 
-            if (!agentModelCatalogService) throw new Error('Agent model catalog service is not available');
             if (!currentLocalProject) throw new Error('No project is selected for agent search');
-            const resolved = await agentModelCatalogService.resolveExecution(
-                readDesktopConfig(desktopConfigStore), {}, false, currentLocalProject.rootPath,
+            const resolved = resolveAgentExecution(
+                readDesktopConfig(desktopConfigStore), {}, false,
             );
             const projectConfig = await localGitService.loadProjectConfig(currentLocalProject);
             const projectFolder = typeof projectConfig?.projectFolder === 'string' ? projectConfig.projectFolder : '';

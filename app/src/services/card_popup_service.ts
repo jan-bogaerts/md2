@@ -8,6 +8,7 @@ import {
 } from './data/data_service'
 import { mobileBackDismissService, type MobileBackDismissService } from './mobile_back_dismiss_service'
 import { dialogService } from './dialog_service'
+import { cardSequenceDraftService } from '../components/actions/run/sequence/card_sequence_draft_service';
 import { register } from './service_injector'
 
 const CARD_POPUPS_CHANGED_EVENT = 'changed'
@@ -37,7 +38,11 @@ export interface CardDetailsPopupEntry extends CardPopupEntryBase {
     kind: 'card-details'
 }
 
-export type CardPopupEntry = CardActionPopupEntry | CardDetailsPopupEntry
+export interface CardSequencePopupEntry extends CardPopupEntryBase {
+    kind: 'sequence';
+}
+
+export type CardPopupEntry = CardActionPopupEntry | CardDetailsPopupEntry | CardSequencePopupEntry;
 
 function projectKey(service: DataService) {
     const project = service.getState().project
@@ -276,11 +281,24 @@ export class CardPopupService extends EventTarget {
         this.replaceEntry({ ...entry, diffSelection: null })
     }
 
+    openSequence(anchorElement: HTMLElement) {
+        const existing = this.entries.find(({ kind }) => kind === 'sequence');
+        if (existing) {
+            this.activate(existing.id);
+            return;
+        }
+        cardSequenceDraftService.open();
+        const entry: CardSequencePopupEntry = { anchorElement, fallbackAnchorElement: createFallbackAnchor(anchorElement), id: `card-sequence-popup-${this.nextId}`, kind: 'sequence' };
+        this.nextId += 1;
+        this.setEntries([...this.entries, entry]);
+    }
+
     close(id: string) {
         const entry = this.entries.find((candidate) => candidate.id === id)
         if (!entry) return
 
         entry.fallbackAnchorElement.remove()
+        if (entry.kind === 'sequence') cardSequenceDraftService.close();
         this.setEntries(this.entries.filter((candidate) => candidate.id !== id))
     }
 
@@ -346,6 +364,7 @@ export class CardPopupService extends EventTarget {
         const removedEntries = this.entries.filter(shouldRemove)
         if (removedEntries.length === 0) return
 
+        if (removedEntries.some(({ kind }) => kind === 'sequence')) cardSequenceDraftService.close();
         removedEntries.forEach(({ fallbackAnchorElement }) => fallbackAnchorElement.remove())
         this.setEntries(this.entries.filter((entry) => !shouldRemove(entry)))
     }

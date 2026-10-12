@@ -350,7 +350,7 @@ describe('ActionService', () => {
         expect(result).toMatchObject({ code: 'unknown-action', field: 'onBefore', valid: false })
     })
 
-    it('keeps retired capability values editable without publishing them', async () => {
+    it('publishes unlisted models while still rejecting invalid reasoning levels', async () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
         const retiredModel = {
@@ -359,13 +359,13 @@ describe('ActionService', () => {
         } satisfies RawActionDefinition
         service.loadFromFiles([file(retiredModel)])
 
-        expect(service.getActionByPath('actions/action.json')).toBeNull()
+        expect(service.getActionByPath('actions/action.json')).toMatchObject({ model: 'retired-model' })
         expect(service.getDefinitionByPath('actions/action.json')).toMatchObject({ model: 'retired-model' })
         expect(service.validateDefinition('actions/action.json', retiredModel))
-            .toMatchObject({ code: 'unknown-model', field: 'model', valid: false })
+            .toMatchObject({ valid: true })
         await service.saveDefinition('actions/action.json', retiredModel)
         expect(persistActionFile).toHaveBeenCalledOnce()
-        expect(service.getActionById(retiredModel.id)).toBeNull()
+        expect(service.getActionById(retiredModel.id)).toMatchObject({ model: 'retired-model' })
 
         const invalidThinkingLevel = { ...retiredModel, model: 'gpt-5.5', thinkingLevel: 'extreme' }
         expect(service.validateDefinition('actions/action.json', invalidThinkingLevel))

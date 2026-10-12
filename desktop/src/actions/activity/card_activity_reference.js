@@ -8,19 +8,17 @@ const HEADER_DELIMITER = '---';
 const LIST_ITEM_PREFIX = '  - ';
 
 function splitFrontmatter(content, cardPath) {
-    const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
-    if (!content.startsWith(`${HEADER_DELIMITER}${lineEnding}`)) {
-        throw new Error(`Card has no frontmatter: ${cardPath}`);
-    }
-    const closingDelimiter = `${lineEnding}${HEADER_DELIMITER}${lineEnding}`;
-    const closingIndex = content.indexOf(closingDelimiter, HEADER_DELIMITER.length);
-    if (closingIndex < 0) throw new Error(`Card has invalid frontmatter: ${cardPath}`);
+    const openingDelimiter = /^---(\r?\n)/u.exec(content);
+    if (!openingDelimiter) throw new Error(`Card has no frontmatter: ${cardPath}`);
+    const lineEnding = openingDelimiter[1];
+    const headerStart = openingDelimiter[0].length;
+    const closingDelimiter = /\r?\n---\r?\n/gu;
+    closingDelimiter.lastIndex = HEADER_DELIMITER.length;
+    const closingMatch = closingDelimiter.exec(content);
+    if (!closingMatch) throw new Error(`Card has invalid frontmatter: ${cardPath}`);
+    const headerEnd = closingMatch.index + closingMatch[0].indexOf(HEADER_DELIMITER);
 
-    return {
-        body: content.slice(closingIndex),
-        header: content.slice(HEADER_DELIMITER.length + lineEnding.length, closingIndex),
-        lineEnding,
-    };
+    return { header: content.slice(headerStart, headerEnd), headerStart, lineEnding };
 }
 
 function findTopLevelField(lines, fieldName) {
@@ -30,8 +28,9 @@ function findTopLevelField(lines, fieldName) {
 }
 
 function appendReferenceToContent(content, cardPath, cardInternalId, activityPath) {
-    const { body, header, lineEnding } = splitFrontmatter(content, cardPath);
-    const lines = header.split(lineEnding);
+    const { header, headerStart, lineEnding } = splitFrontmatter(content, cardPath);
+    const headerLines = header.split(/(?<=\n)/u);
+    const lines = headerLines.map((line) => line.replace(/\r?\n$/u, ''));
     const identityIndex = findTopLevelField(lines, 'internalId');
     const storedCardInternalId = identityIndex < 0 ? '' : lines[identityIndex].slice('internalId:'.length).trim();
     if (storedCardInternalId !== cardInternalId) {
@@ -39,21 +38,24 @@ function appendReferenceToContent(content, cardPath, cardInternalId, activityPat
     }
 
     const agentsIndex = findTopLevelField(lines, 'agents');
+    let insertionIndex = lines.length;
+    let insertedContent = `${LIST_ITEM_PREFIX}${activityPath}${lineEnding}`;
     if (agentsIndex < 0) {
-        lines.push('agents:', `${LIST_ITEM_PREFIX}${activityPath}`);
+        insertedContent = `agents:${lineEnding}${insertedContent}`;
     } else {
         if (lines[agentsIndex].slice('agents:'.length).trim().length > 0) {
             throw new Error(`Card agents field must be a list: ${cardPath}`);
         }
-        let insertionIndex = agentsIndex + 1;
+        insertionIndex = agentsIndex + 1;
         while (insertionIndex < lines.length && lines[insertionIndex].startsWith(LIST_ITEM_PREFIX)) {
             if (lines[insertionIndex].slice(LIST_ITEM_PREFIX.length).trim() === activityPath) return content;
             insertionIndex += 1;
         }
-        lines.splice(insertionIndex, 0, `${LIST_ITEM_PREFIX}${activityPath}`);
     }
 
-    return `${HEADER_DELIMITER}${lineEnding}${lines.join(lineEnding)}${body}`;
+    const insertionOffset = headerStart + headerLines.slice(0, insertionIndex).join('').length;
+
+    return `${content.slice(0, insertionOffset)}${insertedContent}${content.slice(insertionOffset)}`;
 }
 
 async function replaceFile(filePath, content, dependencies) {

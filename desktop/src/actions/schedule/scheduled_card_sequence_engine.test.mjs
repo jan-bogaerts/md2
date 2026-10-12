@@ -54,6 +54,7 @@ function createHarness(initialSchedule, statesByCard = { 'card-1': 'todo', 'card
     };
     const engine = new ScheduledCardSequenceEngine({
         actionRunnerService,
+        reportError: vi.fn(),
         allocateRunId: () => actionRunnerService.allocateRunId(),
         isCurrent: () => true,
         loadSchedules: async () => [schedule],

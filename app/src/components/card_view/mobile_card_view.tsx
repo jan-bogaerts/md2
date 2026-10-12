@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { DndContext, DragOverlay, MouseSensor, TouchSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildCardColumns } from '../../data/card_ordering'
@@ -16,6 +16,7 @@ import { cardDragDropService } from './card_drag_drop_service'
 import { useCardViewColumns } from './use_card_view_columns'
 import { useMobileCardViewColumn } from './use_mobile_card_view_column'
 import { resolveMobileCardDragEvent } from './mobile_card_drag'
+import { cardSequenceCollision } from '../actions/run/sequence/card_sequence_collision';
 import { CardSequenceDialog } from '../actions/run/sequence/card_sequence_dialog'
 import { cardSequenceDraftService } from '../actions/run/sequence/card_sequence_draft_service'
 import {
@@ -25,6 +26,7 @@ import {
 } from '../actions/run/sequence/card_sequence_dnd'
 
 const LONG_PRESS_DELAY_MS = 500
+const DRAG_OVERLAY_Z_INDEX = 2000;
 const LONG_PRESS_TOLERANCE = 5
 
 interface MobileCardViewProps {
@@ -196,7 +198,7 @@ export function MobileCardView(props: MobileCardViewProps) {
             sx={{ bgcolor: 'background.default', display: 'flex', flex: 1, minHeight: 0, overflowX: 'hidden', overflowY: 'auto' }}
         >
             <DndContext
-                collisionDetection={closestCorners}
+                collisionDetection={cardSequenceCollision}
                 onDragCancel={clearActiveCard}
                 onDragEnd={handleDragEnd}
                 onDragMove={handleDragMove}
@@ -216,7 +218,7 @@ export function MobileCardView(props: MobileCardViewProps) {
                         />
                     ) : null}
                 </Box>
-                <DragOverlay><CardDragOverlay cardTypes={cardTypes} /></DragOverlay>
+                <DragOverlay zIndex={DRAG_OVERLAY_Z_INDEX}><CardDragOverlay cardTypes={cardTypes} /></DragOverlay>
                 <CardSequenceDialog />
                 <CardBodyPopover
                     cardTypes={cardTypes}

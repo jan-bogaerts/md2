@@ -10,6 +10,7 @@ import { configService } from '../services/config/config_service'
 import { isWorktreeIntegratable, worktreeService } from '../services/project/worktree_service'
 import { useConfigValueOrFallback } from './hooks/use_config_value'
 import { useWorktreeSelectorState } from './hooks/use_worktree_selector_state'
+import { useOpenWorktrees } from './hooks/use_worktrees'
 import { WorktreeCommitDialog } from './worktree_commit_dialog'
 import { WorktreeIntegrationDialog } from './worktree_integration_dialog'
 import { WorktreeUnassignDialog } from './worktree_unassign_dialog'
@@ -59,8 +60,8 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         preparing,
         projectDirty: hasPendingProjectChanges,
         record: assignedRecord,
-        records: worktrees,
     } = useWorktreeSelectorState({ assignment, cardPath });
+    const worktrees = useOpenWorktrees(!!anchorElement)
     const selectorDisabled = disabled || preparing
     const state = assignmentState(assignment);
     const hasActiveCardWorktree = assignmentTarget.kind === 'card' && assignedWorktree !== null

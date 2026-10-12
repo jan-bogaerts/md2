@@ -23,11 +23,9 @@ const selectorState = vi.hoisted(() => ({
         model: 'gpt-5.5',
         permissionMode: 'ask-for-approval' as 'ask-for-approval' | 'approve-for-me' | 'full-access' | '',
         permissionModeSupported: true,
-        modelOptions: ['gpt-5.5', 'gpt-5.6-sol'].map((id) => ({ id, displayName: id, available: true })),
-        modelCatalog: { loading: false, stale: false, error: null as string | null, refresh: vi.fn() },
+        modelOptions: ['gpt-5.5', 'gpt-5.6-sol'].map((id) => ({ id, displayName: id })),
+        modelCatalog: { loading: false, error: null as string | null, refresh: vi.fn() },
         thinkingLevelOptions: ['none', 'low', 'medium', 'high', 'max'],
-        fastAvailable: true,
-        speedSupported: true,
         speedMode: undefined as 'default' | 'standard' | 'fast' | undefined,
         selection: {
             activeAgent: 'codex', permissionMode: 'ask-for-approval',
@@ -68,7 +66,7 @@ function openSubmenu(name: 'Agent' | 'Model' | 'Thinking level' | 'Speed') {
 describe('ActionAgentSelectors', () => {
     it('selects an advertised model by its native ID while displaying its friendly name', () => {
         const { setSettings } = renderSelectors();
-        selectorState.settings.modelOptions.push({ available: true, displayName: 'GPT 6.1 Sol', id: 'gpt-6.1-sol' });
+        selectorState.settings.modelOptions.push({ displayName: 'GPT 6.1 Sol', id: 'gpt-6.1-sol' });
         openSubmenu('Model');
         fireEvent.click(screen.getByRole('menuitem', { name: 'GPT 6.1 Sol' }));
         expect(setSettings).toHaveBeenCalledWith(expect.objectContaining({settingsByAgent: { codex: { model: 'gpt-6.1-sol', thinkingLevel: 'high' } }}), false);
@@ -84,15 +82,15 @@ describe('ActionAgentSelectors', () => {
         expect(selectorState.settings.modelCatalog.refresh).toHaveBeenCalledOnce();
     });
 
-    it('hides unknown Fast support but retains a disabled saved Fast preference', () => {
-        selectorState.settings.fastAvailable = false;
-        const { rerender } = renderSelectors();
+    it('keeps Fast selectable while discovery fails or loads', () => {
+        selectorState.settings.modelCatalog.error = 'Discovery failed';
+        selectorState.settings.modelCatalog.loading = true;
+        const { setSettings } = renderSelectors();
         openSubmenu('Speed');
-        expect(screen.queryByRole('menuitem', { name: /Fast/u })).not.toBeInTheDocument();
-        selectorState.settings.speedMode = 'fast';
-        rerender(<AppThemeProvider><ActionAgentSelectors action={action} bindingStore={bindingStore}
-            settingsStore={{ setSettings: vi.fn() } as unknown as ActionRunSettingsStore} /></AppThemeProvider>);
-        expect(screen.getByRole('menuitem', { name: /Fast — unavailable/u })).toHaveAttribute('aria-disabled', 'true');
+        const fastOption = screen.getByRole('menuitem', { name: /Fast/u });
+        expect(fastOption).not.toHaveAttribute('aria-disabled', 'true');
+        fireEvent.click(fastOption);
+        expect(setSettings).toHaveBeenCalledWith(expect.objectContaining({settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'high', speedMode: 'fast' } }}), false);
     });
 
     it('shows no speed controls for Claude', () => {
@@ -115,11 +113,9 @@ describe('ActionAgentSelectors', () => {
             model: 'gpt-5.5',
             permissionMode: 'ask-for-approval',
             permissionModeSupported: true,
-            modelOptions: ['gpt-5.5', 'gpt-5.6-sol'].map((id) => ({ id, displayName: id, available: true })),
-            modelCatalog: { loading: false, stale: false, error: null as string | null, refresh: vi.fn() },
+            modelOptions: ['gpt-5.5', 'gpt-5.6-sol'].map((id) => ({ id, displayName: id })),
+            modelCatalog: { loading: false, error: null as string | null, refresh: vi.fn() },
             thinkingLevelOptions: ['none', 'low', 'medium', 'high', 'max'],
-            fastAvailable: true,
-            speedSupported: true,
             speedMode: undefined as 'default' | 'standard' | 'fast' | undefined,
             selection: {
                 activeAgent: 'codex', permissionMode: 'ask-for-approval',
@@ -239,7 +235,7 @@ describe('ActionAgentSelectors', () => {
             ...selectorState.settings,
             agent: 'claude',
             model: 'sonnet',
-            modelOptions: ['default', 'sonnet', 'opus'].map((id) => ({ id, displayName: id, available: true })),
+            modelOptions: ['default', 'sonnet', 'opus'].map((id) => ({ id, displayName: id })),
         }
         const settingsStore = { setSettings: vi.fn() } as unknown as ActionRunSettingsStore
         rerender(

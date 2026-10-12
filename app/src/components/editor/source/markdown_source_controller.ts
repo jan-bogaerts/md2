@@ -3,11 +3,11 @@ import { EditorState } from '@codemirror/state';
 import { EditorView, ViewPlugin } from '@codemirror/view';
 import {
     codeBlockEditorDescriptors$, defaultCodeBlockLanguage$, directiveDescriptors$, importMdastTreeToLexical, importVisitors$,
-    jsxComponentDescriptors$, UnrecognizedMarkdownConstructError, usedLexicalNodes$,
+    jsxComponentDescriptors$, usedLexicalNodes$, syntaxExtensions$, mdastExtensions$,
     markdown$, markdownProcessingError$, markdownSourceEditorValue$, muteChange$, rootEditor$, setMarkdown$, viewMode$,
 } from '@mdxeditor/editor';
 import type { Realm } from '@mdxeditor/gurx';
-import { $getRoot, CLEAR_HISTORY_COMMAND, createEditor } from 'lexical';
+import { $getRoot, $setSelection, CLEAR_HISTORY_COMMAND, createEditor } from 'lexical';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { dialogService } from '../../../services/dialog_service';
 import type { MarkdownDocumentTarget } from '../data_sources/markdown_data_source';
@@ -15,6 +15,7 @@ import type { MarkdownDocumentHistoryStore } from '../history/markdown_document_
 import type { MarkdownImagePasteHandler } from '../paste/markdown_paste_cell';
 import { markdownSourceCanRedo$, markdownSourceCanUndo$ } from './markdown_source_cell';
 import { MarkdownSourceEditorBridge } from './markdown_source_editor_bridge';
+import { RESET_MARKDOWN_DRAFT_COMMAND } from '../data_sources/reset_markdown_draft_command';
 
 export interface MarkdownSourceConfig {
     compact: boolean;
@@ -32,6 +33,7 @@ export class MarkdownSourceController {
     private sourceEditor: EditorView | null = null;
     private transitionToken = 0;
     private shiftedPaste = false;
+    private draftResetPending = false;
     private readonly realm: Realm;
     config: MarkdownSourceConfig;
     transitioning = false;
@@ -42,6 +44,7 @@ export class MarkdownSourceController {
     }
 
     get sourceActive() { return this.realm.getValue(viewMode$) === 'source'; }
+    get conversionFailed() { return !!this.realm.getValue(markdownProcessingError$); }
 
     sourceExtensions() {
         return [ViewPlugin.define(this.createBridge), EditorView.updateListener.of(this.handleSourceUpdate),
@@ -78,24 +81,23 @@ export class MarkdownSourceController {
         editor.focus();
     }
 
-    /** Preflights CommonMark constructs before MDXEditor's fragment importer can replace its document error source. */
+    /** Imports into an isolated editor using the live import configuration before touching document or selection. */
     validateRichInsertion(markdown: string) {
         const editor = createEditor({ nodes: this.realm.getValue(usedLexicalNodes$), onError: (error) => { throw error; } });
-        try {
-            editor.update(() => importMdastTreeToLexical({
-                root: $getRoot(),
-                mdastRoot: fromMarkdown(markdown),
-                visitors: this.realm.getValue(importVisitors$),
-                jsxComponentDescriptors: this.realm.getValue(jsxComponentDescriptors$),
-                directiveDescriptors: this.realm.getValue(directiveDescriptors$),
-                codeBlockEditorDescriptors: this.realm.getValue(codeBlockEditorDescriptors$),
-                defaultCodeBlockLanguage: this.realm.getValue(defaultCodeBlockLanguage$),
-            }), { discrete: true });
-        } catch (error) {
-            if (!(error instanceof UnrecognizedMarkdownConstructError)) throw error;
-            this.setMode('source');
-            throw new Error('This content needs Source mode. The existing document is preserved; paste or insert it again in Source.');
-        }
+        const mdastRoot = fromMarkdown(markdown, {
+            extensions: this.realm.getValue(syntaxExtensions$),
+            mdastExtensions: this.realm.getValue(mdastExtensions$),
+        });
+        if (mdastRoot.children.at(-1)?.type !== 'paragraph') mdastRoot.children.push({ type: 'paragraph', children: [] });
+        editor.update(() => importMdastTreeToLexical({
+            root: $getRoot(),
+            mdastRoot,
+            visitors: [...this.realm.getValue(importVisitors$)],
+            jsxComponentDescriptors: this.realm.getValue(jsxComponentDescriptors$),
+            directiveDescriptors: this.realm.getValue(directiveDescriptors$),
+            codeBlockEditorDescriptors: this.realm.getValue(codeBlockEditorDescriptors$),
+            defaultCodeBlockLanguage: this.realm.getValue(defaultCodeBlockLanguage$),
+        }), { discrete: true });
     }
 
     undo() { if (this.sourceEditor) undo(this.sourceEditor); }
@@ -105,7 +107,8 @@ export class MarkdownSourceController {
         if (mode === 'source') {
             this.transitioning = true;
             this.realm.pub(muteChange$, true);
-            this.realm.pub(markdown$, this.config.getMarkdown());
+            const source = this.realm.getValue(markdownProcessingError$)?.source ?? this.config.getMarkdown();
+            this.realm.pub(markdown$, source);
             this.realm.pub(viewMode$, mode);
             this.finishTransition(false);
             return;
@@ -113,26 +116,46 @@ export class MarkdownSourceController {
         const source = this.realm.getValue(markdownSourceEditorValue$);
         const sourceChanged = source !== this.realm.getValue(markdown$);
         if (!sourceChanged && this.realm.getValue(markdownProcessingError$)) return;
+        if (sourceChanged && !this.validateConversion(source)) return;
         this.transitioning = true;
         this.realm.pub(viewMode$, mode);
         this.finishTransition(sourceChanged);
     }
 
     replaceMarkdown(markdown: string) {
+        const valid = this.validateConversion(markdown);
         this.transitioning = true;
         this.realm.pub(muteChange$, true);
-        this.realm.pub(setMarkdown$, markdown);
+        if (valid) this.realm.pub(setMarkdown$, markdown);
         this.realm.pub(markdown$, markdown);
-        this.finishTransition(false, markdown);
+        this.finishTransition(false, valid ? markdown : undefined);
     }
 
-    recover(source: string) {
-        if (this.realm.getValue(markdownProcessingError$)?.source !== source) return;
-        this.transitioning = true;
-        this.realm.pub(muteChange$, true);
-        this.realm.pub(markdown$, source);
-        this.realm.pub(viewMode$, 'source');
-        this.finishTransition(false, source);
+    /** Clears selection, undo history, and transient controls after a draft replacement completes. */
+    resetDraftState() {
+        this.draftResetPending = true;
+        if (this.transitioning) return;
+        this.completeDraftReset();
+    }
+
+    private completeDraftReset() {
+        const editor = this.realm.getValue(rootEditor$);
+        if (!editor) return;
+        this.draftResetPending = false;
+        editor.update(() => $setSelection(null), { discrete: true });
+        editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
+        editor.dispatchCommand(RESET_MARKDOWN_DRAFT_COMMAND, undefined);
+    }
+
+    private validateConversion(source: string) {
+        try {
+            this.validateRichInsertion(source);
+            return true;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.realm.pub(markdownProcessingError$, { error: message, source });
+            return false;
+        }
     }
 
     private finishTransition(rebaseHistory: boolean, source?: string) {
@@ -144,15 +167,18 @@ export class MarkdownSourceController {
 
     private completeTransition(token: number, rebaseHistory: boolean, source?: string) {
         if (token !== this.transitionToken) return;
-        if (rebaseHistory || source !== undefined) this.config.onRichTextBaseline(this.realm.getValue(markdown$));
+        if (!this.conversionFailed && (rebaseHistory || source !== undefined)) {
+            this.config.onRichTextBaseline(this.realm.getValue(markdown$));
+        }
         if (source !== undefined) this.realm.pub(markdown$, source);
-        if (rebaseHistory) {
+        if (rebaseHistory && !this.conversionFailed) {
             const target = this.config.getTarget();
             if (this.config.historyStore && target) this.config.historyStore.replaceDocument(target, this.config.getMarkdown());
             else this.realm.getValue(rootEditor$)?.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
         }
         this.realm.pub(muteChange$, false);
         this.transitioning = false;
+        if (this.draftResetPending) this.completeDraftReset();
     }
 
     private handlePaste = (event: ClipboardEvent, editor: EditorView) => {

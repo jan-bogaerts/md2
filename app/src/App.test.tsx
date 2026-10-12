@@ -27,6 +27,7 @@ function createStartupService(overrides: Partial<ApplicationStartupDependencies>
     const dependencies: ApplicationStartupDependencies = {
         getGithubAccessToken: vi.fn(() => null),
         initializeAgentCapabilities: vi.fn(async () => {}),
+        refreshStartupModelCatalogs: vi.fn(async () => {}),
         initializeServices: vi.fn(),
         restoreGithubSession: vi.fn(async () => {}),
         restoreLastProject: vi.fn(async () => null),

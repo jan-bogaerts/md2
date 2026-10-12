@@ -191,8 +191,13 @@ describe('MarkdownEditor', () => {
             </AppThemeProvider>,
         )
 
+        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement;
+        textbox.focus();
+        textbox.setSelectionRange(0, 0);
+        fireEvent.select(textbox);
+
         const pasteHandled = fireEvent.paste(
-            screen.getByRole('textbox'),
+            textbox,
             { clipboardData: imageClipboardData(file, 'fallback text') },
         )
 

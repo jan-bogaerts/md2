@@ -3,12 +3,30 @@ import { worktreeService } from '../../services/project/worktree_service'
 
 function subscribe(onStoreChange: () => void) {
     worktreeService.addEventListener('changed', onStoreChange)
+    worktreeService.addEventListener('recordChanged', onStoreChange)
+    worktreeService.addEventListener('recordsChanged', onStoreChange)
+    worktreeService.addEventListener('primaryStatusChanged', onStoreChange)
+    worktreeService.addEventListener('assignmentChanged', onStoreChange)
 
-    return () => worktreeService.removeEventListener('changed', onStoreChange)
+    return () => {
+        worktreeService.removeEventListener('changed', onStoreChange)
+        worktreeService.removeEventListener('recordChanged', onStoreChange)
+        worktreeService.removeEventListener('recordsChanged', onStoreChange)
+        worktreeService.removeEventListener('primaryStatusChanged', onStoreChange)
+        worktreeService.removeEventListener('assignmentChanged', onStoreChange)
+    }
 }
 
 export function useWorktrees() {
-    return useSyncExternalStore(subscribe, () => worktreeService.getRecords())
+    useSyncExternalStore(subscribe, () => JSON.stringify(worktreeService.getRecords()))
+
+    return worktreeService.getRecords()
+}
+
+export function useOpenWorktrees(open: boolean) {
+    useSyncExternalStore(subscribe, () => open ? JSON.stringify(worktreeService.getRecords()) : '')
+
+    return open ? worktreeService.getRecords() : []
 }
 
 export function useProjectActionWorktree() {
@@ -28,5 +46,7 @@ export function useWorktreeAdding() {
 }
 
 export function useWorktreeDraft() {
-    return useSyncExternalStore(subscribe, () => worktreeService.getDraft())
+    useSyncExternalStore(subscribe, () => JSON.stringify(worktreeService.getDraft()))
+
+    return worktreeService.getDraft()
 }

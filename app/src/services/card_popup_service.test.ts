@@ -3,6 +3,7 @@ import type { ActionContext } from '../data/action_context'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type Card } from '../data/data_types'
 import type { DataService } from './data/data_service'
 import { actionService } from './actions/action_service'
+import { cardSequenceDraftService } from '../components/actions/run/sequence/card_sequence_draft_service';
 import { CardPopupService } from './card_popup_service'
 import { dialogService } from './dialog_service'
 import { MobileBackDismissService } from './mobile_back_dismiss_service'
@@ -427,3 +428,24 @@ describe('CardPopupService', () => {
         expect(mobileBackDismissService.getRegistrationCount()).toBe(0)
     })
 })
+
+describe('sequence popup stack', () => {
+    it('preserves draft across activation and clears it on dismissal and project change', () => {
+        const { owner, service } = createService();
+        service.openSequence(anchor());
+        const sequenceEntry = service.getSnapshot()[0];
+        cardSequenceDraftService.addCard('sequence-card');
+        service.toggleCardDetails('other-card', anchor());
+        service.activate(sequenceEntry.id);
+        expect(cardSequenceDraftService.getSnapshot().cardInternalIds).toEqual(['sequence-card']);
+        expect(service.getSnapshot().at(-1)?.kind).toBe('sequence');
+        service.close(sequenceEntry.id);
+        expect(cardSequenceDraftService.getSnapshot().open).toBe(false);
+        expect(service.getSnapshot().map(({ kind }) => kind)).toEqual(['card-details']);
+        service.openSequence(anchor());
+        owner.project = { branch: 'next', id: 'project-1' };
+        owner.dispatchEvent(new Event('changed'));
+        expect(service.getSnapshot()).toEqual([]);
+        expect(cardSequenceDraftService.getSnapshot().open).toBe(false);
+    });
+});

@@ -23,6 +23,7 @@ interface WorktreeServiceDependencies {
     flushPendingChanges: () => Promise<void>
     projectFolderProvider: () => string
     projectProvider: () => ProjectReference | null
+    queueIntegratedActivity: (path: string) => Promise<void>
     snapshotProvider: () => ProjectSnapshot | null
     storageProvider: () => StorageService | null
     unassignCardWorktree: (path: string) => void
@@ -66,6 +67,7 @@ export class WorktreeService extends EventTarget {
     private primaryStatus: WorktreeStatus | null = null
     private projectFolderProvider: (() => string) | null = null
     private projectProvider: (() => ProjectReference | null) | null = null
+    private queueIntegratedActivity: ((path: string) => Promise<void>) | null = null
     private records: WorktreeRecord[] = []
     private snapshotProvider: (() => ProjectSnapshot | null) | null = null
     private storageProvider: (() => StorageService | null) | null = null
@@ -174,6 +176,7 @@ export class WorktreeService extends EventTarget {
         this.flushPendingChanges = dependencies.flushPendingChanges
         this.projectFolderProvider = dependencies.projectFolderProvider
         this.projectProvider = dependencies.projectProvider
+        this.queueIntegratedActivity = dependencies.queueIntegratedActivity
         this.snapshotProvider = dependencies.snapshotProvider
         this.storageProvider = dependencies.storageProvider
         this.unassignCardWorktreeValue = dependencies.unassignCardWorktree
@@ -189,6 +192,8 @@ export class WorktreeService extends EventTarget {
         this.error = null
         this.records = []
         this.dispatchChanged()
+        this.dispatchEvent(new Event('recordsChanged'))
+        this.dispatchEvent(new Event('primaryStatusChanged'))
         this.dispatchEvent(new Event('assignmentChanged'));
     }
 
@@ -317,6 +322,7 @@ export class WorktreeService extends EventTarget {
                 worktreeBranch,
             }
             const outcome = await storage.integrateWorktree(request)
+            if (outcome.status === 'completed' && outcome.activityPath) await this.requireActivityQueue()(outcome.activityPath)
             if (outcome.status === 'completed' && deleteBranch) {
                 this.requireUnassignmentWriter()(path)
                 this.requireBranchClearer()(path)
@@ -520,15 +526,37 @@ export class WorktreeService extends EventTarget {
     private handleState(state: WorktreeState) {
         const project = this.projectProvider?.()
         if (!project || !state.project || project.id !== state.project.id || project.branch !== state.project.branch) return
-        const recordsChanged = JSON.stringify(this.records) !== JSON.stringify(state.records)
+        const membershipChanged = this.records.length !== state.records.length
+            || this.records.some((record, index) => record.branch !== state.records[index]?.branch
+                || worktreePathKey(record.path) !== worktreePathKey(state.records[index]?.path ?? ''))
         const primaryStatusChanged = JSON.stringify(this.primaryStatus) !== JSON.stringify(state.primaryStatus)
-        if (!recordsChanged && !primaryStatusChanged && this.error === state.error) return
-
-        if (recordsChanged) this.records = state.records
-        if (recordsChanged && this.draft) this.draft = { ...this.draft, records: state.records }
-        if (primaryStatusChanged) this.primaryStatus = state.primaryStatus
+        const errorChanged = this.error !== state.error
+        if (membershipChanged) {
+            this.records = state.records.map((record) => {
+                const previous = this.records.find((candidate) => candidate.branch === record.branch
+                    && worktreePathKey(candidate.path) === worktreePathKey(record.path))
+                return previous && JSON.stringify(previous) === JSON.stringify(record) ? previous : record
+            })
+            if (this.draft) this.draft = { ...this.draft, records: this.records }
+            this.dispatchEvent(new Event('recordsChanged'))
+            this.dispatchEvent(new Event('assignmentChanged'))
+        } else {
+            state.records.forEach((record, index) => {
+                const previous = this.records[index]
+                if (JSON.stringify(previous) === JSON.stringify(record)) return
+                this.records[index] = record
+                this.dispatchEvent(new CustomEvent('recordChanged', { detail: { branch: record.branch, record } }))
+                if (previous.valid !== record.valid || previous.error !== record.error) {
+                    this.dispatchEvent(new Event('assignmentChanged'))
+                }
+            })
+        }
+        if (primaryStatusChanged) {
+            this.primaryStatus = state.primaryStatus
+            this.dispatchEvent(new Event('primaryStatusChanged'))
+        }
         this.error = state.error
-        this.dispatchChanged()
+        if (errorChanged) this.dispatchChanged()
     }
 
     private activeCards() {
@@ -638,6 +666,12 @@ export class WorktreeService extends EventTarget {
         if (!this.flushPendingChanges) throw new Error('Worktree pending-change flusher is not initialized')
 
         return this.flushPendingChanges
+    }
+
+    private requireActivityQueue() {
+        if (!this.queueIntegratedActivity) throw new Error('Worktree integration activity queue is not initialized')
+
+        return this.queueIntegratedActivity
     }
 
     private dispatchChanged() {

@@ -57,6 +57,7 @@ export interface ElectronDataBridge {
     launchMergeConflictResolver?(request: MergeConflictPathRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     loadAgentModelCatalog?(request: AgentModelCatalogRequest): Promise<AgentModelCatalog>;
+    onAgentModelCatalogChanged?(callback: (catalog: AgentModelCatalog) => void): () => void;
     loadAgentConversation?(path: string): Promise<AgentConversation>
     loadActivityConversations?(path: string): Promise<AgentConversation[]>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>

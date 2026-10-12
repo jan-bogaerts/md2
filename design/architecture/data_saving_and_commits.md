@@ -88,6 +88,8 @@ Commands needing an immediate repository result bypass `CommitBatcher`: creating
 
 Callers flush first when ordering matters. Typing-driven updates must use the batcher.
 
+Desktop integration and usage-metrics writes share `ProjectOperationCoordinator`, which serializes project-wide operations by repository root.
+
 ## Storage backends
 
 All renderer workflows use `StorageService`:

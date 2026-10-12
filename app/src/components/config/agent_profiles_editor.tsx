@@ -98,8 +98,6 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
     const errors: string[] = []
     const name = form.name.trim()
     const command = form.command.trim()
-    const models = readModels(form.models)
-    const defaultModel = form.defaultModel.trim()
     const monthlySubscriptionCostUsd = Number(form.monthlySubscriptionCostUsd)
 
     if (name.length === 0) errors.push('Name is required.')
@@ -118,11 +116,6 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
         } catch (error) {
             errors.push(error instanceof Error ? `Resume ${error.message.toLowerCase()}` : 'Invalid resume command.')
         }
-    }
-    if (models.length === 0) errors.push('At least one model is required.')
-    if (new Set(models).size !== models.length) errors.push('Model names must be unique.')
-    if (!supportsModelDiscovery({ name }) && defaultModel.length > 0 && models.length > 0 && !models.includes(defaultModel)) {
-        errors.push(`Default model must be one of: ${models.join(', ')}`)
     }
     if (form.monthlySubscriptionCostUsd.trim().length > 0
         && (!Number.isFinite(monthlySubscriptionCostUsd) || monthlySubscriptionCostUsd <= 0)) {
@@ -197,7 +190,7 @@ function AgentProfileForm(props: AgentProfileFormProps) {
                 <TextField disabled={disabled} fullWidth label="Model argument" name="modelArgument" onChange={onTextChange} size="small" value={form.modelArgument} />
                 <TextField disabled={disabled} fullWidth
                     helperText={supportsModelDiscovery({ name: form.name })
-                        ? 'Model choices are discovered from this client. This legacy list does not limit selectable models.'
+                        ? 'Model choices are discovered from this client. Configured models are optional suggestions.'
                         : 'Comma-separated model names.'}
                     label="Models" name="models" onChange={onTextChange} size="small" value={form.models} />
                 <TextField disabled={disabled} fullWidth label="Profile default model" name="defaultModel" onChange={onTextChange} size="small" value={form.defaultModel} />

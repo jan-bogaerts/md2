@@ -60,6 +60,44 @@ function emittedStatuses(onEvent, type) {
 }
 
 describe('AgentRunnerService published run status', () => {
+    it.each([
+        ['sendMessage', 'userMessage'],
+        ['answerQuestion', 'questionAnswered'],
+        ['dismissQuestions', 'questionDismissed'],
+    ])('publishes %s before provider events while its checkpoint is pending', async (operation, entryEventType) => {
+        const { onEvent, run, service } = streamingRunService();
+        const checkpoint = Promise.withResolvers();
+        service.persistConversationCheckpoint.mockImplementation(async () => checkpoint.promise);
+        run.conversation.status = 'waitingForInput';
+        run.pendingQuestionRequestId = operation === 'sendMessage' ? null : 7;
+        run.pendingQuestions = operation === 'sendMessage' ? [] : [{ id: 'confirm', isSecret: false }];
+        run.waitingForQuestion = operation !== 'sendMessage';
+        run.streamingAdapter = {
+            answerQuestion: vi.fn(async () => undefined),
+            dismissQuestion: vi.fn(async () => undefined),
+            sendMessage: vi.fn(async () => undefined),
+        };
+        const argumentsByOperation = {
+            answerQuestion: [run.id, 7, { confirm: 'Yes' }],
+            dismissQuestions: [run.id, 7],
+            sendMessage: [run.id, 'Queued prompt', 'queued-1'],
+        };
+        const interaction = service[operation](...argumentsByOperation[operation]);
+        try {
+            await vi.waitFor(() => expect(service.persistConversationCheckpoint).toHaveBeenCalledOnce());
+            await service.handleStreamingEvent(run.id, toolEvent('tool-1'));
+            const events = onEvent.mock.calls.map(([event]) => event);
+            expect(events.map(({ type }) => type)).toEqual([entryEventType, 'state', 'agentEvent']);
+            const entry = events[0].userMessage ?? events[0].event;
+            const entryIndex = run.conversation.entries.findIndex(({ id }) => id === entry.id);
+            expect(events[2].entryIndex).toBe(entryIndex + 1);
+            expect(run.conversation.entries[events[2].entryIndex]).toEqual(events[2].event);
+        } finally {
+            checkpoint.resolve();
+            await interaction;
+        }
+    });
+
     it('logs internal handler failures and continues processing later provider messages', async () => {
         const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
         try {
@@ -1503,6 +1541,9 @@ describe('AgentRunnerService state handling', () => {
             state: 'running',
             type: 'questionDismissed',
         }));
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ state: 'running', type: 'state' }));
+        expect(run.onEvent.mock.invocationCallOrder.at(-1))
+            .toBeLessThan(persistConversationCheckpoint.mock.invocationCallOrder[0]);
     });
 
     it('keeps a newer pending question while recording a sent message', async () => {

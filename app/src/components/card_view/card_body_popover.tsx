@@ -35,16 +35,11 @@ import { MarkdownTypeaheadLayerProvider } from '../editor/typeahead/markdown_typ
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
 import { CardStateSelector } from './card_state_selector'
 import { NO_DRAG_REGION } from '../shell/drag_region'
+import { useWorktrees } from '../hooks/use_worktrees'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const CARD_BODY_POPOVER_HEIGHT = 620
 export const CARD_BODY_POPOVER_SIZE_KEY = 'md2.cardBodyPopover.size'
-
-function subscribeWorktrees(onStoreChange: () => void) {
-    worktreeService.addEventListener('changed', onStoreChange)
-
-    return () => worktreeService.removeEventListener('changed', onStoreChange)
-}
 
 function useBoardDocument(dataSource: CardMarkdownDataSource) {
     const subscribe = useCallback((onStoreChange: () => void) => {
@@ -129,15 +124,8 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
     const [titleEdit, setTitleEdit] = useState<TitleEdit>({ cardInternalId: null, title: '' })
     const titleDraft = titleEdit.cardInternalId === cardInternalId ? titleEdit.title : card?.header.title ?? ''
     const cardCommits = useCardCommits(card?.header.internalId ?? null)
-    const worktreeRecords = useSyncExternalStore(
-        subscribeWorktrees,
-        () => worktreeService.getRecords(),
-        () => worktreeService.getRecords(),
-    )
-    const assignedWorktree = card?.header.worktree
-    const assignedRecord = Number.isInteger(assignedWorktree) && assignedWorktree
-        ? worktreeRecords[assignedWorktree - 1]
-        : null
+    useWorktrees()
+    const assignedRecord = card ? worktreeService.getAssignmentState(card.header).record : null
     const currentWorktreeAvailable = !card?.header.worktreeError && isWorktreeIntegratable(assignedRecord)
     const selectedCommit = diffSelection?.kind === 'commit' && diffSelection.cardInternalId === cardIdentity
         ? diffSelection.commit

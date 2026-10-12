@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it, vi } from 'vitest';
+import { splitHeader } from '../../../../shared/markdown_header_fields.mjs';
 
 const require = createRequire(import.meta.url);
 const { appendCardActivityReference, appendReferenceToContent } = require('./card_activity_reference');
@@ -25,6 +26,74 @@ describe('card activity reference', () => {
         const content = '---\ninternalId: card-1\nagents:\n  - design/activity/card__card-1.json\n---\nbody';
 
         expect(appendReferenceToContent(content, 'design/F-1.md', 'card-1', 'design/activity/card__card-1.json')).toBe(content);
+    });
+
+    it('links renderer-recognized LF frontmatter with a CRLF body and leaves unrelated bytes intact', () => {
+        const content = '---\ninternalId: card-1\ncustom: unchanged\n---\n\n# Body\r\nText\r\n';
+        const updatedContent = appendReferenceToContent(content, 'design/F-1.md', 'card-1', 'design/activity/card__card-1.json');
+
+        expect(splitHeader(content).hasHeader).toBe(true);
+        expect(updatedContent).toBe(
+            '---\ninternalId: card-1\ncustom: unchanged\nagents:\n  - design/activity/card__card-1.json\n---\n\n# Body\r\nText\r\n',
+        );
+        expect(appendReferenceToContent(updatedContent, 'design/F-1.md', 'card-1', 'design/activity/card__card-1.json'))
+            .toBe(updatedContent);
+    });
+
+    it.each(['\n', '\r\n'])('preserves mixed header endings while extending an existing list with opening ending %j', (lineEnding) => {
+        const content = '---' + lineEnding
+            + 'author: me\r\ninternalId: card-1\nagents:\r\n  - design/activity/old.json\ncustom: unchanged\r\n---\nBody\r\n';
+        const updatedContent = appendReferenceToContent(content, 'design/F-1.md', 'card-1', 'design/activity/card__card-1.json');
+        const expectedContent = '---' + lineEnding
+            + 'author: me\r\ninternalId: card-1\nagents:\r\n  - design/activity/old.json\n'
+            + '  - design/activity/card__card-1.json' + lineEnding + 'custom: unchanged\r\n---\nBody\r\n';
+
+        expect(splitHeader(content).hasHeader).toBe(true);
+        expect(updatedContent).toBe(expectedContent);
+        expect(appendReferenceToContent(updatedContent, 'design/F-1.md', 'card-1', 'design/activity/card__card-1.json'))
+            .toBe(updatedContent);
+    });
+
+    it.each(['\n', '\r\n'])('adds a missing agents field without changing mixed header endings with opening ending %j', (lineEnding) => {
+        const content = '---' + lineEnding + 'internalId: card-1\ncustom: unchanged\r\n---\r\nBody\n';
+        const expectedContent = '---' + lineEnding + 'internalId: card-1\ncustom: unchanged\r\nagents:' + lineEnding
+            + '  - design/activity/card__card-1.json' + lineEnding + '---\r\nBody\n';
+
+        expect(appendReferenceToContent(content, 'design/F-1.md', 'card-1', 'design/activity/card__card-1.json'))
+            .toBe(expectedContent);
+    });
+
+    it.each([
+        ['Body\r\n', 'Card has no frontmatter: design/F-1.md'],
+        ['---\ninternalId: card-1\nBody\r\n', 'Card has invalid frontmatter: design/F-1.md'],
+        ['---\ntitle: Card\r\n---\nBody', 'Card identity mismatch at design/F-1.md: expected card-1, found missing'],
+        ['---\ninternalId: card-2\r\n---\nBody', 'Card identity mismatch at design/F-1.md: expected card-1, found card-2'],
+        ['---\ninternalId: card-1\r\nagents: invalid\n---\nBody', 'Card agents field must be a list: design/F-1.md'],
+    ])('rejects invalid card content: %j', (content, message) => {
+        expect(() => appendReferenceToContent(content, 'design/F-1.md', 'card-1', 'design/activity/card__card-1.json'))
+            .toThrow(message);
+    });
+
+    it('persists one reference through the filesystem boundary and skips writes on repeated linking', async () => {
+        let savedContent = '---\ninternalId: card-1\n---\nBody\r\n';
+        const writeFile = vi.fn(async (_filePath, content) => { savedContent = content; });
+        const dependencies = {
+            assertGitRoot: vi.fn(async () => undefined),
+            readFile: vi.fn(async () => savedContent),
+            rename: vi.fn(async () => undefined),
+            rm: vi.fn(async () => undefined),
+            writeFile,
+        };
+
+        await expect(appendCardActivityReference(
+            { rootPath: 'C:/repo' }, 'design/F-1.md', 'card-1', 'design/activity/card__card-1.json', dependencies,
+        )).resolves.toBe(true);
+        await expect(appendCardActivityReference(
+            { rootPath: 'C:/repo' }, 'design/F-1.md', 'card-1', 'design/activity/card__card-1.json', dependencies,
+        )).resolves.toBe(false);
+        expect(savedContent).toBe('---\ninternalId: card-1\nagents:\n  - design/activity/card__card-1.json\n---\nBody\r\n');
+        expect(writeFile).toHaveBeenCalledOnce();
+        expect(dependencies.rename).toHaveBeenCalledOnce();
     });
 
     it('rejects a card whose stored identity differs from activity origin', () => {

@@ -400,7 +400,18 @@ describe('CardView', () => {
         expect(dataService.cards.moveCard).not.toHaveBeenCalled()
     })
 
-    it('renders one policy led per policy flag and toggles on click', () => {
+    it('rejects assigned board-card drops while another popup is open', () => {
+        const assigned = { ...cards[0], header: { ...cards[0].header, worktreeValue: 'invalid', worktreeError: 'Missing checkout' } };
+        cardSequenceDraftService.open();
+        cardPopupService.toggleCardDetails('f-2', document.createElement('button'));
+        renderCardView({}, [assigned, cards[1]]);
+        act(() => dragContextHandlers.onDragEnd?.({active: { id: 'design/F-1.md' }, over: { id: CARD_SEQUENCE_DROP_ID }} as Parameters<NonNullable<DndContextProps['onDragEnd']>>[0]));
+        expect(cardSequenceDraftService.getSnapshot().cardInternalIds).toEqual([]);
+        expect(cardSequenceDraftService.getSnapshot().validationMessage).toContain('worktree assignment');
+        expect(dataService.cards.moveCard).not.toHaveBeenCalled();
+    });
+
+    it('renders one policy led per policy flag and toggles on click' , () => {
         renderCardView()
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
         const checkLintingButton = screen.getByRole('menuitem', { name: 'Toggle checkLinting' })

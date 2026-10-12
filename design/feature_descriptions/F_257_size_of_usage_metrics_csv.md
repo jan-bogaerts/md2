@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__4684225b-0d21-4c57-8691-3f2844f76ca6.json
 policy:
-after: df7f7a94-ee33-44a3-b499-2b230d484fef
+after: ef3c3a56-28a9-4ca5-9402-16972e140c01
 ---
 the size of `usage_metrics.csv` can grow fast. we also only need this info per release. so once a release is done, we should move this file into the release folder and use a new, csv for the next release.
 

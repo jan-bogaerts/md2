@@ -74,6 +74,19 @@ describe('conversation search controls', () => {
         expect(within(search).getByRole('button', { name: 'Match case' })).toHaveAttribute('aria-pressed', 'true')
     })
 
+    it('closes the search row from its close button', async () => {
+        const user = userEvent.setup()
+        const service = new ActionConversationSearchService()
+        mountTranscript(service)
+        render(<SearchHarness service={service} />)
+
+        await user.click(screen.getByRole('button', { name: 'Find in conversation' }))
+        const search = screen.getByRole('search', { name: 'Conversation search' })
+        await user.click(within(search).getByRole('button', { name: 'Close search' }))
+
+        expect(screen.queryByRole('search', { name: 'Conversation search' })).not.toBeInTheDocument()
+    })
+
     it('handles popup-scoped Ctrl+F, F3, and Escape without intercepting outside content', () => {
         const service = new ActionConversationSearchService()
         mountTranscript(service)

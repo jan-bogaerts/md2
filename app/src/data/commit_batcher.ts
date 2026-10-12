@@ -209,6 +209,13 @@ export class CommitBatcher extends EventTarget {
         this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
     }
 
+    /** Lists each queued change as kind, target path and commit messages, for diagnostics. */
+    describePendingChanges() {
+        return [...this.pendingChanges.values()].map(({ change, messages }) => (
+            `${change.kind} ${changeTargetPath(change)} (${messages.join('; ')})`
+        ))
+    }
+
     hasPendingAction(actionId: string) {
         return this.pendingChanges.has(`action:${actionId}`)
     }
