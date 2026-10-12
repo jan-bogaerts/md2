@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "733d678c-49a7-4409-9fa2-5fb384821513",
       "cardPath": "design/feature_descriptions/F_422_check_if_possible_to_switch_agent_accounts.md",
-      "completedAt": null,
+      "completedAt": "2026-10-12T13:22:05.851Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 76308
@@ -364,14 +364,14 @@
         }
       ],
       "startedAt": "2026-10-12T12:40:32.880Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
           "reasoningMs": 5014,
           "toolMs": 11960
         },
-        "elapsedMs": 74794,
-        "runningStartedAt": "2026-10-12T13:22:03.575Z"
+        "elapsedMs": 76848,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
