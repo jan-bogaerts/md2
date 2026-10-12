@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__733d678c-49a7-4409-9fa2-5fb384821513.json
 policy:
-after: 22b04d7f-1a70-41f6-98e8-0236c56b6873
+branch: f_422_check_if_possible_to_switch_agent_accounts
 ---
 we need to investigate:
 

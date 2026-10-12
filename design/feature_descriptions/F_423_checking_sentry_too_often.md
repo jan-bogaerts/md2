@@ -9,6 +9,9 @@ affects:
 agents:
   - design/activity/card__e552b2e5-34ae-4093-8270-daebd4467dbc.json
 policy:
+after: c9eb5c09-0c01-490f-808c-143ff534322b
+branch: f_423_checking_sentry_too_often
+worktree: 1
 ---
 
 we got this error from sentry when trying to manually retrieve the errors:
