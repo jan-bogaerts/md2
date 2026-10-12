@@ -1077,7 +1077,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-10-12T11:03:15.244Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 32612
@@ -1279,7 +1279,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 15,
-          "timestamp": "2026-10-12T09:42:00.263Z"
+          "timestamp": "2026-10-12T11:03:15.244Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1294,7 +1294,7 @@
         }
       ],
       "startedAt": "2026-10-12T09:41:17.934Z",
-      "status": "waitingForInput",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
           "reasoningMs": 2516,
