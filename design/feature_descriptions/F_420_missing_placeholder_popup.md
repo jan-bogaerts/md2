@@ -3,12 +3,17 @@ author:
 id: F_420
 internalId: bf523460-d2c4-4156-b278-3f971b7c2f30
 title: missing placeholder popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__bf523460-d2c4-4156-b278-3f971b7c2f30.json
 policy:
+changedFiles:
+  - app/src/components/card_view/card_body_editor.real.test.tsx
+  - app/src/components/card_view/card_body_editor.tsx
+  - app/src/components/shell/project/new_card_markdown_editor.real.test.tsx
+  - app/src/components/shell/project/new_card_markdown_editor.tsx
 ---
 when creating new cards and when editing cards with the card-popup, the {{ does not trigger the insert-placeholder popup.
 
