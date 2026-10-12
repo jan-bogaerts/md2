@@ -7,6 +7,7 @@ ex: instruction is to split up feature descriptions, nothing is mentioned about 
 
 * app: react-front end
 * desktop: electron desktop-host / backend app
+* design: all design related documentation in md and json format
 
 ## domain identity
 
