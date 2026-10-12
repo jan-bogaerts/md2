@@ -20,6 +20,7 @@ const { AgentModelCatalogService } = require('./src/actions/agent/agent_model_ca
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
 const { ClaudeRuntimeService } = require('./src/actions/agent/claude_runtime_service');
 const { UsageMetricsService } = require('./src/actions/agent/usage_metrics_service');
+const { projectOperationCoordinator } = require('./src/project/project_operation_coordinator');
 const { updateCodexCli } = require('./src/actions/agent/codex_cli_update');
 const { AgentExecutableResolver, loadAgentExecutableAvailability } = require('./src/actions/agent/agent_executable_availability');
 const { ActionSchedulerService } = require('./src/actions/action/action_scheduler_service');
@@ -88,7 +89,7 @@ const agentExecutableResolver = new AgentExecutableResolver();
 const agentModelCatalogService = new AgentModelCatalogService({ executableResolver: agentExecutableResolver });
 const claudeRuntimeService = new ClaudeRuntimeService();
 const codexRuntimeService = new CodexRuntimeService();
-const usageMetricsService = new UsageMetricsService({ errorReporter: captureError });
+const usageMetricsService = new UsageMetricsService({ errorReporter: captureError, projectOperationCoordinator });
 const agentRunnerService = new AgentRunnerService({
     claudeRuntimeService,
     codexRuntimeService,
@@ -161,11 +162,13 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),
     openProjectSubFolder: (rootPath) => openProjectSubFolder(BrowserWindow.getFocusedWindow(), rootPath),
     openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),
+    projectOperationCoordinator,
     projectStatsWorkerService,
     readDesktopConfig,
     saveDesktopConfig,
     showItemInFolder: (fullPath) => shell.showItemInFolder(fullPath),
     updateCodexCli,
+    usageMetricsService,
     worktreeService,
 });
 const remoteControlService = new RemoteControlService(localBridgeDispatch);

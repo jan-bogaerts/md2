@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { CSV_COLUMNS, CSV_HEADER, UsageMetricsService, parseCsv } = require('./usage_metrics_service');
+const { ProjectOperationCoordinator } = require('../../project/project_operation_coordinator');
 
 const temporaryFolders = [];
 const TOKEN_USAGE = {
@@ -32,6 +33,13 @@ function parsedObjects(content) {
     return parseCsv(content).slice(1).filter(({ valid }) => valid).map(({ fields }) => (
         Object.fromEntries(CSV_COLUMNS.map((column, index) => [column, fields[index]]))
     ));
+}
+
+function deferred() {
+    let resolve;
+    const promise = new Promise((complete) => { resolve = complete; });
+
+    return { promise, resolve };
 }
 
 function codexSnapshot(usedPercent, resetsAt = 1_800_000_000, limitId = 'codex,pro') {
@@ -130,6 +138,45 @@ describe('UsageMetricsService', () => {
 
         expect(maximumActiveWrites).toBe(1);
         expect(serializedAppend).toHaveBeenCalledTimes(5);
+    });
+
+    it('waits for an active project operation before writing metrics', async () => {
+        const { destination } = await createDestination();
+        const coordinator = new ProjectOperationCoordinator();
+        const operationStarted = deferred();
+        const operationRelease = deferred();
+        const appendMetric = vi.fn(appendFile);
+        const service = new UsageMetricsService({ appendFile: appendMetric, projectOperationCoordinator: coordinator });
+        startProject(service, destination);
+        const operation = coordinator.run(destination.rootPath, async () => {
+            operationStarted.resolve();
+            await operationRelease.promise;
+        });
+        await operationStarted.promise;
+
+        const recording = service.recordTokenUsage('codex', TOKEN_USAGE, Date.parse('2026-08-17T10:00:00.000Z'));
+        await Promise.resolve();
+        expect(appendMetric).not.toHaveBeenCalled();
+
+        operationRelease.resolve();
+        await Promise.all([operation, recording]);
+        expect(appendMetric).toHaveBeenCalledOnce();
+    });
+
+    it('flushes only the metrics file through scoped Git persistence', async () => {
+        const { destination, filePath } = await createDestination();
+        const commitTrackedPaths = vi.fn(async () => 'commit');
+        const service = new UsageMetricsService({ commitTrackedPaths });
+        startProject(service, destination);
+        await service.recordTokenUsage('codex', TOKEN_USAGE, Date.parse('2026-08-17T10:00:00.000Z'));
+
+        await expect(service.flushPendingChanges()).resolves.toBe('commit');
+
+        expect(commitTrackedPaths).toHaveBeenCalledWith(
+            destination.rootPath,
+            [filePath],
+            'Update usage metrics',
+        );
     });
 
     it('maps provider windows and calculates first, same-window, reset, and negative deltas', async () => {

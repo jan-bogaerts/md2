@@ -37,6 +37,18 @@
             "preLaunchTask": "Wait for Vite Dev Server"
         },
         {
+            "name": "Profile Electron: Main (Chrome DevTools)",
+            "type": "node-terminal",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/desktop",
+            "command": ".\\node_modules\\.bin\\electron.cmd --inspect=9229 .",
+            "env": {
+                "ELECTRON_RUN_AS_NODE": null,
+                "MD2_APP_URL": "http://localhost:5173"
+            },
+            "preLaunchTask": "Wait for Vite Dev Server"
+        },
+        {
             "name": "Debug Electron: Renderer",
             "type": "chrome",
             "request": "attach",

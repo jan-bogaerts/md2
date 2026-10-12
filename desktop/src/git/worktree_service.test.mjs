@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, realpath, rm, stat, writeFile } from 'node:fs/
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { runGit } = require('./git_commands');
@@ -442,7 +442,7 @@ describe('WorktreeService merge conflict lifecycle', () => {
 });
 
 describe('WorktreeService integration synchronization', () => {
-    it('checkpoints later primary changes before integrating the linked worktree', async () => {
+    it('refuses later primary changes without creating a checkpoint commit', async () => {
         const repository = await createRepository();
         const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
         const service = createService();
@@ -453,15 +453,10 @@ describe('WorktreeService integration synchronization', () => {
             await writeFile(join(repository.primaryPath, 'later.txt'), 'later\n');
             const previousCommit = await runGit(repository.primaryPath, ['rev-parse', 'HEAD']);
 
-            await expect(service.integrate(project, 'feature')).resolves.toMatchObject({ status: 'completed' });
+            await expect(service.integrate(project, 'feature')).rejects.toThrow('Primary worktree changed after pending saves were flushed');
 
-            expect(await runGit(repository.primaryPath, ['rev-parse', 'HEAD~2'])).toBe(previousCommit);
-            expect(await runGit(repository.primaryPath, ['show', 'HEAD~1:later.txt'])).toBe('later');
-            expect(await runGit(repository.primaryPath, ['log', '-2', '--format=%s'])).toBe([
-                'Integrate into project',
-                'Save project changes before worktree synchronization',
-            ].join('\n'));
-            expect(await runGit(repository.primaryPath, ['status', '--porcelain'])).toBe('');
+            expect(await runGit(repository.primaryPath, ['rev-parse', 'HEAD'])).toBe(previousCommit);
+            expect(await runGit(repository.primaryPath, ['status', '--porcelain'])).toContain('later.txt');
         } finally {
             service.stopProject();
             await rm(repository.folderPath, { force: true, recursive: true });
@@ -479,6 +474,8 @@ describe('WorktreeService integration synchronization', () => {
             await service.startProject(project);
             await commitLinkedChange(repository.linkedPath);
             await service.refreshLocal();
+            const readAllRecords = vi.spyOn(service, 'readWorktreeRecords');
+            const revalidateRecord = vi.spyOn(service, 'revalidateRecord');
 
             const integration = await service.integrate(project, 'feature');
             const linkedCommit = await runGit(repository.linkedPath, ['rev-parse', 'HEAD']);
@@ -490,6 +487,8 @@ describe('WorktreeService integration synchronization', () => {
             expect(finalRecord.branch).toBe('feature');
             expect(finalRecord.status.baseAhead).toBe(0);
             expect(finalRecord.status.baseBehind).toBe(0);
+            expect(readAllRecords).toHaveBeenCalledOnce();
+            expect(revalidateRecord).toHaveBeenCalledOnce();
             await expect(service.integrate(project, 'feature')).rejects.toThrow('Linked worktree has no changes to integrate');
         } finally {
             service.stopProject();
@@ -561,10 +560,12 @@ describe('WorktreeService local branch deletion', () => {
 
         try {
             await service.startProject(project);
+            const readAllRecords = vi.spyOn(service, 'readWorktreeRecords');
             await service.park(project, 'feature');
             await service.deleteBranch(project, 'feature');
 
             expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('');
+            expect(readAllRecords).not.toHaveBeenCalled();
         } finally {
             service.stopProject();
             await rm(repository.folderPath, { force: true, recursive: true });
