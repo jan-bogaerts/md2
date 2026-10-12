@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__03ba1df1-2c57-4c20-b3f8-cfff40547b34.json
 policy:
+branch: b_272_integrate_worktree_still_failing
+worktree: 2
 ---
 still getting this error:
 
