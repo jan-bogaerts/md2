@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__6de5732e-480f-4ffa-af7b-d4ce6990ba3b.json
 policy:
-branch: f_421_sequence_popup_improvements
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx
   - app/src/components/actions/run/sequence/card_sequence_dialog.tsx

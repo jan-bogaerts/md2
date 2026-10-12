@@ -989,11 +989,11 @@
         "agent-d3871f69-07a4-47c2-a81d-cf0d4a341a1b"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-82c441c1-908b-4e2e-b7b3-8ccc332fc993",
       "origin": {
@@ -1002,9 +1002,32 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-d3871f69-07a4-47c2-a81d-cf0d4a341a1b",
       "startedAt": "2026-10-12T12:45:26.469Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-d3871f69-07a4-47c2-a81d-cf0d4a341a1b"
+    },
+    {
+      "commits": [
+        {
+          "commit": "88f07459adcd9ffd453a49fc6a4fab89d72a1fd6",
+          "committedAt": "2026-10-12T14:45:53+02:00",
+          "deletions": 1,
+          "filePaths": [
+            "app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_dialog.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 35,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-12T14:45:53+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "6de5732e-480f-4ffa-af7b-d4ce6990ba3b",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
