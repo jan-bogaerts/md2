@@ -9,5 +9,6 @@ affects:
 agents:
 policy:
 ---
+check [F\_420\_missing\_placeholder\_popup.md](design/releases/0.8.3/F_420_missing_placeholder_popup.md). we added the placeholder popup again to the card popup, but implementation is not correct. see how the positioning is done when used on the [action\_popup.tsx](app/src/components/actions/run/popup/action_popup.tsx).&#x20;
 
-check @F\_
+maybe relative vs absolute pos coordinates?
