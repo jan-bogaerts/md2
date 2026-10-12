@@ -783,10 +783,11 @@
           "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-61",
           "kind": "event",
           "label": "AskUserQuestion",
+          "output": "The user answered: \"Some activity files were written earlier by the desktop and never committed (viewed flags, settings). Integration fails on them every time. How should they be handled?\"=\"you mean main worktree was dirty before operation began?\", \"An agent running in the primary worktree can edit any project file while an integration is in progress. These edits cannot be held back. What should happen?\"=\"Out of scope\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
           "providerItemId": "toolu_01W2TmA6GjaU1d5Tjjw3veL8",
           "sequence": 61,
-          "status": "inProgress",
-          "timestamp": "2026-10-12T11:08:29.183Z",
+          "status": "completed",
+          "timestamp": "2026-10-12T11:11:33.731Z",
           "type": "tool.AskUserQuestion"
         },
         {
@@ -840,20 +841,90 @@
           "role": "user",
           "sequence": 63,
           "timestamp": "2026-10-12T11:11:33.721Z"
+        },
+        {
+          "content": "Confirmed: the primary worktree can be dirty before integration even starts, since actions like viewing a conversation write to `design/activity/card__….json` without committing, and the renderer flush skips non-renderer-owned files—so the clean check keeps failing until something else commits it. The same issue affects split conversations, closing waiting conversations, dismissing questions, card action settings, and interrupted agent checkpoints.\n\n",
+          "details": [
+            "Confirmed: the primary worktree can be dirty before integration even starts, since actions like viewing a conversation write to `design/activity/card__….json` without committing, and the renderer flush skips non-renderer-owned files—so the clean check keeps failing until something else commits it. The same issue affects split conversations, closing waiting conversations, dismissing questions, card action settings, and interrupted agent checkpoints.\n\n"
+          ],
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-64",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfxEzWs3aZoSyadzvPg14:thinking:0",
+          "sequence": 64,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-12T11:11:39.126Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "Confirmed: the primary worktree can be dirty before integration even starts, since actions like viewing a conversation write to `design/activity/card__….json` without committing, and the renderer flush skips non-renderer-owned files—so the clean check keeps failing until something else commits it. The same issue affects split conversations, closing waiting conversations, dismissing questions, card action settings, and interrupted agent checkpoints.\n\n",
+          "details": [
+            "Confirmed: the primary worktree can be dirty before integration even starts, since actions like viewing a conversation write to `design/activity/card__….json` without committing, and the renderer flush skips non-renderer-owned files—so the clean check keeps failing until something else commits it. The same issue affects split conversations, closing waiting conversations, dismissing questions, card action settings, and interrupted agent checkpoints.\n\n"
+          ],
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-65",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfxEzWs3aZoSyadzvPg14:thinking:1",
+          "sequence": 65,
+          "status": "inProgress",
+          "summary": [],
+          "timestamp": "2026-10-12T11:11:39.123Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"questions\":[{\"question\":\"Some desktop-written activity files are already dirty before integration starts. How should integration handle them?\",\"header\":\"Stale writes\",\"multiSelect\":false,\"options\":[{\"label\":\"Track and commit (Recommended)\",\"description\":\"The desktop keeps a list of the activity and usage files it wrote but did not commit. Inside the hold, before integrating, it commits exactly those paths in one commit, together with usage metrics. Other dirty files still fail with an error that names them.\"},{\"label\":\"Commit on write\",\"description\":\"Every desktop activity write commits immediately, so nothing is ever left dirty. This adds many small commits (viewed flags, checkpoints).\"},{\"label\":\"Fail with clear list\",\"description\":\"Keep refusing to integrate, but list the dirty files in the error.\"}]}]}",
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-event-66",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "providerItemId": "toolu_01Lrdm7NHDeQDh1PdqYEyxnc",
+          "sequence": 66,
+          "status": "inProgress",
+          "timestamp": "2026-10-12T11:11:39.131Z",
+          "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-question-66",
+          "kind": "event",
+          "questions": [
+            {
+              "header": "Stale writes",
+              "id": "claude-question-0",
+              "options": [
+                {
+                  "description": "The desktop keeps a list of the activity and usage files it wrote but did not commit. Inside the hold, before integrating, it commits exactly those paths in one commit, together with usage metrics. Other dirty files still fail with an error that names them.",
+                  "label": "Track and commit (Recommended)"
+                },
+                {
+                  "description": "Every desktop activity write commits immediately, so nothing is ever left dirty. This adds many small commits (viewed flags, checkpoints).",
+                  "label": "Commit on write"
+                },
+                {
+                  "description": "Keep refusing to integrate, but list the dirty files in the error.",
+                  "label": "Fail with clear list"
+                }
+              ],
+              "question": "Some desktop-written activity files are already dirty before integration starts. How should integration handle them?"
+            }
+          ],
+          "sequence": 67,
+          "timestamp": "2026-10-12T11:11:39.131Z",
+          "type": "agentQuestion"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-02ad58ee-49ff-4ef9-9da2-30c44ed4be8e",
       "providerSessions": [],
       "startedAt": "2026-10-12T11:06:19.815Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
-          "reasoningMs": 63653,
-          "toolMs": 36262
+          "reasoningMs": 69048,
+          "toolMs": 36277
         },
-        "elapsedMs": 129371,
-        "runningStartedAt": "2026-10-12T11:11:33.721Z"
+        "elapsedMs": 134781,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usageSchemaVersion": 1,
