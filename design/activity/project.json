@@ -1072,6 +1072,247 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": null,
+      "cardPath": null,
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 32612
+      },
+      "entries": [
+        {
+          "content": "quick check, does the application currently already check github for new releases?",
+          "id": "submission-44f0209e-17a6-4c7c-be78-42a9096a3a99",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-12T09:41:17.934Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-2",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00ef1e6a2f1fb6ea016accab42d57487d2aa8687418418974d",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-12T09:41:22.598Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll check the update code and where it’s called, then report what the app currently does.\n\n",
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 3,
+          "timestamp": "2026-10-12T09:41:23.541Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-4",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00ef1e6a2f1fb6ea016accab4a53d087d29ce65253baea6248",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-12T09:41:30.101Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -i \\\"github|release|update|autoUpdater|checkForUpdates\\\" app desktop --glob '\"'!**/node_modules/**'\"'\"",
+          "content": "desktop\\main.js:24:const { updateCodexCli } = require('./src/actions/agent/codex_cli_update');\ndesktop\\main.js:66:const { registerUpdateBridge, UpdateService } = require('./src/shell/update_service');\ndesktop\\main.js:79:    'onCodexUpdateRequired',\ndesktop\\main.js:170:    updateCodexCli,\ndesktop\\main.js:184:const updateService = new UpdateService({\ndesktop\\main.js:415:    registerUpdateBridge({ getWindow: getPrimaryWindow, ipcMain, updateService });\ndesktop\\main.js:417:    void updateService.checkForUpdate();\ndesktop\\prepare_native_helpers.js:10:    const directories = ['build/Release', 'build/Debug', `prebuilds/darwin-${arch}`];\ndesktop\\prepare_native_helpers.test.mjs:32:        const helper = path.join(PACKAGE_DIRECTORY, 'build/Release', 'spawn-helper');\ndesktop\\prepare_native_helpers.test.mjs:67:        const helper = path.join(PACKAGE_DIRECTORY, 'build/Release', 'spawn-helper');\ndesktop\\package-lock.json:150:        \"url\": \"https://github.com/sponsors/isaacs\"\ndesktop\\package-lock.json:267:        \"url\": \"https://github.com/sponsors/gjtorikian/\"\ndesktop\\package-lock.json:370:      \"deprecated\": \"Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\",\ndesktop\\package-lock.json:385:        \"url\": \"https://github.com/sponsors/isaacs\"\ndesktop\\package-lock.json:414:        \"url\": \"https://github.com/sponsors/isaacs\"\ndesktop\\package-lock.json:617:        \"url\": \"https://github.com/sponsors/sindresorhus\"\ndesktop\\package-lock.json:705:        \"type\": \"github\",\ndesktop\\package-lock.json:706:        \"url\": \"https://github.com/sponsors/nzakas\"\ndesktop\\package-lock.json:719:        \"type\": \"github\",\ndesktop\\package-lock.json:720:        \"url\": \"https://github.com/sponsors/nzakas\"\ndesktop\\package-lock.json:750:          \"url\": \"https://github.com/sponsors/malept\"\ndesktop\\package-lock.json:808:        \"type\": \"github\",\ndesktop\\package-lock.json:809:        \"url\": \"https://github.com/sponsors/Brooooooklyn\"\ndesktop\\package-lock.json:949:        \"url\": \"https://github.com/sponsors/Boshen\"\ndesktop\\package-lock.json:1756:        \"url\": \"https://github.com/sindresorhus/is?sponsor=1\"\ndesktop\\package-lock.json:2092:        \"type\": \"github\",\ndesktop\\package-lock.json:2093:        \"url\": \"https://github.com/sponsors/epoberezkin\"\ndesktop\\package-lock.json:2125:        \"type\": \"github\",\ndesktop\\package-lock.json:2126:        \"url\": \"https://github.com/sponsors/epoberezkin\"\ndesktop\\package-lock.json:2158:        \"url\": \"https://github.com/chalk/ansi-styles?sponsor=1\"\ndesktop\\package-lock.json:2309:        \"type\": \"github\",\ndesktop\\package-lock.json:2310:        \"url\": \"https://github.com/sponsors/epoberezkin\"\ndesktop\\package-lock.json:2330:          \"type\": \"github\",\ndesktop\\package-lock.json:2331:          \"url\": \"https://github.com/sponsors/sibiraj-s\"\ndesktop\\package-lock.json:2363:      \"deprecated\": \"Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\",\ndesktop\\package-lock.json:2378:        \"url\": \"https://github.com/sponsors/isaacs\"\ndesktop\\package-lock.json:2447:        \"url\": \"https://github.com/sponsors/isaacs\"\ndesktop\\package-lock.json:2523:        \"url\": \"https://github.com/sponsors/ljharb\"\ndesktop\\package-lock.json:2546:        \"url\": \"https://github.com/sponsors/ljharb\"\ndesktop\\package-lock.json:2568:        \"url\": \"https://github.com/sponsors/ljharb\"\ndesktop\\package-lock.json:2587:        \"url\": \"https://github.com/sponsors/ljharb\"\ndesktop\\package-lock.json:2606:        \"url\": \"https://github.com/sponsors/ljharb\"\ndesktop\\package-lock.json:2628:        \"url\": \"https://github.com/sponsors/ljharb\"\ndesktop\\package-lock.json:2740:        \"url\": \"https://github.com/sponsors/ljharb\"\ndesktop\\package-lock.json:2764:          \"type\": \"github\",\ndesktop\\\n[593363 characters omitted]\nText('Root update')).toBeInTheDocument()\napp\\src\\components\\config\\project_config_section.tsx:28:            'project.releasesFolder',\napp\\src\\components\\config\\project_config_section.tsx:47:            'project.deleteBranchesAfterRelease',\napp\\src\\components\\actions\\conversation\\state\\action_conversation_command_service.ts:63:        dataService.agents.updateAgentConversation(splitConversation)\napp\\src\\components\\config\\sentry_config_section.tsx:50:    const updateTextField = (field: keyof SentryProjectSettings) => (event: ChangeEvent<HTMLInputElement>) => {\napp\\src\\components\\config\\sentry_config_section.tsx:90:                            onChange={updateTextField('apiBaseUrl')}\napp\\src\\components\\config\\sentry_config_section.tsx:104:                            onChange={updateTextField('organization')}\napp\\src\\components\\config\\sentry_config_section.tsx:118:                            onChange={updateTextField('project')}\napp\\src\\components\\config\\sentry_config_section.tsx:132:                            onChange={updateTextField('environment')}\napp\\src\\components\\config\\sentry_config_section.tsx:149:                            onChange={updateTextField('apiToken')}\napp\\src\\components\\actions\\run\\popup\\action_prompt_menu.test.tsx:80:            status: 'running', type: 'update', update: {\napp\\src\\components\\actions\\run\\popup\\action_prompt_menu.test.tsx:87:        if (event.update.kind !== 'agentCompact') throw new Error('Expected compact fixture');\napp\\src\\components\\actions\\run\\popup\\action_prompt_menu.test.tsx:99:        const settled: ActionRunEvent = {...event, update: { kind: 'agentCompact', request: { ...event.update.request, state, message: 'Context compacted' } }};\napp\\src\\components\\actions\\run\\popup\\action_prompt_menu.test.tsx:111:            status: 'running', type: 'update', update: {\napp\\src\\components\\actions\\run\\popup\\action_prompt_menu.test.tsx:118:        if (event.update.kind !== 'agentCompact') throw new Error('Expected compact fixture');\napp\\src\\components\\actions\\run\\popup\\action_prompt_menu.test.tsx:119:        const request = event.update.request;\napp\\src\\components\\actions\\run\\popup\\action_prompt_menu.test.tsx:122:            actionCompactService.handleEvent({ ...event, update: { kind: 'agentCompact', request: { ...request, requestId: `${conversationId}-2` } } });\napp\\src\\components\\actions\\run\\popup\\action_prompt_menu.test.tsx:125:        act(() => actionCompactService.handleEvent({ ...event, update: { kind: 'agentCompact', request: { ...request, state: 'running' } } }));\napp\\src\\components\\actions\\run\\popup\\action_prompt_menu.test.tsx:137:                status: 'waitingForInput', type: 'update',\napp\\src\\components\\actions\\run\\popup\\action_prompt_menu.test.tsx:138:                update: { conversation: conversation('resumed-conversation'), kind: 'agentStarted', provider: 'codex' },\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:251:    const updatedConversation = await defaultDismissWaitingConversationQuestions(conversation.path)\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:252:    conversationStore.updateConversation(updatedConversation)\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:253:    dataService.agents.updateAgentConversation(updatedConversation)\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:297:    const updatedConversation = await defaultCloseWaitingConversation(conversation.path, status)\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:298:    conversationStore.updateConversation(updatedConversation)\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:299:    dataService.agents.updateAgentConversation(updatedConversation)\napp\\src\\components\\actions\\run\\popup\\action_popup_session_service.node.test.ts:41:    it('replaces action state and releases outgoing run and usage subscriptions', () => {\napp\\src\\components\\actions\\conversation\\events\\reasoning_event.grouped.test.tsx:54:    it('collapses on live completion once and keeps user expansion across later updates', () => {\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-5",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -i \\\"github|release|update|autoUpdater|checkForUpdates\\\" app desktop --glob '\"'!**/node_modules/**'\"'\"",
+          "providerItemId": "exec-648ea326-4c7e-4c55-b81c-6185dc425973",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-10-12T09:41:35.392Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files -g AGENTS.md -g package.json -g '*update*' -g '*release*' app desktop\"",
+          "content": "desktop\\package.json\ndesktop\\src\\shell\\update_service.test.mjs\ndesktop\\src\\shell\\update_service.js\napp\\package.json\ndesktop\\src\\actions\\agent\\codex_cli_update.test.mjs\ndesktop\\src\\actions\\agent\\codex_cli_update.js\napp\\src\\data\\release_archiving.ts\napp\\src\\data\\release_archiving.node.test.ts\napp\\src\\data\\electron_update_bridge.ts\napp\\src\\project_template\\actions\\write-release-note.json\napp\\src\\project_template\\actions\\render-update-version-script.json\napp\\src\\services\\update_service.ts\napp\\src\\services\\update_service.service.test.ts\napp\\src\\services\\agents\\codex_cli_update_service.ts\napp\\src\\services\\agents\\codex_cli_update_service.service.test.ts\napp\\src\\services\\release_operations.service.test.ts\napp\\src\\services\\diagrams\\diagram_fragment_update_plan.ts\napp\\src\\services\\diagrams\\diagram_fragment_update_plan.test.ts\napp\\src\\services\\release_operations.ts\napp\\src\\components\\shell\\update_notification.tsx\napp\\src\\components\\shell\\update_notification.grouped.test.tsx\napp\\src\\components\\shell\\project\\release_branch_checkbox.tsx\napp\\src\\components\\shell\\project\\complete_release_dialog.tsx\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-6",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files -g AGENTS.md -g package.json -g '*update*' -g '*release*' app desktop\"",
+          "providerItemId": "exec-11c9f73b-90e3-4123-ad4b-ef20f3ebedda",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-10-12T09:41:35.628Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-7",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00ef1e6a2f1fb6ea016accab5213dc87d29d5fd1fa0160061e",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-12T09:41:38.005Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/shell/update_service.js'",
+          "content": "const nodeFs = require('node:fs');\r\nconst nodeHttps = require('node:https');\r\nconst nodeOs = require('node:os');\r\nconst path = require('node:path');\r\n\r\nconst {\r\n    UPDATE_CHANGED_CHANNEL,\r\n    UPDATE_DISMISS_CHANNEL,\r\n    UPDATE_GET_SNAPSHOT_CHANNEL,\r\n    UPDATE_INSTALL_CHANNEL,\r\n} = require('./ipc_channels');\r\n\r\nconst LATEST_RELEASE_URL = 'https://api.github.com/repos/jan-bogaerts/md2/releases/latest';\r\nconst USER_AGENT = 'md2-desktop-update-check';\r\nconst DOWNLOAD_HIGH_WATER_MARK = 4 * 1024 * 1024;\r\nconst MAX_REDIRECTS = 5;\r\nconst UPDATE_CHANGED_EVENT = 'changed';\r\nconst INITIAL_SNAPSHOT = Object.freeze({ error: null, received: 0, state: 'idle', total: null, version: null });\r\n\r\n/** Parse a version containing only numeric dot-separated segments and an optional leading `v`. */\r\nfunction parseVersion(value) {\r\n    if (typeof value !== 'string') return [];\r\n\r\n    const normalized = value.trim().replace(/^v/i, '');\r\n    if (!/^\\d+(?:\\.\\d+)*$/.test(normalized)) return [];\r\n\r\n    return normalized.split('.').map((segment) => Number.parseInt(segment, 10));\r\n}\r\n\r\n/** True when `latest` is a strictly higher numeric version than `current`. */\r\nfunction isNewerVersion(latest, current) {\r\n    const latestSegments = parseVersion(latest);\r\n    const currentSegments = parseVersion(current);\r\n    if (latestSegments.length === 0 || currentSegments.length === 0) return false;\r\n\r\n    const length = Math.max(latestSegments.length, currentSegments.length);\r\n    for (let index = 0; index < length; index += 1) {\r\n        const latestSegment = latestSegments[index] ?? 0;\r\n        const currentSegment = currentSegments[index] ?? 0;\r\n        if (latestSegment > currentSegment) return true;\r\n        if (latestSegment < currentSegment) return false;\r\n    }\r\n\r\n    return false;\r\n}\r\n\r\n/** Select only the Windows x64 installer produced for the release version. */\r\nfunction findInstallerAsset(assets, version) {\r\n    if (!Array.isArray(assets) || parseVersion(version).length === 0) return null;\r\n\r\n    const expectedName = `MD2-Setup-${version}-x64.exe`;\r\n\r\n    return assets.find((asset) => asset?.name === expectedName\r\n        && typeof asset.browser_download_url === 'string'\r\n        && asset.browser_download_url.startsWith('https://')) ?? null;\r\n}\r\n\r\n/** GET a URL and resolve its response, rejecting request failures. */\r\nfunction requestHttpsResponse(url, headers, https) {\r\n    return new Promise((resolve, reject) => {\r\n        const request = https.get(url, { headers }, resolve);\r\n        request.on('error', reject);\r\n    });\r\n}\r\n\r\n/** Fetch a UTF-8 HTTPS response body. */\r\nasync function fetchJsonBody(url, { https }) {\r\n    const response = await requestHttpsResponse(url, {\r\n        Accept: 'application/vnd.github+json',\r\n        'User-Agent': USER_AGENT,\r\n    }, https);\r\n    const status = response.statusCode ?? 0;\r\n    if (status < 200 || status >= 300) {\r\n        response.resume();\r\n        throw new Error(`Unexpected status ${status}`);\r\n    }\r\n\r\n    return new Promise((resolve, reject) => {\r\n        let body = '';\r\n        response.setEncoding('utf8');\r\n        response.on('data', (chunk) => {\r\n            body += chunk;\r\n        });\r\n        response.on('end', () => resolve(body));\r\n        response.on('error', reject);\r\n    });\r\n}\r\n\r\n/** Fetch and validate latest release metadata. */\r\nasync function fetchLatestRelease({ https = nodeHttps } = {}) {\r\n    const body = await fetchJsonBody(LATEST_RELEASE_URL, { https });\r\n    const release = JSON.parse(body);\r\n    const versionSegments = parseVersion(release?.tag_name);\r\n    if (versionSegments.length === 0) return null;\r\n\r\n    const version = release.tag_name.trim().replace(/^v/i, '');\r\n    const asset = findInstallerAsset(release.assets, version);\r\n    if (!asset) return null;\r\n\r\n    return { downloadUrl: asset.browser_download_url, version };\r\n}\r\n\r\n/** Resolve final download response while following no more than configured redirect count. */\r\nasync function requestDownloadResponse(downloadUrl, https) {\r\n    let currentUrl = downloadUrl;\r\n\r\n    for (let redirectCount = 0; redirec\n[2112 characters omitted]\nress, response });\r\n}\r\n\r\n/** Electron-owned application update state and installer lifecycle. */\r\nclass UpdateService extends EventTarget {\r\n    constructor({ app, fs = nodeFs, https = nodeHttps, os = nodeOs, requestApplicationQuit, shell }) {\r\n        super();\r\n        this.app = app;\r\n        this.candidate = null;\r\n        this.checkStarted = false;\r\n        this.fs = fs;\r\n        this.https = https;\r\n        this.os = os;\r\n        this.requestApplicationQuit = requestApplicationQuit;\r\n        this.shell = shell;\r\n        this.snapshot = INITIAL_SNAPSHOT;\r\n    }\r\n\r\n    getSnapshot() {\r\n        return this.snapshot;\r\n    }\r\n\r\n    async checkForUpdate() {\r\n        if (this.checkStarted || !this.app.isPackaged) return;\r\n\r\n        this.checkStarted = true;\r\n        try {\r\n            const latest = await fetchLatestRelease({ https: this.https });\r\n            if (!latest || !isNewerVersion(latest.version, this.app.getVersion())) return;\r\n\r\n            this.candidate = latest;\r\n            this.setSnapshot({ error: null, received: 0, state: 'available', total: null, version: latest.version });\r\n        } catch {\r\n            // Startup checks stay silent and leave update state idle.\r\n        }\r\n    }\r\n\r\n    dismiss() {\r\n        if (!this.candidate) return;\r\n\r\n        this.candidate = null;\r\n        this.setSnapshot(INITIAL_SNAPSHOT);\r\n    }\r\n\r\n    async install() {\r\n        if (!this.candidate || !['available', 'error'].includes(this.snapshot.state)) return;\r\n\r\n        const { downloadUrl, version } = this.candidate;\r\n        const filePath = path.join(this.os.tmpdir(), `md2-update-${version}-${Date.now()}.exe`);\r\n        this.setSnapshot({ error: null, received: 0, state: 'downloading', total: null, version });\r\n\r\n        try {\r\n            const onProgress = ({ received, total }) => {\r\n                this.setSnapshot({ error: null, received, state: 'downloading', total, version });\r\n            };\r\n            await downloadToFile({ downloadUrl, filePath, fs: this.fs, https: this.https, onProgress });\r\n            this.setSnapshot({ error: null, received: this.snapshot.received, state: 'launching', total: this.snapshot.total, version });\r\n            const launchError = await this.shell.openPath(filePath);\r\n            if (launchError) throw new Error(launchError);\r\n\r\n            await this.requestApplicationQuit();\r\n        } catch {\r\n            await this.removeTemporaryFile(filePath);\r\n            this.setSnapshot({\r\n                error: `Could not install version ${version}. Try again.`,\r\n                received: 0,\r\n                state: 'error',\r\n                total: null,\r\n                version,\r\n            });\r\n        }\r\n    }\r\n\r\n    async removeTemporaryFile(filePath) {\r\n        try {\r\n            await this.fs.promises.rm(filePath, { force: true });\r\n        } catch {\r\n            // Cleanup failure must not replace actionable install failure state.\r\n        }\r\n    }\r\n\r\n    setSnapshot(snapshot) {\r\n        this.snapshot = snapshot;\r\n        this.dispatchEvent(new CustomEvent(UPDATE_CHANGED_EVENT, { detail: snapshot }));\r\n    }\r\n}\r\n\r\n/** Expose only scoped update operations and publish service snapshots to renderer. */\r\nfunction registerUpdateBridge({ getWindow, ipcMain, updateService }) {\r\n    ipcMain.handle(UPDATE_GET_SNAPSHOT_CHANNEL, () => updateService.getSnapshot());\r\n    ipcMain.handle(UPDATE_DISMISS_CHANNEL, () => updateService.dismiss());\r\n    ipcMain.handle(UPDATE_INSTALL_CHANNEL, () => updateService.install());\r\n    updateService.addEventListener(UPDATE_CHANGED_EVENT, (event) => {\r\n        const window = getWindow();\r\n        if (!window || window.isDestroyed?.() || window.webContents?.isDestroyed?.()) return;\r\n\r\n        window.webContents.send(UPDATE_CHANGED_CHANNEL, event.detail);\r\n    });\r\n}\r\n\r\nmodule.exports = {\r\n    DOWNLOAD_HIGH_WATER_MARK,\r\n    INITIAL_SNAPSHOT,\r\n    MAX_REDIRECTS,\r\n    UPDATE_CHANGED_EVENT,\r\n    UpdateService,\r\n    downloadToFile,\r\n    fetchLatestRelease,\r\n    findInstallerAsset,\r\n    isNewerVersion,\r\n    parseVersion,\r\n    registerUpdateBridge,\r\n};\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-8",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/shell/update_service.js'",
+          "providerItemId": "exec-053da562-a60d-455f-9187-de500135c2bb",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-10-12T09:41:46.340Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/services/update_service.ts'",
+          "content": "import {\r\n    getElectronUpdateBridge,\r\n    type ElectronUpdateBridge,\r\n    type UpdateSnapshot,\r\n} from '../data/electron_update_bridge'\r\nimport { register } from './service_injector'\r\n\r\ntype UpdateBridgeProvider = () => ElectronUpdateBridge | null\r\n\r\nexport const INITIAL_UPDATE_SNAPSHOT: UpdateSnapshot = {\r\n    error: null,\r\n    received: 0,\r\n    state: 'idle',\r\n    total: null,\r\n    version: null,\r\n}\r\n\r\n/** Owns renderer update state and scoped Electron update operations. */\r\nexport class UpdateService extends EventTarget {\r\n    private bridge: ElectronUpdateBridge | null = null\r\n    private readonly bridgeProvider: UpdateBridgeProvider\r\n    private snapshot = INITIAL_UPDATE_SNAPSHOT\r\n    private unsubscribeChanged: (() => void) | null = null\r\n\r\n    constructor(bridgeProvider: UpdateBridgeProvider = getElectronUpdateBridge) {\r\n        super()\r\n        this.bridgeProvider = bridgeProvider\r\n    }\r\n\r\n    readonly getSnapshot = () => this.snapshot\r\n\r\n    readonly subscribe = (callback: () => void) => {\r\n        this.addEventListener('changed', callback)\r\n\r\n        return () => this.removeEventListener('changed', callback)\r\n    }\r\n\r\n    async start() {\r\n        const bridge = this.bridgeProvider()\r\n        if (!bridge || (bridge === this.bridge && this.unsubscribeChanged)) return\r\n\r\n        this.stop()\r\n        this.bridge = bridge\r\n        let changedBeforeRead = false\r\n        this.unsubscribeChanged = bridge.onChanged((snapshot) => {\r\n            if (bridge !== this.bridge) return\r\n\r\n            changedBeforeRead = true\r\n            this.update(snapshot)\r\n        })\r\n\r\n        try {\r\n            const snapshot = await bridge.getSnapshot()\r\n            if (bridge === this.bridge && !changedBeforeRead) this.update(snapshot)\r\n        } catch {\r\n            // Electron update bridge failures remain silent until user requests installation.\r\n        }\r\n    }\r\n\r\n    stop() {\r\n        this.unsubscribeChanged?.()\r\n        this.unsubscribeChanged = null\r\n        this.bridge = null\r\n    }\r\n\r\n    dismiss() {\r\n        if (!this.bridge || this.snapshot.state === 'idle') return\r\n\r\n        this.update(INITIAL_UPDATE_SNAPSHOT)\r\n        void this.bridge.dismiss()\r\n    }\r\n\r\n    async install() {\r\n        if (!this.bridge || !['available', 'error'].includes(this.snapshot.state)) return\r\n\r\n        const version = this.snapshot.version\r\n        this.update({ error: null, received: 0, state: 'downloading', total: null, version })\r\n        try {\r\n            await this.bridge.install()\r\n        } catch {\r\n            if (this.snapshot.state !== 'downloading') return\r\n\r\n            this.update({\r\n                error: version ? `Could not install version ${version}. Try again.` : 'Could not install update. Try again.',\r\n                received: 0,\r\n                state: 'error',\r\n                total: null,\r\n                version,\r\n            })\r\n        }\r\n    }\r\n\r\n    private update(snapshot: UpdateSnapshot) {\r\n        if (snapshot === this.snapshot) return\r\n\r\n        this.snapshot = snapshot\r\n        this.dispatchEvent(new CustomEvent<UpdateSnapshot>('changed', { detail: snapshot }))\r\n    }\r\n}\r\n\r\nexport const updateService = register('updateService', new UpdateService())\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-9",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/services/update_service.ts'",
+          "providerItemId": "exec-b1a17884-b67f-4e5c-aed3-591350bad241",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-10-12T09:41:46.331Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -C 7 \"updateService|registerUpdateBridge\" desktop/main.js'",
+          "content": "59-    REMOTE_CONTROL_GET_STATUS_CHANNEL,\n60-    REMOTE_CONTROL_START_CHANNEL,\n61-    REMOTE_CONTROL_STATUS_CHANNEL,\n62-    REMOTE_CONTROL_STOP_CHANNEL,\n63-    SENTRY_REQUEST_CHANNEL,\n64-    THEME_SET_MODE_CHANNEL,\n65-} = require('./src/shell/ipc_channels');\n66:const { registerUpdateBridge, UpdateService } = require('./src/shell/update_service');\n67-const { CloseCoordinator } = require('./src/shell/close_coordinator');\n68-const { createManagedWindow } = require('./src/shell/window_state');\n69-const { ProjectStatsWorkerService } = require('./src/stats/project_stats_worker_service');\n70-\n71-const QUIT_WATCHDOG_TIMEOUT_MS = 10000;\n72-const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);\n73-const SUBSCRIPTION_METHODS = new Set([\n--\n177-let isQuittingAfterTelemetry = false;\n178-const closeCoordinator = new CloseCoordinator({\n179-    completeApplicationQuit: () => stopAndQuit(),\n180-    getWindows: () => BrowserWindow.getAllWindows(),\n181-    sendFlushRequest: (webContents, request) => webContents.send(LIFECYCLE_FLUSH_REQUEST_CHANNEL, request),\n182-    showMessageBox: (...parameters) => dialog.showMessageBox(...parameters),\n183-});\n184:const updateService = new UpdateService({\n185-    app,\n186-    https,\n187-    requestApplicationQuit: () => closeCoordinator.requestApplicationQuit(),\n188-    shell,\n189-});\n190-\n191-registerProcessErrorHandlers();\n--\n408-    registerConfigBridge();\n409-    registerLocalBridge();\n410-    registerRemarkableBridge();\n411-    registerSentryBridge();\n412-    registerRemoteControlBridge();\n413-    registerThemeBridge();\n414-    const getPrimaryWindow = () => BrowserWindow.getAllWindows()[0] ?? null;\n415:    registerUpdateBridge({ getWindow: getPrimaryWindow, ipcMain, updateService });\n416-    createWindow();\n417:    void updateService.checkForUpdate();\n418-\n419-    app.on('activate', () => {\n420-        if (BrowserWindow.getAllWindows().length === 0) {\n421-            createWindow();\n422-        }\n423-    });\n424-});\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-10",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -C 7 \"updateService|registerUpdateBridge\" desktop/main.js'",
+          "providerItemId": "exec-92606a44-e7da-485f-bc15-2c8f14d0c9cd",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-10-12T09:41:46.360Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -i \"publish|github|update|repository\" desktop/package.json electron-builder.yml electron-builder.yaml desktop/electron-builder.yml desktop/electron-builder.yaml'",
+          "content": "rg: electron-builder.yml: The system cannot find the file specified. (os error 2)\nrg: electron-builder.yaml: The system cannot find the file specified. (os error 2)\nrg: desktop/electron-builder.yml: The system cannot find the file specified. (os error 2)\nrg: desktop/electron-builder.yaml: The system cannot find the file specified. (os error 2)\n",
+          "durationMs": 7,
+          "exitCode": 1,
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-11",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -i \"publish|github|update|repository\" desktop/package.json electron-builder.yml electron-builder.yaml desktop/electron-builder.yml desktop/electron-builder.yaml'",
+          "providerItemId": "exec-7d5f1153-4a61-4625-b967-65349107906e",
+          "sequence": 11,
+          "status": "failed",
+          "timestamp": "2026-10-12T09:41:46.627Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-12",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00ef1e6a2f1fb6ea016accab5cdbe087d292722190a2405b35",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-12T09:41:49.211Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"LATEST_RELEASE_URL|findInstallerAsset|async checkForUpdate|checkStarted|isPackaged|setSnapshot\\\\(\\\\{ error: null, received: 0, state: 'available'\\\" desktop/src/shell/update_service.js\"",
+          "content": "13:const LATEST_RELEASE_URL = 'https://api.github.com/repos/jan-bogaerts/md2/releases/latest';\n48:function findInstallerAsset(assets, version) {\n91:    const body = await fetchJsonBody(LATEST_RELEASE_URL, { https });\n97:    const asset = findInstallerAsset(release.assets, version);\n168:        this.checkStarted = false;\n181:    async checkForUpdate() {\n182:        if (this.checkStarted || !this.app.isPackaged) return;\n184:        this.checkStarted = true;\n190:            this.setSnapshot({ error: null, received: 0, state: 'available', total: null, version: latest.version });\n267:    findInstallerAsset,\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-13",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"LATEST_RELEASE_URL|findInstallerAsset|async checkForUpdate|checkStarted|isPackaged|setSnapshot\\\\(\\\\{ error: null, received: 0, state: 'available'\\\" desktop/src/shell/update_service.js\"",
+          "providerItemId": "exec-d0e350ef-6ee7-43da-ac4e-f669ceca51cf",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-10-12T09:41:54.893Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"available|install|dismiss|version\" app/src/components/shell/update_notification.tsx'",
+          "content": "20:    const handleDismiss = () => service.dismiss()\n22:        void service.install()\n27:        ? 'Launching installer…'\n29:            ? `Downloading version ${snapshot.version}…`\n32:                : `Version ${snapshot.version} is available.`\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-event-14",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"available|install|dismiss|version\" app/src/components/shell/update_notification.tsx'",
+          "providerItemId": "exec-1456d17b-0b21-4e05-b453-e75949a23b63",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-10-12T09:41:55.161Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. The **packaged desktop app** checks GitHub’s latest release once at startup and compares its version with the installed version. It offers an update only if that release includes the expected Windows x64 installer. The check does not run in development, and I found no periodic recheck. See [update_service.js](</C:/Users/janbo/Documents/dev/md2/desktop/src/shell/update_service.js:181>) and the [startup call](</C:/Users/janbo/Documents/dev/md2/desktop/main.js:417>).\n\n",
+          "id": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 15,
+          "timestamp": "2026-10-12T09:42:00.263Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-b047be3c-6230-4c4e-91af-5101c161cd6f",
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a12f7c-ea9c-77e0-ba80-f44bfff6f040",
+          "createdAt": "2026-10-12T09:42:00.263Z",
+          "lastUsedAt": "2026-10-12T09:42:00.263Z",
+          "synchronizedThroughMessageId": "agent-turn-4d557f1a-44f0-4f8d-bbae-a7d2396de825-turn-1-assistant-2"
+        }
+      ],
+      "startedAt": "2026-10-12T09:41:17.934Z",
+      "status": "running",
+      "timer": {
+        "breakdown": {
+          "reasoningMs": 2516,
+          "toolMs": 199
+        },
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-12T09:41:17.934Z"
+      },
+      "title": "+",
+      "usage": {
+        "cachedInputTokens": 103680,
+        "inputTokens": 26326,
+        "outputTokens": 868,
+        "reasoningTokens": 58,
+        "totalTokens": 130932
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -1085,13 +1326,13 @@
         "agent-d6619310-b57c-44ba-88ab-194a4ecf6d3a"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-luna",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-6-luna",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-54e2cf67-e077-49d5-82ee-8e566745926e",
       "origin": {
@@ -1099,9 +1340,9 @@
       },
       "rootActionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
       "rootActionLabel": "write release note",
-      "rootConversationId": "agent-d6619310-b57c-44ba-88ab-194a4ecf6d3a",
       "startedAt": "2026-10-12T09:34:29.696Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-d6619310-b57c-44ba-88ab-194a4ecf6d3a"
     }
   ],
   "version": 5
