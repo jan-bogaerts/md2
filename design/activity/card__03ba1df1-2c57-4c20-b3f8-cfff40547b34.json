@@ -832,20 +832,28 @@
           "sequence": 62,
           "timestamp": "2026-10-12T11:08:29.186Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: you mean main worktree was dirty before operation began?\nclaude-question-1: Out of scope",
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-answer-62",
+          "kind": "message",
+          "role": "user",
+          "sequence": 63,
+          "timestamp": "2026-10-12T11:11:33.721Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-02ad58ee-49ff-4ef9-9da2-30c44ed4be8e",
       "providerSessions": [],
       "startedAt": "2026-10-12T11:06:19.815Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 63653,
           "toolMs": 36262
         },
         "elapsedMs": 129371,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-12T11:11:33.721Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
