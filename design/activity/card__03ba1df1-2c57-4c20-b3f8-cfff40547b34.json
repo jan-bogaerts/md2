@@ -1856,14 +1856,14 @@
         }
       ],
       "startedAt": "2026-10-12T11:26:36.055Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 73206,
           "toolMs": 28022
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-12T11:26:36.055Z"
+        "elapsedMs": 135252,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
