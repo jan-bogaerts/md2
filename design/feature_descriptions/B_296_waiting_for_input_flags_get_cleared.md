@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__4be6bb38-fb9b-4f3c-b2d5-97aa23fa6ce1.json
 policy:
+after: b09b6ef5-69c9-414f-bb05-e893f0e79d55
 ---
 
 we recently did a fix to prevent some incorrect states in the activity files of the cards after loading a project.  check the last releases if needed, to see which card triggered this change.
