@@ -10,8 +10,6 @@ agents:
   - design/activity/card__9e01cab5-8f41-4ea9-9ded-d6358a458537.json
 policy:
 after: 26179cc3-97a2-4a33-9e4f-a3b7116e217c
-branch: b_301_action_popup_running_in_sequence_wrong_worktree
-worktree: 2
 changedFiles:
   - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/components/actions/run/popup/action_popup_frame.tsx
