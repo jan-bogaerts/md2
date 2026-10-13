@@ -668,13 +668,52 @@
         "totalTokens": 500857
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "9e01cab5-8f41-4ea9-9ded-d6358a458537",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "c613efa655661362ee5423d672cebcd346fde6b9",
+          "committedAt": "2026-10-13T17:47:27+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_301_action_popup_running_in_sequence_wrong_worktree.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 23
+        }
+      ],
+      "completedAt": "2026-10-13T15:47:27.347Z",
+      "conversationIds": [
+        "agent-5cf85600-8db6-4088-991b-04de6f1c41c4"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-3ab2031d-3bed-4157-bec5-6ab934fca5aa",
+      "origin": {
+        "cardInternalId": "9e01cab5-8f41-4ea9-9ded-d6358a458537",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-5cf85600-8db6-4088-991b-04de6f1c41c4",
+      "startedAt": "2026-10-13T15:45:32.664Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
