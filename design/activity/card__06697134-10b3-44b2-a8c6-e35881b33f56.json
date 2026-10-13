@@ -2046,6 +2046,37 @@
       "startedAt": "2026-10-13T15:29:40.672Z",
       "status": "completed",
       "rootConversationId": "agent-cadd6459-7d59-43cb-a80f-3cc2cfe9a98a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "a0c3a753ae1f38df2590b5fcc2e3bdb77de80718",
+          "committedAt": "2026-10-13T17:37:58+02:00",
+          "deletions": 5,
+          "filePaths": [
+            "app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_dialog.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_draft_service.node.test.ts",
+            "app/src/components/actions/run/sequence/card_sequence_draft_service.ts",
+            "app/src/components/worktree_selector.test.tsx",
+            "app/src/components/worktree_selector.tsx",
+            "app/src/services/actions/active_schedule_service.node.test.ts",
+            "app/src/services/actions/active_schedule_service.ts",
+            "app/src/services/project/worktree_service.node.test.ts",
+            "app/src/services/project/worktree_service.ts"
+          ],
+          "filesChanged": 10,
+          "insertions": 210,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-13T17:37:58+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "06697134-10b3-44b2-a8c6-e35881b33f56",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
