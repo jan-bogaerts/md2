@@ -716,7 +716,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 67503
+        "usedTokens": 74822
       },
       "entries": [
         {
@@ -1552,6 +1552,192 @@
           "role": "user",
           "sequence": 64,
           "timestamp": "2026-10-13T12:29:25.811Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-65",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b3c9cca9a815766016ace242a10ec87d2a572b7dad03c2afe",
+          "sequence": 65,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T12:29:30.788Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll update B_269 with the confirmed cause and the agreed lookup behavior for card and project pins.\n\n",
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-turn-6-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 66,
+          "timestamp": "2026-10-13T12:29:31.593Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/services/agents/conversation_pin_service.ts'",
+          "content": "import type { PinnedConversationLocator } from '../../data/data_types'\r\n\r\nconst PINNED_CONVERSATIONS_CHANGED_EVENT = 'pinned-conversations'\r\n\r\nfunction locatorsEqual(left: PinnedConversationLocator[], right: PinnedConversationLocator[]) {\r\n    return left.length === right.length && left.every((locator, index) => {\r\n        const other = right[index]\r\n\r\n        return locator.cardInternalId === other.cardInternalId\r\n            && locator.contextKind === other.contextKind\r\n            && locator.conversationId === other.conversationId\r\n    })\r\n}\r\n\r\nexport function conversationPinnedEvent(conversationId: string) {\r\n    return `conversation-pinned-${conversationId}`\r\n}\r\n\r\ninterface ConversationPinServiceDependencies {\r\n    getPinnedConversations(): PinnedConversationLocator[]\r\n    saveConversationPinned(locator: PinnedConversationLocator, pinned: boolean): Promise<PinnedConversationLocator[]>\r\n    subscribeConfig(listener: () => void): () => void\r\n}\r\n\r\n/** Owns the current project's pinned conversation identities independently of conversation records. */\r\nexport class ConversationPinService {\r\n    private cleanup: (() => void) | null = null\r\n    private readonly dependencies: ConversationPinServiceDependencies\r\n    private readonly events = new EventTarget()\r\n    private pinnedConversations: PinnedConversationLocator[] = []\r\n\r\n    constructor(dependencies: ConversationPinServiceDependencies) {\r\n        this.dependencies = dependencies\r\n    }\r\n\r\n    readonly getSnapshot = () => this.pinnedConversations\r\n\r\n    isPinned(conversationId: string) {\r\n        return this.pinnedConversations.some((locator) => locator.conversationId === conversationId)\r\n    }\r\n\r\n    readonly subscribe = (listener: () => void) => {\r\n        this.events.addEventListener(PINNED_CONVERSATIONS_CHANGED_EVENT, listener)\r\n\r\n        return () => this.events.removeEventListener(PINNED_CONVERSATIONS_CHANGED_EVENT, listener)\r\n    }\r\n\r\n    subscribeConversation(conversationId: string, listener: () => void) {\r\n        const eventType = conversationPinnedEvent(conversationId)\r\n        this.events.addEventListener(eventType, listener)\r\n\r\n        return () => this.events.removeEventListener(eventType, listener)\r\n    }\r\n\r\n    start() {\r\n        if (this.cleanup) return\r\n        this.cleanup = this.dependencies.subscribeConfig(() => this.reload())\r\n        this.reload()\r\n    }\r\n\r\n    reset() {\r\n        this.replace([])\r\n    }\r\n\r\n    stop() {\r\n        this.cleanup?.()\r\n        this.cleanup = null\r\n    }\r\n\r\n    /** Persists before publishing, so failures leave the last confirmed list intact. */\r\n    async setPinned(locator: PinnedConversationLocator, pinned: boolean) {\r\n        if (!locator.conversationId) throw new Error('Missing conversation identity')\r\n        const pinnedConversations = await this.dependencies.saveConversationPinned(locator, pinned)\r\n        this.replace(pinnedConversations)\r\n    }\r\n\r\n    private reload() {\r\n        this.replace(this.dependencies.getPinnedConversations())\r\n    }\r\n\r\n    private replace(pinnedConversations: PinnedConversationLocator[]) {\r\n        if (!Array.isArray(pinnedConversations)\r\n            || !pinnedConversations.every((locator) => locator\r\n                && typeof locator.contextKind === 'string' && locator.contextKind.length > 0\r\n                && typeof locator.conversationId === 'string' && locator.conversationId.length > 0)) {\r\n            throw new Error('Invalid pinned conversation locators')\r\n        }\r\n        const conversationIds = pinnedConversations.map(({ conversationId }) => conversationId)\r\n        if (new Set(conversationIds).size !== pinnedConversations.length) {\r\n            throw new Error('Duplicate pinned conversation identities')\r\n        }\r\n        const previous = this.pinnedConversations\r\n        if (locatorsEqual(previous, pinnedConversations)) return\r\n\r\n        this.pinnedConversations = pinnedConversations.map((locator) => ({ ...locator }))\r\n        const changedConversationIds = new Set([\r\n            ...previous.map(({ conversationId }) => conversationId),\r\n            ...this.pinnedConversations.map(({ conversationId }) => conversationId),\r\n        ])\r\n        for (const conversationId of changedConversationIds) {\r\n            const wasPinned = previous.some((locator) => locator.conversationId === conversationId)\r\n            if (wasPinned === this.isPinned(conversationId)) continue\r\n            this.events.dispatchEvent(new Event(conversationPinnedEvent(conversationId)))\r\n        }\r\n        this.events.dispatchEvent(new Event(PINNED_CONVERSATIONS_CHANGED_EVENT))\r\n    }\r\n}\r\n",
+          "durationMs": 56,
+          "exitCode": 0,
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-67",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/services/agents/conversation_pin_service.ts'",
+          "providerItemId": "exec-ed335543-6d36-4621-8281-80c26773b882",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-10-13T12:29:38.972Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_269_pinned_broken.md'",
+          "content": "---\r\nauthor: \r\nid: B_269\r\ninternalId: cb89d441-e2d8-4006-bfbb-40df58243bba\r\ntitle: pinned broken\r\nstatus: design\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__cb89d441-e2d8-4006-bfbb-40df58243bba.json\r\npolicy:\r\nafter: 733d678c-49a7-4409-9fa2-5fb384821513\r\n---\r\nin the task bar, the 'pinned conversations' icon shows 2 pinned conversations, but opening the popup only shows 1. something is broken here.\r\n\r\nmaybe it has something to do with releases?\r\n",
+          "durationMs": 40,
+          "exitCode": 0,
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-68",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_269_pinned_broken.md'",
+          "providerItemId": "exec-6187b049-2fce-4206-b4be-e958e53b5804",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-10-13T12:29:39.124Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"saveConversationPinned|pinnedConversations|loadArchivedProjectActivity\" desktop app/src/services app/src/data | Select-Object -First 100'",
+          "content": "app/src/data\\data_types.ts:68:    pinnedConversations: PinnedConversationLocator[]\r\napp/src/data\\data_types.ts:590:    pinnedConversations: [],\r\napp/src/services\\release_operations.ts:208:            const archivedProjectActivity = await this.loadArchivedProjectActivity(\r\napp/src/services\\release_operations.ts:356:    private async loadArchivedProjectActivity(\r\napp/src/services\\release_operations.service.test.ts:65:            pinnedConversations: [{ cardInternalId: 'root-card', contextKind: 'card' as const, conversationId: 'root-card' }],\r\napp/src/services\\agents\\conversation_pin_service.ts:21:    saveConversationPinned(locator: PinnedConversationLocator, pinned: boolean): Promise<PinnedConversationLocator[]>\r\napp/src/services\\agents\\conversation_pin_service.ts:30:    private pinnedConversations: PinnedConversationLocator[] = []\r\napp/src/services\\agents\\conversation_pin_service.ts:36:    readonly getSnapshot = () => this.pinnedConversations\r\napp/src/services\\agents\\conversation_pin_service.ts:39:        return this.pinnedConversations.some((locator) => locator.conversationId === conversationId)\r\napp/src/services\\agents\\conversation_pin_service.ts:73:        const pinnedConversations = await this.dependencies.saveConversationPinned(locator, pinned)\r\napp/src/services\\agents\\conversation_pin_service.ts:74:        this.replace(pinnedConversations)\r\napp/src/services\\agents\\conversation_pin_service.ts:81:    private replace(pinnedConversations: PinnedConversationLocator[]) {\r\napp/src/services\\agents\\conversation_pin_service.ts:82:        if (!Array.isArray(pinnedConversations)\r\napp/src/services\\agents\\conversation_pin_service.ts:83:            || !pinnedConversations.every((locator) => locator\r\napp/src/services\\agents\\conversation_pin_service.ts:88:        const conversationIds = pinnedConversations.map(({ conversationId }) => conversationId)\r\napp/src/services\\agents\\conversation_pin_service.ts:89:        if (new Set(conversationIds).size !== pinnedConversations.length) {\r\napp/src/services\\agents\\conversation_pin_service.ts:92:        const previous = this.pinnedConversations\r\napp/src/services\\agents\\conversation_pin_service.ts:93:        if (locatorsEqual(previous, pinnedConversations)) return\r\napp/src/services\\agents\\conversation_pin_service.ts:95:        this.pinnedConversations = pinnedConversations.map((locator) => ({ ...locator }))\r\napp/src/services\\agents\\conversation_pin_service.ts:98:            ...this.pinnedConversations.map(({ conversationId }) => conversationId),\r\napp/src/services\\agents\\agent_integration.ts:107:    private pinnedConversations: AgentConversation[] = []\r\napp/src/services\\agents\\agent_integration.ts:144:    readonly getPinnedConversationsSnapshot = () => this.pinnedConversations\r\napp/src/services\\agents\\agent_integration.ts:159:        if (this.pinnedLoadCompleted) return this.pinnedConversations\r\napp/src/services\\agents\\agent_integration.ts:163:            return this.pinnedConversations\r\napp/src/services\\agents\\agent_integration.ts:183:        return this.pinnedConversations\r\napp/src/services\\agents\\agent_integration.ts:263:        const retained = this.pinnedConversations.filter(({ id }) => this.dependencies.pins.isPinned(id))\r\napp/src/services\\agents\\agent_integration.ts:272:        this.pinnedConversations = sortPinnedConversations([...retained, ...additions])\r\napp/src/services\\agents\\agent_integration.ts:275:            !this.pinnedConversations.some(({ id }) => id === conversationId)\r\napp/src/services\\agents\\agent_integration.ts:406:        const merged = this.preferExistingConversations(this.pinnedConversations, conversations, loadSequence)\r\napp/src/services\\agents\\agent_integration.ts:408:        this.pinnedConversations = sortPinnedConversations(merged.filter(({ id }) => this.dependencies.pins.isPinned(id)))\r\napp/src/services\\agents\\agent_integration.ts:663:        const current = this.pinnedConversations.find(({ id }) => id === conversation.id)\r\napp/src/services\\agents\\agent_integration.ts:667:        this.pinnedConversations = pinned\r\napp/src/services\\agents\\agent_integrati\n[4024 characters omitted]\nts:169:            throw new Error('Config field project.pinnedConversations requires conversationId')\r\napp/src/services\\config\\config_service.ts:172:            throw new Error('Config field project.pinnedConversations contains invalid contextKind')\r\napp/src/services\\config\\config_service.ts:175:            throw new Error('Config field project.pinnedConversations contains invalid cardInternalId')\r\napp/src/services\\config\\config_service.ts:178:            throw new Error('Config field project.pinnedConversations requires cardInternalId for card context')\r\napp/src/services\\config\\config_service.ts:185:        throw new Error('Config field project.pinnedConversations contains duplicate conversation identities')\r\napp/src/services\\config\\config_service.ts:216:    if (entry.type === 'json' && key === 'project.pinnedConversations') {\r\napp/src/services\\config\\config_service.ts:286:        pinnedConversations: values['project.pinnedConversations'],\r\napp/src/services\\config\\config_service.ts:409:            const current = this.getProjectConfig().pinnedConversations\r\napp/src/services\\config\\config_service.ts:410:            const pinnedConversations = pinned\r\napp/src/services\\config\\config_service.ts:413:            const validated = validatePinnedConversations(pinnedConversations)\r\napp/src/services\\config\\config_service.ts:414:            const nextValues = mergeValue(this.values, 'project.pinnedConversations', validated)\r\napp/src/services\\config\\config_service.ts:416:            this.values = mergeValue(this.values, 'project.pinnedConversations', validated)\r\napp/src/services\\config\\config_service.ts:418:                this.draftValues = mergeValue(this.draftValues, 'project.pinnedConversations', validated)\r\napp/src/services\\config\\config_service.ts:509:        if (projectConfig?.pinnedConversations !== undefined) {\r\napp/src/services\\config\\config_service.ts:510:            nextValues = mergeValue(nextValues, 'project.pinnedConversations', projectConfig.pinnedConversations)\r\napp/src/services\\config\\config_service.ts:519:                'project.pinnedConversations',\r\napp/src/services\\config\\config_service.ts:520:                nextValues['project.pinnedConversations'],\r\napp/src/services\\config\\config_service.service.test.ts:215:        const pinnedConversations = [\r\napp/src/services\\config\\config_service.service.test.ts:219:        service.loadProjectConfig({ pinnedConversations })\r\napp/src/services\\config\\config_service.service.test.ts:221:        expect(service.getProjectConfig().pinnedConversations).toEqual(pinnedConversations)\r\napp/src/services\\config\\config_service.service.test.ts:222:        expect(() => service.loadProjectConfig({ pinnedConversations: [pinnedConversations[0], pinnedConversations[0]] }))\r\napp/src/services\\config\\config_service.service.test.ts:224:        expect(() => service.loadProjectConfig({ pinnedConversations: [{ contextKind: 'project', conversationId: '' }] }))\r\napp/src/services\\config\\config_service.service.test.ts:232:        expect(service.getProjectConfig().pinnedConversations).toEqual([])\r\napp/src/services\\config\\config_service.service.test.ts:239:        service.loadProjectConfig({ pinnedConversations: [firstLocator] })\r\napp/src/services\\config\\config_service.service.test.ts:242:        service.loadProjectConfig({ pinnedConversations: [secondLocator] })\r\napp/src/services\\config\\config_service.service.test.ts:245:        expect(service.getProjectConfig().pinnedConversations).toEqual([secondLocator])\r\napp/src/services\\config\\config_service.service.test.ts:250:        service.loadProjectConfig({ pinnedConversations: [], pushMode: 'auto' })\r\napp/src/services\\config\\config_service.service.test.ts:273:        expect(persistedConfigs[1]).toMatchObject({ pinnedConversations: [locator], pushMode: 'manual' })\r\napp/src/services\\config\\config_entries.ts:47:    'project.pinnedConversations': PinnedConversationLocator[]\r\napp/src/services\\config\\config_entries.ts:302:        key: 'project.pinnedConversations',\r\napp/src/services\\config\\config_entries.ts:403:    'project.pinnedConversations',\r\n",
+          "durationMs": 211,
+          "exitCode": 0,
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-69",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"saveConversationPinned|pinnedConversations|loadArchivedProjectActivity\" desktop app/src/services app/src/data | Select-Object -First 100'",
+          "providerItemId": "exec-235d1659-ea47-4db3-a30d-3072441c19f9",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-10-13T12:29:39.167Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$f=Get-Content app/src/data/data_types.ts; $f[58..94]'",
+          "content": "    autoCommitDelayMs: number\r\n    backgroundShade: ProjectBackgroundShade\r\n    cardSeparator: CardSeparator\r\n    cardTypes: CardTypeConfig[]\r\n    deleteBranchAfterIntegration: boolean\r\n    deleteBranchesAfterRelease: boolean\r\n    diffCommand: string\r\n    diagramFooter: string\r\n    diagramsFolder: string\r\n    pinnedConversations: PinnedConversationLocator[]\r\n    projectFolder: string\r\n    pushMode: PushMode\r\n    releasesFolder: string\r\n    states: StateConfig[]\r\n    workingFolder: string\r\n}\r\n\r\n/** Stable identity and activity ownership needed to resolve one pinned conversation without storing a path. */\r\nexport interface PinnedConversationLocator {\r\n    cardInternalId?: string\r\n    contextKind: ActionContextKind\r\n    conversationId: string\r\n}\r\n\r\n/** How a file's `content` is encoded for the storage write path. Binary assets use base64. */\r\nexport type FileEncoding = 'utf-8' | 'base64'\r\n\r\nexport interface MarkdownFile {\r\n    content: string\r\n    encoding?: FileEncoding\r\n    path: string\r\n    sha?: string\r\n}\r\n\r\nexport interface ProjectAsset {\r\n    content: string\r\n    contentType: string\r\n",
+          "durationMs": 6,
+          "exitCode": 0,
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-70",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$f=Get-Content app/src/data/data_types.ts; $f[58..94]'",
+          "providerItemId": "exec-a3b653eb-e235-43a8-b672-3ed8a6673918",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-10-13T12:29:39.505Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b3c9cca9a815766016ace2437594087d2a691442e5ca38469",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T12:29:45.442Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_269_pinned_broken.md",
+          "deletions": 2,
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-72",
+          "insertions": 14,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-4ad2bdd7-e35c-4230-97a7-1ac99f69e81e",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-10-13T12:29:56.135Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-73",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b3c9cca9a815766016ace24484cd487d298e886dc289b9076",
+          "sequence": 73,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T12:29:59.578Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- design/feature_descriptions/B_269_pinned_broken.md'",
+          "content": "diff --git a/design/feature_descriptions/B_269_pinned_broken.md b/design/feature_descriptions/B_269_pinned_broken.md\nindex f570a344b..495d3913b 100644\n--- a/design/feature_descriptions/B_269_pinned_broken.md\n+++ b/design/feature_descriptions/B_269_pinned_broken.md\n@@ -11,6 +11,18 @@ agents:\n policy:\n after: 733d678c-49a7-4409-9fa2-5fb384821513\n ---\n-in the task bar, the 'pinned conversations' icon shows 2 pinned conversations, but opening the popup only shows 1. something is broken here.\n+The taskbar pin badge counts two saved pin locators, but the popup shows fewer conversations.\n \n-maybe it has something to do with releases?\n\\ No newline at end of file\n+## Cause\n+\n+The badge counts locators in project configuration. The popup loads conversation records and currently resolves every project pin only from `design/activity/project.json`. Releases split completed project conversations into `design/releases/<release>/project.json` without updating their pin locators. Both pinned conversations in this project now reside in release activity files, while their locators still lack a way to find those files.\n+\n+## Required behavior\n+\n+- Keep `AgentConversation.id` as conversation identity. Use locations only to load records.\n+- For card pins, use `cardInternalId` to find the card and its current activity references, including after a release moves the card.\n+- For project pins, store the activity file's project-relative path alongside the conversation ID. When a release moves a pinned conversation into its release activity file, update that pin's path as part of release completion. Pins for conversations retained in the active activity file keep the active path.\n+- On popup open, load only the distinct activity files referenced by the pins and display the matching conversations. The badge and popup must not disagree silently when a pinned record cannot be loaded.\n+- Existing project pins without paths need their locations populated so historical pinned conversations remain accessible.\n+\n+Cover active and released card and project pins, release path updates, and missing pinned records in focused tests.\n",
+          "durationMs": 29,
+          "exitCode": 0,
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-74",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- design/feature_descriptions/B_269_pinned_broken.md'",
+          "providerItemId": "exec-c07ee1ad-e899-46cd-b8c4-391c60d279d2",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-10-13T12:30:03.998Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_269_pinned_broken.md'",
+          "content": "---\r\nauthor: \r\nid: B_269\r\ninternalId: cb89d441-e2d8-4006-bfbb-40df58243bba\r\ntitle: pinned broken\r\nstatus: design\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__cb89d441-e2d8-4006-bfbb-40df58243bba.json\r\npolicy:\r\nafter: 733d678c-49a7-4409-9fa2-5fb384821513\r\n---\r\nThe taskbar pin badge counts two saved pin locators, but the popup shows fewer conversations.\r\n\r\n## Cause\r\n\r\nThe badge counts locators in project configuration. The popup loads conversation records and currently resolves every project pin only from `design/activity/project.json`. Releases split completed project conversations into `design/releases/<release>/project.json` without updating their pin locators. Both pinned conversations in this project now reside in release activity files, while their locators still lack a way to find those files.\r\n\r\n## Required behavior\r\n\r\n- Keep `AgentConversation.id` as conversation identity. Use locations only to load records.\r\n- For card pins, use `cardInternalId` to find the card and its current activity references, including after a release moves the card.\r\n- For project pins, store the activity file's project-relative path alongside the conversation ID. When a release moves a pinned conversation into its release activity file, update that pin's path as part of release completion. Pins for conversations retained in the active activity file keep the active path.\r\n- On popup open, load only the distinct activity files referenced by the pins and display the matching conversations. The badge and popup must not disagree silently when a pinned record cannot be loaded.\r\n- Existing project pins without paths need their locations populated so historical pinned conversations remain accessible.\r\n\r\nCover active and released card and project pins, release path updates, and missing pinned records in focused tests.\r\n",
+          "durationMs": 8,
+          "exitCode": 0,
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-75",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_269_pinned_broken.md'",
+          "providerItemId": "exec-253b3e3a-6e69-47fd-8f8b-905d57ee93c1",
+          "sequence": 75,
+          "status": "completed",
+          "timestamp": "2026-10-13T12:30:03.987Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-76",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b3c9cca9a815766016ace24506df087d2b5416504415fdf33",
+          "sequence": 76,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T12:30:12.206Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_269_pinned_broken.md",
+          "deletions": 3,
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-77",
+          "insertions": 3,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-4c481033-7fb0-4e72-9792-505cbae18704",
+          "sequence": 77,
+          "status": "completed",
+          "timestamp": "2026-10-13T12:30:19.644Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_269_pinned_broken.md](/C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_269_pinned_broken.md) with the confirmed release cause and the agreed lookup rules: `cardInternalId` for card pins, and a repository-relative activity path that is updated on release for project pins. I also noted that existing project pins need paths populated. No code or tests were run.\n\n",
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-turn-6-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 78,
+          "timestamp": "2026-10-13T12:30:24.309Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1561,27 +1747,27 @@
           "agent": "codex",
           "conversationId": "01a1352a-fdbe-7832-b02a-df3f66e88b7a",
           "createdAt": "2026-10-13T12:11:05.633Z",
-          "lastUsedAt": "2026-10-13T12:28:54.313Z",
-          "synchronizedThroughMessageId": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-turn-5-assistant-1"
+          "lastUsedAt": "2026-10-13T12:30:24.309Z",
+          "synchronizedThroughMessageId": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-turn-6-assistant-2"
         }
       ],
       "startedAt": "2026-10-13T12:09:31.872Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 20900,
-          "toolMs": 4931
+          "reasoningMs": 31439,
+          "toolMs": 6623
         },
         "elapsedMs": 162485,
         "runningStartedAt": "2026-10-13T12:29:25.811Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 747264,
-        "inputTokens": 64270,
-        "outputTokens": 3245,
-        "reasoningTokens": 741,
-        "totalTokens": 815520
+        "cachedInputTokens": 1100800,
+        "inputTokens": 72766,
+        "outputTokens": 4420,
+        "reasoningTokens": 1143,
+        "totalTokens": 1179129
       },
       "usageSchemaVersion": 1,
       "viewed": true
