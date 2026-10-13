@@ -3,12 +3,12 @@ author:
 id: F_390
 internalId: e43f6e59-8ffb-4668-8c07-49858b1bfeaa
 title: Add intro
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 96236df6-2c3a-4846-9d52-f29b7ee9041d
+after: 2775052a-2e84-4466-a320-155c8ec05bac
 ---
 
 When app first runs and there is no project yet to open, we now show the ´open project´ folder i believe.
