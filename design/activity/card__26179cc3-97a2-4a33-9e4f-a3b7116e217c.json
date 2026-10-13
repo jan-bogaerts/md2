@@ -1801,14 +1801,14 @@
         }
       ],
       "startedAt": "2026-10-13T16:56:49.527Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 466,
           "toolMs": 1479
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-13T16:56:49.527Z"
+        "elapsedMs": 57906,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
