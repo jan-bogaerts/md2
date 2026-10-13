@@ -3,7 +3,7 @@ author:
 id: B_276
 internalId: 4677a35c-e7bf-4ef7-86c7-9f02d8604f47
 title: TypeError: Cannot read properties of undefined (re
-status: new
+status: ready for implementation
 owner: 
 affects:
 agents:
@@ -11,6 +11,9 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 153095004
 sentryOrganization: elastetic
+after: c9eb5c09-0c01-490f-808c-143ff534322b
+branch: b_276_typeerror_cannot_read_properties_of_undefined_re
+worktree: 1
 ---
 
 ## Sentry issue
