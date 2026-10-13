@@ -9,10 +9,14 @@ affects:
 agents:
 policy:
 ---
-
 The 'new sequence' popup shows a drop target where the user can drop cards on. this works, but as soon as the first card is dropped, the drop target disappears and no more cards can be dropped.&#x20;
 
 Things that need fixing:&#x20;
 
 * show drop target always at bottom so new cards can be added
 * allow dropping on another entry to take it's place. the existing item will move 1 down
+
+
+
+* also, no need to show the file path.
+* and it also says 'ready state', but outside of the card box. don't know what that is for, where it comes from
