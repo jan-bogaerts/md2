@@ -180,7 +180,9 @@ describe('DiagramEdgeDrawingService', () => {
     })
 
     it('keeps edge default when selected legend entry is a node role', () => {
-        const { drawing, session } = createHarness()
+        const source = architectureDiagram()
+        source.meta.legend = [{ label: 'Store', role: 'store' }]
+        const { drawing, session } = createHarness(source)
         drawing.activate({ kind: 'data' })
         expect(session.selectLegendEntry('node:store')).toBe(true)
 
