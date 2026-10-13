@@ -4,7 +4,7 @@
   "label": "investigate",
   "streaming": true,
   "phrases": [],
-  "prompt": "read {{this-card}}. investigate what is happening, report your findings. Be short and to the point, full sentences.",
+  "prompt": "read {{this-card}}. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
   "type": "agent",
   "appliesTo": {
     "kind": "card",
