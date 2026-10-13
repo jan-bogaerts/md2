@@ -109,12 +109,12 @@ export function EditableDiagramSurface({
         const bounds = event.currentTarget.getBoundingClientRect()
         const viewportMetrics = { bounds: { left: bounds.left, top: bounds.top }, originX, originY, scrollLeft: 0, scrollTop: 0 }
 
-        return convertClientToDiagramCoordinates(event, viewportMetrics, session.getViewportScaleSnapshot()).diagramPoint
+        return convertClientToDiagramCoordinates(event, viewportMetrics, session.read.getViewportScaleSnapshot()).diagramPoint
     }
     const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== null || event.button !== 0
             || (event.pointerType === 'touch' && event.isPrimary === false)
-            || session.getActiveToolSnapshot() !== 'select') return
+            || session.read.getActiveToolSnapshot() !== 'select') return
         if ((event.target as Element).closest('[data-diagram-id], [data-diagram-resize-handle]')) return
 
         event.preventDefault()
@@ -153,7 +153,7 @@ export function EditableDiagramSurface({
 
             return
         }
-        if (session.getActiveToolSnapshot() !== 'select') return
+        if (session.read.getActiveToolSnapshot() !== 'select') return
         if ((event.target as Element).closest('[data-diagram-id], [data-diagram-resize-handle]')) return
 
         selection.clear()
@@ -168,7 +168,7 @@ export function EditableDiagramSurface({
         const objectKind = objectElement?.dataset.diagramKind
         if (!objectElement || (objectKind !== 'edge' && objectKind !== 'node')) return
         event.preventDefault()
-        const sessionSnapshot = session.getSessionSnapshot()
+        const sessionSnapshot = session.read.getSessionSnapshot()
         const itemId = objectElement.dataset.diagramId
         const itemLabel = objectElement.getAttribute('aria-label')
         if (!sessionSnapshot || !itemId || !itemLabel) throw new Error('New diagram context target is missing identity or session')

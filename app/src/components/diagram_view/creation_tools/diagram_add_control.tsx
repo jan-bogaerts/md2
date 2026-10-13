@@ -81,31 +81,31 @@ export function DiagramAddControl({
     const [dropdownButton, setDropdownButton] = useState<HTMLButtonElement | null>(null);
     const [open, setOpen] = useState(false);
     const diagramType = useSyncExternalStore(
-        useCallback((listener) => session.subscribeMetadataField('type', listener), [session]),
-        useCallback(() => session.getMetadataFieldSnapshot('type') as DiagramType | null, [session]),
-        useCallback(() => session.getMetadataFieldSnapshot('type') as DiagramType | null, [session]),
+        useCallback((listener) => session.read.subscribeMetadataField('type', listener), [session]),
+        useCallback(() => session.read.getMetadataFieldSnapshot('type') as DiagramType | null, [session]),
+        useCallback(() => session.read.getMetadataFieldSnapshot('type') as DiagramType | null, [session]),
     );
     const flowPreset = useSyncExternalStore(
-        useCallback((listener) => session.subscribeMetadataField('preset', listener), [session]),
-        useCallback(() => session.getMetadataFieldSnapshot('preset') as DiagramFlowPreset | null, [session]),
-        useCallback(() => session.getMetadataFieldSnapshot('preset') as DiagramFlowPreset | null, [session]),
+        useCallback((listener) => session.read.subscribeMetadataField('preset', listener), [session]),
+        useCallback(() => session.read.getMetadataFieldSnapshot('preset') as DiagramFlowPreset | null, [session]),
+        useCallback(() => session.read.getMetadataFieldSnapshot('preset') as DiagramFlowPreset | null, [session]),
     );
     const lastSelectedTool = useSyncExternalStore(
-        session.subscribeLastSelectedCreationTool,
-        session.getLastSelectedCreationToolSnapshot,
-        session.getLastSelectedCreationToolSnapshot,
+        session.read.subscribeLastSelectedCreationTool,
+        session.read.getLastSelectedCreationToolSnapshot,
+        session.read.getLastSelectedCreationToolSnapshot,
     );
     const activeTool = useSyncExternalStore(
-        session.subscribeActiveTool,
-        session.getActiveToolSnapshot,
-        session.getActiveToolSnapshot,
+        session.read.subscribeActiveTool,
+        session.read.getActiveToolSnapshot,
+        session.read.getActiveToolSnapshot,
     );
     const nodeIds = useSyncExternalStore(
-        useCallback((listener) => session.subscribeCollectionMembership('node', listener), [session]),
-        session.getNodeIdsSnapshot,
-        session.getNodeIdsSnapshot,
+        useCallback((listener) => session.read.subscribeCollectionMembership('node', listener), [session]),
+        session.read.getNodeIdsSnapshot,
+        session.read.getNodeIdsSnapshot,
     );
-    const hasMindmapRoot = nodeIds.some((nodeId) => session.getNodeFieldSnapshot(nodeId, 'kind') === 'root');
+    const hasMindmapRoot = nodeIds.some((nodeId) => session.read.getNodeFieldSnapshot(nodeId, 'kind') === 'root');
     const definitions = useMemo(
         () => diagramType ? diagramCreationTools(diagramType, flowPreset, hasMindmapRoot) : [],
         [diagramType, flowPreset, hasMindmapRoot],

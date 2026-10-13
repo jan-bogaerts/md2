@@ -8,6 +8,7 @@ import {
 } from './diagram_entity_relationship_button';
 
 class EntityRelationshipSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool = 'select';
     private readonly diagramType: DiagramType;
 
@@ -52,7 +53,7 @@ describe('DiagramEntityRelationshipButton', () => {
         fireEvent.click(button);
 
         expect(drawing.activate).toHaveBeenCalledWith({ kind: 'relationship' });
-        expect(session.subscribeMetadataField).toHaveBeenCalledWith('type', expect.any(Function));
+        expect(session.read.subscribeMetadataField).toHaveBeenCalledWith('type', expect.any(Function));
         act(() => { session.setActiveTool('edge:relationship'); });
         expect(button).toHaveAttribute('aria-pressed', 'true');
     });

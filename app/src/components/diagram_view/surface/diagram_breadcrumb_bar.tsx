@@ -41,7 +41,9 @@ export function DiagramBreadcrumbBar({ service, session = diagramEditSessionServ
         service.getCurrentSelectedItemSnapshot,
         service.getCurrentSelectedItemSnapshot,
     );
-    const editSession = useSyncExternalStore(session.subscribeSession, session.getSessionSnapshot, session.getSessionSnapshot);
+    const editSession = useSyncExternalStore(
+        session.read.subscribeSession, session.read.getSessionSnapshot, session.read.getSessionSnapshot,
+    );
     const draftTitle = useEditableDiagramMetadataField('title', session);
     const { actions } = useActions();
     const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions]);

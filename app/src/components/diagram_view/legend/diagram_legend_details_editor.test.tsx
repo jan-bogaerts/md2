@@ -91,9 +91,9 @@ describe('DiagramLegendDetailsEditor', () => {
         await userEvent.type(screen.getByLabelText('Label for focal node'), 'Order service')
         await userEvent.tab()
 
-        expect(session.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Order service')
-        expect(session.getLegendEntryFieldSnapshot('connection:connection', 'label')).toBe('Calls')
-        expect(session.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
+        expect(session.read.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Order service')
+        expect(session.read.getLegendEntryFieldSnapshot('connection:connection', 'label')).toBe('Calls')
+        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
     })
 
     it('rejects an empty label and restores the stored value', async () => {
@@ -103,7 +103,7 @@ describe('DiagramLegendDetailsEditor', () => {
         await userEvent.tab()
 
         expect(screen.getByText('Label for focal node is required.')).toBeInTheDocument()
-        expect(session.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
+        expect(session.read.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
         expect((screen.getByLabelText('Label for focal node') as HTMLInputElement).value).toBe('Service')
     })
 
@@ -116,8 +116,8 @@ describe('DiagramLegendDetailsEditor', () => {
         await userEvent.type(screen.getByLabelText('Label for the added entry'), 'Database')
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
-        expect(session.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection', 'node:backend'])
-        expect(session.getLegendEntryFieldSnapshot('node:backend', 'label')).toBe('Database')
+        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection', 'node:backend'])
+        expect(session.read.getLegendEntryFieldSnapshot('node:backend', 'label')).toBe('Database')
         await userEvent.click(screen.getByLabelText('Add entry for'))
         expect(screen.queryByRole('option', { name: 'backend node' })).not.toBeInTheDocument()
         expect(screen.queryByRole('option', { name: 'focal node' })).not.toBeInTheDocument()
@@ -131,7 +131,7 @@ describe('DiagramLegendDetailsEditor', () => {
         expect(screen.getByLabelText('Label for the added entry')).toHaveValue('backend')
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
-        expect(session.getLegendEntryFieldSnapshot('node:backend', 'label')).toBe('backend')
+        expect(session.read.getLegendEntryFieldSnapshot('node:backend', 'label')).toBe('backend')
     })
 
     it('groups diagram-used types behind the checkbox and follows node, edge, and legend changes', async () => {
@@ -189,7 +189,7 @@ describe('DiagramLegendDetailsEditor', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
         expect(screen.getByText('Choose the node kind, node role, or connection kind to add.')).toBeInTheDocument()
-        expect(session.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
+        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
     })
 
     it('keeps derived entries on add and rejects adding a type already displayed there', async () => {
@@ -200,12 +200,12 @@ describe('DiagramLegendDetailsEditor', () => {
         await userEvent.click(screen.getByRole('option', { name: 'Component node kind' }))
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
         expect(screen.getByText('That node kind, node role, or connection kind already has a legend entry.')).toBeInTheDocument()
-        expect(session.getHasExplicitLegendSnapshot()).toBe(false)
+        expect(session.read.getHasExplicitLegendSnapshot()).toBe(false)
 
         await userEvent.click(screen.getByLabelText('Add entry for'))
         await userEvent.click(screen.getByRole('option', { name: 'backend node' }))
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
-        expect(session.getEditableDiagram()?.meta.legend).toEqual([
+        expect(session.read.getEditableDiagram()?.meta.legend).toEqual([
             { label: 'Component', nodeKind: 'component' },
             { kind: 'connection', label: 'Connection' },
             { label: 'backend', role: 'backend' },
@@ -217,20 +217,20 @@ describe('DiagramLegendDetailsEditor', () => {
 
         await userEvent.click(screen.getByLabelText('Move connection connection up'))
 
-        expect(session.getLegendEntryKeysSnapshot()).toEqual(['connection:connection', 'node:focal'])
+        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(['connection:connection', 'node:focal'])
         expect(entryLabelInputs().map((input) => (input as HTMLInputElement).value)).toEqual(['Calls', 'Service'])
     })
 
     it('removes an entry without changing nodes or edges', async () => {
         const { session } = renderEditor(legendDiagram)
-        const nodes = session.getEditableDiagram()?.nodes
-        const edges = session.getEditableDiagram()?.edges
+        const nodes = session.read.getEditableDiagram()?.nodes
+        const edges = session.read.getEditableDiagram()?.edges
 
         await userEvent.click(screen.getByLabelText('Remove focal node'))
 
-        expect(session.getLegendEntryKeysSnapshot()).toEqual(['connection:connection'])
-        expect(session.getEditableDiagram()?.nodes).toBe(nodes)
-        expect(session.getEditableDiagram()?.edges).toBe(edges)
+        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(['connection:connection'])
+        expect(session.read.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(session.read.getEditableDiagram()?.edges).toBe(edges)
         expect(entryLabelInputs()).toHaveLength(1)
     })
 

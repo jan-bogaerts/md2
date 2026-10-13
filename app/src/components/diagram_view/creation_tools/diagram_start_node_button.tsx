@@ -1,11 +1,9 @@
+import type { DiagramEditSessionReadAdapter } from '../../../services/diagrams/diagram_edit_session_read_adapter';
 import { useCallback, useSyncExternalStore } from 'react';
 import type { DiagramFlowPreset, DiagramType } from '../../../services/diagrams/diagram_data';
 import {
     diagramEditSessionService,
 } from '../../../services/diagrams/diagram_edit_session_service';
-import type {
-    DiagramPersistentTool,
-} from '../../../services/diagrams/diagram_edit_types';
 import {
     diagramNodePlacementService,
     type DiagramNodePlacementDefinition,
@@ -26,16 +24,7 @@ function startNodeDefinition(flowPreset: DiagramFlowPreset | null): DiagramNodeP
 
 export type DiagramStartNodeMetadataField = 'preset' | 'type';
 
-export interface DiagramStartNodeSession {
-    getActiveToolSnapshot: () => DiagramPersistentTool;
-    getMetadataFieldSnapshot: {
-        (field: 'preset'): DiagramFlowPreset | null;
-        (field: 'type'): DiagramType | null;
-    };
-    subscribeActiveTool: (listener: () => void) => () => void;
-    subscribeMetadataField: (field: DiagramStartNodeMetadataField, listener: () => void) => () => void;
-    subscribeSession: (listener: () => void) => () => void;
-}
+export interface DiagramStartNodeSession { read: Pick<DiagramEditSessionReadAdapter, 'getActiveToolSnapshot' | 'subscribeActiveTool' | 'subscribeSession'> & { getMetadataFieldSnapshot: { (field: 'preset'): DiagramFlowPreset | null; (field: 'type'): DiagramType | null }; subscribeMetadataField: (field: 'preset' | 'type', listener: () => void) => () => void } };
 
 export type DiagramStartNodePlacement = Pick<DiagramNodePlacementService, 'activate'>;
 
@@ -46,9 +35,9 @@ interface DiagramStartNodeButtonProps {
 
 function useFlowPreset(session: DiagramStartNodeSession) {
     const subscribe = useCallback((listener: () => void) => {
-        const unsubscribePreset = session.subscribeMetadataField('preset', listener);
-        const unsubscribeType = session.subscribeMetadataField('type', listener);
-        const unsubscribeSession = session.subscribeSession(listener);
+        const unsubscribePreset = session.read.subscribeMetadataField('preset', listener);
+        const unsubscribeType = session.read.subscribeMetadataField('type', listener);
+        const unsubscribeSession = session.read.subscribeSession(listener);
 
         return () => {
             unsubscribePreset();
@@ -57,7 +46,7 @@ function useFlowPreset(session: DiagramStartNodeSession) {
         };
     }, [session]);
     const getSnapshot = useCallback(
-        () => (session.getMetadataFieldSnapshot('type') === 'flow' ? session.getMetadataFieldSnapshot('preset') : undefined),
+        () => (session.read.getMetadataFieldSnapshot('type') === 'flow' ? session.read.getMetadataFieldSnapshot('preset') : undefined),
         [session],
     );
 
@@ -72,7 +61,7 @@ export function DiagramStartNodeButton({
     const flowPreset = useFlowPreset(session);
     const activeTool = useActiveDiagramTool(session, 'node:start');
     const handleActivate = useCallback(() => {
-        placement.activate(startNodeDefinition(session.getMetadataFieldSnapshot('preset')));
+        placement.activate(startNodeDefinition(session.read.getMetadataFieldSnapshot('preset')));
     }, [placement, session]);
 
     if (flowPreset === undefined) return null;

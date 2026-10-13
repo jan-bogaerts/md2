@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import {
     diagramEditSessionService,
-    type DiagramEditSessionService,
+    type DiagramEditSessionAccess,
 } from '../../../services/diagrams/diagram_edit_session_service'
 import {
     diagramGroupDrawingService,
@@ -12,7 +12,7 @@ import { useActiveDiagramTool } from '../editing/use_diagram_tool'
 
 interface DiagramGroupButtonProps {
     drawing?: Pick<DiagramGroupDrawingService, 'activate'>
-    session?: Pick<DiagramEditSessionService, 'getActiveToolSnapshot' | 'subscribeActiveTool'>
+    session?: DiagramEditSessionAccess<'getActiveToolSnapshot' | 'subscribeActiveTool', never>
 }
 
 /** Activates rectangular group drawing. */

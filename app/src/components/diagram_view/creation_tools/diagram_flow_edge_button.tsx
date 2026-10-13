@@ -1,3 +1,4 @@
+import type { DiagramEditSessionReadAdapter } from '../../../services/diagrams/diagram_edit_session_read_adapter';
 import { useCallback, useSyncExternalStore } from 'react';
 import type {
     DiagramEdgeKind,
@@ -11,18 +12,11 @@ import {
 import {
     diagramEditSessionService,
 } from '../../../services/diagrams/diagram_edit_session_service';
-import type {
-    DiagramPersistentTool,
-} from '../../../services/diagrams/diagram_edit_types';
 import { DiagramToolboxButton } from './diagram_toolbox_button';
 import { useActiveDiagramTool } from '../editing/use_diagram_tool';
 
 export interface DiagramFlowEdgeSession {
-    getActiveToolSnapshot: () => DiagramPersistentTool;
-    getMetadataFieldSnapshot: (field: 'preset' | 'type') => DiagramFlowPreset | DiagramType | null | undefined;
-    subscribeActiveTool: (listener: () => void) => () => void;
-    subscribeMetadataField: (field: 'preset' | 'type', listener: () => void) => () => void;
-    subscribeSession: (listener: () => void) => () => void;
+    read: Pick<DiagramEditSessionReadAdapter, 'getActiveToolSnapshot' | 'subscribeActiveTool' | 'subscribeSession'> & { getMetadataFieldSnapshot: (field: 'preset' | 'type') => DiagramFlowPreset | DiagramType | null | undefined; subscribeMetadataField: (field: 'preset' | 'type', listener: () => void) => () => void };
 }
 
 export type DiagramFlowEdgeDrawing = Pick<DiagramEdgeDrawingService, 'activate'>;
@@ -37,9 +31,9 @@ interface DiagramFlowEdgeButtonProps {
 
 function useFlowPresetAvailability(session: DiagramFlowEdgeSession, preset: DiagramFlowPreset) {
     const subscribe = useCallback((listener: () => void) => {
-        const unsubscribePreset = session.subscribeMetadataField('preset', listener);
-        const unsubscribeType = session.subscribeMetadataField('type', listener);
-        const unsubscribeSession = session.subscribeSession(listener);
+        const unsubscribePreset = session.read.subscribeMetadataField('preset', listener);
+        const unsubscribeType = session.read.subscribeMetadataField('type', listener);
+        const unsubscribeSession = session.read.subscribeSession(listener);
 
         return () => {
             unsubscribePreset();
@@ -48,7 +42,7 @@ function useFlowPresetAvailability(session: DiagramFlowEdgeSession, preset: Diag
         };
     }, [session]);
     const getSnapshot = useCallback(
-        () => session.getMetadataFieldSnapshot('type') === 'flow' && session.getMetadataFieldSnapshot('preset') === preset,
+        () => session.read.getMetadataFieldSnapshot('type') === 'flow' && session.read.getMetadataFieldSnapshot('preset') === preset,
         [preset, session],
     );
 

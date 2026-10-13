@@ -145,7 +145,7 @@ describe('VerticalDiagramComparison', () => {
             height: geometry.getSurfaceFieldSnapshot('height'),
             width: geometry.getSurfaceFieldSnapshot('width'),
         }
-        const changeIdsBefore = session.getChangeIdsSnapshot()
+        const changeIdsBefore = session.read.getChangeIdsSnapshot()
 
         fireEvent.pointerDown(separator, { pointerId: 1 })
         fireEvent.pointerMove(separator, { clientX: 20, pointerId: 1 })
@@ -159,8 +159,8 @@ describe('VerticalDiagramComparison', () => {
 
         expect(separator).toHaveAttribute('aria-valuenow', '70')
         expect(onCurrentSelect).toHaveBeenCalledTimes(1)
-        expect(session.getChangeIdsSnapshot()).toBe(changeIdsBefore)
-        expect(session.getDirtySnapshot()).toBe(true)
+        expect(session.read.getChangeIdsSnapshot()).toBe(changeIdsBefore)
+        expect(session.read.getDirtySnapshot()).toBe(true)
         expect(within(next).getByRole('button', { name: 'Order intake' })).toBeInTheDocument()
         expect({
             height: geometry.getSurfaceFieldSnapshot('height'),

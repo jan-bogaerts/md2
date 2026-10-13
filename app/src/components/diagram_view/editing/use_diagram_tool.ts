@@ -2,18 +2,16 @@ import { useCallback, useSyncExternalStore } from 'react'
 import {
     diagramEditSessionService,
 } from '../../../services/diagrams/diagram_edit_session_service'
+import type { DiagramEditSessionReadAdapter } from '../../../services/diagrams/diagram_edit_session_read_adapter'
 import type {
     DiagramPersistentTool,
-    DiagramTransientGesture,
 } from '../../../services/diagrams/diagram_edit_types'
 export interface DiagramActiveToolStore {
-    getActiveToolSnapshot: () => DiagramPersistentTool
-    subscribeActiveTool: (listener: () => void) => () => void
+    read: Pick<DiagramEditSessionReadAdapter, 'getActiveToolSnapshot' | 'subscribeActiveTool'>
 }
 
 export interface DiagramTransientGestureStore {
-    getTransientGestureSnapshot: () => DiagramTransientGesture | null
-    subscribeTransientGesture: (listener: () => void) => () => void
+    read: Pick<DiagramEditSessionReadAdapter, 'getTransientGestureSnapshot' | 'subscribeTransientGesture'>
 }
 
 /** Subscribes either an active-tool reader or one tool button to its selected boolean. */
@@ -24,12 +22,12 @@ export function useActiveDiagramTool(
     tool?: DiagramPersistentTool,
 ) {
     const getSnapshot = useCallback(
-        () => tool ? service.getActiveToolSnapshot() === tool : service.getActiveToolSnapshot(),
+        () => tool ? service.read.getActiveToolSnapshot() === tool : service.read.getActiveToolSnapshot(),
         [service, tool],
     )
 
     return useSyncExternalStore(
-        service.subscribeActiveTool,
+        service.read.subscribeActiveTool,
         getSnapshot,
         getSnapshot,
     )
@@ -38,8 +36,8 @@ export function useActiveDiagramTool(
 /** Subscribes one leaf to temporary placement, edge, or move gesture state. */
 export function useDiagramTransientGesture(service: DiagramTransientGestureStore = diagramEditSessionService) {
     return useSyncExternalStore(
-        service.subscribeTransientGesture,
-        service.getTransientGestureSnapshot,
-        service.getTransientGestureSnapshot,
+        service.read.subscribeTransientGesture,
+        service.read.getTransientGestureSnapshot,
+        service.read.getTransientGestureSnapshot,
     )
 }

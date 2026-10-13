@@ -29,10 +29,10 @@ function isSingletonTarget(target: DiagramObjectDetailsTarget): target is Diagra
 
 function targetExists(target: DiagramObjectDetailsTarget | null, session: DiagramEditSessionService) {
     if (!target || isSingletonTarget(target)) return true
-    if (target.objectKind === 'node') return session.getNodeSnapshot(target.objectId) !== null
-    if (target.objectKind === 'edge') return session.getEdgeSnapshot(target.objectId) !== null
+    if (target.objectKind === 'node') return session.read.getNodeSnapshot(target.objectId) !== null
+    if (target.objectKind === 'edge') return session.read.getEdgeSnapshot(target.objectId) !== null
 
-    return session.getGroupSnapshot(target.objectId) !== null
+    return session.read.getGroupSnapshot(target.objectId) !== null
 }
 
 const SINGLETON_TITLES: Record<'legend' | 'meta', string> = { legend: 'Diagram legend', meta: 'Diagram metadata' }
@@ -43,9 +43,9 @@ export function DiagramObjectDetailsDialog({
 }: DiagramObjectDetailsDialogProps) {
     const target = useSyncExternalStore(details.subscribeTarget, details.getTargetSnapshot, details.getTargetSnapshot)
     const subscribeExists = useCallback((listener: () => void) => {
-        if (!target || isSingletonTarget(target)) return session.subscribeSession(listener)
-        const unsubscribeMembership = session.subscribeCollectionMembership(target.objectKind, listener)
-        const unsubscribeSession = session.subscribeSession(listener)
+        if (!target || isSingletonTarget(target)) return session.read.subscribeSession(listener)
+        const unsubscribeMembership = session.read.subscribeCollectionMembership(target.objectKind, listener)
+        const unsubscribeSession = session.read.subscribeSession(listener)
 
         return () => {
             unsubscribeMembership()

@@ -145,10 +145,10 @@ describe('TabbedDiagramComparison', () => {
         expect(panelForTab(newTab)).toBe(newPanel)
         expect(newScroller.scrollTop).toBe(47)
         expect(within(newPanel).getByRole('button', { name: 'Order intake' })).toBe(newNode)
-        expect(session.getLastSelectedCreationToolSnapshot()).toBe('node:component')
-        expect(session.getDirtySnapshot()).toBe(true)
+        expect(session.read.getLastSelectedCreationToolSnapshot()).toBe('node:component')
+        expect(session.read.getDirtySnapshot()).toBe(true)
         expect(viewService.getViewportScaleSnapshot()).toBe(0.5)
-        expect(session.getViewportScaleSnapshot()).toBe(1.5)
+        expect(session.read.getViewportScaleSnapshot()).toBe(1.5)
     })
 
     it('keeps tab layout and Current unchanged when a visible New leaf updates', () => {

@@ -141,8 +141,8 @@ describe('DiagramChangeReviewDialog', () => {
         expect(screen.getByRole('dialog', { name: 'Review diagram changes' })).toBeInTheDocument()
         finishSave()
         await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Review diagram changes' })).not.toBeInTheDocument())
-        expect(session.getSavedRecordSnapshot()).toBe(savedRecord)
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getSavedRecordSnapshot()).toBe(savedRecord)
+        expect(session.read.getDirtySnapshot()).toBe(false)
     })
 
     it('reports save failure while retaining review and edits', async () => {
@@ -167,8 +167,8 @@ describe('DiagramChangeReviewDialog', () => {
             { fallbackMessage: 'Edited diagram could not be saved' },
         ))
         expect(screen.getByRole('dialog', { name: 'Review diagram changes' })).toBeInTheDocument()
-        expect(session.getDirtySnapshot()).toBe(true)
-        expect(session.getSavedRecordSnapshot()).toBeNull()
+        expect(session.read.getDirtySnapshot()).toBe(true)
+        expect(session.read.getSavedRecordSnapshot()).toBeNull()
     })
 
     it('identifies affected objects without modifying editable data', () => {
@@ -176,7 +176,7 @@ describe('DiagramChangeReviewDialog', () => {
         session.removeGroupMember('backend', 'orders')
         const replace = vi.fn(() => true)
         const review = new DiagramChangeReviewService(session, { replace })
-        const editableBefore = JSON.stringify(session.getEditableDiagram())
+        const editableBefore = JSON.stringify(session.read.getEditableDiagram())
         review.open()
 
         render(<DiagramChangeReviewDialog review={review} session={session} />)
@@ -186,7 +186,7 @@ describe('DiagramChangeReviewDialog', () => {
             { objectId: 'orders', objectKind: 'node' },
             { objectId: 'backend', objectKind: 'group' },
         ])
-        expect(JSON.stringify(session.getEditableDiagram())).toBe(editableBefore)
+        expect(JSON.stringify(session.read.getEditableDiagram())).toBe(editableBefore)
     })
 
     it('updates one row while retaining explicitly generated report text', () => {
@@ -231,7 +231,7 @@ describe('DiagramChangeReviewDialog', () => {
         await waitFor(() => (
             expect(screen.queryByRole('dialog', { name: 'Review diagram changes' })).not.toBeInTheDocument()
         ))
-        expect(session.getNodeFieldSnapshot('orders', 'label')).toBe('Purchases')
-        expect(session.getChangeIdsSnapshot()).toHaveLength(1)
+        expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('Purchases')
+        expect(session.read.getChangeIdsSnapshot()).toHaveLength(1)
     })
 })

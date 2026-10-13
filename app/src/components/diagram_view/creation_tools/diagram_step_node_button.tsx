@@ -29,9 +29,9 @@ interface DiagramStepNodeButtonProps {
 
 function useFlowchartAvailability(session: DiagramStepNodeSession) {
     const subscribe = useCallback((listener: () => void) => {
-        const unsubscribePreset = session.subscribeMetadataField('preset', listener);
-        const unsubscribeType = session.subscribeMetadataField('type', listener);
-        const unsubscribeSession = session.subscribeSession(listener);
+        const unsubscribePreset = session.read.subscribeMetadataField('preset', listener);
+        const unsubscribeType = session.read.subscribeMetadataField('type', listener);
+        const unsubscribeSession = session.read.subscribeSession(listener);
 
         return () => {
             unsubscribePreset();
@@ -40,7 +40,7 @@ function useFlowchartAvailability(session: DiagramStepNodeSession) {
         };
     }, [session]);
     const getSnapshot = useCallback(
-        () => session.getMetadataFieldSnapshot('type') === 'flow' && session.getMetadataFieldSnapshot('preset') === 'flowchart',
+        () => session.read.getMetadataFieldSnapshot('type') === 'flow' && session.read.getMetadataFieldSnapshot('preset') === 'flowchart',
         [session],
     );
 

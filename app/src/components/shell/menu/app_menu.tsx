@@ -260,9 +260,9 @@ export function AppMenu(props: AppMenuProps) {
     const handleCreateDiagram = async (choice: EmptyDiagramChoice) => {
         setIsCreatingDiagram(true)
         try {
-            if (diagramEditSessionService.getDirtySnapshot()) {
+            if (diagramEditSessionService.read.getDirtySnapshot()) {
                 await diagramSaveService.save()
-                if (diagramEditSessionService.getDirtySnapshot()) throw new Error('Diagram changed while saving; retry creation')
+                if (diagramEditSessionService.read.getDirtySnapshot()) throw new Error('Diagram changed while saving; retry creation')
             }
             await diagramViewService.open()
             const record = await diagramViewService.createEmptyDiagram(choice)

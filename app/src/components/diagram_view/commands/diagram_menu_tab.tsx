@@ -33,9 +33,9 @@ export function DiagramMenuTab({
     viewService?: DiagramViewService;
 }) {
     const editSession = useSyncExternalStore(
-        session.subscribeSession,
-        session.getSessionSnapshot,
-        session.getSessionSnapshot,
+        session.read.subscribeSession,
+        session.read.getSessionSnapshot,
+        session.read.getSessionSnapshot,
     );
 
     return (

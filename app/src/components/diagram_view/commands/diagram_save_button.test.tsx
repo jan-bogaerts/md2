@@ -44,6 +44,6 @@ describe('DiagramSaveButton', () => {
 
         expect(persistence.flushQueuedDiagrams).toHaveBeenCalledOnce()
         expect(screen.getByRole('button', { name: 'Saved' })).toBeDisabled()
-        expect(session.getSavedRecordSnapshot()).toEqual(savedRecord)
+        expect(session.read.getSavedRecordSnapshot()).toEqual(savedRecord)
     })
 })

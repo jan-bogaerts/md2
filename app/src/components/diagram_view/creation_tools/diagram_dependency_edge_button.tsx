@@ -1,5 +1,6 @@
+import type { DiagramEditSessionReadAdapter } from '../../../services/diagrams/diagram_edit_session_read_adapter';
 import { useCallback, useSyncExternalStore } from 'react';
-import type { DiagramEdgeKind, DiagramType } from '../../../services/diagrams/diagram_data';
+import type { DiagramEdgeKind, DiagramFlowPreset, DiagramType } from '../../../services/diagrams/diagram_data';
 import {
     diagramEdgeDrawingService,
     type DiagramEdgeDrawingService,
@@ -7,18 +8,11 @@ import {
 import {
     diagramEditSessionService,
 } from '../../../services/diagrams/diagram_edit_session_service';
-import type {
-    DiagramPersistentTool,
-} from '../../../services/diagrams/diagram_edit_types';
 import { DiagramToolboxButton } from './diagram_toolbox_button';
 import { useActiveDiagramTool } from '../editing/use_diagram_tool';
 
 export interface DiagramDependencyEdgeSession {
-    getActiveToolSnapshot: () => DiagramPersistentTool;
-    getMetadataFieldSnapshot: (field: 'type') => DiagramType | null | undefined;
-    subscribeActiveTool: (listener: () => void) => () => void;
-    subscribeMetadataField: (field: 'type', listener: () => void) => () => void;
-    subscribeSession: (listener: () => void) => () => void;
+    read: Pick<DiagramEditSessionReadAdapter, 'getActiveToolSnapshot' | 'subscribeActiveTool' | 'subscribeSession'> & { getMetadataFieldSnapshot: (field: 'preset' | 'type') => DiagramFlowPreset | DiagramType | null | undefined; subscribeMetadataField: (field: 'type', listener: () => void) => () => void };
 }
 
 export type DiagramDependencyEdgeDrawing = Pick<DiagramEdgeDrawingService, 'activate'>;
@@ -32,15 +26,15 @@ interface DiagramDependencyEdgeButtonProps {
 
 function useDiagramType(session: DiagramDependencyEdgeSession) {
     const subscribe = useCallback((listener: () => void) => {
-        const unsubscribeType = session.subscribeMetadataField('type', listener);
-        const unsubscribeSession = session.subscribeSession(listener);
+        const unsubscribeType = session.read.subscribeMetadataField('type', listener);
+        const unsubscribeSession = session.read.subscribeSession(listener);
 
         return () => {
             unsubscribeType();
             unsubscribeSession();
         };
     }, [session]);
-    const getSnapshot = useCallback(() => session.getMetadataFieldSnapshot('type'), [session]);
+    const getSnapshot = useCallback(() => session.read.getMetadataFieldSnapshot('type'), [session]);
 
     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

@@ -207,11 +207,11 @@ describe('editable diagram subscriptions', () => {
         const collectionCounter = vi.fn()
         const leafCounter = vi.fn()
         render(<ChangeCollection collectionCounter={collectionCounter} leafCounter={leafCounter} service={service} />)
-        const changeIds = service.getChangeIdsSnapshot()
+        const changeIds = service.read.getChangeIdsSnapshot()
 
         act(() => service.setNodeField('orders', 'x', 8))
 
-        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(service.read.getChangeIdsSnapshot()).toBe(changeIds)
         expect(collectionCounter).toHaveBeenCalledOnce()
         expect(leafCounter).toHaveBeenCalledTimes(2)
         expect(leafCounter).toHaveBeenLastCalledWith(8)
@@ -264,12 +264,12 @@ describe('editable diagram subscriptions', () => {
                 service={service}
             />,
         )
-        const membership = service.getGroupNodeIdsSnapshot('backend')
+        const membership = service.read.getGroupNodeIdsSnapshot('backend')
 
         act(() => { service.setGroupField('backend', 'x', 8) })
 
         expect(geometryCounter).toHaveBeenCalledTimes(2)
         expect(membershipCounter).toHaveBeenCalledOnce()
-        expect(service.getGroupNodeIdsSnapshot('backend')).toBe(membership)
+        expect(service.read.getGroupNodeIdsSnapshot('backend')).toBe(membership)
     })
 })

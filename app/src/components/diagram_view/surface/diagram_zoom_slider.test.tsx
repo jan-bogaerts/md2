@@ -38,7 +38,7 @@ afterEach(() => {
 describe('DiagramZoomSlider', () => {
     it('sets direct values and exposes identity, bounds, and percentage text', () => {
         const store = new ZoomStoreStub()
-        render(<DiagramZoomSlider diagramIdentity="Current" store={store} />)
+        render(<DiagramZoomSlider diagramIdentity="Current" reader={store} store={store} />)
         const slider = screen.getByRole('slider', { name: 'Current diagram zoom' })
 
         expect(slider).toHaveAttribute('aria-valuemin', String(MINIMUM_DIAGRAM_ZOOM))
@@ -56,7 +56,7 @@ describe('DiagramZoomSlider', () => {
     it('uses configured steps for keyboard input and respects both bounds', async () => {
         const store = new ZoomStoreStub()
         const user = userEvent.setup()
-        render(<DiagramZoomSlider diagramIdentity="New" store={store} />)
+        render(<DiagramZoomSlider diagramIdentity="New" reader={store} store={store} />)
         const slider = screen.getByRole('slider', { name: 'New diagram zoom' })
 
         slider.focus()
@@ -83,8 +83,8 @@ describe('DiagramZoomSlider', () => {
         })))
         const store = new ZoomStoreStub()
         render(<>
-            <DiagramZoomSlider diagramIdentity="Current" store={store} />
-            <DiagramZoomSlider diagramIdentity="New" store={store} />
+            <DiagramZoomSlider diagramIdentity="Current" reader={store} store={store} />
+            <DiagramZoomSlider diagramIdentity="New" reader={store} store={store} />
         </>)
 
         expect(screen.queryByRole('slider', { name: 'Current diagram zoom' })).toBeNull()

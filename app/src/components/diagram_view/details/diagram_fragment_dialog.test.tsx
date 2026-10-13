@@ -7,6 +7,7 @@ import { DiagramFragmentDialogService } from './diagram_fragment_dialog_service'
 afterEach(cleanup)
 
 class FragmentDialogSessionStub extends EventTarget {
+    readonly read = this
     readonly createFragment = vi.fn(() => 'fragment-new')
     readonly removeFragment = vi.fn(() => true)
     readonly updateFragment = vi.fn(() => true)

@@ -8,6 +8,7 @@ import {
 } from './diagram_architecture_edge_button';
 
 class ArchitectureEdgeSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool = 'select';
     private readonly diagramType: DiagramType;
 
@@ -56,7 +57,7 @@ describe('DiagramArchitectureEdgeButton', () => {
         fireEvent.click(button);
 
         expect(drawing.activate).toHaveBeenCalledWith({ kind });
-        expect(session.subscribeMetadataField).toHaveBeenCalledWith('type', expect.any(Function));
+        expect(session.read.subscribeMetadataField).toHaveBeenCalledWith('type', expect.any(Function));
         act(() => { session.setActiveTool(`edge:${kind}`); });
         expect(button).toHaveAttribute('aria-pressed', 'true');
     });

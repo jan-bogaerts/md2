@@ -2,7 +2,6 @@ import { useCallback, useRef, type PointerEvent, type RefObject } from 'react'
 import { MAXIMUM_DIAGRAM_ZOOM, MINIMUM_DIAGRAM_ZOOM } from '../../../services/diagrams/diagram_zoom'
 
 interface ZoomStore {
-    getViewportScaleSnapshot: () => number
     setViewportScale: (scale: number) => boolean
 }
 
@@ -40,6 +39,7 @@ function distance(first: TouchPoint, second: TouchPoint) {
 export function useDiagramPinchZoom(
     scrollerRef: RefObject<HTMLElement | null>,
     store: ZoomStore,
+    getViewportScaleSnapshot: () => number,
     cancelActiveGesture: () => void,
 ) {
     const touchPointsRef = useRef(new Map<number, TouchPoint>())
@@ -65,7 +65,7 @@ export function useDiagramPinchZoom(
         const second = touchPoints.get(secondPointerId) as TouchPoint
         const center = midpoint(first, second)
         const bounds = scroller.getBoundingClientRect()
-        const initialScale = store.getViewportScaleSnapshot()
+        const initialScale = getViewportScaleSnapshot()
         const anchor = {
             clientX: center.x,
             clientY: center.y,
@@ -87,7 +87,7 @@ export function useDiagramPinchZoom(
         scroller.setPointerCapture?.(secondPointerId)
         event.preventDefault()
         event.stopPropagation()
-    }, [cancelActiveGesture, scrollerRef, store])
+    }, [cancelActiveGesture, scrollerRef, getViewportScaleSnapshot])
 
     const handlePointerMoveCapture = useCallback((event: PointerEvent<HTMLElement>) => {
         const touchPoints = touchPointsRef.current

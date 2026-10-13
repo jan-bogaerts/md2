@@ -4,7 +4,6 @@ import { dialogService } from '../dialog_service'
 import { register } from '../service_injector'
 import {
     requireDiagramString,
-    type DiagramConnectionPoint,
     type DiagramConnectionKindFormatting,
     type DiagramData,
     type DiagramEdge,
@@ -15,7 +14,6 @@ import {
     type DiagramNode,
     type DiagramEdgeKind,
     type DiagramRole,
-    type DiagramFormatting,
     type DiagramNodeRoleFormatting,
     type DiagramSequenceFragment,
     type DiagramSequenceFragmentRegion,
@@ -30,7 +28,7 @@ import {
     withNodeRoleFormatting,
 } from './diagram_formatting'
 import type { DiagramRecord } from './diagram_index'
-import { CHANGE_IDS_CHANGED_EVENT, DiagramChangeRegistry } from './diagram_change_registry'
+import { DiagramChangeRegistry } from './diagram_change_registry'
 import { DiagramEditContext } from './diagram_edit_context'
 import { collectionMembershipEvent, fragmentRegionMembershipEvent, groupMembershipEvent, type PendingMembershipEvent } from './diagram_edit_membership_events'
 import type { DiagramEditErrorReporter } from './diagram_edit_operation_validation'
@@ -50,9 +48,7 @@ import { planDiagramRemoval } from './diagram_removal_plan'
 import { diagramViewService, type DiagramViewSourceSnapshot } from './diagram_view_service'
 import { DEFAULT_DIAGRAM_ZOOM } from './diagram_zoom'
 import type {
-    DeepReadonly,
     DiagramChange,
-    DiagramChangeField,
     DiagramCollectionKind,
     DiagramConnectionEndpoint,
     DiagramCreationTool,
@@ -67,7 +63,6 @@ import type {
     MutableDiagramEdgeField,
     MutableDiagramEntityField,
     MutableDiagramGroupField,
-    MutableDiagramLegendEntryField,
     MutableDiagramMetaField,
     MutableDiagramNodeField,
     NewDiagramEdge,
@@ -76,30 +71,23 @@ import type {
     NewDiagramNode,
     NewDiagramSequenceFragment,
     OriginalDiagramSnapshot,
-    ReadonlyDiagramData,
 } from './diagram_edit_types'
 import {
     diagramChangeFieldChangedEvent,
-    diagramCollectionMembershipChangedEvent,
-    diagramCollectionMembershipWillChangeEvent,
     diagramConnectionPointFieldChangedEvent,
     diagramEntityFieldChangedEvent,
-    diagramEntityFieldMembershipChangedEvent,
     diagramFormattingCategoryChangedEvent,
     diagramFormattingScaleChangedEvent,
-    diagramFragmentRegionFieldChangedEvent,
-    diagramFragmentRegionMembershipChangedEvent,
-    diagramGroupMembershipChangedEvent,
     diagramLegendEntryFieldChangedEvent,
     diagramLegendMembershipChangedEvent,
     diagramMetadataFieldChangedEvent,
     diagramObjectFieldChangedEvent,
 } from './diagram_edit_events'
 import { diagramLegendEntryKey } from './diagram_legend_entry_key'
+import { DiagramEditSessionReadAdapter, type DiagramEditReadState } from './diagram_edit_session_read_adapter'
 import { derivedDiagramLegendEntries } from './diagram_derived_legend'
 import { diagramNodeKindLabel } from './diagram_creation_tool_labels'
 const DIRTY_CHANGED_EVENT = 'dirtyChanged'
-const MODEL_MUTATION_EVENT = 'diagram:modelMutation'
 const ORIGINAL_DIAGRAM_CHANGED_EVENT = 'originalDiagramChanged'
 const SESSION_CHANGED_EVENT = 'sessionChanged'
 const ACTIVE_TOOL_CHANGED_EVENT = 'activeToolChanged'
@@ -125,10 +113,6 @@ function canonicalLegendLabel(entry: NewDiagramLegendEntry) {
 
 function indexById<Item extends { id: string }>(items: Item[]) {
     return new Map(items.map((item) => [item.id, item]))
-}
-
-function asDeepReadonly<Value>(value: Value) {
-    return value as DeepReadonly<Value>
 }
 
 function frozenIds<Item extends { id: string }>(items: readonly Item[]) {
@@ -170,6 +154,35 @@ export class DiagramEditSessionService extends EventTarget {
     private validation: DiagramEditValidation | null = null
     private viewportScale = DEFAULT_DIAGRAM_ZOOM
 
+    readonly read = new DiagramEditSessionReadAdapter(this, () => this.getReadState())
+
+    private getReadState(): DiagramEditReadState {
+        return {
+            activeTool: this.activeTool,
+            changeRegistry: this.changeRegistry,
+            dirty: this.dirty,
+            edgeIds: this.edgeIds,
+            edgesById: this.edgesById,
+            editableDiagram: this.editableDiagram,
+            entityFieldIndexesByNodeId: this.entityFieldIndexesByNodeId,
+            fragmentIds: this.fragmentIds,
+            fragmentsById: this.fragmentsById,
+            groupIds: this.groupIds,
+            groupsById: this.groupsById,
+            groupNodeIdsById: this.groupNodeIdsById,
+            lastSelectedCreationTool: this.lastSelectedCreationTool,
+            legendEntryKeys: this.legendEntryKeys,
+            nodeIds: this.nodeIds,
+            nodesById: this.nodesById,
+            originalDiagram: this.originalDiagram,
+            savedRecord: this.savedRecord,
+            selectedLegendEntryKey: this.selectedLegendEntryKey,
+            session: this.session,
+            transientGesture: this.transientGesture,
+            viewportScale: this.viewportScale,
+        }
+    }
+
     constructor(
         sourceService: DiagramSourceService = diagramViewService,
         createId: () => string = generateUuid,
@@ -196,64 +209,6 @@ export class DiagramEditSessionService extends EventTarget {
         })
     }
 
-    getDirtySnapshot = () => this.dirty
-
-    getActiveToolSnapshot = () => this.activeTool
-
-    getLastSelectedCreationToolSnapshot = () => this.lastSelectedCreationTool
-
-    getTransientGestureSnapshot = () => this.transientGesture
-
-    getViewportScaleSnapshot = () => this.viewportScale
-
-    getFormattingSnapshot = (): DeepReadonly<DiagramFormatting> | undefined => this.editableDiagram?.formatting
-
-    getFormattingScaleSnapshot = (field: DiagramScaleField) => diagramScale(this.editableDiagram?.formatting, field)
-
-    getNodeRoleFormattingSnapshot = (role: DiagramRole) => this.editableDiagram?.formatting?.nodeRoles?.[role]
-
-    getConnectionKindFormattingSnapshot = (kind: DiagramEdgeKind) => this.editableDiagram?.formatting?.connectionKinds?.[kind]
-
-    getChangeIdsSnapshot = () => this.changeRegistry.ids
-
-    /** Complete change read boundary for review generation; React must use granular change-field snapshots. */
-    getChange = (changeId: string): DeepReadonly<DiagramChange> | null => {
-        const change = this.changeRegistry.get(changeId)
-
-        return change ? asDeepReadonly(change) : null
-    }
-
-    getChangeFieldSnapshot = <Field extends DiagramChangeField>(
-        changeId: string,
-        field: Field,
-    ): DeepReadonly<DiagramChange[Field]> | null => {
-        const change = this.changeRegistry.get(changeId)
-
-        return change ? asDeepReadonly(change[field]) : null
-    }
-
-    /** Complete read boundary for persistence and agent processing; React must use granular snapshots. */
-    getEditableDiagram = (): ReadonlyDiagramData | null => this.editableDiagram
-
-    getOriginalDiagramSnapshot = () => this.originalDiagram
-
-    getSavedRecordSnapshot = () => this.savedRecord
-
-    getSessionSnapshot = () => this.session
-
-    getEdgeIdsSnapshot = () => this.edgeIds
-
-    getFragmentIdsSnapshot = () => this.fragmentIds
-
-    getGroupIdsSnapshot = () => this.groupIds
-
-    getNodeIdsSnapshot = () => this.nodeIds
-
-    /** Ordered legend membership view; entries themselves are read one field at a time. */
-    getLegendEntryKeysSnapshot = () => this.legendEntryKeys
-
-    getSelectedLegendEntryKeySnapshot = () => this.selectedLegendEntryKey
-
     selectLegendEntry(entryKey: string) {
         const diagram = this.requireEditableDiagram()
         const availableKeys = diagram.meta.legend
@@ -267,203 +222,6 @@ export class DiagramEditSessionService extends EventTarget {
 
         return true
     }
-
-    getHasExplicitLegendSnapshot = () => this.editableDiagram?.meta.legend !== undefined
-
-    getLegendEntryFieldSnapshot = <Field extends 'kind' | 'label' | 'nodeKind' | 'role'>(
-        entryKey: string,
-        field: Field,
-    ): string | null => {
-        const entry = this.findLegendEntry(entryKey)
-        if (!entry) return null
-
-        return (entry as Record<string, string | undefined>)[field] ?? null
-    }
-
-    getOriginalLegendEntryFieldSnapshot = <Field extends 'kind' | 'label' | 'nodeKind' | 'role'>(
-        entryKey: string,
-        field: Field,
-    ): string | null => {
-        const entry = this.findOriginalLegendEntry(entryKey)
-        if (!entry) return null
-
-        return (entry as Record<string, string | undefined>)[field] ?? null
-    }
-
-    getGroupNodeIdsSnapshot = (groupId: string): readonly string[] | null => this.groupNodeIdsById.get(groupId) ?? null
-
-    getEntityFieldIndexesSnapshot = (nodeId: string): readonly number[] | null => (
-        this.entityFieldIndexesByNodeId.get(nodeId) ?? null
-    )
-
-    getMetadataFieldSnapshot = <Field extends keyof DiagramMeta>(field: Field): DeepReadonly<DiagramMeta[Field]> | null => (
-        this.editableDiagram ? asDeepReadonly(this.editableDiagram.meta[field]) : null
-    )
-
-    getNodeSnapshot = (nodeId: string): DeepReadonly<DiagramNode> | null => this.findNode(nodeId)
-
-    getNodeFieldSnapshot = <Field extends keyof DiagramNode>(nodeId: string, field: Field): DeepReadonly<DiagramNode[Field]> | null => {
-        const node = this.findNode(nodeId)
-
-        return node ? asDeepReadonly(node[field]) : null
-    }
-
-    getEdgeSnapshot = (edgeId: string): DeepReadonly<DiagramEdge> | null => this.findEdge(edgeId)
-
-    getEdgeFieldSnapshot = <Field extends keyof DiagramEdge>(edgeId: string, field: Field): DeepReadonly<DiagramEdge[Field]> | null => {
-        const edge = this.findEdge(edgeId)
-
-        return edge ? asDeepReadonly(edge[field]) : null
-    }
-
-    getGroupSnapshot = (groupId: string): DeepReadonly<DiagramGroup> | null => this.findGroup(groupId)
-
-    getGroupFieldSnapshot = <Field extends keyof DiagramGroup>(groupId: string, field: Field): DeepReadonly<DiagramGroup[Field]> | null => {
-        const group = this.findGroup(groupId)
-
-        return group ? asDeepReadonly(group[field]) : null
-    }
-
-    getFragmentSnapshot = (fragmentId: string): DeepReadonly<DiagramSequenceFragment> | null => this.findFragment(fragmentId)
-
-    getFragmentFieldSnapshot = <Field extends keyof DiagramSequenceFragment>(
-        fragmentId: string,
-        field: Field,
-    ): DeepReadonly<DiagramSequenceFragment[Field]> | null => {
-        const fragment = this.findFragment(fragmentId)
-
-        return fragment ? asDeepReadonly(fragment[field]) : null
-    }
-
-    getEntityFieldSnapshot = (nodeId: string, fieldIndex: number): DeepReadonly<DiagramEntityField> | null => (
-        this.findNode(nodeId)?.fields?.[fieldIndex] ?? null
-    )
-
-    getEntityFieldValueSnapshot = <Field extends keyof DiagramEntityField>(
-        nodeId: string,
-        fieldIndex: number,
-        field: Field,
-    ): DeepReadonly<DiagramEntityField[Field]> | null => {
-        const entityField = this.findNode(nodeId)?.fields?.[fieldIndex]
-
-        return entityField ? asDeepReadonly(entityField[field]) : null
-    }
-
-    getConnectionPointFieldSnapshot = <Field extends keyof DiagramConnectionPoint>(
-        edgeId: string,
-        endpoint: DiagramConnectionEndpoint,
-        field: Field,
-    ): DeepReadonly<DiagramConnectionPoint[Field]> | null => {
-        const connectionPoint = this.findEdge(edgeId)?.[endpoint]
-
-        return connectionPoint ? asDeepReadonly(connectionPoint[field]) : null
-    }
-
-    subscribeDirty = (listener: () => void) => this.subscribe(DIRTY_CHANGED_EVENT, listener)
-
-    /** Signals a committed model edit so persistence can queue the current session data. */
-    subscribeModelMutation = (listener: () => void) => this.subscribe(MODEL_MUTATION_EVENT, listener)
-
-    subscribeActiveTool = (listener: () => void) => this.subscribe(ACTIVE_TOOL_CHANGED_EVENT, listener)
-
-    subscribeLastSelectedCreationTool = (listener: () => void) => (
-        this.subscribe(LAST_SELECTED_CREATION_TOOL_CHANGED_EVENT, listener)
-    )
-
-    subscribeTransientGesture = (listener: () => void) => this.subscribe(TRANSIENT_GESTURE_CHANGED_EVENT, listener)
-
-    subscribeViewportScale = (listener: () => void) => this.subscribe(VIEWPORT_SCALE_CHANGED_EVENT, listener)
-
-    subscribeFormattingScale = (field: DiagramScaleField, listener: () => void) => (
-        this.subscribe(diagramFormattingScaleChangedEvent(field), listener)
-    )
-
-    subscribeNodeRoleFormatting = (role: DiagramRole, listener: () => void) => (
-        this.subscribe(diagramFormattingCategoryChangedEvent('nodeRole', role), listener)
-    )
-
-    subscribeConnectionKindFormatting = (kind: DiagramEdgeKind, listener: () => void) => (
-        this.subscribe(diagramFormattingCategoryChangedEvent('connectionKind', kind), listener)
-    )
-
-    subscribeChangeIds = (listener: () => void) => this.subscribe(CHANGE_IDS_CHANGED_EVENT, listener)
-
-    subscribeChangeField = (changeId: string, field: DiagramChangeField, listener: () => void) => (
-        this.subscribe(diagramChangeFieldChangedEvent(changeId, field), listener)
-    )
-
-    subscribeOriginalDiagram = (listener: () => void) => this.subscribe(ORIGINAL_DIAGRAM_CHANGED_EVENT, listener)
-
-    subscribeSession = (listener: () => void) => this.subscribe(SESSION_CHANGED_EVENT, listener)
-
-    subscribeMetadataField = (field: keyof DiagramMeta, listener: () => void) => (
-        this.subscribe(diagramMetadataFieldChangedEvent(field), listener)
-    )
-
-    subscribeNodeField = (nodeId: string, field: keyof DiagramNode, listener: () => void) => (
-        this.subscribe(diagramObjectFieldChangedEvent('node', nodeId, field), listener)
-    )
-
-    subscribeEdgeField = (edgeId: string, field: keyof DiagramEdge, listener: () => void) => (
-        this.subscribe(diagramObjectFieldChangedEvent('edge', edgeId, field), listener)
-    )
-
-    subscribeGroupField = (groupId: string, field: keyof DiagramGroup, listener: () => void) => (
-        this.subscribe(diagramObjectFieldChangedEvent('group', groupId, field), listener)
-    )
-
-    subscribeFragmentField = (fragmentId: string, field: keyof DiagramSequenceFragment, listener: () => void) => (
-        this.subscribe(diagramObjectFieldChangedEvent('fragment', fragmentId, field), listener)
-    )
-
-    subscribeFragmentRegionField = (
-        fragmentId: string,
-        regionIndex: number,
-        field: keyof DiagramSequenceFragmentRegion,
-        listener: () => void,
-    ) => this.subscribe(diagramFragmentRegionFieldChangedEvent(fragmentId, regionIndex, field), listener)
-
-    subscribeEntityField = (
-        nodeId: string,
-        fieldIndex: number,
-        field: keyof DiagramEntityField,
-        listener: () => void,
-    ) => this.subscribe(diagramEntityFieldChangedEvent(nodeId, fieldIndex, field), listener)
-
-    subscribeEntityFieldMembership = (nodeId: string, listener: () => void) => (
-        this.subscribe(diagramEntityFieldMembershipChangedEvent(nodeId), listener)
-    )
-
-    subscribeConnectionPointField = (
-        edgeId: string,
-        endpoint: DiagramConnectionEndpoint,
-        field: keyof DiagramConnectionPoint,
-        listener: () => void,
-    ) => this.subscribe(diagramConnectionPointFieldChangedEvent(edgeId, endpoint, field), listener)
-
-    subscribeLegendMembership = (listener: () => void) => this.subscribe(diagramLegendMembershipChangedEvent(), listener)
-
-    subscribeLegendSelection = (listener: () => void) => this.subscribe(LEGEND_SELECTION_CHANGED_EVENT, listener)
-
-    subscribeLegendEntryField = (entryKey: string, field: MutableDiagramLegendEntryField, listener: () => void) => (
-        this.subscribe(diagramLegendEntryFieldChangedEvent(entryKey, field), listener)
-    )
-
-    subscribeCollectionMembership = (objectKind: DiagramCollectionKind, listener: () => void) => (
-        this.subscribe(diagramCollectionMembershipChangedEvent(objectKind), listener)
-    )
-
-    subscribeCollectionMembershipWillChange = (objectKind: DiagramCollectionKind, listener: EventListener) => (
-        this.subscribe(diagramCollectionMembershipWillChangeEvent(objectKind), listener)
-    )
-
-    subscribeGroupMembership = (groupId: string, listener: () => void) => (
-        this.subscribe(diagramGroupMembershipChangedEvent(groupId), listener)
-    )
-
-    subscribeFragmentRegionMembership = (fragmentId: string, regionIndex: number, listener: () => void) => (
-        this.subscribe(diagramFragmentRegionMembershipChangedEvent(fragmentId, regionIndex), listener)
-    )
 
     bindProject(project: ProjectReference) {
         const projectKey = `${project.id}:${project.branch}`
@@ -1392,10 +1150,6 @@ export class DiagramEditSessionService extends EventTarget {
         return this.editableDiagram?.meta.legend?.find((entry) => diagramLegendEntryKey(entry) === entryKey) ?? null
     }
 
-    private findOriginalLegendEntry(entryKey: string) {
-        return this.originalDiagram?.diagram.meta.legend?.find((entry) => diagramLegendEntryKey(entry) === entryKey) ?? null
-    }
-
     private findBaselineLegendEntry(entryKey: string) {
         return this.changeRegistry.baseline?.meta.legend?.find((entry) => diagramLegendEntryKey(entry) === entryKey) ?? null
     }
@@ -1666,11 +1420,12 @@ export class DiagramEditSessionService extends EventTarget {
         this.dispatchEvent(new Event(VIEWPORT_SCALE_CHANGED_EVENT))
     }
 
-    private subscribe(eventType: string, listener: EventListener) {
-        this.addEventListener(eventType, listener)
 
-        return () => this.removeEventListener(eventType, listener)
-    }
 }
 
 export const diagramEditSessionService = register('diagramEditSessionService', new DiagramEditSessionService())
+
+export type DiagramEditSessionAccess<
+    ReadKeys extends keyof DiagramEditSessionReadAdapter,
+    WriteKeys extends keyof DiagramEditSessionService = never,
+> = { read: Pick<DiagramEditSessionReadAdapter, ReadKeys> } & Pick<DiagramEditSessionService, WriteKeys>

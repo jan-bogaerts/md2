@@ -90,11 +90,11 @@ describe('DiagramComparison', () => {
 
         fireEvent.change(screen.getByRole('slider', { name: 'Current diagram zoom' }), { target: { value: '2' } })
         expect(viewService.getViewportScaleSnapshot()).toBe(2)
-        expect(session.getViewportScaleSnapshot()).toBe(1)
+        expect(session.read.getViewportScaleSnapshot()).toBe(1)
 
         fireEvent.change(screen.getByRole('slider', { name: 'New diagram zoom' }), { target: { value: '0' } })
         expect(viewService.getViewportScaleSnapshot()).toBe(2)
-        expect(session.getViewportScaleSnapshot()).toBe(0.05)
+        expect(session.read.getViewportScaleSnapshot()).toBe(0.05)
     })
 
     it('keeps Current and New Ctrl-wheel scales independent', () => {
@@ -112,11 +112,11 @@ describe('DiagramComparison', () => {
 
         dispatchCtrlWheel(screen.getByLabelText('Current diagram scroller'), -1)
         expect(viewService.getViewportScaleSnapshot()).toBe(1.05)
-        expect(session.getViewportScaleSnapshot()).toBe(1)
+        expect(session.read.getViewportScaleSnapshot()).toBe(1)
 
         dispatchCtrlWheel(screen.getByLabelText('New diagram scroller'), 1)
         expect(viewService.getViewportScaleSnapshot()).toBe(1.05)
-        expect(session.getViewportScaleSnapshot()).toBeCloseTo(0.95)
+        expect(session.read.getViewportScaleSnapshot()).toBeCloseTo(0.95)
     })
 
     it('labels Current and New and updates only New after an accepted edit', () => {
@@ -227,7 +227,7 @@ describe('DiagramComparison', () => {
             height: geometry.getSurfaceFieldSnapshot('height'),
             width: geometry.getSurfaceFieldSnapshot('width'),
         }
-        const changeIdsBefore = session.getChangeIdsSnapshot()
+        const changeIdsBefore = session.read.getChangeIdsSnapshot()
 
         fireEvent.pointerDown(separator, { pointerId: 1 })
         fireEvent.pointerMove(separator, { clientY: 20, pointerId: 1 })
@@ -240,8 +240,8 @@ describe('DiagramComparison', () => {
         fireEvent.pointerUp(separator, { pointerId: 1 })
 
         expect(separator).toHaveAttribute('aria-valuenow', '80')
-        expect(session.getChangeIdsSnapshot()).toBe(changeIdsBefore)
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getChangeIdsSnapshot()).toBe(changeIdsBefore)
+        expect(session.read.getDirtySnapshot()).toBe(false)
         expect({
             height: geometry.getSurfaceFieldSnapshot('height'),
             width: geometry.getSurfaceFieldSnapshot('width'),
@@ -302,7 +302,7 @@ describe('DiagramComparison', () => {
         fireEvent.pointerMove(scroller, { clientX: 116, clientY: 100, pointerId: 4 })
         fireEvent.pointerUp(scroller, { pointerId: 4 })
 
-        expect(session.getNodeSnapshot('orders')?.x).toBe((startX ?? 0) + 16)
+        expect(session.read.getNodeSnapshot('orders')?.x).toBe((startX ?? 0) + 16)
         expect(store.getAttribute('style')).toBe(storeStyle)
         expect(current.innerHTML).toBe(currentMarkup)
         expect(screen.queryByRole('dialog', { name: 'Diagram tools' })).not.toBeInTheDocument()

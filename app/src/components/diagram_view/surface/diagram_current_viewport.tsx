@@ -60,14 +60,14 @@ export function DiagramCurrentViewport(props: DiagramCurrentViewportProps) {
         }
         previousOriginRef.current = { x: data.originX, y: data.originY }
     }, [data.originX, data.originY, scale])
-    useDiagramCtrlWheelZoom(scrollerRef, service)
+    useDiagramCtrlWheelZoom(scrollerRef, service, service.getViewportScaleSnapshot)
     const canStartPan = useCallback(
         (event: ReactPointerEvent<HTMLElement>) => isEmptyDiagramBackground(event.target),
         [],
     )
     const pan = useDiagramSurfacePan(scrollerRef, { canStartPan })
     const cancelActiveGesture = useCallback(() => { pan.cancelPan() }, [pan])
-    const pinch = useDiagramPinchZoom(scrollerRef, service, cancelActiveGesture)
+    const pinch = useDiagramPinchZoom(scrollerRef, service, service.getViewportScaleSnapshot, cancelActiveGesture)
     usePreserveDiagramZoomCenter(scrollerRef, scale, pinch.anchorRef)
     const handleWindowKeyDown = useCallback((event: KeyboardEvent) => {
         if (event.defaultPrevented || event.key !== 'Escape') return
@@ -118,7 +118,7 @@ export function DiagramCurrentViewport(props: DiagramCurrentViewportProps) {
                     <CurrentDiagram data={data} emphasis={emphasis} onContextMenu={onContextMenu} onSelect={onSelect} service={service} />
                 </Box>
             </Box>
-            <DiagramZoomSlider diagramIdentity="Current" store={service} />
+            <DiagramZoomSlider diagramIdentity="Current" reader={service} store={service} />
             <DiagramEmphasisExitButton emphasis={emphasis} surface="current" />
         </Box>
     )

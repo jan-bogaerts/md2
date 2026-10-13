@@ -19,7 +19,7 @@ import {
     useDiagramNodeRoleFormatting,
 } from '../formatting/use_diagram_formatting'
 
-export interface DiagramFormattingMutationStore extends DiagramFormattingStore {
+export interface DiagramFormattingMutationStore {
     setConnectionKindFormatting(kind: DiagramEdgeKind, value: DiagramConnectionKindFormatting): void
     setNodeRoleFormatting(role: DiagramRole, value: DiagramNodeRoleFormatting): void
 }
@@ -28,8 +28,8 @@ function noSelection() { return null }
 function noSelectionSubscription() { return () => {} }
 
 /** One legend semantic category with hover/focus formatting action and scoped sample subscription. */
-export function DiagramLegendEntryRow({ entry, session, store }: {
-    entry: DiagramLegendEntry, session?: DiagramEditSessionService, store: DiagramFormattingMutationStore,
+export function DiagramLegendEntryRow({ entry, reader, session, store }: {
+    entry: DiagramLegendEntry, reader: DiagramFormattingStore, session?: DiagramEditSessionService, store: DiagramFormattingMutationStore,
 }) {
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const [activeRole, setActiveRole] = useState<DiagramRole | null>(null)
@@ -41,8 +41,8 @@ export function DiagramLegendEntryRow({ entry, session, store }: {
     const sampleRole = entry.entryType === 'node' ? entry.role
         : entry.entryType === 'nodeKind' ? entry.roles[0] : undefined
     const selectedKey = useSyncExternalStore(
-        session?.subscribeLegendSelection ?? noSelectionSubscription,
-        session?.getSelectedLegendEntryKeySnapshot ?? noSelection,
+        session?.read.subscribeLegendSelection ?? noSelectionSubscription,
+        session?.read.getSelectedLegendEntryKeySnapshot ?? noSelection,
         noSelection,
     )
     const handleSelect = () => session?.selectLegendEntry(entryKey)
@@ -74,7 +74,7 @@ export function DiagramLegendEntryRow({ entry, session, store }: {
         session?.materializeDerivedLegend()
         session?.removeLegendEntry(entryKey)
     }
-    const nodeFormatting = useDiagramNodeRoleFormatting(sampleRole ?? 'focal', store)
+    const nodeFormatting = useDiagramNodeRoleFormatting(sampleRole ?? 'focal', reader)
     const handleOpen = (event: MouseEvent<HTMLButtonElement>) => {
         setAnchorElement(event.currentTarget)
         setActiveRole(entry.entryType === 'node' ? entry.role
@@ -106,11 +106,11 @@ export function DiagramLegendEntryRow({ entry, session, store }: {
                 <ButtonBase aria-label={`Select ${entry.label}`} aria-pressed={selectedKey === entryKey} onClick={handleSelect} sx={{ borderRadius: 0.5, p: 0.5 }}>
                     {entry.entryType !== 'connection' ? (
                         <Box data-role={sampleRole} sx={{ border: '1px solid', borderRadius: 0.5, height: 12, width: 20, ...(sampleRole ? diagramRoleStyle(sampleRole, nodeFormatting) : {}) }} />
-                    ) : <DiagramLegendConnectionSample kind={entry.kind} store={store} />}
+                    ) : <DiagramLegendConnectionSample kind={entry.kind} store={reader} />}
                 </ButtonBase>
             ) : entry.entryType !== 'connection' ? (
                 <Box data-role={sampleRole} sx={{ border: '1px solid', borderRadius: 0.5, flexShrink: 0, height: 12, width: 20, ...(sampleRole ? diagramRoleStyle(sampleRole, nodeFormatting) : {}) }} />
-            ) : <DiagramLegendConnectionSample kind={entry.kind} store={store} />}
+            ) : <DiagramLegendConnectionSample kind={entry.kind} store={reader} />}
             {session ? (
                 <TextField
                     error={!!labelError}
@@ -156,7 +156,7 @@ export function DiagramLegendEntryRow({ entry, session, store }: {
                     label={entry.entryType === 'nodeKind' ? `${entry.label} (${activeRole})` : entry.label}
                     onApply={handleNodeApply}
                     onClose={handleClose}
-                    value={store.getNodeRoleFormattingSnapshot(activeRole)}
+                    value={reader.getNodeRoleFormattingSnapshot(activeRole)}
                 />
             ) : null}
             {anchorElement && entry.entryType === 'connection' ? (
@@ -166,7 +166,7 @@ export function DiagramLegendEntryRow({ entry, session, store }: {
                     label={entry.label}
                     onApply={handleConnectionApply}
                     onClose={handleClose}
-                    value={store.getConnectionKindFormattingSnapshot(entry.kind)}
+                    value={reader.getConnectionKindFormattingSnapshot(entry.kind)}
                 />
             ) : null}
         </Box>

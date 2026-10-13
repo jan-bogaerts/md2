@@ -23,7 +23,7 @@ function useDiagramSnapshot<Value>(
 ) {
     const subscribe = useCallback((listener: () => void) => {
         const unsubscribeScoped = subscribeScoped(listener)
-        const unsubscribeSession = service.subscribeSession(listener)
+        const unsubscribeSession = service.read.subscribeSession(listener)
 
         return () => {
             unsubscribeScoped()
@@ -40,10 +40,10 @@ export function useEditableDiagramMetadataField<Field extends keyof DiagramMeta>
     service: DiagramEditSessionService = diagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeMetadataField(field, listener),
+        (listener: () => void) => service.read.subscribeMetadataField(field, listener),
         [field, service],
     )
-    const getSnapshot = useCallback(() => service.getMetadataFieldSnapshot(field), [field, service])
+    const getSnapshot = useCallback(() => service.read.getMetadataFieldSnapshot(field), [field, service])
 
     return useDiagramSnapshot(subscribe, getSnapshot, service)
 }
@@ -55,10 +55,10 @@ export function useEditableDiagramNodeField<Field extends keyof DiagramNode>(
     service: DiagramEditSessionService = diagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeNodeField(nodeId, field, listener),
+        (listener: () => void) => service.read.subscribeNodeField(nodeId, field, listener),
         [field, nodeId, service],
     )
-    const getSnapshot = useCallback(() => service.getNodeFieldSnapshot(nodeId, field), [field, nodeId, service])
+    const getSnapshot = useCallback(() => service.read.getNodeFieldSnapshot(nodeId, field), [field, nodeId, service])
 
     return useDiagramSnapshot(subscribe, getSnapshot, service)
 }
@@ -70,10 +70,10 @@ export function useEditableDiagramEdgeField<Field extends keyof DiagramEdge>(
     service: DiagramEditSessionService = diagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeEdgeField(edgeId, field, listener),
+        (listener: () => void) => service.read.subscribeEdgeField(edgeId, field, listener),
         [edgeId, field, service],
     )
-    const getSnapshot = useCallback(() => service.getEdgeFieldSnapshot(edgeId, field), [edgeId, field, service])
+    const getSnapshot = useCallback(() => service.read.getEdgeFieldSnapshot(edgeId, field), [edgeId, field, service])
 
     return useDiagramSnapshot(subscribe, getSnapshot, service)
 }
@@ -85,10 +85,10 @@ export function useEditableDiagramGroupField<Field extends keyof DiagramGroup>(
     service: DiagramEditSessionService = diagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeGroupField(groupId, field, listener),
+        (listener: () => void) => service.read.subscribeGroupField(groupId, field, listener),
         [field, groupId, service],
     )
-    const getSnapshot = useCallback(() => service.getGroupFieldSnapshot(groupId, field), [field, groupId, service])
+    const getSnapshot = useCallback(() => service.read.getGroupFieldSnapshot(groupId, field), [field, groupId, service])
 
     return useDiagramSnapshot(subscribe, getSnapshot, service)
 }
@@ -100,11 +100,11 @@ export function useEditableDiagramFragmentField<Field extends keyof DiagramSeque
     service: DiagramEditSessionService = diagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeFragmentField(fragmentId, field, listener),
+        (listener: () => void) => service.read.subscribeFragmentField(fragmentId, field, listener),
         [field, fragmentId, service],
     )
     const getSnapshot = useCallback(
-        () => service.getFragmentFieldSnapshot(fragmentId, field),
+        () => service.read.getFragmentFieldSnapshot(fragmentId, field),
         [field, fragmentId, service],
     )
 
@@ -119,11 +119,11 @@ export function useEditableDiagramEntityField<Field extends keyof DiagramEntityF
     service: DiagramEditSessionService = diagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeEntityField(nodeId, fieldIndex, field, listener),
+        (listener: () => void) => service.read.subscribeEntityField(nodeId, fieldIndex, field, listener),
         [field, fieldIndex, nodeId, service],
     )
     const getSnapshot = useCallback(
-        () => service.getEntityFieldValueSnapshot(nodeId, fieldIndex, field),
+        () => service.read.getEntityFieldValueSnapshot(nodeId, fieldIndex, field),
         [field, fieldIndex, nodeId, service],
     )
 
@@ -136,10 +136,10 @@ export function useEditableDiagramEntityFieldIndexes(
     service: DiagramEditSessionService = diagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeEntityFieldMembership(nodeId, listener),
+        (listener: () => void) => service.read.subscribeEntityFieldMembership(nodeId, listener),
         [nodeId, service],
     )
-    const getSnapshot = useCallback(() => service.getEntityFieldIndexesSnapshot(nodeId), [nodeId, service])
+    const getSnapshot = useCallback(() => service.read.getEntityFieldIndexesSnapshot(nodeId), [nodeId, service])
 
     return useDiagramSnapshot(subscribe, getSnapshot, service)
 }
@@ -150,10 +150,10 @@ export function useEditableDiagramGroupNodeIds(
     service: DiagramEditSessionService = diagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeGroupMembership(groupId, listener),
+        (listener: () => void) => service.read.subscribeGroupMembership(groupId, listener),
         [groupId, service],
     )
-    const getSnapshot = useCallback(() => service.getGroupNodeIdsSnapshot(groupId), [groupId, service])
+    const getSnapshot = useCallback(() => service.read.getGroupNodeIdsSnapshot(groupId), [groupId, service])
 
     return useDiagramSnapshot(subscribe, getSnapshot, service)
 }
@@ -166,11 +166,11 @@ export function useEditableDiagramConnectionPointField<Field extends keyof Diagr
     service: DiagramEditSessionService = diagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeConnectionPointField(edgeId, endpoint, field, listener),
+        (listener: () => void) => service.read.subscribeConnectionPointField(edgeId, endpoint, field, listener),
         [edgeId, endpoint, field, service],
     )
     const getSnapshot = useCallback(
-        () => service.getConnectionPointFieldSnapshot(edgeId, endpoint, field),
+        () => service.read.getConnectionPointFieldSnapshot(edgeId, endpoint, field),
         [edgeId, endpoint, field, service],
     )
 
@@ -183,7 +183,7 @@ function useEditableDiagramCollectionIds(
     service: DiagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeCollectionMembership(objectKind, listener),
+        (listener: () => void) => service.read.subscribeCollectionMembership(objectKind, listener),
         [objectKind, service],
     )
 
@@ -191,24 +191,24 @@ function useEditableDiagramCollectionIds(
 }
 
 export function useEditableDiagramNodeIds(service: DiagramEditSessionService = diagramEditSessionService) {
-    return useEditableDiagramCollectionIds('node', service.getNodeIdsSnapshot, service)
+    return useEditableDiagramCollectionIds('node', service.read.getNodeIdsSnapshot, service)
 }
 
 export function useEditableDiagramEdgeIds(service: DiagramEditSessionService = diagramEditSessionService) {
-    return useEditableDiagramCollectionIds('edge', service.getEdgeIdsSnapshot, service)
+    return useEditableDiagramCollectionIds('edge', service.read.getEdgeIdsSnapshot, service)
 }
 
 export function useEditableDiagramGroupIds(service: DiagramEditSessionService = diagramEditSessionService) {
-    return useEditableDiagramCollectionIds('group', service.getGroupIdsSnapshot, service)
+    return useEditableDiagramCollectionIds('group', service.read.getGroupIdsSnapshot, service)
 }
 
 export function useEditableDiagramFragmentIds(service: DiagramEditSessionService = diagramEditSessionService) {
-    return useEditableDiagramCollectionIds('fragment', service.getFragmentIdsSnapshot, service)
+    return useEditableDiagramCollectionIds('fragment', service.read.getFragmentIdsSnapshot, service)
 }
 
 /** Subscribes one legend host to explicit legend membership and order. */
 export function useEditableDiagramLegendEntryKeys(service: DiagramEditSessionService = diagramEditSessionService) {
-    return useDiagramSnapshot(service.subscribeLegendMembership, service.getLegendEntryKeysSnapshot, service)
+    return useDiagramSnapshot(service.read.subscribeLegendMembership, service.read.getLegendEntryKeysSnapshot, service)
 }
 
 /** Subscribes one legend leaf to the label of one explicit legend entry. */
@@ -217,17 +217,17 @@ export function useEditableDiagramLegendEntryLabel(
     service: DiagramEditSessionService = diagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeLegendEntryField(entryKey, 'label', listener),
+        (listener: () => void) => service.read.subscribeLegendEntryField(entryKey, 'label', listener),
         [entryKey, service],
     )
-    const getSnapshot = useCallback(() => service.getLegendEntryFieldSnapshot(entryKey, 'label'), [entryKey, service])
+    const getSnapshot = useCallback(() => service.read.getLegendEntryFieldSnapshot(entryKey, 'label'), [entryKey, service])
 
     return useDiagramSnapshot(subscribe, getSnapshot, service)
 }
 
 /** Subscribes a review collection only to semantic change membership and order. */
 export function useEditableDiagramChangeIds(service: DiagramEditSessionService = diagramEditSessionService) {
-    return useDiagramSnapshot(service.subscribeChangeIds, service.getChangeIdsSnapshot, service)
+    return useDiagramSnapshot(service.read.subscribeChangeIds, service.read.getChangeIdsSnapshot, service)
 }
 
 /** Subscribes one review leaf to one field of one semantic change. */
@@ -237,11 +237,11 @@ export function useEditableDiagramChangeField<Field extends DiagramChangeField>(
     service: DiagramEditSessionService = diagramEditSessionService,
 ) {
     const subscribe = useCallback(
-        (listener: () => void) => service.subscribeChangeField(changeId, field, listener),
+        (listener: () => void) => service.read.subscribeChangeField(changeId, field, listener),
         [changeId, field, service],
     )
     const getSnapshot = useCallback(
-        () => service.getChangeFieldSnapshot(changeId, field),
+        () => service.read.getChangeFieldSnapshot(changeId, field),
         [changeId, field, service],
     )
 

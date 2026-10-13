@@ -9,26 +9,26 @@ import { DiagramLegendEntryList } from './diagram_legend_entry_list'
 export type SessionLegendSource = DiagramEditSessionService
 
 function sessionEntries(session: SessionLegendSource): DiagramLegendEntry[] {
-    const type = session.getMetadataFieldSnapshot('type')
+    const type = session.read.getMetadataFieldSnapshot('type')
     if (!type) return []
-    const legend = session.getHasExplicitLegendSnapshot()
-        ? session.getLegendEntryKeysSnapshot().map((entryKey): DiagramLegendEntryData => {
-            const label = session.getLegendEntryFieldSnapshot(entryKey, 'label')
+    const legend = session.read.getHasExplicitLegendSnapshot()
+        ? session.read.getLegendEntryKeysSnapshot().map((entryKey): DiagramLegendEntryData => {
+            const label = session.read.getLegendEntryFieldSnapshot(entryKey, 'label')
             if (label === null) throw new Error(`Legend entry ${entryKey} has no label`)
-            const role = session.getLegendEntryFieldSnapshot(entryKey, 'role')
+            const role = session.read.getLegendEntryFieldSnapshot(entryKey, 'role')
             if (role !== null) return { label, role: role as DiagramRole }
-            const nodeKind = session.getLegendEntryFieldSnapshot(entryKey, 'nodeKind')
+            const nodeKind = session.read.getLegendEntryFieldSnapshot(entryKey, 'nodeKind')
             if (nodeKind !== null) return { label, nodeKind: nodeKind as DiagramNodeKind }
-            const kind = session.getLegendEntryFieldSnapshot(entryKey, 'kind')
+            const kind = session.read.getLegendEntryFieldSnapshot(entryKey, 'kind')
             if (kind !== null) return { kind: kind as DiagramEdgeKind, label }
             throw new Error(`Legend entry ${entryKey} has no semantic`)
         })
         : undefined
-    const nodes = session.getNodeIdsSnapshot().map((nodeId) => ({
-        kind: session.getNodeFieldSnapshot(nodeId, 'kind') ?? undefined,
-        role: session.getNodeFieldSnapshot(nodeId, 'role') as DiagramRole,
+    const nodes = session.read.getNodeIdsSnapshot().map((nodeId) => ({
+        kind: session.read.getNodeFieldSnapshot(nodeId, 'kind') ?? undefined,
+        role: session.read.getNodeFieldSnapshot(nodeId, 'role') as DiagramRole,
     }))
-    const edges = session.getEdgeIdsSnapshot().map((edgeId) => ({kind: session.getEdgeFieldSnapshot(edgeId, 'kind') as DiagramEdgeKind}))
+    const edges = session.read.getEdgeIdsSnapshot().map((edgeId) => ({kind: session.read.getEdgeFieldSnapshot(edgeId, 'kind') as DiagramEdgeKind}))
 
     return diagramLegendEntries({ edges, meta: { legend, type }, nodes })
 }
@@ -49,10 +49,10 @@ function useSessionLegendEntries(session: SessionLegendSource) {
         }
         onMembershipChange()
         const unsubscribes = [
-            session.subscribeSession(onMembershipChange),
-            session.subscribeLegendMembership(onMembershipChange),
-            session.subscribeCollectionMembership('node', onMembershipChange),
-            session.subscribeCollectionMembership('edge', onMembershipChange),
+            session.read.subscribeSession(onMembershipChange),
+            session.read.subscribeLegendMembership(onMembershipChange),
+            session.read.subscribeCollectionMembership('node', onMembershipChange),
+            session.read.subscribeCollectionMembership('edge', onMembershipChange),
         ]
 
         return () => {
@@ -67,10 +67,10 @@ function useSessionLegendEntries(session: SessionLegendSource) {
                 : entry.entryType === 'nodeKind' ? `nodeKind:${entry.nodeKind}` : `connection:${entry.kind}`
         ))
         const unsubscribes = [
-            ...displayedKeys.map((entryKey) => session.subscribeLegendEntryField(entryKey, 'label', refresh)),
-            ...session.getNodeIdsSnapshot().map((nodeId) => session.subscribeNodeField(nodeId, 'role', refresh)),
-            ...session.getNodeIdsSnapshot().map((nodeId) => session.subscribeNodeField(nodeId, 'kind', refresh)),
-            ...session.getEdgeIdsSnapshot().map((edgeId) => session.subscribeEdgeField(edgeId, 'kind', refresh)),
+            ...displayedKeys.map((entryKey) => session.read.subscribeLegendEntryField(entryKey, 'label', refresh)),
+            ...session.read.getNodeIdsSnapshot().map((nodeId) => session.read.subscribeNodeField(nodeId, 'role', refresh)),
+            ...session.read.getNodeIdsSnapshot().map((nodeId) => session.read.subscribeNodeField(nodeId, 'kind', refresh)),
+            ...session.read.getEdgeIdsSnapshot().map((edgeId) => session.read.subscribeEdgeField(edgeId, 'kind', refresh)),
         ]
 
         return () => {
@@ -89,5 +89,11 @@ export function DiagramSessionLegendEntries({
     label?: string
     session?: SessionLegendSource
 }) {
-    return <DiagramLegendEntryList entries={useSessionLegendEntries(session)} label={label} session={session} store={session} />
+    return <DiagramLegendEntryList
+        entries={useSessionLegendEntries(session)}
+        label={label}
+        reader={session.read}
+        session={session}
+        store={session}
+    />
 }

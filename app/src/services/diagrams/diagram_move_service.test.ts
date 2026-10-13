@@ -56,24 +56,24 @@ describe('DiagramMoveService', () => {
     it('snaps one shared delta and moves only selected nodes and independent groups', () => {
         const { movement, selection, session } = createHarness()
         selection.replace([orders, store, edge, group])
-        const membership = session.getGroupNodeIdsSnapshot('backend')
+        const membership = session.read.getGroupNodeIdsSnapshot('backend')
         const externalXChanged = vi.fn()
-        session.subscribeNodeField('external', 'x', externalXChanged)
+        session.read.subscribeNodeField('external', 'x', externalXChanged)
 
         expect(movement.beginMove(orders, { x: 101, y: 102 })).toBe(true)
-        expect(session.getTransientGestureSnapshot()).toBe('move')
+        expect(session.read.getTransientGestureSnapshot()).toBe('move')
         expect(movement.updateMove({ x: 106, y: 111 })).toBe(true)
 
-        expect(session.getNodeFieldSnapshot('orders', 'x')).toBe(44)
-        expect(session.getNodeFieldSnapshot('orders', 'y')).toBe(48)
-        expect(session.getNodeFieldSnapshot('store', 'x')).toBe(204)
-        expect(session.getNodeFieldSnapshot('store', 'y')).toBe(48)
-        expect(session.getGroupFieldSnapshot('backend', 'x')).toBe(24)
-        expect(session.getGroupFieldSnapshot('backend', 'y')).toBe(28)
-        expect(session.getGroupNodeIdsSnapshot('backend')).toBe(membership)
+        expect(session.read.getNodeFieldSnapshot('orders', 'x')).toBe(44)
+        expect(session.read.getNodeFieldSnapshot('orders', 'y')).toBe(48)
+        expect(session.read.getNodeFieldSnapshot('store', 'x')).toBe(204)
+        expect(session.read.getNodeFieldSnapshot('store', 'y')).toBe(48)
+        expect(session.read.getGroupFieldSnapshot('backend', 'x')).toBe(24)
+        expect(session.read.getGroupFieldSnapshot('backend', 'y')).toBe(28)
+        expect(session.read.getGroupNodeIdsSnapshot('backend')).toBe(membership)
         expect(externalXChanged).not.toHaveBeenCalled()
         expect(movement.completeMove()).toBe(true)
-        expect(session.getTransientGestureSnapshot()).toBeNull()
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
     })
 
     it('coalesces repeated pointer updates into the same final field changes', () => {
@@ -81,13 +81,13 @@ describe('DiagramMoveService', () => {
         selection.replace([orders, store])
         movement.beginMove(orders, { x: 0, y: 0 })
         movement.updateMove({ x: 5, y: 5 })
-        const changeIds = session.getChangeIdsSnapshot()
+        const changeIds = session.read.getChangeIdsSnapshot()
 
         movement.updateMove({ x: 13, y: 17 })
 
-        expect(session.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(session.read.getChangeIdsSnapshot()).toBe(changeIds)
         expect(changeIds).toHaveLength(4)
-        expect(changeIds.map((changeId) => session.getChange(changeId)?.value)).toEqual([52, 56, 212, 56])
+        expect(changeIds.map((changeId) => session.read.getChange(changeId)?.value)).toEqual([52, 56, 212, 56])
         movement.completeMove()
     })
 
@@ -99,12 +99,12 @@ describe('DiagramMoveService', () => {
         expect(selection.getSelectionSnapshot()).toEqual([group])
         movement.updateMove({ x: 8, y: 4 })
         movement.completeMove()
-        expect(session.getGroupFieldSnapshot('backend', 'x')).toBe(28)
-        expect(session.getNodeFieldSnapshot('orders', 'x')).toBe(40)
+        expect(session.read.getGroupFieldSnapshot('backend', 'x')).toBe(28)
+        expect(session.read.getNodeFieldSnapshot('orders', 'x')).toBe(40)
 
         expect(movement.beginMove(edge, { x: 0, y: 0 })).toBe(false)
         expect(selection.getSelectionSnapshot()).toEqual([edge])
-        expect(session.getTransientGestureSnapshot()).toBeNull()
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
     })
 
     it('cancel restores starting model and visible geometry, including omitted coordinates', () => {
@@ -120,12 +120,12 @@ describe('DiagramMoveService', () => {
 
         expect(movement.cancelMove()).toBe(true)
 
-        expect(session.getNodeFieldSnapshot('orders', 'x')).toBeUndefined()
-        expect(session.getNodeFieldSnapshot('orders', 'y')).toBeUndefined()
+        expect(session.read.getNodeFieldSnapshot('orders', 'x')).toBeUndefined()
+        expect(session.read.getNodeFieldSnapshot('orders', 'y')).toBeUndefined()
         expect(geometry.getNodeGeometryFieldSnapshot('orders', 'x')).toBe(startX)
         expect(geometry.getNodeGeometryFieldSnapshot('orders', 'y')).toBe(startY)
-        expect(session.getChangeIdsSnapshot()).toEqual([])
-        expect(session.getTransientGestureSnapshot()).toBeNull()
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
     })
 
     it('persists the complete derived box on the first move of an implicit group', () => {
@@ -147,7 +147,7 @@ describe('DiagramMoveService', () => {
         movement.updateMove({ x: 8, y: 4 })
         movement.completeMove()
 
-        expect(session.getGroupSnapshot('backend')).toMatchObject({
+        expect(session.read.getGroupSnapshot('backend')).toMatchObject({
             height: derivedBox.height,
             width: derivedBox.width,
             x: (derivedBox.x as number) + 8,
@@ -162,15 +162,15 @@ describe('DiagramMoveService', () => {
         movement.updateMove({ x: 12, y: 8 })
 
         expect(session.cancelActiveInteraction()).toBe(true)
-        expect(session.getNodeFieldSnapshot('orders', 'x')).toBe(40)
-        expect(session.getNodeFieldSnapshot('orders', 'y')).toBe(40)
+        expect(session.read.getNodeFieldSnapshot('orders', 'x')).toBe(40)
+        expect(session.read.getNodeFieldSnapshot('orders', 'y')).toBe(40)
         expect(movement.getMoveActiveSnapshot()).toBe(false)
 
         movement.beginMove(orders, { x: 0, y: 0 })
         movement.updateMove({ x: 8, y: 4 })
         session.setActiveTool('group')
-        expect(session.getNodeFieldSnapshot('orders', 'x')).toBe(40)
-        expect(session.getNodeFieldSnapshot('orders', 'y')).toBe(40)
+        expect(session.read.getNodeFieldSnapshot('orders', 'x')).toBe(40)
+        expect(session.read.getNodeFieldSnapshot('orders', 'y')).toBe(40)
         expect(movement.getMoveActiveSnapshot()).toBe(false)
     })
 

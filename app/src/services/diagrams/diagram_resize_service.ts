@@ -106,14 +106,14 @@ export class DiagramResizeService {
         this.geometry = geometry
         this.selection = selection
         this.session = session
-        this.session.subscribeTransientGesture(this.handleTransientGestureChanged)
+        this.session.read.subscribeTransientGesture(this.handleTransientGestureChanged)
     }
 
     getResizeActiveSnapshot = () => this.resize !== null
 
     beginResize(target: DiagramSelectionIdentity, direction: DiagramResizeDirection, point: DiagramResizePoint) {
         requireFinitePoint(point)
-        if (this.session.getActiveToolSnapshot() !== 'select') return false
+        if (this.session.read.getActiveToolSnapshot() !== 'select') return false
         if (this.resize) throw new Error('Cannot begin a diagram resize while another resize is active')
 
         const selection = this.selection.getSelectionSnapshot()
@@ -173,7 +173,7 @@ export class DiagramResizeService {
     }
 
     private readonly handleTransientGestureChanged = () => {
-        if (!this.resize || this.session.getTransientGestureSnapshot() === 'resize') return
+        if (!this.resize || this.session.read.getTransientGestureSnapshot() === 'resize') return
 
         this.restoreResize()
         this.resize = null
@@ -195,17 +195,17 @@ export class DiagramResizeService {
         }
 
         const originalHeight = objectKind === 'node'
-            ? this.session.getNodeFieldSnapshot(objectId, 'height')
-            : this.session.getGroupFieldSnapshot(objectId, 'height')
+            ? this.session.read.getNodeFieldSnapshot(objectId, 'height')
+            : this.session.read.getGroupFieldSnapshot(objectId, 'height')
         const originalWidth = objectKind === 'node'
-            ? this.session.getNodeFieldSnapshot(objectId, 'width')
-            : this.session.getGroupFieldSnapshot(objectId, 'width')
+            ? this.session.read.getNodeFieldSnapshot(objectId, 'width')
+            : this.session.read.getGroupFieldSnapshot(objectId, 'width')
         const originalX = objectKind === 'node'
-            ? this.session.getNodeFieldSnapshot(objectId, 'x')
-            : this.session.getGroupFieldSnapshot(objectId, 'x')
+            ? this.session.read.getNodeFieldSnapshot(objectId, 'x')
+            : this.session.read.getGroupFieldSnapshot(objectId, 'x')
         const originalY = objectKind === 'node'
-            ? this.session.getNodeFieldSnapshot(objectId, 'y')
-            : this.session.getGroupFieldSnapshot(objectId, 'y')
+            ? this.session.read.getNodeFieldSnapshot(objectId, 'y')
+            : this.session.read.getGroupFieldSnapshot(objectId, 'y')
         if (originalHeight === null || originalWidth === null || originalX === null || originalY === null) {
             throw new Error(`Diagram ${objectKind} ${objectId} does not exist`)
         }

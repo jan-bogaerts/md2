@@ -9,6 +9,7 @@ import {
 } from './diagram_step_node_button';
 
 class StepNodeSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool = 'select';
     private readonly diagramType: DiagramType;
     private readonly flowPreset: DiagramFlowPreset | null;
@@ -61,7 +62,7 @@ describe('DiagramStepNodeButton', () => {
             defaults: { height: 72, label: 'New step', role: 'focal', width: 160 },
             kind: 'step',
         });
-        expect(session.subscribeMetadataField.mock.calls.every(
+        expect(session.read.subscribeMetadataField.mock.calls.every(
             ([field]) => field === 'preset' || field === 'type',
         )).toBe(true);
 

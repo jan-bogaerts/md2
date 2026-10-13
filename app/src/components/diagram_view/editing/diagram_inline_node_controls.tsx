@@ -41,7 +41,7 @@ export function DiagramInlineNodeControls({ autoWrap, contentInset, node, onOpen
         commit()
     }
     const stopPointer = (event: PointerEvent<HTMLElement>) => {
-        if (session.getActiveToolSnapshot().startsWith('edge:')) return
+        if (session.read.getActiveToolSnapshot().startsWith('edge:')) return
         event.stopPropagation()
     }
     const stopClick = (event: MouseEvent<HTMLElement>) => event.stopPropagation()

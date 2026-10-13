@@ -75,9 +75,9 @@ export function DiagramView({
     const index = useSyncExternalStore(service.subscribeIndex, service.getIndexSnapshot, service.getIndexSnapshot)
     const status = useSyncExternalStore(service.subscribeStatus, service.getStatusSnapshot, service.getStatusSnapshot)
     const editSessionSnapshot = useSyncExternalStore(
-        editSession.subscribeSession,
-        editSession.getSessionSnapshot,
-        editSession.getSessionSnapshot,
+        editSession.read.subscribeSession,
+        editSession.read.getSessionSnapshot,
+        editSession.read.getSessionSnapshot,
     )
     const { actions } = useActions()
     const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions])

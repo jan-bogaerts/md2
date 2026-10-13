@@ -8,6 +8,7 @@ import {
 } from './diagram_state_node_button';
 
 class StateNodeSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool = 'select';
     private readonly diagramType: DiagramType;
     private readonly preset: DiagramFlowPreset | null;
@@ -60,7 +61,7 @@ describe('DiagramStateNodeButton', () => {
             defaults: { height: 72, label: 'New state', role: 'focal', width: 160 },
             kind: 'state',
         });
-        expect(session.subscribeMetadataField.mock.calls.map(([field]) => field)).toEqual(['preset', 'type']);
+        expect(session.read.subscribeMetadataField.mock.calls.map(([field]) => field)).toEqual(['preset', 'type']);
 
         act(() => { session.setActiveTool('node:state'); });
         expect(button).toHaveAttribute('aria-pressed', 'true');

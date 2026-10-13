@@ -15,13 +15,15 @@ const edges: DiagramEdge[] = [
 
 function diagramCutSession() {
     return {
-        getEdgeIdsSnapshot: () => edges.map(({ id }) => id),
-        getEdgeSnapshot: (edgeId: string) => edges.find(({ id }) => id === edgeId) ?? null,
-        getFragmentIdsSnapshot: () => [],
-        getFragmentSnapshot: () => null,
-        getGroupSnapshot: () => null,
-        getNodeIdsSnapshot: () => nodes.map(({ id }) => id),
-        getNodeSnapshot: (nodeId: string) => nodes.find(({ id }) => id === nodeId) ?? null,
+        read: {
+            getEdgeIdsSnapshot: () => edges.map(({ id }) => id),
+            getEdgeSnapshot: (edgeId: string) => edges.find(({ id }) => id === edgeId) ?? null,
+            getFragmentIdsSnapshot: () => [],
+            getFragmentSnapshot: () => null,
+            getGroupSnapshot: () => null,
+            getNodeIdsSnapshot: () => nodes.map(({ id }) => id),
+            getNodeSnapshot: (nodeId: string) => nodes.find(({ id }) => id === nodeId) ?? null,
+        },
         removeObjects: vi.fn((identities: readonly DiagramSelectionIdentity[]) => identities.length > 0),
     }
 }

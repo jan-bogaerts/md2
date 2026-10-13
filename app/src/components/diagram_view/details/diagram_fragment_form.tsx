@@ -16,11 +16,13 @@ export interface ReadonlySequenceFragment {
 
 export interface FragmentDialogSession {
     createFragment: (fragment: NewDiagramSequenceFragment) => string | null
-    getEdgeIdsSnapshot: () => readonly string[]
-    getEdgeSnapshot: (edgeId: string) => Readonly<{ id: string, label?: string }> | null
-    getFragmentSnapshot: (fragmentId: string) => ReadonlySequenceFragment | null
+    read: {
+        getEdgeIdsSnapshot: () => readonly string[]
+        getEdgeSnapshot: (edgeId: string) => Readonly<{ id: string, label?: string }> | null
+        getFragmentSnapshot: (fragmentId: string) => ReadonlySequenceFragment | null
+        subscribeCollectionMembership: (objectKind: 'edge' | 'fragment', listener: () => void) => () => void
+    }
     removeFragment: (fragmentId: string) => boolean
-    subscribeCollectionMembership: (objectKind: 'edge' | 'fragment', listener: () => void) => () => void
     updateFragment: (fragmentId: string, fragment: NewDiagramSequenceFragment) => boolean
 }
 
@@ -58,13 +60,13 @@ export function DiagramFragmentForm({
     onClose: () => void
     session: FragmentDialogSession
 }) {
-    const sourceFragment = fragmentId ? session.getFragmentSnapshot(fragmentId) : null
+    const sourceFragment = fragmentId ? session.read.getFragmentSnapshot(fragmentId) : null
     const [draft, setDraft] = useState(() => sourceFragment ? draftFromFragment(sourceFragment) : NEW_FRAGMENT_DRAFT())
     const [validationError, setValidationError] = useState<string | null>(null)
     const edgeIds = useSyncExternalStore(
-        useCallback((listener) => session.subscribeCollectionMembership('edge', listener), [session]),
-        session.getEdgeIdsSnapshot,
-        session.getEdgeIdsSnapshot,
+        useCallback((listener) => session.read.subscribeCollectionMembership('edge', listener), [session]),
+        session.read.getEdgeIdsSnapshot,
+        session.read.getEdgeIdsSnapshot,
     )
     const assignedEdgeIds = new Set(draft.regions.flatMap((region) => region.edgeIds))
     const handleOperatorChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -103,7 +105,7 @@ export function DiagramFragmentForm({
         })
         setValidationError(null)
     }
-    const getEdgeLabel = (edgeId: string) => session.getEdgeSnapshot(edgeId)?.label ?? edgeId
+    const getEdgeLabel = (edgeId: string) => session.read.getEdgeSnapshot(edgeId)?.label ?? edgeId
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         const error = validationMessage(draft)

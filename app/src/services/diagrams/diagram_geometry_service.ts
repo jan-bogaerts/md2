@@ -126,13 +126,13 @@ export class DiagramGeometryService extends EventTarget {
     constructor(editSession: DiagramEditSessionService = diagramEditSessionService) {
         super()
         this.editSession = editSession
-        this.editSession.subscribeSession(this.handleSessionChanged)
-        this.editSession.subscribeCollectionMembership('node', this.handleNodeMembershipChanged)
-        this.editSession.subscribeCollectionMembership('edge', this.handleEdgeMembershipChanged)
-        this.editSession.subscribeCollectionMembership('group', this.handleGroupMembershipChanged)
-        this.editSession.subscribeCollectionMembership('fragment', this.handleFragmentMembershipChanged)
-        this.editSession.subscribeFormattingScale('boxScalePercent', this.handleLayoutFormattingChanged)
-        this.editSession.subscribeFormattingScale('spacingScalePercent', this.handleLayoutFormattingChanged)
+        this.editSession.read.subscribeSession(this.handleSessionChanged)
+        this.editSession.read.subscribeCollectionMembership('node', this.handleNodeMembershipChanged)
+        this.editSession.read.subscribeCollectionMembership('edge', this.handleEdgeMembershipChanged)
+        this.editSession.read.subscribeCollectionMembership('group', this.handleGroupMembershipChanged)
+        this.editSession.read.subscribeCollectionMembership('fragment', this.handleFragmentMembershipChanged)
+        this.editSession.read.subscribeFormattingScale('boxScalePercent', this.handleLayoutFormattingChanged)
+        this.editSession.read.subscribeFormattingScale('spacingScalePercent', this.handleLayoutFormattingChanged)
         this.handleSessionChanged()
     }
 
@@ -234,7 +234,7 @@ export class DiagramGeometryService extends EventTarget {
         this.fragmentIds = EMPTY_IDS
         this.edgeIds = EMPTY_IDS
         // Derived geometry reads model data and never writes it, so the session's read boundary is safe to narrow here.
-        const diagram = this.editSession.getEditableDiagram() as DiagramData | null
+        const diagram = this.editSession.read.getEditableDiagram() as DiagramData | null
         this.diagram = diagram
         if (!diagram) {
             this.objectSurface = { height: 0, originX: 0, originY: 0, width: 0 }
@@ -279,18 +279,18 @@ export class DiagramGeometryService extends EventTarget {
 
     private subscribeNode(node: DiagramNode) {
         for (const field of GEOMETRY_NODE_FIELDS) {
-            this.objectUnsubscribes.push(this.editSession.subscribeNodeField(node.id, field, () => this.applyNodeChange(node.id)))
+            this.objectUnsubscribes.push(this.editSession.read.subscribeNodeField(node.id, field, () => this.applyNodeChange(node.id)))
         }
-        this.objectUnsubscribes.push(this.editSession.subscribeEntityFieldMembership(node.id, () => this.applyNodeChange(node.id)))
+        this.objectUnsubscribes.push(this.editSession.read.subscribeEntityFieldMembership(node.id, () => this.applyNodeChange(node.id)))
     }
 
     private subscribeEdge(edge: DiagramEdge) {
         for (const field of GEOMETRY_EDGE_FIELDS) {
-            this.objectUnsubscribes.push(this.editSession.subscribeEdgeField(edge.id, field, () => this.applyEdgeChange(edge.id)))
+            this.objectUnsubscribes.push(this.editSession.read.subscribeEdgeField(edge.id, field, () => this.applyEdgeChange(edge.id)))
         }
         for (const endpoint of CONNECTION_ENDPOINTS) {
             for (const field of CONNECTION_POINT_FIELDS) {
-                this.objectUnsubscribes.push(this.editSession.subscribeConnectionPointField(
+                this.objectUnsubscribes.push(this.editSession.read.subscribeConnectionPointField(
                     edge.id,
                     endpoint,
                     field,
@@ -302,7 +302,7 @@ export class DiagramGeometryService extends EventTarget {
 
     private subscribeGroup(group: DiagramGroup) {
         for (const field of GEOMETRY_NODE_FIELDS) {
-            this.objectUnsubscribes.push(this.editSession.subscribeGroupField(group.id, field, () => this.applyGroupChange(group.id)))
+            this.objectUnsubscribes.push(this.editSession.read.subscribeGroupField(group.id, field, () => this.applyGroupChange(group.id)))
         }
     }
 
@@ -310,10 +310,10 @@ export class DiagramGeometryService extends EventTarget {
 
     private subscribeFragment(fragment: DiagramSequenceFragment) {
         const refresh = () => this.applyFragmentChange(fragment.id)
-        this.objectUnsubscribes.push(this.editSession.subscribeFragmentField(fragment.id, 'operator', refresh))
+        this.objectUnsubscribes.push(this.editSession.read.subscribeFragmentField(fragment.id, 'operator', refresh))
         for (let regionIndex = 0; regionIndex < MAXIMUM_FRAGMENT_REGION_COUNT; regionIndex += 1) {
-            this.objectUnsubscribes.push(this.editSession.subscribeFragmentRegionField(fragment.id, regionIndex, 'guard', refresh))
-            this.objectUnsubscribes.push(this.editSession.subscribeFragmentRegionMembership(fragment.id, regionIndex, refresh))
+            this.objectUnsubscribes.push(this.editSession.read.subscribeFragmentRegionField(fragment.id, regionIndex, 'guard', refresh))
+            this.objectUnsubscribes.push(this.editSession.read.subscribeFragmentRegionMembership(fragment.id, regionIndex, refresh))
         }
     }
 
@@ -361,7 +361,7 @@ export class DiagramGeometryService extends EventTarget {
         const positioned = this.groupsById.get(groupId)
         if (!model || !positioned) return
 
-        const next = groupBox(model, this.nodesById, this.editSession.getFormattingScaleSnapshot('spacingScalePercent'))
+        const next = groupBox(model, this.nodesById, this.editSession.read.getFormattingScaleSnapshot('spacingScalePercent'))
         const changedFields = BOX_FIELDS.filter((field) => this.assignField('group', groupId, positioned, field, next[field]))
         if (changedFields.length === 0) return
 
@@ -636,7 +636,7 @@ export class DiagramGeometryService extends EventTarget {
         for (const group of diagram.groups) {
             if (this.groupsById.has(group.id)) continue
             this.groupsById.set(group.id, groupBox(
-                group, this.nodesById, this.editSession.getFormattingScaleSnapshot('spacingScalePercent'),
+                group, this.nodesById, this.editSession.read.getFormattingScaleSnapshot('spacingScalePercent'),
             ))
             this.subscribeGroup(group)
         }

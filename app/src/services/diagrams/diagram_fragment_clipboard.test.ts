@@ -34,13 +34,15 @@ const fragments: DiagramSequenceFragment[] = [
 
 function diagramFragmentReader() {
     return {
-        getEdgeIdsSnapshot: () => edges.map(({ id }) => id),
-        getEdgeSnapshot: (edgeId: string) => edges.find(({ id }) => id === edgeId) ?? null,
-        getFragmentIdsSnapshot: () => fragments.map(({ id }) => id),
-        getFragmentSnapshot: (fragmentId: string) => fragments.find(({ id }) => id === fragmentId) ?? null,
-        getGroupSnapshot: (groupId: string) => groups.find(({ id }) => id === groupId) ?? null,
-        getNodeIdsSnapshot: () => nodes.map(({ id }) => id),
-        getNodeSnapshot: (nodeId: string) => nodes.find(({ id }) => id === nodeId) ?? null,
+        read: {
+            getEdgeIdsSnapshot: () => edges.map(({ id }) => id),
+            getEdgeSnapshot: (edgeId: string) => edges.find(({ id }) => id === edgeId) ?? null,
+            getFragmentIdsSnapshot: () => fragments.map(({ id }) => id),
+            getFragmentSnapshot: (fragmentId: string) => fragments.find(({ id }) => id === fragmentId) ?? null,
+            getGroupSnapshot: (groupId: string) => groups.find(({ id }) => id === groupId) ?? null,
+            getNodeIdsSnapshot: () => nodes.map(({ id }) => id),
+            getNodeSnapshot: (nodeId: string) => nodes.find(({ id }) => id === nodeId) ?? null,
+        },
     }
 }
 

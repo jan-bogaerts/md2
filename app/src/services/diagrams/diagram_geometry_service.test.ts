@@ -175,7 +175,7 @@ describe('DiagramGeometryService surface growth', () => {
         const meta: DiagramData['meta'] = { description: '', title: 'Empty', type: 'architecture', version: 1 }
         const emptyDiagram: DiagramData = { edges: [], groups: [], meta, nodes: [] }
         const { geometry, session } = createHarness(emptyDiagram)
-        const originalJson = JSON.stringify(session.getEditableDiagram())
+        const originalJson = JSON.stringify(session.read.getEditableDiagram())
         const originalWidth = geometry.getSurfaceFieldSnapshot('width')
         const originalHeight = geometry.getSurfaceFieldSnapshot('height')
 
@@ -185,9 +185,9 @@ describe('DiagramGeometryService surface growth', () => {
         geometry.setViewportMinimum(180, 120)
         expect(geometry.getSurfaceFieldSnapshot('width')).toBe(Math.max(originalWidth, 180))
         expect(geometry.getSurfaceFieldSnapshot('height')).toBe(Math.max(originalHeight, 120))
-        expect(session.getDirtySnapshot()).toBe(false)
-        expect(session.getChangeIdsSnapshot()).toEqual([])
-        expect(JSON.stringify(session.getEditableDiagram())).toBe(originalJson)
+        expect(session.read.getDirtySnapshot()).toBe(false)
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(JSON.stringify(session.read.getEditableDiagram())).toBe(originalJson)
     })
 
     it('extends beyond minimum for node and group moves, then shrinks when moved back', () => {
@@ -370,8 +370,8 @@ describe('DiagramGeometryService', () => {
         ['core-app', 'app', 'app-core', 0],
     ] as const)('reconnects dependency edge %s without rerouting other edges', (edgeId, oldTargetId, otherEdgeId, fanInChange) => {
         const { geometry, session } = createHarness(editableDependencyDiagram())
-        const edge = session.getEdgeSnapshot(edgeId)
-        const targetAttachment = session.getEdgeSnapshot(edgeId)?.targetAttachment
+        const edge = session.read.getEdgeSnapshot(edgeId)
+        const targetAttachment = session.read.getEdgeSnapshot(edgeId)?.targetAttachment
         const otherRoute = geometry.getEdgeRouteSnapshot(otherEdgeId)
         const unrelatedRoute = geometry.getEdgeRouteSnapshot('auxiliary-sink')
         const oldTargetFanIn = geometry.getNodeGeometryFieldSnapshot(oldTargetId, 'fanIn') as number
@@ -380,8 +380,8 @@ describe('DiagramGeometryService', () => {
 
         expect(session.reconnectEdgeEndpoint(edgeId, 'targetAttachment', 'sink')).toBe(true)
 
-        expect(session.getEdgeSnapshot(edgeId)).toBe(edge)
-        expect(session.getEdgeSnapshot(edgeId)?.targetAttachment).toBe(targetAttachment)
+        expect(session.read.getEdgeSnapshot(edgeId)).toBe(edge)
+        expect(session.read.getEdgeSnapshot(edgeId)?.targetAttachment).toBe(targetAttachment)
         expect(geometry.getNodeGeometryFieldSnapshot(oldTargetId, 'fanIn')).toBe(oldTargetFanIn - fanInChange)
         expect(geometry.getNodeGeometryFieldSnapshot('sink', 'fanIn')).toBe(sinkFanIn + fanInChange)
         expect(geometry.getEdgeRouteSnapshot(otherEdgeId)).toBe(otherRoute)
@@ -494,8 +494,8 @@ describe('DiagramGeometryService', () => {
 
         expect(geometry.getNodeGeometryFieldSnapshot('order', 'height')).toBeGreaterThan(implicitHeight)
         expect(geometry.getNodeGeometryFieldSnapshot('line', 'height')).toBe(explicitHeight)
-        expect(session.getNodeFieldSnapshot('order', 'height')).toBeUndefined()
-        expect(session.getNodeFieldSnapshot('line', 'height')).toBe(120)
+        expect(session.read.getNodeFieldSnapshot('order', 'height')).toBeUndefined()
+        expect(session.read.getNodeFieldSnapshot('line', 'height')).toBe(120)
     })
 
     it('cascades nothing when a model edit leaves the derived value unchanged', () => {
@@ -740,11 +740,11 @@ describe('DiagramGeometryService', () => {
         const insertedId = session.createSequenceEdge({ from: 'user', kind: 'async', to: 'store' }, 1)
         if (!insertedId) throw new Error('Expected sequence message creation to succeed')
         const insertedRoute = geometry.getEdgeRouteSnapshot(insertedId)
-        const orderBeforeMove = session.getEdgeIdsSnapshot()
+        const orderBeforeMove = session.read.getEdgeIdsSnapshot()
 
         expect(session.moveSequenceEdge('orders-user', 1)).toBe(true)
-        expect(session.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user', insertedId, 'orders-store', 'store-orders'])
-        expect(session.getEdgeIdsSnapshot()).not.toBe(orderBeforeMove)
+        expect(session.read.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user', insertedId, 'orders-store', 'store-orders'])
+        expect(session.read.getEdgeIdsSnapshot()).not.toBe(orderBeforeMove)
         expect(geometry.getEdgeRouteSnapshot('user-orders')).toBe(firstRoute)
         expect(geometry.getEdgeRouteSnapshot(insertedId)).not.toBe(insertedRoute)
 
@@ -752,7 +752,7 @@ describe('DiagramGeometryService', () => {
         expect(session.removeObjects([{ objectId: insertedId, objectKind: 'edge' }])).toBe(true)
         expect(geometry.getEdgeRouteSnapshot(insertedId)).toHaveLength(0)
         expect(geometry.getEdgeRouteSnapshot('orders-store')).not.toBe(routeBeforeDelete)
-        expect((session.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-store'])
+        expect((session.read.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-store'])
     })
 
     it('derives an activation bar from a newly matched call and success pair', () => {

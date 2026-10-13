@@ -139,10 +139,10 @@ describe('DiagramEditSessionService', () => {
         expect(service.removeObjects([{ objectId: 'root', objectKind: 'node' }])).toBe(false)
         expect(service.setNodeField('topic', 'width', undefined)).toBe(false)
         expect(service.setNodeSize('topic', 120, 120)).toBe(true)
-        expect(service.getNodeSnapshot('topic')).toMatchObject({ height: 120, width: 120 })
+        expect(service.read.getNodeSnapshot('topic')).toMatchObject({ height: 120, width: 120 })
         expect(service.removeObjects([{ objectId: 'topic', objectKind: 'node' }])).toBe(true)
         expect(service.removeObjects([{ objectId: 'root', objectKind: 'node' }])).toBe(true)
-        expect(service.getNodeIdsSnapshot()).toEqual([])
+        expect(service.read.getNodeIdsSnapshot()).toEqual([])
         expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('cannot remove mindmap root while topics remain'))
     })
 
@@ -165,21 +165,21 @@ describe('DiagramEditSessionService', () => {
         const storeChanged = vi.fn()
         const connectionChanged = vi.fn()
         const fontScaleChanged = vi.fn()
-        service.subscribeNodeRoleFormatting('focal', focalChanged)
-        service.subscribeNodeRoleFormatting('store', storeChanged)
-        service.subscribeConnectionKindFormatting('connection', connectionChanged)
-        service.subscribeFormattingScale('fontScalePercent', fontScaleChanged)
+        service.read.subscribeNodeRoleFormatting('focal', focalChanged)
+        service.read.subscribeNodeRoleFormatting('store', storeChanged)
+        service.read.subscribeConnectionKindFormatting('connection', connectionChanged)
+        service.read.subscribeFormattingScale('fontScalePercent', fontScaleChanged)
 
         service.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 0 }, font: { bold: true, color: '#112233' } })
         service.setConnectionKindFormatting('connection', { endMarker: 'open-arrow', line: { thickness: 3 } })
         service.setFormattingScale('fontScalePercent', 110)
 
-        expect(service.getNodeRoleFormattingSnapshot('focal')).toEqual({ box: { autoWrap: false, contentInset: 0 }, font: { bold: true, color: '#112233' } })
-        expect(service.getNodeRoleFormattingSnapshot('store')).toBeUndefined()
-        expect(service.getConnectionKindFormattingSnapshot('connection')).toEqual({ endMarker: 'open-arrow', line: { thickness: 3 } })
-        expect(service.getFormattingScaleSnapshot('fontScalePercent')).toBe(110)
-        expect(service.getDirtySnapshot()).toBe(true)
-        expect(service.getChangeIdsSnapshot()).toEqual([
+        expect(service.read.getNodeRoleFormattingSnapshot('focal')).toEqual({ box: { autoWrap: false, contentInset: 0 }, font: { bold: true, color: '#112233' } })
+        expect(service.read.getNodeRoleFormattingSnapshot('store')).toBeUndefined()
+        expect(service.read.getConnectionKindFormattingSnapshot('connection')).toEqual({ endMarker: 'open-arrow', line: { thickness: 3 } })
+        expect(service.read.getFormattingScaleSnapshot('fontScalePercent')).toBe(110)
+        expect(service.read.getDirtySnapshot()).toBe(true)
+        expect(service.read.getChangeIdsSnapshot()).toEqual([
             'diagram:formatting:nodeRole:focal',
             'diagram:formatting:connectionKind:connection',
             'diagram:formatting:scale:fontScalePercent',
@@ -198,8 +198,8 @@ describe('DiagramEditSessionService', () => {
         service.setFormattingScale('boxScalePercent', 130)
         service.setFormattingScale('boxScalePercent', 120)
 
-        expect(service.getDirtySnapshot()).toBe(false)
-        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getDirtySnapshot()).toBe(false)
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
     })
 
     it('sets viewport scale directly without changing editable model state', () => {
@@ -208,20 +208,20 @@ describe('DiagramEditSessionService', () => {
         const dirtyChanged = vi.fn()
         const changeIdsChanged = vi.fn()
         const sessionChanged = vi.fn()
-        service.subscribeViewportScale(viewportScaleChanged)
-        service.subscribeDirty(dirtyChanged)
-        service.subscribeChangeIds(changeIdsChanged)
-        service.subscribeSession(sessionChanged)
+        service.read.subscribeViewportScale(viewportScaleChanged)
+        service.read.subscribeDirty(dirtyChanged)
+        service.read.subscribeChangeIds(changeIdsChanged)
+        service.read.subscribeSession(sessionChanged)
         service.start()
         sessionChanged.mockClear()
-        const editableDiagram = service.getEditableDiagram()
-        const changeIds = service.getChangeIdsSnapshot()
+        const editableDiagram = service.read.getEditableDiagram()
+        const changeIds = service.read.getChangeIdsSnapshot()
 
         expect(service.setViewportScale(MAXIMUM_DIAGRAM_ZOOM)).toBe(true)
-        expect(service.getViewportScaleSnapshot()).toBe(MAXIMUM_DIAGRAM_ZOOM)
-        expect(service.getEditableDiagram()).toBe(editableDiagram)
-        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getViewportScaleSnapshot()).toBe(MAXIMUM_DIAGRAM_ZOOM)
+        expect(service.read.getEditableDiagram()).toBe(editableDiagram)
+        expect(service.read.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(service.read.getDirtySnapshot()).toBe(false)
         expect(viewportScaleChanged).toHaveBeenCalledOnce()
         expect(dirtyChanged).not.toHaveBeenCalled()
         expect(changeIdsChanged).not.toHaveBeenCalled()
@@ -234,28 +234,28 @@ describe('DiagramEditSessionService', () => {
     it('accepts the minimum viewport scale', () => {
         const { service } = createHarness()
         const viewportScaleChanged = vi.fn()
-        service.subscribeViewportScale(viewportScaleChanged)
+        service.read.subscribeViewportScale(viewportScaleChanged)
         service.start()
 
         service.setViewportScale(MINIMUM_DIAGRAM_ZOOM)
-        expect(service.getViewportScaleSnapshot()).toBe(MINIMUM_DIAGRAM_ZOOM)
+        expect(service.read.getViewportScaleSnapshot()).toBe(MINIMUM_DIAGRAM_ZOOM)
         expect(viewportScaleChanged).toHaveBeenCalledOnce()
     })
 
     it('resets viewport scale on fresh session and discard', () => {
         const { service } = createHarness()
         const viewportScaleChanged = vi.fn()
-        service.subscribeViewportScale(viewportScaleChanged)
+        service.read.subscribeViewportScale(viewportScaleChanged)
         service.start()
         service.setViewportScale(MAXIMUM_DIAGRAM_ZOOM)
 
         service.start()
-        expect(service.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
+        expect(service.read.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
         expect(viewportScaleChanged).toHaveBeenCalledTimes(2)
 
         service.setViewportScale(MINIMUM_DIAGRAM_ZOOM)
         service.discard()
-        expect(service.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
+        expect(service.read.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
         expect(viewportScaleChanged).toHaveBeenCalledTimes(4)
     })
 
@@ -271,21 +271,21 @@ describe('DiagramEditSessionService', () => {
         const gestureChanged = vi.fn()
         const creationToolChanged = vi.fn()
         const sessionChanged = vi.fn()
-        service.subscribeActiveTool(toolChanged)
-        service.subscribeTransientGesture(gestureChanged)
-        service.subscribeLastSelectedCreationTool(creationToolChanged)
-        service.subscribeSession(sessionChanged)
+        service.read.subscribeActiveTool(toolChanged)
+        service.read.subscribeTransientGesture(gestureChanged)
+        service.read.subscribeLastSelectedCreationTool(creationToolChanged)
+        service.read.subscribeSession(sessionChanged)
         service.start()
         sessionChanged.mockClear()
 
         service.setActiveTool('node:component')
-        expect(service.getActiveToolSnapshot()).toBe('node:component')
-        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(service.read.getActiveToolSnapshot()).toBe('node:component')
+        expect(service.read.getTransientGestureSnapshot()).toBeNull()
         expect(toolChanged).toHaveBeenCalledOnce()
         expect(gestureChanged).not.toHaveBeenCalled()
 
         service.beginTransientGesture('placement')
-        expect(service.getTransientGestureSnapshot()).toBe('placement')
+        expect(service.read.getTransientGestureSnapshot()).toBe('placement')
         expect(gestureChanged).toHaveBeenCalledOnce()
         expect(toolChanged).toHaveBeenCalledOnce()
         expect(creationToolChanged).toHaveBeenCalledOnce()
@@ -296,16 +296,16 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness()
         const toolChanged = vi.fn()
         const gestureChanged = vi.fn()
-        service.subscribeActiveTool(toolChanged)
-        service.subscribeTransientGesture(gestureChanged)
+        service.read.subscribeActiveTool(toolChanged)
+        service.read.subscribeTransientGesture(gestureChanged)
         service.start()
         service.setActiveTool('node:component')
         service.beginTransientGesture('placement')
 
         service.setActiveTool('edge:connection')
 
-        expect(service.getActiveToolSnapshot()).toBe('edge:connection')
-        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(service.read.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(service.read.getTransientGestureSnapshot()).toBeNull()
         expect(toolChanged).toHaveBeenCalledTimes(2)
         expect(gestureChanged).toHaveBeenCalledTimes(2)
         service.setActiveTool('edge:connection')
@@ -319,8 +319,8 @@ describe('DiagramEditSessionService', () => {
         service.beginTransientGesture('edge')
 
         expect(service.cancelActiveInteraction()).toBe(true)
-        expect(service.getActiveToolSnapshot()).toBe('edge:connection')
-        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(service.read.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(service.read.getTransientGestureSnapshot()).toBeNull()
         expect(service.cancelActiveInteraction()).toBe(false)
     })
 
@@ -328,21 +328,21 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness()
         const toolChanged = vi.fn()
         const gestureChanged = vi.fn()
-        service.subscribeActiveTool(toolChanged)
-        service.subscribeTransientGesture(gestureChanged)
+        service.read.subscribeActiveTool(toolChanged)
+        service.read.subscribeTransientGesture(gestureChanged)
         service.start()
 
         service.setActiveTool('pan')
         service.beginTransientGesture('pan')
 
-        expect(service.getActiveToolSnapshot()).toBe('pan')
-        expect(service.getTransientGestureSnapshot()).toBe('pan')
+        expect(service.read.getActiveToolSnapshot()).toBe('pan')
+        expect(service.read.getTransientGestureSnapshot()).toBe('pan')
         expect(toolChanged).toHaveBeenCalledOnce()
         expect(gestureChanged).toHaveBeenCalledOnce()
 
         expect(service.cancelActiveInteraction()).toBe(true)
-        expect(service.getActiveToolSnapshot()).toBe('pan')
-        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(service.read.getActiveToolSnapshot()).toBe('pan')
+        expect(service.read.getTransientGestureSnapshot()).toBeNull()
         expect(toolChanged).toHaveBeenCalledOnce()
         expect(gestureChanged).toHaveBeenCalledTimes(2)
     })
@@ -355,8 +355,8 @@ describe('DiagramEditSessionService', () => {
 
         service.completeTransientGesture()
 
-        expect(service.getActiveToolSnapshot()).toBe('pan')
-        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(service.read.getActiveToolSnapshot()).toBe('pan')
+        expect(service.read.getTransientGestureSnapshot()).toBeNull()
     })
 
     it('resets active interaction on fresh session, discard, source change, and project change', () => {
@@ -365,29 +365,29 @@ describe('DiagramEditSessionService', () => {
         service.setActiveTool('node:component')
         service.beginTransientGesture('placement')
         service.start()
-        expect(service.getActiveToolSnapshot()).toBe('select')
-        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(service.read.getActiveToolSnapshot()).toBe('select')
+        expect(service.read.getTransientGestureSnapshot()).toBeNull()
 
         service.setActiveTool('group')
         service.beginTransientGesture('placement')
         service.discard()
-        expect(service.getActiveToolSnapshot()).toBe('select')
-        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(service.read.getActiveToolSnapshot()).toBe('select')
+        expect(service.read.getTransientGestureSnapshot()).toBeNull()
 
         service.start()
         service.setActiveTool('edge:connection')
         service.beginTransientGesture('edge')
         const nextRecord = { ...firstRecord, id: 'diagram-2', path: 'design/diagrams/detail.json' }
         sourceService.setSource({ diagram: structuredClone(diagram), record: nextRecord })
-        expect(service.getActiveToolSnapshot()).toBe('select')
-        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(service.read.getActiveToolSnapshot()).toBe('select')
+        expect(service.read.getTransientGestureSnapshot()).toBeNull()
 
         service.start()
         service.setActiveTool('node:component')
         service.beginTransientGesture('placement')
         service.bindProject({ ...project, branch: 'feature' })
-        expect(service.getActiveToolSnapshot()).toBe('select')
-        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(service.read.getActiveToolSnapshot()).toBe('select')
+        expect(service.read.getTransientGestureSnapshot()).toBeNull()
     })
 
     it('rejects tool and gesture changes without an active edit session', () => {
@@ -406,29 +406,29 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness()
         const creationToolChanged = vi.fn()
         const sessionChanged = vi.fn()
-        service.subscribeLastSelectedCreationTool(creationToolChanged)
-        service.subscribeSession(sessionChanged)
+        service.read.subscribeLastSelectedCreationTool(creationToolChanged)
+        service.read.subscribeSession(sessionChanged)
         service.start()
-        const session = service.getSessionSnapshot()
-        const editable = service.getEditableDiagram()
+        const session = service.read.getSessionSnapshot()
+        const editable = service.read.getEditableDiagram()
 
         service.setActiveTool('node:component')
         service.setActiveTool('select')
         service.setActiveTool('pan')
 
-        expect(service.getLastSelectedCreationToolSnapshot()).toBe('node:component')
+        expect(service.read.getLastSelectedCreationToolSnapshot()).toBe('node:component')
         expect(creationToolChanged).toHaveBeenCalledOnce()
         expect(sessionChanged).toHaveBeenCalledOnce()
-        expect(service.getSessionSnapshot()).toBe(session)
-        expect(service.getEditableDiagram()).toBe(editable)
+        expect(service.read.getSessionSnapshot()).toBe(session)
+        expect(service.read.getEditableDiagram()).toBe(editable)
 
         service.setLastSelectedCreationTool('fragment')
-        expect(service.getLastSelectedCreationToolSnapshot()).toBe('fragment')
+        expect(service.read.getLastSelectedCreationToolSnapshot()).toBe('fragment')
         expect(creationToolChanged).toHaveBeenCalledTimes(2)
 
         service.discard()
 
-        expect(service.getLastSelectedCreationToolSnapshot()).toBeNull()
+        expect(service.read.getLastSelectedCreationToolSnapshot()).toBeNull()
         expect(creationToolChanged).toHaveBeenCalledTimes(3)
         expect(sessionChanged).toHaveBeenCalledTimes(2)
     })
@@ -445,8 +445,8 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness()
 
         service.start()
-        const original = service.getOriginalDiagramSnapshot()
-        const editable = service.getEditableDiagram()
+        const original = service.read.getOriginalDiagramSnapshot()
+        const editable = service.read.getEditableDiagram()
 
         expect(original).toEqual({ diagram, record: firstRecord })
         expect(original?.diagram).toBe(diagram)
@@ -458,7 +458,7 @@ describe('DiagramEditSessionService', () => {
         service.setNodeField('orders', 'label', 'Edited orders')
         expect(diagram.nodes[0].label).toBe('Orders')
         expect(original?.diagram.nodes[0].label).toBe('Orders')
-        expect(service.getDirtySnapshot()).toBe(true)
+        expect(service.read.getDirtySnapshot()).toBe(true)
     })
 
     it('exposes stable snapshots and notifies only changed values', () => {
@@ -466,17 +466,17 @@ describe('DiagramEditSessionService', () => {
         const dirtyListener = vi.fn()
         const originalListener = vi.fn()
         const sessionListener = vi.fn()
-        service.subscribeDirty(dirtyListener)
-        service.subscribeOriginalDiagram(originalListener)
-        service.subscribeSession(sessionListener)
+        service.read.subscribeDirty(dirtyListener)
+        service.read.subscribeOriginalDiagram(originalListener)
+        service.read.subscribeSession(sessionListener)
 
         service.start()
-        const editable = service.getEditableDiagram()
-        const original = service.getOriginalDiagramSnapshot()
-        const session = service.getSessionSnapshot()
-        expect(service.getEditableDiagram()).toBe(editable)
-        expect(service.getOriginalDiagramSnapshot()).toBe(original)
-        expect(service.getSessionSnapshot()).toBe(session)
+        const editable = service.read.getEditableDiagram()
+        const original = service.read.getOriginalDiagramSnapshot()
+        const session = service.read.getSessionSnapshot()
+        expect(service.read.getEditableDiagram()).toBe(editable)
+        expect(service.read.getOriginalDiagramSnapshot()).toBe(original)
+        expect(service.read.getSessionSnapshot()).toBe(session)
         expect(dirtyListener).not.toHaveBeenCalled()
         expect(originalListener).toHaveBeenCalledOnce()
         expect(sessionListener).toHaveBeenCalledOnce()
@@ -486,6 +486,27 @@ describe('DiagramEditSessionService', () => {
         expect(dirtyListener).not.toHaveBeenCalled()
         expect(originalListener).toHaveBeenCalledTimes(2)
         expect(sessionListener).toHaveBeenCalledTimes(2)
+    })
+
+    it('keeps the read adapter and scoped subscriptions across session replacement', () => {
+        const { service } = createHarness()
+        const reader = service.read
+        const labelChanged = vi.fn()
+        const unsubscribe = reader.subscribeNodeField('orders', 'label', labelChanged)
+
+        service.start()
+        service.setNodeField('orders', 'label', 'First edit')
+        service.discard()
+        service.start()
+
+        expect(service.read).toBe(reader)
+        expect(reader.getNodeFieldSnapshot('orders', 'label')).toBe('Orders')
+        service.setNodeField('orders', 'label', 'Second edit')
+        expect(labelChanged).toHaveBeenCalledTimes(2)
+
+        unsubscribe()
+        service.setNodeField('orders', 'label', 'Third edit')
+        expect(labelChanged).toHaveBeenCalledTimes(2)
     })
 
     it('fails fast before project binding or without an active source diagram', () => {
@@ -500,43 +521,43 @@ describe('DiagramEditSessionService', () => {
     it('keeps session for same source identity and discards it for another source', () => {
         const { service, sourceService } = createHarness()
         service.start()
-        const session = service.getSessionSnapshot()
+        const session = service.read.getSessionSnapshot()
 
         sourceService.setSource({ diagram: structuredClone(diagram), record: { ...firstRecord } })
-        expect(service.getSessionSnapshot()).toBe(session)
+        expect(service.read.getSessionSnapshot()).toBe(session)
 
         const nextRecord = { ...firstRecord, id: 'diagram-2', path: 'design/diagrams/detail.json' }
         sourceService.setSource({ diagram: structuredClone(diagram), record: nextRecord })
-        expect(service.getSessionSnapshot()).toBeNull()
-        expect(service.getOriginalDiagramSnapshot()).toBeNull()
-        expect(service.getEditableDiagram()).toBeNull()
+        expect(service.read.getSessionSnapshot()).toBeNull()
+        expect(service.read.getOriginalDiagramSnapshot()).toBeNull()
+        expect(service.read.getEditableDiagram()).toBeNull()
     })
 
     it('keeps creation status only for the created source and clears it on later edits', () => {
         const { service, sourceService } = createHarness()
         expect(() => service.startCreation('')).toThrow('without a source diagram ID')
         expect(() => service.startCreation('other-diagram')).toThrow('different diagram source')
-        expect(service.getSessionSnapshot()).toBeNull()
+        expect(service.read.getSessionSnapshot()).toBeNull()
 
         service.startCreation(firstRecord.id)
-        expect(service.getSessionSnapshot()).toEqual({
+        expect(service.read.getSessionSnapshot()).toEqual({
             creationSourceDiagramId: firstRecord.id,
             sourceDiagramId: firstRecord.id,
         })
 
         sourceService.setSource({ diagram: structuredClone(diagram), record: { ...firstRecord } })
-        expect(service.getSessionSnapshot()?.creationSourceDiagramId).toBe(firstRecord.id)
+        expect(service.read.getSessionSnapshot()?.creationSourceDiagramId).toBe(firstRecord.id)
 
         service.discard()
-        expect(service.getSessionSnapshot()).toBeNull()
+        expect(service.read.getSessionSnapshot()).toBeNull()
         service.start()
-        expect(service.getSessionSnapshot()).toEqual({ sourceDiagramId: firstRecord.id })
+        expect(service.read.getSessionSnapshot()).toEqual({ sourceDiagramId: firstRecord.id })
 
         service.startCreation(firstRecord.id)
         sourceService.setSource({ diagram: structuredClone(diagram), record: { ...firstRecord, id: 'next' } })
-        expect(service.getSessionSnapshot()).toBeNull()
+        expect(service.read.getSessionSnapshot()).toBeNull()
         service.start()
-        expect(service.getSessionSnapshot()).toEqual({ sourceDiagramId: 'next' })
+        expect(service.read.getSessionSnapshot()).toEqual({ sourceDiagramId: 'next' })
     })
 
     it('preselects Root for a new empty mindmap and leaves other sessions unchanged', () => {
@@ -545,11 +566,11 @@ describe('DiagramEditSessionService', () => {
         sourceService.setSource({ diagram: emptyMindmap, record: firstRecord })
 
         service.startCreation(firstRecord.id)
-        expect(service.getLastSelectedCreationToolSnapshot()).toBe('node:root')
-        expect(service.getActiveToolSnapshot()).toBe('select')
+        expect(service.read.getLastSelectedCreationToolSnapshot()).toBe('node:root')
+        expect(service.read.getActiveToolSnapshot()).toBe('select')
 
         service.start()
-        expect(service.getLastSelectedCreationToolSnapshot()).toBeNull()
+        expect(service.read.getLastSelectedCreationToolSnapshot()).toBeNull()
     })
 
     it('restores saved creation content and copy target as a clean session', () => {
@@ -560,30 +581,30 @@ describe('DiagramEditSessionService', () => {
 
         service.restoreCreation(firstRecord.id, savedDiagram, savedRecord)
 
-        expect(service.getSessionSnapshot()?.creationSourceDiagramId).toBe(firstRecord.id)
-        expect(service.getEditableDiagram()?.nodes[0].label).toBe('Saved label')
-        expect(service.getOriginalDiagramSnapshot()?.record).toBe(firstRecord)
-        expect(service.getSavedRecordSnapshot()).toBe(savedRecord)
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getSessionSnapshot()?.creationSourceDiagramId).toBe(firstRecord.id)
+        expect(service.read.getEditableDiagram()?.nodes[0].label).toBe('Saved label')
+        expect(service.read.getOriginalDiagramSnapshot()?.record).toBe(firstRecord)
+        expect(service.read.getSavedRecordSnapshot()).toBe(savedRecord)
+        expect(service.read.getDirtySnapshot()).toBe(false)
         expect(() => service.restoreCreation(firstRecord.id, savedDiagram, null)).toThrow('restored together')
     })
 
     it('starts every session fresh and resets only when project identity changes', () => {
         const { service } = createHarness()
         service.start()
-        const firstSession = service.getSessionSnapshot()
+        const firstSession = service.read.getSessionSnapshot()
         service.setNodeField('orders', 'label', 'Draft label')
 
         service.start()
-        expect(service.getSessionSnapshot()).not.toBe(firstSession)
-        expect(service.getEditableDiagram()?.nodes[0].label).toBe('Orders')
+        expect(service.read.getSessionSnapshot()).not.toBe(firstSession)
+        expect(service.read.getEditableDiagram()?.nodes[0].label).toBe('Orders')
 
-        const secondSession = service.getSessionSnapshot()
+        const secondSession = service.read.getSessionSnapshot()
         service.bindProject({ ...project })
-        expect(service.getSessionSnapshot()).toBe(secondSession)
+        expect(service.read.getSessionSnapshot()).toBe(secondSession)
 
         service.bindProject({ ...project, branch: 'feature' })
-        expect(service.getSessionSnapshot()).toBeNull()
+        expect(service.read.getSessionSnapshot()).toBeNull()
     })
 
     it('unsubscribes from source navigation when cleared', () => {
@@ -592,20 +613,20 @@ describe('DiagramEditSessionService', () => {
         service.clear()
 
         sourceService.setSource(null)
-        expect(service.getSessionSnapshot()).toBeNull()
+        expect(service.read.getSessionSnapshot()).toBeNull()
         expect(() => service.start()).toThrow('not bound to a project')
     })
 
     it('assigns one node field and emits only its scoped field event plus dirty transition', () => {
         const { service } = createHarness()
         service.start()
-        const editable = service.getEditableDiagram()
+        const editable = service.read.getEditableDiagram()
         const nodes = editable?.nodes
         const edges = editable?.edges
         const groups = editable?.groups
-        const orders = service.getNodeSnapshot('orders')
-        const store = service.getNodeSnapshot('store')
-        const nodeIds = service.getNodeIdsSnapshot()
+        const orders = service.read.getNodeSnapshot('orders')
+        const store = service.read.getNodeSnapshot('store')
+        const nodeIds = service.read.getNodeIdsSnapshot()
         const nodeLabelChanged = vi.fn()
         const storeLabelChanged = vi.fn()
         const nodeMembershipChanged = vi.fn()
@@ -613,24 +634,24 @@ describe('DiagramEditSessionService', () => {
         const groupChanged = vi.fn()
         const sessionChanged = vi.fn()
         const dirtyChanged = vi.fn()
-        service.subscribeNodeField('orders', 'label', nodeLabelChanged)
-        service.subscribeNodeField('store', 'label', storeLabelChanged)
-        service.subscribeCollectionMembership('node', nodeMembershipChanged)
-        service.subscribeEdgeField('orders-store', 'kind', edgeChanged)
-        service.subscribeGroupField('backend', 'label', groupChanged)
-        service.subscribeSession(sessionChanged)
-        service.subscribeDirty(dirtyChanged)
+        service.read.subscribeNodeField('orders', 'label', nodeLabelChanged)
+        service.read.subscribeNodeField('store', 'label', storeLabelChanged)
+        service.read.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.read.subscribeEdgeField('orders-store', 'kind', edgeChanged)
+        service.read.subscribeGroupField('backend', 'label', groupChanged)
+        service.read.subscribeSession(sessionChanged)
+        service.read.subscribeDirty(dirtyChanged)
 
         service.setNodeField('orders', 'label', 'Order API')
 
-        expect(service.getEditableDiagram()).toBe(editable)
-        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
-        expect(service.getEditableDiagram()?.edges).toBe(edges)
-        expect(service.getEditableDiagram()?.groups).toBe(groups)
-        expect(service.getNodeSnapshot('orders')).toBe(orders)
-        expect(service.getNodeSnapshot('store')).toBe(store)
-        expect(service.getNodeIdsSnapshot()).toBe(nodeIds)
-        expect(service.getNodeFieldSnapshot('orders', 'label')).toBe('Order API')
+        expect(service.read.getEditableDiagram()).toBe(editable)
+        expect(service.read.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.read.getEditableDiagram()?.edges).toBe(edges)
+        expect(service.read.getEditableDiagram()?.groups).toBe(groups)
+        expect(service.read.getNodeSnapshot('orders')).toBe(orders)
+        expect(service.read.getNodeSnapshot('store')).toBe(store)
+        expect(service.read.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(service.read.getNodeFieldSnapshot('orders', 'label')).toBe('Order API')
         expect(nodeLabelChanged).toHaveBeenCalledOnce()
         expect((nodeLabelChanged.mock.calls[0][0] as CustomEvent).detail).toEqual({
             field: 'label',
@@ -650,7 +671,7 @@ describe('DiagramEditSessionService', () => {
     it('trims metadata fields and publishes only each changed field with its semantic change', () => {
         const { service } = createHarness()
         service.start()
-        const editable = service.getEditableDiagram()
+        const editable = service.read.getEditableDiagram()
         const nodes = editable?.nodes
         const edges = editable?.edges
         const groups = editable?.groups
@@ -660,21 +681,21 @@ describe('DiagramEditSessionService', () => {
         const nodeChanged = vi.fn()
         const nodeMembershipChanged = vi.fn()
         const sessionChanged = vi.fn()
-        service.subscribeMetadataField('title', titleChanged)
-        service.subscribeMetadataField('description', descriptionChanged)
-        service.subscribeNodeField('orders', 'label', nodeChanged)
-        service.subscribeCollectionMembership('node', nodeMembershipChanged)
-        service.subscribeSession(sessionChanged)
+        service.read.subscribeMetadataField('title', titleChanged)
+        service.read.subscribeMetadataField('description', descriptionChanged)
+        service.read.subscribeNodeField('orders', 'label', nodeChanged)
+        service.read.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.read.subscribeSession(sessionChanged)
 
         expect(service.setMetadataField('title', '  System overview  ')).toBe(true)
 
-        expect(service.getEditableDiagram()).toBe(editable)
-        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
-        expect(service.getEditableDiagram()?.edges).toBe(edges)
-        expect(service.getEditableDiagram()?.groups).toBe(groups)
-        expect(service.getEditableDiagram()?.meta).toBe(metadata)
-        expect(service.getMetadataFieldSnapshot('title')).toBe('System overview')
-        expect(service.getMetadataFieldSnapshot('description')).toBe('Orders architecture')
+        expect(service.read.getEditableDiagram()).toBe(editable)
+        expect(service.read.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.read.getEditableDiagram()?.edges).toBe(edges)
+        expect(service.read.getEditableDiagram()?.groups).toBe(groups)
+        expect(service.read.getEditableDiagram()?.meta).toBe(metadata)
+        expect(service.read.getMetadataFieldSnapshot('title')).toBe('System overview')
+        expect(service.read.getMetadataFieldSnapshot('description')).toBe('Orders architecture')
         expect(titleChanged).toHaveBeenCalledOnce()
         expect((titleChanged.mock.calls[0][0] as CustomEvent).detail).toEqual({
             field: 'title',
@@ -688,8 +709,8 @@ describe('DiagramEditSessionService', () => {
         expect(nodeMembershipChanged).not.toHaveBeenCalled()
         expect(sessionChanged).not.toHaveBeenCalled()
 
-        const [titleChangeId] = service.getChangeIdsSnapshot()
-        expect(service.getChange(titleChangeId)).toMatchObject({
+        const [titleChangeId] = service.read.getChangeIdsSnapshot()
+        expect(service.read.getChange(titleChangeId)).toMatchObject({
             category: 'field',
             field: 'title',
             objectId: 'diagram',
@@ -699,14 +720,14 @@ describe('DiagramEditSessionService', () => {
         })
 
         expect(service.setMetadataField('description', '  Updated architecture  ')).toBe(true)
-        expect(service.getMetadataFieldSnapshot('description')).toBe('Updated architecture')
+        expect(service.read.getMetadataFieldSnapshot('description')).toBe('Updated architecture')
         expect(titleChanged).toHaveBeenCalledOnce()
         expect(descriptionChanged).toHaveBeenCalledOnce()
-        const descriptionChangeId = service.getChangeIdsSnapshot().find((changeId) => (
-            service.getChangeFieldSnapshot(changeId, 'field') === 'description'
+        const descriptionChangeId = service.read.getChangeIdsSnapshot().find((changeId) => (
+            service.read.getChangeFieldSnapshot(changeId, 'field') === 'description'
         ))
         if (!descriptionChangeId) throw new Error('Expected description semantic change')
-        expect(service.getChangeFieldSnapshot(descriptionChangeId, 'value')).toBe('Updated architecture')
+        expect(service.read.getChangeFieldSnapshot(descriptionChangeId, 'value')).toBe('Updated architecture')
     })
 
     it('rejects blank metadata and treats surrounding whitespace on the current value as unchanged', () => {
@@ -715,16 +736,16 @@ describe('DiagramEditSessionService', () => {
         service.start()
         const titleChanged = vi.fn()
         const descriptionChanged = vi.fn()
-        service.subscribeMetadataField('title', titleChanged)
-        service.subscribeMetadataField('description', descriptionChanged)
+        service.read.subscribeMetadataField('title', titleChanged)
+        service.read.subscribeMetadataField('description', descriptionChanged)
 
         expect(service.setMetadataField('title', '  Overview  ')).toBe(false)
         expect(service.setMetadataField('description', ' \n ')).toBe(false)
 
-        expect(service.getMetadataFieldSnapshot('title')).toBe('Overview')
-        expect(service.getMetadataFieldSnapshot('description')).toBe('Orders architecture')
-        expect(service.getChangeIdsSnapshot()).toEqual([])
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getMetadataFieldSnapshot('title')).toBe('Overview')
+        expect(service.read.getMetadataFieldSnapshot('description')).toBe('Orders architecture')
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getDirtySnapshot()).toBe(false)
         expect(titleChanged).not.toHaveBeenCalled()
         expect(descriptionChanged).not.toHaveBeenCalled()
         expect(reportValidationError).toHaveBeenCalledExactlyOnceWith(
@@ -736,15 +757,15 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness()
         service.start()
         const dirtyChanged = vi.fn()
-        service.subscribeDirty(dirtyChanged)
+        service.read.subscribeDirty(dirtyChanged)
 
         service.setNodeField('orders', 'label', 'Order API')
         service.setMetadataField('title', 'System')
         service.setNodeField('orders', 'label', 'Orders')
-        expect(service.getDirtySnapshot()).toBe(true)
+        expect(service.read.getDirtySnapshot()).toBe(true)
 
         service.setMetadataField('title', 'Overview')
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getDirtySnapshot()).toBe(false)
         expect(dirtyChanged).toHaveBeenCalledTimes(2)
     })
 
@@ -752,51 +773,51 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness()
         service.start()
 
-        expect(service.getNodeIdsSnapshot()).toEqual(['orders', 'store'])
-        expect(service.getEdgeIdsSnapshot()).toEqual(['orders-store'])
-        expect(service.getGroupIdsSnapshot()).toEqual(['backend'])
-        expect(service.getFragmentIdsSnapshot()).toEqual([])
-        expect(service.getMetadataFieldSnapshot('description')).toBe('Orders architecture')
-        expect(service.getEdgeFieldSnapshot('orders-store', 'kind')).toBe('connection')
-        expect(service.getGroupFieldSnapshot('backend', 'label')).toBe('Backend')
-        expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'side')).toBe('right')
+        expect(service.read.getNodeIdsSnapshot()).toEqual(['orders', 'store'])
+        expect(service.read.getEdgeIdsSnapshot()).toEqual(['orders-store'])
+        expect(service.read.getGroupIdsSnapshot()).toEqual(['backend'])
+        expect(service.read.getFragmentIdsSnapshot()).toEqual([])
+        expect(service.read.getMetadataFieldSnapshot('description')).toBe('Orders architecture')
+        expect(service.read.getEdgeFieldSnapshot('orders-store', 'kind')).toBe('connection')
+        expect(service.read.getGroupFieldSnapshot('backend', 'label')).toBe('Backend')
+        expect(service.read.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'side')).toBe('right')
 
         service.setEdgeField('orders-store', 'label', 'writes')
         service.setGroupField('backend', 'label', 'Core')
 
-        expect(service.getEdgeFieldSnapshot('orders-store', 'label')).toBe('writes')
-        expect(service.getGroupFieldSnapshot('backend', 'label')).toBe('Core')
+        expect(service.read.getEdgeFieldSnapshot('orders-store', 'label')).toBe('writes')
+        expect(service.read.getGroupFieldSnapshot('backend', 'label')).toBe('Core')
     })
 
     it('reconnects each endpoint atomically while preserving stable edge and attachment objects', () => {
         const { service } = createHarness()
         service.start()
-        const edge = service.getEdgeSnapshot('orders-store')
-        const sourceAttachment = service.getEdgeSnapshot('orders-store')?.sourceAttachment
-        const targetAttachment = service.getEdgeSnapshot('orders-store')?.targetAttachment
+        const edge = service.read.getEdgeSnapshot('orders-store')
+        const sourceAttachment = service.read.getEdgeSnapshot('orders-store')?.sourceAttachment
+        const targetAttachment = service.read.getEdgeSnapshot('orders-store')?.targetAttachment
         const fromChanged = vi.fn()
         const toChanged = vi.fn()
         const sourceNodeChanged = vi.fn()
         const targetNodeChanged = vi.fn()
         const edgeMembershipChanged = vi.fn()
-        service.subscribeEdgeField('orders-store', 'from', fromChanged)
-        service.subscribeEdgeField('orders-store', 'to', toChanged)
-        service.subscribeConnectionPointField('orders-store', 'sourceAttachment', 'nodeId', sourceNodeChanged)
-        service.subscribeConnectionPointField('orders-store', 'targetAttachment', 'nodeId', targetNodeChanged)
-        service.subscribeCollectionMembership('edge', edgeMembershipChanged)
+        service.read.subscribeEdgeField('orders-store', 'from', fromChanged)
+        service.read.subscribeEdgeField('orders-store', 'to', toChanged)
+        service.read.subscribeConnectionPointField('orders-store', 'sourceAttachment', 'nodeId', sourceNodeChanged)
+        service.read.subscribeConnectionPointField('orders-store', 'targetAttachment', 'nodeId', targetNodeChanged)
+        service.read.subscribeCollectionMembership('edge', edgeMembershipChanged)
 
         expect(service.reconnectEdgeEndpoint('orders-store', 'sourceAttachment', 'store')).toBe(true)
         expect(service.reconnectEdgeEndpoint('orders-store', 'targetAttachment', 'orders')).toBe(true)
 
-        expect(service.getEdgeSnapshot('orders-store')).toBe(edge)
-        expect(service.getEdgeSnapshot('orders-store')?.sourceAttachment).toBe(sourceAttachment)
-        expect(service.getEdgeSnapshot('orders-store')?.targetAttachment).toBe(targetAttachment)
-        expect(service.getEdgeFieldSnapshot('orders-store', 'from')).toBe('store')
-        expect(service.getEdgeFieldSnapshot('orders-store', 'to')).toBe('orders')
-        expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('store')
-        expect(service.getConnectionPointFieldSnapshot('orders-store', 'targetAttachment', 'nodeId')).toBe('orders')
-        expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'offset')).toBe(0.5)
-        expect(service.getConnectionPointFieldSnapshot('orders-store', 'targetAttachment', 'side')).toBe('left')
+        expect(service.read.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(service.read.getEdgeSnapshot('orders-store')?.sourceAttachment).toBe(sourceAttachment)
+        expect(service.read.getEdgeSnapshot('orders-store')?.targetAttachment).toBe(targetAttachment)
+        expect(service.read.getEdgeFieldSnapshot('orders-store', 'from')).toBe('store')
+        expect(service.read.getEdgeFieldSnapshot('orders-store', 'to')).toBe('orders')
+        expect(service.read.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('store')
+        expect(service.read.getConnectionPointFieldSnapshot('orders-store', 'targetAttachment', 'nodeId')).toBe('orders')
+        expect(service.read.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'offset')).toBe(0.5)
+        expect(service.read.getConnectionPointFieldSnapshot('orders-store', 'targetAttachment', 'side')).toBe('left')
         expect(fromChanged).toHaveBeenCalledOnce()
         expect(toChanged).toHaveBeenCalledOnce()
         expect(sourceNodeChanged).toHaveBeenCalledOnce()
@@ -808,16 +829,16 @@ describe('DiagramEditSessionService', () => {
         const reportValidationError = vi.fn()
         const { service } = createHarness({ reportValidationError })
         service.start()
-        const edge = service.getEdgeSnapshot('orders-store')
-        const sourceAttachment = service.getEdgeSnapshot('orders-store')?.sourceAttachment
+        const edge = service.read.getEdgeSnapshot('orders-store')
+        const sourceAttachment = service.read.getEdgeSnapshot('orders-store')?.sourceAttachment
 
         expect(service.reconnectEdgeEndpoint('orders-store', 'sourceAttachment', 'missing')).toBe(false)
 
-        expect(service.getEdgeSnapshot('orders-store')).toBe(edge)
-        expect(service.getEdgeSnapshot('orders-store')?.sourceAttachment).toBe(sourceAttachment)
-        expect(service.getEdgeFieldSnapshot('orders-store', 'from')).toBe('orders')
-        expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('orders')
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(service.read.getEdgeSnapshot('orders-store')?.sourceAttachment).toBe(sourceAttachment)
+        expect(service.read.getEdgeFieldSnapshot('orders-store', 'from')).toBe('orders')
+        expect(service.read.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('orders')
+        expect(service.read.getDirtySnapshot()).toBe(false)
         expect(reportValidationError).toHaveBeenCalledWith(
             'Reconnect edge endpoint rejected: edges.orders-store.from has unknown node missing',
         )
@@ -828,13 +849,13 @@ describe('DiagramEditSessionService', () => {
         const { service: entityService } = createHarness({ source: entityDiagram })
         entityService.start()
 
-        expect(sequenceService.getFragmentFieldSnapshot('transaction', 'operator')).toBe('opt')
-        expect(sequenceService.updateFragment('transaction', { operator: 'loop', regions: sequenceService.getFragmentSnapshot('transaction')?.regions.map(({ edgeIds, guard }) => ({ edgeIds: [...edgeIds], guard })) ?? [] })).toBe(true)
-        expect(entityService.getEntityFieldValueSnapshot('order', 0, 'type')).toBe('uuid')
+        expect(sequenceService.read.getFragmentFieldSnapshot('transaction', 'operator')).toBe('opt')
+        expect(sequenceService.updateFragment('transaction', { operator: 'loop', regions: sequenceService.read.getFragmentSnapshot('transaction')?.regions.map(({ edgeIds, guard }) => ({ edgeIds: [...edgeIds], guard })) ?? [] })).toBe(true)
+        expect(entityService.read.getEntityFieldValueSnapshot('order', 0, 'type')).toBe('uuid')
         expect(entityService.setEntityField('order', 0, 'type', 'string')).toBe(true)
 
-        expect(sequenceService.getFragmentFieldSnapshot('transaction', 'operator')).toBe('loop')
-        expect(entityService.getEntityFieldValueSnapshot('order', 0, 'type')).toBe('string')
+        expect(sequenceService.read.getFragmentFieldSnapshot('transaction', 'operator')).toBe('loop')
+        expect(entityService.read.getEntityFieldValueSnapshot('order', 0, 'type')).toBe('string')
     })
 
     it('adds, reorders, and removes entity fields through one scoped membership event per operation', () => {
@@ -842,42 +863,42 @@ describe('DiagramEditSessionService', () => {
         service.start()
         const membershipChanged = vi.fn()
         const nodeFieldsChanged = vi.fn()
-        const originalIndexes = service.getEntityFieldIndexesSnapshot('order')
-        const originalNode = service.getNodeSnapshot('order')
-        service.subscribeEntityFieldMembership('order', membershipChanged)
-        service.subscribeNodeField('order', 'fields', nodeFieldsChanged)
+        const originalIndexes = service.read.getEntityFieldIndexesSnapshot('order')
+        const originalNode = service.read.getNodeSnapshot('order')
+        service.read.subscribeEntityFieldMembership('order', membershipChanged)
+        service.read.subscribeNodeField('order', 'fields', nodeFieldsChanged)
 
         expect(service.addEntityField('order', { key: 'foreign', name: 'customerId', type: 'uuid' })).toBe(true)
-        expect(service.getEntityFieldIndexesSnapshot('order')).toEqual([0, 1])
-        expect(service.getEntityFieldIndexesSnapshot('order')).not.toBe(originalIndexes)
-        expect(service.getNodeSnapshot('order')).toBe(originalNode)
+        expect(service.read.getEntityFieldIndexesSnapshot('order')).toEqual([0, 1])
+        expect(service.read.getEntityFieldIndexesSnapshot('order')).not.toBe(originalIndexes)
+        expect(service.read.getNodeSnapshot('order')).toBe(originalNode)
         expect(service.moveEntityField('order', 1, 0)).toBe(true)
-        expect(service.getEntityFieldValueSnapshot('order', 0, 'name')).toBe('customerId')
+        expect(service.read.getEntityFieldValueSnapshot('order', 0, 'name')).toBe('customerId')
         expect(service.removeEntityField('order', 1)).toBe(true)
 
-        expect(service.getEntityFieldIndexesSnapshot('order')).toEqual([0])
-        expect(service.getEntityFieldValueSnapshot('order', 0, 'name')).toBe('customerId')
+        expect(service.read.getEntityFieldIndexesSnapshot('order')).toEqual([0])
+        expect(service.read.getEntityFieldValueSnapshot('order', 0, 'name')).toBe('customerId')
         expect(membershipChanged).toHaveBeenCalledTimes(3)
         expect(membershipDetail(membershipChanged, 0)).toEqual({ addedIndexes: [1], nodeId: 'order', removedIndexes: [] })
         expect(membershipDetail(membershipChanged, 1)).toEqual({ addedIndexes: [0], nodeId: 'order', removedIndexes: [1] })
         expect(membershipDetail(membershipChanged, 2)).toEqual({ addedIndexes: [], nodeId: 'order', removedIndexes: [1] })
         expect(nodeFieldsChanged).not.toHaveBeenCalled()
-        expect(service.getDirtySnapshot()).toBe(true)
+        expect(service.read.getDirtySnapshot()).toBe(true)
     })
 
     it('validates entity fields before insertion and leaves membership unchanged when rejected', () => {
         const reportValidationError = vi.fn()
         const { service } = createHarness({ reportValidationError, source: entityDiagram })
         service.start()
-        const fields = service.getNodeFieldSnapshot('order', 'fields')
-        const indexes = service.getEntityFieldIndexesSnapshot('order')
+        const fields = service.read.getNodeFieldSnapshot('order', 'fields')
+        const indexes = service.read.getEntityFieldIndexesSnapshot('order')
 
         expect(service.addEntityField('order', { name: '' })).toBe(false)
         expect(service.addEntityField('order', { name: 'createdAt' }, 3)).toBe(false)
 
-        expect(service.getNodeFieldSnapshot('order', 'fields')).toBe(fields)
-        expect(service.getEntityFieldIndexesSnapshot('order')).toBe(indexes)
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getNodeFieldSnapshot('order', 'fields')).toBe(fields)
+        expect(service.read.getEntityFieldIndexesSnapshot('order')).toBe(indexes)
+        expect(service.read.getDirtySnapshot()).toBe(false)
         expect(reportValidationError).toHaveBeenCalledTimes(2)
     })
 
@@ -886,33 +907,35 @@ describe('DiagramEditSessionService', () => {
         const createId = vi.fn().mockReturnValueOnce('orders').mockReturnValueOnce('orders-store').mockReturnValueOnce('node-1')
         const { service } = createHarness({ createId })
         service.start()
-        const editable = service.getEditableDiagram()
+        const editable = service.read.getEditableDiagram()
         const nodes = editable?.nodes
-        const orders = service.getNodeSnapshot('orders')
-        const edgeIds = service.getEdgeIdsSnapshot()
+        const orders = service.read.getNodeSnapshot('orders')
+        const edgeIds = service.read.getEdgeIdsSnapshot()
+        const nodeIds = service.read.getNodeIdsSnapshot()
         const nodeMembershipChanged = vi.fn()
         const edgeMembershipChanged = vi.fn()
         const ordersLabelChanged = vi.fn()
         const groupMembershipChanged = vi.fn()
         const sessionChanged = vi.fn()
         const dirtyChanged = vi.fn()
-        service.subscribeCollectionMembership('node', nodeMembershipChanged)
-        service.subscribeCollectionMembership('edge', edgeMembershipChanged)
-        service.subscribeNodeField('orders', 'label', ordersLabelChanged)
-        service.subscribeGroupMembership('backend', groupMembershipChanged)
-        service.subscribeSession(sessionChanged)
-        service.subscribeDirty(dirtyChanged)
+        service.read.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.read.subscribeCollectionMembership('edge', edgeMembershipChanged)
+        service.read.subscribeNodeField('orders', 'label', ordersLabelChanged)
+        service.read.subscribeGroupMembership('backend', groupMembershipChanged)
+        service.read.subscribeSession(sessionChanged)
+        service.read.subscribeDirty(dirtyChanged)
 
         const createdId = service.createNode({ label: 'Billing', role: 'backend' })
 
         expect(createdId).toBe('node-1')
         expect(createId).toHaveBeenCalledTimes(3)
-        expect(service.getEditableDiagram()).toBe(editable)
-        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
-        expect(service.getNodeSnapshot('orders')).toBe(orders)
-        expect(service.getNodeIdsSnapshot()).toEqual(['orders', 'store', 'node-1'])
-        expect(service.getEdgeIdsSnapshot()).toBe(edgeIds)
-        expect(service.getNodeFieldSnapshot('node-1', 'label')).toBe('Billing')
+        expect(service.read.getEditableDiagram()).toBe(editable)
+        expect(service.read.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.read.getNodeSnapshot('orders')).toBe(orders)
+        expect(service.read.getNodeIdsSnapshot()).toEqual(['orders', 'store', 'node-1'])
+        expect(service.read.getNodeIdsSnapshot()).not.toBe(nodeIds)
+        expect(service.read.getEdgeIdsSnapshot()).toBe(edgeIds)
+        expect(service.read.getNodeFieldSnapshot('node-1', 'label')).toBe('Billing')
         expect(nodeMembershipChanged).toHaveBeenCalledOnce()
         expect(membershipDetail(nodeMembershipChanged)).toEqual({
             addedIds: ['node-1'],
@@ -922,7 +945,7 @@ describe('DiagramEditSessionService', () => {
             removedIds: [],
         })
         expect(dirtyChanged).toHaveBeenCalledOnce()
-        expect(service.getDirtySnapshot()).toBe(true)
+        expect(service.read.getDirtySnapshot()).toBe(true)
         expect(edgeMembershipChanged).not.toHaveBeenCalled()
         expect(ordersLabelChanged).not.toHaveBeenCalled()
         expect(groupMembershipChanged).not.toHaveBeenCalled()
@@ -938,13 +961,13 @@ describe('DiagramEditSessionService', () => {
             .mockReturnValueOnce('pasted-group')
             .mockReturnValueOnce('pasted-fragment')
         const service = sequenceHarness(createId)
-        const editable = service.getEditableDiagram()
+        const editable = service.read.getEditableDiagram()
         const nodes = editable?.nodes
         const edges = editable?.edges
         const groups = editable?.groups
         const fragments = editable?.fragments
-        const existingNode = service.getNodeSnapshot('user')
-        const existingEdge = service.getEdgeSnapshot('user-orders')
+        const existingNode = service.read.getNodeSnapshot('user')
+        const existingEdge = service.read.getEdgeSnapshot('user-orders')
         const nodeMembershipChanged = vi.fn()
         const edgeMembershipChanged = vi.fn()
         const groupMembershipChanged = vi.fn()
@@ -952,13 +975,13 @@ describe('DiagramEditSessionService', () => {
         const existingNodeChanged = vi.fn()
         const existingGroupMembershipChanged = vi.fn()
         const existingFragmentMembershipChanged = vi.fn()
-        service.subscribeCollectionMembership('node', nodeMembershipChanged)
-        service.subscribeCollectionMembership('edge', edgeMembershipChanged)
-        service.subscribeCollectionMembership('group', groupMembershipChanged)
-        service.subscribeCollectionMembership('fragment', fragmentMembershipChanged)
-        service.subscribeNodeField('user', 'label', existingNodeChanged)
-        service.subscribeGroupMembership('backend', existingGroupMembershipChanged)
-        service.subscribeFragmentRegionMembership('transaction', 0, existingFragmentMembershipChanged)
+        service.read.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.read.subscribeCollectionMembership('edge', edgeMembershipChanged)
+        service.read.subscribeCollectionMembership('group', groupMembershipChanged)
+        service.read.subscribeCollectionMembership('fragment', fragmentMembershipChanged)
+        service.read.subscribeNodeField('user', 'label', existingNodeChanged)
+        service.read.subscribeGroupMembership('backend', existingGroupMembershipChanged)
+        service.read.subscribeFragmentRegionMembership('transaction', 0, existingFragmentMembershipChanged)
 
         const result = service.pasteFragment({
             edges: [{
@@ -991,23 +1014,23 @@ describe('DiagramEditSessionService', () => {
             ],
         })
         expect(createId).toHaveBeenCalledTimes(6)
-        expect(service.getEditableDiagram()).toBe(editable)
-        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
-        expect(service.getEditableDiagram()?.edges).toBe(edges)
-        expect(service.getEditableDiagram()?.groups).toBe(groups)
-        expect(service.getEditableDiagram()?.fragments).toBe(fragments)
-        expect(service.getNodeSnapshot('user')).toBe(existingNode)
-        expect(service.getEdgeSnapshot('user-orders')).toBe(existingEdge)
-        expect(service.getNodeSnapshot('pasted-user')).toMatchObject({ x: 12, y: 16 })
-        expect(service.getEdgeSnapshot('pasted-call')).toMatchObject({
+        expect(service.read.getEditableDiagram()).toBe(editable)
+        expect(service.read.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.read.getEditableDiagram()?.edges).toBe(edges)
+        expect(service.read.getEditableDiagram()?.groups).toBe(groups)
+        expect(service.read.getEditableDiagram()?.fragments).toBe(fragments)
+        expect(service.read.getNodeSnapshot('user')).toBe(existingNode)
+        expect(service.read.getEdgeSnapshot('user-orders')).toBe(existingEdge)
+        expect(service.read.getNodeSnapshot('pasted-user')).toMatchObject({ x: 12, y: 16 })
+        expect(service.read.getEdgeSnapshot('pasted-call')).toMatchObject({
             from: 'pasted-user',
             sourceAttachment: { nodeId: 'pasted-user' },
             targetAttachment: { nodeId: 'pasted-orders' },
             to: 'pasted-orders',
             waypoints: [{ x: 24, y: 16 }, { x: 44, y: 16 }],
         })
-        expect(service.getGroupSnapshot('pasted-group')).toMatchObject({ nodeIds: ['pasted-user', 'pasted-orders'], x: 8, y: 12 })
-        expect(service.getFragmentSnapshot('pasted-fragment')).toMatchObject({regions: [{ edgeIds: ['pasted-call'], guard: 'requested' }]})
+        expect(service.read.getGroupSnapshot('pasted-group')).toMatchObject({ nodeIds: ['pasted-user', 'pasted-orders'], x: 8, y: 12 })
+        expect(service.read.getFragmentSnapshot('pasted-fragment')).toMatchObject({regions: [{ edgeIds: ['pasted-call'], guard: 'requested' }]})
         expect(nodeMembershipChanged).toHaveBeenCalledOnce()
         expect(membershipDetail(nodeMembershipChanged).addedIds).toEqual(['pasted-user', 'pasted-orders'])
         expect(edgeMembershipChanged).toHaveBeenCalledOnce()
@@ -1019,18 +1042,18 @@ describe('DiagramEditSessionService', () => {
         expect(existingNodeChanged).not.toHaveBeenCalled()
         expect(existingGroupMembershipChanged).not.toHaveBeenCalled()
         expect(existingFragmentMembershipChanged).not.toHaveBeenCalled()
-        expect(service.getChangeIdsSnapshot()).toHaveLength(5)
+        expect(service.read.getChangeIdsSnapshot()).toHaveLength(5)
     })
 
     it('rejects pasted object kinds unsupported by target type before mutation', () => {
         const reportValidationError = vi.fn()
         const { service } = createHarness({ reportValidationError })
         service.start()
-        const editable = service.getEditableDiagram()
-        const nodeIds = service.getNodeIdsSnapshot()
-        const changeIds = service.getChangeIdsSnapshot()
+        const editable = service.read.getEditableDiagram()
+        const nodeIds = service.read.getNodeIdsSnapshot()
+        const changeIds = service.read.getChangeIdsSnapshot()
         const nodeMembershipChanged = vi.fn()
-        service.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.read.subscribeCollectionMembership('node', nodeMembershipChanged)
 
         const result = service.pasteFragment({
             edges: [],
@@ -1040,10 +1063,10 @@ describe('DiagramEditSessionService', () => {
         }, 4)
 
         expect(result).toBeNull()
-        expect(service.getEditableDiagram()).toBe(editable)
-        expect(service.getNodeIdsSnapshot()).toBe(nodeIds)
-        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getEditableDiagram()).toBe(editable)
+        expect(service.read.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(service.read.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(service.read.getDirtySnapshot()).toBe(false)
         expect(nodeMembershipChanged).not.toHaveBeenCalled()
         expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('Paste diagram fragment rejected'))
     })
@@ -1051,35 +1074,35 @@ describe('DiagramEditSessionService', () => {
     it('removes a node with its incident edges and group membership in one transaction', () => {
         const { service } = createHarness()
         service.start()
-        const editable = service.getEditableDiagram()
+        const editable = service.read.getEditableDiagram()
         const nodes = editable?.nodes
         const edges = editable?.edges
         const groups = editable?.groups
-        const store = service.getNodeSnapshot('store')
-        const backend = service.getGroupSnapshot('backend')
+        const store = service.read.getNodeSnapshot('store')
+        const backend = service.read.getGroupSnapshot('backend')
         const nodeMembershipChanged = vi.fn()
         const edgeMembershipChanged = vi.fn()
         const groupMembershipChanged = vi.fn()
         const groupLabelChanged = vi.fn()
         const storeLabelChanged = vi.fn()
-        service.subscribeCollectionMembership('node', nodeMembershipChanged)
-        service.subscribeCollectionMembership('edge', edgeMembershipChanged)
-        service.subscribeGroupMembership('backend', groupMembershipChanged)
-        service.subscribeGroupField('backend', 'label', groupLabelChanged)
-        service.subscribeNodeField('store', 'label', storeLabelChanged)
+        service.read.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.read.subscribeCollectionMembership('edge', edgeMembershipChanged)
+        service.read.subscribeGroupMembership('backend', groupMembershipChanged)
+        service.read.subscribeGroupField('backend', 'label', groupLabelChanged)
+        service.read.subscribeNodeField('store', 'label', storeLabelChanged)
 
         expect(service.removeObjects([{ objectId: 'orders', objectKind: 'node' }])).toBe(true)
 
-        expect(service.getEditableDiagram()).toBe(editable)
-        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
-        expect(service.getEditableDiagram()?.edges).toBe(edges)
-        expect(service.getEditableDiagram()?.groups).toBe(groups)
-        expect(service.getNodeSnapshot('store')).toBe(store)
-        expect(service.getGroupSnapshot('backend')).toBe(backend)
-        expect(service.getNodeIdsSnapshot()).toEqual(['store'])
-        expect(service.getEdgeIdsSnapshot()).toEqual([])
-        expect(service.getGroupNodeIdsSnapshot('backend')).toEqual(['store'])
-        expect(service.getNodeSnapshot('orders')).toBeNull()
+        expect(service.read.getEditableDiagram()).toBe(editable)
+        expect(service.read.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.read.getEditableDiagram()?.edges).toBe(edges)
+        expect(service.read.getEditableDiagram()?.groups).toBe(groups)
+        expect(service.read.getNodeSnapshot('store')).toBe(store)
+        expect(service.read.getGroupSnapshot('backend')).toBe(backend)
+        expect(service.read.getNodeIdsSnapshot()).toEqual(['store'])
+        expect(service.read.getEdgeIdsSnapshot()).toEqual([])
+        expect(service.read.getGroupNodeIdsSnapshot('backend')).toEqual(['store'])
+        expect(service.read.getNodeSnapshot('orders')).toBeNull()
         expect(nodeMembershipChanged).toHaveBeenCalledOnce()
         expect(membershipDetail(nodeMembershipChanged).removedIds).toEqual(['orders'])
         expect(edgeMembershipChanged).toHaveBeenCalledOnce()
@@ -1104,15 +1127,15 @@ describe('DiagramEditSessionService', () => {
         const reportValidationError = vi.fn()
         const { service } = createHarness({ reportValidationError, source })
         service.start()
-        const editable = service.getEditableDiagram()
+        const editable = service.read.getEditableDiagram()
         const nodes = editable?.nodes
         const edges = editable?.edges
         const groups = editable?.groups
         const fragments = editable?.fragments
-        const user = service.getNodeSnapshot('user')
-        const transaction = service.getFragmentSnapshot('transaction')
-        const actors = service.getGroupSnapshot('actors')
-        const actorsNodeIds = service.getGroupNodeIdsSnapshot('actors')
+        const user = service.read.getNodeSnapshot('user')
+        const transaction = service.read.getFragmentSnapshot('transaction')
+        const actors = service.read.getGroupSnapshot('actors')
+        const actorsNodeIds = service.read.getGroupNodeIdsSnapshot('actors')
         const nodeMembershipChanged = vi.fn()
         const edgeMembershipChanged = vi.fn()
         const groupMembershipChanged = vi.fn()
@@ -1120,34 +1143,34 @@ describe('DiagramEditSessionService', () => {
         const fragmentMembershipChanged = vi.fn()
         const dirtyChanged = vi.fn()
         const changeIdsChanged = vi.fn()
-        service.subscribeCollectionMembership('node', nodeMembershipChanged)
-        service.subscribeCollectionMembership('edge', edgeMembershipChanged)
-        service.subscribeCollectionMembership('group', groupMembershipChanged)
-        service.subscribeGroupMembership('backend', backendMembershipChanged)
-        service.subscribeCollectionMembership('fragment', fragmentMembershipChanged)
-        service.subscribeDirty(dirtyChanged)
-        service.subscribeChangeIds(changeIdsChanged)
+        service.read.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.read.subscribeCollectionMembership('edge', edgeMembershipChanged)
+        service.read.subscribeCollectionMembership('group', groupMembershipChanged)
+        service.read.subscribeGroupMembership('backend', backendMembershipChanged)
+        service.read.subscribeCollectionMembership('fragment', fragmentMembershipChanged)
+        service.read.subscribeDirty(dirtyChanged)
+        service.read.subscribeChangeIds(changeIdsChanged)
 
         expect(service.removeObjects([
             { objectId: 'orders', objectKind: 'node' },
             { objectId: 'orders-user', objectKind: 'edge' },
         ])).toBe(true)
 
-        expect(service.getEditableDiagram()).toBe(editable)
-        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
-        expect(service.getEditableDiagram()?.edges).toBe(edges)
-        expect(service.getEditableDiagram()?.groups).toBe(groups)
-        expect(service.getEditableDiagram()?.fragments).toBe(fragments)
-        expect(service.getNodeSnapshot('user')).toBe(user)
-        expect(service.getGroupSnapshot('actors')).toBe(actors)
-        expect(service.getGroupNodeIdsSnapshot('actors')).toBe(actorsNodeIds)
-        expect(service.getNodeIdsSnapshot()).toEqual(['user'])
-        expect(service.getEdgeIdsSnapshot()).toEqual([])
-        expect(service.getGroupIdsSnapshot()).toEqual(['backend', 'actors'])
-        expect(service.getGroupNodeIdsSnapshot('backend')).toEqual([])
-        expect(service.getFragmentIdsSnapshot()).toEqual(['transaction'])
-        expect(service.getFragmentSnapshot('transaction')).toBe(transaction)
-        expect((service.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual([])
+        expect(service.read.getEditableDiagram()).toBe(editable)
+        expect(service.read.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.read.getEditableDiagram()?.edges).toBe(edges)
+        expect(service.read.getEditableDiagram()?.groups).toBe(groups)
+        expect(service.read.getEditableDiagram()?.fragments).toBe(fragments)
+        expect(service.read.getNodeSnapshot('user')).toBe(user)
+        expect(service.read.getGroupSnapshot('actors')).toBe(actors)
+        expect(service.read.getGroupNodeIdsSnapshot('actors')).toBe(actorsNodeIds)
+        expect(service.read.getNodeIdsSnapshot()).toEqual(['user'])
+        expect(service.read.getEdgeIdsSnapshot()).toEqual([])
+        expect(service.read.getGroupIdsSnapshot()).toEqual(['backend', 'actors'])
+        expect(service.read.getGroupNodeIdsSnapshot('backend')).toEqual([])
+        expect(service.read.getFragmentIdsSnapshot()).toEqual(['transaction'])
+        expect(service.read.getFragmentSnapshot('transaction')).toBe(transaction)
+        expect((service.read.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual([])
         expect(membershipDetail(nodeMembershipChanged).removedIds).toEqual(['orders'])
         expect(membershipDetail(edgeMembershipChanged).removedIds).toEqual(['user-orders', 'orders-user'])
         expect(nodeMembershipChanged).toHaveBeenCalledOnce()
@@ -1157,8 +1180,8 @@ describe('DiagramEditSessionService', () => {
         expect(fragmentMembershipChanged).not.toHaveBeenCalled()
         expect(dirtyChanged).toHaveBeenCalledOnce()
         expect(changeIdsChanged).toHaveBeenCalledOnce()
-        expect(service.getChangeIdsSnapshot()).toHaveLength(7)
-        expect(service.getChangeIdsSnapshot().map((changeId) => service.getChange(changeId))).toEqual(
+        expect(service.read.getChangeIdsSnapshot()).toHaveLength(7)
+        expect(service.read.getChangeIdsSnapshot().map((changeId) => service.read.getChange(changeId))).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ category: 'collection', objectId: 'orders', objectKind: 'node', value: null }),
                 expect.objectContaining({ category: 'collection', objectId: 'user-orders', objectKind: 'edge', value: null }),
@@ -1172,28 +1195,28 @@ describe('DiagramEditSessionService', () => {
             'Delete selection validation problem: fragments.transaction.regions[0].edgeIds has empty array',
         )
         expect(source).toEqual(sourceBeforeDelete)
-        expect(service.getOriginalDiagramSnapshot()?.diagram).toEqual(sourceBeforeDelete)
+        expect(service.read.getOriginalDiagramSnapshot()?.diagram).toEqual(sourceBeforeDelete)
     })
 
     it('keeps valid hosts and republishes only references changed by batch deletion', () => {
         const service = sequenceHarness()
-        const fragment = service.getFragmentSnapshot('transaction')
-        const group = service.getGroupSnapshot('backend')
-        const groupNodeIds = service.getGroupNodeIdsSnapshot('backend')
+        const fragment = service.read.getFragmentSnapshot('transaction')
+        const group = service.read.getGroupSnapshot('backend')
+        const groupNodeIds = service.read.getGroupNodeIdsSnapshot('backend')
         const fragmentRegionChanged = vi.fn()
         const groupMembershipChanged = vi.fn()
-        service.subscribeFragmentRegionMembership('transaction', 0, fragmentRegionChanged)
-        service.subscribeGroupMembership('backend', groupMembershipChanged)
+        service.read.subscribeFragmentRegionMembership('transaction', 0, fragmentRegionChanged)
+        service.read.subscribeGroupMembership('backend', groupMembershipChanged)
 
         expect(service.removeObjects([{ objectId: 'user-orders', objectKind: 'edge' }])).toBe(true)
 
-        expect(service.getFragmentSnapshot('transaction')).toBe(fragment)
-        expect((service.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-user'])
-        expect(service.getGroupSnapshot('backend')).toBe(group)
-        expect(service.getGroupNodeIdsSnapshot('backend')).toBe(groupNodeIds)
+        expect(service.read.getFragmentSnapshot('transaction')).toBe(fragment)
+        expect((service.read.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-user'])
+        expect(service.read.getGroupSnapshot('backend')).toBe(group)
+        expect(service.read.getGroupNodeIdsSnapshot('backend')).toBe(groupNodeIds)
         expect(fragmentRegionChanged).toHaveBeenCalledOnce()
         expect(groupMembershipChanged).not.toHaveBeenCalled()
-        expect(service.getChangeIdsSnapshot().map((changeId) => service.getChange(changeId))).toEqual(
+        expect(service.read.getChangeIdsSnapshot().map((changeId) => service.read.getChange(changeId))).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ category: 'collection', objectId: 'user-orders', objectKind: 'edge' }),
                 expect.objectContaining({ category: 'membership', objectId: 'user-orders', ownerId: 'transaction' }),
@@ -1211,15 +1234,15 @@ describe('DiagramEditSessionService', () => {
         const reportValidationError = vi.fn()
         const { service } = createHarness({ reportValidationError, source })
         service.start()
-        const editable = service.getEditableDiagram()
-        const nodeIds = service.getNodeIdsSnapshot()
+        const editable = service.read.getEditableDiagram()
+        const nodeIds = service.read.getNodeIdsSnapshot()
 
         expect(service.removeObjects([{ objectId: 'only', objectKind: 'node' }])).toBe(false)
 
-        expect(service.getEditableDiagram()).toBe(editable)
-        expect(service.getNodeIdsSnapshot()).toBe(nodeIds)
-        expect(service.getNodeSnapshot('only')).not.toBeNull()
-        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getEditableDiagram()).toBe(editable)
+        expect(service.read.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(service.read.getNodeSnapshot('only')).not.toBeNull()
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
         expect(reportValidationError).toHaveBeenCalledWith(
             'Delete selection rejected: nodes has empty array after deleting selection',
         )
@@ -1227,48 +1250,52 @@ describe('DiagramEditSessionService', () => {
 
     it('creates an edge between existing nodes and drops fragment references when it is removed', () => {
         const service = sequenceHarness(vi.fn().mockReturnValue('edge-1'))
-        const nodes = service.getEditableDiagram()?.nodes
+        const nodes = service.read.getEditableDiagram()?.nodes
         const nodeMembershipChanged = vi.fn()
         const edgeMembershipChanged = vi.fn()
         const regionMembershipChanged = vi.fn()
-        service.subscribeCollectionMembership('node', nodeMembershipChanged)
-        service.subscribeCollectionMembership('edge', edgeMembershipChanged)
-        service.subscribeFragmentRegionMembership('transaction', 0, regionMembershipChanged)
+        service.read.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.read.subscribeCollectionMembership('edge', edgeMembershipChanged)
+        service.read.subscribeFragmentRegionMembership('transaction', 0, regionMembershipChanged)
 
         const createdId = service.createEdge({ from: 'orders', kind: 'async', to: 'user' })
 
         expect(createdId).toBe('edge-1')
-        expect(service.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user', 'edge-1'])
-        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.read.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user', 'edge-1'])
+        expect(service.read.getEditableDiagram()?.nodes).toBe(nodes)
         expect(edgeMembershipChanged).toHaveBeenCalledOnce()
         expect(nodeMembershipChanged).not.toHaveBeenCalled()
         expect(regionMembershipChanged).not.toHaveBeenCalled()
 
         expect(service.removeObjects([{ objectId: 'user-orders', objectKind: 'edge' }])).toBe(true)
-        expect(service.getEdgeIdsSnapshot()).toEqual(['orders-user', 'edge-1'])
-        expect((service.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-user'])
+        expect(service.read.getEdgeIdsSnapshot()).toEqual(['orders-user', 'edge-1'])
+        expect((service.read.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-user'])
         expect(regionMembershipChanged).toHaveBeenCalledOnce()
-        expect(service.getNodeIdsSnapshot()).toEqual(['user', 'orders'])
+        expect(service.read.getNodeIdsSnapshot()).toEqual(['user', 'orders'])
         expect(service.removeObjects([{ objectId: 'user-orders', objectKind: 'edge' }])).toBe(false)
     })
 
     it('inserts and moves sequence messages by persisted row without changing fragment references', () => {
         const service = sequenceHarness(vi.fn().mockReturnValue('edge-1'))
         const edgeMembershipChanged = vi.fn()
-        const fragmentEdgeIds = (service.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)
-        service.subscribeCollectionMembership('edge', edgeMembershipChanged)
+        const fragmentEdgeIds = (service.read.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)
+        const initialEdgeIds = service.read.getEdgeIdsSnapshot()
+        service.read.subscribeCollectionMembership('edge', edgeMembershipChanged)
 
         expect(service.createSequenceEdge({ from: 'orders', kind: 'success', to: 'user' }, 1)).toBe('edge-1')
-        expect(service.getEdgeIdsSnapshot()).toEqual(['user-orders', 'edge-1', 'orders-user'])
+        expect(service.read.getEdgeIdsSnapshot()).toEqual(['user-orders', 'edge-1', 'orders-user'])
+        expect(service.read.getEdgeIdsSnapshot()).not.toBe(initialEdgeIds)
+        const insertedEdgeIds = service.read.getEdgeIdsSnapshot()
         expect(edgeMembershipChanged).toHaveBeenCalledOnce()
-        expect((service.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toBe(fragmentEdgeIds)
+        expect((service.read.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toBe(fragmentEdgeIds)
 
         expect(service.moveSequenceEdge('orders-user', 0)).toBe(true)
-        expect(service.getEdgeIdsSnapshot()).toEqual(['orders-user', 'user-orders', 'edge-1'])
+        expect(service.read.getEdgeIdsSnapshot()).toEqual(['orders-user', 'user-orders', 'edge-1'])
+        expect(service.read.getEdgeIdsSnapshot()).not.toBe(insertedEdgeIds)
         expect(edgeMembershipChanged).toHaveBeenCalledTimes(2)
-        expect((service.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toBe(fragmentEdgeIds)
+        expect((service.read.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toBe(fragmentEdgeIds)
 
-        const persisted = parseDiagramData(JSON.stringify(service.getEditableDiagram()))
+        const persisted = parseDiagramData(JSON.stringify(service.read.getEditableDiagram()))
         const reloaded = parseDiagramData(serializeDiagramData(persisted))
         expect(reloaded.edges.map(({ id }) => id)).toEqual(['orders-user', 'user-orders', 'edge-1'])
         expect(reloaded.fragments?.[0].regions[0].edgeIds).toEqual(['user-orders', 'orders-user'])
@@ -1280,7 +1307,7 @@ describe('DiagramEditSessionService', () => {
 
         expect(sequence.createSequenceEdge({ from: 'orders', kind: 'success', to: 'user' }, 3)).toBeNull()
         expect(sequence.moveSequenceEdge('orders-user', -1)).toBe(false)
-        expect(sequence.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user'])
+        expect(sequence.read.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user'])
 
         const { service: architecture } = createHarness({ reportValidationError })
         architecture.start()
@@ -1292,25 +1319,25 @@ describe('DiagramEditSessionService', () => {
     it('creates and removes groups without touching their member nodes', () => {
         const { service } = createHarness({ createId: vi.fn().mockReturnValue('group-1') })
         service.start()
-        const store = service.getNodeSnapshot('store')
+        const store = service.read.getNodeSnapshot('store')
         const groupMembershipChanged = vi.fn()
         const nodeMembershipChanged = vi.fn()
-        service.subscribeCollectionMembership('group', groupMembershipChanged)
-        service.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.read.subscribeCollectionMembership('group', groupMembershipChanged)
+        service.read.subscribeCollectionMembership('node', nodeMembershipChanged)
 
         const createdId = service.createGroup({ height: 80, label: 'Storage', nodeIds: [], width: 120, x: 20, y: 24 })
 
         expect(createdId).toBe('group-1')
-        expect(service.getGroupIdsSnapshot()).toEqual(['backend', 'group-1'])
-        expect(service.getGroupNodeIdsSnapshot('group-1')).toEqual([])
-        expect(service.getGroupSnapshot('group-1')).toMatchObject({ height: 80, width: 120, x: 20, y: 24 })
+        expect(service.read.getGroupIdsSnapshot()).toEqual(['backend', 'group-1'])
+        expect(service.read.getGroupNodeIdsSnapshot('group-1')).toEqual([])
+        expect(service.read.getGroupSnapshot('group-1')).toMatchObject({ height: 80, width: 120, x: 20, y: 24 })
         expect(groupMembershipChanged).toHaveBeenCalledOnce()
 
         expect(service.removeObjects([{ objectId: 'group-1', objectKind: 'group' }])).toBe(true)
-        expect(service.getGroupIdsSnapshot()).toEqual(['backend'])
-        expect(service.getGroupNodeIdsSnapshot('group-1')).toBeNull()
-        expect(service.getNodeSnapshot('store')).toBe(store)
-        expect(service.getNodeIdsSnapshot()).toEqual(['orders', 'store'])
+        expect(service.read.getGroupIdsSnapshot()).toEqual(['backend'])
+        expect(service.read.getGroupNodeIdsSnapshot('group-1')).toBeNull()
+        expect(service.read.getNodeSnapshot('store')).toBe(store)
+        expect(service.read.getNodeIdsSnapshot()).toEqual(['orders', 'store'])
         expect(nodeMembershipChanged).not.toHaveBeenCalled()
         expect(service.removeObjects([{ objectId: 'group-1', objectKind: 'group' }])).toBe(false)
     })
@@ -1320,22 +1347,22 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness({ reportValidationError })
         service.start()
         service.removeGroupMember('backend', 'store')
-        const backend = service.getGroupSnapshot('backend')
-        const nodeIds = service.getNodeIdsSnapshot()
+        const backend = service.read.getGroupSnapshot('backend')
+        const nodeIds = service.read.getNodeIdsSnapshot()
         const groupMembershipChanged = vi.fn()
         const nodeMembershipChanged = vi.fn()
-        service.subscribeGroupMembership('backend', groupMembershipChanged)
-        service.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.read.subscribeGroupMembership('backend', groupMembershipChanged)
+        service.read.subscribeCollectionMembership('node', nodeMembershipChanged)
 
         expect(service.addGroupMember('backend', 'store')).toBe(true)
         expect(service.addGroupMember('backend', 'store')).toBe(false)
 
-        expect(service.getGroupNodeIdsSnapshot('backend')).toEqual(['orders', 'store'])
-        expect(service.getGroupSnapshot('backend')).toBe(backend)
-        expect(service.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(service.read.getGroupNodeIdsSnapshot('backend')).toEqual(['orders', 'store'])
+        expect(service.read.getGroupSnapshot('backend')).toBe(backend)
+        expect(service.read.getNodeIdsSnapshot()).toBe(nodeIds)
         expect(groupMembershipChanged).toHaveBeenCalledOnce()
         expect(nodeMembershipChanged).not.toHaveBeenCalled()
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getDirtySnapshot()).toBe(false)
         expect(service.addGroupMember('backend', 'missing')).toBe(false)
         expect(reportValidationError).toHaveBeenCalledWith(
             'Add group member rejected: groups.backend.nodeIds has unknown node missing',
@@ -1350,18 +1377,18 @@ describe('DiagramEditSessionService', () => {
         service.removeGroupMember('backend', 'store')
 
         expect(service.removeGroupMember('backend', 'orders')).toBe(true)
-        expect(service.getGroupNodeIdsSnapshot('backend')).toEqual([])
+        expect(service.read.getGroupNodeIdsSnapshot('backend')).toEqual([])
 
         expect(service.addGroupMember('backend', 'store')).toBe(true)
         expect(service.removeObjects([{ objectId: 'store', objectKind: 'node' }])).toBe(true)
-        expect(service.getGroupSnapshot('backend')).not.toBeNull()
-        expect(service.getGroupNodeIdsSnapshot('backend')).toEqual([])
+        expect(service.read.getGroupSnapshot('backend')).not.toBeNull()
+        expect(service.read.getGroupNodeIdsSnapshot('backend')).toEqual([])
     })
 
     it('creates fragments only on sequence diagrams and keeps region edges after removal', () => {
         const service = sequenceHarness(vi.fn().mockReturnValue('fragment-1'))
         const fragmentMembershipChanged = vi.fn()
-        service.subscribeCollectionMembership('fragment', fragmentMembershipChanged)
+        service.read.subscribeCollectionMembership('fragment', fragmentMembershipChanged)
 
         const createdId = service.createFragment({
             operator: 'alt',
@@ -1369,39 +1396,39 @@ describe('DiagramEditSessionService', () => {
         })
 
         expect(createdId).toBe('fragment-1')
-        expect(service.getFragmentIdsSnapshot()).toEqual(['transaction', 'fragment-1'])
-        expect((service.getFragmentSnapshot('fragment-1')?.regions[1]?.edgeIds ?? null)).toEqual(['orders-user'])
+        expect(service.read.getFragmentIdsSnapshot()).toEqual(['transaction', 'fragment-1'])
+        expect((service.read.getFragmentSnapshot('fragment-1')?.regions[1]?.edgeIds ?? null)).toEqual(['orders-user'])
         expect(fragmentMembershipChanged).toHaveBeenCalledOnce()
 
         expect(service.removeFragment('fragment-1')).toBe(true)
-        expect(service.getFragmentIdsSnapshot()).toEqual(['transaction'])
-        expect((service.getFragmentSnapshot('fragment-1')?.regions[0]?.edgeIds ?? null)).toBeNull()
-        expect(service.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user'])
+        expect(service.read.getFragmentIdsSnapshot()).toEqual(['transaction'])
+        expect((service.read.getFragmentSnapshot('fragment-1')?.regions[0]?.edgeIds ?? null)).toBeNull()
+        expect(service.read.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user'])
         expect(service.removeFragment('fragment-1')).toBe(false)
     })
 
     it('updates operator, guards, and ordered region assignments atomically without replacing fragment identity', () => {
         const reportValidationError = vi.fn()
         const service = sequenceHarness(undefined, reportValidationError)
-        const fragment = service.getFragmentSnapshot('transaction')
-        const fragmentIds = service.getFragmentIdsSnapshot()
+        const fragment = service.read.getFragmentSnapshot('transaction')
+        const fragmentIds = service.read.getFragmentIdsSnapshot()
         const fragmentCollectionChanged = vi.fn()
         const operatorChanged = vi.fn()
         const firstGuardChanged = vi.fn()
         const secondGuardChanged = vi.fn()
         const firstRegionChanged = vi.fn(() => {
-            expect(service.getFragmentSnapshot('transaction')?.regions).toEqual([
+            expect(service.read.getFragmentSnapshot('transaction')?.regions).toEqual([
                 { edgeIds: ['orders-user'], guard: 'accepted' },
                 { edgeIds: ['user-orders'], guard: 'rejected' },
             ])
         })
         const secondRegionChanged = vi.fn()
-        service.subscribeCollectionMembership('fragment', fragmentCollectionChanged)
-        service.subscribeFragmentField('transaction', 'operator', operatorChanged)
-        service.subscribeFragmentRegionField('transaction', 0, 'guard', firstGuardChanged)
-        service.subscribeFragmentRegionField('transaction', 1, 'guard', secondGuardChanged)
-        service.subscribeFragmentRegionMembership('transaction', 0, firstRegionChanged)
-        service.subscribeFragmentRegionMembership('transaction', 1, secondRegionChanged)
+        service.read.subscribeCollectionMembership('fragment', fragmentCollectionChanged)
+        service.read.subscribeFragmentField('transaction', 'operator', operatorChanged)
+        service.read.subscribeFragmentRegionField('transaction', 0, 'guard', firstGuardChanged)
+        service.read.subscribeFragmentRegionField('transaction', 1, 'guard', secondGuardChanged)
+        service.read.subscribeFragmentRegionMembership('transaction', 0, firstRegionChanged)
+        service.read.subscribeFragmentRegionMembership('transaction', 1, secondRegionChanged)
 
         expect(service.updateFragment('transaction', {
             operator: 'alt',
@@ -1411,10 +1438,10 @@ describe('DiagramEditSessionService', () => {
             ],
         })).toBe(true)
 
-        expect(service.getFragmentSnapshot('transaction')).toBe(fragment)
-        expect(service.getFragmentIdsSnapshot()).toBe(fragmentIds)
-        expect(service.getFragmentSnapshot('transaction')?.regions[0]?.guard).toBe('accepted')
-        expect((service.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-user'])
+        expect(service.read.getFragmentSnapshot('transaction')).toBe(fragment)
+        expect(service.read.getFragmentIdsSnapshot()).toBe(fragmentIds)
+        expect(service.read.getFragmentSnapshot('transaction')?.regions[0]?.guard).toBe('accepted')
+        expect((service.read.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-user'])
         expect(operatorChanged).toHaveBeenCalledOnce()
         expect(firstGuardChanged).toHaveBeenCalledOnce()
         expect(secondGuardChanged).toHaveBeenCalledOnce()
@@ -1427,18 +1454,18 @@ describe('DiagramEditSessionService', () => {
     it('tracks guard and edge order edits as net fragment changes and rejects invalid complete edits before mutation', () => {
         const reportValidationError = vi.fn()
         const service = sequenceHarness(undefined, reportValidationError)
-        const fragment = service.getFragmentSnapshot('transaction')
+        const fragment = service.read.getFragmentSnapshot('transaction')
         const guardChanged = vi.fn()
         const membershipChanged = vi.fn()
-        service.subscribeFragmentRegionField('transaction', 0, 'guard', guardChanged)
-        service.subscribeFragmentRegionMembership('transaction', 0, membershipChanged)
+        service.read.subscribeFragmentRegionField('transaction', 0, 'guard', guardChanged)
+        service.read.subscribeFragmentRegionMembership('transaction', 0, membershipChanged)
 
         expect(service.updateFragment('transaction', {
             operator: 'opt',
             regions: [{ edgeIds: ['orders-user', 'user-orders'], guard: 'approved' }],
         })).toBe(true)
-        const changeIds = service.getChangeIdsSnapshot()
-        expect(changeIds.map((changeId) => service.getChange(changeId))).toEqual(expect.arrayContaining([
+        const changeIds = service.read.getChangeIdsSnapshot()
+        expect(changeIds.map((changeId) => service.read.getChange(changeId))).toEqual(expect.arrayContaining([
             expect.objectContaining({ field: 'guard', objectId: 'transaction', regionIndex: 0, value: 'approved' }),
             expect.objectContaining({ field: 'edgeIds', objectId: 'transaction', regionIndex: 0, value: ['orders-user', 'user-orders'] }),
         ]))
@@ -1454,8 +1481,8 @@ describe('DiagramEditSessionService', () => {
                 { edgeIds: ['user-orders'], guard: 'two' },
             ],
         })).toBe(false)
-        expect(service.getFragmentSnapshot('transaction')).toBe(fragment)
-        expect((service.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-user', 'user-orders'])
+        expect(service.read.getFragmentSnapshot('transaction')).toBe(fragment)
+        expect((service.read.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-user', 'user-orders'])
         expect(guardChanged).toHaveBeenCalledOnce()
         expect(membershipChanged).toHaveBeenCalledOnce()
 
@@ -1463,24 +1490,24 @@ describe('DiagramEditSessionService', () => {
             operator: 'opt',
             regions: [{ edgeIds: ['user-orders', 'orders-user'], guard: 'requested' }],
         })).toBe(true)
-        expect(service.getDirtySnapshot()).toBe(false)
-        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getDirtySnapshot()).toBe(false)
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
         expect(reportValidationError).toHaveBeenCalledTimes(2)
     })
 
     it('leaves the session untouched when a create operation is rejected', () => {
         const reportValidationError = vi.fn()
         const service = sequenceHarness(undefined, reportValidationError)
-        const editable = service.getEditableDiagram()
-        const edgeIds = service.getEdgeIdsSnapshot()
-        const fragmentIds = service.getFragmentIdsSnapshot()
-        const nodeIds = service.getNodeIdsSnapshot()
+        const editable = service.read.getEditableDiagram()
+        const edgeIds = service.read.getEdgeIdsSnapshot()
+        const fragmentIds = service.read.getFragmentIdsSnapshot()
+        const nodeIds = service.read.getNodeIdsSnapshot()
         const listener = vi.fn()
-        service.subscribeCollectionMembership('edge', listener)
-        service.subscribeCollectionMembership('fragment', listener)
-        service.subscribeCollectionMembership('group', listener)
-        service.subscribeCollectionMembership('node', listener)
-        service.subscribeDirty(listener)
+        service.read.subscribeCollectionMembership('edge', listener)
+        service.read.subscribeCollectionMembership('fragment', listener)
+        service.read.subscribeCollectionMembership('group', listener)
+        service.read.subscribeCollectionMembership('node', listener)
+        service.read.subscribeDirty(listener)
 
         expect(service.createEdge({ from: 'missing', kind: 'call', to: 'user' })).toBeNull()
         expect(service.createNode({ label: '  ', role: 'focal' })).toBeNull()
@@ -1491,12 +1518,12 @@ describe('DiagramEditSessionService', () => {
             regions: [{ edgeIds: ['user-orders'], guard: 'ok' }, { edgeIds: ['user-orders'], guard: 'again' }],
         })).toBeNull()
 
-        expect(service.getEditableDiagram()).toBe(editable)
-        expect(service.getEdgeIdsSnapshot()).toBe(edgeIds)
-        expect(service.getFragmentIdsSnapshot()).toBe(fragmentIds)
-        expect(service.getNodeIdsSnapshot()).toBe(nodeIds)
-        expect(service.getGroupIdsSnapshot()).toEqual(['backend'])
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getEditableDiagram()).toBe(editable)
+        expect(service.read.getEdgeIdsSnapshot()).toBe(edgeIds)
+        expect(service.read.getFragmentIdsSnapshot()).toBe(fragmentIds)
+        expect(service.read.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(service.read.getGroupIdsSnapshot()).toEqual(['backend'])
+        expect(service.read.getDirtySnapshot()).toBe(false)
         expect(listener).not.toHaveBeenCalled()
         expect(reportValidationError).toHaveBeenCalledTimes(5)
         expect(reportValidationError.mock.calls.map(([message]) => message)).toContain(
@@ -1516,13 +1543,13 @@ describe('DiagramEditSessionService', () => {
         const reportValidationError = vi.fn()
         const { service } = createHarness({ reportValidationError })
         service.start()
-        const editable = service.getEditableDiagram()
-        const changeIds = service.getChangeIdsSnapshot()
+        const editable = service.read.getEditableDiagram()
+        const changeIds = service.read.getChangeIdsSnapshot()
         const listener = vi.fn()
-        service.subscribeDirty(listener)
-        service.subscribeChangeIds(listener)
-        service.subscribeNodeField('orders', 'x', listener)
-        service.subscribeCollectionMembership('edge', listener)
+        service.read.subscribeDirty(listener)
+        service.read.subscribeChangeIds(listener)
+        service.read.subscribeNodeField('orders', 'x', listener)
+        service.read.subscribeCollectionMembership('edge', listener)
 
         expect(service.setNodeField('orders', 'role', 'invalid' as never)).toBe(false)
         expect(service.setNodeField('orders', 'x', 3)).toBe(false)
@@ -1534,13 +1561,13 @@ describe('DiagramEditSessionService', () => {
             waypoints: [{ x: 0, y: 0 }, { x: 4, y: 4 }],
         })).toBeNull()
 
-        expect(service.getEditableDiagram()).toBe(editable)
-        expect(service.getNodeFieldSnapshot('orders', 'role')).toBe('focal')
-        expect(service.getNodeFieldSnapshot('orders', 'x')).toBeUndefined()
-        expect(service.getGroupFieldSnapshot('backend', 'width')).toBeUndefined()
-        expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'offset')).toBe(0.5)
-        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getEditableDiagram()).toBe(editable)
+        expect(service.read.getNodeFieldSnapshot('orders', 'role')).toBe('focal')
+        expect(service.read.getNodeFieldSnapshot('orders', 'x')).toBeUndefined()
+        expect(service.read.getGroupFieldSnapshot('backend', 'width')).toBeUndefined()
+        expect(service.read.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'offset')).toBe(0.5)
+        expect(service.read.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(service.read.getDirtySnapshot()).toBe(false)
         expect(listener).not.toHaveBeenCalled()
         expect(reportValidationError.mock.calls.map(([message]) => message)).toEqual(expect.arrayContaining([
             'Set node field rejected: nodes.orders.role has unsupported value invalid',
@@ -1574,17 +1601,17 @@ describe('DiagramEditSessionService', () => {
         const sequenceReporter = vi.fn()
         const sequence = sequenceHarness(undefined, sequenceReporter)
         expect(sequence.createFragment({ operator: 'opt', regions: [{ edgeIds: ['user-orders'], guard: ' ' }] })).toBeNull()
-        expect(sequence.updateFragment('transaction', { operator: 'alt', regions: sequence.getFragmentSnapshot('transaction')?.regions.map(({ edgeIds, guard }) => ({ edgeIds: [...edgeIds], guard })) ?? [] })).toBe(false)
+        expect(sequence.updateFragment('transaction', { operator: 'alt', regions: sequence.read.getFragmentSnapshot('transaction')?.regions.map(({ edgeIds, guard }) => ({ edgeIds: [...edgeIds], guard })) ?? [] })).toBe(false)
 
         const entityReporter = vi.fn()
         const { service: entity } = createHarness({ reportValidationError: entityReporter, source: entityDiagram })
         entity.start()
         expect(entity.setEntityField('order', 0, 'key', 'invalid' as never)).toBe(false)
-        const relationship = entity.getEdgeSnapshot('order-item')
+        const relationship = entity.read.getEdgeSnapshot('order-item')
         expect(entity.setEdgeField('order-item', 'fromCardinality', 'many' as never)).toBe(false)
         expect(entity.createEdge({ from: 'order', kind: 'relationship', to: 'missing' })).toBeNull()
-        expect(entity.getEdgeSnapshot('order-item')).toBe(relationship)
-        expect(entity.getEdgeFieldSnapshot('order-item', 'fromCardinality')).toBe('1')
+        expect(entity.read.getEdgeSnapshot('order-item')).toBe(relationship)
+        expect(entity.read.getEdgeFieldSnapshot('order-item', 'fromCardinality')).toBe('1')
 
         expect(architectureReporter.mock.calls.map(([message]) => message)).toEqual(expect.arrayContaining([
             'Set edge field rejected: edges.orders-store.from has unknown node missing',
@@ -1611,8 +1638,8 @@ describe('DiagramEditSessionService', () => {
         const sequence = sequenceHarness(undefined, fragmentReporter)
         expect(sequence.updateFragment('transaction', { operator: 'opt', regions: [{ edgeIds: ['orders-user'], guard: 'requested' }] })).toBe(true)
         expect(sequence.removeObjects([{ objectId: 'orders-user', objectKind: 'edge' }])).toBe(true)
-        expect((sequence.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual([])
-        expect(sequence.getEdgeSnapshot('orders-user')).toBeNull()
+        expect((sequence.read.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual([])
+        expect(sequence.read.getEdgeSnapshot('orders-user')).toBeNull()
 
         expect(fragmentReporter).toHaveBeenCalledWith(
             'Delete selection validation problem: fragments.transaction.regions[0].edgeIds has empty array',
@@ -1626,29 +1653,29 @@ describe('DiagramEditSessionService', () => {
         const createdId = service.createNode({ label: 'Billing', role: 'backend' })
         if (!createdId) throw new Error('Expected node creation to succeed')
         service.setNodeField(createdId, 'label', 'Billing API')
-        expect(service.getDirtySnapshot()).toBe(true)
+        expect(service.read.getDirtySnapshot()).toBe(true)
 
         expect(service.removeObjects([{ objectId: createdId, objectKind: 'node' }])).toBe(true)
-        expect(service.getDirtySnapshot()).toBe(false)
-        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getDirtySnapshot()).toBe(false)
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
 
         service.removeObjects([{ objectId: 'store', objectKind: 'node' }])
-        expect(service.getDirtySnapshot()).toBe(true)
+        expect(service.read.getDirtySnapshot()).toBe(true)
     })
 
     it('stores one original value and updates one existing field change in place', () => {
         const { service } = createHarness()
         service.start()
         const changeIdsChanged = vi.fn()
-        service.subscribeChangeIds(changeIdsChanged)
+        service.read.subscribeChangeIds(changeIdsChanged)
 
         service.setNodeField('orders', 'x', 4)
-        const changeIds = service.getChangeIdsSnapshot()
+        const changeIds = service.read.getChangeIdsSnapshot()
         const [changeId] = changeIds
         const valueChanged = vi.fn()
-        service.subscribeChangeField(changeId, 'value', valueChanged)
+        service.read.subscribeChangeField(changeId, 'value', valueChanged)
 
-        expect(service.getChange(changeId)).toMatchObject({
+        expect(service.read.getChange(changeId)).toMatchObject({
             category: 'field',
             field: 'x',
             objectId: 'orders',
@@ -1659,11 +1686,11 @@ describe('DiagramEditSessionService', () => {
 
         service.setNodeField('orders', 'x', 8)
 
-        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(service.read.getChangeIdsSnapshot()).toBe(changeIds)
         expect(changeIdsChanged).toHaveBeenCalledOnce()
         expect(valueChanged).toHaveBeenCalledOnce()
-        expect(service.getChangeFieldSnapshot(changeId, 'originalValue')).toBeUndefined()
-        expect(service.getChangeFieldSnapshot(changeId, 'value')).toBe(8)
+        expect(service.read.getChangeFieldSnapshot(changeId, 'originalValue')).toBeUndefined()
+        expect(service.read.getChangeFieldSnapshot(changeId, 'value')).toBe(8)
     })
 
     it('removes a reverted field change and changes dirty only at empty boundaries', () => {
@@ -1671,25 +1698,25 @@ describe('DiagramEditSessionService', () => {
         service.start()
         const dirtyChanged = vi.fn()
         const changeIdsChanged = vi.fn()
-        service.subscribeDirty(dirtyChanged)
-        service.subscribeChangeIds(changeIdsChanged)
+        service.read.subscribeDirty(dirtyChanged)
+        service.read.subscribeChangeIds(changeIdsChanged)
 
         service.setNodeField('orders', 'label', 'Order API')
         service.setMetadataField('title', 'System')
-        const orderedChangeIds = service.getChangeIdsSnapshot()
+        const orderedChangeIds = service.read.getChangeIdsSnapshot()
         service.setNodeField('orders', 'label', 'Order API v2')
 
-        expect(service.getChangeIdsSnapshot()).toBe(orderedChangeIds)
+        expect(service.read.getChangeIdsSnapshot()).toBe(orderedChangeIds)
         expect(dirtyChanged).toHaveBeenCalledOnce()
 
         service.setNodeField('orders', 'label', 'Orders')
-        expect(service.getDirtySnapshot()).toBe(true)
-        expect(service.getChangeIdsSnapshot()).toHaveLength(1)
+        expect(service.read.getDirtySnapshot()).toBe(true)
+        expect(service.read.getChangeIdsSnapshot()).toHaveLength(1)
         expect(dirtyChanged).toHaveBeenCalledOnce()
 
         service.setMetadataField('title', 'Overview')
-        expect(service.getDirtySnapshot()).toBe(false)
-        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getDirtySnapshot()).toBe(false)
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
         expect(dirtyChanged).toHaveBeenCalledTimes(2)
         expect(changeIdsChanged).toHaveBeenCalledTimes(4)
     })
@@ -1700,21 +1727,21 @@ describe('DiagramEditSessionService', () => {
 
         const createdId = service.createNode({ label: 'Billing', role: 'backend' })
         if (!createdId) throw new Error('Expected node creation to succeed')
-        const [additionId] = service.getChangeIdsSnapshot()
-        expect(service.getChange(additionId)).toMatchObject({
+        const [additionId] = service.read.getChangeIdsSnapshot()
+        expect(service.read.getChange(additionId)).toMatchObject({
             category: 'collection',
             objectId: createdId,
             objectKind: 'node',
             originalValue: null,
         })
-        expect(service.getChangeFieldSnapshot(additionId, 'value')).toBe(service.getNodeSnapshot(createdId))
+        expect(service.read.getChangeFieldSnapshot(additionId, 'value')).toBe(service.read.getNodeSnapshot(createdId))
 
         service.removeObjects([{ objectId: createdId, objectKind: 'node' }])
-        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
 
         service.removeGroupMember('backend', 'store')
-        const [membershipId] = service.getChangeIdsSnapshot()
-        expect(service.getChange(membershipId)).toMatchObject({
+        const [membershipId] = service.read.getChangeIdsSnapshot()
+        expect(service.read.getChange(membershipId)).toMatchObject({
             category: 'membership',
             field: 'nodeIds',
             objectId: 'store',
@@ -1725,8 +1752,8 @@ describe('DiagramEditSessionService', () => {
         })
 
         service.addGroupMember('backend', 'store')
-        expect(service.getChangeIdsSnapshot()).toEqual([])
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getDirtySnapshot()).toBe(false)
     })
 
     it('replaces field entries with one original-object removal entry', () => {
@@ -1737,9 +1764,9 @@ describe('DiagramEditSessionService', () => {
 
         service.removeObjects([{ objectId: 'backend', objectKind: 'group' }])
 
-        const [removalId] = service.getChangeIdsSnapshot()
-        expect(service.getChangeIdsSnapshot()).toHaveLength(1)
-        expect(service.getChange(removalId)).toMatchObject({
+        const [removalId] = service.read.getChangeIdsSnapshot()
+        expect(service.read.getChangeIdsSnapshot()).toHaveLength(1)
+        expect(service.read.getChange(removalId)).toMatchObject({
             category: 'collection',
             objectId: 'backend',
             objectKind: 'group',
@@ -1753,31 +1780,31 @@ describe('DiagramEditSessionService', () => {
         service.start()
         service.setNodeField('orders', 'label', 'Order API')
         const changeIdsChanged = vi.fn()
-        service.subscribeChangeIds(changeIdsChanged)
+        service.read.subscribeChangeIds(changeIdsChanged)
 
         service.start()
 
-        expect(service.getChangeIdsSnapshot()).toEqual([])
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getDirtySnapshot()).toBe(false)
         expect(changeIdsChanged).toHaveBeenCalledOnce()
     })
 
     it('exposes explicit legend membership and per-entry labels from the source diagram', () => {
         const service = legendHarness()
 
-        expect(service.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'node:store', 'connection:connection'])
-        expect(service.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
-        expect(service.getLegendEntryFieldSnapshot('node:focal', 'role')).toBe('focal')
-        expect(service.getLegendEntryFieldSnapshot('connection:connection', 'kind')).toBe('connection')
-        expect(service.getLegendEntryFieldSnapshot('node:external', 'label')).toBeNull()
-        expect(service.getOriginalLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
+        expect(service.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'node:store', 'connection:connection'])
+        expect(service.read.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
+        expect(service.read.getLegendEntryFieldSnapshot('node:focal', 'role')).toBe('focal')
+        expect(service.read.getLegendEntryFieldSnapshot('connection:connection', 'kind')).toBe('connection')
+        expect(service.read.getLegendEntryFieldSnapshot('node:external', 'label')).toBeNull()
+        expect(service.read.getOriginalLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
     })
 
     it('reports an empty legend for a diagram without explicit entries', () => {
         const { service } = createHarness()
         service.start()
 
-        expect(service.getLegendEntryKeysSnapshot()).toEqual([])
+        expect(service.read.getLegendEntryKeysSnapshot()).toEqual([])
     })
 
     it('assigns only the label of the addressed legend entry', () => {
@@ -1785,15 +1812,15 @@ describe('DiagramEditSessionService', () => {
         const labelChanged = vi.fn()
         const otherLabelChanged = vi.fn()
         const membershipChanged = vi.fn()
-        service.subscribeLegendEntryField('node:focal', 'label', labelChanged)
-        service.subscribeLegendEntryField('node:store', 'label', otherLabelChanged)
-        service.subscribeLegendMembership(membershipChanged)
-        const entryKeys = service.getLegendEntryKeysSnapshot()
+        service.read.subscribeLegendEntryField('node:focal', 'label', labelChanged)
+        service.read.subscribeLegendEntryField('node:store', 'label', otherLabelChanged)
+        service.read.subscribeLegendMembership(membershipChanged)
+        const entryKeys = service.read.getLegendEntryKeysSnapshot()
 
         expect(service.setLegendEntryLabel('node:focal', '  Order service  ')).toBe(true)
-        expect(service.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Order service')
-        expect(service.getLegendEntryFieldSnapshot('node:store', 'label')).toBe('Database')
-        expect(service.getLegendEntryKeysSnapshot()).toBe(entryKeys)
+        expect(service.read.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Order service')
+        expect(service.read.getLegendEntryFieldSnapshot('node:store', 'label')).toBe('Database')
+        expect(service.read.getLegendEntryKeysSnapshot()).toBe(entryKeys)
         expect(labelChanged).toHaveBeenCalledOnce()
         expect(otherLabelChanged).not.toHaveBeenCalled()
         expect(membershipChanged).not.toHaveBeenCalled()
@@ -1806,20 +1833,20 @@ describe('DiagramEditSessionService', () => {
         const service = legendHarness(reportValidationError)
 
         expect(service.setLegendEntryLabel('node:focal', '   ')).toBe(false)
-        expect(service.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
+        expect(service.read.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
         expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('Set legend entry label rejected'))
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getDirtySnapshot()).toBe(false)
     })
 
     it('adds an entry with a canonical label and rejects a duplicate semantic', () => {
         const reportValidationError = vi.fn()
         const service = legendHarness(reportValidationError)
         const membershipChanged = vi.fn()
-        service.subscribeLegendMembership(membershipChanged)
+        service.read.subscribeLegendMembership(membershipChanged)
 
         expect(service.addLegendEntry({ role: 'external' })).toBe('node:external')
-        expect(service.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'node:store', 'connection:connection', 'node:external'])
-        expect(service.getLegendEntryFieldSnapshot('node:external', 'label')).toBe('external')
+        expect(service.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'node:store', 'connection:connection', 'node:external'])
+        expect(service.read.getLegendEntryFieldSnapshot('node:external', 'label')).toBe('external')
         expect(membershipDetail(membershipChanged)).toEqual({ addedKeys: ['node:external'], removedKeys: [] })
 
         expect(service.addLegendEntry({ label: 'Again', role: 'focal' })).toBeNull()
@@ -1838,8 +1865,8 @@ describe('DiagramEditSessionService', () => {
             { kind: 'connection', label: 'Connection' },
             { kind: 'data', label: 'Transfers' },
         ]
-        expect(service.getEditableDiagram()?.meta.legend).toEqual(expectedLegend)
-        const serialized = serializeDiagramData(service.getEditableDiagram() as DiagramData)
+        expect(service.read.getEditableDiagram()?.meta.legend).toEqual(expectedLegend)
+        const serialized = serializeDiagramData(service.read.getEditableDiagram() as DiagramData)
         expect(parseDiagramData(serialized).meta.legend).toEqual(expectedLegend)
     })
 
@@ -1859,18 +1886,18 @@ describe('DiagramEditSessionService', () => {
 
         expect(service.selectLegendEntry('nodeKind:step')).toBe(true)
         expect(service.materializeDerivedLegend()).toBe(true)
-        expect(service.getSelectedLegendEntryKeySnapshot()).toBe('nodeKind:step')
+        expect(service.read.getSelectedLegendEntryKeySnapshot()).toBe('nodeKind:step')
         expect(service.setLegendEntryLabel('nodeKind:step', 'Process')).toBe(true)
         expect(service.setLegendEntryLabel('nodeKind:decision', 'Branch')).toBe(true)
-        const saved = parseDiagramData(serializeDiagramData(service.getEditableDiagram() as DiagramData))
+        const saved = parseDiagramData(serializeDiagramData(service.read.getEditableDiagram() as DiagramData))
         const { service: reloaded } = createHarness({ source: saved })
         reloaded.start()
 
-        expect(reloaded.getLegendEntryKeysSnapshot()).toEqual([
+        expect(reloaded.read.getLegendEntryKeysSnapshot()).toEqual([
             'nodeKind:start', 'nodeKind:step', 'nodeKind:decision', 'nodeKind:end',
         ])
-        expect(reloaded.getLegendEntryFieldSnapshot('nodeKind:step', 'label')).toBe('Process')
-        expect(reloaded.getLegendEntryFieldSnapshot('nodeKind:decision', 'label')).toBe('Branch')
+        expect(reloaded.read.getLegendEntryFieldSnapshot('nodeKind:step', 'label')).toBe('Process')
+        expect(reloaded.read.getLegendEntryFieldSnapshot('nodeKind:decision', 'label')).toBe('Branch')
     })
 
     it('rejects a derived duplicate and an incompatible connection kind before changing the legend', () => {
@@ -1880,7 +1907,7 @@ describe('DiagramEditSessionService', () => {
 
         expect(service.addLegendEntry({ kind: 'connection' })).toBeNull()
         expect(service.addLegendEntry({ kind: 'call' })).toBeNull()
-        expect(service.getEditableDiagram()?.meta.legend).toBeUndefined()
+        expect(service.read.getEditableDiagram()?.meta.legend).toBeUndefined()
         expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('duplicate entry for connection:connection'))
         expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('unsupported value call for architecture'))
     })
@@ -1888,18 +1915,18 @@ describe('DiagramEditSessionService', () => {
     it('removes a legend entry without touching nodes or edges', () => {
         const service = legendHarness()
         const membershipChanged = vi.fn()
-        service.subscribeLegendMembership(membershipChanged)
-        const nodes = service.getEditableDiagram()?.nodes
-        const edges = service.getEditableDiagram()?.edges
-        const nodeIds = service.getNodeIdsSnapshot()
-        const edgeIds = service.getEdgeIdsSnapshot()
+        service.read.subscribeLegendMembership(membershipChanged)
+        const nodes = service.read.getEditableDiagram()?.nodes
+        const edges = service.read.getEditableDiagram()?.edges
+        const nodeIds = service.read.getNodeIdsSnapshot()
+        const edgeIds = service.read.getEdgeIdsSnapshot()
 
         expect(service.removeLegendEntry('node:store')).toBe(true)
-        expect(service.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
-        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
-        expect(service.getEditableDiagram()?.edges).toBe(edges)
-        expect(service.getNodeIdsSnapshot()).toBe(nodeIds)
-        expect(service.getEdgeIdsSnapshot()).toBe(edgeIds)
+        expect(service.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
+        expect(service.read.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.read.getEditableDiagram()?.edges).toBe(edges)
+        expect(service.read.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(service.read.getEdgeIdsSnapshot()).toBe(edgeIds)
         expect(membershipDetail(membershipChanged)).toEqual({ addedKeys: [], removedKeys: ['node:store'] })
         expect(service.removeLegendEntry('node:store')).toBe(false)
         expect(membershipChanged).toHaveBeenCalledOnce()
@@ -1908,10 +1935,10 @@ describe('DiagramEditSessionService', () => {
     it('keeps an explicit empty legend once the last entry is removed', () => {
         const service = legendHarness()
 
-        for (const entryKey of [...service.getLegendEntryKeysSnapshot()]) service.removeLegendEntry(entryKey)
+        for (const entryKey of [...service.read.getLegendEntryKeysSnapshot()]) service.removeLegendEntry(entryKey)
 
-        expect(service.getLegendEntryKeysSnapshot()).toEqual([])
-        expect(service.getEditableDiagram()?.meta.legend).toEqual([])
+        expect(service.read.getLegendEntryKeysSnapshot()).toEqual([])
+        expect(service.read.getEditableDiagram()?.meta.legend).toEqual([])
     })
 
     it('materializes derived entries and persists removal of the last one after reload', () => {
@@ -1919,10 +1946,10 @@ describe('DiagramEditSessionService', () => {
         service.start()
 
         expect(service.materializeDerivedLegend()).toBe(true)
-        for (const entryKey of [...service.getLegendEntryKeysSnapshot()]) service.removeLegendEntry(entryKey)
+        for (const entryKey of [...service.read.getLegendEntryKeysSnapshot()]) service.removeLegendEntry(entryKey)
 
-        expect(service.getDirtySnapshot()).toBe(true)
-        const serialized = serializeDiagramData(service.getEditableDiagram() as DiagramData)
+        expect(service.read.getDirtySnapshot()).toBe(true)
+        const serialized = serializeDiagramData(service.read.getEditableDiagram() as DiagramData)
         expect(parseDiagramData(serialized).meta.legend).toEqual([])
     })
 
@@ -1930,12 +1957,12 @@ describe('DiagramEditSessionService', () => {
         const service = legendHarness()
         const membershipChanged = vi.fn()
         const labelChanged = vi.fn()
-        service.subscribeLegendMembership(membershipChanged)
-        service.subscribeLegendEntryField('connection:connection', 'label', labelChanged)
+        service.read.subscribeLegendMembership(membershipChanged)
+        service.read.subscribeLegendEntryField('connection:connection', 'label', labelChanged)
 
         expect(service.moveLegendEntry('connection:connection', 0)).toBe(true)
-        expect(service.getLegendEntryKeysSnapshot()).toEqual(['connection:connection', 'node:focal', 'node:store'])
-        expect(service.getLegendEntryFieldSnapshot('connection:connection', 'label')).toBe('Calls')
+        expect(service.read.getLegendEntryKeysSnapshot()).toEqual(['connection:connection', 'node:focal', 'node:store'])
+        expect(service.read.getLegendEntryFieldSnapshot('connection:connection', 'label')).toBe('Calls')
         expect(membershipChanged).toHaveBeenCalledOnce()
         expect(labelChanged).not.toHaveBeenCalled()
         expect(service.moveLegendEntry('connection:connection', 0)).toBe(false)
@@ -1946,8 +1973,8 @@ describe('DiagramEditSessionService', () => {
         const service = legendHarness()
 
         service.setLegendEntryLabel('node:focal', 'Order service')
-        expect(service.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:node%3Afocal:label'])
-        expect(service.getChange('diagram:legendEntry:node%3Afocal:label')).toMatchObject({
+        expect(service.read.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:node%3Afocal:label'])
+        expect(service.read.getChange('diagram:legendEntry:node%3Afocal:label')).toMatchObject({
             category: 'field',
             field: 'label',
             objectId: 'node:focal',
@@ -1955,15 +1982,15 @@ describe('DiagramEditSessionService', () => {
             originalValue: 'Service',
             value: 'Order service',
         })
-        expect(service.getDirtySnapshot()).toBe(true)
+        expect(service.read.getDirtySnapshot()).toBe(true)
 
         service.setLegendEntryLabel('node:focal', 'Service')
-        expect(service.getChangeIdsSnapshot()).toEqual([])
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getDirtySnapshot()).toBe(false)
 
         service.addLegendEntry({ role: 'external' })
-        expect(service.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:membership:node%3Aexternal'])
-        expect(service.getChange('diagram:legendEntry:membership:node%3Aexternal')).toMatchObject({
+        expect(service.read.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:membership:node%3Aexternal'])
+        expect(service.read.getChange('diagram:legendEntry:membership:node%3Aexternal')).toMatchObject({
             category: 'membership',
             field: 'legend',
             objectId: 'node:external',
@@ -1974,15 +2001,15 @@ describe('DiagramEditSessionService', () => {
         })
 
         service.removeLegendEntry('node:external')
-        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
 
         service.moveLegendEntry('connection:connection', 0)
-        expect(service.getChangeIdsSnapshot()).toEqual([
+        expect(service.read.getChangeIdsSnapshot()).toEqual([
             'diagram:legendEntry:node%3Afocal:order',
             'diagram:legendEntry:node%3Astore:order',
             'diagram:legendEntry:connection%3Aconnection:order',
         ])
-        expect(service.getChange('diagram:legendEntry:connection%3Aconnection:order')).toMatchObject({
+        expect(service.read.getChange('diagram:legendEntry:connection%3Aconnection:order')).toMatchObject({
             category: 'field',
             field: 'order',
             originalValue: 2,
@@ -1995,7 +2022,7 @@ describe('DiagramEditSessionService', () => {
 
         service.removeLegendEntry('node:focal')
 
-        expect(service.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:membership:node%3Afocal'])
+        expect(service.read.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:membership:node%3Afocal'])
     })
 
     it('discards legend state and its changes when the session ends', () => {
@@ -2004,8 +2031,8 @@ describe('DiagramEditSessionService', () => {
 
         service.discard()
 
-        expect(service.getLegendEntryKeysSnapshot()).toEqual([])
-        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getLegendEntryKeysSnapshot()).toEqual([])
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
         expect(() => service.addLegendEntry({ role: 'focal' })).toThrow('session is not active')
     })
 
@@ -2031,11 +2058,11 @@ describe('DiagramEditSessionService', () => {
         service.start()
         const order: string[] = []
         const changeId = 'diagram:node:orders:label'
-        service.subscribeDirty(() => order.push('dirty'))
-        service.subscribeChangeIds(() => order.push('changeIds'))
-        service.subscribeChangeField(changeId, 'value', () => order.push('semantic'))
-        service.subscribeModelMutation(() => order.push('mutation'))
-        service.subscribeNodeField('orders', 'label', () => order.push('field'))
+        service.read.subscribeDirty(() => order.push('dirty'))
+        service.read.subscribeChangeIds(() => order.push('changeIds'))
+        service.read.subscribeChangeField(changeId, 'value', () => order.push('semantic'))
+        service.read.subscribeModelMutation(() => order.push('mutation'))
+        service.read.subscribeNodeField('orders', 'label', () => order.push('field'))
 
         service.setNodeField('orders', 'label', 'Order API')
         expect(order).toEqual(['dirty', 'changeIds', 'mutation', 'field'])
@@ -2047,21 +2074,21 @@ describe('DiagramEditSessionService', () => {
         order.length = 0
         service.setNodeField('orders', 'label', 'Orders')
         expect(order).toEqual(['dirty', 'changeIds', 'mutation', 'field'])
-        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
     })
 
     it('publishes collection removal pre-notifications before dirty, semantic, and membership notifications', () => {
         const { service } = createHarness()
         service.start()
         const order: string[] = []
-        service.subscribeCollectionMembershipWillChange('edge', () => order.push('edgePre'))
-        service.subscribeCollectionMembershipWillChange('node', () => order.push('nodePre'))
-        service.subscribeDirty(() => order.push('dirty'))
-        service.subscribeChangeIds(() => order.push('semantic'))
-        service.subscribeCollectionMembership('edge', () => order.push('edgeMembership'))
-        service.subscribeCollectionMembership('node', () => order.push('nodeMembership'))
-        service.subscribeGroupMembership('backend', () => order.push('groupMembership'))
-        service.subscribeModelMutation(() => order.push('mutation'))
+        service.read.subscribeCollectionMembershipWillChange('edge', () => order.push('edgePre'))
+        service.read.subscribeCollectionMembershipWillChange('node', () => order.push('nodePre'))
+        service.read.subscribeDirty(() => order.push('dirty'))
+        service.read.subscribeChangeIds(() => order.push('semantic'))
+        service.read.subscribeCollectionMembership('edge', () => order.push('edgeMembership'))
+        service.read.subscribeCollectionMembership('node', () => order.push('nodeMembership'))
+        service.read.subscribeGroupMembership('backend', () => order.push('groupMembership'))
+        service.read.subscribeModelMutation(() => order.push('mutation'))
 
         expect(service.removeObjects([{ objectId: 'orders', objectKind: 'node' }])).toBe(true)
         expect(order).toEqual([
@@ -2073,29 +2100,29 @@ describe('DiagramEditSessionService', () => {
     it('fails on repeated generated ID collisions without mutating the diagram', () => {
         const { service } = createHarness({ createId: () => 'orders' })
         service.start()
-        const diagramBefore = service.getEditableDiagram()
-        const nodeIdsBefore = service.getNodeIdsSnapshot()
+        const diagramBefore = service.read.getEditableDiagram()
+        const nodeIdsBefore = service.read.getNodeIdsSnapshot()
 
         expect(() => service.createNode({ label: 'Billing', role: 'backend' })).toThrow(
             'Could not generate a collision-free diagram object id',
         )
-        expect(service.getEditableDiagram()).toBe(diagramBefore)
-        expect(service.getNodeIdsSnapshot()).toBe(nodeIdsBefore)
-        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getEditableDiagram()).toBe(diagramBefore)
+        expect(service.read.getNodeIdsSnapshot()).toBe(nodeIdsBefore)
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
     })
 
     it('rejects invalid edits before mutation or event publication', () => {
         const reportValidationError = vi.fn()
         const { service } = createHarness({ reportValidationError })
         service.start()
-        const nodeBefore = service.getNodeSnapshot('orders')
+        const nodeBefore = service.read.getNodeSnapshot('orders')
         const changed = vi.fn()
-        service.subscribeNodeField('orders', 'role', changed)
+        service.read.subscribeNodeField('orders', 'role', changed)
 
         expect(service.setNodeField('orders', 'role', 'invalid' as never)).toBe(false)
-        expect(service.getNodeSnapshot('orders')).toBe(nodeBefore)
-        expect(service.getNodeFieldSnapshot('orders', 'role')).toBe('focal')
-        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getNodeSnapshot('orders')).toBe(nodeBefore)
+        expect(service.read.getNodeFieldSnapshot('orders', 'role')).toBe('focal')
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
         expect(changed).not.toHaveBeenCalled()
         expect(reportValidationError).toHaveBeenCalledWith(
             'Set node field rejected: nodes.orders.role has unsupported value invalid',
@@ -2106,21 +2133,21 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness()
         service.start()
         service.setNodeField('orders', 'label', 'Order API')
-        const savedDiagram = structuredClone(service.getEditableDiagram() as DiagramData)
+        const savedDiagram = structuredClone(service.read.getEditableDiagram() as DiagramData)
         const savedRecord = { ...firstRecord, id: 'copy-1', sourceDiagramId: firstRecord.id }
         const order: string[] = []
-        service.subscribeDirty(() => order.push('dirty'))
-        service.subscribeChangeIds(() => order.push('semantic'))
+        service.read.subscribeDirty(() => order.push('dirty'))
+        service.read.subscribeChangeIds(() => order.push('semantic'))
 
         expect(service.acknowledgeSavedCopy(savedRecord, savedDiagram, true)).toBe(true)
         expect(order).toEqual(['dirty', 'semantic'])
-        expect(service.getDirtySnapshot()).toBe(false)
-        expect(service.getChangeIdsSnapshot()).toEqual([])
-        expect(service.getSavedRecordSnapshot()).toBe(savedRecord)
+        expect(service.read.getDirtySnapshot()).toBe(false)
+        expect(service.read.getChangeIdsSnapshot()).toEqual([])
+        expect(service.read.getSavedRecordSnapshot()).toBe(savedRecord)
 
         service.setNodeField('orders', 'label', 'Orders')
-        expect(service.getDirtySnapshot()).toBe(true)
+        expect(service.read.getDirtySnapshot()).toBe(true)
         service.setNodeField('orders', 'label', 'Order API')
-        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.read.getDirtySnapshot()).toBe(false)
     })
 })

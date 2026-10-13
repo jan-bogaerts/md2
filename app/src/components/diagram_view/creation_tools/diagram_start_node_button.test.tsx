@@ -10,6 +10,7 @@ import {
 } from './diagram_start_node_button';
 
 class StartNodeSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool = 'select';
     private readonly diagramType: DiagramType;
     private readonly flowPreset: DiagramFlowPreset | null;
@@ -23,7 +24,7 @@ class StartNodeSessionStub extends EventTarget {
     readonly getActiveToolSnapshot = () => this.activeTool;
     readonly getMetadataFieldSnapshot = ((field: DiagramStartNodeMetadataField) => (
         field === 'preset' ? this.flowPreset : this.diagramType
-    )) as DiagramStartNodeSession['getMetadataFieldSnapshot'];
+    )) as DiagramStartNodeSession['read']['getMetadataFieldSnapshot'];
     readonly subscribeActiveTool = (listener: () => void) => {
         this.addEventListener('activeToolChanged', listener);
 
@@ -62,7 +63,7 @@ describe('DiagramStartNodeButton', () => {
             defaults: { height: 48, label: 'Start', role: 'focal', width: 120 },
             kind: 'start',
         });
-        expect(session.subscribeMetadataField.mock.calls.every(
+        expect(session.read.subscribeMetadataField.mock.calls.every(
             ([field]) => field === 'preset' || field === 'type',
         )).toBe(true);
 

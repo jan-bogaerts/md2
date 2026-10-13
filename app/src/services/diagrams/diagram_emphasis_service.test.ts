@@ -35,6 +35,7 @@ class ViewStub extends EventTarget {
 }
 
 class EditSessionStub extends EventTarget {
+    readonly read = this
     editableDiagram: DiagramData | null = structuredClone(diagram)
     session: { sourceDiagramId: string } | null = { sourceDiagramId: 'diagram' }
 

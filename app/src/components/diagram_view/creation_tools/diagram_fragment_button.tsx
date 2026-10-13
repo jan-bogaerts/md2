@@ -1,3 +1,5 @@
+import type { DiagramEditSessionReadAdapter } from '../../../services/diagrams/diagram_edit_session_read_adapter'
+import type { DiagramType } from '../../../services/diagrams/diagram_data'
 import { useCallback, useSyncExternalStore } from 'react'
 import DashboardCustomizeOutlined from '@mui/icons-material/DashboardCustomizeOutlined'
 import { diagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
@@ -7,9 +9,7 @@ import {
 import { DiagramToolboxActionButton } from './diagram_toolbox_action_button'
 
 export interface DiagramFragmentButtonSession {
-    getMetadataFieldSnapshot: (field: 'type') => string | null
-    subscribeMetadataField: (field: 'type', listener: () => void) => () => void
-    subscribeSession: (listener: () => void) => () => void
+    read: Pick<DiagramEditSessionReadAdapter, 'subscribeSession'> & { getMetadataFieldSnapshot: (field: 'type') => DiagramType | null; subscribeMetadataField: (field: 'type', listener: () => void) => () => void };
 }
 
 /** Sequence-only action opening fragment creation dialog. */
@@ -21,15 +21,15 @@ export function DiagramFragmentButton({
     session?: DiagramFragmentButtonSession
 }) {
     const subscribeDiagramType = useCallback((listener: () => void) => {
-        const unsubscribeMetadata = session.subscribeMetadataField('type', listener)
-        const unsubscribeSession = session.subscribeSession(listener)
+        const unsubscribeMetadata = session.read.subscribeMetadataField('type', listener)
+        const unsubscribeSession = session.read.subscribeSession(listener)
 
         return () => {
             unsubscribeMetadata()
             unsubscribeSession()
         }
     }, [session])
-    const getDiagramType = useCallback(() => session.getMetadataFieldSnapshot('type'), [session])
+    const getDiagramType = useCallback(() => session.read.getMetadataFieldSnapshot('type'), [session])
     const diagramType = useSyncExternalStore(subscribeDiagramType, getDiagramType, getDiagramType)
     const handleActivate = useCallback(() => dialog.openCreate(), [dialog])
 

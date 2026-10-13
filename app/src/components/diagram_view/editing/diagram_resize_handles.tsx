@@ -60,13 +60,13 @@ function useResizableGeometryField(
 function useResizableObjectLabel(identity: DiagramSelectionIdentity, session: DiagramEditSessionService) {
     const subscribe = useCallback((listener: () => void) => (
         identity.objectKind === 'node'
-            ? session.subscribeNodeField(identity.objectId, 'label', listener)
-            : session.subscribeGroupField(identity.objectId, 'label', listener)
+            ? session.read.subscribeNodeField(identity.objectId, 'label', listener)
+            : session.read.subscribeGroupField(identity.objectId, 'label', listener)
     ), [identity.objectId, identity.objectKind, session])
     const getSnapshot = useCallback(() => (
         identity.objectKind === 'node'
-            ? session.getNodeFieldSnapshot(identity.objectId, 'label')
-            : session.getGroupFieldSnapshot(identity.objectId, 'label')
+            ? session.read.getNodeFieldSnapshot(identity.objectId, 'label')
+            : session.read.getGroupFieldSnapshot(identity.objectId, 'label')
     ), [identity.objectId, identity.objectKind, session])
 
     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)

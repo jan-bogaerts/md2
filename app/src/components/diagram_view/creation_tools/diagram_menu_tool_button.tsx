@@ -3,7 +3,7 @@ import TouchAppOutlined from '@mui/icons-material/TouchAppOutlined';
 import { useCallback, useSyncExternalStore } from 'react';
 import {
     diagramEditSessionService,
-    type DiagramEditSessionService,
+    type DiagramEditSessionAccess,
 } from '../../../services/diagrams/diagram_edit_session_service';
 import type {
     DiagramPersistentTool,
@@ -17,13 +17,13 @@ const TOOL_ICON = {
 
 /** Select or Pan action subscribed only to active tool. */
 export function DiagramMenuToolButton({ session = diagramEditSessionService, tool }: {
-    session?: Pick<DiagramEditSessionService, 'getActiveToolSnapshot' | 'setActiveTool' | 'subscribeActiveTool'>;
+    session?: DiagramEditSessionAccess<'getActiveToolSnapshot' | 'subscribeActiveTool', 'setActiveTool'>;
     tool: Extract<DiagramPersistentTool, 'pan' | 'select'>;
 }) {
     const activeTool = useSyncExternalStore(
-        session.subscribeActiveTool,
-        session.getActiveToolSnapshot,
-        session.getActiveToolSnapshot,
+        session.read.subscribeActiveTool,
+        session.read.getActiveToolSnapshot,
+        session.read.getActiveToolSnapshot,
     );
     const handleClick = useCallback(() => session.setActiveTool(tool), [session, tool]);
     const label = tool === 'select' ? 'Select' : 'Pan';

@@ -40,24 +40,24 @@ describe('DiagramGroupDrawingService', () => {
     it('normalizes a reverse grid-snapped rectangle, then creates and selects one explicit empty group', () => {
         const { drawing, selection, session } = createHarness()
         const membershipChanged = vi.fn()
-        session.subscribeCollectionMembership('group', membershipChanged)
+        session.read.subscribeCollectionMembership('group', membershipChanged)
         drawing.activate()
 
         expect(drawing.beginDrawing({ x: 103, y: 99 })).toBe(true)
         expect(drawing.updateDrawing({ x: 31, y: 22 })).toBe(true)
         expect(drawing.getPreviewSnapshot()).toEqual({ height: 76, width: 72, x: 32, y: 24 })
-        expect(session.getTransientGestureSnapshot()).toBe('group')
+        expect(session.read.getTransientGestureSnapshot()).toBe('group')
         expect(drawing.finishDrawing({ x: 31, y: 22 }, true)).toBe(true)
-        expect(session.getGroupIdsSnapshot()).toEqual([])
+        expect(session.read.getGroupIdsSnapshot()).toEqual([])
         expect(drawing.getPendingLabelBoxSnapshot()).toEqual({ height: 76, width: 72, x: 32, y: 24 })
 
         expect(drawing.completeGroup('Platform')).toBe('group-1')
 
-        expect(session.getGroupSnapshot('group-1')).toEqual({height: 76, id: 'group-1', label: 'Platform', nodeIds: [], width: 72, x: 32, y: 24})
+        expect(session.read.getGroupSnapshot('group-1')).toEqual({height: 76, id: 'group-1', label: 'Platform', nodeIds: [], width: 72, x: 32, y: 24})
         expect(membershipChanged).toHaveBeenCalledOnce()
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'group-1', objectKind: 'group' }])
-        expect(session.getActiveToolSnapshot()).toBe('group')
-        expect(session.getTransientGestureSnapshot()).toBeNull()
+        expect(session.read.getActiveToolSnapshot()).toBe('group')
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
 
@@ -67,11 +67,11 @@ describe('DiagramGroupDrawingService', () => {
         drawing.beginDrawing({ x: 20, y: 20 })
         drawing.finishDrawing({ x: 100, y: 100 }, false)
 
-        expect(session.getActiveToolSnapshot()).toBe('group')
+        expect(session.read.getActiveToolSnapshot()).toBe('group')
         expect(drawing.completeGroup('Platform')).toBe('group-1')
 
-        expect(session.getActiveToolSnapshot()).toBe('select')
-        expect(session.getLastSelectedCreationToolSnapshot()).toBe('group')
+        expect(session.read.getActiveToolSnapshot()).toBe('select')
+        expect(session.read.getLastSelectedCreationToolSnapshot()).toBe('group')
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'group-1', objectKind: 'group' }])
     })
 
@@ -83,11 +83,11 @@ describe('DiagramGroupDrawingService', () => {
         const createGroup = vi.spyOn(session, 'createGroup').mockReturnValue(null)
 
         expect(drawing.completeGroup('Platform')).toBeNull()
-        expect(session.getActiveToolSnapshot()).toBe('group')
+        expect(session.read.getActiveToolSnapshot()).toBe('group')
 
         createGroup.mockRestore()
         expect(drawing.cancelDrawing()).toBe(true)
-        expect(session.getActiveToolSnapshot()).toBe('group')
+        expect(session.read.getActiveToolSnapshot()).toBe('group')
     })
 
     it('uses group minima for a click-sized rectangle and requires a non-empty label', () => {
@@ -98,7 +98,7 @@ describe('DiagramGroupDrawingService', () => {
 
         expect(drawing.getPendingLabelBoxSnapshot()).toEqual({ height: 56, width: 48, x: 12, y: 12 })
         expect(() => drawing.completeGroup('  ')).toThrow('Diagram group label is required')
-        expect(session.getGroupIdsSnapshot()).toEqual([])
+        expect(session.read.getGroupIdsSnapshot()).toEqual([])
     })
 
     it('cancels pointer and pending-label states without creating a group', () => {
@@ -107,14 +107,14 @@ describe('DiagramGroupDrawingService', () => {
         drawing.beginDrawing({ x: 20, y: 20 })
 
         expect(drawing.cancelDrawing()).toBe(true)
-        expect(session.getGroupIdsSnapshot()).toEqual([])
-        expect(session.getActiveToolSnapshot()).toBe('group')
+        expect(session.read.getGroupIdsSnapshot()).toEqual([])
+        expect(session.read.getActiveToolSnapshot()).toBe('group')
 
         drawing.activate()
         drawing.beginDrawing({ x: 20, y: 20 })
         drawing.finishDrawing({ x: 100, y: 100 }, true)
         expect(drawing.cancelDrawing()).toBe(true)
-        expect(session.getGroupIdsSnapshot()).toEqual([])
+        expect(session.read.getGroupIdsSnapshot()).toEqual([])
         expect(drawing.getPendingLabelBoxSnapshot()).toBeNull()
     })
 

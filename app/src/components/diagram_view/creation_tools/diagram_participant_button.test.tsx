@@ -5,6 +5,7 @@ import type { DiagramPersistentTool } from '../../../services/diagrams/diagram_e
 import { DiagramParticipantButton } from './diagram_participant_button';
 
 class ParticipantSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool;
     private diagramType: DiagramType | null;
 

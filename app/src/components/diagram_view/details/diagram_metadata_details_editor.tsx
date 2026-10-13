@@ -14,8 +14,8 @@ interface DiagramMetadataDetailsEditorProps {
 
 function initialDraft(session: DiagramEditSessionService): DiagramMetadataDraft {
     return {
-        description: session.getMetadataFieldSnapshot('description') ?? '',
-        title: session.getMetadataFieldSnapshot('title') ?? '',
+        description: session.read.getMetadataFieldSnapshot('description') ?? '',
+        title: session.read.getMetadataFieldSnapshot('title') ?? '',
     }
 }
 
@@ -23,9 +23,9 @@ function initialDraft(session: DiagramEditSessionService): DiagramMetadataDraft 
 export function DiagramMetadataDetailsEditor({ onClose, session }: DiagramMetadataDetailsEditorProps) {
     const [draft, setDraft] = useState(() => initialDraft(session))
     const [validationError, setValidationError] = useState<string | null>(null)
-    const diagramType = session.getMetadataFieldSnapshot('type')
-    const flowPreset = session.getMetadataFieldSnapshot('preset')
-    const schemaVersion = session.getMetadataFieldSnapshot('version')
+    const diagramType = session.read.getMetadataFieldSnapshot('type')
+    const flowPreset = session.read.getMetadataFieldSnapshot('preset')
+    const schemaVersion = session.read.getMetadataFieldSnapshot('version')
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target
         setDraft((current) => ({ ...current, [name]: value }))
@@ -46,10 +46,10 @@ export function DiagramMetadataDetailsEditor({ onClose, session }: DiagramMetada
         }
 
         let saved = true
-        if (session.getMetadataFieldSnapshot('title') !== title) {
+        if (session.read.getMetadataFieldSnapshot('title') !== title) {
             saved = session.setMetadataField('title', title) && saved
         }
-        if (session.getMetadataFieldSnapshot('description') !== description) {
+        if (session.read.getMetadataFieldSnapshot('description') !== description) {
             saved = session.setMetadataField('description', description) && saved
         }
         if (saved) onClose()

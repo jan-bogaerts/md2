@@ -9,7 +9,7 @@ import {
 } from '../../../services/diagrams/diagram_change_descriptions'
 import {
     diagramEditSessionService,
-    type DiagramEditSessionService,
+    type DiagramEditSessionAccess,
 } from '../../../services/diagrams/diagram_edit_session_service'
 import type {
     DiagramChange,
@@ -47,10 +47,7 @@ export interface DiagramAgentHandoffRequestDetail extends DiagramReviewRequestDe
     reviewedChangeSetId: string
 }
 
-export type DiagramChangeReviewSession = DiagramChangeDescriptionReader & Pick<
-    DiagramEditSessionService,
-    'getEditableDiagram' | 'getFragmentSnapshot' | 'getSessionSnapshot'
->
+export type DiagramChangeReviewSession = DiagramChangeDescriptionReader & DiagramEditSessionAccess<'getEditableDiagram' | 'getFragmentSnapshot' | 'getSessionSnapshot', never>
 
 type DiagramChangeReviewSelection = Pick<DiagramSelectionService, 'replace'>
 type DiagramReviewGenerator = (reader: DiagramChangeDescriptionReader) => string
@@ -89,11 +86,11 @@ function changeGroup(change: Readonly<DiagramChange>): DiagramChangeGroup {
 /** Groups stable change IDs without creating subscriptions to change fields. */
 export function groupDiagramChangeIds(
     changeIds: readonly string[],
-    session: Pick<DiagramChangeDescriptionReader, 'getChange'>,
+    session: { read: Pick<DiagramChangeDescriptionReader['read'], 'getChange'> },
 ) {
     const groupedIds = new Map<DiagramChangeGroup, string[]>(DIAGRAM_CHANGE_GROUPS.map((label) => [label, []]))
     for (const changeId of changeIds) {
-        const change = session.getChange(changeId)
+        const change = session.read.getChange(changeId)
         if (!change) continue
 
         groupedIds.get(changeGroup(change as DiagramChange))?.push(changeId)
@@ -112,10 +109,10 @@ function addIdentity(
     session: DiagramChangeReviewSession,
 ) {
     const exists = identity.objectKind === 'node'
-        ? !!session.getNodeSnapshot(identity.objectId)
+        ? !!session.read.getNodeSnapshot(identity.objectId)
         : identity.objectKind === 'edge'
-            ? !!session.getEdgeSnapshot(identity.objectId)
-            : !!session.getGroupSnapshot(identity.objectId)
+            ? !!session.read.getEdgeSnapshot(identity.objectId)
+            : !!session.read.getGroupSnapshot(identity.objectId)
     if (!exists || identities.some(({ objectId, objectKind }) => (
         objectId === identity.objectId && objectKind === identity.objectKind
     ))) return
@@ -182,7 +179,7 @@ function addFragmentEdges(
     change: Readonly<DiagramChange>,
     session: DiagramChangeReviewSession,
 ) {
-    const fragment = session.getFragmentSnapshot(change.objectId) ?? collectionValue(change)
+    const fragment = session.read.getFragmentSnapshot(change.objectId) ?? collectionValue(change)
     if (!fragment || !('regions' in fragment) || !Array.isArray(fragment.regions)) return
 
     for (const region of fragment.regions) {
@@ -317,7 +314,7 @@ export class DiagramChangeReviewService extends EventTarget {
     }
 
     selectChange(changeId: string) {
-        const change = this.session.getChange(changeId)
+        const change = this.session.read.getChange(changeId)
         if (!change) return false
 
         this.selection.replace(affectedDiagramObjects(change as DiagramChange, this.session))
@@ -370,15 +367,15 @@ export class DiagramChangeReviewService extends EventTarget {
     }
 
     private requestDetail(): DiagramReviewRequestDetail | null {
-        const changeIds = this.session.getChangeIdsSnapshot()
+        const changeIds = this.session.read.getChangeIdsSnapshot()
         if (changeIds.length === 0 || this.blockingItems.length > 0) return null
 
         return { changeIds: Object.freeze([...changeIds]), generatedText: this.generatedText }
     }
 
     private captureReviewedChanges(): ReviewedDiagramChanges | null {
-        const session = this.session.getSessionSnapshot()
-        const changeIds = this.session.getChangeIdsSnapshot()
+        const session = this.session.read.getSessionSnapshot()
+        const changeIds = this.session.read.getChangeIdsSnapshot()
         if (!session || changeIds.length === 0 || this.blockingItems.length > 0) return null
         if (!this.generatedText.trim()) {
             this.setBlockingItems(['Generated diagram change text is empty.'])
@@ -448,13 +445,13 @@ export class DiagramChangeReviewService extends EventTarget {
 
     private requireCurrentReviewedChanges(): ReviewedDiagramChanges | null {
         const reviewedChanges = this.reviewedChanges
-        const session = this.session.getSessionSnapshot()
+        const session = this.session.read.getSessionSnapshot()
         if (!reviewedChanges || !session) {
             this.setBlockingItems(['No reviewed diagram changes are active.'])
 
             return null
         }
-        const changeIds = this.session.getChangeIdsSnapshot()
+        const changeIds = this.session.read.getChangeIdsSnapshot()
         const sameIds = changeIds.length === reviewedChanges.changeIds.length
             && changeIds.every((changeId, index) => changeId === reviewedChanges.changeIds[index])
         let generatedText = ''
@@ -480,7 +477,7 @@ export class DiagramChangeReviewService extends EventTarget {
 
     private refresh(generateText: boolean) {
         const blockingItems: string[] = []
-        const diagram = this.session.getEditableDiagram()
+        const diagram = this.session.read.getEditableDiagram()
         if (!diagram) blockingItems.push('No editable diagram is active.')
         else {
             try {

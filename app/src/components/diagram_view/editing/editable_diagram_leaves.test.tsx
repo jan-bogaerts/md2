@@ -221,12 +221,12 @@ describe('editable diagram leaves', () => {
 
     it('rerenders only the relationship leaf when one cardinality changes', () => {
         const { counts, session } = renderTree(entityDiagram)
-        const edge = session.getEdgeSnapshot('orders-store')
+        const edge = session.read.getEdgeSnapshot('orders-store')
         const before = new Map(counts)
 
         act(() => { session.setEdgeField('orders-store', 'toCardinality', '1..*') })
 
-        expect(session.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(session.read.getEdgeSnapshot('orders-store')).toBe(edge)
         expect(counts.get('edge')).toBeGreaterThan(before.get('edge') ?? 0)
         expect(counts.get('orders')).toBe(before.get('orders'))
         expect(counts.get('store')).toBe(before.get('store'))

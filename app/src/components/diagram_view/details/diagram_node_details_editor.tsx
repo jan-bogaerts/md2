@@ -59,8 +59,8 @@ function drilldownValue(value: DrilldownDraft) {
 }
 
 function nodeKindOptions(session: DiagramEditSessionService) {
-    const diagramType = session.getMetadataFieldSnapshot('type')
-    const preset = session.getMetadataFieldSnapshot('preset') ?? undefined
+    const diagramType = session.read.getMetadataFieldSnapshot('type')
+    const preset = session.read.getMetadataFieldSnapshot('preset') ?? undefined
 
     return DIAGRAM_NODE_KINDS.filter((kind) => {
         try {
@@ -73,7 +73,7 @@ function nodeKindOptions(session: DiagramEditSessionService) {
 }
 
 function initialDraft(nodeId: string, session: DiagramEditSessionService): NodeDraft {
-    const node = session.getNodeSnapshot(nodeId)
+    const node = session.read.getNodeSnapshot(nodeId)
 
     return {
         drilldown: drilldownDraft(node?.drilldown),
@@ -100,7 +100,7 @@ function synchronizeEntityFields(
     drafts: readonly EntityFieldDraft[],
     session: DiagramEditSessionService,
 ) {
-    const node = session.getNodeSnapshot(nodeId)
+    const node = session.read.getNodeSnapshot(nodeId)
     if (!node) return false
 
     const currentIds = (node.fields ?? []).map((_field, fieldIndex) => `existing:${fieldIndex}`)
@@ -122,7 +122,7 @@ function synchronizeEntityFields(
         }
     }
     for (const [fieldIndex, draft] of drafts.entries()) {
-        const entityField = session.getEntityFieldSnapshot(nodeId, fieldIndex)
+        const entityField = session.read.getEntityFieldSnapshot(nodeId, fieldIndex)
         if (!entityField) continue
         const nextEntityField = entityFieldValue(draft)
         if (entityField.name !== nextEntityField.name) {
@@ -142,8 +142,8 @@ function synchronizeEntityFields(
 export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNodeDetailsEditorProps) {
     const [draft, setDraft] = useState(() => initialDraft(nodeId, session))
     const [validationError, setValidationError] = useState<string | null>(null)
-    const diagramType = session.getMetadataFieldSnapshot('type')
-    const preset = session.getMetadataFieldSnapshot('preset')
+    const diagramType = session.read.getMetadataFieldSnapshot('type')
+    const preset = session.read.getMetadataFieldSnapshot('preset')
     const kindOptions = nodeKindOptions(session)
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target
@@ -188,9 +188,9 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
         const invalidEntityIndex = draft.entityFields.findIndex(({ name }) => name.trim().length === 0)
         if (invalidEntityIndex >= 0) return `Entity field ${invalidEntityIndex + 1} requires a name.`
         if (diagramType === 'flow' && preset === 'flowchart' && draft.kind === 'decision') {
-            const unlabeledEdge = session.getEdgeIdsSnapshot().find((edgeId) => (
-                session.getEdgeFieldSnapshot(edgeId, 'from') === nodeId
-                && session.getEdgeFieldSnapshot(edgeId, 'label') === undefined
+            const unlabeledEdge = session.read.getEdgeIdsSnapshot().find((edgeId) => (
+                session.read.getEdgeFieldSnapshot(edgeId, 'from') === nodeId
+                && session.read.getEdgeFieldSnapshot(edgeId, 'label') === undefined
             ))
             if (unlabeledEdge) return 'Decision nodes require labels on every outgoing edge.'
         }
@@ -205,7 +205,7 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
             return
         }
 
-        const node = session.getNodeSnapshot(nodeId)
+        const node = session.read.getNodeSnapshot(nodeId)
         if (!node) return
         let saved = true
         const nextDrilldown = drilldownValue(draft.drilldown)

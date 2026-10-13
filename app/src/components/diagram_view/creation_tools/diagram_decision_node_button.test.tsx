@@ -8,6 +8,7 @@ import {
 } from './diagram_decision_node_button';
 
 class DecisionNodeSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool = 'select';
     private readonly diagramType: DiagramType;
     private readonly preset: DiagramFlowPreset | null;
@@ -60,7 +61,7 @@ describe('DiagramDecisionNodeButton', () => {
             defaults: { height: 96, label: 'New decision', role: 'focal', width: 96 },
             kind: 'decision',
         });
-        expect(session.subscribeMetadataField.mock.calls.map(([field]) => field)).toEqual(['type', 'preset']);
+        expect(session.read.subscribeMetadataField.mock.calls.map(([field]) => field)).toEqual(['type', 'preset']);
 
         act(() => { session.setActiveTool('node:decision'); });
         expect(button).toHaveAttribute('aria-pressed', 'true');
