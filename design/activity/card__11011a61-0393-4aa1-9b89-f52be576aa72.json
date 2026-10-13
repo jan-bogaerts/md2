@@ -463,14 +463,14 @@
         }
       ],
       "startedAt": "2026-10-13T14:34:22.529Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 143,
           "toolMs": 939
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-13T14:34:22.529Z"
+        "elapsedMs": 79071,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
