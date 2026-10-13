@@ -43,3 +43,30 @@ sentryOrganization: elastetic
 The first card was started, but was waiting for input. Then we closed the app and opened it again.
 
 The sequence algorithm should be able to pick up that the sequence was still running and waiting for a user interaction to finish.
+
+## Findings
+
+* Action runs exist only in memory. `ActionRunnerService` keeps them in `runs` and `completedRunResults` (`desktop/src/actions/action/action_runner_service.js`, `wait`). A sequence persists only the `currentRunId` of its current step.
+* On startup, `ActionSchedulerService` calls `sequenceEngine.activate()` for every sequence with status `running`. `activateLocked` finds a `currentRunId` and calls `observeRun`. `actionRunnerService.wait(runId)` throws `Unknown action run` because the run died with the previous process. `observeRunNow` catches the error and `failUnrecoverableRun` marks the sequence failed. This is the reported error.
+* The existing test in `scheduled_card_sequence_engine.test.mjs` ("Unknown action run: lost-run") expects this failure, so the behaviour is deliberate, not accidental.
+* The agent conversation survives the restart. It is stored in the card activity file with status `waitingForInput`. The user can continue it, which starts a new action run with `continueFrom`/`conversationId`, or close it as completed or cancelled through `closeWaitingActivityConversation` (`desktop/src/actions/activity/activity_files.js`).
+* The sequence has no link to that conversation, so it cannot tell that its step is still alive and waiting for the user.
+* A conversation that was mid-turn (`running`) when the app closed has no live process either; it can only resume when the user continues it.
+* Plain action schedules have the same limitation: `reconcileInterruptedActionSchedules` marks them failed on startup.
+
+## Solution
+
+1. When a sequence starts a step, persist the conversation id (`AgentConversation.id`) next to `currentRunId`. The run id remains the live handle; the conversation id is the identity that survives a restart.
+2. On activation, when `wait` reports an unknown run and the persisted conversation is still `waitingForInput` or `running`, do not fail the sequence. Clear `currentRunId` and keep the sequence running, waiting on the conversation. Keep the worktree claim held, because `branchProgress.phase` is still `running`.
+3. When an action run starts with `runInput.conversationId` equal to the persisted id, the engine adopts that run: it sets `currentRunId` to the new run and calls `observeRun`. The existing `applyRunResult` path then finishes the step.
+4. When the user closes the waiting conversation, the step ends: `completed` sets `actionCompleted`, and `cancelled` cancels the sequence.
+5. When the persisted conversation is already terminal or missing at startup, the sequence still fails, with a message that names the conversation.
+
+## Testing
+
+* Update the "lost run" test in `scheduled_card_sequence_engine.test.mjs` to expect the sequence to keep running while its conversation is waiting.
+* Add tests for adopting a continued run, closing a waiting conversation as completed or cancelled, and failing when the conversation is terminal or missing.
+
+## Open question
+
+* Should plain action schedules get the same recovery, or only sequences? This bug report only covers sequences.
