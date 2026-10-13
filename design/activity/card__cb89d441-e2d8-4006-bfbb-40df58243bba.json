@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "cb89d441-e2d8-4006-bfbb-40df58243bba",
       "cardPath": "design/feature_descriptions/B_269_pinned_broken.md",
-      "completedAt": null,
+      "completedAt": "2026-10-13T09:20:59.850Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 69097
@@ -674,7 +674,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 48,
-          "timestamp": "2026-10-13T09:00:25.411Z"
+          "timestamp": "2026-10-13T09:20:59.850Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -689,7 +689,7 @@
         }
       ],
       "startedAt": "2026-10-13T08:58:54.933Z",
-      "status": "waitingForInput",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
           "reasoningMs": 415,
@@ -707,7 +707,7 @@
         "totalTokens": 597217
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
