@@ -6,6 +6,8 @@ title: Move diagram field edits into focused editors
 after: 26179cc3-97a2-4a33-9e4f-a3b7116e217c
 branch: j_54_move_diagram_field_edits_into_focused_editors
 worktree: 2
+agents:
+  - design/activity/card__2ac96102-aba9-4901-a7f3-fcbd78b6b7fc.json
 ---
 
 # Move diagram field edits into focused editors
