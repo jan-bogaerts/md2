@@ -5,7 +5,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "2245678c-d69e-4b1d-b6b8-cca720fc468d",
       "cardPath": "design/feature_descriptions/F_377_extract_diagram_edit_transaction_plumbing.md",
-      "completedAt": null,
+      "completedAt": "2026-10-13T14:31:07.556Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 67789
@@ -603,7 +603,7 @@
         }
       ],
       "startedAt": "2026-10-13T13:00:04.963Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 129,
@@ -2449,13 +2449,13 @@
         "agent-2bbb7c2f-4a36-487d-888a-c5ded24e8646"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-9c810b79-374a-4874-9987-96063f3f3058",
       "origin": {
@@ -2464,9 +2464,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-2bbb7c2f-4a36-487d-888a-c5ded24e8646",
       "startedAt": "2026-10-13T14:19:39.939Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-2bbb7c2f-4a36-487d-888a-c5ded24e8646"
     }
   ],
   "version": 5
