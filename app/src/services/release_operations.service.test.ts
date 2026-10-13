@@ -3,6 +3,7 @@ import type { MarkdownFile, StorageService } from '../data/data_types'
 import { configService } from './config/config_service'
 import { conversation, createDataService, createStorage, files, storageFiles } from './test_support/data_service_test_support'
 import { dialogService } from './dialog_service';
+import { ReleaseBlockedByRunningActionsError } from './release_blocked_by_running_actions_error';
 import { projectAgentTokenUsageService } from './agents/project_agent_token_usage_service';
 import { createAgentTokenUsageSummary, legacySummaryUsage, serializeAgentTokenUsageSummary } from '../../../shared/agent_token_usage_summary.mjs'
 import { createActivityFile } from '../../../shared/card_activity.mjs'
@@ -772,9 +773,11 @@ describe('ReleaseOperations', () => {
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project', rootPath: 'C:/repo' })
 
-        await expect(service.releases.completeRelease('v1', [])).rejects.toThrow(
+        const completion = service.releases.completeRelease('v1', [])
+        await expect(completion).rejects.toThrow(
             'Cannot complete release while agent actions are running: Review project, Implement F-9',
         )
+        await expect(completion).rejects.toBeInstanceOf(ReleaseBlockedByRunningActionsError)
         expect(acquireReleaseCardLocks).not.toHaveBeenCalled()
         expect(storage.commit).not.toHaveBeenCalled()
     })

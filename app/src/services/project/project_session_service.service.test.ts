@@ -19,6 +19,9 @@ import { createDeferred } from '../test_support/data_service_test_support'
 import { agentCapabilitiesService } from '../agents/agent_capabilities_service'
 import { claudeRateLimitService } from '../agents/claude_rate_limit_service'
 import { projectAccessService, READ_ONLY_PROJECT_ERROR } from './project_access_service'
+import { DIALOG_SERVICE_EVENT, dialogService } from '../dialog_service'
+import { ReleaseBlockedByRunningActionsError } from '../release_blocked_by_running_actions_error'
+import { telemetryService } from '../telemetry/telemetry_service'
 
 const DEFAULT_FOLDER_VALUES = {
     actionsFolder: 'actions',
@@ -385,6 +388,35 @@ describe('ProjectSessionService storage activation', () => {
         await expect(service.pull()).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
         await expect(service.createCard({ body: '', title: 'Blocked', type: 'feature' }, 'new')).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
         await expect(service.completeRelease('v1', [])).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
+    })
+
+    it('shows running agent actions as a release block without reporting to Sentry', async () => {
+        const error = new ReleaseBlockedByRunningActionsError(['build'])
+        const listener = vi.fn()
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+        vi.spyOn(dataService.releases, 'completeRelease').mockRejectedValueOnce(error)
+        dialogService.addEventListener(DIALOG_SERVICE_EVENT, listener)
+        const service = new ProjectSessionService()
+
+        await expect(service.completeRelease('v1', [])).rejects.toBe(error)
+
+        expect(service.getSnapshot().errorMessage).toBe(error.message)
+        expect(listener).toHaveBeenCalledWith(expect.objectContaining({ detail: expect.objectContaining({ message: error.message, severity: 'error' }) }))
+        expect(captureError).not.toHaveBeenCalled()
+        dialogService.removeEventListener(DIALOG_SERVICE_EVENT, listener)
+    })
+
+    it('reports unexpected release failures to Sentry', async () => {
+        const error = new Error('Storage failed')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+        const showError = vi.spyOn(dialogService, 'error')
+        vi.spyOn(dataService.releases, 'completeRelease').mockRejectedValueOnce(error)
+        const service = new ProjectSessionService()
+
+        await expect(service.completeRelease('v1', [])).rejects.toBe(error)
+
+        expect(showError).toHaveBeenCalledWith(error, { fallbackMessage: 'Release completion failed' })
+        expect(captureError).toHaveBeenCalledWith(error)
     })
 
     it('restores the preload action bridge when opening a GitHub project after remote storage', async () => {

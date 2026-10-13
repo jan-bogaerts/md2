@@ -34,6 +34,7 @@ import { activityFilePath, projectActivityFileName } from '../../../shared/activ
 import { normalizePath } from '../../../shared/path_utils.mjs'
 import { mergeStats } from './stats/project_stats_loader'
 import { calculateActivityStatsOutsideMainThread } from './stats/project_stats_worker_client'
+import { ReleaseBlockedByRunningActionsError } from './release_blocked_by_running_actions_error'
 
 export interface ReleaseOperationsDeps {
     applyMoves(moves: MoveFile[], workingFolder: string): void
@@ -63,8 +64,8 @@ async function requireNoRunningActions() {
     const activeRuns = await bridge.listActiveActionRuns()
     if (activeRuns.length === 0) return
 
-    const labels = activeRuns.map(({ label }) => label).join(', ')
-    throw new Error(`Cannot complete release while agent actions are running: ${labels}`)
+    const labels = activeRuns.map(({ label }) => label)
+    throw new ReleaseBlockedByRunningActionsError(labels)
 }
 
 interface ReleaseCardLock {
