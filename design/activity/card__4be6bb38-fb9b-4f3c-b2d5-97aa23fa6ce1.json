@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "4be6bb38-fb9b-4f3c-b2d5-97aa23fa6ce1",
+      "cardPath": "design/feature_descriptions/B_296_waiting_for_input_flags_get_cleared.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_296_waiting_for_input_flags_get_cleared.md. investigate what is happening, report your findings",
+          "id": "submission-81372054-7a91-4cef-8d2a-d5facfddcb34",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-13T09:52:06.480Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-36f3b09e-6d13-4da5-8147-5be01f28553c",
+      "providerSessions": [],
+      "startedAt": "2026-10-13T09:52:06.480Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-13T09:52:06.480Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "4be6bb38-fb9b-4f3c-b2d5-97aa23fa6ce1",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
