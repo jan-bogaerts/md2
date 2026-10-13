@@ -1,13 +1,31 @@
 ---
 id: J_54
 internalId: 2ac96102-aba9-4901-a7f3-fcbd78b6b7fc
-status: ready for implementation
+status: ready
 title: Move diagram field edits into focused editors
 after: 26179cc3-97a2-4a33-9e4f-a3b7116e217c
 branch: j_54_move_diagram_field_edits_into_focused_editors
 worktree: 2
 agents:
   - design/activity/card__2ac96102-aba9-4901-a7f3-fcbd78b6b7fc.json
+changedFiles:
+  - .j54_followup.py
+  - .j54_migrate.py
+  - .j54_transform.py
+  - app/src/components/diagram_view/details/diagram_fragment_dialog.test.tsx
+  - app/src/components/diagram_view/details/diagram_fragment_form.tsx
+  - app/src/components/diagram_view/formatting/diagram_formatting_controls.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_entry_row.tsx
+  - app/src/components/diagram_view/legend/diagram_session_legend_entries.test.tsx
+  - app/src/components/diagram_view/legend/diagram_session_legend_entries.tsx
+  - app/src/services/diagrams/diagram_edit_context.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_entity_field_editor.ts
+  - app/src/services/diagrams/diagram_formatting_editor.ts
+  - app/src/services/diagrams/diagram_fragment_editor.ts
+  - app/src/services/diagrams/diagram_legend_editor.ts
+  - app/src/services/diagrams/diagram_object_field_editor.ts
 ---
 
 # Move diagram field edits into focused editors
