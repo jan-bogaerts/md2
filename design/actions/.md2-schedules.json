@@ -18,6 +18,45 @@
         "timestamp": "2026-10-02T13:12:00.000Z",
         "type": "at"
       }
+    },
+    {
+      "worktreeBranch": "md2/parking/dev3",
+      "branchProgress": {
+        "checkoutPath": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3",
+        "expectedBranch": "md2/sequence/f2304624-b15f-48ab-90dc-6a62de4d9270-card-1-e164cd2b-6658-414e-854e-40e4f4209236",
+        "sequenceBranch": "md2/sequence/f2304624-b15f-48ab-90dc-6a62de4d9270",
+        "baseCommit": "f63b48e6e769410fedf7420aac6c023ad083dcef",
+        "childBranch": "md2/sequence/f2304624-b15f-48ab-90dc-6a62de4d9270-card-1-e164cd2b-6658-414e-854e-40e4f4209236",
+        "sourceCommit": null,
+        "targetCommit": "f63b48e6e769410fedf7420aac6c023ad083dcef",
+        "integrationCommit": null,
+        "sourceTree": null,
+        "runId": "action-25481df9-0ea9-4533-b1bd-5d3a39642958",
+        "childBranches": [
+          "md2/sequence/f2304624-b15f-48ab-90dc-6a62de4d9270-card-1-e164cd2b-6658-414e-854e-40e4f4209236"
+        ],
+        "childCommits": {},
+        "phase": "running"
+      },
+      "actionCompleted": false,
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalIds": [
+        "2245678c-d69e-4b1d-b6b8-cca720fc468d",
+        "11011a61-0393-4aa1-9b89-f52be576aa72"
+      ],
+      "currentIndex": 0,
+      "currentRunId": null,
+      "failure": "Cannot recover sequence action run action-25481df9-0ea9-4533-b1bd-5d3a39642958: Unknown action run: action-25481df9-0ea9-4533-b1bd-5d3a39642958",
+      "readyState": "ready",
+      "readyStateMet": false,
+      "createdAt": "2026-10-13T12:53:41.654Z",
+      "id": "schedule-1791896021654-jvp09iga",
+      "kind": "sequence",
+      "status": "failed",
+      "trigger": {
+        "timestamp": "2026-10-13T13:00:00.000Z",
+        "type": "at"
+      }
     }
   ]
 }
