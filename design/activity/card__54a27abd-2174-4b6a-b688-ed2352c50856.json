@@ -396,7 +396,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 57388
+        "usedTokens": 70164
       },
       "entries": [
         {
@@ -612,6 +612,282 @@
           "role": "user",
           "sequence": 18,
           "timestamp": "2026-10-13T14:43:57.057Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.js",
+          "deletions": 0,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-19",
+          "insertions": 8,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_017hoZJ3XNK2YVUe3pJtv2zr",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:00.629Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.js",
+          "deletions": 1,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-20",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01SQoQL1ZmMKBcBr6vuFuR8w",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:02.075Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.js",
+          "deletions": 1,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-21",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Ltz7XTBeUhQV1SFNZy53x8",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:03.419Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.js",
+          "deletions": 1,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-22",
+          "insertions": 5,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01KMcJgUbqrz2RHd7QE74nPW",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:05.676Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.js",
+          "deletions": 0,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-23",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01HKBwuQAjzWDWBc8e43JXc9",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:07.180Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\action\\action_scheduler_service.js",
+          "deletions": 0,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-24",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\action\\action_scheduler_service.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_013YkpSUter2xoQRtwW6js1G",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:09.010Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-25",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzR1iQ2BxKaP7oXC8n1J:thinking:0",
+          "sequence": 25,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T14:44:10.688Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Blocks 1–2 done. Now tests.",
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 26,
+          "timestamp": "2026-10-13T14:44:10.689Z"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\schedule\\\\scheduled_card_sequence_engine.test.mjs\",\"offset\":130}",
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-27",
+          "kind": "event",
+          "label": "Read",
+          "output": "130\t        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();\n131\t        harness.runs.get('existing-run').resolve({ failure: null, status: 'completed' });\n132\t        await vi.waitFor(() => expect(harness.actionRunnerService.start).toHaveBeenCalledOnce());\n133\t\n134\t        expect(harness.actionRunnerService.start.mock.calls[0][0].context.cardInternalId).toBe('card-2');\n135\t    });\n136\t\n137\t    it('resumes completed current card without rerunning it', async () => {\n138\t        const schedule = createSequence({ actionCompleted: true, status: 'running' });\n139\t        const harness = createHarness(schedule, { 'card-1': 'ready', 'card-2': 'todo' });\n140\t\n141\t        await harness.engine.activate('sequence-1');\n142\t\n143\t        expect(harness.actionRunnerService.start).toHaveBeenCalledOnce();\n144\t        expect(harness.actionRunnerService.start.mock.calls[0][0].context.cardInternalId).toBe('card-2');\n145\t    });\n146\t\n147\t    it('persists the conversation of a started step and passes it to the run', async () => {\n148\t        const harness = createHarness(createSequence());\n149\t\n150\t        await harness.engine.activate('sequence-1');\n151\t\n152\t        expect(harness.actionRunnerService.start.mock.calls[0][0].runInput).toEqual({ conversationId: 'agent-1' });\n153\t        expect(harness.schedule()).toMatchObject({ conversationId: 'agent-1', currentRunId: 'run-1', status: 'running' });\n154\t    });\n155\t\n156\t    it('fails instead of duplicating active action when no conversation was recorded', async () => {\n157\t        const schedule = createSequence({ currentRunId: 'lost-run', status: 'running' });\n158\t        const harness = createHarness(schedule);\n159\t        harness.actionRunnerService.wait.mockRejectedValueOnce(new Error('Unknown action run: lost-run'));\n160\t\n161\t        await harness.engine.activate('sequence-1');\n162\t        await vi.waitFor(() => expect(harness.schedule().status).toBe('failed'));\n163\t\n164\t        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();\n165\t        expect(harness.schedule().failure).toContain('Cannot recover sequence action run lost-run');\n166\t    });\n167\t\n168\t    it('keeps running and waits on its conversation when the run was lost', async () => {\n169\t        const schedule = createSequence({ conversationId: 'agent-waiting', currentRunId: 'lost-run', status: 'running' });\n170\t        const harness = createHarness(schedule);\n171\t        harness.actionRunnerService.wait.mockRejectedValueOnce(new Error('Unknown action run: lost-run'));\n172\t\n173\t        await harness.engine.activate('sequence-1');\n174\t        await vi.waitFor(() => expect(harness.schedule().currentRunId).toBeNull());\n175\t\n176\t        expect(harness.engine.conversationResumeFailure).toHaveBeenCalledWith('card-1', 'agent-waiting');\n177\t        expect(harness.schedule()).toMatchObject({ conversationId: 'agent-waiting', failure: null, status: 'running' });\n178\t        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();\n179\t    });\n180\t\n181\t    it('keeps waiting on its conversation after another restart', async () => {\n182\t        const schedule = createSequence({ conversationId: 'agent-waiting', status: 'running' });\n183\t        const harness = createHarness(schedule);\n184\t\n185\t        await harness.engine.activate('sequence-1');\n186\t\n187\t        expect(harness.schedule()).toMatchObject({ conversationId: 'agent-waiting', currentRunId: null, status: 'running' });\n188\t        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();\n189\t    });\n190\t\n191\t    it.each([\n192\t        ['terminal', 'conversation agent-waiting is completed'],\n193\t        ['missing', 'conversation agent-waiting could not be loaded: Unknown agent conversation'],\n194\t    ])('fails naming the conversation when it is %s', async (_case, resumeFailure) => {\n195\t        const schedule = createSequence({ conversationId: 'agent-waiting', currentRunId: 'lost-run', status: 'running' });\n196\t        const harness = createHarness(schedule);\n197\t        harness.actionRunnerService.wait.mockRejectedValueOnce(new Er\n[1195 characters omitted]\nxpect(harness.actionRunnerService.start.mock.calls[0][0].context.cardInternalId).toBe('card-2');\n217\t        expect(harness.schedule()).toMatchObject({ currentIndex: 1, status: 'running' });\n218\t    });\n219\t\n220\t    it('ignores a run of another conversation or while its own run is live', async () => {\n221\t        const harness = createHarness(createSequence({ conversationId: 'agent-waiting', status: 'running' }));\n222\t\n223\t        await harness.engine.adoptRun('sequence-1', 'agent-other', 'other-run');\n224\t        expect(harness.schedule().currentRunId).toBeNull();\n225\t        await harness.engine.adoptRun('sequence-1', 'agent-waiting', 'continued-run');\n226\t        await harness.engine.adoptRun('sequence-1', 'agent-waiting', 'second-run');\n227\t\n228\t        expect(harness.schedule().currentRunId).toBe('continued-run');\n229\t    });\n230\t\n231\t    it('completes the step when its waiting conversation is closed as completed', async () => {\n232\t        const schedule = createSequence({ conversationId: 'agent-waiting', readyStateMet: true, status: 'running' });\n233\t        const harness = createHarness(schedule);\n234\t\n235\t        await harness.engine.closeConversation('sequence-1', 'agent-waiting', 'completed');\n236\t\n237\t        expect(harness.actionRunnerService.start).toHaveBeenCalledOnce();\n238\t        expect(harness.actionRunnerService.start.mock.calls[0][0].context.cardInternalId).toBe('card-2');\n239\t        expect(harness.schedule()).toMatchObject({ currentIndex: 1, status: 'running' });\n240\t    });\n241\t\n242\t    it('cancels the sequence when its waiting conversation is closed as cancelled', async () => {\n243\t        const harness = createHarness(createSequence({ conversationId: 'agent-waiting', status: 'running' }));\n244\t\n245\t        await harness.engine.closeConversation('sequence-1', 'agent-waiting', 'cancelled');\n246\t\n247\t        expect(harness.schedule()).toMatchObject({\n248\t            conversationId: null,\n249\t            failure: 'Sequence action was cancelled',\n250\t            status: 'cancelled',\n251\t        });\n252\t        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();\n253\t    });\n254\t\n255\t    it('fails clearly when ready state was removed', async () => {\n256\t        const harness = createHarness(createSequence({ readyState: 'removed' }));\n257\t\n258\t        await harness.engine.activate('sequence-1');\n259\t\n260\t        expect(harness.schedule()).toMatchObject({\n261\t            failure: 'Sequence ready state is not configured: removed',\n262\t            status: 'failed',\n263\t        });\n264\t        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();\n265\t    });\n266\t\n267\t    it('fails clearly when current card is missing', async () => {\n268\t        const harness = createHarness(createSequence());\n269\t        harness.engine.resolveCardContext = async () => {\n270\t            throw new Error('Sequence card not found: card-1');\n271\t        };\n272\t\n273\t        await harness.engine.activate('sequence-1');\n274\t\n275\t        expect(harness.schedule()).toMatchObject({ failure: 'Sequence card not found: card-1', status: 'failed' });\n276\t    });\n277\t\n278\t    it('fails clearly when selected action is missing', async () => {\n279\t        const harness = createHarness(createSequence());\n280\t        harness.actionRunnerService.start.mockRejectedValueOnce(new Error('Unknown action: implement'));\n281\t\n282\t        await harness.engine.activate('sequence-1');\n283\t\n284\t        expect(harness.schedule()).toMatchObject({\n285\t            failure: 'Cannot start sequence action: Unknown action: implement',\n286\t            status: 'failed',\n287\t        });\n288\t    });\n289\t\n290\t    it('cancels current action when sequence is deleted', async () => {\n291\t        const harness = createHarness(createSequence());\n292\t        await harness.engine.activate('sequence-1');\n293\t\n294\t        await harness.engine.cancel('sequence-1');\n295\t\n296\t        expect(harness.actionRunnerService.cancel).toHaveBeenCalledWith('run-1');\n297\t        expect(harness.schedule().status).toBe('cancelled');\n298\t    });\n299\t});\n300\t",
+          "providerItemId": "toolu_01F7mS6XBoAXAtkS3xrVXY3F",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:11.258Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-28",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzR1t5CWwUoMq7pdYDGh:thinking:0",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T14:44:16.928Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.test.mjs",
+          "deletions": 1,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-29",
+          "insertions": 5,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_0124tNbnQHNEHiytqjhiB7ws",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:19.128Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.test.mjs",
+          "deletions": 8,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-30",
+          "insertions": 2,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Szicw7B2kJNxTe8K7hTA6x",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:21.425Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-31",
+          "insertions": 45,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01UM2dU1FeEixyDryCcddjtk",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:28.758Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\sequence_worktree_execution.test.mjs",
+          "deletions": 1,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-32",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\sequence_worktree_execution.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01PKwaorN4ayQYdCwDpceK62",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:30.024Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\sequence_worktree_execution.test.mjs",
+          "deletions": 2,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-33",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\desktop\\src\\actions\\schedule\\sequence_worktree_execution.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_016vV1XtyEmcCW7aXHV5CSXX",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:33.071Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"command\":\"npm --prefix desktop run test -- src/actions/schedule/scheduled_card_sequence_engine.test.mjs src/actions/schedule/sequence_worktree_execution.test.mjs src/actions/action/action_scheduler_service.test.mjs 2>&1 | Select-Object -Last 25\",\"description\":\"Run affected desktop tests\",\"timeout\":300000}",
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-34",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> desktop@0.8.4 test\r\n> vitest run src/actions/schedule/scheduled_card_sequence_engine.test.mjs src/actions/schedule/sequence_worktree_execution.test.mjs src/actions/action/action_scheduler_service.test.mjs\r\n\r\n\r\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/desktop\r\n\r\n\r\n Test Files  3 passed (3)\r\n      Tests  108 passed (108)\r\n   Start at  16:44:38\r\n   Duration  1.13s (transform 137ms, setup 0ms, import 312ms, tests 1.66s, environment 0ms)",
+          "providerItemId": "toolu_01YYi7U6TknaxtXzD9feZvnB",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:40.185Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-35",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzR42NZtTtwxSaMA8Wp7:thinking:0",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T14:44:42.005Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"command\":\"npm --prefix desktop run lint 2>&1 | Select-Object -Last 20\",\"description\":\"Lint desktop project\",\"timeout\":300000}",
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-36",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> desktop@0.8.4 lint\r\n> eslint .",
+          "providerItemId": "toolu_01Sm8AY8XjnSKMHsaU4LjWhy",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:52.691Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nTests and lint clean. Updating spec status.",
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 37,
+          "timestamp": "2026-10-13T14:44:53.661Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_303_sequence_does_not_see_the_correct_ready_state.md",
+          "deletions": 1,
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-event-38",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_303_sequence_does_not_see_the_correct_ready_state.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01NCMPya7TrQrMYk3BJFuwCH",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:44:56.533Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI fixed B_303: a sequence running in a worktree now sees a ready state set in the main repository. I ran the three affected test files (108 tests, all pass) and `npm run lint` in `desktop`, which is clean. I did not run the full test suite.\n\n**Fix**\n- **Events** (`desktop/src/actions/schedule/scheduled_card_sequence_engine.js`): a new function, `isReadyStateSource`, decides which card state changes count. It accepts changes from the main repository and from the sequence's own worktree. `handleCardStateChangeNow` and `markReadyStateMet` both use it, and changes from any other worktree are still ignored.\n- **Restart and advance**: the engine has a new dependency, `resolvePrimaryCardContext`, which loads the card from the main repository. `refreshReadyState` runs on activation, recovery and advance. It now checks the main repository card first and then the worktree card, and marks the ready state as met if either is ready.\n- **Wiring** (`desktop/src/actions/action/action_scheduler_service.js`): the new dependency is connected to `ActionSchedulerService.resolveCardContext`.\n- **Unchanged**: `startCurrentAction` still loads the card from the worktree, because the action runs there. `ActionRunnerService` is not touched, so `autoFinish` behaves as before.\n\n**Tests**\n- I added the 4 regression tests from the spec to `scheduled_card_sequence_engine.test.mjs`:\n  1. A ready state set in the main repository advances a worktree sequence.\n  2. A ready state set in the sequence worktree still advances it.\n  3. A ready state set in another worktree does not advance it.\n  4. On activation, a ready state that exists only in the main repository is detected.\n- I updated one existing test in `sequence_worktree_execution.test.mjs`. It was named \"integrates before starting next card and ignores primary-checkout ready events\" and asserted that main repository events are ignored, which is exactly what the spec reverses. I removed that assertion and renamed the test to \"integrates before starting next card\".\n\nI set the spec's `status` to `ready` in `md2\\design\\feature_descriptions\\B_303_sequence_does_not_see_the_correct_ready_state.md`.",
+          "id": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-10-13T14:45:03.034Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -621,17 +897,17 @@
           "agent": "claude",
           "conversationId": "e2dc3874-5694-4e82-8429-bd94d701b72b",
           "createdAt": "2026-10-13T14:43:01.579Z",
-          "lastUsedAt": "2026-10-13T14:43:01.579Z",
-          "synchronizedThroughMessageId": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-turn-1-assistant-2",
+          "lastUsedAt": "2026-10-13T14:45:03.034Z",
+          "synchronizedThroughMessageId": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-turn-2-assistant-3",
           "usageBaseline": {
-            "costUsd": 0.46265219999999996,
-            "resultId": "cfacd063-63bb-48a7-ab63-7181bcb8804d",
+            "costUsd": 0.7774487999999999,
+            "resultId": "63dfc6f3-c81c-4ad8-9f48-a7a28b490e2d",
             "tokens": {
-              "cachedInputTokens": 361719,
-              "inputTokens": 16,
-              "outputTokens": 3601,
+              "cachedInputTokens": 827558,
+              "inputTokens": 30,
+              "outputTokens": 9697,
               "reasoningTokens": 0,
-              "totalTokens": 365336
+              "totalTokens": 837285
             }
           }
         }
@@ -640,20 +916,20 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 15871,
-          "toolMs": 9600
+          "reasoningMs": 21270,
+          "toolMs": 56671
         },
         "elapsedMs": 41081,
         "runningStartedAt": "2026-10-13T14:43:57.057Z"
       },
       "title": "fix bug",
       "usage": {
-        "cachedInputTokens": 361719,
-        "inputTokens": 16,
-        "outputTokens": 3601,
+        "cachedInputTokens": 827558,
+        "inputTokens": 30,
+        "outputTokens": 9697,
         "reasoningTokens": 0,
-        "totalTokens": 365336,
-        "costUsd": 0.46265219999999996
+        "totalTokens": 837285,
+        "costUsd": 0.7774487999999999
       },
       "usageSchemaVersion": 1,
       "viewed": true
