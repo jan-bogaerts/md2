@@ -13,8 +13,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 153363943
 sentryOrganization: elastetic
 after: e461b100-4b8f-435e-9c0f-81426d7fdb47
-branch: b_300_error_sequence_schedule_1791896021654_jvp09iga_fa
-worktree: 2
 changedFiles:
   - desktop/src/actions/action/action_runner_service.js
   - desktop/src/actions/action/action_scheduler_service.test.mjs

@@ -2140,6 +2140,39 @@
       "startedAt": "2026-10-13T13:47:51.003Z",
       "status": "completed",
       "rootConversationId": "agent-ce1ba373-fcab-47e6-88e8-98f2cb53f882"
+    },
+    {
+      "commits": [
+        {
+          "commit": "bba5e8d6fbdd05b0ddb70a271af856f7479a0cee",
+          "committedAt": "2026-10-13T16:18:36+02:00",
+          "deletions": 35,
+          "filePaths": [
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/actions/action/action_scheduler_service.js",
+            "desktop/src/actions/action/action_scheduler_service.test.mjs",
+            "desktop/src/actions/schedule/schedule_store.js",
+            "desktop/src/actions/schedule/schedule_store.test.mjs",
+            "desktop/src/actions/schedule/scheduled_card_sequence_engine.js",
+            "desktop/src/actions/schedule/scheduled_card_sequence_engine.test.mjs",
+            "desktop/src/actions/schedule/sequence_worktree_execution.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "shared/action_schedules.d.mts",
+            "shared/action_schedules.mjs"
+          ],
+          "filesChanged": 12,
+          "insertions": 452,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-13T16:18:36+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "dc18bd32-58a2-4426-99ce-c79309619b03",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
