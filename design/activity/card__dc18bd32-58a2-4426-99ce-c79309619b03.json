@@ -433,6 +433,14 @@
           "role": "assistant",
           "sequence": 33,
           "timestamp": "2026-10-13T13:44:18.532Z"
+        },
+        {
+          "content": "> should plain action schedules get the same recovery, or only sequences? The bug report only covers sequences.\n\nyes, update card for this",
+          "id": "submission-43370c62-37f7-46de-af7f-b15cac3e5005",
+          "kind": "message",
+          "role": "user",
+          "sequence": 34,
+          "timestamp": "2026-10-13T13:45:40.010Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -458,14 +466,14 @@
         }
       ],
       "startedAt": "2026-10-13T13:32:04.929Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 20001,
           "toolMs": 25628
         },
         "elapsedMs": 68682,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-13T13:45:40.010Z"
       },
       "title": "investigate",
       "usage": {
