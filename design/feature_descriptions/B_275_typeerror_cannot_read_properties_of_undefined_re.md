@@ -3,7 +3,7 @@ author:
 id: B_275
 internalId: ab5d2b6d-6c9e-4fbd-baf7-5d87de17c07c
 title: TypeError: Cannot read properties of undefined (re
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -15,6 +15,9 @@ sentryOrganization: elastetic
 after: 4677a35c-e7bf-4ef7-86c7-9f02d8604f47
 branch: b_275_typeerror_cannot_read_properties_of_undefined_re
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/popup/action_input_splitter.test.tsx
+  - app/src/components/actions/run/popup/action_input_splitter.tsx
 ---
 
 ## Sentry issue
