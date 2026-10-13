@@ -716,7 +716,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 57136
+        "usedTokens": 57513
       },
       "entries": [
         {
@@ -1253,6 +1253,28 @@
           "role": "user",
           "sequence": 39,
           "timestamp": "2026-10-13T12:14:21.004Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-40",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b3c9cca9a815766016ace20a0458487d29abbc4ec1a6401e7",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T12:14:27.675Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. Keep the conversation’s `id` in the pin list even when its record is not loaded. Opening the popup should load the activity file for each pin, then match the record by `AgentConversation.id`.\n\nFor card pins, `cardInternalId` identifies the card and its current activity references. Project pins have no `cardInternalId`; the two saved pins contain only `conversationId` and `contextKind: \"project\"`. Those fields do not identify which release file holds an archived conversation. To load only the listed files, a project pin needs a persistence location that is updated when a release moves its record. The path would locate the file; the conversation ID would remain its identity.\n\n",
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 41,
+          "timestamp": "2026-10-13T12:14:31.337Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1262,15 +1284,15 @@
           "agent": "codex",
           "conversationId": "01a1352a-fdbe-7832-b02a-df3f66e88b7a",
           "createdAt": "2026-10-13T12:11:05.633Z",
-          "lastUsedAt": "2026-10-13T12:11:05.633Z",
-          "synchronizedThroughMessageId": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-turn-1-assistant-3"
+          "lastUsedAt": "2026-10-13T12:14:31.337Z",
+          "synchronizedThroughMessageId": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-10-13T12:09:31.872Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 6533,
+          "reasoningMs": 11072,
           "toolMs": 3894
         },
         "elapsedMs": 93761,
@@ -1278,11 +1300,11 @@
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 315264,
-        "inputTokens": 52676,
-        "outputTokens": 2061,
-        "reasoningTokens": 192,
-        "totalTokens": 370193
+        "cachedInputTokens": 371968,
+        "inputTokens": 53160,
+        "outputTokens": 2208,
+        "reasoningTokens": 370,
+        "totalTokens": 427706
       },
       "usageSchemaVersion": 1,
       "viewed": true
