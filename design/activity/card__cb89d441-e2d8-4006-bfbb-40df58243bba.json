@@ -1245,6 +1245,14 @@
           "role": "assistant",
           "sequence": 38,
           "timestamp": "2026-10-13T12:11:05.633Z"
+        },
+        {
+          "content": "ok, so what we want is that, when the popup opens, we load the files in the list, no more, no less. so if they are in activity, we should still have the internalId loaded or not?",
+          "id": "submission-a1c2581e-0fa6-4e0f-a41e-bc2d9702027c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 39,
+          "timestamp": "2026-10-13T12:14:21.004Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1259,14 +1267,14 @@
         }
       ],
       "startedAt": "2026-10-13T12:09:31.872Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 6533,
           "toolMs": 3894
         },
         "elapsedMs": 93761,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-13T12:14:21.004Z"
       },
       "title": "investigate",
       "usage": {
