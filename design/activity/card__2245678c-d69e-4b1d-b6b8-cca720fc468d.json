@@ -603,14 +603,14 @@
         }
       ],
       "startedAt": "2026-10-13T13:00:04.963Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 129,
           "toolMs": 2103
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-13T13:00:04.963Z"
+        "elapsedMs": 94700,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
