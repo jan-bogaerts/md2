@@ -708,6 +708,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "cb89d441-e2d8-4006-bfbb-40df58243bba",
+      "cardPath": "design/feature_descriptions/B_269_pinned_broken.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_269_pinned_broken.md. investigate what is happening, report your findings. Be short and to the point, full sentences.",
+          "id": "submission-bbcf8172-3067-48a0-b7b8-ac3ce8fc9355",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-13T12:09:31.872Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-9ad68070-44e1-4a38-a171-fe373fc81dee",
+      "providerSessions": [],
+      "startedAt": "2026-10-13T12:09:31.872Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-13T12:09:31.872Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
