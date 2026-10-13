@@ -354,6 +354,14 @@
           "sequence": 25,
           "timestamp": "2026-10-13T13:45:15.675Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Lift results too (Recommended)",
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-answer-25",
+          "kind": "message",
+          "role": "user",
+          "sequence": 26,
+          "timestamp": "2026-10-13T13:47:03.324Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -379,14 +387,14 @@
         }
       ],
       "startedAt": "2026-10-13T13:42:40.981Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 30548,
           "toolMs": 31067
         },
         "elapsedMs": 97587,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-13T13:47:03.324Z"
       },
       "title": "fix bug",
       "usage": {
