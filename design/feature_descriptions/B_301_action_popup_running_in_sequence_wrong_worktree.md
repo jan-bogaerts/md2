@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 26179cc3-97a2-4a33-9e4f-a3b7116e217c
 ---
 
 we recently fixed it so that we show the worktree on the card, in read-only mode when it has an action running within the context of a sequence that also has a worktree assigned.

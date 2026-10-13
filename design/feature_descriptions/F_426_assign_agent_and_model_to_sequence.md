@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 2775052a-2e84-4466-a320-155c8ec05bac
 ---
 
 We need to be able to assign agent, model, reasoning level and such (same bunch as for actions) to a sequence

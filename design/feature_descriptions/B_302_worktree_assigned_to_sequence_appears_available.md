@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 9e01cab5-8f41-4ea9-9ded-d6358a458537
 ---
 
 we assigned a worktree to a sequence, but the worktree still appears as available in the popup used by the cards to assign a worktree (and likely that of actions as well).
