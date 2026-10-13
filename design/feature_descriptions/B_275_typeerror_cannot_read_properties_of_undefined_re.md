@@ -13,8 +13,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 151736297
 sentryOrganization: elastetic
 after: 4677a35c-e7bf-4ef7-86c7-9f02d8604f47
-branch: b_275_typeerror_cannot_read_properties_of_undefined_re
-worktree: 2
 changedFiles:
   - app/src/components/actions/run/popup/action_input_splitter.test.tsx
   - app/src/components/actions/run/popup/action_input_splitter.tsx
