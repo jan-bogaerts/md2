@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__c9eb5c09-0c01-490f-808c-143ff534322b.json
 policy:
-branch: f_419_write_release_script
-worktree: 1
 changedFiles:
   - scripts/publish_release.ps1
   - scripts/publish_release.test.ps1

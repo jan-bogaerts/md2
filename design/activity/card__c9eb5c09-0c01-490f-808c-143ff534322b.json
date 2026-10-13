@@ -1388,6 +1388,29 @@
       "startedAt": "2026-10-13T13:28:38.083Z",
       "status": "completed",
       "rootConversationId": "agent-144b8112-9039-45f4-87c6-1c0206fe9a48"
+    },
+    {
+      "commits": [
+        {
+          "commit": "b06680e035c8e944f8f6a61ebd40babe4e2efcf6",
+          "committedAt": "2026-10-13T15:41:44+02:00",
+          "deletions": 0,
+          "filePaths": [
+            "scripts/publish_release.ps1",
+            "scripts/publish_release.test.ps1"
+          ],
+          "filesChanged": 2,
+          "insertions": 231,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-13T15:41:44+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "c9eb5c09-0c01-490f-808c-143ff534322b",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
