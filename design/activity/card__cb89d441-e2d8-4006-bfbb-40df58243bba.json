@@ -1544,6 +1544,14 @@
           "role": "assistant",
           "sequence": 63,
           "timestamp": "2026-10-13T12:28:54.313Z"
+        },
+        {
+          "content": "ok, update the card with our findings",
+          "id": "submission-fa63f62f-6fa1-4ef8-a836-e683866ec131",
+          "kind": "message",
+          "role": "user",
+          "sequence": 64,
+          "timestamp": "2026-10-13T12:29:25.811Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1558,14 +1566,14 @@
         }
       ],
       "startedAt": "2026-10-13T12:09:31.872Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 20900,
           "toolMs": 4931
         },
         "elapsedMs": 162485,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-13T12:29:25.811Z"
       },
       "title": "investigate",
       "usage": {
