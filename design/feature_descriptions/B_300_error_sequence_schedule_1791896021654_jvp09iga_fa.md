@@ -3,7 +3,7 @@ author:
 id: B_300
 internalId: dc18bd32-58a2-4426-99ce-c79309619b03
 title: Error: Sequence schedule-1791896021654-jvp09iga fa
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -15,6 +15,11 @@ sentryOrganization: elastetic
 after: e461b100-4b8f-435e-9c0f-81426d7fdb47
 branch: b_300_error_sequence_schedule_1791896021654_jvp09iga_fa
 worktree: 2
+changedFiles:
+  - desktop/src/actions/action/action_runner_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/schedule/schedule_store.js
+  - desktop/src/shell/local_bridge_dispatch.js
 ---
 ## Sentry issue
 
