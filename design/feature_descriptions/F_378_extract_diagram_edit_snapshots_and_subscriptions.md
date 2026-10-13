@@ -1,12 +1,17 @@
 ---
 id: F_378
 internalId: 11011a61-0393-4aa1-9b89-f52be576aa72
-status: ready for implementation
+status: ready
 title: Extract diagram edit snapshots and subscriptions
 branch: f_378_extract_diagram_edit_snapshots_and_subscriptions
 worktree: 2
 agents:
   - design/activity/card__11011a61-0393-4aa1-9b89-f52be576aa72.json
+changedFiles:
+  - app/src/components/diagram_view/formatting/diagram_formatting_controls.tsx
+  - app/src/components/diagram_view/formatting/diagram_formatting_scale_control.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_entry_list.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_entry_row.tsx
 ---
 
 # Extract diagram edit snapshots and subscriptions
