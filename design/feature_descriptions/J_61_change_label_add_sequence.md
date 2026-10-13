@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__6c251422-b0dc-4d72-a279-ca60271a41bb.json
 policy:
-branch: j_61_change_label_add_sequence
-worktree: 1
 changedFiles:
   - app/src/components/shell/menu/app_menu.test.tsx
   - app/src/components/shell/menu/app_menu.tsx
