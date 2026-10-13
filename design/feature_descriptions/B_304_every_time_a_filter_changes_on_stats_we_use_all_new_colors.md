@@ -3,7 +3,7 @@ author:
 id: B_304
 internalId: 9595799d-16df-4378-9d4b-6b604ce606f6
 title: every time a filter changes on stats we use all new colors
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,16 @@ policy:
 after: 9e01cab5-8f41-4ea9-9ded-d6358a458537
 branch: b_304_every_time_a_filter_changes_on_stats_we_use_all_new_colors
 worktree: 1
+changedFiles:
+  - app/src/components/stats_view/stats_bar_chart.test.tsx
+  - app/src/components/stats_view/stats_bar_chart.tsx
+  - app/src/components/stats_view/stats_horizontal_bar_chart.tsx
+  - app/src/components/stats_view/stats_series_colors.node.test.ts
+  - app/src/components/stats_view/stats_series_colors.ts
+  - app/src/components/stats_view/stats_usage_comparison_charts.tsx
+  - app/src/services/stats/project_stats_service.node.test.ts
+  - app/src/services/stats/project_stats_service.ts
+  - app/src/services/stats/stats_series_slots.ts
 ---
 
 Every time a filter changes, we use different colors for each series in the chart. this is not ok, we should always use the same colors. The same series should always use the same color on every chart, with any filter value.
