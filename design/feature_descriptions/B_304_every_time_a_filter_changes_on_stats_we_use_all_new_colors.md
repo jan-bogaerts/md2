@@ -10,6 +10,8 @@ agents:
   - design/activity/card__9595799d-16df-4378-9d4b-6b604ce606f6.json
 policy:
 after: 9e01cab5-8f41-4ea9-9ded-d6358a458537
+branch: b_304_every_time_a_filter_changes_on_stats_we_use_all_new_colors
+worktree: 1
 ---
 
 Every time a filter changes, we use different colors for each series in the chart. this is not ok, we should always use the same colors. The same series should always use the same color on every chart, with any filter value.
