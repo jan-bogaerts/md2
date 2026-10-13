@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__04c53429-e249-4be6-8a62-8480a72be879.json
 policy:
 ---
 The 'new sequence' popup shows a drop target where the user can drop cards on. this works, but as soon as the first card is dropped, the drop target disappears and no more cards can be dropped.&#x20;
