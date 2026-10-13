@@ -277,24 +277,32 @@
           "sequence": 18,
           "timestamp": "2026-10-13T15:37:16.668Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: App session (Recommended)\nclaude-question-1: group + seriesIdentity (Recommended)",
+          "id": "agent-turn-941cfa27-d02c-4cb4-bc74-c5a0c4853424-answer-18",
+          "kind": "message",
+          "role": "user",
+          "sequence": 19,
+          "timestamp": "2026-10-13T15:39:08.730Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-082d7d9f-1a9e-46c1-becb-0ee32430d017",
       "providerSessions": [],
       "startedAt": "2026-10-13T15:36:31.052Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 12344,
           "toolMs": 20857
         },
         "elapsedMs": 45616,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-13T15:39:08.730Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
