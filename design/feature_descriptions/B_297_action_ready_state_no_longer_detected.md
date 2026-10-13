@@ -9,4 +9,6 @@ affects:
 agents:
 policy:
 ---
+recent changes have broken the system: the renderer no longer seems to react when the agent is ready and is waiting for input. Maybe this message is no longer sent from desktop to renderer or maybe the action buttons (and run button) no longer monitor or receive the correct event?
 
+we did change something recently to improve speed so that not all cards and / or action popups would monitor 'all changes' but only specific changes, maybe we forgot some?
