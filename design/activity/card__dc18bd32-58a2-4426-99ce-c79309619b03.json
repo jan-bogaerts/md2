@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 65186
+        "usedTokens": 68911
       },
       "entries": [
         {
@@ -441,6 +441,83 @@
           "role": "user",
           "sequence": 34,
           "timestamp": "2026-10-13T13:45:40.010Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4f81273-6a66-4a25-937a-fbb560302f14-event-35",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzLZ4dUUexptctXHZ69Q:thinking:0",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T13:45:42.165Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"runIdsByScheduleId|updateScheduleStatus\\\\(|actionRunnerService\\\\.(start|wait)\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\desktop\\\\src\\\\actions\\\\action\\\\action_scheduler_service.js\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-d4f81273-6a66-4a25-937a-fbb560302f14-event-36",
+          "kind": "event",
+          "label": "Grep",
+          "output": "110:        this.runIdsByScheduleId = new Map();\n181:        this.runIdsByScheduleId.clear();\n426:            await this.updateScheduleStatus(schedule.id, 'failed');\n458:                await this.updateScheduleStatus(schedule.id, 'cancelled');\n521:            this.runIdsByScheduleId.set(scheduleKey, runId);\n522:            await this.updateScheduleStatus(scheduleId, 'running', executionContext);\n524:                await this.updateScheduleStatus(scheduleId, 'pending', executionContext);\n531:            const result = await this.actionRunnerService.wait(runId);\n533:            await this.updateScheduleStatus(scheduleId, status, executionContext);\n538:                await this.updateScheduleStatus(scheduleId, 'failed', executionContext);\n542:            this.runIdsByScheduleId.delete(scheduleKey);\n559:        await this.updateScheduleStatus(schedule.id, 'failed');\n562:    async updateScheduleStatus(scheduleId, status, executionContext = null) {\n571:        await this.actionRunnerService.start(request, { interactive: false, runId });\n620:        const runId = startedRunId ?? this.runIdsByScheduleId.get(scheduleKey);",
+          "providerItemId": "toolu_01SdN74zJa8RLpoHTg8iViXF",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-10-13T13:45:43.325Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\desktop\\\\src\\\\actions\\\\action\\\\action_scheduler_service.js\",\"offset\":495,\"limit\":80}",
+          "id": "agent-turn-d4f81273-6a66-4a25-937a-fbb560302f14-event-37",
+          "kind": "event",
+          "label": "Read",
+          "output": "495\t            await completion;\n496\t        } finally {\n497\t            this.scheduleCompletionsByScheduleId.delete(scheduleKey);\n498\t            this.scheduleExecutionControls.delete(scheduleKey);\n499\t        }\n500\t    }\n501\t\n502\t    async executeSchedule(scheduleId, scheduleKey, executionContext, executionControl) {\n503\t        cancelScheduleTimer(this.timers, scheduleId, this.clearTimeout);\n504\t        this.runningScheduleIds.add(scheduleKey);\n505\t\n506\t        try {\n507\t            const schedule = await this.findPendingSchedule(scheduleId, executionContext);\n508\t            if (!schedule || executionContext.generation !== this.projectGeneration) return;\n509\t\n510\t            if (schedule.kind === 'sequence') {\n511\t                executionControl.resolveStarted(null);\n512\t                await this.sequenceEngine.activate(scheduleId);\n513\t                return;\n514\t            }\n515\t\n516\t            if (executionControl.cancelRequested) {\n517\t                executionControl.resolveStarted(null);\n518\t                return;\n519\t            }\n520\t            const runId = allocateActionRunId();\n521\t            this.runIdsByScheduleId.set(scheduleKey, runId);\n522\t            await this.updateScheduleStatus(scheduleId, 'running', executionContext);\n523\t            if (executionContext.generation !== this.projectGeneration || executionControl.cancelRequested) {\n524\t                await this.updateScheduleStatus(scheduleId, 'pending', executionContext);\n525\t                executionControl.resolveStarted(null);\n526\t                return;\n527\t            }\n528\t            await this.startScheduledAction(schedule, runId, executionContext);\n529\t            executionControl.resolveStarted(runId);\n530\t            if (executionControl.cancelRequested) this.actionRunnerService.cancel(runId);\n531\t            const result = await this.actionRunnerService.wait(runId);\n532\t            const status = scheduleStatusFromResult(result.status);\n533\t            await this.updateScheduleStatus(scheduleId, status, executionContext);\n534\t        } catch {\n535\t            executionControl.resolveStarted(null);\n536\t            const schedule = await this.findRunningSchedule(scheduleId, executionContext);\n537\t            if (schedule) {\n538\t                await this.updateScheduleStatus(scheduleId, 'failed', executionContext);\n539\t            }\n540\t        } finally {\n541\t            executionControl.resolveStarted(null);\n542\t            this.runIdsByScheduleId.delete(scheduleKey);\n543\t            this.runningScheduleIds.delete(scheduleKey);\n544\t        }\n545\t    }\n546\t\n547\t    async findPendingSchedule(scheduleId, executionContext) {\n548\t        const schedules = await this.loadSchedules(executionContext);\n549\t\n550\t        return findPendingSchedule(schedules, scheduleId);\n551\t    }\n552\t\n553\t    async failSchedule(schedule, failure, generation) {\n554\t        if (generation !== this.projectGeneration) return;\n555\t        if (schedule.kind === 'sequence') {\n556\t            await this.saveSequence({ ...schedule, failure, status: 'failed' });\n557\t            return;\n558\t        }\n559\t        await this.updateScheduleStatus(schedule.id, 'failed');\n560\t    }\n561\t\n562\t    async updateScheduleStatus(scheduleId, status, executionContext = null) {\n563\t        await this.mutateSchedules(executionContext, (schedules) => updateActionScheduleStatus(schedules, scheduleId, status));\n564\t    }\n565\t\n566\t    async startScheduledAction(schedule, runId, executionContext) {\n567\t        const context = schedule.context.cardInternalId\n568\t            ? { ...await this.resolveCardContext(schedule.context.cardInternalId, executionContext), kind: schedule.context.kind }\n569\t            : schedule.context;\n570\t        const request = { actionId: schedule.actionId, context, runInput: {} };\n571\t        await this.actionRunnerService.start(request, { interactive: false, runId });\n572\t    }\n573\t\n574\t    async handleSequenceCheckoutState(cardInternalId, state, checkoutPath, generation) {",
+          "providerItemId": "toolu_01S7H1853JaVSkBLbj1GVnHX",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-10-13T13:45:44.910Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d4f81273-6a66-4a25-937a-fbb560302f14-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzLZQHAyzLB4wUD8wP4Y:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T13:45:47.499Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_300_error_sequence_schedule_1791896021654_jvp09iga_fa.md",
+          "deletions": 4,
+          "id": "agent-turn-d4f81273-6a66-4a25-937a-fbb560302f14-event-39",
+          "insertions": 11,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_300_error_sequence_schedule_1791896021654_jvp09iga_fa.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01J9DY7HoHd3nMidzz9NW2Vp",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-10-13T13:45:54.372Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "I updated the B_300 card so plain action schedules get the same restart recovery as sequences, and removed the \"Open question\" section.\n\n**What the card now says about plain action schedules:**\n- **Today:** `executeSchedule` keeps the run id only in memory and saves only the `running` status. On startup, `reconcileInterruptedActionSchedules` marks every running action schedule as failed.\n- **Change:** when the schedule starts its run, save the conversation id on the schedule. On startup, a schedule whose conversation is still waiting for input (or was mid-run) stays `running` instead of failing. If the conversation is already finished or missing, it fails as it does today.\n- **Finishing the step:** this works the same way as for sequences. If the user continues the conversation, the schedule takes over that new run, and the run's result sets the schedule status through `scheduleStatusFromResult`. If the user closes the conversation as completed or cancelled, the schedule gets that status.\n- **Shared lookup:** both sequences and plain schedules need to find \"which running schedule is waiting on this conversation\". The card says to write that once as a shared function used by both.\n\n**Testing:** I added the same test cases for plain action schedules in the `action_scheduler_service` tests, including the startup check described above.",
+          "id": "agent-turn-d4f81273-6a66-4a25-937a-fbb560302f14-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 40,
+          "timestamp": "2026-10-13T13:45:58.671Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -450,17 +527,17 @@
           "agent": "claude",
           "conversationId": "552d0625-7f43-4b8b-a713-f19add1ea1b9",
           "createdAt": "2026-10-13T13:33:00.570Z",
-          "lastUsedAt": "2026-10-13T13:44:18.532Z",
-          "synchronizedThroughMessageId": "agent-turn-d4f81273-6a66-4a25-937a-fbb560302f14-turn-2-assistant-1",
+          "lastUsedAt": "2026-10-13T13:45:58.671Z",
+          "synchronizedThroughMessageId": "agent-turn-d4f81273-6a66-4a25-937a-fbb560302f14-turn-3-assistant-1",
           "usageBaseline": {
-            "costUsd": 0.6546803999999999,
-            "resultId": "b4f09f4e-ebaf-4c44-a8b3-3bf0e7a679bd",
+            "costUsd": 0.7741916,
+            "resultId": "01eb6b99-b141-46e7-b5f8-bc14e637c777",
             "tokens": {
-              "cachedInputTokens": 725698,
-              "inputTokens": 28,
-              "outputTokens": 6519,
+              "cachedInputTokens": 993919,
+              "inputTokens": 36,
+              "outputTokens": 8358,
               "reasoningTokens": 0,
-              "totalTokens": 732245
+              "totalTokens": 1002313
             }
           }
         }
@@ -469,20 +546,20 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 20001,
-          "toolMs": 25628
+          "reasoningMs": 22378,
+          "toolMs": 34457
         },
         "elapsedMs": 68682,
         "runningStartedAt": "2026-10-13T13:45:40.010Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 725698,
-        "inputTokens": 28,
-        "outputTokens": 6519,
+        "cachedInputTokens": 993919,
+        "inputTokens": 36,
+        "outputTokens": 8358,
         "reasoningTokens": 0,
-        "totalTokens": 732245,
-        "costUsd": 0.6546803999999999
+        "totalTokens": 1002313,
+        "costUsd": 0.7741916
       },
       "usageSchemaVersion": 1,
       "viewed": true
