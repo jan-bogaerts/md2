@@ -3,7 +3,7 @@ author:
 id: F_417
 internalId: 22b04d7f-1a70-41f6-98e8-0236c56b6873
 title: after action select focus input box
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,16 @@ policy:
 after: c9eb5c09-0c01-490f-808c-143ff534322b
 branch: f_417_after_action_select_focus_input_box
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_focus_request.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_focus_request.ts
+  - app/src/components/editor/data_sources/use_markdown_draft.test.tsx
+  - app/src/components/editor/data_sources/use_markdown_draft.ts
+  - app/src/components/editor/markdown_editor.tsx
+  - app/src/components/editor/source/markdown_source_controller.ts
+  - app/src/services/actions/action_prompt_draft_service.ts
+  - app/src/services/markdown/markdown_draft.ts
 ---
 
 after selecting an action in the action-popup:&#x20;
