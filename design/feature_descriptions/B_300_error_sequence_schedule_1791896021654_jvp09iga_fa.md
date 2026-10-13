@@ -62,11 +62,18 @@ The sequence algorithm should be able to pick up that the sequence was still run
 4. When the user closes the waiting conversation, the step ends: `completed` sets `actionCompleted`, and `cancelled` cancels the sequence.
 5. When the persisted conversation is already terminal or missing at startup, the sequence still fails, with a message that names the conversation.
 
+### Plain action schedules
+
+Plain action schedules get the same recovery.
+
+* Today `executeSchedule` in `action_scheduler_service.js` keeps the run id only in the in-memory `runIdsByScheduleId` map and persists only the `running` status. On startup, `reconcileInterruptedActionSchedules` marks every `running` action schedule failed.
+* When a plain action schedule starts its run, persist the conversation id on the schedule record.
+* Replace the blanket failure in `reconcileInterruptedActionSchedules`: when the persisted conversation is still `waitingForInput` or `running`, keep the schedule `running` and waiting on the conversation. Otherwise, mark it failed as today.
+* Adopting a continued run and closing the waiting conversation work as for sequences. The adopted run's result sets the schedule status through `scheduleStatusFromResult`. Closing the conversation as `completed` or `cancelled` sets the matching schedule status.
+* Sequences and plain action schedules both need the lookup "which running schedule waits on this conversation". Implement it once, in a shared module function, and call it from both paths.
+
 ## Testing
 
 * Update the "lost run" test in `scheduled_card_sequence_engine.test.mjs` to expect the sequence to keep running while its conversation is waiting.
 * Add tests for adopting a continued run, closing a waiting conversation as completed or cancelled, and failing when the conversation is terminal or missing.
-
-## Open question
-
-* Should plain action schedules get the same recovery, or only sequences? This bug report only covers sequences.
+* Add the same cases for plain action schedules in the `action_scheduler_service` tests, including startup reconciliation that keeps a waiting schedule running and still fails one whose conversation is terminal or missing.
