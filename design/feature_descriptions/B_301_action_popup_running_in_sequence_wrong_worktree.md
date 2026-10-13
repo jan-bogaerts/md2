@@ -3,7 +3,7 @@ author:
 id: B_301
 internalId: 9e01cab5-8f41-4ea9-9ded-d6358a458537
 title: action popup running in sequence wrong worktree
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,13 @@ policy:
 after: 26179cc3-97a2-4a33-9e4f-a3b7116e217c
 branch: b_301_action_popup_running_in_sequence_wrong_worktree
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_frame.tsx
+  - app/src/components/actions/run/popup/action_worktree_selector_owner.tsx
+  - app/src/components/card_view/card_worktree_indicator.tsx
+  - app/src/components/sequence_worktree_assignment.node.test.ts
+  - app/src/components/sequence_worktree_assignment.ts
 ---
 
 we recently fixed it so that we show the worktree on the card, in read-only mode when it has an action running within the context of a sequence that also has a worktree assigned.
