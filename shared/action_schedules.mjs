@@ -46,6 +46,12 @@ function requireNullableString(value, fieldName) {
     return requireString(value, fieldName);
 }
 
+function parseOptionalConversationId(schedule) {
+    if (schedule.conversationId === undefined) return {};
+
+    return { conversationId: requireNullableString(schedule.conversationId, 'conversationId') };
+}
+
 function parseContext(value) {
     const context = requireObject(value, 'context');
     const kind = requireString(context.kind, 'context.kind');
@@ -116,7 +122,7 @@ function parseActionSchedule(schedule, base) {
         throw new Error('Invalid schedule file: scheduled action card and trigger card must differ');
     }
 
-    return { actionId: requireString(schedule.actionId, 'actionId'), context, ...base };
+    return { actionId: requireString(schedule.actionId, 'actionId'), context, ...parseOptionalConversationId(schedule), ...base };
 }
 
 function parseCardInternalIds(value) {
@@ -144,6 +150,7 @@ function parseSequenceSchedule(schedule, base) {
         actionCompleted: requireBoolean(schedule.actionCompleted, 'actionCompleted'),
         actionId: requireString(schedule.actionId, 'actionId'),
         cardInternalIds,
+        ...parseOptionalConversationId(schedule),
         currentIndex,
         currentRunId: requireNullableString(schedule.currentRunId, 'currentRunId'),
         failure: requireNullableString(schedule.failure, 'failure'),

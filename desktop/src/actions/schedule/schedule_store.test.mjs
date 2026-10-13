@@ -10,6 +10,7 @@ const {
     createActionScheduleFile,
     deleteScheduleRecord,
     findPendingSchedule,
+    findRunningScheduleForConversation,
     parseActionScheduleFile,
     pendingScheduleIds,
     updateActionScheduleStatus,
@@ -85,6 +86,22 @@ describe('schedule store', () => {
         ]);
         expect(deleteScheduleRecord([pendingSchedule, completedSchedule], pendingSchedule.id)).toEqual([completedSchedule]);
         expect(() => deleteScheduleRecord([pendingSchedule], 'missing')).toThrow('Schedule not found: missing');
+    });
+
+    it('finds the running schedule waiting on a conversation', () => {
+        const waitingSchedule = { ...createSchedule('schedule-1'), conversationId: 'agent-1', status: 'running' };
+        const finishedSchedule = { ...createSchedule('schedule-2'), conversationId: 'agent-2', status: 'completed' };
+
+        expect(findRunningScheduleForConversation([finishedSchedule, waitingSchedule], 'agent-1')).toEqual(waitingSchedule);
+        expect(findRunningScheduleForConversation([finishedSchedule, waitingSchedule], 'agent-2')).toBeNull();
+    });
+
+    it('keeps an optional conversation id on persisted schedules', () => {
+        const schedule = { ...createSchedule(), conversationId: 'agent-1' };
+
+        expect(createActionScheduleFile([schedule]).schedules).toEqual([schedule]);
+        expect(createActionScheduleFile([createSchedule()]).schedules[0]).not.toHaveProperty('conversationId');
+        expect(() => createActionScheduleFile([{ ...schedule, conversationId: 7 }])).toThrow('conversationId');
     });
 
     it('rejects unsupported trigger types', () => {

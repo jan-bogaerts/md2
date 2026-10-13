@@ -37,6 +37,7 @@ function createDispatch(options = {}) {
     const actionSchedulerService = {
         deleteSchedule: vi.fn(async () => []),
         handleCardStateChange: vi.fn(),
+        handleConversationClosed: vi.fn(),
         listActiveSchedules: vi.fn(async () => []),
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
         registerSequenceSchedule: vi.fn(async () => ({ id: 'sequence-1' })),
@@ -67,7 +68,7 @@ function createDispatch(options = {}) {
         resolveActivityPath: vi.fn(() => ({ relativePath: 'design/activity/card__card-1.json' })),
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
-        closeWaitingActivityConversation: vi.fn(async (_project, reference, status) => ({ path: reference, status })),
+        closeWaitingActivityConversation: vi.fn(async (_project, reference, status) => ({ id: 'conversation-1', path: reference, status })),
         dismissWaitingActivityConversationQuestions: vi.fn(async (_project, reference) => ({ path: reference })),
         updateActivityConversationViewed: vi.fn(async (_project, reference, viewed) => ({
             id: 'conversation-1',
@@ -948,14 +949,15 @@ describe('createLocalBridgeDispatch', () => {
     });
 
     it('delegates persisted waiting conversation closure through current project', async () => {
-        const { dispatch, localGitService } = createDispatch();
+        const { actionSchedulerService, dispatch, localGitService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         const reference = 'design/activity/project.json#conversation=conversation-1';
         await dispatch.dataBridge.loadProject(project, 'design');
 
         await expect(dispatch.actionBridge.closeWaitingActionConversation(reference, 'cancelled'))
-            .resolves.toEqual({ path: reference, status: 'cancelled' });
+            .resolves.toEqual({ id: 'conversation-1', path: reference, status: 'cancelled' });
         expect(localGitService.closeWaitingActivityConversation).toHaveBeenCalledWith(project, reference, 'cancelled');
+        expect(actionSchedulerService.handleConversationClosed).toHaveBeenCalledWith('conversation-1', 'cancelled');
     });
 
     it('delegates persisted question dismissal through current project', async () => {

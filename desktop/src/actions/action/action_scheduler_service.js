@@ -5,6 +5,7 @@ const {
     cancelPendingActionSchedule,
     deleteScheduleRecord,
     findPendingSchedule,
+    findRunningScheduleForConversation,
     replaceScheduleRecord,
     updateActionScheduleStatus,
 } = require('../schedule/schedule_store');
@@ -13,7 +14,9 @@ const { accountResetObservations, trackerKey } = require('../schedule/schedule_a
 const { resolveScheduledCardContext } = require('../schedule/scheduled_card_context');
 const { SequenceWorktreeExecution } = require('../schedule/sequence_worktree_execution');
 const { ScheduledCardSequenceEngine } = require('../schedule/scheduled_card_sequence_engine');
-const { allocateActionRunId } = require('./action_runner_service');
+const { allocateActionRunId, allocateConversationId } = require('./action_runner_service');
+
+const RESUMABLE_CONVERSATION_STATUSES = new Set(['running', 'waitingForInput']);
 
 function createScheduleId() {
     return `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -35,6 +38,10 @@ function createScheduleExecutionControl() {
         },
         started,
     };
+}
+
+function errorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
 }
 
 function scheduleStatusFromResult(status) {
@@ -102,6 +109,7 @@ class ActionSchedulerService {
         this.project = null;
         this.actionsFolder = null;
         this.activeCardsFolder = null;
+        this.projectFolder = null;
         this.cardTypes = [];
         this.configuredStates = [];
         this.accountResetObservations = new Map();
@@ -117,6 +125,7 @@ class ActionSchedulerService {
         this.accountUsageUnsubscribers = [];
         this.subscribeToAccountUsage('claude', dependencies?.claudeRuntimeService);
         this.subscribeToAccountUsage('codex', dependencies?.codexRuntimeService);
+        this.actionRunUnsubscriber = this.subscribeToActionRuns();
     }
 
     // The caller resolves the project config and starts the action runner; the scheduler's only
@@ -134,6 +143,7 @@ class ActionSchedulerService {
         this.project = requireProject(project);
         this.actionsFolder = paths.actionsFolder;
         this.activeCardsFolder = paths.activeCardsFolder;
+        this.projectFolder = paths.projectFolder;
         this.cardTypes = projectConfig.cardTypes;
         this.configuredStates = projectConfig.states.map(({ state }) => state);
         const generation = this.projectGeneration;
@@ -143,6 +153,7 @@ class ActionSchedulerService {
             cardTypes: this.cardTypes,
             generation,
             project: this.project,
+            projectFolder: this.projectFolder,
         };
         const worktreeExecution = new SequenceWorktreeExecution({
             project: this.project,
@@ -163,7 +174,11 @@ class ActionSchedulerService {
             worktreeExecution,
             reportError: (error) => this.reportError(error),
             actionRunnerService: this.actionRunnerService,
+            allocateConversationId,
             allocateRunId: allocateActionRunId,
+            conversationResumeFailure: (cardInternalId, conversationId) => (
+                this.conversationResumeFailure(cardInternalId, conversationId, executionContext)
+            ),
             isCurrent: () => generation === this.projectGeneration,
             loadSchedules: () => this.loadSchedules(executionContext),
             resolveCardContext: (cardInternalId, sequence) => this.resolveSequenceCardContext(cardInternalId, sequence, executionContext),
@@ -177,6 +192,8 @@ class ActionSchedulerService {
         this.clearProjectState();
         for (const unsubscribe of this.accountUsageUnsubscribers) unsubscribe();
         this.accountUsageUnsubscribers = [];
+        this.actionRunUnsubscriber?.();
+        this.actionRunUnsubscriber = null;
         this.runningScheduleIds.clear();
         this.runIdsByScheduleId.clear();
         this.scheduleCompletionsByScheduleId.clear();
@@ -184,6 +201,7 @@ class ActionSchedulerService {
         this.project = null;
         this.actionsFolder = null;
         this.activeCardsFolder = null;
+        this.projectFolder = null;
         this.cardTypes = [];
         this.configuredStates = [];
         this.sequenceEngine = null;
@@ -203,6 +221,82 @@ class ActionSchedulerService {
             void this.handleAccountUsageChange(agent, snapshot).catch((error) => this.errorReporter(error));
         });
         this.accountUsageUnsubscribers.push(unsubscribe);
+    }
+
+    subscribeToActionRuns() {
+        if (!this.actionRunnerService) return null;
+
+        return this.actionRunnerService.subscribe((event) => this.handleActionRunEvent(event));
+    }
+
+    /** A continued conversation starts a new action run; a schedule waiting on that conversation adopts it. */
+    handleActionRunEvent(event) {
+        if (event.type !== 'update' || event.update.kind !== 'agentStarted') return;
+        if (this.actionsFolder === null) return;
+        const conversationId = event.update.conversation.id;
+        void this.adoptConversationRun(conversationId, event.runId).catch((error) => this.reportError(error));
+    }
+
+    async adoptConversationRun(conversationId, runId) {
+        const generation = this.projectGeneration;
+        const schedules = await this.loadSchedules();
+        if (generation !== this.projectGeneration) return;
+        const schedule = findRunningScheduleForConversation(schedules, conversationId);
+        if (!schedule) return;
+        if (schedule.kind === 'sequence') {
+            await this.sequenceEngine.adoptRun(schedule.id, conversationId, runId);
+            return;
+        }
+        await this.adoptActionScheduleRun(schedule.id, runId, generation);
+    }
+
+    async adoptActionScheduleRun(scheduleId, runId, generation) {
+        const scheduleKey = this.scheduleKey(scheduleId, generation);
+        if (this.runIdsByScheduleId.has(scheduleKey)) return;
+        this.runIdsByScheduleId.set(scheduleKey, runId);
+        try {
+            const result = await this.actionRunnerService.wait(runId);
+            if (generation !== this.projectGeneration) return;
+            await this.updateScheduleStatus(scheduleId, scheduleStatusFromResult(result.status));
+        } finally {
+            this.runIdsByScheduleId.delete(scheduleKey);
+        }
+    }
+
+    /** Ends the step of a schedule waiting on a conversation the user closed as completed or cancelled. */
+    async handleConversationClosed(conversationId, status) {
+        if (this.actionsFolder === null) return;
+        const generation = this.projectGeneration;
+        const schedules = await this.loadSchedules();
+        if (generation !== this.projectGeneration) return;
+        const schedule = findRunningScheduleForConversation(schedules, conversationId);
+        if (!schedule) return;
+        if (schedule.kind === 'sequence') {
+            await this.sequenceEngine.closeConversation(schedule.id, conversationId, status);
+            return;
+        }
+        if (this.runIdsByScheduleId.has(this.scheduleKey(schedule.id, generation))) return;
+        await this.updateScheduleStatus(schedule.id, status);
+    }
+
+    /**
+     * Returns null when the persisted conversation can still be continued by the user, otherwise a failure text
+     * naming the conversation.
+     */
+    async conversationResumeFailure(cardInternalId, conversationId, executionContext = null) {
+        const project = executionContext?.project ?? this.requireCurrentProject();
+        const projectFolder = executionContext?.projectFolder ?? this.projectFolder;
+        const origin = cardInternalId ? { cardInternalId, kind: 'card' } : { kind: 'project' };
+        let conversation;
+        try {
+            const reference = this.localGitService.activityConversationReference(projectFolder, origin, conversationId);
+            conversation = await this.localGitService.loadAgentConversation(project, reference);
+        } catch (error) {
+            return `conversation ${conversationId} could not be loaded: ${errorMessage(error)}`;
+        }
+        if (RESUMABLE_CONVERSATION_STATUSES.has(conversation.status)) return null;
+
+        return `conversation ${conversationId} is ${conversation.status}`;
     }
 
     async registerActionSchedule(request) {
@@ -420,13 +514,19 @@ class ActionSchedulerService {
 
     async reconcileInterruptedActionSchedules(schedules) {
         const interruptedSchedules = schedules.filter((schedule) => schedule.kind === 'action' && schedule.status === 'running');
+        let schedulesChanged = false;
         for (const schedule of interruptedSchedules) {
-            const error = new Error(`Action schedule ${schedule.id} could not recover its interrupted run and was marked failed`);
+            const failure = schedule.conversationId
+                ? await this.conversationResumeFailure(schedule.context.cardInternalId, schedule.conversationId)
+                : 'no conversation was recorded';
+            if (!failure) continue;
+            const error = new Error(`Action schedule ${schedule.id} could not recover its interrupted run (${failure}) and was marked failed`);
             this.reportError(error);
             await this.updateScheduleStatus(schedule.id, 'failed');
+            schedulesChanged = true;
         }
 
-        return interruptedSchedules.length > 0 ? this.loadSchedules() : schedules;
+        return schedulesChanged ? this.loadSchedules() : schedules;
     }
 
     async reconcileStartupCardStateSchedules(schedules) {
@@ -518,14 +618,16 @@ class ActionSchedulerService {
                 return;
             }
             const runId = allocateActionRunId();
+            const conversationId = allocateConversationId();
             this.runIdsByScheduleId.set(scheduleKey, runId);
-            await this.updateScheduleStatus(scheduleId, 'running', executionContext);
+            const runningSchedule = { ...schedule, conversationId, status: 'running' };
+            await this.mutateSchedules(executionContext, (schedules) => replaceScheduleRecord(schedules, runningSchedule));
             if (executionContext.generation !== this.projectGeneration || executionControl.cancelRequested) {
                 await this.updateScheduleStatus(scheduleId, 'pending', executionContext);
                 executionControl.resolveStarted(null);
                 return;
             }
-            await this.startScheduledAction(schedule, runId, executionContext);
+            await this.startScheduledAction(runningSchedule, runId, executionContext);
             executionControl.resolveStarted(runId);
             if (executionControl.cancelRequested) this.actionRunnerService.cancel(runId);
             const result = await this.actionRunnerService.wait(runId);
@@ -567,7 +669,7 @@ class ActionSchedulerService {
         const context = schedule.context.cardInternalId
             ? { ...await this.resolveCardContext(schedule.context.cardInternalId, executionContext), kind: schedule.context.kind }
             : schedule.context;
-        const request = { actionId: schedule.actionId, context, runInput: {} };
+        const request = { actionId: schedule.actionId, context, runInput: { conversationId: schedule.conversationId } };
         await this.actionRunnerService.start(request, { interactive: false, runId });
     }
 

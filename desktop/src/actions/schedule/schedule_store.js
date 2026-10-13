@@ -15,6 +15,11 @@ function findPendingSchedule(schedules, scheduleId) {
     return schedule;
 }
 
+/** Finds the running schedule whose current step belongs to the given agent conversation. */
+function findRunningScheduleForConversation(schedules, conversationId) {
+    return schedules.find((schedule) => schedule.status === 'running' && schedule.conversationId === conversationId) ?? null;
+}
+
 function pendingTimedScheduleIds(schedules) {
     return new Set(schedules
         .filter((schedule) => schedule.status === 'pending'
@@ -67,6 +72,7 @@ module.exports = {
     createActionScheduleFile,
     deleteScheduleRecord,
     findPendingSchedule,
+    findRunningScheduleForConversation,
     parseActionScheduleFile,
     pendingScheduleIds,
     pendingTimedScheduleIds,

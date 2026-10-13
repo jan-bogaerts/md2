@@ -19,6 +19,11 @@ function allocateActionRunId() {
     return createRunId();
 }
 
+/** Allocates an agent conversation ID up front, so a scheduler can persist it before the run starts. */
+function allocateConversationId() {
+    return `agent-${crypto.randomUUID()}`;
+}
+
 const TERMINAL_RECOVERY_RETENTION_MS = 5 * 60 * 1000;
 
 // Activity ownership follows the presence of cardInternalId, not the context kind.
@@ -647,4 +652,4 @@ class ActionRunnerService {
     }
 }
 
-module.exports = { ActionRunnerService, allocateActionRunId };
+module.exports = { ActionRunnerService, allocateActionRunId, allocateConversationId };

@@ -601,7 +601,10 @@ function createLocalBridgeDispatch(dependencies) {
                 const conversation = await localGitService.loadAgentConversation(currentLocalProject, reference);
                 await actionRunnerService.cancelCompactsForConversation(conversation.id);
             }
-            return localGitService.closeWaitingActivityConversation(currentLocalProject, reference, status);
+            const closedConversation = await localGitService.closeWaitingActivityConversation(currentLocalProject, reference, status);
+            if (actionSchedulerService) await actionSchedulerService.handleConversationClosed(closedConversation.id, status);
+
+            return closedConversation;
         },
         dismissWaitingActionConversationQuestions: (reference) => (
             localGitService.dismissWaitingActivityConversationQuestions(currentLocalProject, reference)

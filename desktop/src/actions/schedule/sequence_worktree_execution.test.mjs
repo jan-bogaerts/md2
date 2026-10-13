@@ -285,7 +285,7 @@ describe('SequenceWorktreeExecution', () => {
             wait: vi.fn((runId) => new Promise((resolve) => completions.set(runId, resolve))),
         };
         const engine = new ScheduledCardSequenceEngine({
-            actionRunnerService, allocateRunId: () => `run-${++runNumber}`, isCurrent: () => true,
+            actionRunnerService, allocateConversationId: () => `agent-${runNumber}`, allocateRunId: () => `run-${++runNumber}`, isCurrent: () => true,
             loadSchedules: async () => [test.state.persisted],
             resolveCardContext: async (cardInternalId) => ({ cardInternalId, kind: 'card', state: 'todo' }),
             reportError: vi.fn(), saveSequence: test.saveSequence, states: ['todo', 'ready'], worktreeExecution: test.execution,

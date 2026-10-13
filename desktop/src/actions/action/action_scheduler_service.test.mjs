@@ -314,7 +314,7 @@ describe('ActionSchedulerService', () => {
         await scheduler.fireSchedule('schedule-1');
 
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done');
-        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
+        expect(localGitService.schedules()).toEqual([{ ...schedule, conversationId: expect.any(String), status: 'completed' }]);
     });
 
     it('starts a scheduled streaming agent and completes after the session is finished', async () => {
@@ -385,7 +385,7 @@ describe('ActionSchedulerService', () => {
         await startProject(scheduler, localGitService);
 
         expect(localGitService.schedules()).toEqual([{ ...runningSchedule, status: 'failed' }]);
-        expect(errorReporter).toHaveBeenCalledWith(expect.objectContaining({ message: 'Action schedule schedule-1 could not recover its interrupted run and was marked failed' }));
+        expect(errorReporter).toHaveBeenCalledWith(expect.objectContaining({ message: 'Action schedule schedule-1 could not recover its interrupted run (no conversation was recorded) and was marked failed' }));
     });
 
     it('reports and rejects malformed schedule persistence during startup', async () => {
@@ -473,6 +473,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([]);
         const completion = createDeferred();
         const actionRunnerService = {
+            subscribe: vi.fn(),
             allocateRunId: vi.fn(() => 'sequence-run-1'),
             cancel: vi.fn(),
             start: vi.fn(async () => 'sequence-run-1'),
@@ -491,7 +492,7 @@ describe('ActionSchedulerService', () => {
 
         expect(schedule).toMatchObject({ actionId: 'implement', cardInternalIds: ['card-022'], status: 'pending' });
         expect(actionRunnerService.start).toHaveBeenCalledWith(
-            { actionId: 'implement', context: expect.objectContaining({ cardInternalId: 'card-022' }), runInput: {} },
+            { actionId: 'implement', context: expect.objectContaining({ cardInternalId: 'card-022' }), runInput: { conversationId: expect.stringMatching(/^agent-/u) } },
             { interactive: false, runId: expect.stringMatching(/^action-/u) },
         );
         const sequenceRunId = actionRunnerService.start.mock.calls[0][1].runId;
@@ -507,6 +508,7 @@ describe('ActionSchedulerService', () => {
         const schedule = createSchedule('schedule-1', 'implement', trigger);
         const localGitService = createLocalGitService([schedule]);
         const actionRunnerService = {
+            subscribe: vi.fn(),
             cancel: vi.fn(),
             start: vi.fn(async () => 'action-1'),
             startProject: vi.fn(),
@@ -521,7 +523,7 @@ describe('ActionSchedulerService', () => {
         await scheduler.handleCardStateChange('card-source', 'ready');
 
         expect(actionRunnerService.start).toHaveBeenCalledOnce();
-        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
+        expect(localGitService.schedules()).toEqual([{ ...schedule, conversationId: expect.any(String), status: 'completed' }]);
     });
 
     it.each([
@@ -557,6 +559,7 @@ describe('ActionSchedulerService', () => {
         const schedule = createSchedule('schedule-1', 'implement', trigger);
         const localGitService = createLocalGitService([schedule]);
         const actionRunnerService = {
+            subscribe: vi.fn(),
             cancel: vi.fn(),
             start: vi.fn(async () => 'action-1'),
             startProject: vi.fn(),
@@ -583,6 +586,7 @@ describe('ActionSchedulerService', () => {
         const schedule = createSchedule('schedule-1', 'implement', trigger);
         const localGitService = createLocalGitService([schedule]);
         const actionRunnerService = {
+            subscribe: vi.fn(),
             cancel: vi.fn(),
             start: vi.fn(async () => 'action-1'),
             startProject: vi.fn(),
@@ -635,7 +639,7 @@ describe('ActionSchedulerService', () => {
         expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 0);
         setTimeout.mock.calls[0][0]();
         setTimeout.mock.calls[0][0]();
-        await vi.waitFor(() => expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]));
+        await vi.waitFor(() => expect(localGitService.schedules()).toEqual([{ ...schedule, conversationId: expect.any(String), status: 'completed' }]));
 
         expect(localGitService.runCommand).toHaveBeenCalledOnce();
     });
@@ -654,7 +658,7 @@ describe('ActionSchedulerService', () => {
 
             return [nextSchedule];
         });
-        const actionRunnerService = {cancel: vi.fn(), start: vi.fn(), startProject: vi.fn(), wait: vi.fn()};
+        const actionRunnerService = {cancel: vi.fn(), subscribe: vi.fn(), start: vi.fn(), startProject: vi.fn(), wait: vi.fn()};
         const scheduler = createScheduler(localGitService, { actionRunnerService });
         await startProject(scheduler, localGitService);
 
@@ -685,7 +689,7 @@ describe('ActionSchedulerService', () => {
 
             return [nextSchedule];
         });
-        const actionRunnerService = {cancel: vi.fn(), start: vi.fn(), startProject: vi.fn(), wait: vi.fn()};
+        const actionRunnerService = {cancel: vi.fn(), subscribe: vi.fn(), start: vi.fn(), startProject: vi.fn(), wait: vi.fn()};
         const scheduler = createScheduler(localGitService, { actionRunnerService });
         await startProject(scheduler, localGitService);
 
@@ -704,6 +708,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([schedule]);
         const completion = createDeferred();
         const actionRunnerService = {
+            subscribe: vi.fn(),
             cancel: vi.fn(),
             start: vi.fn(async (_request, options) => options.runId),
             startProject: vi.fn(),
@@ -719,7 +724,7 @@ describe('ActionSchedulerService', () => {
         await Promise.all([first, second]);
 
         expect(actionRunnerService.start).toHaveBeenCalledOnce();
-        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
+        expect(localGitService.schedules()).toEqual([{ ...schedule, conversationId: expect.any(String), status: 'completed' }]);
     });
 
     it.each([
@@ -877,8 +882,8 @@ describe('ActionSchedulerService', () => {
         expect(localGitService.histories[0]).toMatchObject({ entry: { command: 'echo done', status: 'completed', type: 'command' } });
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done');
         expect(localGitService.schedules()).toEqual([
-            { ...invalidSchedule, status: 'failed' },
-            { ...validSchedule, status: 'completed' },
+            { ...invalidSchedule, conversationId: expect.any(String), status: 'failed' },
+            { ...validSchedule, conversationId: expect.any(String), status: 'completed' },
         ]);
     });
 
@@ -892,6 +897,7 @@ describe('ActionSchedulerService', () => {
             }],
         });
         const actionRunnerService = {
+            subscribe: vi.fn(),
             cancel: vi.fn(),
             start: vi.fn(async (_request, options) => options.runId),
             startProject: vi.fn(),
@@ -920,7 +926,7 @@ describe('ActionSchedulerService', () => {
                 worktree: '1',
                 worktreeBranch: 'feature',
             },
-            runInput: {},
+            runInput: { conversationId: expect.stringMatching(/^agent-/u) },
         }, { interactive: false, runId: expect.stringMatching(/^action-/u) });
     });
 
@@ -933,6 +939,7 @@ describe('ActionSchedulerService', () => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
         const localGitService = createLocalGitService([schedule]);
         const actionRunnerService = {
+            subscribe: vi.fn(),
             cancel: vi.fn(),
             start: vi.fn(async () => 'action-1'),
             startProject: vi.fn(),
@@ -943,7 +950,7 @@ describe('ActionSchedulerService', () => {
         await startProject(scheduler, localGitService);
         await scheduler.fireSchedule(schedule.id);
 
-        expect(localGitService.schedules()).toEqual([{ ...schedule, status: scheduleStatus }]);
+        expect(localGitService.schedules()).toEqual([{ ...schedule, conversationId: expect.any(String), status: scheduleStatus }]);
     });
 
     it('delegates running schedule cancellation through shared run id', async () => {
@@ -951,6 +958,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([schedule]);
         const completion = createDeferred();
         const actionRunnerService = {
+            subscribe: vi.fn(),
             cancel: vi.fn(),
             start: vi.fn(async () => 'action-1'),
             startProject: vi.fn(),
@@ -967,7 +975,7 @@ describe('ActionSchedulerService', () => {
 
         completion.resolve({ runId, failure: 'Action cancelled', status: 'cancelled' });
         await firing;
-        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'cancelled' }]);
+        expect(localGitService.schedules()).toEqual([{ ...schedule, conversationId: expect.any(String), status: 'cancelled' }]);
     });
 
     it('cancels and awaits a running schedule before deleting it', async () => {
@@ -975,6 +983,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([schedule]);
         const completion = createDeferred();
         const actionRunnerService = {
+            subscribe: vi.fn(),
             cancel: vi.fn(),
             start: vi.fn(async (_request, options) => options.runId),
             startProject: vi.fn(),
@@ -988,7 +997,7 @@ describe('ActionSchedulerService', () => {
 
         const deletion = scheduler.deleteSchedule(schedule.id);
         await vi.waitFor(() => expect(actionRunnerService.cancel).toHaveBeenCalledWith(runId));
-        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'running' }]);
+        expect(localGitService.schedules()).toEqual([{ ...schedule, conversationId: expect.any(String), status: 'running' }]);
 
         completion.resolve({ runId, failure: 'Action cancelled', status: 'cancelled' });
         await firing;
@@ -1005,6 +1014,7 @@ describe('ActionSchedulerService', () => {
         const startCompletion = createDeferred();
         const runCompletion = createDeferred();
         const actionRunnerService = {
+            subscribe: vi.fn(),
             cancel: vi.fn(),
             start: vi.fn(async () => startCompletion.promise),
             startProject: vi.fn(),
@@ -1055,7 +1065,7 @@ describe('ActionSchedulerService', () => {
 
         expect(summarizeRunEvents(scheduledEvents)).toEqual(summarizeRunEvents(directEvents));
         expect(directResult.status).toBe('completed');
-        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
+        expect(localGitService.schedules()).toEqual([{ ...schedule, conversationId: expect.any(String), status: 'completed' }]);
     });
 });
 
@@ -1085,5 +1095,114 @@ describe('sequence registration validation', () => {
         });
         expect(localGitService.schedules()[0]).toMatchObject({ status: 'pending', worktreeBranch: 'selected' });
         expect(worktreeService.resolveBranch).toHaveBeenCalledWith(project, 'selected');
+    });
+});
+
+function createWaitingSchedule(conversationId = 'agent-waiting') {
+    const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
+
+    return { ...schedule, conversationId, status: 'running' };
+}
+
+function createRecoveryHarness(schedule, conversationStatus) {
+    const localGitService = createLocalGitService([schedule]);
+    localGitService.activityConversationReference = vi.fn((_projectFolder, _origin, conversationId) => (
+        `design/activity/card__card-022.json#conversation=${conversationId}`
+    ));
+    localGitService.loadAgentConversation = vi.fn(async () => {
+        if (!conversationStatus) throw new Error('Unknown agent conversation');
+
+        return { id: schedule.conversationId, status: conversationStatus };
+    });
+    const runCompletions = new Map();
+    const actionRunnerService = {
+        cancel: vi.fn(),
+        start: vi.fn(async (_request, options) => options.runId),
+        startProject: vi.fn(),
+        subscribe: vi.fn(),
+        wait: vi.fn((runId) => {
+            if (!runCompletions.has(runId)) runCompletions.set(runId, createDeferred());
+
+            return runCompletions.get(runId).promise;
+        }),
+    };
+    const errorReporter = vi.fn();
+    const scheduler = createScheduler(localGitService, { actionRunnerService, errorReporter });
+    const publishRunEvent = (event) => actionRunnerService.subscribe.mock.calls[0][0](event);
+
+    return { actionRunnerService, errorReporter, localGitService, publishRunEvent, runCompletions, scheduler };
+}
+
+function agentStartedEvent(conversationId, runId) {
+    return { runId, type: 'update', update: { conversation: { id: conversationId }, kind: 'agentStarted' } };
+}
+
+describe('ActionSchedulerService conversation recovery', () => {
+    it('persists the conversation of a started action schedule run', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
+        const harness = createRecoveryHarness(schedule, 'waitingForInput');
+        await startProject(harness.scheduler, harness.localGitService);
+
+        void harness.scheduler.fireSchedule(schedule.id);
+        await vi.waitFor(() => expect(harness.actionRunnerService.wait).toHaveBeenCalledOnce());
+
+        const { conversationId } = harness.actionRunnerService.start.mock.calls[0][0].runInput;
+        expect(conversationId).toMatch(/^agent-/u);
+        expect(harness.localGitService.schedules()).toEqual([{ ...schedule, conversationId, status: 'running' }]);
+    });
+
+    it.each(['waitingForInput', 'running'])('keeps an interrupted schedule running while its conversation is %s', async (conversationStatus) => {
+        const schedule = createWaitingSchedule();
+        const harness = createRecoveryHarness(schedule, conversationStatus);
+
+        await startProject(harness.scheduler, harness.localGitService);
+
+        expect(harness.localGitService.schedules()).toEqual([schedule]);
+        expect(harness.localGitService.activityConversationReference).toHaveBeenCalledWith(
+            harness.scheduler.projectFolder,
+            { cardInternalId: 'card-022', kind: 'card' },
+            'agent-waiting',
+        );
+        expect(harness.errorReporter).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ['completed', 'conversation agent-waiting is completed'],
+        [null, 'conversation agent-waiting could not be loaded: Unknown agent conversation'],
+    ])('fails an interrupted schedule whose conversation is %s', async (conversationStatus, failure) => {
+        const schedule = createWaitingSchedule();
+        const harness = createRecoveryHarness(schedule, conversationStatus);
+
+        await startProject(harness.scheduler, harness.localGitService);
+
+        expect(harness.localGitService.schedules()).toEqual([{ ...schedule, status: 'failed' }]);
+        const message = `Action schedule schedule-1 could not recover its interrupted run (${failure}) and was marked failed`;
+        expect(harness.errorReporter).toHaveBeenCalledWith(expect.objectContaining({ message }));
+    });
+
+    it('adopts a continued run of its conversation and applies the run result', async () => {
+        const schedule = createWaitingSchedule();
+        const harness = createRecoveryHarness(schedule, 'waitingForInput');
+        await startProject(harness.scheduler, harness.localGitService);
+
+        harness.publishRunEvent(agentStartedEvent('agent-other', 'other-run'));
+        harness.publishRunEvent(agentStartedEvent('agent-waiting', 'continued-run'));
+        await vi.waitFor(() => expect(harness.actionRunnerService.wait).toHaveBeenCalledWith('continued-run'));
+        harness.runCompletions.get('continued-run').resolve({ failure: null, runId: 'continued-run', status: 'completed' });
+
+        await vi.waitFor(() => expect(harness.localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]));
+        expect(harness.actionRunnerService.wait).toHaveBeenCalledOnce();
+    });
+
+    it.each(['completed', 'cancelled'])('sets the schedule %s when its waiting conversation is closed', async (status) => {
+        const schedule = createWaitingSchedule();
+        const harness = createRecoveryHarness(schedule, 'waitingForInput');
+        await startProject(harness.scheduler, harness.localGitService);
+
+        await harness.scheduler.handleConversationClosed('agent-other', status);
+        expect(harness.localGitService.schedules()).toEqual([schedule]);
+        await harness.scheduler.handleConversationClosed('agent-waiting', status);
+
+        expect(harness.localGitService.schedules()).toEqual([{ ...schedule, status }]);
     });
 });

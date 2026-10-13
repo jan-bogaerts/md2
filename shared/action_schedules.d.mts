@@ -42,6 +42,7 @@ interface ScheduleBase {
 export interface ActionSchedule extends ScheduleBase {
     actionId: string
     context: ActionContext
+    conversationId?: string | null
     kind: 'action'
     trigger: ActionScheduleTrigger
 }
@@ -52,6 +53,7 @@ export interface SequenceSchedule extends ScheduleBase {
     actionCompleted: boolean
     actionId: string
     cardInternalIds: string[]
+    conversationId?: string | null
     currentIndex: number
     currentRunId: string | null
     failure: string | null
