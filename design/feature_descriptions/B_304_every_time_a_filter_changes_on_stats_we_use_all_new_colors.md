@@ -10,8 +10,6 @@ agents:
   - design/activity/card__9595799d-16df-4378-9d4b-6b604ce606f6.json
 policy:
 after: 9e01cab5-8f41-4ea9-9ded-d6358a458537
-branch: b_304_every_time_a_filter_changes_on_stats_we_use_all_new_colors
-worktree: 1
 changedFiles:
   - app/src/components/stats_view/stats_bar_chart.test.tsx
   - app/src/components/stats_view/stats_bar_chart.tsx
