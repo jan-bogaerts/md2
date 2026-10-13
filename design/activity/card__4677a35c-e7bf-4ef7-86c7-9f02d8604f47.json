@@ -967,6 +967,30 @@
       "startedAt": "2026-10-13T08:57:50.222Z",
       "status": "cancelled",
       "rootConversationId": "agent-33683aa1-1931-43a4-a680-45b627023438"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-10-13T11:45:33.915Z",
+      "conversationIds": [
+        "agent-33683aa1-1931-43a4-a680-45b627023438"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-db7e9163-f39c-4879-abe4-1ae8a14761ab",
+      "origin": {
+        "cardInternalId": "4677a35c-e7bf-4ef7-86c7-9f02d8604f47",
+        "kind": "card"
+      },
+      "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "rootActionLabel": "fix bug",
+      "rootConversationId": "agent-33683aa1-1931-43a4-a680-45b627023438",
+      "startedAt": "2026-10-13T11:37:02.738Z",
+      "status": "cancelled"
     }
   ],
   "version": 5
