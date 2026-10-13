@@ -460,20 +460,28 @@
           "sequence": 33,
           "timestamp": "2026-10-13T14:48:28.215Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: pending + running (Recommended)\nclaude-question-1: Include",
+          "id": "agent-turn-d798634d-7f13-440d-a6e7-1ce62433c40f-answer-33",
+          "kind": "message",
+          "role": "user",
+          "sequence": 34,
+          "timestamp": "2026-10-13T14:50:31.448Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-a90c63a7-4a70-4fd2-acd4-c501cbb15eff",
       "providerSessions": [],
       "startedAt": "2026-10-13T14:47:42.597Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 11911,
           "toolMs": 18770
         },
         "elapsedMs": 45618,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-13T14:50:31.448Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
