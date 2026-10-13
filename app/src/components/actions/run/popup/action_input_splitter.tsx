@@ -19,7 +19,8 @@ export function ActionInputSplitter({ store }: { store: ActionInputLayoutStore }
         store.finishResize();
         if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     };
-    const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const handleLostPointerCapture = () => store.finishResize();
+    const handleKeyDown =(event: KeyboardEvent<HTMLDivElement>) => {
         if (store.resizeByKey(event.key)) event.preventDefault();
     };
 
@@ -32,7 +33,7 @@ export function ActionInputSplitter({ store }: { store: ActionInputLayoutStore }
             aria-valuemin={Math.round(snapshot.minimum)}
             aria-valuenow={Math.round(snapshot.value)}
             onKeyDown={handleKeyDown}
-            onLostPointerCapture={store.finishResize}
+            onLostPointerCapture={handleLostPointerCapture}
             onPointerCancel={handlePointerUp}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
