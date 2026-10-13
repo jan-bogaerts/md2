@@ -7,6 +7,17 @@ after: 2775052a-2e84-4466-a320-155c8ec05bac
 agents:
   - design/activity/card__2245678c-d69e-4b1d-b6b8-cca720fc468d.json
 branch: f_377_extract_diagram_edit_transaction_plumbing
+changedFiles:
+  - .f377_edit.py
+  - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_edit_context.ts
+  - app/src/services/diagrams/diagram_edit_id_allocator.ts
+  - app/src/services/diagrams/diagram_edit_membership_events.ts
+  - app/src/services/diagrams/diagram_edit_operation_validation.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_edit_transaction.ts
+  - app/src/services/diagrams/diagram_node_placement_service.test.ts
 ---
 
 # Extract diagram edit transaction plumbing
