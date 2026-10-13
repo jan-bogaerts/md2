@@ -17,6 +17,8 @@ import {
 } from './sentry_types'
 
 export const SENTRY_POLL_INTERVAL_MS = 15 * 60 * 1000
+// Keeps event requests at 10 per second, below Sentry's limit of 15 per second.
+export const SENTRY_EVENT_REQUEST_SPACING_MS = 100
 
 export interface SentryImportConfirmation {
     count: number
@@ -39,6 +41,7 @@ export interface SentryImportServiceDependencies {
     projectAccessService: ProjectAccessService
     setInterval(callback: () => void, delay: number): number
     clearInterval(handle: number): void
+    wait(delayMs: number): Promise<void>
 }
 
 const INITIAL_SNAPSHOT: SentryImportSnapshot = {
@@ -241,11 +244,13 @@ export class SentryImportService extends EventTarget {
                 return 0
             }
 
-            const importedIssues = await Promise.all(unseenIssues.map(async (issue) => {
+            const importedIssues: SentryIssueImportRequest['issues'] = []
+            for (const issue of unseenIssues) {
+                if (importedIssues.length > 0) await this.dependencies.wait(SENTRY_EVENT_REQUEST_SPACING_MS)
+                if (!this.isCurrentRequest(projectId, startingKey)) return 0
                 const event = await apiClient.loadRecommendedEvent(requestFromSettings(settings), issue.id)
-
-                return { event: { ...event, environment: event.environment ?? settings.environment }, issue }
-            }))
+                importedIssues.push({ event: { ...event, environment: event.environment ?? settings.environment }, issue })
+            }
             if (!this.isCurrentRequest(projectId, startingKey)) return 0
 
             const importRequest: SentryIssueImportRequest = {
@@ -298,6 +303,9 @@ const DEFAULT_DEPENDENCIES: SentryImportServiceDependencies = {
     now: () => new Date(),
     projectAccessService,
     setInterval: (callback, delay) => window.setInterval(callback, delay),
+    wait: (delayMs) => new Promise((resolve) => {
+        window.setTimeout(resolve, delayMs)
+    }),
 }
 
 export const sentryImportService = new SentryImportService(DEFAULT_DEPENDENCIES)
