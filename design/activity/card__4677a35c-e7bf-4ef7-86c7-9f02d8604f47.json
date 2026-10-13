@@ -20,7 +20,7 @@
       "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "cardInternalId": "4677a35c-e7bf-4ef7-86c7-9f02d8604f47",
       "cardPath": "design/feature_descriptions/B_276_typeerror_cannot_read_properties_of_undefined_re.md",
-      "completedAt": null,
+      "completedAt": "2026-10-13T09:20:59.837Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 113102
@@ -830,7 +830,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 64,
-          "timestamp": "2026-10-13T09:00:29.702Z"
+          "timestamp": "2026-10-13T09:20:59.837Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -856,7 +856,7 @@
         }
       ],
       "startedAt": "2026-10-13T08:57:51.281Z",
-      "status": "waitingForInput",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
           "reasoningMs": 72618,
@@ -875,7 +875,7 @@
         "costUsd": 1.4039468000000004
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
