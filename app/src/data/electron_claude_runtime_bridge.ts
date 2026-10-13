@@ -1,3 +1,5 @@
+import { rehydratedPreloadBridge } from './bridge_error_rehydration'
+
 export type ClaudeRateLimitWindowId = 'five_hour' | 'weekly'
 
 export interface ClaudeRateLimitWindow {
@@ -34,5 +36,5 @@ export function setClaudeRuntimeBridgeOverride(bridge: ElectronClaudeRuntimeBrid
 export function getElectronClaudeRuntimeBridge() {
     if (claudeRuntimeBridgeOverride) return claudeRuntimeBridgeOverride
 
-    return window.md2ClaudeRuntime ?? null
+    return window.md2ClaudeRuntime ? rehydratedPreloadBridge(window.md2ClaudeRuntime) : null
 }

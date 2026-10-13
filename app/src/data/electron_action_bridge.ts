@@ -1,4 +1,5 @@
 import type { ActionContext } from './action_context'
+import { rehydratedPreloadBridge } from './bridge_error_rehydration'
 import type { ActionSettings, CardActivityFile } from '../../../shared/card_activity.mjs'
 import type { ActionScheduleTrigger, AnySchedule, ScheduleTrigger } from './action_schedule_types'
 import type { AgentConversation, AgentRunEvent } from './data_types'
@@ -232,7 +233,7 @@ export function setActionBridgeOverride(bridge: ElectronActionBridge | null) {
 export function getElectronActionBridge() {
     if (actionBridgeOverride) return actionBridgeOverride
 
-    return window.md2Actions ?? null
+    return window.md2Actions ? rehydratedPreloadBridge(window.md2Actions) : null
 }
 
 export function hasActionRunBackend() {

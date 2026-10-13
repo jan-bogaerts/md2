@@ -59,3 +59,16 @@ export function withBridgeErrorRehydration<T extends object>(bridge: T): T {
 
     return wrapped as T
 }
+
+const rehydratedPreloadBridges = new WeakMap<object, object>()
+
+/** Returns one cached rehydrating wrapper per preload bridge instance, so repeated lookups keep a stable identity. */
+export function rehydratedPreloadBridge<T extends object>(bridge: T): T {
+    const cached = rehydratedPreloadBridges.get(bridge)
+    if (cached) return cached as T
+
+    const wrapped = withBridgeErrorRehydration(bridge)
+    rehydratedPreloadBridges.set(bridge, wrapped)
+
+    return wrapped
+}

@@ -3,6 +3,7 @@ import type { ElectronDataBridge } from '../../data/electron_data_bridge'
 import { DEFAULT_PROJECT_CONFIG, MissingWorkingFolderError } from '../../data/data_types'
 import { beforeEach } from 'vitest'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
+import { rehydratedPreloadBridge } from '../../data/bridge_error_rehydration'
 import { getElectronClaudeRuntimeBridge, setClaudeRuntimeBridgeOverride } from '../../data/electron_claude_runtime_bridge'
 import { LAST_PROJECT_STORAGE_KEY } from '../../data/project_session'
 import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY } from '../../data/remote_control_connection'
@@ -224,7 +225,7 @@ describe('ProjectSessionService storage activation', () => {
 
         await service.openProject('local', { branch: 'main', id: 'local', rootPath: 'C:/repo' }, null)
 
-        expect(getElectronActionBridge()).toBe(preloadBridge)
+        expect(getElectronActionBridge()).toBe(rehydratedPreloadBridge(preloadBridge))
     })
 
     it('restores the last local project once after resolving its current reference', async () => {
@@ -403,7 +404,7 @@ describe('ProjectSessionService storage activation', () => {
 
         await service.openProject('github', { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'token-1')
 
-        expect(getElectronActionBridge()).toBe(preloadBridge)
+        expect(getElectronActionBridge()).toBe(rehydratedPreloadBridge(preloadBridge))
     })
 
     it('does not change the active bridge when listing branches for a secondary local storage', async () => {

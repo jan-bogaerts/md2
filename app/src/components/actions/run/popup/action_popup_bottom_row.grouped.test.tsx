@@ -464,7 +464,7 @@ describe('ActionPopupBottomRow', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
         await vi.waitFor(() => expect(closeWaitingActionConversation).toHaveBeenCalledWith(source.path, 'completed'))
-        expect(conversationStore.getSnapshot().selectedConversation).toEqual(updated)
+        await vi.waitFor(() => expect(conversationStore.getSnapshot().selectedConversation).toEqual(updated))
         expect(updateCardConversation).toHaveBeenCalledWith(updated)
         await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Finish' })).not.toBeInTheDocument())
     })
