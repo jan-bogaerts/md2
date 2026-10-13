@@ -393,7 +393,7 @@
       "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "cardInternalId": "54a27abd-2174-4b6a-b688-ed2352c50856",
       "cardPath": "design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md",
-      "completedAt": null,
+      "completedAt": "2026-10-13T14:45:04.003Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 70164
@@ -887,7 +887,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 39,
-          "timestamp": "2026-10-13T14:45:03.034Z"
+          "timestamp": "2026-10-13T14:45:04.003Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -897,7 +897,7 @@
           "agent": "claude",
           "conversationId": "e2dc3874-5694-4e82-8429-bd94d701b72b",
           "createdAt": "2026-10-13T14:43:01.579Z",
-          "lastUsedAt": "2026-10-13T14:45:03.034Z",
+          "lastUsedAt": "2026-10-13T14:45:04.003Z",
           "synchronizedThroughMessageId": "agent-turn-90ce75ed-22d0-46ee-9505-230189a44770-turn-2-assistant-3",
           "usageBaseline": {
             "costUsd": 0.7774487999999999,
@@ -913,14 +913,14 @@
         }
       ],
       "startedAt": "2026-10-13T14:42:20.498Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 21270,
           "toolMs": 56671
         },
-        "elapsedMs": 41081,
-        "runningStartedAt": "2026-10-13T14:43:57.057Z"
+        "elapsedMs": 108027,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
