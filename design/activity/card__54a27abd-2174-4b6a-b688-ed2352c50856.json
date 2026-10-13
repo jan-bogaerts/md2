@@ -222,6 +222,14 @@
           "role": "assistant",
           "sequence": 16,
           "timestamp": "2026-10-13T14:36:02.364Z"
+        },
+        {
+          "content": "> the only source of the ready state\n\nno, lets allow both main repository and worktree.\n\nonly update design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md for now with your findings and proposed solution",
+          "id": "submission-3fbbdbc8-82e5-4133-99a2-cb8744ef1746",
+          "kind": "message",
+          "role": "user",
+          "sequence": 17,
+          "timestamp": "2026-10-13T14:38:15.296Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -247,14 +255,14 @@
         }
       ],
       "startedAt": "2026-10-13T14:35:25.094Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 16703,
           "toolMs": 7454
         },
         "elapsedMs": 37270,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-13T14:38:15.296Z"
       },
       "title": "investigate",
       "usage": {
