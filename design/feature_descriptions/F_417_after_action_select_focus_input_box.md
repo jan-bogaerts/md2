@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__22b04d7f-1a70-41f6-98e8-0236c56b6873.json
 policy:
-after: 6c9bb01f-be19-43a2-af08-c2bfc5ab72bc
+after: c9eb5c09-0c01-490f-808c-143ff534322b
 branch: f_417_after_action_select_focus_input_box
 worktree: 2
 ---
