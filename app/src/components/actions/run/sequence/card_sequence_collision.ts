@@ -6,8 +6,8 @@ export const cardSequenceCollision: CollisionDetection = (argumentsValue) => {
     const sequenceContainers = argumentsValue.droppableContainers.filter(({ id }) => isCardSequenceDropId(String(id)));
     const sequenceArguments = { ...argumentsValue, droppableContainers: sequenceContainers };
     const collisions = pointerWithin(sequenceArguments);
-    if (collisions.length > 0) return closestCorners(sequenceArguments);
-    if (cardInternalIdFromSequenceItem(String(argumentsValue.active.id))) return closestCorners(sequenceArguments);
+    if (collisions.length > 0) return collisions;
+    if (cardInternalIdFromSequenceItem(String(argumentsValue.active.id))) return [];
 
     return closestCorners(argumentsValue);
 };

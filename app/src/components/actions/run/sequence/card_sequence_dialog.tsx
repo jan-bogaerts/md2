@@ -1,7 +1,7 @@
 import {
     Box, Button, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, Typography, useMediaQuery, useTheme,
 } from '@mui/material'
-import { useDroppable } from '@dnd-kit/core'
+import { useDndContext, useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useSyncExternalStore, type KeyboardEvent } from 'react'
 import { ResizablePopper } from '../../../resizable_popper';
@@ -20,7 +20,7 @@ import { cardSequenceActions } from './card_sequence_actions'
 import { CardSequenceActionSelector } from './card_sequence_action_selector'
 import { CardSequenceCardPicker } from './card_sequence_card_picker'
 import { cardSequenceDraftService, type CardSequenceDraftService } from './card_sequence_draft_service'
-import { CARD_SEQUENCE_DROP_ID, cardSequenceItemId } from './card_sequence_dnd'
+import { CARD_SEQUENCE_DROP_ID, cardInternalIdFromSequenceItem, cardSequenceItemId } from './card_sequence_dnd'
 import { registerCardSequence } from './card_sequence_registration'
 import { CardSequenceRow } from './card_sequence_row'
 
@@ -81,7 +81,16 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
 
         return () => CARD_SOURCE_EVENTS.forEach((event) => dataService.removeEventListener(event, handleCardSourcesChange));
     }, [handleCardSourcesChange, snapshot.open]);
+    const { active, over } = useDndContext();
     const { setNodeRef } = useDroppable({ id: CARD_SEQUENCE_DROP_ID })
+    const activeId = active ? String(active.id) : null;
+    const activeSequenceCardInternalId = activeId ? cardInternalIdFromSequenceItem(activeId) : null;
+    const allowedDrop = !!activeId && (activeSequenceCardInternalId
+        ? snapshot.cardInternalIds.includes(activeSequenceCardInternalId)
+        : snapshot.cardSources.some(({ assigned, cardInternalId, path }) => (
+            path === activeId && !!cardInternalId && !assigned && !snapshot.cardInternalIds.includes(cardInternalId)
+        )));
+    const insertionTargetId = allowedDrop && over && String(over.id) !== activeId ? String(over.id) : null;
     const selectedCards = useMemo(() => snapshot.cardInternalIds.flatMap((cardInternalId) => {
         const source = snapshot.cardSources.find((candidate) => candidate.cardInternalId === cardInternalId);
         const card = source ? activeCards.find(({ header }) => header.internalId === source.cardInternalId) : null;
@@ -195,15 +204,8 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
                     </Box>
                     <Box
                         aria-label="Sequence cards"
-                        ref={setNodeRef}
                         role="listbox"
-                        sx={{
-                            border: snapshot.cardInternalIds.length === 0 ? '1.5px dashed' : 0,
-                            borderColor: 'custom.borderStrong',
-                            borderRadius: 1.25,
-                            minHeight: 160,
-                            p: snapshot.cardInternalIds.length === 0 ? 2 : 0,
-                        }}
+                        sx={{ minHeight: 160 }}
                     >
                         <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
                             <Stack spacing={1}>
@@ -211,17 +213,30 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
                                     <CardSequenceRow
                                         card={card}
                                         key={card.header.internalId}
+                                        insertionTarget={insertionTargetId === cardSequenceItemId(card.header.internalId!)}
                                         selected={snapshot.selectedCardInternalId === card.header.internalId}
                                         service={service}
                                     />
                                 ))}
-                                {snapshot.cardInternalIds.length === 0 ? (
-                                    <Typography color="custom.text4" sx={{ py: 4, textAlign: 'center' }}>
-                                        Drop active cards here or use Add cards
-                                    </Typography>
-                                ) : null}
                             </Stack>
                         </SortableContext>
+                        <Box
+                            aria-label="Append sequence card"
+                            data-insertion-target={insertionTargetId === CARD_SEQUENCE_DROP_ID || undefined}
+                            ref={setNodeRef}
+                            sx={{
+                                border: '1.5px dashed',
+                                borderColor: insertionTargetId === CARD_SEQUENCE_DROP_ID ? 'primary.main' : 'custom.borderStrong',
+                                borderRadius: 1.25,
+                                bgcolor: insertionTargetId === CARD_SEQUENCE_DROP_ID ? 'custom.primaryBg' : 'background.paper',
+                                mt: snapshot.cardInternalIds.length > 0 ? 1 : 0,
+                                px: 2,
+                                py: snapshot.cardInternalIds.length > 0 ? 2 : 4,
+                                textAlign: 'center',
+                            }}
+                        >
+                            <Typography color="custom.text4">Drop active cards here or use Add cards</Typography>
+                        </Box>
                     </Box>
                 </Stack>
                 <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>

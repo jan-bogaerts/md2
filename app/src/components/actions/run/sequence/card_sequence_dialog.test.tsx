@@ -9,6 +9,17 @@ import { projectAccessService } from '../../../../services/project/project_acces
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { CardSequenceDialog } from './card_sequence_dialog'
 import { CardSequenceDraftService } from './card_sequence_draft_service'
+import { CARD_SEQUENCE_DROP_ID, cardSequenceItemId } from './card_sequence_dnd'
+
+const dragState = vi.hoisted(() => ({
+    active: null as { id: string } | null,
+    over: null as { id: string } | null,
+}));
+
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@dnd-kit/core')>();
+    return { ...actual, useDndContext: () => dragState };
+});
 
 const testState = vi.hoisted(() => ({
     actions: [{ description: 'Build selected cards', id: 'build', label: 'Build', prompt: 'Build', type: 'agent' }],
@@ -52,6 +63,8 @@ function renderDialog(service: CardSequenceDraftService) {
 
 describe('CardSequenceDialog', () => {
     beforeEach(() => {
+        dragState.active = null;
+        dragState.over = null;
         projectAccessService.setReadOnly(false)
         vi.spyOn(dataService, 'getState').mockReturnValue({
             project: { branch: 'main', id: 'project', rootPath: 'C:\\project' },
@@ -125,6 +138,67 @@ describe('CardSequenceDialog', () => {
 
         await waitFor(() => expect(screen.queryByText(/F-1 title/u)).not.toBeInTheDocument())
     })
+
+    it('keeps append target visible and hides card paths after adding cards', () => {
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        const list = screen.getByRole('listbox', { name: 'Sequence cards' });
+        expect(within(list).getByLabelText('Append sequence card')).toBeInTheDocument();
+
+        act(() => service.addCard('card-1'));
+        expect(within(list).getByLabelText('Append sequence card')).toBeInTheDocument();
+        expect(within(list).getByText(/F-1 title/u)).toBeInTheDocument();
+        expect(within(list).queryByText('design/F-1.md')).not.toBeInTheDocument();
+    });
+
+    it('marks only permitted insertion positions and clears marker after drag leaves', () => {
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        act(() => service.addCard('card-1'));
+        const list = screen.getByRole('listbox', { name: 'Sequence cards' });
+        const append = within(list).getByLabelText('Append sequence card');
+        const row = within(list).getByRole('option', { name: /F-1/u });
+
+        dragState.active = { id: 'design/F-2.md' };
+        dragState.over = { id: cardSequenceItemId('card-1') };
+        act(() => service.selectCard(null));
+        expect(row).toHaveAttribute('data-insertion-target', 'true');
+        expect(append).not.toHaveAttribute('data-insertion-target');
+
+        dragState.over = { id: CARD_SEQUENCE_DROP_ID };
+        act(() => service.selectCard('card-1'));
+        expect(row).not.toHaveAttribute('data-insertion-target');
+        expect(append).toHaveAttribute('data-insertion-target', 'true');
+
+        dragState.over = null;
+        act(() => service.selectCard(null));
+        expect(append).not.toHaveAttribute('data-insertion-target');
+
+        dragState.active = { id: 'design/F-1.md' };
+        dragState.over = { id: CARD_SEQUENCE_DROP_ID };
+        act(() => service.selectCard('card-1'));
+        expect(append).not.toHaveAttribute('data-insertion-target');
+    });
+
+    it('does not mark drop target for worktree-assigned board card', () => {
+        const assigned = card('F-2', 'card-2');
+        assigned.header.worktreeValue = 'invalid';
+        vi.mocked(dataService.getState).mockReturnValue({
+            project: { branch: 'main', id: 'project', rootPath: 'C:\\project' }, runningAgents: [],
+            snapshot: { activeCards: [cards[0], assigned], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        });
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        dragState.active = { id: assigned.path };
+        dragState.over = { id: CARD_SEQUENCE_DROP_ID };
+        act(() => service.selectCard(null));
+
+        expect(screen.getByLabelText('Append sequence card')).not.toHaveAttribute('data-insertion-target');
+        expect(service.getSnapshot().cardInternalIds).toEqual([]);
+    });
 
     it('submits canonical ids and closes only after registration succeeds', async () => {
         const service = new CardSequenceDraftService()

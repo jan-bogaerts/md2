@@ -18,6 +18,7 @@ import { useMobileCardViewColumn } from './use_mobile_card_view_column'
 import { resolveMobileCardDragEvent } from './mobile_card_drag'
 import { cardSequenceCollision } from '../actions/run/sequence/card_sequence_collision';
 import { CardSequenceDialog } from '../actions/run/sequence/card_sequence_dialog'
+import { CardSequenceDragOverlay } from '../actions/run/sequence/card_sequence_drag_overlay'
 import { cardSequenceDraftService } from '../actions/run/sequence/card_sequence_draft_service'
 import {
     CARD_SEQUENCE_DROP_ID,
@@ -218,7 +219,10 @@ export function MobileCardView(props: MobileCardViewProps) {
                         />
                     ) : null}
                 </Box>
-                <DragOverlay zIndex={DRAG_OVERLAY_Z_INDEX}><CardDragOverlay cardTypes={cardTypes} /></DragOverlay>
+                <DragOverlay zIndex={DRAG_OVERLAY_Z_INDEX}>
+                    <CardDragOverlay cardTypes={cardTypes} />
+                    <CardSequenceDragOverlay />
+                </DragOverlay>
                 <CardSequenceDialog />
                 <CardBodyPopover
                     cardTypes={cardTypes}
