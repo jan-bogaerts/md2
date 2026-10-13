@@ -3,8 +3,6 @@ id: F_378
 internalId: 11011a61-0393-4aa1-9b89-f52be576aa72
 status: ready
 title: Extract diagram edit snapshots and subscriptions
-branch: f_378_extract_diagram_edit_snapshots_and_subscriptions
-worktree: 2
 agents:
   - design/activity/card__11011a61-0393-4aa1-9b89-f52be576aa72.json
 changedFiles:
