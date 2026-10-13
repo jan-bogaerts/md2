@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__04c53429-e249-4be6-8a62-8480a72be879.json
 policy:
-branch: b_298_new_sequence_popup_only_accepts_1_drop
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/sequence/card_sequence_collision.test.ts
   - app/src/components/actions/run/sequence/card_sequence_collision.ts

@@ -2776,6 +2776,37 @@
       "startedAt": "2026-10-13T12:06:45.775Z",
       "status": "completed",
       "rootConversationId": "agent-24171564-986e-46d2-8153-3d3917674346"
+    },
+    {
+      "commits": [
+        {
+          "commit": "f62dbf6631e6a908c9e7c26b9f4b76231f365456",
+          "committedAt": "2026-10-13T14:50:21+02:00",
+          "deletions": 28,
+          "filePaths": [
+            "app/src/components/actions/run/sequence/card_sequence_collision.test.ts",
+            "app/src/components/actions/run/sequence/card_sequence_collision.ts",
+            "app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_dialog.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_drag_overlay.test.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_drag_overlay.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_row.tsx",
+            "app/src/components/card_view/card_view.test.tsx",
+            "app/src/components/card_view/card_view.tsx",
+            "app/src/components/card_view/mobile_card_view.tsx"
+          ],
+          "filesChanged": 10,
+          "insertions": 237,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-13T14:50:21+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "04c53429-e249-4be6-8a62-8480a72be879",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
