@@ -2,11 +2,13 @@
 id: B_259
 internalId: e461b100-4b8f-435e-9c0f-81426d7fdb47
 title: Responsive search reopens after Escape and loses results on resize
-status: ready for implementation
+status: ready
 branch: b_259_responsive_search_reopens_after_escape_and_loses_results_on_resize
 worktree: 1
 agents:
   - design/activity/card__e461b100-4b8f-435e-9c0f-81426d7fdb47.json
+changedFiles:
+  - app/src/components/shell/search/search_control.test.tsx
 ---
 
 Reported during review of [PR #27](https://github.com/jan-bogaerts/md2/pull/27), head `e1181650a`. Fix after the PR is merged.
