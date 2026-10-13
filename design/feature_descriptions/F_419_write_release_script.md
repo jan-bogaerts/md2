@@ -3,7 +3,7 @@ author:
 id: F_419
 internalId: c9eb5c09-0c01-490f-808c-143ff534322b
 title: write release script
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,9 @@ agents:
 policy:
 branch: f_419_write_release_script
 worktree: 1
+changedFiles:
+  - scripts/publish_release.ps1
+  - scripts/publish_release.test.ps1
 ---
 write a script that will:
 
