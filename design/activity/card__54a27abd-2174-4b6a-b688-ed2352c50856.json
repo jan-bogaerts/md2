@@ -987,6 +987,31 @@
       "startedAt": "2026-10-13T14:42:19.485Z",
       "status": "completed",
       "rootConversationId": "agent-41fcf071-e73d-48e2-9c7a-66b114324412"
+    },
+    {
+      "commits": [
+        {
+          "commit": "585e4c5c28b39215efff3980ea4d466237e98895",
+          "committedAt": "2026-10-13T17:27:46+02:00",
+          "deletions": 15,
+          "filePaths": [
+            "desktop/src/actions/action/action_scheduler_service.js",
+            "desktop/src/actions/schedule/scheduled_card_sequence_engine.js",
+            "desktop/src/actions/schedule/scheduled_card_sequence_engine.test.mjs",
+            "desktop/src/actions/schedule/sequence_worktree_execution.test.mjs"
+          ],
+          "filesChanged": 4,
+          "insertions": 71,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-13T17:27:46+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "54a27abd-2174-4b6a-b688-ed2352c50856",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
