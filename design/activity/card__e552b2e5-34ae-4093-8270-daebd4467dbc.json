@@ -778,7 +778,7 @@
         "costUsd": 0.5706246
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -849,6 +849,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "52f0c39ce2ee102c6e8023246f75c0d682f44154",
           "committedAt": "2026-10-13T10:52:17+02:00",
           "deletions": 6,
@@ -857,8 +858,7 @@
             "app/src/services/sentry/sentry_import_service.ts"
           ],
           "filesChanged": 2,
-          "insertions": 61,
-          "branch": "dev_main"
+          "insertions": 61
         }
       ],
       "completedAt": "2026-10-13T10:52:17+02:00",

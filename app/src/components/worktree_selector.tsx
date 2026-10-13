@@ -25,6 +25,7 @@ interface WorktreeSelectorProps {
     assignment: WorktreeAssignment
     assignmentTarget: WorktreeAssignmentTarget
     disabled?: boolean
+    disabledReason?: string
     labelPrefix?: string
     primaryPath: string | null
 }
@@ -44,7 +45,7 @@ function assignmentState(assignment: WorktreeAssignment) {
 
 /** Shared worktree assignment button and menu used by cards and action popups. */
 export function WorktreeSelector(props: WorktreeSelectorProps) {
-    const { assignment, assignmentTarget, disabled = false, labelPrefix, primaryPath } = props
+    const { assignment, assignmentTarget, disabled = false, disabledReason, labelPrefix, primaryPath } = props
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const [commitMessage, setCommitMessage] = useState('')
     const [commitAction, setCommitAction] = useState<CommitAction>('commit')
@@ -91,7 +92,8 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         ]
         : []
     const worktreeStatusDescription = statusParts.length > 0 ? statusParts.join('; ') : null
-    const descriptions = [assignmentDescription, worktreeStatusDescription].filter((value) => value !== null)
+    const descriptions = [assignmentDescription, worktreeStatusDescription, disabledReason]
+        .filter((value) => value !== null && value !== undefined)
     const tooltip = descriptions.join('. ')
     const statusLabel = worktreeStatusDescription ? `; ${worktreeStatusDescription}` : ''
     const label = labelPrefix

@@ -20,6 +20,11 @@ export interface ActiveScheduleSnapshot {
     selectedScheduleId: string | null
 }
 
+export interface SequenceCardWorktree {
+    checkoutPath: string
+    expectedBranch: string
+}
+
 interface ActiveScheduleServiceDependencies {
     actionService: ActionService
     claudeRateLimitService: ClaudeRateLimitService
@@ -68,6 +73,7 @@ export class ActiveScheduleService extends EventTarget {
     private schedules: readonly AnySchedule[] = []
     private pendingCardIds = new Set<string>()
     private pendingCardActions = new Set<string>()
+    private sequenceCardWorktrees = new Map<string, SequenceCardWorktree>()
     private snapshot = INITIAL_SNAPSHOT
     private started = false
 
@@ -89,6 +95,15 @@ export class ActiveScheduleService extends EventTarget {
 
     hasPendingActionForCardAndAction = (cardInternalId: string, actionId: string) =>
         this.pendingCardActions.has(JSON.stringify([cardInternalId, actionId]))
+
+    getSequenceWorktreeForCard = (cardInternalId: string) => this.sequenceCardWorktrees.get(cardInternalId) ?? null
+
+    subscribeSequenceCard = (cardInternalId: string, onStoreChange: () => void) => {
+        const eventName = `sequence-card:${cardInternalId}`
+        this.addEventListener(eventName, onStoreChange)
+
+        return () => this.removeEventListener(eventName, onStoreChange)
+    }
 
     subscribeCard = (cardInternalId: string, onStoreChange: () => void) => {
         const eventName = `pending-card:${cardInternalId}`
@@ -226,8 +241,19 @@ export class ActiveScheduleService extends EventTarget {
     private setSchedules(schedules: readonly AnySchedule[]) {
         const pendingCardIds = new Set<string>()
         const pendingCardActions = new Set<string>()
+        const sequenceCardWorktrees = new Map<string, SequenceCardWorktree>()
         for (const schedule of schedules) {
-            if (schedule.kind !== 'action' || schedule.status !== 'pending' || !schedule.context.cardInternalId) continue
+            if (schedule.kind === 'sequence') {
+                if (schedule.status !== 'running' || !schedule.branchProgress) continue
+                const cardInternalId = schedule.cardInternalIds[schedule.currentIndex]
+                const { checkoutPath, expectedBranch } = schedule.branchProgress
+                const previous = this.sequenceCardWorktrees.get(cardInternalId)
+                const worktree = previous?.checkoutPath === checkoutPath && previous.expectedBranch === expectedBranch
+                    ? previous : { checkoutPath, expectedBranch }
+                sequenceCardWorktrees.set(cardInternalId, worktree)
+                continue
+            }
+            if (schedule.status !== 'pending' || !schedule.context.cardInternalId) continue
             const { actionId } = schedule
             const cardInternalId = schedule.context.cardInternalId
             pendingCardIds.add(cardInternalId)
@@ -236,11 +262,13 @@ export class ActiveScheduleService extends EventTarget {
 
         const previousCardIds = this.pendingCardIds
         const previousCardActions = this.pendingCardActions
+        const previousSequenceCardWorktrees = this.sequenceCardWorktrees
         const changedCardIds = new Set([...previousCardIds, ...pendingCardIds])
         const changedCardActions = new Set([...previousCardActions, ...pendingCardActions])
         this.schedules = schedules
         this.pendingCardIds = pendingCardIds
         this.pendingCardActions = pendingCardActions
+        this.sequenceCardWorktrees = sequenceCardWorktrees
         for (const cardInternalId of changedCardIds) {
             if (previousCardIds.has(cardInternalId) !== pendingCardIds.has(cardInternalId)) {
                 this.dispatchEvent(new Event(`pending-card:${cardInternalId}`))
@@ -249,6 +277,11 @@ export class ActiveScheduleService extends EventTarget {
         for (const key of changedCardActions) {
             if (previousCardActions.has(key) !== pendingCardActions.has(key)) {
                 this.dispatchEvent(new Event(`pending-card-action:${key}`))
+            }
+        }
+        for (const cardInternalId of new Set([...previousSequenceCardWorktrees.keys(), ...sequenceCardWorktrees.keys()])) {
+            if (previousSequenceCardWorktrees.get(cardInternalId) !== sequenceCardWorktrees.get(cardInternalId)) {
+                this.dispatchEvent(new Event(`sequence-card:${cardInternalId}`))
             }
         }
     }

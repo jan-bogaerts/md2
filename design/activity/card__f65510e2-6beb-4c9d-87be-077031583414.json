@@ -536,11 +536,11 @@
         "agent-b7993964-85c0-41b8-b7ab-36c59a254c90"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-99ea4b93-c3b6-4b3f-bc15-0252bb73aefd",
       "origin": {
@@ -549,9 +549,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-b7993964-85c0-41b8-b7ab-36c59a254c90",
       "startedAt": "2026-10-13T13:27:45.099Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-b7993964-85c0-41b8-b7ab-36c59a254c90"
     }
   ],
   "version": 5
