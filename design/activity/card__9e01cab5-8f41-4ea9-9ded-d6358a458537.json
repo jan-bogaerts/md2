@@ -668,7 +668,35 @@
         "totalTokens": 500857
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
+    },
+    {
+      "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "cardInternalId": "9e01cab5-8f41-4ea9-9ded-d6358a458537",
+      "cardPath": "design/feature_descriptions/B_301_action_popup_running_in_sequence_wrong_worktree.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read and fix the bug described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_301_action_popup_running_in_sequence_wrong_worktree.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned bug description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).&#x20;\n2. create a task for each block\n3. Wait for approval.\n4. include tests\n5. After implementation is done, update the field `status` in the markdown feature description file to `ready`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_301_action_popup_running_in_sequence_wrong_worktree.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria. Keep everything short and to the point.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "submission-e7e8f5e5-a046-49b4-a2a9-77b07b01ae3c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-13T15:49:50.903Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-3304dafe-70a5-431c-8f9f-7aeba996a564",
+      "providerSessions": [],
+      "startedAt": "2026-10-13T15:49:50.903Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-13T15:49:50.903Z"
+      },
+      "title": "fix bug",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -695,13 +723,13 @@
         "agent-5cf85600-8db6-4088-991b-04de6f1c41c4"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-3ab2031d-3bed-4157-bec5-6ab934fca5aa",
       "origin": {
@@ -710,9 +738,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-5cf85600-8db6-4088-991b-04de6f1c41c4",
       "startedAt": "2026-10-13T15:45:32.664Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-5cf85600-8db6-4088-991b-04de6f1c41c4"
     }
   ],
   "version": 5
