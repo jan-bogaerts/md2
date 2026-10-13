@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "cb89d441-e2d8-4006-bfbb-40df58243bba",
+      "cardPath": "design/feature_descriptions/B_269_pinned_broken.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_269_pinned_broken.md. can you locate where the problem is occuring? no changes, only analyse",
+          "id": "submission-7517dfb8-2d11-458b-bffc-4b6a1d879e19",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-13T08:58:54.933Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-f291b0cb-40f0-429e-b743-39b4ad4e87ef",
+      "providerSessions": [],
+      "startedAt": "2026-10-13T08:58:54.933Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-13T08:58:54.933Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "cb89d441-e2d8-4006-bfbb-40df58243bba",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
