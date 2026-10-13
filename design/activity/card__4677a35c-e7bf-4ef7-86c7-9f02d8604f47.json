@@ -975,11 +975,11 @@
         "agent-33683aa1-1931-43a4-a680-45b627023438"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-db7e9163-f39c-4879-abe4-1ae8a14761ab",
       "origin": {
@@ -988,9 +988,39 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-33683aa1-1931-43a4-a680-45b627023438",
       "startedAt": "2026-10-13T11:37:02.738Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-33683aa1-1931-43a4-a680-45b627023438"
+    },
+    {
+      "commits": [
+        {
+          "commit": "6bbffc0705554607b9142a3d29c48a2b85fbc6e8",
+          "committedAt": "2026-10-13T13:45:44+02:00",
+          "deletions": 9,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx",
+            "app/src/data/bridge_error_rehydration.ts",
+            "app/src/data/electron_action_bridge.node.test.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/data/electron_claude_runtime_bridge.ts",
+            "app/src/data/electron_codex_runtime_bridge.ts",
+            "app/src/data/electron_runtime_bridges.node.test.ts",
+            "app/src/data/project_session.service.test.ts",
+            "app/src/services/project/project_session_service.service.test.ts"
+          ],
+          "filesChanged": 9,
+          "insertions": 98,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-13T13:45:44+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "4677a35c-e7bf-4ef7-86c7-9f02d8604f47",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
