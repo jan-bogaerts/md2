@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 56732
+        "usedTokens": 61506
       },
       "entries": [
         {
@@ -230,6 +230,105 @@
           "role": "user",
           "sequence": 17,
           "timestamp": "2026-10-13T14:38:15.296Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzQZfKzugMFGuKnJAFER:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T14:38:17.715Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat >> ../../../../design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md <<'EOF'\n\n## Findings\n\nThe hypothesis is confirmed. A sequence that runs in a worktree only reads the ready state from its worktree checkout, so a state change made in the main repository is never noticed.\n\n1. Main repository card changes reach `ActionSchedulerService.handleCardStateChange` through `local_bridge_dispatch.js`. That method calls `ScheduledCardSequenceEngine.handleCardStateChange` without a checkout path, so the path is `null`. `handleCardStateChangeNow` only accepts schedules whose `branchProgress.checkoutPath` equals the event path. A worktree sequence always has a real worktree path, so the event is filtered out. `markReadyStateMet` repeats the same check.\n2. `SequenceWorktreeExecution.watch` runs a separate `CardStateTracker` on the sequence worktree. Its events carry the worktree path, so they are the only state changes a worktree sequence currently accepts.\n3. `refreshReadyState` runs on activation, recovery and advance. It uses `ActionSchedulerService.resolveSequenceCardContext`, which loads the card from the worktree checkout and not from the main repository. A ready state set in the main repository is therefore also missed after a restart.\n4. Sequences without a worktree are not affected. They have no `branchProgress`, so both sides are `null` and main repository events match.\n\n## Proposed solution\n\nBoth the main repository and the sequence worktree are valid sources of the ready state.\n\n1. In `ScheduledCardSequenceEngine.handleCardStateChangeNow` and `markReadyStateMet`, accept an event when its checkout path is `null` (main repository) or equals the sequence's `branchProgress.checkoutPath` (sequence worktree). Events from other worktrees remain ignored.\n2. Keep `SequenceWorktreeExecution.watch` forwarding worktree transitions to the engine, unchanged.\n3. Give the engine a main repository card lookup through `ActionSchedulerService.resolveCardContext`. `refreshReadyState` marks the ready state as met when either the main repository card or the worktree card is in the ready state. `startCurrentAction` keeps using `resolveSequenceCardContext`, because the action still runs in the worktree.\n4. `ActionRunnerService.handleCardStateChange` keeps its current checkout path matching, so `autoFinish` behavior does not change.\n\n## Testing\n\nAdd regression tests to `scheduled_card_sequence_engine.test.mjs`:\n\n* a ready state set in the main repository advances a worktree sequence;\n* a ready state set in the sequence worktree still advances it;\n* a ready state set in another worktree does not advance it;\n* `refreshReadyState` detects a ready state that exists only in the main repository.\nEOF",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-19",
+          "kind": "event",
+          "label": "cat >> ../../../../design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md <<'EOF'\n\n## Findings\n\nThe hypothesis is confirmed. A sequence that runs in a worktree only reads the ready state from its worktree checkout, so a state change made in the main repository is never noticed.\n\n1. Main repository card changes reach `ActionSchedulerService.handleCardStateChange` through `local_bridge_dispatch.js`. That method calls `ScheduledCardSequenceEngine.handleCardStateChange` without a checkout path, so the path is `null`. `handleCardStateChangeNow` only accepts schedules whose `branchProgress.checkoutPath` equals the event path. A worktree sequence always has a real worktree path, so the event is filtered out. `markReadyStateMet` repeats the same check.\n2. `SequenceWorktreeExecution.watch` runs a separate `CardStateTracker` on the sequence worktree. Its events carry the worktree path, so they are the only state changes a worktree sequence currently accepts.\n3. `refreshReadyState` runs on activation, recovery and advance. It uses `ActionSchedulerService.resolveSequenceCardContext`, which loads the card from the worktree checkout and not from the main repository. A ready state set in the main repository is therefore also missed after a restart.\n4. Sequences without a worktree are not affected. They have no `branchProgress`, so both sides are `null` and main repository events match.\n\n## Proposed solution\n\nBoth the main repository and the sequence worktree are valid sources of the ready state.\n\n1. In `ScheduledCardSequenceEngine.handleCardStateChangeNow` and `markReadyStateMet`, accept an event when its checkout path is `null` (main repository) or equals the sequence's `branchProgress.checkoutPath` (sequence worktree). Events from other worktrees remain ignored.\n2. Keep `SequenceWorktreeExecution.watch` forwarding worktree transitions to the engine, unchanged.\n3. Give the engine a main repository card lookup through `ActionSchedulerService.resolveCardContext`. `refreshReadyState` marks the ready state as met when either the main repository card or the worktree card is in the ready state. `startCurrentAction` keeps using `resolveSequenceCardContext`, because the action still runs in the worktree.\n4. `ActionRunnerService.handleCardStateChange` keeps its current checkout path matching, so `autoFinish` behavior does not change.\n\n## Testing\n\nAdd regression tests to `scheduled_card_sequence_engine.test.mjs`:\n\n* a ready state set in the main repository advances a worktree sequence;\n* a ready state set in the sequence worktree still advances it;\n* a ready state set in another worktree does not advance it;\n* `refreshReadyState` detects a ready state that exists only in the main repository.\nEOF",
+          "providerItemId": "toolu_01S9JBBdhbxEzBnUt5Ccb3wY",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:38:26.107Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "The file had no trailing newline, so the heading ended up directly under the original text. I'll add a blank line between them.",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 20,
+          "timestamp": "2026-10-13T14:38:27.516Z"
+        },
+        {
+          "command": "sed -i 's/^## Findings$/\\n## Findings/' ../../../../design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md; sed -n 14,18p ../../../../design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md",
+          "content": "Most likely the sequence scheduler is monitoring the file in the worktree and not the one in the main repository. this is where the change will occur.\n\n## Findings",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-21",
+          "kind": "event",
+          "label": "sed -i 's/^## Findings$/\\n## Findings/' ../../../../design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md; sed -n 14,18p ../../../../design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md",
+          "providerItemId": "toolu_01JPqhEozGht4apqUxJFJbjW",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:38:31.515Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-22",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzQaqRzm5fEmFgMPBGeQ:thinking:0",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T14:38:33.127Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd ../../../..; git diff --stat design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md; file design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md",
+          "content": " ...equence_does_not_see_the_correct_ready_state.md | 29 +++++++++++++++++++++-\n 1 file changed, 28 insertions(+), 1 deletion(-)\ndesign/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md: ASCII text, with very long lines (474)",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-23",
+          "kind": "event",
+          "label": "cd ../../../..; git diff --stat design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md; file design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md",
+          "providerItemId": "toolu_015vgcnDmwpopYX8XhqzXe77",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:38:36.027Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-24",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzQbAwWALNVLdKAwZZiu:thinking:0",
+          "sequence": 24,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T14:38:41.191Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI added three sections to `design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md`. I didn't change any code, and the frontmatter and your original text are as they were.\n\n- **Findings:** A sequence that runs in a worktree drops ready-state events from the main repository. It also reads the ready state from the worktree when a sequence is started, resumed or moved to the next card. Sequences that don't use a worktree are not affected.\n- **Proposed solution:** The ready state now counts from both the main repository and the sequence's own worktree. Changes in other worktrees are still ignored. The worktree watcher stays as it is. When a sequence is started, resumed or advanced, the ready-state check looks at both the main repository copy of the card and the worktree copy. The action itself still runs in the worktree, and the agent's automatic finish when a card reaches a set state works as before.\n- **Testing:** Four regression tests are planned. A ready state set in the main repository moves the sequence on. A ready state set in the sequence's worktree still moves it on. A change in an unrelated worktree does not. The check on start or resume finds a ready state that exists only in the main repository.\n\nThe file didn't end with a newline, so git shows the original last line as changed even though its text is the same. The file still uses LF line endings.",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 25,
+          "timestamp": "2026-10-13T14:38:41.234Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -239,17 +338,17 @@
           "agent": "claude",
           "conversationId": "208f270b-c684-4b76-9039-f0c2ff7e64b2",
           "createdAt": "2026-10-13T14:36:02.364Z",
-          "lastUsedAt": "2026-10-13T14:36:02.364Z",
-          "synchronizedThroughMessageId": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-turn-1-assistant-2",
+          "lastUsedAt": "2026-10-13T14:38:41.234Z",
+          "synchronizedThroughMessageId": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-turn-2-assistant-2",
           "usageBaseline": {
-            "costUsd": 0.44804439999999995,
-            "resultId": "109d844b-3bdb-43c6-bcd5-ea004f9d4d90",
+            "costUsd": 0.5735004,
+            "resultId": "b017c13b-a015-43a5-9a8d-1e326f11e9ee",
             "tokens": {
-              "cachedInputTokens": 369464,
-              "inputTokens": 16,
-              "outputTokens": 3049,
+              "cachedInputTokens": 611298,
+              "inputTokens": 24,
+              "outputTokens": 5040,
               "reasoningTokens": 0,
-              "totalTokens": 372529
+              "totalTokens": 616362
             }
           }
         }
@@ -258,20 +357,20 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 16703,
-          "toolMs": 7454
+          "reasoningMs": 22621,
+          "toolMs": 22744
         },
         "elapsedMs": 37270,
         "runningStartedAt": "2026-10-13T14:38:15.296Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 369464,
-        "inputTokens": 16,
-        "outputTokens": 3049,
+        "cachedInputTokens": 611298,
+        "inputTokens": 24,
+        "outputTokens": 5040,
         "reasoningTokens": 0,
-        "totalTokens": 372529,
-        "costUsd": 0.44804439999999995
+        "totalTokens": 616362,
+        "costUsd": 0.5735004
       },
       "usageSchemaVersion": 1,
       "viewed": true
