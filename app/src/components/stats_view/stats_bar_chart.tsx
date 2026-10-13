@@ -1,9 +1,10 @@
 import { Box, Stack, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { useContext, useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
+import { projectStatsService } from '../../services/stats/project_stats_service';
 import type { StatsChartRow } from '../../services/stats/project_stats_types';
+import { seriesColorKey } from '../../services/stats/stats_series_slots';
 import { barsForBucket, barTotal, bucketRows, type BucketRows, type StatsBarMode } from './stats_bar_groups';
-import { StatsSeriesColorsContext } from './stats_series_colors_context';
-import { assignSeriesColorsFromKeys, seriesColorInputs, seriesColorKey, type StatsSeriesPalettes } from './stats_series_colors';
+import { resolveSeriesColors, type StatsSeriesPalettes } from './stats_series_colors';
 import { formattedValue, stackTotalLabel } from './stats_value_format';
 import { StatsHorizontalBarChart } from './stats_horizontal_bar_chart';
 
@@ -37,11 +38,12 @@ function maximumMagnitude(buckets: BucketRows[], mode: StatsBarMode) {
     return Math.max(...values, 0);
 }
 
-function useAssignedSeriesColors(rows: StatsChartRow[], palettes: StatsSeriesPalettes) {
-    const inputsKey = JSON.stringify(seriesColorInputs(rows, Object.keys(palettes.groups)));
+/** Session-remembered label colors, recomputed only when a new label is remembered or the theme palettes change. */
+function useSeriesColors(palettes: StatsSeriesPalettes) {
+    const slots = useSyncExternalStore(projectStatsService.subscribeSeriesColors, projectStatsService.getSeriesColorSlots);
     const palettesKey = JSON.stringify(palettes);
 
-    return useMemo(() => assignSeriesColorsFromKeys(inputsKey, palettesKey), [inputsKey, palettesKey]);
+    return useMemo(() => resolveSeriesColors(slots, JSON.parse(palettesKey) as StatsSeriesPalettes), [slots, palettesKey]);
 }
 
 interface ScaledPosition {
@@ -71,13 +73,10 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
     const maximum = maximumMagnitude(buckets, mode);
     const hasNegativeDomain = mode !== 'stacked' && mode !== 'groupedStacked' && rows.some(({ value }) => value < 0);
     const palettes: StatsSeriesPalettes = { groups: theme.palette.custom.chartPalettes, neutral: theme.palette.custom.chartPalette };
-    const groupNames = Object.keys(palettes.groups);
-    const sharedColors = useContext(StatsSeriesColorsContext);
-    const assignedColors = useAssignedSeriesColors(rows, palettes);
-    const localColors = sharedColors ?? assignedColors;
+    const localColors = useSeriesColors(palettes);
     const legend = [...new Map(rows.flatMap((row) => (
         row.seriesIdentity && row.seriesLabel
-            ? [[seriesColorKey(row, groupNames), { identity: row.seriesIdentity, label: row.seriesLabel }] as const]
+            ? [[seriesColorKey(row), { identity: row.seriesIdentity, label: row.seriesLabel }] as const]
             : []
     ))).entries()];
     const baselinePercentage = hasNegativeDomain ? 50 : 0;
@@ -126,7 +125,6 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                     ariaLabel={ariaLabel}
                     buckets={buckets}
                     colors={localColors}
-                    groupNames={groupNames}
                     hasNegativeDomain={hasNegativeDomain}
                     maximum={maximum}
                     mode={mode}
@@ -206,7 +204,7 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                         ), 0), maximum, domainPercentage)
                                                         : { labelOffset: 0, percentage: 0 };
                                                     const identity = effectiveSeriesIdentity(row);
-                                                    const color = localColors.get(seriesColorKey(row, groupNames));
+                                                    const color = localColors.get(seriesColorKey(row));
                                                     const isNegative = row.value < 0;
                                                     const barLabel = formattedValue(row, shortTokenCounts);
                                                     const showBar = row.available && row.value !== 0;

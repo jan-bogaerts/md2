@@ -1,7 +1,9 @@
-import type { StatsChartRow } from '../../services/stats/project_stats_types';
+import type { StatsSeriesSlots } from '../../services/stats/stats_series_slots';
 
 const CSS_COLOR_VALUE_COUNT = 0x1000000;
-const NEUTRAL_GROUP = '';
+const FNV_OFFSET_BASIS = 0x811c9dc5;
+const FNV_PRIME = 0x01000193;
+const MAX_OVERFLOW_ATTEMPTS = 16;
 
 export interface StatsSeriesPalettes {
     /** Per-agent color families, keyed by provider or agent name. */
@@ -10,102 +12,49 @@ export interface StatsSeriesPalettes {
     neutral: string[];
 }
 
-export interface StatsSeriesColorInput {
-    /** Palette family key, or the empty string for the neutral list. */
-    group: string;
-    identity: string;
-    key: string;
-}
-
-function colorKey(group: string, identity: string) {
-    return `${group}\u0000${identity}`;
-}
-
-function effectiveSeriesIdentity(row: StatsChartRow) {
-    return row.seriesIdentity ?? row.identity;
-}
-
 function normalizedCssColor(color: string) {
     return color.trim().toLowerCase();
 }
 
-function randomCssColor() {
-    const colorValue = Math.floor(Math.random() * CSS_COLOR_VALUE_COUNT);
+/** Deterministic color for one label and attempt: FNV-1a hash folded into the CSS color range. */
+function hashedCssColor(label: string, attempt: number) {
+    let hash = FNV_OFFSET_BASIS;
+    for (const character of `${label}\u0000${attempt}`) hash = Math.imul(hash ^ character.codePointAt(0)!, FNV_PRIME);
+    const colorValue = (hash >>> 0) % CSS_COLOR_VALUE_COUNT;
 
     return `#${colorValue.toString(16).padStart(6, '0')}`;
 }
 
-/** A row's palette family: its explicit `colorGroup` first, otherwise the agent that produced it. */
-function rowGroup(groupNames: string[], row: StatsChartRow) {
-    return matchedGroup(groupNames, row.colorGroup ?? row.provider ?? row.agent);
-}
+function overflowColor(label: string, usedColors: Set<string>) {
+    let color = hashedCssColor(label, 0);
+    for (let attempt = 1; attempt < MAX_OVERFLOW_ATTEMPTS && usedColors.has(color); attempt += 1) color = hashedCssColor(label, attempt);
 
-function matchedGroup(groupNames: string[], colorGroup: string | null) {
-    if (!colorGroup) return NEUTRAL_GROUP;
-    const normalized = colorGroup.trim().toLowerCase();
-
-    return groupNames.find((name) => name.trim().toLowerCase() === normalized) ?? NEUTRAL_GROUP;
+    return color;
 }
 
 /**
- * Sorted, order-independent palette assignment inputs: one entry per distinct effective series
- * identity, carrying the agent family it belongs to.
+ * Turns remembered series slots into colors. Family labels take their slot of the family palette; labels without
+ * a known family take the next neutral color that no family uses. Labels are resolved in registration order, so a
+ * later label never changes an earlier color.
  */
-export function seriesColorInputs(rows: StatsChartRow[], groupNames: string[]): StatsSeriesColorInput[] {
-    const inputsByKey = new Map<string, StatsSeriesColorInput>();
-    for (const row of rows) {
-        const identity = effectiveSeriesIdentity(row);
-        const group = rowGroup(groupNames, row);
-        const key = colorKey(group, identity);
-        inputsByKey.set(key, { group, identity, key });
-    }
-
-    return [...inputsByKey.values()]
-        .sort((left, right) => left.group.localeCompare(right.group) || left.identity.localeCompare(right.identity));
-}
-
-/** Looks up one row's group-scoped color identity. */
-export function seriesColorKey(row: StatsChartRow, groupNames: string[]) {
-    return colorKey(rowGroup(groupNames, row), effectiveSeriesIdentity(row));
-}
-
-/** Assigns one stable color per series identity: agent families first, neutral list last. */
-export function allocateSeriesColors(inputs: StatsSeriesColorInput[], palettes: StatsSeriesPalettes) {
+export function resolveSeriesColors(slots: StatsSeriesSlots, palettes: StatsSeriesPalettes) {
+    const familyPalettes = new Map(Object.entries(palettes.groups).map(([name, colors]) => [name.trim().toLowerCase(), colors]));
+    const familyColors = new Set([...familyPalettes.values()].flat().map(normalizedCssColor));
+    const neutralPalette = palettes.neutral.filter((color) => !familyColors.has(normalizedCssColor(color)));
     const usedColors = new Set<string>();
-    const colorsByIdentity = new Map<string, string>();
-    const takenByGroup = new Map<string, number>();
-    // Neutral entries are allocated last so an agent family never loses its color to a shared one.
-    const ordered = [
-        ...inputs.filter(({ group }) => group !== NEUTRAL_GROUP),
-        ...inputs.filter(({ group }) => group === NEUTRAL_GROUP),
-    ];
+    const colorsByLabel = new Map<string, string>();
+    const ordered = [...slots].sort(([, left], [, right]) => left.order - right.order);
+    let neutralIndex = 0;
 
-    for (const { group, key } of ordered) {
-        const palette = group === NEUTRAL_GROUP ? palettes.neutral : palettes.groups[group] ?? palettes.neutral;
-        let index = takenByGroup.get(group) ?? 0;
-        let color = palette[index];
-        while (color !== undefined && usedColors.has(normalizedCssColor(color))) {
-            index += 1;
-            color = palette[index];
-        }
-        takenByGroup.set(group, index + 1);
-        let assigned = color ?? randomCssColor();
-
-        while (usedColors.has(normalizedCssColor(assigned))) assigned = randomCssColor();
-
-        usedColors.add(normalizedCssColor(assigned));
-        colorsByIdentity.set(key, assigned);
+    for (const [label, { group, slot }] of ordered) {
+        const familyPalette = familyPalettes.get(group);
+        const paletteColor = familyPalette ? familyPalette[slot] : neutralPalette[neutralIndex];
+        if (!familyPalette) neutralIndex += 1;
+        const isFree = paletteColor !== undefined && !usedColors.has(normalizedCssColor(paletteColor));
+        const color = isFree ? paletteColor : overflowColor(label, usedColors);
+        usedColors.add(normalizedCssColor(color));
+        colorsByLabel.set(label, color);
     }
 
-    return colorsByIdentity;
-}
-
-/** Same agent, same color in every chart: the family and the slot come from the identity, not row order. */
-export function assignSeriesColors(rows: StatsChartRow[], palettes: StatsSeriesPalettes) {
-    return allocateSeriesColors(seriesColorInputs(rows, Object.keys(palettes.groups)), palettes);
-}
-
-/** Serialized-argument entry point so charts can memoize on identities and palettes alone. */
-export function assignSeriesColorsFromKeys(inputsKey: string, palettesKey: string) {
-    return allocateSeriesColors(JSON.parse(inputsKey) as StatsSeriesColorInput[], JSON.parse(palettesKey) as StatsSeriesPalettes);
+    return colorsByLabel;
 }

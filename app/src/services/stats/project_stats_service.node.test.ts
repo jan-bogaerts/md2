@@ -223,6 +223,55 @@ describe('ProjectStatsService shared granularity', () => {
     });
 });
 
+describe('ProjectStatsService series color slots', () => {
+    const activityFiles = () => ({ 'design/activity/card__card-1.json': activityContent({ conversations: [conversation()] }) })
+
+    it('keeps every remembered label slot when a control change drops and restores series', async () => {
+        const service = new ProjectStatsService()
+        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'duration' })
+        await openService(service, storage(activityFiles()))
+        const durationSlots = service.getSeriesColorSlots()
+        const durationLabels = [...durationSlots.keys()]
+
+        service.setControls({ dataset: 'activityOverTime' })
+        service.setControls({ dataset: 'totals', totalsMetric: 'duration' })
+
+        expect(durationLabels.length).toBeGreaterThan(1)
+        for (const label of durationLabels) expect(service.getSeriesColorSlots().get(label)).toEqual(durationSlots.get(label))
+    })
+
+    it('remembers slots across close, reopen, and project switches', async () => {
+        const statsStorage = storage(activityFiles())
+        const service = new ProjectStatsService()
+        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'duration' })
+        await openService(service, statsStorage)
+        const slots = service.getSeriesColorSlots()
+
+        service.close()
+        service.bindProject({ config, project: { branch: 'main', id: 'another-project' }, storage: statsStorage })
+        service.clear()
+        await openService(service, statsStorage)
+
+        expect(service.getSeriesColorSlots()).toBe(slots)
+    })
+
+    it('notifies color subscribers only when a new label appears', async () => {
+        const service = new ProjectStatsService()
+        const listener = vi.fn()
+        const unsubscribe = service.subscribeSeriesColors(listener)
+        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'duration' })
+        await openService(service, storage(activityFiles()))
+        const callsAfterOpen = listener.mock.calls.length
+
+        service.setControls({ totalsMetric: 'duration' })
+        service.setControls({ shortTokenCounts: false })
+
+        expect(callsAfterOpen).toBe(1)
+        expect(listener).toHaveBeenCalledTimes(1)
+        unsubscribe()
+    })
+})
+
 describe('ProjectStatsService source parsing', () => {
     it('discovers current and released card and project activity plus project usage metrics', () => {
         expect(findStatsSourcePaths([

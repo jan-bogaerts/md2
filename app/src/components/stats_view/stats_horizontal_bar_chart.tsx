@@ -1,6 +1,6 @@
 import { Box, Stack, Tooltip, Typography } from '@mui/material';
 import { barsForBucket, barTotal, type BucketRows, type StatsBarMode } from './stats_bar_groups';
-import { seriesColorKey } from './stats_series_colors';
+import { seriesColorKey } from '../../services/stats/stats_series_slots';
 import { formattedValue, stackTotalLabel } from './stats_value_format';
 
 const BAR_HEIGHT = 18;
@@ -9,7 +9,6 @@ interface StatsHorizontalBarChartProps {
     ariaLabel: string;
     buckets: BucketRows[];
     colors: ReadonlyMap<string, string>;
-    groupNames: string[];
     hasNegativeDomain: boolean;
     maximum: number;
     mode: StatsBarMode;
@@ -37,7 +36,7 @@ function trackPosition(value: number, maximum: number, hasNegativeDomain: boolea
 
 /** Narrow chart: buckets follow page order, with values extending across each row. */
 export function StatsHorizontalBarChart(props: StatsHorizontalBarChartProps) {
-    const { ariaLabel, buckets, colors, groupNames, hasNegativeDomain, maximum, mode, shortTokenCounts } = props;
+    const { ariaLabel, buckets, colors, hasNegativeDomain, maximum, mode, shortTokenCounts } = props;
     const stacked = mode === 'stacked' || mode === 'groupedStacked';
     const baselinePercentage = hasNegativeDomain ? 50 : 0;
 
@@ -75,7 +74,7 @@ export function StatsHorizontalBarChart(props: StatsHorizontalBarChartProps) {
                                         const showDeviation = row.available && deviation !== null;
                                         const lower = showDeviation ? axisPosition(Math.max(row.value - deviation, 0), maximum, hasNegativeDomain) : '0%';
                                         const upper = showDeviation ? axisPosition(row.value + deviation, maximum, hasNegativeDomain) : '0%';
-                                        const color = colors.get(seriesColorKey(row, groupNames));
+                                        const color = colors.get(seriesColorKey(row));
                                         const seriesIdentity = row.seriesIdentity ?? row.identity;
 
                                         return (

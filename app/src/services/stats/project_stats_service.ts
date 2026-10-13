@@ -14,6 +14,7 @@ import {
     type StatsViewMode,
 } from './project_stats_types';
 import { buildSnapshot } from './stats_snapshot_builder';
+import { registerSeriesLabels, type StatsSeriesSlots } from './stats_series_slots';
 
 function isValidIsoTimestamp(value: string) {
     const milliseconds = Date.parse(value);
@@ -35,6 +36,8 @@ export class ProjectStatsService extends EventTarget {
     private isOpen = false;
     private projectKey: string | null = null;
     private snapshot = INITIAL_SNAPSHOT;
+    // Remembered for the whole app session so a label keeps its color across filters, reopening, and projects.
+    private seriesColorSlots: StatsSeriesSlots = new Map();
     private source: LoadedStatsSource | null = null;
     private viewModeChoice: StatsViewMode | null = null;
 
@@ -49,6 +52,14 @@ export class ProjectStatsService extends EventTarget {
         this.addEventListener('changed', listener);
 
         return () => this.removeEventListener('changed', listener);
+    };
+
+    getSeriesColorSlots = () => this.seriesColorSlots;
+
+    subscribeSeriesColors = (listener: () => void) => {
+        this.addEventListener('seriesColorsChanged', listener);
+
+        return () => this.removeEventListener('seriesColorsChanged', listener);
     };
 
     getViewModeChoice = () => this.viewModeChoice;
@@ -153,6 +164,11 @@ export class ProjectStatsService extends EventTarget {
 
     private publish(snapshot: ProjectStatsSnapshot) {
         this.snapshot = snapshot;
+        const seriesColorSlots = registerSeriesLabels(this.seriesColorSlots, snapshot.rows);
+        if (seriesColorSlots !== this.seriesColorSlots) {
+            this.seriesColorSlots = seriesColorSlots;
+            this.dispatchEvent(new Event('seriesColorsChanged'));
+        }
         this.dispatchEvent(new Event('changed'));
     }
 }

@@ -1,14 +1,14 @@
 import { ThemeProvider } from '@mui/material';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { projectStatsService } from '../../services/stats/project_stats_service';
 import type { StatsChartRow } from '../../services/stats/project_stats_types';
+import { registerSeriesLabels } from '../../services/stats/stats_series_slots';
 import { createAppTheme } from '../../theme/app_theme';
 import { AppThemeProvider } from '../../theme/theme_provider';
 import { formatTokenCount } from '../agents/token_count_format';
 import { StatsBarChart } from './stats_bar_chart';
 import { StatsUsageComparisonCharts } from './stats_usage_comparison_charts';
-
-const CSS_COLOR_VALUE_COUNT = 0x1000000;
 
 function useSmallScreen() {
     window.matchMedia = ((query: string) => ({
@@ -64,6 +64,16 @@ function seriesRows(count: number) {
         seriesLabel: `Series ${index}`,
         value: index + 1,
     }));
+}
+
+function claudeSeriesRows(count: number) {
+    return seriesRows(count).map((seriesRow) => ({ ...seriesRow, provider: 'claude' }));
+}
+
+/** Stands in for the stats service having published these rows in this app session. */
+function rememberSeriesLabels(rows: StatsChartRow[]) {
+    const slots = registerSeriesLabels(new Map(), rows);
+    vi.spyOn(projectStatsService, 'getSeriesColorSlots').mockReturnValue(slots);
 }
 
 function renderedColors(elements: HTMLElement[]) {
@@ -136,11 +146,13 @@ describe('StatsBarChart', () => {
 
     it('uses narrow orientation in all nine usage comparison sections, including grouped stacks', async () => {
         useSmallScreen();
-        renderChart(<StatsUsageComparisonCharts rows={[
+        const rows = [
             row({ chartRole: 'accountUsage' }),
             row({ chartRole: 'activity', identity: 'review', seriesIdentity: 'review', stackIdentity: 'codex', stackLabel: 'Codex', tooltip: 'Review value: 5' }),
             row({ chartRole: 'activity', identity: 'test', seriesIdentity: 'test', stackIdentity: 'codex', stackLabel: 'Codex', tooltip: 'Test value: 3', value: 3 }),
-        ]} />);
+        ];
+        rememberSeriesLabels(rows);
+        renderChart(<StatsUsageComparisonCharts rows={rows} />);
 
         expect(screen.getAllByRole('list')).toHaveLength(9);
         for (const chart of screen.getAllByRole('list')) expect(chart).toHaveAttribute('data-chart-orientation', 'horizontal');
@@ -167,53 +179,33 @@ describe('StatsBarChart', () => {
         expect(screen.getByTestId('stats-bar')).toHaveStyle({ height: 'calc(100% - 20px)' });
     });
 
-    it('assigns every prepared palette color once before generating overflow colors', () => {
+    it('colors remembered family labels from their family palette slot', () => {
         const theme = createAppTheme('light');
-        const palette = theme.palette.custom.chartPalette;
-        const random = vi.spyOn(Math, 'random');
+        const palette = theme.palette.custom.chartPalettes.claude;
+        const rows = claudeSeriesRows(palette.length);
+        rememberSeriesLabels(rows);
 
-        render(<ThemeProvider theme={theme}><StatsBarChart mode="grouped" rows={seriesRows(palette.length)} /></ThemeProvider>);
+        render(<ThemeProvider theme={theme}><StatsBarChart mode="grouped" rows={rows} /></ThemeProvider>);
         const bars = screen.getAllByTestId('stats-bar');
-        const colors = renderedColors(bars);
 
-        expect(new Set(colors).size).toBe(palette.length);
         palette.forEach((color, index) => expect(bars[index]).toHaveStyle({ backgroundColor: color }));
-        expect(random).not.toHaveBeenCalled();
     });
 
-    it('generates unique overflow colors after prepared colors run out', () => {
+    it('gives distinct colors to labels beyond the family palette', () => {
         const theme = createAppTheme('light');
-        const palette = theme.palette.custom.chartPalette;
-        const random = vi.spyOn(Math, 'random')
-            .mockReturnValueOnce(0.01)
-            .mockReturnValueOnce(0.02);
+        const palette = theme.palette.custom.chartPalettes.claude;
+        const rows = claudeSeriesRows(palette.length + 2);
+        rememberSeriesLabels(rows);
 
-        render(<ThemeProvider theme={theme}><StatsBarChart mode="grouped" rows={seriesRows(palette.length + 2)} /></ThemeProvider>);
-        const bars = screen.getAllByTestId('stats-bar');
-        const colors = renderedColors(bars);
+        render(<ThemeProvider theme={theme}><StatsBarChart mode="grouped" rows={rows} /></ThemeProvider>);
 
-        expect(new Set(colors).size).toBe(palette.length + 2);
-        palette.forEach((color, index) => expect(bars[index]).toHaveStyle({ backgroundColor: color }));
-        expect(random).toHaveBeenCalledTimes(2);
-    });
-
-    it('retries when a generated overflow color collides with an assigned color', () => {
-        const theme = createAppTheme('light');
-        const palette = theme.palette.custom.chartPalette;
-        const firstPreparedColorValue = Number.parseInt(palette[0].slice(1), 16);
-        const random = vi.spyOn(Math, 'random')
-            .mockReturnValueOnce(firstPreparedColorValue / CSS_COLOR_VALUE_COUNT)
-            .mockReturnValueOnce(0.01);
-
-        render(<ThemeProvider theme={theme}><StatsBarChart mode="grouped" rows={seriesRows(palette.length + 1)} /></ThemeProvider>);
-        const colors = renderedColors(screen.getAllByTestId('stats-bar'));
-
-        expect(new Set(colors).size).toBe(palette.length + 1);
-        expect(random).toHaveBeenCalledTimes(2);
+        expect(new Set(renderedColors(screen.getAllByTestId('stats-bar'))).size).toBe(palette.length + 2);
     });
 
     it('uses one color for every legend and bar occurrence of a series identity', () => {
-        renderChart(<StatsBarChart mode="grouped" rows={seriesRows(3)} />);
+        const rows = seriesRows(3);
+        rememberSeriesLabels(rows);
+        renderChart(<StatsBarChart mode="grouped" rows={rows} />);
         const bars = screen.getAllByTestId('stats-bar');
         const swatches = screen.getAllByTestId('stats-legend-swatch');
 
@@ -225,10 +217,10 @@ describe('StatsBarChart', () => {
         }
     });
 
-    it('keeps overflow colors stable across value-only rerenders', () => {
+    it('keeps colors stable across value-only rerenders', () => {
         const theme = createAppTheme('light');
-        const initialRows = seriesRows(theme.palette.custom.chartPalette.length + 1);
-        const random = vi.spyOn(Math, 'random').mockReturnValue(0.01);
+        const initialRows = claudeSeriesRows(theme.palette.custom.chartPalettes.claude.length + 1);
+        rememberSeriesLabels(initialRows);
         const view = render(
             <ThemeProvider theme={theme}><StatsBarChart mode="grouped" rows={initialRows} /></ThemeProvider>,
         );
@@ -241,43 +233,35 @@ describe('StatsBarChart', () => {
         );
 
         expect(renderedColors(screen.getAllByTestId('stats-bar'))).toEqual(initialColors);
-        expect(random).toHaveBeenCalledTimes(1);
     });
 
-    it('rebuilds prepared and overflow colors when theme palette changes', () => {
+    it('rebuilds palette colors when theme palette changes', () => {
         const lightTheme = createAppTheme('light');
         const darkTheme = createAppTheme('dark');
-        const rows = seriesRows(lightTheme.palette.custom.chartPalette.length + 1);
-        const random = vi.spyOn(Math, 'random')
-            .mockReturnValueOnce(0.01)
-            .mockReturnValueOnce(0.02);
+        const rows = claudeSeriesRows(2);
+        rememberSeriesLabels(rows);
         const view = render(<ThemeProvider theme={lightTheme}><StatsBarChart mode="grouped" rows={rows} /></ThemeProvider>);
         const lightColors = renderedColors(screen.getAllByTestId('stats-bar'));
 
         view.rerender(<ThemeProvider theme={darkTheme}><StatsBarChart mode="grouped" rows={rows} /></ThemeProvider>);
-        const darkColors = renderedColors(screen.getAllByTestId('stats-bar'));
 
-        expect(darkColors[0]).not.toBe(lightColors[0]);
-        expect(darkColors.at(-1)).not.toBe(lightColors.at(-1));
-        expect(random).toHaveBeenCalledTimes(2);
+        expect(renderedColors(screen.getAllByTestId('stats-bar'))[0]).not.toBe(lightColors[0]);
     });
 
-    it('allocates overflow colors independently between chart instances', () => {
-        const theme = createAppTheme('light');
-        const rows = seriesRows(theme.palette.custom.chartPalette.length + 1);
-        const random = vi.spyOn(Math, 'random').mockReturnValue(0.01);
-
+    it('gives the same label the same swatch color in charts that show different labels', () => {
+        const [first, second, third] = seriesRows(3);
+        rememberSeriesLabels([first, second, third]);
         render(
-            <ThemeProvider theme={theme}>
-                <StatsBarChart ariaLabel="First chart" mode="grouped" rows={rows} />
-                <StatsBarChart ariaLabel="Second chart" mode="grouped" rows={rows} />
-            </ThemeProvider>,
+            <AppThemeProvider>
+                <StatsBarChart ariaLabel="First chart" mode="grouped" rows={[first, third]} />
+                <StatsBarChart ariaLabel="Second chart" mode="grouped" rows={[second, third]} />
+            </AppThemeProvider>,
         );
-        const firstColors = renderedColors(within(screen.getByRole('list', { name: 'First chart' })).getAllByTestId('stats-bar'));
-        const secondColors = renderedColors(within(screen.getByRole('list', { name: 'Second chart' })).getAllByTestId('stats-bar'));
+        const swatchColor = (chartName: string) => getComputedStyle(within(screen.getByLabelText(`${chartName} legend`)).getAllByTestId('stats-legend-swatch')
+            .find(({ dataset }) => dataset.seriesIdentity === third.seriesIdentity)!).backgroundColor;
 
-        expect(firstColors).toEqual(secondColors);
-        expect(random).toHaveBeenCalledTimes(2);
+        expect(swatchColor('First chart')).not.toBe('');
+        expect(swatchColor('First chart')).toBe(swatchColor('Second chart'));
     });
 
     it('positions corrections against a zero baseline', () => {
@@ -374,10 +358,12 @@ describe('StatsBarChart', () => {
             unit: 'milliseconds',
             value,
         });
-        const { container } = renderChart(<StatsBarChart mode="groupedStacked" rows={[
+        const rows = [
             segment('claude', 'tool', 5), segment('claude', 'reasoning', 3),
             segment('codex', 'tool', 4), segment('codex', 'reasoning', 2),
-        ]} />);
+        ];
+        rememberSeriesLabels(rows);
+        const { container } = renderChart(<StatsBarChart mode="groupedStacked" rows={rows} />);
         const swatches = screen.getAllByTestId('stats-legend-swatch');
         const barIdentities = [...container.querySelectorAll('[data-testid="stats-bar"]')]
             .map((bar) => bar.getAttribute('data-series-identity') ?? '');
@@ -454,6 +440,7 @@ describe('StatsBarChart', () => {
         const theme = createAppTheme('light');
         const { claude, codex } = theme.palette.custom.chartPalettes;
         const rows = [agentRow('claude'), agentRow('codex')];
+        rememberSeriesLabels(rows);
         render(
             <ThemeProvider theme={theme}>
                 <StatsBarChart ariaLabel="First chart" mode="grouped" rows={rows} />
@@ -468,11 +455,13 @@ describe('StatsBarChart', () => {
     });
 
     it('keeps one series color when comparison charts contain different identity subsets', () => {
-        renderChart(<StatsUsageComparisonCharts rows={[
+        const rows = [
             row({ chartRole: 'accountUsage', identity: 'a', provider: 'claude', seriesIdentity: 'a', seriesLabel: 'A' }),
             row({ chartRole: 'accountUsage', identity: 'b', provider: 'claude', seriesIdentity: 'b', seriesLabel: 'B' }),
             row({ chartRole: 'projectTokensTotal', identity: 'b', provider: 'claude', seriesIdentity: 'b', seriesLabel: 'B' }),
-        ]} />);
+        ];
+        rememberSeriesLabels(rows);
+        renderChart(<StatsUsageComparisonCharts rows={rows} />);
 
         expect(barColor('Account usage chart', 'b')).toBe(barColor('Project token usage (totals) chart', 'b'));
     });
