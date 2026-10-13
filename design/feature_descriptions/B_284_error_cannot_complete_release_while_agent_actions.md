@@ -3,7 +3,7 @@ author:
 id: B_284
 internalId: 50bf5243-e489-4d76-9524-4933c3c78e36
 title: Error: Cannot complete release while agent actions
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -15,6 +15,9 @@ sentryOrganization: elastetic
 after: 22b04d7f-1a70-41f6-98e8-0236c56b6873
 branch: b_284_error_cannot_complete_release_while_agent_actions
 worktree: 3
+changedFiles:
+  - app/src/services/release_blocked_by_running_actions_error.ts
+  - app/src/services/release_operations.ts
 ---
 ## Sentry issue
 
