@@ -480,7 +480,9 @@ describe('DiagramNodePlacementService', () => {
     })
 
     it('uses selected legend role for preview and node while keeping tool defaults', () => {
-        const { placement, session } = createHarness()
+        const source = diagram('architecture')
+        source.meta.legend = [{ label: 'Backend', role: 'backend' }]
+        const { placement, session } = createHarness(source)
         placement.activate(componentDefinition)
         expect(session.selectLegendEntry('node:backend')).toBe(true)
 

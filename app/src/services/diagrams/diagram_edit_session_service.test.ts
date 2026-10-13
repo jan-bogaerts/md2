@@ -2025,4 +2025,102 @@ describe('DiagramEditSessionService', () => {
         expect(() => service.setNodeField('missing', 'label', 'Missing')).toThrow('node missing does not exist')
         expect(() => service.setEntityField('store', 0, 'name', 'id')).toThrow('entity field store[0] does not exist')
     })
+
+    it('publishes dirty and semantic changes before a scoped field notification, including baseline reversion', () => {
+        const { service } = createHarness()
+        service.start()
+        const order: string[] = []
+        const changeId = 'diagram:node:orders:label'
+        service.subscribeDirty(() => order.push('dirty'))
+        service.subscribeChangeIds(() => order.push('changeIds'))
+        service.subscribeChangeField(changeId, 'value', () => order.push('semantic'))
+        service.subscribeModelMutation(() => order.push('mutation'))
+        service.subscribeNodeField('orders', 'label', () => order.push('field'))
+
+        service.setNodeField('orders', 'label', 'Order API')
+        expect(order).toEqual(['dirty', 'changeIds', 'mutation', 'field'])
+
+        order.length = 0
+        service.setNodeField('orders', 'label', 'Order API v2')
+        expect(order).toEqual(['semantic', 'mutation', 'field'])
+
+        order.length = 0
+        service.setNodeField('orders', 'label', 'Orders')
+        expect(order).toEqual(['dirty', 'changeIds', 'mutation', 'field'])
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+    })
+
+    it('publishes collection removal pre-notifications before dirty, semantic, and membership notifications', () => {
+        const { service } = createHarness()
+        service.start()
+        const order: string[] = []
+        service.subscribeCollectionMembershipWillChange('edge', () => order.push('edgePre'))
+        service.subscribeCollectionMembershipWillChange('node', () => order.push('nodePre'))
+        service.subscribeDirty(() => order.push('dirty'))
+        service.subscribeChangeIds(() => order.push('semantic'))
+        service.subscribeCollectionMembership('edge', () => order.push('edgeMembership'))
+        service.subscribeCollectionMembership('node', () => order.push('nodeMembership'))
+        service.subscribeGroupMembership('backend', () => order.push('groupMembership'))
+        service.subscribeModelMutation(() => order.push('mutation'))
+
+        expect(service.removeObjects([{ objectId: 'orders', objectKind: 'node' }])).toBe(true)
+        expect(order).toEqual([
+            'edgePre', 'nodePre', 'dirty', 'semantic',
+            'edgeMembership', 'nodeMembership', 'groupMembership', 'mutation',
+        ])
+    })
+
+    it('fails on repeated generated ID collisions without mutating the diagram', () => {
+        const { service } = createHarness({ createId: () => 'orders' })
+        service.start()
+        const diagramBefore = service.getEditableDiagram()
+        const nodeIdsBefore = service.getNodeIdsSnapshot()
+
+        expect(() => service.createNode({ label: 'Billing', role: 'backend' })).toThrow(
+            'Could not generate a collision-free diagram object id',
+        )
+        expect(service.getEditableDiagram()).toBe(diagramBefore)
+        expect(service.getNodeIdsSnapshot()).toBe(nodeIdsBefore)
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+    })
+
+    it('rejects invalid edits before mutation or event publication', () => {
+        const reportValidationError = vi.fn()
+        const { service } = createHarness({ reportValidationError })
+        service.start()
+        const nodeBefore = service.getNodeSnapshot('orders')
+        const changed = vi.fn()
+        service.subscribeNodeField('orders', 'role', changed)
+
+        expect(service.setNodeField('orders', 'role', 'invalid' as never)).toBe(false)
+        expect(service.getNodeSnapshot('orders')).toBe(nodeBefore)
+        expect(service.getNodeFieldSnapshot('orders', 'role')).toBe('focal')
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(changed).not.toHaveBeenCalled()
+        expect(reportValidationError).toHaveBeenCalledWith(
+            'Set node field rejected: nodes.orders.role has unsupported value invalid',
+        )
+    })
+
+    it('acknowledges a saved copy as the new baseline and clears dirty before semantic changes', () => {
+        const { service } = createHarness()
+        service.start()
+        service.setNodeField('orders', 'label', 'Order API')
+        const savedDiagram = structuredClone(service.getEditableDiagram() as DiagramData)
+        const savedRecord = { ...firstRecord, id: 'copy-1', sourceDiagramId: firstRecord.id }
+        const order: string[] = []
+        service.subscribeDirty(() => order.push('dirty'))
+        service.subscribeChangeIds(() => order.push('semantic'))
+
+        expect(service.acknowledgeSavedCopy(savedRecord, savedDiagram, true)).toBe(true)
+        expect(order).toEqual(['dirty', 'semantic'])
+        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.getSavedRecordSnapshot()).toBe(savedRecord)
+
+        service.setNodeField('orders', 'label', 'Orders')
+        expect(service.getDirtySnapshot()).toBe(true)
+        service.setNodeField('orders', 'label', 'Order API')
+        expect(service.getDirtySnapshot()).toBe(false)
+    })
 })
