@@ -1055,14 +1055,14 @@
         }
       ],
       "startedAt": "2026-10-13T13:47:52.292Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 107033,
           "toolMs": 32474
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-13T13:47:52.292Z"
+        "elapsedMs": 223832,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
