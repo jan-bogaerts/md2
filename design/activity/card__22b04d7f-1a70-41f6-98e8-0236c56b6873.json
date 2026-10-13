@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "22b04d7f-1a70-41f6-98e8-0236c56b6873",
       "cardPath": "design/feature_descriptions/F_417_after_action_select_focus_input_box.md",
-      "completedAt": null,
+      "completedAt": "2026-10-13T12:18:53.397Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 109725
@@ -602,7 +602,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 43,
-          "timestamp": "2026-10-13T12:18:52.398Z"
+          "timestamp": "2026-10-13T12:18:53.397Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -612,7 +612,7 @@
           "agent": "claude",
           "conversationId": "68aedec4-1905-455b-a76f-da100defe6f0",
           "createdAt": "2026-10-13T12:18:52.398Z",
-          "lastUsedAt": "2026-10-13T12:18:52.398Z",
+          "lastUsedAt": "2026-10-13T12:18:53.397Z",
           "synchronizedThroughMessageId": "agent-turn-1fb7ed29-fc75-422e-83f2-9ef45bf3f481-turn-1-assistant-4",
           "usageBaseline": {
             "costUsd": 1.3105128,
@@ -628,14 +628,14 @@
         }
       ],
       "startedAt": "2026-10-13T12:10:27.265Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 46193,
           "toolMs": 62247
         },
-        "elapsedMs": 48149,
-        "runningStartedAt": "2026-10-13T12:17:17.695Z"
+        "elapsedMs": 143851,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
