@@ -5,7 +5,7 @@
       "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "cardInternalId": "50bf5243-e489-4d76-9524-4933c3c78e36",
       "cardPath": "design/feature_descriptions/B_284_error_cannot_complete_release_while_agent_actions.md",
-      "completedAt": null,
+      "completedAt": "2026-10-13T12:41:02.861Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 79554
@@ -1284,7 +1284,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 93,
-          "timestamp": "2026-10-13T12:41:02.387Z"
+          "timestamp": "2026-10-13T12:41:02.861Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1294,19 +1294,19 @@
           "agent": "codex",
           "conversationId": "01a1353f-2dca-7f40-8508-2067ddb2b0ed",
           "createdAt": "2026-10-13T12:32:56.201Z",
-          "lastUsedAt": "2026-10-13T12:41:02.387Z",
+          "lastUsedAt": "2026-10-13T12:41:02.861Z",
           "synchronizedThroughMessageId": "agent-turn-3d00c715-0959-4559-85e4-2b46cc244ea4-turn-2-assistant-4"
         }
       ],
       "startedAt": "2026-10-13T12:31:34.813Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 1590,
           "toolMs": 134320
         },
-        "elapsedMs": 81388,
-        "runningStartedAt": "2026-10-13T12:36:19.055Z"
+        "elapsedMs": 365194,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
