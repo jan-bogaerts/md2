@@ -73,8 +73,9 @@ export interface ProjectConfig {
     workingFolder: string
 }
 
-/** Stable identity and activity ownership needed to resolve one pinned conversation without storing a path. */
+/** Conversation identity and activity location for one pinned conversation. */
 export interface PinnedConversationLocator {
+    activityPath?: string
     cardInternalId?: string
     contextKind: ActionContextKind
     conversationId: string

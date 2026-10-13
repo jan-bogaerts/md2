@@ -35,6 +35,8 @@ import {
     type ObservedPersistenceOutcome,
 } from './expected_persistence_outcomes'
 import { agentInstructionsService } from '../agent_instructions/agent_instructions_service'
+import { loadActivityConversations } from '../agents/agent_conversation_service'
+import { activityFilePath, projectActivityFileName } from '../../../../shared/activity_paths.mjs'
 import {
     excludeAgentInstructionFiles,
     excludeAgentInstructionPaths,
@@ -158,6 +160,7 @@ export interface ProjectLoadingDeps {
 }
 
 export class ProjectLoading {
+    private backgroundProjectLoad: Promise<void> | null = null
     private readonly dependencies: ProjectLoadingDeps
     private readonly prepareAgentConversationLoading: (projectLoadToken: number) => void
     private actionReloadChangesByPath: Map<string, ActionReloadChange> = new Map()
@@ -269,7 +272,9 @@ export class ProjectLoading {
             void this.hydrateActiveCardConversations()
             reportActionLoadIssues()
 
-            void this.loadFullProjectInBackground(project, config.projectFolder, config.workingFolder, projectLoadToken)
+            this.backgroundProjectLoad = this.loadFullProjectInBackground(
+                project, config.projectFolder, config.workingFolder, projectLoadToken,
+            )
             telemetryService.trackEvent('open_project')
 
             return currentSnapshot
@@ -291,6 +296,13 @@ export class ProjectLoading {
 
         await storage.saveProjectConfig(currentProject, config)
         this.dependencies.dispatchPersistenceChanged()
+    }
+
+    async waitForPinnedLocations() {
+        const hasLegacyProjectPins = configService.getProjectConfig().pinnedConversations.some((locator) => (
+            locator.contextKind === 'project' && !locator.activityPath
+        ))
+        if (hasLegacyProjectPins) await this.backgroundProjectLoad
     }
 
     async updateCardSeparator(previousSeparator: CardSeparator, nextSeparator: CardSeparator) {
@@ -626,8 +638,44 @@ export class ProjectLoading {
         this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, cardRepositoryFiles)
         await this.ensureCardInternalIds()
         await this.dependencies.migrateAgentLogReferences()
+        try {
+            await this.populateLegacyProjectPinPaths(project, repositoryFiles, projectLoadToken)
+        } catch (error) {
+            reportOptionalProjectLoadFailure('Pinned conversation locations', error)
+        }
         if (projectFilesLoaded) this.dependencies.markFullProjectLoaded()
         this.dependencies.dispatchChanged()
+    }
+
+    /** Finds legacy project pins once during project loading, before popup activity reads. */
+    private async populateLegacyProjectPinPaths(project: ProjectReference, repositoryFiles: string[], projectLoadToken: number) {
+        const { config, storage } = this.dependencies.requireDependencies()
+        const missing = configService.getProjectConfig().pinnedConversations.filter((locator) => (
+            locator.contextKind === 'project' && !locator.activityPath
+        ))
+        if (missing.length === 0) return
+
+        const activePath = activityFilePath(config.projectFolder, { kind: 'project' })
+        const releasePrefix = `${normalizePath(config.releasesFolder).replace(/\/+$/u, '')}/`
+        const candidatePaths = [activePath, ...repositoryFiles.filter((path) => (
+            normalizePath(path).startsWith(releasePrefix)
+                && normalizePath(path).endsWith(`/${projectActivityFileName()}`)
+        ))]
+        const unresolved = new Set(missing.map(({ conversationId }) => conversationId))
+        for (const activityPath of [...new Set(candidatePaths)]) {
+            if (unresolved.size === 0) break
+            if (!repositoryFiles.some((path) => normalizePath(path) === activityPath)) continue
+            const conversations = await loadActivityConversations(storage, project, activityPath)
+            for (const { id } of conversations) {
+                if (!unresolved.has(id)) continue
+                if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+                const locator = missing.find(({ conversationId }) => conversationId === id)
+                if (!locator) continue
+                await configService.setConversationPinned({ ...locator, activityPath }, true)
+                unresolved.delete(id)
+            }
+        }
+        if (unresolved.size > 0) throw new Error(`Pinned project conversations not found: ${[...unresolved].join(', ')}`)
     }
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {

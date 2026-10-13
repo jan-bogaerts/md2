@@ -126,6 +126,45 @@ describe('ReleaseOperations', () => {
         expect(warning).not.toHaveBeenCalled();
     });
 
+    it('moves archived project pin paths in the release commit and keeps active pin paths', async () => {
+        configService.init();
+        const { repository, storage } = createReleaseActivityStorage(true);
+        const activePath = 'activity/project.json';
+        const archivedPath = 'history/v1/project.json';
+        const pinnedConversations = [
+            { activityPath: activePath, contextKind: 'project' as const, conversationId: 'project-done' },
+            { activityPath: activePath, contextKind: 'project' as const, conversationId: 'project-kept' },
+        ];
+        const projectConfig = {
+            pinnedConversations, projectFolder: '', pushMode: 'auto' as const,
+            releasesFolder: 'history', states: RELEASE_STATES, workingFolder: 'design',
+        };
+        repository.set('md2.config.json', { content: JSON.stringify(projectConfig), path: 'md2.config.json' });
+        vi.mocked(storage.loadProjectConfig).mockImplementation(async () => JSON.parse(repository.get('md2.config.json')!.content));
+        const service = createDataService();
+        service.init({ storage });
+        const project = { branch: 'main', id: 'project' };
+        await service.projectLoading.openProject(project);
+        await vi.waitFor(() => expect(service.isFullProjectLoaded()).toBe(true));
+
+        await service.releases.completeRelease('v1', []);
+
+        const committedConfig = JSON.parse(repository.get('md2.config.json')!.content);
+        expect(committedConfig.pinnedConversations).toEqual([
+            { activityPath: archivedPath, contextKind: 'project', conversationId: 'project-done' },
+            { activityPath: activePath, contextKind: 'project', conversationId: 'project-kept' },
+        ]);
+        expect(service.conversationPins.getSnapshot()).toEqual(committedConfig.pinnedConversations);
+        await service.projectLoading.openProject(project);
+        await vi.waitFor(() => expect(service.isFullProjectLoaded()).toBe(true));
+        vi.mocked(storage.loadActivityConversations!).mockClear();
+        await service.agents.ensurePinnedConversationsLoaded();
+        expect(vi.mocked(storage.loadActivityConversations!).mock.calls.map(([, path]) => path).sort())
+            .toEqual([activePath, archivedPath]);
+        expect(service.agents.getPinnedConversationsSnapshot().map(({ id }) => id).sort())
+            .toEqual(['project-done', 'project-kept']);
+    });
+
     it.each(['commit', 'usage refresh', 'push', 'cleanup', 'metadata commit', 'metadata push'])('preserves appropriate state after %s failure', async (stage) => {
         configService.init();
         const { storage } = createReleaseActivityStorage(true);

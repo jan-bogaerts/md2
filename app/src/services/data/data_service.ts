@@ -455,6 +455,7 @@ export class DataService extends EventTarget {
             project: () => this.projectState.project,
             requireDependencies: () => this.requireDependencies(),
             snapshot: () => this.projectState.snapshot,
+            waitForPinnedLocations: () => this.projectLoading.waitForPinnedLocations(),
         }
     }
 

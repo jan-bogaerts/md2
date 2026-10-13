@@ -474,7 +474,7 @@ describe('AgentIntegration', () => {
         ))
         const pinnedConversations = [
             { cardInternalId: 'root-card', contextKind: 'card' as const, conversationId: 'card-pinned' },
-            { contextKind: 'project' as const, conversationId: 'project-pinned' },
+            { activityPath: projectActivityPath, contextKind: 'project' as const, conversationId: 'project-pinned' },
         ]
         const storage = createStorage({
             loadActivityConversations,
@@ -503,6 +503,47 @@ describe('AgentIntegration', () => {
         expect(service.agents.getPinnedConversationsSnapshot()).toEqual([])
     })
 
+    it('locates legacy project pins in releases before the popup loads distinct pinned files', async () => {
+        configService.init()
+        const firstPath = 'design/releases/v1/project.json'
+        const secondPath = 'design/releases/v2/project.json'
+        const activePath = 'design/activity/project.json'
+        const pinnedConversations = [
+            { contextKind: 'project' as const, conversationId: 'first' },
+            { contextKind: 'project' as const, conversationId: 'first-again' },
+            { contextKind: 'project' as const, conversationId: 'second' },
+        ]
+        const loadActivityConversations = vi.fn(async (_project, activityPath: string) => {
+            const ids = activityPath === firstPath
+                ? ['first', 'first-again']
+                : activityPath === secondPath ? ['second'] : ['active']
+
+            return ids.map((id) => ({ ...conversation(`${activityPath}#conversation=${id}`), cardInternalId: null, cardPath: null, id }))
+        })
+        const saveProjectConfig = vi.fn(async () => undefined)
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [activePath, firstPath, secondPath]),
+            loadActivityConversations,
+            loadProjectConfig: vi.fn(async () => ({ pinnedConversations, projectFolder: 'design', releasesFolder: 'releases' })),
+            saveProjectConfig,
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.agents.ensurePinnedConversationsLoaded()
+        await vi.waitFor(() => expect(service.isFullProjectLoaded()).toBe(true))
+
+        expect(service.conversationPins.getSnapshot()).toEqual([
+            { activityPath: firstPath, contextKind: 'project', conversationId: 'first' },
+            { activityPath: firstPath, contextKind: 'project', conversationId: 'first-again' },
+            { activityPath: secondPath, contextKind: 'project', conversationId: 'second' },
+        ])
+        expect(saveProjectConfig).toHaveBeenCalledTimes(3)
+        expect(loadActivityConversations.mock.calls.slice(-2).map(([, path]) => path).sort()).toEqual([firstPath, secondPath])
+        expect(service.agents.getPinnedConversationsSnapshot().map(({ id }) => id).sort())
+            .toEqual(['first', 'first-again', 'second'])
+    })
+
     it('defers unresolved pin loading until the popup opens again', async () => {
         configService.init()
         const projectActivityPath = 'design/activity/project.json'
@@ -524,8 +565,8 @@ describe('AgentIntegration', () => {
 
             return loadCount === 1 ? [firstConversation] : [firstConversation, secondConversation]
         })
-        const firstLocator = { contextKind: 'project' as const, conversationId: firstConversation.id }
-        const secondLocator = { contextKind: 'project' as const, conversationId: secondConversation.id }
+        const firstLocator = { activityPath: projectActivityPath, contextKind: 'project' as const, conversationId: firstConversation.id }
+        const secondLocator = { activityPath: projectActivityPath, contextKind: 'project' as const, conversationId: secondConversation.id }
         const storage = createStorage({
             loadActivityConversations,
             loadProjectConfig: vi.fn(async () => ({ pinnedConversations: [firstLocator], projectFolder: 'design' })),

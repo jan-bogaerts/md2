@@ -6,7 +6,8 @@ function locatorsEqual(left: PinnedConversationLocator[], right: PinnedConversat
     return left.length === right.length && left.every((locator, index) => {
         const other = right[index]
 
-        return locator.cardInternalId === other.cardInternalId
+        return locator.activityPath === other.activityPath
+            && locator.cardInternalId === other.cardInternalId
             && locator.contextKind === other.contextKind
             && locator.conversationId === other.conversationId
     })

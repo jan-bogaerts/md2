@@ -8,6 +8,7 @@ import {
 import { statusOf } from '../data/card_ordering'
 import { isSupportedAssetFileName } from '../data/asset_paths';
 import { projectAccessService } from './project/project_access_service'
+import { configService } from './config/config_service'
 import type { MarkdownFile, MoveFile, ProjectAsset, ProjectReference, ProjectSnapshot, ReleaseBranchCandidate } from '../data/data_types'
 import { type RequiredDataServiceDependencies } from './data/data_service_context'
 import { markdownParsingService } from './data/markdown_parsing_service'
@@ -253,16 +254,43 @@ export class ReleaseOperations {
                     : calculatedStats.stats,
             })
             const preparedStatsFile = statsFile ? { ...statsFile, content: statsContent } : { content: statsContent, path: statsPath }
+            const archivedConversationIds = new Set(archivedProjectActivity
+                ? parseActivityFileForMigration(archivedProjectActivity.archivedFile.content).conversations.map(({ id }) => id)
+                : [])
+            const keptConversationIds = new Set(archivedProjectActivity
+                ? parseActivityFileForMigration(archivedProjectActivity.keptFile.content).conversations.map(({ id }) => id)
+                : [])
+            const currentConfig = configService.getProjectConfig()
+            const relocatedPins = currentConfig.pinnedConversations.map((locator) => {
+                if (locator.contextKind !== 'project') return locator
+                if (archivedConversationIds.has(locator.conversationId)) {
+                    return { ...locator, activityPath: archivedProjectActivity!.archivedFile.path }
+                }
+                if (!locator.activityPath && keptConversationIds.has(locator.conversationId)) {
+                    return { ...locator, activityPath: archivedProjectActivity!.keptFile.path }
+                }
+
+                return locator
+            })
+            const pinsMoved = relocatedPins.some((locator, index) => (
+                locator.activityPath !== currentConfig.pinnedConversations[index].activityPath
+            ))
+            const nextConfig = pinsMoved ? { ...currentConfig, pinnedConversations: relocatedPins } : null
+            const configFile = nextConfig
+                ? await storage.loadTextFile(currentProject, 'md2.config.json')
+                : null
             await storage.commit({
                 branch: currentProject.branch,
                 files: [
                     { ...summaryFile, content: serializeAgentTokenUsageSummary(nextSummary) },
                     preparedStatsFile,
                     ...(archivedProjectActivity ? [archivedProjectActivity.archivedFile, archivedProjectActivity.keptFile] : []),
+                    ...(configFile && nextConfig ? [{ ...configFile, content: `${JSON.stringify(nextConfig, null, 2)}\n` }] : []),
                 ],
                 message: `Complete release ${safeReleaseName}`,
                 moves,
             })
+            if (nextConfig) configService.loadProjectConfig(nextConfig)
             this.dependencies.applyMoves(moves, config.workingFolder);
             if (activityFiles.length > 0 || archivedProjectActivity) this.dependencies.resetAgentConversations();
             this.dependencies.dispatchChanged();
