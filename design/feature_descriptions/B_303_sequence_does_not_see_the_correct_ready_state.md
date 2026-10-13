@@ -3,13 +3,13 @@ author:
 id: B_303
 internalId: 54a27abd-2174-4b6a-b688-ed2352c50856
 title: sequence does not see the correct ready state
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__54a27abd-2174-4b6a-b688-ed2352c50856.json
 policy:
-after: 06697134-10b3-44b2-a8c6-e35881b33f56
+after: 11011a61-0393-4aa1-9b89-f52be576aa72
 ---
 
 Most likely the sequence scheduler is monitoring the file in the worktree and not the one in the main repository. this is where the change will occur.
