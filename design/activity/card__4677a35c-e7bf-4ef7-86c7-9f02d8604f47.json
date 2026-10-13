@@ -20,10 +20,10 @@
       "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "cardInternalId": "4677a35c-e7bf-4ef7-86c7-9f02d8604f47",
       "cardPath": "design/feature_descriptions/B_276_typeerror_cannot_read_properties_of_undefined_re.md",
-      "completedAt": null,
+      "completedAt": "2026-10-13T11:45:33.610Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 113102
+        "usedTokens": 153279
       },
       "entries": [
         {
@@ -839,6 +839,59 @@
           "role": "user",
           "sequence": 65,
           "timestamp": "2026-10-13T09:45:58.552Z"
+        },
+        {
+          "content": "has it been implemented?",
+          "id": "submission-b9a16388-9107-4a92-a6fc-46206f064335",
+          "kind": "message",
+          "role": "user",
+          "sequence": 66,
+          "timestamp": "2026-10-13T11:37:03.653Z"
+        },
+        {
+          "agent": "claude",
+          "content": "Quick check of current worktree state.",
+          "id": "agent-turn-a7bec09e-a9cb-4b10-8087-5d16e4357549-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 67,
+          "timestamp": "2026-10-13T11:37:06.830Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1; git status --short; grep -n \"rehydratedPreloadBridge\" app/src/data/electron_*_bridge.ts; grep -n \"^status:\" /c/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_276_typeerror_cannot_read_properties_of_undefined_re.md",
+          "content": " M app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx\n M app/src/data/bridge_error_rehydration.ts\n M app/src/data/electron_action_bridge.node.test.ts\n M app/src/data/electron_action_bridge.ts\n M app/src/data/electron_claude_runtime_bridge.ts\n M app/src/data/electron_codex_runtime_bridge.ts\n M app/src/data/project_session.service.test.ts\n M app/src/services/project/project_session_service.service.test.ts\n?? app/src/data/electron_runtime_bridges.node.test.ts\napp/src/data/electron_action_bridge.ts:2:import { rehydratedPreloadBridge } from './bridge_error_rehydration'\napp/src/data/electron_action_bridge.ts:236:    return window.md2Actions ? rehydratedPreloadBridge(window.md2Actions) : null\napp/src/data/electron_claude_runtime_bridge.ts:1:import { rehydratedPreloadBridge } from './bridge_error_rehydration'\napp/src/data/electron_claude_runtime_bridge.ts:39:    return window.md2ClaudeRuntime ? rehydratedPreloadBridge(window.md2ClaudeRuntime) : null\napp/src/data/electron_codex_runtime_bridge.ts:1:import { rehydratedPreloadBridge } from './bridge_error_rehydration'\napp/src/data/electron_codex_runtime_bridge.ts:83:    return window.md2CodexRuntime ? rehydratedPreloadBridge(window.md2CodexRuntime) : null\n6:status: ready",
+          "id": "agent-turn-a7bec09e-a9cb-4b10-8087-5d16e4357549-event-68",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1; git status --short; grep -n \"rehydratedPreloadBridge\" app/src/data/electron_*_bridge.ts; grep -n \"^status:\" /c/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_276_typeerror_cannot_read_properties_of_undefined_re.md",
+          "providerItemId": "toolu_014U2SwJeCRUUcSt2nr8F95s",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-10-13T11:37:12.128Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-a7bec09e-a9cb-4b10-8087-5d16e4357549-event-69",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzAkqDjtRh24VrLt93Wi:thinking:0",
+          "sequence": 69,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T11:37:18.902Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nYes, it's implemented, including `window.md2CodexRuntime` and `window.md2ClaudeRuntime`. Nothing is committed yet.\n\nThe bug happened because the desktop side reports a failure as a normal value carrying the error (an \"envelope\"), and these bridges passed it through instead of throwing. In the action prompt case that meant an `undefined` prompt reached the editor, which crashed on `.trim()`. All three bridges now unpack envelopes and throw the real error:\n- **Shared helper:** `rehydratedPreloadBridge()` in `app/src/data/bridge_error_rehydration.ts` wraps a bridge once and caches the wrapper.\n- **Action bridge:** `getElectronActionBridge()` in `app/src/data/electron_action_bridge.ts:236` returns the wrapped bridge, which fixes this bug.\n- **Claude runtime:** `getElectronClaudeRuntimeBridge()` in `app/src/data/electron_claude_runtime_bridge.ts:39` returns the wrapped bridge.\n- **Codex runtime:** `getElectronCodexRuntimeBridge()` in `app/src/data/electron_codex_runtime_bridge.ts:83` returns the wrapped bridge.\n\nTests:\n- **New:** `electron_runtime_bridges.node.test.ts` checks that Codex and Claude envelopes now throw and that normal results pass through. `electron_action_bridge.node.test.ts` gained a regression test for the `prepareActionPrompt` crash.\n- **Updated:** three checks in the project-session tests compared the getter's result to the raw bridge object. They now compare to the wrapper, because the getter returns it. One \"Finish\" test in `action_popup_bottom_row.grouped.test.tsx` now waits for the store update, since unwrapping adds one extra `await`.\n\nThe bridge tests, typecheck and lint all pass. The feature file's status is `ready`.\n\nStill open from earlier:\n- **13 failures in the related-test run:** they also fail without my change and have nothing to do with this bug, so I left them. Do you want me to fix them?\n- **`electron_action_runner.node.test.ts`:** failed once in the large run but passes on its own. I didn't check whether it also does that without my change.",
+          "id": "agent-turn-a7bec09e-a9cb-4b10-8087-5d16e4357549-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 70,
+          "timestamp": "2026-10-13T11:45:33.610Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -864,14 +917,14 @@
         }
       ],
       "startedAt": "2026-10-13T08:57:51.281Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
-          "reasoningMs": 72618,
-          "toolMs": 69972
+          "reasoningMs": 78494,
+          "toolMs": 75251
         },
-        "elapsedMs": 158421,
-        "runningStartedAt": "2026-10-13T09:45:58.552Z"
+        "elapsedMs": 7333323,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
