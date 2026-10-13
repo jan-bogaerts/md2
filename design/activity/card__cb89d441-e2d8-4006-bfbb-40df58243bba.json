@@ -716,7 +716,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 65334
+        "usedTokens": 67154
       },
       "entries": [
         {
@@ -1440,6 +1440,80 @@
           "role": "user",
           "sequence": 54,
           "timestamp": "2026-10-13T12:27:27.071Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-55",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b3c9cca9a815766016ace23b3742887d2b6ba5cb3bb82c36d",
+          "sequence": 55,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T12:27:30.653Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll verify whether release completion copies the project activity file or splits its contents, and what stays at the active path.\n\n",
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-turn-4-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 56,
+          "timestamp": "2026-10-13T12:27:31.579Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$f=Get-Content app/src/data/release_archiving.ts; $f[305..340]'",
+          "content": "/**\r\n * Splits project activity into the part a release archives and the part that stays behind.\r\n * A record travels only when every conversation it references travels, so a record straddling\r\n * both sides remains readable in `activity/project.json`.\r\n */\r\nexport function splitProjectActivity(activity: ProjectActivity) {\r\n    const archivedConversationIds = new Set(activity.conversations\r\n        .filter(({ status }) => ARCHIVABLE_CONVERSATION_STATUSES.has(status))\r\n        .map(({ id }) => id))\r\n    const archivedRecords = activity.records.filter((record) => (\r\n        recordConversationIds(record).every((conversationId) => archivedConversationIds.has(conversationId))\r\n    ))\r\n    const archivedRecordSet = new Set(archivedRecords)\r\n    const archived = {\r\n        ...activity,\r\n        conversations: activity.conversations.filter(({ id }) => archivedConversationIds.has(id)),\r\n        records: archivedRecords,\r\n    }\r\n    const kept = {\r\n        ...activity,\r\n        conversations: activity.conversations.filter(({ id }) => !archivedConversationIds.has(id)),\r\n        records: activity.records.filter((record) => !archivedRecordSet.has(record)),\r\n    }\r\n\r\n    return {\r\n        archived,\r\n        hasArchivableActivity: archived.conversations.length > 0 || archived.records.length > 0,\r\n        kept,\r\n    }\r\n}\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-57",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$f=Get-Content app/src/data/release_archiving.ts; $f[305..340]'",
+          "providerItemId": "exec-b3fe3e11-d45e-447b-bb3d-88ffbf967198",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-10-13T12:27:36.000Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$f=Get-Content app/src/services/release_operations.ts; $f[190..270]'",
+          "content": "            }\r\n\r\n            const repositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []\r\n            const files = this.dependencies.files()\r\n            const assetPaths = findArchiveAssetPaths(files, releaseCards)\r\n            const { assetFiles, missingImagePaths } = await this.loadReleaseAssets(assetPaths);\r\n            const activityPaths = findReleaseActivityPaths(releaseCards, config.projectFolder, repositoryFiles)\r\n            const activityFiles = await this.loadReleaseActivityFiles(activityPaths)\r\n            const calculatedStats = await calculateActivityStatsOutsideMainThread(\r\n                storage,\r\n                currentProject,\r\n                activityPaths,\r\n                new AbortController().signal,\r\n            )\r\n            if (calculatedStats.warnings.length > 0) {\r\n                throw new Error(`Cannot calculate released stats: ${calculatedStats.warnings.join('; ')}`)\r\n            }\r\n            const archivedProjectActivity = await this.loadArchivedProjectActivity(\r\n                config.projectFolder,\r\n                config.releasesFolder,\r\n                safeReleaseName,\r\n                repositoryFiles,\r\n            )\r\n            const moves = buildReleaseMoves(\r\n                [...files, ...assetFiles],\r\n                releaseCards,\r\n                config.projectFolder,\r\n                config.releasesFolder,\r\n                safeReleaseName,\r\n                repositoryFiles,\r\n                activityFiles,\r\n                missingImagePaths,\r\n            )\r\n            if (!storage.loadTextFile) throw new Error('Repository text file loading is not available')\r\n            const summaryPath = agentTokenUsageFilePath(config.projectFolder)\r\n            const summaryFile = await storage.loadTextFile(currentProject, summaryPath)\r\n            const summary = parseAgentTokenUsageSummary(summaryFile.content)\r\n            if (Object.hasOwn(summary.releases, safeReleaseName)) throw new Error(`Release already exists: ${safeReleaseName}`)\r\n            const nextSummary = {\r\n                ...summary,\r\n                releases: {\r\n                    ...summary.releases,\r\n                    [safeReleaseName]: releaseUsage([\r\n                        ...activityFiles,\r\n                        ...(archivedProjectActivity ? [archivedProjectActivity.archivedFile] : []),\r\n                    ]),\r\n                },\r\n            }\r\n            const statsPath = projectStatsFilePath(config.projectFolder)\r\n            const existingStatsPath = repositoryFiles.find((path) => path.replace(/\\\\/gu, '/') === statsPath)\r\n            const statsFile = existingStatsPath ? await storage.loadTextFile(currentProject, statsPath) : null\r\n            const parsedStats = statsFile\r\n                ? parseProjectStatsFile(statsFile.content, statsPath)\r\n                : { releases: {}, warnings: [] }\r\n            if (parsedStats.warnings.length > 0) {\r\n                throw new Error(`Cannot update malformed project stats: ${parsedStats.warnings.join('; ')}`)\r\n            }\r\n            const statsContent = serializeProjectStats({\r\n                ...parsedStats.releases,\r\n                [safeReleaseName]: archivedProjectActivity\r\n                    ? mergeStats([calculatedStats.stats, archivedProjectActivity.stats])\r\n                    : calculatedStats.stats,\r\n            })\r\n            const preparedStatsFile = statsFile ? { ...statsFile, content: statsContent } : { content: statsContent, path: statsPath }\r\n            await storage.commit({\r\n                branch: currentProject.branch,\r\n                files: [\r\n                    { ...summaryFile, content: serializeAgentTokenUsageSummary(nextSummary) },\r\n                    preparedStatsFile,\r\n                    ...(archivedProjectActivity ? [archivedProjectActivity.archivedFile, archivedProjectActivity.keptFile] : []),\r\n                ],\r\n                message: `Complete release ${safeReleaseName}`,\r\n                moves,\r\n            })\r\n            this.dependencies.applyMoves(moves, config.workingFolder);\r\n            if (activityFiles.length > 0 || archivedProjectActivity) this.dependencies.resetAgentConversations();\r\n            this.dependencies.dispatchChanged();\r\n            await projectAgentTokenUsageService.refresh();\r\n\r\n            if (config.pushMode === 'auto') await storage.push(currentProject)\r\n\r\n",
+          "durationMs": 26,
+          "exitCode": 0,
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-58",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$f=Get-Content app/src/services/release_operations.ts; $f[190..270]'",
+          "providerItemId": "exec-c7509a01-fd32-440a-918e-a116ecc1aaa4",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-10-13T12:27:36.173Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b3c9cca9a815766016ace23bc019487d2b9d06bb0e69bf1e9",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T12:27:40.780Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "For card conversations, yes: use `cardInternalId` to find the card’s current activity file.\n\nFor project activity, a release **splits the existing file**. Completed conversations are written to a new `releases/<release>/project.json`; unfinished conversations remain in `activity/project.json`. It does not copy the full file, and neither resulting file currently has a unique file ID.\n\nIf we add file IDs, the two results of that split must have different IDs. The active file could keep its ID, while the new release file gets a new one; pins for conversations moved into the release would then need their file ID updated.\n\n",
+          "id": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-turn-4-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 60,
+          "timestamp": "2026-10-13T12:27:44.196Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1449,27 +1523,27 @@
           "agent": "codex",
           "conversationId": "01a1352a-fdbe-7832-b02a-df3f66e88b7a",
           "createdAt": "2026-10-13T12:11:05.633Z",
-          "lastUsedAt": "2026-10-13T12:16:17.304Z",
-          "synchronizedThroughMessageId": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-turn-3-assistant-2"
+          "lastUsedAt": "2026-10-13T12:27:44.196Z",
+          "synchronizedThroughMessageId": "agent-turn-a2a51d1c-41ba-45e6-874f-e0987c648048-turn-4-assistant-2"
         }
       ],
       "startedAt": "2026-10-13T12:09:31.872Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 12230,
-          "toolMs": 4743
+          "reasoningMs": 14542,
+          "toolMs": 4931
         },
         "elapsedMs": 134647,
         "runningStartedAt": "2026-10-13T12:27:27.071Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 550272,
-        "inputTokens": 61760,
-        "outputTokens": 2874,
-        "reasoningTokens": 396,
-        "totalTokens": 615302
+        "cachedInputTokens": 680448,
+        "inputTokens": 63907,
+        "outputTokens": 3175,
+        "reasoningTokens": 487,
+        "totalTokens": 748017
       },
       "usageSchemaVersion": 1,
       "viewed": true
