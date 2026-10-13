@@ -5,7 +5,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "5135bed0-6e69-4e19-9738-467ffdfb7348",
       "cardPath": "design/feature_descriptions/B_299_sequence_does_not_run_in_assigned_worktree.md",
-      "completedAt": null,
+      "completedAt": "2026-10-13T13:25:32.445Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 120801
@@ -1919,7 +1919,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 143,
-          "timestamp": "2026-10-13T13:25:28.004Z"
+          "timestamp": "2026-10-13T13:25:32.445Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1929,19 +1929,19 @@
           "agent": "codex",
           "conversationId": "01a1355c-a8e0-7b70-ac80-af708e80d6d0",
           "createdAt": "2026-10-13T13:05:23.771Z",
-          "lastUsedAt": "2026-10-13T13:25:28.004Z",
+          "lastUsedAt": "2026-10-13T13:25:32.445Z",
           "synchronizedThroughMessageId": "agent-turn-e4c98755-501b-4c54-aaa1-87ce6cfc92ac-turn-4-assistant-2"
         }
       ],
       "startedAt": "2026-10-13T13:03:46.646Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 10523,
           "toolMs": 9111
         },
-        "elapsedMs": 313930,
-        "runningStartedAt": "2026-10-13T13:24:54.947Z"
+        "elapsedMs": 346987,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
