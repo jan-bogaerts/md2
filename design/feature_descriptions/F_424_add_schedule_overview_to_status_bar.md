@@ -3,7 +3,7 @@ author:
 id: F_424
 internalId: f65510e2-6beb-4c9d-87be-077031583414
 title: add schedule overview to status bar
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,10 @@ agents:
 policy:
 branch: f_424_add_schedule_overview_to_status_bar
 worktree: 2
+changedFiles:
+  - app/src/components/shell/active_schedules_indicator.test.tsx
+  - app/src/components/shell/active_schedules_indicator.tsx
+  - app/src/components/shell/status_bar.tsx
 ---
 
 it is currently difficult to track if there are cards and/or sequences scheduled.
