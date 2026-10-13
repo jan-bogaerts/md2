@@ -647,13 +647,50 @@
         "costUsd": 1.3105128
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "22b04d7f-1a70-41f6-98e8-0236c56b6873",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "3f3748d71d6107633ead5878e78da497d97e4b16",
+          "committedAt": "2026-10-13T14:18:54+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_417_after_action_select_focus_input_box.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 61
+        }
+      ],
+      "completedAt": "2026-10-13T12:18:54.295Z",
+      "conversationIds": [
+        "agent-b4575387-c2ff-4e6c-b0ba-974ec70e0b09"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-68e33059-980a-456e-b508-a91ae0eaec72",
+      "origin": {
+        "cardInternalId": "22b04d7f-1a70-41f6-98e8-0236c56b6873",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-b4575387-c2ff-4e6c-b0ba-974ec70e0b09",
+      "startedAt": "2026-10-13T12:10:27.263Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
