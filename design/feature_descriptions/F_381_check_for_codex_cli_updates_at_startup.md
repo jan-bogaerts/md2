@@ -3,7 +3,7 @@ id: F_381
 title: check for Codex CLI updates at startup
 status: new
 internalId: 567ff5d6-ed2a-4bad-85bc-902c21642604
-after: 2ac96102-aba9-4901-a7f3-fcbd78b6b7fc
+after: 630757d3-c37f-4fa9-99f8-7b2fa20fbf97
 ---
 
 At startup, check asynchronously whether the Codex CLI used by MD² has a newer version available. When it can be updated, show the existing **Update Codex** snackbar action and use the existing update command.

@@ -1,9 +1,9 @@
 ---
 id: J_54
 internalId: 2ac96102-aba9-4901-a7f3-fcbd78b6b7fc
-status: new
+status: ready for implementation
 title: Move diagram field edits into focused editors
-after: 630757d3-c37f-4fa9-99f8-7b2fa20fbf97
+after: 26179cc3-97a2-4a33-9e4f-a3b7116e217c
 ---
 
 # Move diagram field edits into focused editors
