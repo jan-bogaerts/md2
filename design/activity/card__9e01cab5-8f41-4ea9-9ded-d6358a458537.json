@@ -1859,13 +1859,13 @@
         "agent-3304dafe-70a5-431c-8f9f-7aeba996a564"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-63ee82cf-fdce-449e-ade8-30ef01f52183",
       "origin": {
@@ -1874,9 +1874,9 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-3304dafe-70a5-431c-8f9f-7aeba996a564",
       "startedAt": "2026-10-13T15:49:49.952Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-3304dafe-70a5-431c-8f9f-7aeba996a564"
     }
   ],
   "version": 5
