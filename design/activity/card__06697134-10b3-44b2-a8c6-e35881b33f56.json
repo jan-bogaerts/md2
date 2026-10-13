@@ -1,0 +1,54 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "06697134-10b3-44b2-a8c6-e35881b33f56",
+      "cardPath": "design/feature_descriptions/B_302_worktree_assigned_to_sequence_appears_available.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_302_worktree_assigned_to_sequence_appears_available.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except files listed under 'agents' in the header. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "submission-691e85be-0c0e-4ed4-a204-afb30ca070e5",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-13T14:47:42.597Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-a90c63a7-4a70-4fd2-acd4-c501cbb15eff",
+      "providerSessions": [],
+      "startedAt": "2026-10-13T14:47:42.597Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-13T14:47:42.597Z"
+      },
+      "title": "complete",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "06697134-10b3-44b2-a8c6-e35881b33f56",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
