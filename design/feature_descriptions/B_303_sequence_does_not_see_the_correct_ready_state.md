@@ -10,6 +10,8 @@ agents:
   - design/activity/card__54a27abd-2174-4b6a-b688-ed2352c50856.json
 policy:
 after: 11011a61-0393-4aa1-9b89-f52be576aa72
+branch: b_303_sequence_does_not_see_the_correct_ready_state
+worktree: 3
 ---
 
 Most likely the sequence scheduler is monitoring the file in the worktree and not the one in the main repository. this is where the change will occur.
