@@ -414,7 +414,14 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
     const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])
 
-    useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown, flush, bindDraft)
+    const focusEditor = useCallback(() => {
+        const sourceController = sourceControllerRef.current;
+        if (sourceController?.sourceActive) return sourceController.focus();
+        if (plainText) return plainTextEditorRef.current?.focus();
+        editorRef.current?.focus(undefined, { defaultSelection: 'rootEnd' });
+    }, [plainText]);
+
+    useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown, flush, bindDraft, focusEditor)
 
     const attachFiles = useCallback((files: File[]) => {
         if (!attachmentHandler || readOnly || files.length === 0) return

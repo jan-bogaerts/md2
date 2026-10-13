@@ -13,6 +13,7 @@ import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionConversationStore } from '../../conversation/state/action_conversation_store'
 import { ActionHistoryStore } from '../state/action_history_store'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
+import { ActionPopupFocusRequest } from './action_popup_focus_request'
 import { ActionRunDisabledMessage } from './action_run_disabled_message'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
@@ -102,6 +103,7 @@ function renderBottomRow(
                 bindingStore={activeConversationStore.bindingStore}
                 conversationStore={activeConversationStore}
                 embedded={embedded}
+                focusRequest={new ActionPopupFocusRequest()}
                 historyStore={historyStore}
                 inputStore={inputStore}
                 resultStore={resultStore}

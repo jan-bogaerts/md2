@@ -11,6 +11,7 @@ import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionInputLayoutStore } from './action_input_layout_store';
+import { ActionPopupFocusRequest } from './action_popup_focus_request';
 import { ActionUsageValuesService } from './action_usage_values_service'
 import type { ActionPopupRuntime } from './action_popup_types'
 import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
@@ -52,6 +53,7 @@ export function createActionPopupBindings(
         agentLayoutStore: new ActionInputLayoutStore('agent'),
         conversationSearchService: new ActionConversationSearchService(),
         conversationStore,
+        focusRequest: new ActionPopupFocusRequest(),
         historyStore,
         inputStore: new ActionRunInputStore(),
         resultStore: new ActionRunResultStore(),

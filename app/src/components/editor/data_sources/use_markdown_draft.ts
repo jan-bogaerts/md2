@@ -1,18 +1,20 @@
 import { useEffect } from 'react'
 import {
     MARKDOWN_FLUSH_REQUESTED_EVENT,
+    MARKDOWN_FOCUS_REQUESTED_EVENT,
     MARKDOWN_INSERTION_REQUESTED_EVENT,
     type MarkdownDraftBinding,
     type MarkdownInsertionRequest,
 } from '../../../services/markdown/markdown_draft'
 
-/** Applies external replacements and insertion requests from one Markdown draft to its mounted editor. */
+/** Applies external replacements, insertion, flush, and focus requests from one Markdown draft to its mounted editor. */
 export function useMarkdownDraft(
     draft: MarkdownDraftBinding | undefined,
     insertMarkdown: (markdown: string) => void,
     replaceMarkdown: (markdown: string) => void,
     flush: () => boolean,
     bindDraft: (draft: MarkdownDraftBinding | undefined) => void,
+    focusEditor: () => void,
 ) {
     useEffect(() => {
         if (!draft) {
@@ -59,4 +61,12 @@ export function useMarkdownDraft(
 
         return () => draft.removeEventListener(MARKDOWN_FLUSH_REQUESTED_EVENT, handleFlushRequest)
     }, [draft, flush])
+
+    useEffect(() => {
+        if (!draft) return undefined
+
+        draft.addEventListener(MARKDOWN_FOCUS_REQUESTED_EVENT, focusEditor)
+
+        return () => draft.removeEventListener(MARKDOWN_FOCUS_REQUESTED_EVENT, focusEditor)
+    }, [draft, focusEditor])
 }

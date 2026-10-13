@@ -28,7 +28,7 @@ interface AgentActionProps {
 export function AgentAction(props: AgentActionProps) {
     const { action, assignmentContext, baseContext, popupEntryId, popupVisible, readOnlyMessage, runtime, showHistoricalHistory } = props
     const {
-        agentLayoutStore, bindingStore, conversationSearchService, conversationStore, historyStore,
+        agentLayoutStore, bindingStore, conversationSearchService, conversationStore, focusRequest, historyStore,
         inputStore, resultStore, usageValuesService,
     } = runtime;
     const { runValidationError, scheduleStore, settingsStore } = runtime
@@ -84,6 +84,7 @@ export function AgentAction(props: AgentActionProps) {
                     bindingStore={bindingStore}
                     context={assignmentContext}
                     conversationStore={conversationStore}
+                    focusRequest={focusRequest}
                     historyStore={historyStore}
                     inputStore={inputStore}
                     layoutStore={agentLayoutStore}

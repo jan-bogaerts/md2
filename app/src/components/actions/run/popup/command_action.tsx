@@ -26,7 +26,7 @@ interface CommandActionProps {
 export function CommandAction(props: CommandActionProps) {
     const { action, assignmentContext, baseContext, readOnlyMessage, runtime, showHistoricalHistory } = props
     const {
-        bindingStore, conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
+        bindingStore, conversationStore, focusRequest, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
         settingsStore, commandLayoutStore,
     } = runtime
     const boundRunId = useBoundRunId(bindingStore)
@@ -67,6 +67,7 @@ export function CommandAction(props: CommandActionProps) {
                             bindingStore={bindingStore}
                             context={assignmentContext}
                             conversationStore={conversationStore}
+                            focusRequest={focusRequest}
                             historyStore={historyStore}
                             inputStore={inputStore}
                             layoutStore={commandLayoutStore}
@@ -89,6 +90,7 @@ export function CommandAction(props: CommandActionProps) {
                     assignmentContext={assignmentContext}
                     bindingStore={bindingStore}
                     conversationStore={conversationStore}
+                    focusRequest={focusRequest}
                     historyStore={historyStore}
                     inputStore={inputStore}
                     settingsStore={settingsStore}

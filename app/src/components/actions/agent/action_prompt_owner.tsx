@@ -28,12 +28,14 @@ import { ActionPopupBottomRow } from '../run/popup/action_popup_bottom_row'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
 import { ActionPhraseButtonsOwner } from '../editor/action_phrase_buttons_owner'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
+import type { ActionPopupFocusRequest } from '../run/popup/action_popup_focus_request'
 
 interface ActionPromptOwnerProps {
     action: ActionDefinition
     bindingStore: ActionRunBindingStore
     context: ActionContext
     conversationStore: ActionConversationStore
+    focusRequest: ActionPopupFocusRequest
     historyStore: ActionHistoryStore
     inputStore: ActionRunInputStore
     questionsEnabled: boolean
@@ -51,7 +53,7 @@ function selectSessionActive(run: ActionRun | null) {
 /** Owns shared action-input draft binding, agent preparation, and keyboard-run behavior. */
 export function ActionPromptOwner(props: ActionPromptOwnerProps) {
     const {
-        action, bindingStore, context, conversationStore, historyStore, inputStore, resultStore,
+        action, bindingStore, context, conversationStore, focusRequest, historyStore, inputStore, resultStore,
         runValidationError, scheduleStore, settingsStore,
     } = props
     const boundRunId = useBoundRunId(bindingStore)
@@ -162,6 +164,7 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
                     bindingStore={bindingStore}
                     conversationStore={conversationStore}
                     embedded
+                    focusRequest={focusRequest}
                     historyStore={historyStore}
                     inputStore={inputStore}
                     resultStore={resultStore}

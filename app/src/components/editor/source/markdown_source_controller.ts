@@ -81,6 +81,11 @@ export class MarkdownSourceController {
         editor.focus();
     }
 
+    /** Moves keyboard focus into the mounted source editor, if any. */
+    focus() {
+        this.sourceEditor?.focus();
+    }
+
     /** Imports into an isolated editor using the live import configuration before touching document or selection. */
     validateRichInsertion(markdown: string) {
         const editor = createEditor({ nodes: this.realm.getValue(usedLexicalNodes$), onError: (error) => { throw error; } });

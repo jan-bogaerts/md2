@@ -158,6 +158,11 @@ export class ActionPromptDraft {
         this.markdownDraft.requestFlush()
     }
 
+    /** Asks a mounted editor to take keyboard focus. */
+    requestFocus() {
+        this.markdownDraft.requestFocus()
+    }
+
     private readonly handleEditorDraftEdit = (value: string) => {
         if (this.editorSnapshot.preparationStatus !== 'ready') return
 

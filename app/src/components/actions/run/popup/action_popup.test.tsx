@@ -907,6 +907,7 @@ describe('ActionPopup', () => {
         expect(within(metadata).queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()
         expect(within(bottomRow).queryByRole('button', { name: /^Tokens,/u })).not.toBeInTheDocument()
         expect(within(bottomRow).queryByRole('button', { name: /^Changes,/u })).not.toBeInTheDocument()
+        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveFocus())
         tokens.focus()
         expect(tokens).toHaveFocus()
         fireEvent.mouseOver(tokens)
@@ -2660,8 +2661,9 @@ describe('ActionPopup', () => {
                 runListener = listener
                 return vi.fn()
             }),
-            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),
         } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
         actionRunRegistry.start()
         actionService.loadFromFiles([
             file(agentDefinition('respond', {
@@ -2672,6 +2674,8 @@ describe('ActionPopup', () => {
         ])
         renderPopup()
         await waitFor(() => expect(runListener).not.toBeNull())
+        // A prefilled prompt sends the after-select focus to Send, so the editor starts without a caret.
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Send' })).toHaveFocus())
         const eventBase = {
             actionId: 'respond', actionType: 'agent' as const, autoFinish: null, context, interactionReady: true,
             phase: 'main' as const, rootActionId: 'respond', runId: 'run-1', streaming: true,
@@ -4117,6 +4121,97 @@ describe('ActionPopup', () => {
             renderPopup({ ...context, cardInternalId: 'card-1' })
 
             expect(within(screen.getByTestId('action-popup-toolbar')).queryByText('F-010')).not.toBeInTheDocument()
+        })
+    })
+
+    describe('focus after action select', () => {
+        it('focuses Run when the popup opens with a prefilled command action', async () => {
+            renderPopup()
+
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Run' })).toHaveFocus())
+        })
+
+        it('focuses Run after selecting another command action with command text', async () => {
+            const user = userEvent.setup()
+            renderPopup()
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Run' })).toHaveFocus())
+
+            await user.click(screen.getByRole('button', { name: 'Second action' }))
+
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Run' })).toHaveFocus())
+            expect(screen.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'true')
+        })
+
+        it('focuses the prompt after selecting an agent action whose prepared prompt is empty', async () => {
+            const user = userEvent.setup()
+            mockCodexAvailable()
+            actionService.loadFromFiles([
+                file(commandDefinition('first', { label: 'First action' })),
+                file(agentDefinition('review', { label: 'Review' })),
+            ])
+            renderPopup()
+
+            await user.click(screen.getByRole('button', { name: /^Review/u }))
+
+            await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveFocus())
+        })
+
+        it('focuses Send once the selected agent prompt is prepared with text', async () => {
+            const user = userEvent.setup()
+            const preparation = deferredValue<{ prompt: string }>()
+            mockCodexAvailable()
+            window.md2Actions = {
+                onActionRun: vi.fn(() => vi.fn()),
+                prepareActionPrompt: vi.fn(() => preparation.promise),
+            } as unknown as typeof window.md2Actions
+            actionService.loadFromFiles([
+                file(commandDefinition('first', { label: 'First action' })),
+                file(agentDefinition('review', { label: 'Review' })),
+            ])
+            renderPopup()
+            const reviewButton = screen.getByRole('button', { name: /^Review/u })
+
+            await user.click(reviewButton)
+            expect(reviewButton).toHaveFocus()
+            await act(async () => preparation.resolve({ prompt: 'Prepared prompt' }))
+
+            const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+            await waitFor(() => expect(prompt).toHaveValue('Prepared prompt'))
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Send' })).toHaveFocus())
+        })
+
+        it('focuses the prompt when the prefilled agent prompt cannot be sent', async () => {
+            const user = userEvent.setup()
+            window.md2Actions = {
+                onActionRun: vi.fn(() => vi.fn()),
+                prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),
+            } as unknown as typeof window.md2Actions
+            actionService.loadFromFiles([
+                file(commandDefinition('first', { label: 'First action' })),
+                file(agentDefinition('review', { label: 'Review' })),
+            ])
+            renderPopup()
+
+            await user.click(screen.getByRole('button', { name: /^Review/u }))
+
+            const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+            await waitFor(() => expect(prompt).toHaveFocus())
+            expect(prompt).toHaveValue('Prepared prompt')
+            expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+        })
+
+        it('does not move focus to a control in read-only popups', async () => {
+            actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+            vi.spyOn(dataService, 'getConfig').mockReturnValue({ releasesFolder: 'design/releases' } as never)
+
+            renderPopup({ cardInternalId: 'card-10', file: 'design/releases/v1/F-010.md', kind: 'card' })
+
+            const focusedElement = document.activeElement
+            expect(await screen.findByRole('note')).toBeInTheDocument()
+            await act(async () => undefined)
+            expect(document.activeElement).toBe(focusedElement)
+            expect(focusedElement).not.toHaveRole('textbox')
+            expect(focusedElement).not.toHaveRole('button')
         })
     })
 })
