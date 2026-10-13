@@ -21,6 +21,10 @@
       "cardInternalId": "e461b100-4b8f-435e-9c0f-81426d7fdb47",
       "cardPath": "design/feature_descriptions/B_259_responsive_search_reopens_and_loses_results.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 54782
+      },
       "entries": [
         {
           "content": "Read and fix the bug described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_259_responsive_search_reopens_and_loses_results.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned bug description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).&#x20;\n2. create a task for each block\n3. Wait for approval.\n4. include tests\n5. After implementation is done, update the field `status` in the markdown feature description file to `ready`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_259_responsive_search_reopens_and_loses_results.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria. Keep everything short and to the point.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -29,18 +33,190 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-13T13:42:40.981Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-event-2",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzLKy22PfoLQsb67W8XA:thinking:0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T13:42:45.451Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"skill\":\"caveman:caveman\"}",
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-event-3",
+          "kind": "event",
+          "label": "Skill",
+          "output": "Launching skill: caveman:caveman",
+          "providerItemId": "toolu_0137PTepFnjTMXk781hXPsmF",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-10-13T13:42:45.566Z",
+          "type": "tool.Skill"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_259_responsive_search_reopens_and_loses_results.md\"}",
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-event-4",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tid: B_259\n3\tinternalId: e461b100-4b8f-435e-9c0f-81426d7fdb47\n4\ttitle: Responsive search reopens after Escape and loses results on resize\n5\tstatus: ready for implementation\n6\tafter: f65510e2-6beb-4c9d-87be-077031583414\n7\tbranch: b_259_responsive_search_reopens_after_escape_and_loses_results_on_resize\n8\tworktree: 1\n9\tagents:\n10\t  - design/activity/card__e461b100-4b8f-435e-9c0f-81426d7fdb47.json\n11\t---\n12\t\n13\tReported during review of [PR #27](https://github.com/jan-bogaerts/md2/pull/27), head `e1181650a`. Fix after the PR is merged.\n14\t\n15\t## Search reopens after Escape\n16\t\n17\t1. Use a window width where search shows the shortcut presentation.\n18\t2. Open search by clicking its launcher.\n19\t3. Press Escape.\n20\t\n21\tThe popover closes and immediately reopens. Closing should dismiss search and leave keyboard navigation usable.\n22\t\n23\t`SearchControl` uses a MUI `Popover` that restores focus to the launcher on close. `SearchLauncher` opens search through its `onFocus` handler, so restored focus opens it again. A targeted regression probe reproduced the failure; disabling focus restoration in a temporary probe prevented reopening.\n24\t\n25\tAffected files: `app/src/components/shell/search/search_control.tsx` and `search_launcher.tsx`.\n26\t\n27\t## Resizing clears results and search options\n28\t\n29\t1. Open inline search and enter a query that returns a result, such as `Beta` in the existing test fixture.\n30\t2. Resize until search changes to a popover presentation.\n31\t\n32\tThe query remains, but the matching results disappear. RegExp mode and the background-body/action options also reset. Resizing should preserve the active search, its options, and matching results in either direction.\n33\t\n34\t`SearchControl` mounts `SearchPanel` in separate inline and popover branches. Changing presentation remounts the panel. Only the query survives in `SearchControl`; `SearchPanel` initializes empty results and default options and does not apply its initial query on mount.\n35\t\n36\tAffected files: `app/src/components/shell/search/search_control.tsx` and `search_panel.tsx`.\n37\t\n38\t## Regression coverage\n39\t\n40\t- Open shortcut search, press Escape, and verify it stays closed without preventing later reopening.\n41\t- Search for a matching card and resize between inline and popover presentations; verify the query and result remain available.\n42\t- Enable RegExp mode and background-body/action options before resizing; verify their selections and search behavior survive.\n43\t\n44\tBoth reported failures were reproduced with temporary probes in `search_control.test.tsx`; the probes were removed after review. No fix is included in this report.\n45\t",
+          "providerItemId": "toolu_017yK7635oj5HMVUn7f4X3ve",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-10-13T13:42:46.387Z",
+          "type": "tool.Read"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/components/shell/search; ls; cat search_control.tsx search_launcher.tsx search_panel.tsx",
+          "content": "search_card_preview_dialog.grouped.test.tsx\nsearch_card_preview_dialog.tsx\nsearch_control.test.tsx\nsearch_control.tsx\nsearch_field_styles.ts\nsearch_launcher.tsx\nsearch_panel.tsx\nsearch_results.tsx\nimport { Box, Popover } from '@mui/material';\nimport { useCallback, useEffect, useRef, useState } from 'react';\nimport {\n    SEARCH_OPEN_REQUESTED_EVENT,\n    searchOpenService,\n} from '../../../services/search/search_open_service';\nimport type { SearchRegexpAgent } from '../../../services/search/search_types';\nimport { NO_DRAG_REGION } from '../drag_region';\nimport { SearchPanel } from './search_panel';\nimport { SearchLauncher } from './search_launcher';\nimport { SEARCH_PLACEHOLDERS, type SearchPresentation } from './search_field_styles';\n\nconst RESULTS_WIDTH = 460;\n\ninterface SearchControlProps {\n    isMobile?: boolean;\n    presentation?: SearchPresentation;\n    /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */\n    regexpAgent?: SearchRegexpAgent;\n}\n\n/** Lightweight launcher; narrow headers open the editable search in an anchored popover. */\nexport function SearchControl(props: SearchControlProps) {\n    const { isMobile = false, presentation = 'full', regexpAgent } = props;\n    const [query, setQuery] = useState('');\n    const [isOpen, setIsOpen] = useState(false);\n    const [searchAnchorElement, setSearchAnchorElement] = useState<HTMLElement | null>(null);\n    const controlElement = useRef<HTMLDivElement | null>(null);\n    const launcherPresentation = isMobile ? 'icon' : presentation;\n    const usesPopover = isMobile || presentation === 'icon' || presentation === 'shortcut';\n\n    const openSearch = useCallback(() => {\n        const anchorElement = controlElement.current;\n        if (!anchorElement) throw new Error('Cannot open search without its anchor');\n        setSearchAnchorElement(anchorElement);\n        setIsOpen(true);\n    }, []);\n\n    useEffect(() => {\n        searchOpenService.addEventListener(SEARCH_OPEN_REQUESTED_EVENT, openSearch);\n\n        return () => searchOpenService.removeEventListener(SEARCH_OPEN_REQUESTED_EVENT, openSearch);\n    }, [openSearch]);\n\n    const closeSearch = () => {\n        setIsOpen(false);\n    };\n\n    const updateQuery = (nextQuery: string) => {\n        setQuery(nextQuery);\n    };\n\n    return (\n        <Box data-search-presentation={launcherPresentation} ref={controlElement} style={NO_DRAG_REGION} sx={{ position: 'relative', width: '100%' }}>\n            <SearchLauncher\n                isOpen={isOpen && !usesPopover}\n                onOpen={openSearch}\n                presentation={launcherPresentation}\n                query={query}\n            />\n            {isOpen && !usesPopover ? (\n                <SearchPanel\n                    initialQuery={query}\n                    onClose={closeSearch}\n                    onQueryChange={updateQuery}\n                    placeholder={SEARCH_PLACEHOLDERS[presentation]}\n                    regexpAgent={regexpAgent}\n                />\n            ) : null}\n            <Popover\n                anchorEl={searchAnchorElement}\n                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}\n                disableAutoFocus\n                onClose={closeSearch}\n                open={isOpen && usesPopover}\n                slotProps={{paper: { sx: { mt: 0.5, overflow: 'visible', p: 1, width: `min(${RESULTS_WIDTH}px, calc(100vw - 32px))` } }}}\n                transformOrigin={{ horizontal: 'right', vertical: 'top' }}\n            >\n                {isOpen && usesPopover ? (\n                    <SearchPanel initialQuery={query} onClose={closeSearch} onQueryChange={updateQuery} regexpAgent={regexpAgent} />\n                ) : null}\n            </Popover>\n        </Box>\n    );\n}\nimport { Box, IconButton, InputAdornment, TextField, Tooltip } from '@mui/material';\nimport Magnify from 'mdi-material-ui/Magnify';\nimport { GLOBAL_SEARCH_SHORTCUT_BINDING } from '../../../services/search/search_open_service';\nimport { formatShortcut } from '../../../services/shortcuts/keyboard_platform';\nimport { NO_DRAG_REGION \n[16243 characters omitted]\n', whiteSpace: 'nowrap', width: 1 }}\n                        >\n                            Search dropdown\n                        </Typography>\n                        <Box aria-label=\"Search options\" role=\"group\" sx={{ alignItems: 'center', display: 'flex', gap: 1, p: 1 }}>\n                            <Tooltip title=\"RegExp mode\">\n                                <ToggleButton\n                                    aria-label=\"RegExp mode\"\n                                    onChange={handleToggleRegexp}\n                                    selected={mode === 'regexp'}\n                                    size=\"small\"\n                                    value=\"regexp\"\n                                >\n                                    <Regex fontSize=\"small\" />\n                                </ToggleButton>\n                            </Tooltip>\n                            <Tooltip title=\"Search released and archived file bodies\">\n                                <ToggleButton\n                                    aria-label=\"Search released and archived file bodies\"\n                                    onChange={handleToggleBackgroundBody}\n                                    selected={includeBackgroundBody}\n                                    size=\"small\"\n                                    value=\"background-body\"\n                                >\n                                    <FileSearchOutline fontSize=\"small\" />\n                                </ToggleButton>\n                            </Tooltip>\n                            <Tooltip title=\"Search actions\">\n                                <ToggleButton\n                                    aria-label=\"Search actions\"\n                                    onChange={handleToggleActions}\n                                    selected={includeActions}\n                                    size=\"small\"\n                                    value=\"actions\"\n                                >\n                                    <LightningBolt fontSize=\"small\" />\n                                </ToggleButton>\n                            </Tooltip>\n                            <Tooltip title=\"Ask agent to build a RegExp\">\n                                <span>\n                                    <IconButton\n                                        aria-label=\"Ask agent to build a RegExp\"\n                                        disabled={isAgentBusy || !hasQuery}\n                                        onClick={handleAskAgent}\n                                        size=\"small\"\n                                    >\n                                        <AutoFix fontSize=\"small\" />\n                                    </IconButton>\n                                </span>\n                            </Tooltip>\n                            <Box sx={{ flex: 1 }} />\n                            <Tooltip title=\"Close search\">\n                                <IconButton aria-label=\"Close search\" onClick={onClose} size=\"small\">\n                                    <Close fontSize=\"small\" />\n                                </IconButton>\n                            </Tooltip>\n                        </Box>\n                        {shouldShowResults ? (\n                            <SearchResults\n                                mode={mode}\n                                onActionSelect={handleSelectAction}\n                                onSelect={handleSelect}\n                                query={query}\n                                results={results}\n                            />\n                        ) : null}\n                    </Box>\n                </ResizablePopper>\n            ) : null}\n            {actionPopupOpen ? (\n                <ActionPopup\n                    anchorElement={controlElement}\n                    context={SEARCH_ACTION_CONTEXT}\n                    draggable\n                    onClose={closeActionPopup}\n                />\n            ) : null}\n            <SearchCardPreviewDialog match={previewMatch} onClose={closeCardPreview} />\n        </Box>\n    )\n}",
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-event-5",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/components/shell/search; ls; cat search_control.tsx search_launcher.tsx search_panel.tsx",
+          "providerItemId": "toolu_01C2dxhsvVp1uekcrHHHoF4h",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-10-13T13:42:50.871Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-event-6",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzLLb9QMhYfmp6inAfV6:thinking:0",
+          "sequence": 6,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T13:43:03.750Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/components/shell/search; wc -l search_control.test.tsx; cat search_control.test.tsx | head -150; grep -n \"it(\\|describe(\\|Escape\\|presentation\" search_control.test.tsx; grep -rn \"set-state-in-effect\" ../../../../eslint.config.js",
+          "content": "632 search_control.test.tsx\nimport { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'\nimport userEvent from '@testing-library/user-event'\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport type { CardHeader, Card, ProjectSnapshot } from '../../../data/data_types'\nimport { actionService } from '../../../services/actions/action_service'\nimport { ACTIONS_CHANGED_EVENT } from '../../../services/actions/action_service_events'\nimport { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'\nimport { workspaceViewService } from '../../../services/project/workspace_view_service'\nimport { searchOpenService } from '../../../services/search/search_open_service'\nimport { DialogDisplay } from '../../dialog_display'\nimport { AppThemeProvider } from '../../../theme/theme_provider'\nimport { SearchControl } from './search_control'\n\nfunction makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {\n    return {\n        affects: [],\n        after: null,\n        agentLogReferences: [],\n        changedFiles: [],\n        author: null,\n        id: 'F-1',\n        internalId: null,\n        owner: null,\n        policy: {},\n        references: [],\n        status: null,\n        title: 'Untitled',\n        ...overrides,\n    }\n}\n\nfunction makeCard(path: string, content: string, header: Partial<CardHeader>, isActive: boolean): Card {\n    return {\n        agentConversationErrors: [], agentConversations: [], content, hasFrontmatter: true,\n        header: makeHeader(header), isActive, path,\n    }\n}\n\nconst snapshot: ProjectSnapshot = {\n    activeCards: [\n        makeCard('design/F-1-alpha.md', '# Alpha\\n\\nBody of alpha.', { id: 'F-1', title: 'Alpha feature' }, true),\n        makeCard('design/F-2-beta.md', '# Beta\\n\\nBody with secret keyword.', { id: 'F-2', title: 'Beta feature' }, true),\n    ],\n    backgroundCards: [\n        makeCard(\n            'design/history/note.md',\n            '# Note\\n\\nHidden secret text.',\n            { id: 'H-1', internalId: 'released-note', title: 'History note', status: 'released' },\n            false,\n        ),\n        makeCard(\n            'design/archived/old.md',\n            '# Old\\n\\nArchived body text.',\n            { id: 'A-1', internalId: 'archived-note', title: 'Archived note', status: 'archived' },\n            false,\n        ),\n        makeCard(\n            'design/history/regular.md',\n            '# Regular\\n\\nOrdinary background body.',\n            { id: 'D-1', title: 'Regular document' },\n            false,\n        ),\n        makeCard(\n            'design/history-old/prefixed.md',\n            '# Prefixed\\n\\nSibling folder body.',\n            { id: 'D-2', internalId: 'prefixed-document', title: 'Prefixed document' },\n            false,\n        ),\n    ],\n    repositoryFiles: [],\n    workingFolder: 'design',\n}\n\nvi.mock('../../hooks/use_project_state', () => ({ useProjectState: () => ({ project: null, runningAgents: [], snapshot }) }))\nvi.mock('../../hooks/use_project_config', () => ({useProjectConfig: () => ({ archivedFolder: 'design/archived', releasesFolder: 'design/history' })}))\n\nfunction focusSearch() {\n    fireEvent.focus(screen.getByRole('textbox', { name: 'Search project' }))\n}\n\nfunction typeQuery(value: string) {\n    focusSearch()\n    fireEvent.change(screen.getByRole('textbox', { name: 'Search project' }), { target: { value } })\n}\n\nfunction setClientPlatform(platform: string, userAgent: string) {\n    Object.defineProperty(window.navigator, 'userAgent', { configurable: true, value: userAgent })\n    Object.defineProperty(window.navigator, 'userAgentData', { configurable: true, value: { platform } })\n}\n\ndescribe('SearchControl', () => {\n    afterEach(cleanup)\n    afterEach(() => {\n        actionService.clear()\n        workspaceViewService.setViewMode('cards')\n        window.localStorage.removeItem('search-panel-results-size')\n        Reflect.deleteProperty(window.navigator, 'userAgent')\n        Reflect.deleteProperty(window.navigator, 'userAgentData')\n    })\n\n    it('shows the Windows shortcut in the c\n[1472 characters omitted]\n render(<SearchControl presentation={presentation} />);\n\n        await user.click(screen.getByText('Ctrl+Shift+F'));\n\n        const editableField = screen.getAllByRole('textbox', { name: 'Search project' }).find((element) => !element.hasAttribute('readonly'));\n        expect(editableField).toHaveFocus();\n    });\n\n    it('opens editable search from the narrow icon with a pointer', async () => {\n        const user = userEvent.setup();\n        render(<SearchControl presentation=\"icon\" />);\n\n        expect(screen.queryByRole('textbox', { name: 'Search project' })).not.toBeInTheDocument();\n        await user.click(screen.getByRole('button', { name: 'Search' }));\n\n        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus();\n        expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument();\n91:describe('SearchControl', () => {\n101:    it('shows the Windows shortcut in the collapsed launcher and expanded panel', () => {\n111:    it('shows the Apple shortcut in the collapsed launcher and expanded panel', () => {\n123:    ] as const)('keeps the complete shortcut in the %s launcher', (presentation, placeholder) => {\n125:        render(<SearchControl presentation={presentation} />);\n131:    it.each(['full', 'search', 'shortcut'] as const)('opens editable search when clicking the keycap in the %s launcher', async (presentation) => {\n134:        render(<SearchControl presentation={presentation} />);\n142:    it('opens editable search from the narrow icon with a pointer', async () => {\n144:        render(<SearchControl presentation=\"icon\" />);\n153:    it.each(['shortcut', 'icon'] as const)('opens editable search from the keyboard in the %s presentation', (presentation) => {\n154:        render(<SearchControl presentation={presentation} />);\n162:    it('keeps the entered query when resizing from the inline field to the icon popover', async () => {\n164:        const { rerender } = render(<SearchControl presentation=\"full\" />);\n168:        rerender(<SearchControl presentation=\"icon\" />);\n174:    it('opens and focuses desktop search when requested by the search service', () => {\n182:    it('opens mobile search on its icon anchor when requested by the search service', () => {\n191:    it('subscribes to project data only while search is open', () => {\n202:    it('shows the search controls in a dropdown only while search is focused', () => {\n216:    it('closes the editable search from its close button and keeps the query in the launcher', async () => {\n230:    it('clears the query and results without closing desktop search', async () => {\n250:    it('clears the query without closing mobile search', async () => {\n263:    it('closes the mobile search popover from its close button', async () => {\n273:    it('can be resized by dragging its lower-right corner handle and persists the chosen size', () => {\n293:    it('shows a focused search popover from the mobile search icon', () => {\n304:    it('highlights a case-insensitive plain text match while preserving its context', () => {\n317:    it('highlights a RegExp match while preserving its context', () => {\n330:    it('renders normalized context as plain text when the RegExp cannot be relocated', () => {\n342:    it('searches background cards by header and groups them by folder', () => {\n351:    it('includes background bodies only when the full-body toggle is on', () => {\n362:    it('includes actions only when the action toggle is on and opens the action popup', () => {\n384:    it('opens action search results in an editor tab from text view', () => {\n407:    it('reports an invalid RegExp without clearing the previous results', () => {\n426:    it('requests active-card reveal from cards view', () => {\n528:    it('keeps existing navigation for active results outside cards view', () => {\n586:    it('reports a result removed after search and does not navigate stale data', () => {\n606:    it('populates the query from a successful agent request', async () => {\n617:    it('surfaces an agent failure without changing the current query', async () => {",
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-event-7",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/components/shell/search; wc -l search_control.test.tsx; cat search_control.test.tsx | head -150; grep -n \"it(\\|describe(\\|Escape\\|presentation\" search_control.test.tsx; grep -rn \"set-state-in-effect\" ../../../../eslint.config.js",
+          "providerItemId": "toolu_01RSCJeT6CmLht2zsTpbRHvF",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-10-13T13:43:05.144Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; sed -n 150,175p src/components/shell/search/search_control.test.tsx; grep -n \"set-state\\|react-hooks\" eslint.config.js; grep -rn \"SearchPanel\\b\" src --include=*.tsx -l",
+          "content": "        expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument();\n    });\n\n    it.each(['shortcut', 'icon'] as const)('opens editable search from the keyboard in the %s presentation', (presentation) => {\n        render(<SearchControl presentation={presentation} />);\n\n        act(() => searchOpenService.requestOpen());\n\n        const editableField = screen.getAllByRole('textbox', { name: 'Search project' }).find((element) => !element.hasAttribute('readonly'));\n        expect(editableField).toHaveFocus();\n    });\n\n    it('keeps the entered query when resizing from the inline field to the icon popover', async () => {\n        const user = userEvent.setup();\n        const { rerender } = render(<SearchControl presentation=\"full\" />);\n        await user.click(screen.getByRole('textbox', { name: 'Search project' }));\n        await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Beta');\n\n        rerender(<SearchControl presentation=\"icon\" />);\n\n        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Beta');\n        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus();\n    });\n\n    it('opens and focuses desktop search when requested by the search service', () => {\n        render(<SearchControl />)\n4:import reactHooks from 'eslint-plugin-react-hooks'\n69:      'react-hooks': reactHooks,\nsrc/components/shell/search/search_control.tsx\nsrc/components/shell/search/search_panel.tsx",
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-event-8",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; sed -n 150,175p src/components/shell/search/search_control.test.tsx; grep -n \"set-state\\|react-hooks\" eslint.config.js; grep -rn \"SearchPanel\\b\" src --include=*.tsx -l",
+          "providerItemId": "toolu_017P4QjzWj5NrHWHDc3wtu1u",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-10-13T13:43:07.881Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-event-9",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzLMpnDtYjQdxbuZ7wVw:thinking:0",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T13:43:10.598Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; sed -n 60,100p eslint.config.js; grep -n '\"eslint-plugin-react-hooks\"' package.json",
+          "content": "      parserOptions: {\n        ecmaFeatures: {\n          jsx: true,\n        },\n      },\n    },\n    plugins: {\n      import: importPlugin,\n      react,\n      'react-hooks': reactHooks,\n      'react-refresh': reactRefresh,\n    },\n    settings: {\n      react: {\n        createClass: 'createReactClass',\n        pragma: 'React',\n        fragment: 'Fragment',\n        version: 'detect',\n        flowVersion: '0.53',\n      },\n      'import/resolver': {\n        node: {\n          extensions: ['.js', '.jsx', '.ts', '.tsx'],\n        },\n      },\n    },\n    rules: projectRules,\n  },\n)\n35:    \"eslint-plugin-react-hooks\": \"^7.1.1\",",
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-event-10",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; sed -n 60,100p eslint.config.js; grep -n '\"eslint-plugin-react-hooks\"' package.json",
+          "providerItemId": "toolu_01MPSsYDPpw8KnJ41PkVzReJ",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-10-13T13:43:11.206Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzLN54U2oADTVFJrKQdq:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T13:43:25.414Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Read spec + `search_control.tsx`, `search_launcher.tsx`, `search_panel.tsx`, and tests. Plan below. No edits yet.\n\n## Root causes\n1. **Escape reopens.** User presses Escape → MUI `Popover` closes → Popover puts focus back on launcher `TextField` → launcher `onFocus={onOpen}` fires → `openSearch` runs → popover open again.\n2. **Resize loses results/options.** Width change flips `usesPopover` → `SearchControl` unmounts inline `SearchPanel`, mounts popover `SearchPanel`. New panel starts with `mode='text'`, both toggles `false`, `results=EMPTY_RESULTS`. Only `query` survives (lifted in `SearchControl`), and panel never runs search on mount, so results empty.\n\n## Change Plan\n\n**Block 1: no reopen after Escape** (`search_control.tsx`)\n- Add `disableRestoreFocus` to `Popover`. Close no longer refocuses launcher → no `onFocus` → stays closed. Later click/Tab/shortcut still open it.\n- Launcher `onFocus` untouched (Tab-to-open keeps working).\n\n**Block 2: keep options + results across presentation switch** (`search_control.tsx`, `search_panel.tsx`)\n- `SearchControl` keeps one `searchOptions` state `{ mode, includeBackgroundBody, includeActions }` next to `query`. Passes `initialOptions` + `onOptionsChange` to both `SearchPanel` branches. Same pattern `query` uses today.\n- `SearchPanel` sets its state from `initialOptions`. Each toggle and agent result (agent switches mode to `regexp`) calls `onOptionsChange`.\n- `SearchPanel` runs `applySearch(initialQuery, …initialOptions)` once in mount effect. Effect, not render, because invalid RegExp errors go through `dialogService`. Remounted panel then shows same results.\n- Possible issue: lint rule `react-hooks/set-state-in-effect` may flag `setResults` in that effect. If so, I tell you before picking workaround. No rule override.\n- Alternative: move search state into service (AGENTS.md says app state belongs in services). Bigger change. Not recommended for this bug.\n\n**Block 3: tests** (`search_control.test.tsx`)\n- Shortcut presentation: click launcher → Escape → popover gone, stays gone; click launcher again → reopens.\n- Type `Beta` inline → rerender `icon` → query + `Beta feature` result still there; rerender `full` → still there.\n- Enable RegExp + background-body + actions toggles → resize → toggles still `aria-pressed`, background-body result (`secret` → `History note`) still found.\n- Run with `npm run test -- src/components/shell/search/search_control.test.tsx`, plus `npm run lint`, `npm run typecheck`.\n\n**Block 4: status** in `C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_259_…md`: `ready for implementation` → `ready`.\n\n## Tasks\n- [ ] T1: Popover `disableRestoreFocus`\n- [ ] T2: lift search options + apply initial search on mount\n- [ ] T3: regression tests + lint/typecheck\n- [ ] T4: set spec `status: ready`\n\nNo task-tracking tool in this session, so tasks live in this list. Approve?",
+          "id": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 12,
+          "timestamp": "2026-10-13T13:43:28.594Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-108dcbef-8d30-4a7a-8b10-f61aebde9d8e",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "30b724a3-afb4-45f9-904b-82ff59605656",
+          "createdAt": "2026-10-13T13:43:28.594Z",
+          "lastUsedAt": "2026-10-13T13:43:28.594Z",
+          "synchronizedThroughMessageId": "agent-turn-bab2e988-0083-4cf2-b610-7c050b8340b9-turn-1-assistant-1",
+          "usageBaseline": {
+            "costUsd": 0.4220198,
+            "resultId": "e12fe36c-227f-4b62-92fb-cc4b2e072206",
+            "tokens": {
+              "cachedInputTokens": 285871,
+              "inputTokens": 12,
+              "outputTokens": 3345,
+              "reasoningTokens": 0,
+              "totalTokens": 289228
+            }
+          }
+        }
+      ],
       "startedAt": "2026-10-13T13:42:40.981Z",
       "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 21673,
+          "toolMs": 6010
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-10-13T13:42:40.981Z"
       },
       "title": "fix bug",
+      "usage": {
+        "cachedInputTokens": 285871,
+        "inputTokens": 12,
+        "outputTokens": 3345,
+        "reasoningTokens": 0,
+        "totalTokens": 289228,
+        "costUsd": 0.4220198
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
