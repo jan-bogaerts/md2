@@ -3,7 +3,7 @@ author:
 id: B_298
 internalId: 04c53429-e249-4be6-8a62-8480a72be879
 title: new sequence popup only accepts 1 drop
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,17 @@ agents:
 policy:
 branch: b_298_new_sequence_popup_only_accepts_1_drop
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/sequence/card_sequence_collision.test.ts
+  - app/src/components/actions/run/sequence/card_sequence_collision.ts
+  - app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx
+  - app/src/components/actions/run/sequence/card_sequence_dialog.tsx
+  - app/src/components/actions/run/sequence/card_sequence_drag_overlay.test.tsx
+  - app/src/components/actions/run/sequence/card_sequence_drag_overlay.tsx
+  - app/src/components/actions/run/sequence/card_sequence_row.tsx
+  - app/src/components/card_view/card_view.test.tsx
+  - app/src/components/card_view/card_view.tsx
+  - app/src/components/card_view/mobile_card_view.tsx
 ---
 The 'new sequence' popup shows a drop target where the user can drop cards on. this works, but as soon as the first card is dropped, the drop target disappears and no more cards can be dropped.&#x20;
 
