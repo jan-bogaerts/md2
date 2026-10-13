@@ -882,6 +882,31 @@
     "cardInternalId": "4677a35c-e7bf-4ef7-86c7-9f02d8604f47",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-10-13T09:21:00.150Z",
+      "conversationIds": [
+        "agent-33683aa1-1931-43a4-a680-45b627023438"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-af050195-3ffb-4c98-9331-3bf72c1edaa1",
+      "origin": {
+        "cardInternalId": "4677a35c-e7bf-4ef7-86c7-9f02d8604f47",
+        "kind": "card"
+      },
+      "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "rootActionLabel": "fix bug",
+      "rootConversationId": "agent-33683aa1-1931-43a4-a680-45b627023438",
+      "startedAt": "2026-10-13T08:57:50.222Z",
+      "status": "cancelled"
+    }
+  ],
   "version": 5
 }
