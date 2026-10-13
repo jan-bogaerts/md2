@@ -1386,7 +1386,7 @@
         "costUsd": 1.12865
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1457,6 +1457,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "7ba4cc7087a0526306969f60ae1d769dd6270e65",
           "committedAt": "2026-10-12T13:26:21+02:00",
           "deletions": 44,
@@ -1469,8 +1470,7 @@
             "app/src/components/shell/project/new_card_markdown_editor.real.test.tsx"
           ],
           "filesChanged": 6,
-          "insertions": 126,
-          "branch": "dev_main"
+          "insertions": 126
         }
       ],
       "completedAt": "2026-10-12T13:26:21+02:00",
