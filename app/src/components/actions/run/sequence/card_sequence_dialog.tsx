@@ -9,6 +9,7 @@ import { cardPopupService, subscribeCardPopups } from '../../../../services/card
 import type { ProjectSnapshot } from '../../../../data/data_types'
 import { CARD_ADDED_EVENT, CARD_REMOVED_EVENT, cardCollectionFieldChangedEvent, dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
+import { worktreeService } from '../../../../services/project/worktree_service'
 import { useActions } from '../../../hooks/use_actions'
 import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
 import { useCodexRateLimits } from '../../../hooks/use_codex_rate_limits'
@@ -243,8 +244,14 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
                     <Typography color="text.secondary" variant="caption">Worktree</Typography>
                     <Select inputProps={{ 'aria-label': 'Sequence worktree' }} onChange={handleWorktreeChange} size="small" value={snapshot.worktreeBranch}>
                         <MenuItem value="">Unassigned</MenuItem>
-                        {worktrees.map(({ branch, path, valid }, index) => (
-                            <MenuItem disabled={!valid} key={path} value={branch ?? undefined}>{index + 1}: {branch}</MenuItem>
+                        {worktrees.map((record, index) => (
+                            <MenuItem
+                                disabled={!record.valid || !worktreeService.isWorktreeAvailableForSequence(record)}
+                                key={record.path}
+                                value={record.branch ?? undefined}
+                            >
+                                {index + 1}: {record.branch}
+                            </MenuItem>
                         ))}
                     </Select>
                     <Typography color="text.secondary" variant="caption">Ready state</Typography>

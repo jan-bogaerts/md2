@@ -5,6 +5,7 @@ import type { DataService } from '../data/data_service'
 import type { Card, ProjectSnapshot } from '../../data/data_types'
 import type { ClaudeRateLimitService } from '../agents/claude_rate_limit_service'
 import type { CodexRateLimitService } from '../agents/codex_rate_limit_service'
+import { worktreeService } from '../project/worktree_service'
 import { ActiveScheduleService } from './active_schedule_service'
 
 function schedule(): ActionSchedule {
@@ -30,6 +31,15 @@ function sequenceSchedule(): SequenceSchedule {
             childCommits: {}, expectedBranch: 'child-1', integrationCommit: null, phase: 'running',
             runId: 'run-1', sequenceBranch: 'sequence', sourceCommit: null, sourceTree: null, targetCommit: 'base',
         },
+    }
+}
+
+function pendingSequenceSchedule(id: string): SequenceSchedule {
+    return {
+        actionCompleted: false, actionId: 'implement', cardInternalIds: ['card-1'],
+        currentIndex: 0, currentRunId: null, failure: null, id, kind: 'sequence',
+        readyState: 'ready', readyStateMet: false, status: 'pending',
+        createdAt: '2026-09-18T10:00:00.000Z', trigger: { type: 'now' },
     }
 }
 
@@ -108,6 +118,26 @@ describe('ActiveScheduleService', () => {
         expect(service.getSequenceWorktreeForCard('card-2')).toBeNull()
         expect(secondCardChanged).toHaveBeenCalledTimes(2)
         service.stop()
+    })
+
+    it('reserves worktrees for pending and running sequences only and clears them on stop', async () => {
+        const { bridge, service } = createHarness()
+        const setSequenceReservations = vi.spyOn(worktreeService, 'setSequenceReservations')
+        const running = sequenceSchedule()
+        const pending: SequenceSchedule = { ...pendingSequenceSchedule('sequence-2'), worktreeBranch: 'pending-branch' }
+        const completed: SequenceSchedule = { ...sequenceSchedule(), id: 'sequence-3', status: 'completed', worktreeBranch: 'done' }
+        const unassigned = pendingSequenceSchedule('sequence-4')
+        bridge.listActiveSchedules.mockResolvedValueOnce([running, pending, completed, unassigned])
+        service.start()
+
+        await vi.waitFor(() => expect(setSequenceReservations).toHaveBeenLastCalledWith([
+            { checkoutPath: 'C:/checkout', worktreeBranch: 'parking' },
+            { checkoutPath: null, worktreeBranch: 'pending-branch' },
+        ]))
+        service.stop()
+
+        expect(setSequenceReservations).toHaveBeenLastCalledWith([])
+        setSequenceReservations.mockRestore()
     })
 
     it('loads backend-filtered schedules when project becomes active', async () => {

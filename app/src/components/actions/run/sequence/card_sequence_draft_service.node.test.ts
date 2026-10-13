@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { WorktreeRecord } from '../../../../data/data_types'
+import { worktreeService } from '../../../../services/project/worktree_service'
 import type { ActionScheduleTriggerSources } from '../schedule/action_schedule_trigger'
 import { CardSequenceDraftService } from './card_sequence_draft_service'
 
@@ -104,13 +106,35 @@ describe('CardSequenceDraftService', () => {
     })
 })
 
+const selectedWorktree: WorktreeRecord = {
+    branch: 'selected', error: null, parkingBranch: 'md2/parking/selected', path: 'C:\\selected',
+    status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+};
+
 describe('sequence worktree draft', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('includes optional assignment in registration without replacing card identities', () => {
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([selectedWorktree]);
         const service = readyService();
         service.setWorktreeBranch('selected');
         expect(service.createRegistrationRequest()).toMatchObject({ cardInternalIds: ['card-1'], worktreeBranch: 'selected' });
         service.setWorktreeBranch('');
         expect(service.createRegistrationRequest()).not.toHaveProperty('worktreeBranch');
+        service.close();
+    });
+
+    it('blocks registration when the selected worktree becomes used', () => {
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([selectedWorktree]);
+        const service = readyService();
+        service.setWorktreeBranch('selected');
+        expect(service.getSnapshot().canSubmit).toBe(true);
+
+        vi.spyOn(worktreeService, 'isWorktreeAvailableForSequence').mockReturnValue(false);
+
+        expect(() => service.createRegistrationRequest()).toThrow('Selected worktree is already in use');
         service.close();
     });
 });

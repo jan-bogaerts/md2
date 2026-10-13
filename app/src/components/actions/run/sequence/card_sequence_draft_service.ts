@@ -1,4 +1,5 @@
 import { dataService } from '../../../../services/data/data_service';
+import { worktreeService } from '../../../../services/project/worktree_service';
 import { isSequenceCardAssigned } from './card_sequence_eligibility';
 import type { SequenceScheduleRegistrationRequest } from '../../../../data/electron_action_bridge'
 import type { ScheduleTrigger } from '../../../../data/action_schedule_types'
@@ -111,6 +112,10 @@ function validationMessage(snapshot: CardSequenceDraftSnapshot, sources: CardSeq
     if (snapshot.cardInternalIds.length === 0) return 'Add at least one card'
     const cards = dataService.getState().snapshot?.activeCards ?? [];
     if (cards.some((card) => snapshot.cardInternalIds.includes(card.header.internalId!) && isSequenceCardAssigned(card))) return 'Sequence cards cannot have a worktree assignment';
+    if (snapshot.worktreeBranch) {
+        const record = worktreeService.getRecords().find(({ branch }) => branch === snapshot.worktreeBranch);
+        if (!record || !worktreeService.isWorktreeAvailableForSequence(record)) return 'Selected worktree is already in use';
+    }
     if (!sources.cardsAvailable) return 'Every sequence card must remain active'
     if (!snapshot.actionId || !sources.actionIds.includes(snapshot.actionId)) return 'Select an action available for every card'
     if (!snapshot.readyState || !sources.readyStates.includes(snapshot.readyState)) return 'Select a configured ready state'

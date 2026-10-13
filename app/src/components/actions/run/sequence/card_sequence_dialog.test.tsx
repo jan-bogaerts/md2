@@ -1,11 +1,12 @@
 import { DndContext } from '@dnd-kit/core'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_CARD_TYPES, type Card } from '../../../../data/data_types'
+import { DEFAULT_CARD_TYPES, type Card, type WorktreeRecord } from '../../../../data/data_types'
 import { cardCollectionFieldChangedEvent, dataService } from '../../../../services/data/data_service'
 import { cardPopupService } from '../../../../services/card_popup_service';
 import { dialogService } from '../../../../services/dialog_service'
 import { projectAccessService } from '../../../../services/project/project_access_service'
+import { worktreeService } from '../../../../services/project/worktree_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { CardSequenceDialog } from './card_sequence_dialog'
 import { CardSequenceDraftService } from './card_sequence_draft_service'
@@ -252,6 +253,22 @@ describe('CardSequenceDialog', () => {
         expect(screen.queryByRole('option', { name: /F-1/u })).not.toBeInTheDocument()
         expect(screen.getByRole('option', { name: /F-2/u })).toBeInTheDocument()
     })
+
+    it('disables worktrees used by a card or another sequence', () => {
+        const status = { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false };
+        const records: WorktreeRecord[] = ['card-used', 'sequence-used', 'free'].map((branch) => ({branch, error: null, parkingBranch: `md2/parking/${branch}`, path: `C:\\${branch}`, status, valid: true}));
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue(records);
+        vi.spyOn(worktreeService, 'isWorktreeAvailableForSequence').mockImplementation(({ branch }) => branch === 'free');
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Sequence worktree' }));
+
+        expect(screen.getByRole('option', { name: '1: card-used' })).toHaveAttribute('aria-disabled', 'true');
+        expect(screen.getByRole('option', { name: '2: sequence-used' })).toHaveAttribute('aria-disabled', 'true');
+        expect(screen.getByRole('option', { name: '3: free' })).not.toHaveAttribute('aria-disabled');
+    });
 
     it('moves the popup when dragging its title on desktop', () => {
         const service = new CardSequenceDraftService();

@@ -391,7 +391,8 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                         <MenuItem
                             data-worktree-branch={record.branch}
                             disabled={assignmentTarget.kind === 'card'
-                            && !worktreeService.isWorktreeAvailableForCard(record.branch, assignmentTarget.cardInternalId)}
+                            && (!worktreeService.isWorktreeAvailableForCard(record.branch, assignmentTarget.cardInternalId)
+                                || worktreeService.isWorktreeReservedBySequence(record))}
                             key={`${index}-${record.path}`}
                             onClick={handleWorktree}
                             selected={assignment.branch === record.branch}

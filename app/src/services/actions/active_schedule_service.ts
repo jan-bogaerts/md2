@@ -8,6 +8,7 @@ import { codexRateLimitService, type CodexRateLimitService } from '../agents/cod
 import { configService } from '../config/config_service'
 import { dataService, type DataService } from '../data/data_service'
 import { projectAccessService } from '../project/project_access_service'
+import { worktreeService, type SequenceWorktreeReservation } from '../project/worktree_service'
 import { register } from '../service_injector'
 import { projectActiveSchedules, type ActiveScheduleItem } from './active_schedule_projection'
 
@@ -242,8 +243,13 @@ export class ActiveScheduleService extends EventTarget {
         const pendingCardIds = new Set<string>()
         const pendingCardActions = new Set<string>()
         const sequenceCardWorktrees = new Map<string, SequenceCardWorktree>()
+        const sequenceReservations: SequenceWorktreeReservation[] = []
         for (const schedule of schedules) {
             if (schedule.kind === 'sequence') {
+                const { worktreeBranch } = schedule
+                if (worktreeBranch && (schedule.status === 'pending' || schedule.status === 'running')) {
+                    sequenceReservations.push({ checkoutPath: schedule.branchProgress?.checkoutPath ?? null, worktreeBranch })
+                }
                 if (schedule.status !== 'running' || !schedule.branchProgress) continue
                 const cardInternalId = schedule.cardInternalIds[schedule.currentIndex]
                 const { checkoutPath, expectedBranch } = schedule.branchProgress
@@ -269,6 +275,7 @@ export class ActiveScheduleService extends EventTarget {
         this.pendingCardIds = pendingCardIds
         this.pendingCardActions = pendingCardActions
         this.sequenceCardWorktrees = sequenceCardWorktrees
+        worktreeService.setSequenceReservations(sequenceReservations)
         for (const cardInternalId of changedCardIds) {
             if (previousCardIds.has(cardInternalId) !== pendingCardIds.has(cardInternalId)) {
                 this.dispatchEvent(new Event(`pending-card:${cardInternalId}`))
