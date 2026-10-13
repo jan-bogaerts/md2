@@ -996,6 +996,29 @@
       "startedAt": "2026-10-13T15:29:02.771Z",
       "status": "completed",
       "rootConversationId": "agent-99d12c46-ab49-4a5b-8bbe-8d25e37e62d4"
+    },
+    {
+      "commits": [
+        {
+          "commit": "bff14cf8197595b03425976f67edd290866554c0",
+          "committedAt": "2026-10-13T17:37:50+02:00",
+          "deletions": 0,
+          "filePaths": [
+            "app/src/components/editor/markdown_editor_reliability.real.test.tsx",
+            "app/src/components/editor/source/markdown_source_controller.ts"
+          ],
+          "filesChanged": 2,
+          "insertions": 45,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-13T17:37:50+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "ef3c3a56-28a9-4ca5-9402-16972e140c01",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

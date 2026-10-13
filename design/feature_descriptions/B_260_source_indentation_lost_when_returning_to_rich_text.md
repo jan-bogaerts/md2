@@ -4,8 +4,6 @@ internalId: ef3c3a56-28a9-4ca5-9402-16972e140c01
 title: Source indentation is lost when returning to Rich text
 status: ready
 after: 11011a61-0393-4aa1-9b89-f52be576aa72
-branch: b_260_source_indentation_is_lost_when_returning_to_rich_text
-worktree: 1
 agents:
   - design/activity/card__ef3c3a56-28a9-4ca5-9402-16972e140c01.json
 changedFiles:
