@@ -6,6 +6,8 @@ title: Extract diagram edit snapshots and subscriptions
 after: 6c251422-b0dc-4d72-a279-ca60271a41bb
 branch: f_378_extract_diagram_edit_snapshots_and_subscriptions
 worktree: 2
+agents:
+  - design/activity/card__11011a61-0393-4aa1-9b89-f52be576aa72.json
 ---
 
 # Extract diagram edit snapshots and subscriptions
