@@ -3,7 +3,7 @@ author:
 id: F_426
 internalId: 26179cc3-97a2-4a33-9e4f-a3b7116e217c
 title: assign agent and model to sequence
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,21 @@ agents:
 policy:
 branch: f_426_assign_agent_and_model_to_sequence
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/sequence/card_sequence_agent_selection.tsx
+  - app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx
+  - app/src/components/actions/run/sequence/card_sequence_dialog.tsx
+  - app/src/components/actions/run/sequence/card_sequence_draft_service.node.test.ts
+  - app/src/components/actions/run/sequence/card_sequence_draft_service.ts
+  - app/src/data/electron_action_bridge.ts
+  - desktop/main.js
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/schedule/scheduled_card_sequence_engine.js
+  - desktop/src/actions/schedule/scheduled_card_sequence_engine.test.mjs
+  - desktop/src/actions/schedule/sequence_schedule_contract.test.mjs
+  - shared/action_schedules.d.mts
+  - shared/action_schedules.mjs
 ---
 
 We need to be able to assign agent, model, reasoning level and such (same bunch as for actions) to a sequence
