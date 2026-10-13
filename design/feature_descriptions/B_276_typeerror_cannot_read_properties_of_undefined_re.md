@@ -3,7 +3,7 @@ author:
 id: B_276
 internalId: 4677a35c-e7bf-4ef7-86c7-9f02d8604f47
 title: TypeError: Cannot read properties of undefined (re
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
