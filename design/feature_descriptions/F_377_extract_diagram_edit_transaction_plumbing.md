@@ -6,6 +6,7 @@ title: Extract diagram edit transaction plumbing
 after: 2775052a-2e84-4466-a320-155c8ec05bac
 agents:
   - design/activity/card__2245678c-d69e-4b1d-b6b8-cca720fc468d.json
+branch: f_377_extract_diagram_edit_transaction_plumbing
 ---
 
 # Extract diagram edit transaction plumbing
