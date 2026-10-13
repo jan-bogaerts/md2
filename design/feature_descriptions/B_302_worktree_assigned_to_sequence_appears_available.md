@@ -10,6 +10,8 @@ agents:
   - design/activity/card__06697134-10b3-44b2-a8c6-e35881b33f56.json
 policy:
 after: 9e01cab5-8f41-4ea9-9ded-d6358a458537
+branch: b_302_worktree_assigned_to_sequence_appears_available
+worktree: 2
 ---
 
 we assigned a worktree to a sequence, but the worktree still appears as available in the popup used by the cards to assign a worktree (and likely that of actions as well).
