@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__e552b2e5-34ae-4093-8270-daebd4467dbc.json
 policy:
-after: c9eb5c09-0c01-490f-808c-143ff534322b
+after: 6de5732e-480f-4ffa-af7b-d4ce6990ba3b
 changedFiles:
   - app/src/services/sentry/sentry_import_service.node.test.ts
   - app/src/services/sentry/sentry_import_service.ts

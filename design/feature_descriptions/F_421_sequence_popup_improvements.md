@@ -12,6 +12,7 @@ policy:
 changedFiles:
   - app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx
   - app/src/components/actions/run/sequence/card_sequence_dialog.tsx
+after: cb89d441-e2d8-4006-bfbb-40df58243bba
 ---
 
 When clicking `add sequence`, not certain if we currently show a dialog or popup, but it is currently not possible to drag it around. this needs to be possible so we can easily drag cards into it

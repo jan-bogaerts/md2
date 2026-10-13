@@ -20,6 +20,7 @@ changedFiles:
   - app/src/components/card_view/card_view.test.tsx
   - app/src/components/card_view/card_view.tsx
   - app/src/components/card_view/mobile_card_view.tsx
+after: 45e13c03-d74d-4082-9065-aa387f6553f5
 ---
 The 'new sequence' popup shows a drop target where the user can drop cards on. this works, but as soon as the first card is dropped, the drop target disappears and no more cards can be dropped.&#x20;
 

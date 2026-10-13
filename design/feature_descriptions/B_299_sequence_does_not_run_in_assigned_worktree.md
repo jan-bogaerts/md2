@@ -3,13 +3,20 @@ author:
 id: B_299
 internalId: 5135bed0-6e69-4e19-9738-467ffdfb7348
 title: sequence does not run in assigned worktree
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__5135bed0-6e69-4e19-9738-467ffdfb7348.json
 policy:
-after: dc18bd32-58a2-4426-99ce-c79309619b03
+after: ab5d2b6d-6c9e-4fbd-baf7-5d87de17c07c
+changedFiles:
+  - app/src/components/card_view/card_worktree_indicator.grouped.test.tsx
+  - app/src/components/card_view/card_worktree_indicator.test.tsx
+  - app/src/components/card_view/card_worktree_indicator.tsx
+  - app/src/components/worktree_selector.tsx
+  - app/src/services/actions/active_schedule_service.node.test.ts
+  - app/src/services/actions/active_schedule_service.ts
 ---
 
 The agent was not started in the worktree that was assigned to the sequence.

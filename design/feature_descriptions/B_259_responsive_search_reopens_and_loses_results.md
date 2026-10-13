@@ -2,7 +2,8 @@
 id: B_259
 internalId: e461b100-4b8f-435e-9c0f-81426d7fdb47
 title: Responsive search reopens after Escape and loses results on resize
-status: new
+status: ready for implementation
+after: f65510e2-6beb-4c9d-87be-077031583414
 ---
 
 Reported during review of [PR #27](https://github.com/jan-bogaerts/md2/pull/27), head `e1181650a`. Fix after the PR is merged.

@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__22b04d7f-1a70-41f6-98e8-0236c56b6873.json
 policy:
-after: c9eb5c09-0c01-490f-808c-143ff534322b
+after: 04c53429-e249-4be6-8a62-8480a72be879
 changedFiles:
   - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/components/actions/run/popup/action_popup_focus_request.node.test.ts

@@ -9,7 +9,6 @@ affects:
 agents:
   - design/activity/card__f65510e2-6beb-4c9d-87be-077031583414.json
 policy:
-after: 11011a61-0393-4aa1-9b89-f52be576aa72
 branch: f_424_add_schedule_overview_to_status_bar
 worktree: 2
 ---
