@@ -1259,14 +1259,14 @@
         }
       ],
       "startedAt": "2026-10-13T12:09:31.872Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 6533,
           "toolMs": 3894
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-13T12:09:31.872Z"
+        "elapsedMs": 93761,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
