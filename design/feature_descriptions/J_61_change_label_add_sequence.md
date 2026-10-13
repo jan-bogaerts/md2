@@ -3,7 +3,7 @@ author:
 id: J_61
 internalId: 6c251422-b0dc-4d72-a279-ca60271a41bb
 title: change label add sequence
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,13 @@ agents:
 policy:
 branch: j_61_change_label_add_sequence
 worktree: 1
+changedFiles:
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/shell/menu/app_menu.tsx
+  - app/src/components/shell/menu/mobile_create_menu.test.tsx
+  - app/src/components/shell/menu/mobile_create_menu.tsx
+  - docs/actions/running-actions.md
+  - docs/tutorials/sequencing-and-scheduling.md
 ---
 
 on the app bar we have a button to add a sequence. currently says 'add sequence'. the rest says 'new' so we should change to 'new sequence'
