@@ -2,6 +2,14 @@ function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
 }
 
+/**
+ * The ready state of a sequence card can be set in the main repository (`checkoutPath` null) or in the
+ * sequence's own worktree checkout; changes in any other checkout are ignored.
+ */
+function isReadyStateSource(schedule, checkoutPath) {
+    return checkoutPath === null || (schedule.branchProgress?.checkoutPath ?? null) === checkoutPath;
+}
+
 class ScheduledCardSequenceEngine {
     constructor(dependencies) {
         this.actionRunnerService = dependencies.actionRunnerService;
@@ -11,6 +19,7 @@ class ScheduledCardSequenceEngine {
         this.isCurrent = dependencies.isCurrent;
         this.loadSchedules = dependencies.loadSchedules;
         this.resolveCardContext = dependencies.resolveCardContext;
+        this.resolvePrimaryCardContext = dependencies.resolvePrimaryCardContext;
         this.saveSequence = dependencies.saveSequence;
         this.states = dependencies.states;
         this.worktreeExecution = dependencies.worktreeExecution;
@@ -33,7 +42,7 @@ class ScheduledCardSequenceEngine {
         const matchingSchedules = schedules.filter((schedule) => (
             schedule.kind === 'sequence'
             && schedule.status === 'running'
-            && (schedule.branchProgress?.checkoutPath ?? null) === checkoutPath
+            && isReadyStateSource(schedule, checkoutPath)
             && schedule.cardInternalIds[schedule.currentIndex] === cardInternalId
             && schedule.readyState === state
         ));
@@ -142,7 +151,11 @@ class ScheduledCardSequenceEngine {
 
     async refreshReadyState(schedule) {
         if (schedule.readyStateMet) return schedule;
-        const context = await this.resolveCardContext(schedule.cardInternalIds[schedule.currentIndex], schedule);
+        const cardInternalId = schedule.cardInternalIds[schedule.currentIndex];
+        const primaryContext = await this.resolvePrimaryCardContext(cardInternalId);
+        const context = primaryContext.state === schedule.readyState
+            ? primaryContext
+            : await this.resolveCardContext(cardInternalId, schedule);
         if (context.state !== schedule.readyState) return schedule;
 
         return this.saveSequence({ ...schedule, readyStateMet: true });
@@ -264,7 +277,7 @@ class ScheduledCardSequenceEngine {
         const schedule = await this.loadSequence(scheduleId);
         if (!schedule || schedule.status !== 'running' || schedule.readyStateMet || !this.isCurrent()) return;
         if (schedule.cardInternalIds[schedule.currentIndex] !== cardInternalId) return;
-        if ((schedule.branchProgress?.checkoutPath ?? null) !== checkoutPath) return;
+        if (!isReadyStateSource(schedule, checkoutPath)) return;
         const ready = await this.saveSequence({ ...schedule, readyStateMet: true });
         if (ready.actionCompleted) await this.advanceOrComplete(ready);
     }

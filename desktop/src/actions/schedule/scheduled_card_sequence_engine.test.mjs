@@ -34,7 +34,11 @@ function createSequence(overrides = {}) {
     };
 }
 
-function createHarness(initialSchedule, statesByCard = { 'card-1': 'todo', 'card-2': 'todo' }) {
+function createCardContext(cardInternalId, state) {
+    return { cardInternalId, file: `cards/${cardInternalId}.md`, kind: 'card', state, title: cardInternalId, type: 'feature' };
+}
+
+function createHarness(initialSchedule, statesByCard = { 'card-1': 'todo', 'card-2': 'todo' }, primaryStatesByCard = statesByCard) {
     let schedule = initialSchedule;
     let nextRunNumber = 1;
     let nextConversationNumber = 1;
@@ -61,14 +65,8 @@ function createHarness(initialSchedule, statesByCard = { 'card-1': 'todo', 'card
         conversationResumeFailure: vi.fn(async () => null),
         isCurrent: () => true,
         loadSchedules: async () => [schedule],
-        resolveCardContext: async (cardInternalId) => ({
-            cardInternalId,
-            file: `cards/${cardInternalId}.md`,
-            kind: 'card',
-            state: statesByCard[cardInternalId],
-            title: cardInternalId,
-            type: 'feature',
-        }),
+        resolveCardContext: async (cardInternalId) => createCardContext(cardInternalId, statesByCard[cardInternalId]),
+        resolvePrimaryCardContext: async (cardInternalId) => createCardContext(cardInternalId, primaryStatesByCard[cardInternalId]),
         saveSequence: async (nextSchedule) => {
             schedule = nextSchedule;
 
@@ -295,5 +293,50 @@ describe('ScheduledCardSequenceEngine', () => {
 
         expect(harness.actionRunnerService.cancel).toHaveBeenCalledWith('run-1');
         expect(harness.schedule().status).toBe('cancelled');
+    });
+
+    describe('worktree sequence ready state', () => {
+        const SEQUENCE_CHECKOUT = 'C:/worktrees/sequence-1';
+        const OTHER_CHECKOUT = 'C:/worktrees/other';
+
+        function createWorktreeSequence() {
+            return createSequence({ branchProgress: { checkoutPath: SEQUENCE_CHECKOUT, phase: 'sequence-ready' } });
+        }
+
+        it.each([
+            ['main repository', null],
+            ['sequence worktree', SEQUENCE_CHECKOUT],
+        ])('advances when the ready state is set in the %s', async (_source, checkoutPath) => {
+            const harness = createHarness(createWorktreeSequence());
+
+            await harness.engine.activate('sequence-1');
+            await harness.engine.handleCardStateChange('card-1', 'ready', checkoutPath);
+            harness.runs.get('run-1').resolve({ failure: null, status: 'completed' });
+            await vi.waitFor(() => expect(harness.actionRunnerService.start).toHaveBeenCalledTimes(2));
+
+            expect(harness.schedule()).toMatchObject({ currentIndex: 1, status: 'running' });
+        });
+
+        it('does not advance when the ready state is set in another worktree', async () => {
+            const harness = createHarness(createWorktreeSequence());
+
+            await harness.engine.activate('sequence-1');
+            await harness.engine.handleCardStateChange('card-1', 'ready', OTHER_CHECKOUT);
+            harness.runs.get('run-1').resolve({ failure: null, status: 'completed' });
+            await vi.waitFor(() => expect(harness.schedule().actionCompleted).toBe(true));
+
+            expect(harness.schedule()).toMatchObject({ currentIndex: 0, readyStateMet: false });
+            expect(harness.actionRunnerService.start).toHaveBeenCalledOnce();
+        });
+
+        it('detects on activation a ready state that exists only in the main repository', async () => {
+            const worktreeStates = { 'card-1': 'todo', 'card-2': 'todo' };
+            const primaryStates = { 'card-1': 'ready', 'card-2': 'todo' };
+            const harness = createHarness(createWorktreeSequence(), worktreeStates, primaryStates);
+
+            await harness.engine.activate('sequence-1');
+
+            expect(harness.schedule().readyStateMet).toBe(true);
+        });
     });
 });

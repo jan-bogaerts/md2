@@ -276,7 +276,7 @@ describe('SequenceWorktreeExecution', () => {
         expect(() => checkoutOwnershipService.acquire(CHECKOUT, 'other-sequence', true)).toThrow('owned by another run');
     });
 
-    it('integrates before starting next card and ignores primary-checkout ready events', async () => {
+    it('integrates before starting next card', async () => {
         const test = harness(schedule(progress('child-ready')));
         const completions = new Map();
         let runNumber = 0;
@@ -288,11 +288,10 @@ describe('SequenceWorktreeExecution', () => {
             actionRunnerService, allocateConversationId: () => `agent-${runNumber}`, allocateRunId: () => `run-${++runNumber}`, isCurrent: () => true,
             loadSchedules: async () => [test.state.persisted],
             resolveCardContext: async (cardInternalId) => ({ cardInternalId, kind: 'card', state: 'todo' }),
+            resolvePrimaryCardContext: async (cardInternalId) => ({ cardInternalId, kind: 'card', state: 'todo' }),
             reportError: vi.fn(), saveSequence: test.saveSequence, states: ['todo', 'ready'], worktreeExecution: test.execution,
         });
         await engine.activate('sequence-test');
-        await engine.handleCardStateChange('card-1', 'ready');
-        expect(test.state.persisted.readyStateMet).toBe(false);
         completions.get('run-1')({ status: 'completed' });
         await vi.waitFor(() => expect(test.state.persisted.actionCompleted).toBe(true));
         expect(actionRunnerService.start).toHaveBeenCalledOnce();

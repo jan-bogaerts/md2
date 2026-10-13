@@ -182,6 +182,7 @@ class ActionSchedulerService {
             isCurrent: () => generation === this.projectGeneration,
             loadSchedules: () => this.loadSchedules(executionContext),
             resolveCardContext: (cardInternalId, sequence) => this.resolveSequenceCardContext(cardInternalId, sequence, executionContext),
+            resolvePrimaryCardContext: (cardInternalId) => this.resolveCardContext(cardInternalId, executionContext),
             saveSequence: (sequence) => this.saveSequence(sequence, executionContext),
             states: this.configuredStates,
         });
