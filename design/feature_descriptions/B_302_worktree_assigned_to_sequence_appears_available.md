@@ -3,7 +3,7 @@ author:
 id: B_302
 internalId: 06697134-10b3-44b2-a8c6-e35881b33f56
 title: worktree assigned to sequence appears available
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,17 @@ policy:
 after: 9e01cab5-8f41-4ea9-9ded-d6358a458537
 branch: b_302_worktree_assigned_to_sequence_appears_available
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx
+  - app/src/components/actions/run/sequence/card_sequence_dialog.tsx
+  - app/src/components/actions/run/sequence/card_sequence_draft_service.node.test.ts
+  - app/src/components/actions/run/sequence/card_sequence_draft_service.ts
+  - app/src/components/worktree_selector.test.tsx
+  - app/src/components/worktree_selector.tsx
+  - app/src/services/actions/active_schedule_service.node.test.ts
+  - app/src/services/actions/active_schedule_service.ts
+  - app/src/services/project/worktree_service.node.test.ts
+  - app/src/services/project/worktree_service.ts
 ---
 
 we assigned a worktree to a sequence, but the worktree still appears as available in the popup used by the cards to assign a worktree (and likely that of actions as well).
