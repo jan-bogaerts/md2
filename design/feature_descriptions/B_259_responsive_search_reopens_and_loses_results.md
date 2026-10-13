@@ -3,8 +3,6 @@ id: B_259
 internalId: e461b100-4b8f-435e-9c0f-81426d7fdb47
 title: Responsive search reopens after Escape and loses results on resize
 status: ready
-branch: b_259_responsive_search_reopens_after_escape_and_loses_results_on_resize
-worktree: 1
 agents:
   - design/activity/card__e461b100-4b8f-435e-9c0f-81426d7fdb47.json
 changedFiles:
