@@ -85,7 +85,7 @@ export function MobileCreateMenu(props: MobileCreateMenuProps) {
                 <MenuItem disabled={isNewActionDisabled} onClick={handleCreateAction}>New action</MenuItem>
                 <MenuItem disabled={isNewDiagramDisabled} onClick={handleOpenDiagramMenu}>New diagram</MenuItem>
                 <MenuItem disabled={isNewCardDisabled || !hasSequenceScheduleBackend()} onClick={handleCreateSequence}>
-                    Add sequence
+                    New sequence
                 </MenuItem>
             </Menu>
             <Menu anchorEl={diagramAnchorElement} onClose={handleCloseDiagramMenu} open={!!diagramAnchorElement}>

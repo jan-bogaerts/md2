@@ -412,7 +412,7 @@ export function AppMenu(props: AppMenuProps) {
                                 size="small"
                                 startIcon={<PlaylistAddOutlined fontSize="small" />}
                                 variant="outlined"
-                            >Add sequence</Button>
+                            >New sequence</Button>
                             <Box sx={{ flex: 1 }} />
                             <Section label="Account">
                                 <GithubAuthToolbarButton auth={auth} />

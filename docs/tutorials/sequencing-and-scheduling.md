@@ -68,7 +68,7 @@ Schedules are stored in the repository. The desktop app registers them when the 
 
 A sequence runs one action on several cards, one card at a time, in the order you choose.
 
-1. **Run** tab of the menu → **Add sequence**.
+1. **Run** tab of the menu → **New sequence**.
 2. Add cards with **Add cards**, or drag them from the board into the list. Drag inside the list to reorder; **Delete** removes the selected card.
 3. Pick the action. Only actions that apply to every card in the list are offered.
 4. Pick the **Ready state**: the column a card must reach before the sequence moves on.

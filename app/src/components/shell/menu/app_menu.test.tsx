@@ -291,9 +291,9 @@ describe('AppMenu', () => {
         renderMenu()
 
         fireEvent.click(screen.getByRole('tab', { name: 'Home' }))
-        fireEvent.click(screen.getByRole('button', { name: 'Add sequence' }))
+        fireEvent.click(screen.getByRole('button', { name: 'New sequence' }))
         fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
-        expect(screen.queryByRole('button', { name: 'Add sequence' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'New sequence' })).not.toBeInTheDocument();
 
         expect(cardSequenceDraftService.getSnapshot()).toMatchObject({ cardInternalIds: [], open: true })
     })
