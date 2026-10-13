@@ -1275,6 +1275,14 @@
           "role": "assistant",
           "sequence": 41,
           "timestamp": "2026-10-13T12:14:31.337Z"
+        },
+        {
+          "content": "paths can change, the filename should be unique, but doesn't an activity file have an id?",
+          "id": "submission-da7a502d-9098-4e93-ad15-1f7e6756eade",
+          "kind": "message",
+          "role": "user",
+          "sequence": 42,
+          "timestamp": "2026-10-13T12:15:46.751Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1289,14 +1297,14 @@
         }
       ],
       "startedAt": "2026-10-13T12:09:31.872Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 11072,
           "toolMs": 3894
         },
         "elapsedMs": 104094,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-13T12:15:46.751Z"
       },
       "title": "investigate",
       "usage": {
