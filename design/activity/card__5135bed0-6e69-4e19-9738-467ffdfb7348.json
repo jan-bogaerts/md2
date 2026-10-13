@@ -802,14 +802,14 @@
         }
       ],
       "startedAt": "2026-10-13T13:03:46.646Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 274,
           "toolMs": 3612
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-13T13:03:46.646Z"
+        "elapsedMs": 97125,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
