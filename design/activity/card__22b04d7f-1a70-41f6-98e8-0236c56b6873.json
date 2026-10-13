@@ -2647,6 +2647,44 @@
       "startedAt": "2026-10-13T12:20:14.633Z",
       "status": "completed",
       "rootConversationId": "agent-f7325f87-c30f-4fae-b46d-6ba45b939f2f"
+    },
+    {
+      "commits": [
+        {
+          "commit": "f555793166bffa384422ffc8a185e3ccca196173",
+          "committedAt": "2026-10-13T14:50:38+02:00",
+          "deletions": 12,
+          "filePaths": [
+            "app/src/components/actions/agent/action_prompt_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/actions/run/popup/action_popup_focus_request.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_focus_request.ts",
+            "app/src/components/actions/run/popup/action_popup_run_controls.tsx",
+            "app/src/components/actions/run/popup/action_popup_runtime.ts",
+            "app/src/components/actions/run/popup/action_popup_types.ts",
+            "app/src/components/actions/run/popup/agent_action.tsx",
+            "app/src/components/actions/run/popup/command_action.tsx",
+            "app/src/components/editor/data_sources/use_markdown_draft.test.tsx",
+            "app/src/components/editor/data_sources/use_markdown_draft.ts",
+            "app/src/components/editor/markdown_editor.tsx",
+            "app/src/components/editor/source/markdown_source_controller.ts",
+            "app/src/services/actions/action_prompt_draft_service.ts",
+            "app/src/services/markdown/markdown_draft.ts"
+          ],
+          "filesChanged": 17,
+          "insertions": 225,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-13T14:50:38+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "22b04d7f-1a70-41f6-98e8-0236c56b6873",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

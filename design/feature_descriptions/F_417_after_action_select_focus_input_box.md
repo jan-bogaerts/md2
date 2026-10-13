@@ -10,8 +10,6 @@ agents:
   - design/activity/card__22b04d7f-1a70-41f6-98e8-0236c56b6873.json
 policy:
 after: c9eb5c09-0c01-490f-808c-143ff534322b
-branch: f_417_after_action_select_focus_input_box
-worktree: 2
 changedFiles:
   - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/components/actions/run/popup/action_popup_focus_request.node.test.ts
