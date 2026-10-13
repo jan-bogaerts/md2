@@ -219,20 +219,28 @@
           "sequence": 15,
           "timestamp": "2026-10-13T14:26:48.612Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: both",
+          "id": "agent-turn-64277d10-3c7a-48a8-9223-79a2072d3a93-answer-15",
+          "kind": "message",
+          "role": "user",
+          "sequence": 16,
+          "timestamp": "2026-10-13T14:27:45.558Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-b8fd1bdc-1657-455f-8b57-5b51e27ae8e3",
       "providerSessions": [],
       "startedAt": "2026-10-13T14:26:28.163Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 3534,
           "toolMs": 7977
         },
         "elapsedMs": 20449,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-13T14:27:45.558Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
