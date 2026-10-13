@@ -1350,6 +1350,32 @@
       "startedAt": "2026-10-13T12:31:33.678Z",
       "status": "completed",
       "rootConversationId": "agent-e64e97d6-d5e4-4b79-88fc-a26d788cae02"
+    },
+    {
+      "commits": [
+        {
+          "commit": "4d0c8826d89ea0c765cc8c2a271d5da7e0308e0f",
+          "committedAt": "2026-10-13T14:50:49+02:00",
+          "deletions": 6,
+          "filePaths": [
+            "app/src/services/project/project_session_service.service.test.ts",
+            "app/src/services/project/project_session_service.ts",
+            "app/src/services/release_blocked_by_running_actions_error.ts",
+            "app/src/services/release_operations.service.test.ts",
+            "app/src/services/release_operations.ts"
+          ],
+          "filesChanged": 5,
+          "insertions": 51,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-13T14:50:49+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "50bf5243-e489-4d76-9524-4933c3c78e36",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

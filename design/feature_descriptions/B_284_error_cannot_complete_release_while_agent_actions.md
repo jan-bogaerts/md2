@@ -13,8 +13,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 150104551
 sentryOrganization: elastetic
 after: 22b04d7f-1a70-41f6-98e8-0236c56b6873
-branch: b_284_error_cannot_complete_release_while_agent_actions
-worktree: 3
 changedFiles:
   - app/src/services/release_blocked_by_running_actions_error.ts
   - app/src/services/release_operations.ts
