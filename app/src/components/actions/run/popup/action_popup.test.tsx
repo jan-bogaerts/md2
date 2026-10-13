@@ -2064,6 +2064,70 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('group', { name: 'Actions' })).toBeInTheDocument()
     })
 
+    it('shows the running sequence checkout in an open card popup, then restores the card assignment', async () => {
+        const otherWorktree = { ...validWorktree, branch: 'other', path: 'C:/other' }
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([validWorktree, otherWorktree])
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
+        let sequenceWorktree: { checkoutPath: string, expectedBranch: string } | null = null
+        vi.spyOn(activeScheduleService, 'getSequenceWorktreeForCard').mockImplementation(() => sequenceWorktree)
+        actionService.loadFromFiles([
+            file(commandDefinition('generic', { label: 'Generic action' })),
+            file(commandDefinition('assigned', { appliesTo: { worktree: '1' }, label: 'Assigned action' })),
+        ])
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+        expect(screen.getByRole('button', { name: 'Primary worktree' })).toBeEnabled()
+        fireEvent.click(screen.getByRole('button', { name: 'Primary worktree' }))
+        expect(screen.getByRole('menu')).toBeInTheDocument()
+
+        act(() => {
+            sequenceWorktree = { checkoutPath: validWorktree.path, expectedBranch: validWorktree.branch! }
+            activeScheduleService.dispatchEvent(new Event('sequence-card:card-1'))
+        })
+        const sequenceButton = screen.getByRole('button', { name: /Worktree 1: C:\\feature/u })
+        expect(sequenceButton).toBeDisabled()
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+        fireEvent.mouseOver(sequenceButton.parentElement!)
+        expect(await screen.findByRole('tooltip', { name: /This card is running within a sequence/u })).toHaveTextContent(
+            'This card is running within a sequence, so its worktree controls are disabled.',
+        )
+        expect(screen.queryByRole('button', { name: 'Assigned action' })).not.toBeInTheDocument()
+        expect(setCardWorktree).not.toHaveBeenCalled()
+
+        act(() => {
+            sequenceWorktree = { checkoutPath: otherWorktree.path, expectedBranch: otherWorktree.branch }
+            activeScheduleService.dispatchEvent(new Event('sequence-card:card-1'))
+        })
+        expect(screen.getByRole('button', { name: /Worktree 2: C:\/other/u })).toBeDisabled()
+
+        act(() => {
+            sequenceWorktree = null
+            activeScheduleService.dispatchEvent(new Event('sequence-card:card-1'))
+        })
+        expect(screen.getByRole('button', { name: 'Primary worktree' })).toBeEnabled()
+        expect(setCardWorktree).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        { expectedBranch: 'feature', records: [] as WorktreeRecord[], error: 'Sequence worktree is unavailable' },
+        { expectedBranch: 'other', records: [validWorktree], error: 'Sequence worktree changed branch' },
+    ])('shows the sequence error when $error', async ({ expectedBranch, records, error }) => {
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue(records)
+        vi.spyOn(activeScheduleService, 'getSequenceWorktreeForCard').mockReturnValue({ checkoutPath: validWorktree.path, expectedBranch })
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+
+        const button = screen.getByRole('button', { name: new RegExp(error, 'u') })
+        expect(button).toBeDisabled()
+        fireEvent.mouseOver(button.parentElement!)
+        expect(await screen.findByRole('tooltip', { name: new RegExp(error, 'u') })).toHaveTextContent(`${error}: ${validWorktree.path}`)
+    })
+
+    it('leaves file popup worktree assignment unchanged during a card sequence', () => {
+        vi.spyOn(activeScheduleService, 'getSequenceWorktreeForCard').mockReturnValue({ checkoutPath: validWorktree.path, expectedBranch: validWorktree.branch! })
+        renderPopup({ ...context, kind: 'file', cardInternalId: 'card-1' })
+
+        expect(screen.getByRole('button', { name: 'Primary worktree' })).toBeEnabled()
+    })
+
     it('delegates card assignment to the worktree preparation workflow', async () => {
         const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
         renderPopup({ ...context, cardInternalId: 'card-1' })

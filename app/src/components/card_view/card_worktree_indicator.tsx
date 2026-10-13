@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react'
-import { normalizePath } from '../../../../shared/path_utils.mjs'
 import { WorktreeSelector } from '../worktree_selector'
+import { SEQUENCE_WORKTREE_DISABLED_REASON, sequenceWorktreeAssignment } from '../sequence_worktree_assignment'
 import { useOpenWorktrees } from '../hooks/use_worktrees'
 import { useCardWorktree } from './use_project_card'
 import { dataService, type DataService } from '../../services/data/data_service'
@@ -30,20 +30,12 @@ export function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {
     if (!assignment) return null
 
     if (sequenceWorktree) {
-        const { checkoutPath, expectedBranch } = sequenceWorktree
-        const checkoutKey = normalizePath(checkoutPath).toLowerCase()
-        const index = worktrees.findIndex(({ path }) => normalizePath(path).toLowerCase() === checkoutKey)
-        const record = worktrees[index]
-        const worktreeError = !record ? `Sequence worktree is unavailable: ${checkoutPath}`
-            : record.branch !== expectedBranch ? `Sequence worktree changed branch: ${checkoutPath}` : null
-        const worktree = index < 0 ? 1 : index + 1
-
         return (
             <WorktreeSelector
-                assignment={{ branch: expectedBranch, worktree, worktreeError, worktreeValue: index < 0 ? '?' : String(worktree) }}
+                assignment={sequenceWorktreeAssignment(sequenceWorktree, worktrees)}
                 assignmentTarget={{ cardInternalId, kind: 'card', path: cardPath }}
                 disabled
-                disabledReason="This card is running within a sequence, so its worktree controls are disabled."
+                disabledReason={SEQUENCE_WORKTREE_DISABLED_REASON}
                 labelPrefix={cardId}
                 primaryPath={primaryPath}
             />

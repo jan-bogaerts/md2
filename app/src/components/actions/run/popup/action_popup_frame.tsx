@@ -144,6 +144,7 @@ export function ActionPopupFrame(
                                     assignmentTarget={assignmentTarget}
                                     bindingStore={bindingStore}
                                     primaryPath={primaryPath}
+                                    sequenceCardInternalId={baseContext.kind === 'card' ? baseContext.cardInternalId ?? null : null}
                                 />
                             ) : null}
                             {action.type === 'agent' ? (
