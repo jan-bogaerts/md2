@@ -1322,6 +1322,30 @@
       "startedAt": "2026-10-13T13:36:35.069Z",
       "status": "completed",
       "rootConversationId": "agent-bc815174-dd1e-4596-ba27-1c042e4026ac"
+    },
+    {
+      "commits": [
+        {
+          "commit": "d192947eceabd3b29008755c2b7f593c59ca7c09",
+          "committedAt": "2026-10-13T15:43:19+02:00",
+          "deletions": 0,
+          "filePaths": [
+            "app/src/components/shell/active_schedules_indicator.test.tsx",
+            "app/src/components/shell/active_schedules_indicator.tsx",
+            "app/src/components/shell/status_bar.tsx"
+          ],
+          "filesChanged": 3,
+          "insertions": 148,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-13T15:43:19+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "f65510e2-6beb-4c9d-87be-077031583414",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

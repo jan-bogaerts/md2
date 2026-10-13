@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__f65510e2-6beb-4c9d-87be-077031583414.json
 policy:
-branch: f_424_add_schedule_overview_to_status_bar
-worktree: 2
 changedFiles:
   - app/src/components/shell/active_schedules_indicator.test.tsx
   - app/src/components/shell/active_schedules_indicator.tsx
