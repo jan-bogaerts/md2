@@ -31,7 +31,8 @@ describe('CardWorktreeIndicator in a sequence', () => {
     it('shows the sequence checkout with disabled controls and explains why', async () => {
         vi.spyOn(worktreeService, 'getRecords').mockReturnValue([checkout])
         const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
-        const service = Object.assign(new EventTarget(), {getState: () => ({ project: null, runningAgents: [], snapshot: { activeCards: [card], backgroundCards: [] } })}) as unknown as DataService
+        const dataState = { project: null, runningAgents: [], snapshot: { activeCards: [card], backgroundCards: [] } }
+        const service = Object.assign(new EventTarget(), { getState: () => dataState }) as unknown as DataService
         const sequenceWorktree = { checkoutPath: checkout.path, expectedBranch: checkout.branch }
         const scheduleService = {
             getSequenceWorktreeForCard: () => sequenceWorktree,
