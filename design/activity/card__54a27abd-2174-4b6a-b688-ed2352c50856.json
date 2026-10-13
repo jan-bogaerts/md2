@@ -21,6 +21,10 @@
       "cardInternalId": "54a27abd-2174-4b6a-b688-ed2352c50856",
       "cardPath": "design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 56732
+      },
       "entries": [
         {
           "content": "read design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
@@ -29,18 +33,238 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-13T14:35:25.094Z"
+        },
+        {
+          "command": "cat design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md",
+          "content": "---\nauthor: \nid: B_303\ninternalId: 54a27abd-2174-4b6a-b688-ed2352c50856\ntitle: sequence does not see the correct ready state\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__54a27abd-2174-4b6a-b688-ed2352c50856.json\npolicy:\nafter: 06697134-10b3-44b2-a8c6-e35881b33f56\n---\n\nMost likely the sequence scheduler is monitoring the file in the worktree and not the one in the main repository. this is where the change will occur.",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-2",
+          "kind": "event",
+          "label": "cat design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md",
+          "providerItemId": "toolu_01F1tA49vR2vx2Hy8F9F8Vod",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:35:29.453Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-3",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzQMR4BWYWa4HDuyCSux:thinking:0",
+          "sequence": 3,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T14:35:30.875Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"(?i)sequence.*(schedul|ready)|after:\",\"path\":\"desktop\",\"glob\":\"!**/node_modules/**\",\"output_mode\":\"files_with_matches\"}",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-4",
+          "kind": "event",
+          "label": "Grep",
+          "output": "Found 19 files\ndesktop\\src\\shell\\local_bridge_dispatch.js\ndesktop\\src\\shell\\local_bridge_dispatch.test.mjs\ndesktop\\src\\actions\\schedule\\sequence_worktree_execution.test.mjs\ndesktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.js\ndesktop\\src\\actions\\schedule\\scheduled_card_sequence_engine.test.mjs\ndesktop\\src\\actions\\action\\action_scheduler_service.test.mjs\ndesktop\\src\\actions\\action\\action_scheduler_service.js\ndesktop\\src\\actions\\action\\action_runner_service.js\ndesktop\\src\\actions\\schedule\\sequence_worktree_execution.js\ndesktop\\src\\actions\\schedule\\sequence_schedule_contract.test.mjs\ndesktop\\src\\actions\\action\\action_runner_service.test.mjs\ndesktop\\src\\shell\\preload.test.mjs\ndesktop\\src\\shell\\preload.js\ndesktop\\src\\actions\\action\\action_compact_queue.test.mjs\ndesktop\\src\\actions\\action\\action_definitions.test.mjs\ndesktop\\src\\integrations\\sentry_service.test.mjs\ndesktop\\src\\integrations\\sentry_service.js\ndesktop\\src\\actions\\action\\action_run.test.mjs\ndesktop\\src\\actions\\action\\action_definition_cache.test.mjs",
+          "providerItemId": "toolu_01D34uGCqf7FHUkmBWTcdkqF",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:35:31.707Z",
+          "type": "tool.Grep"
+        },
+        {
+          "command": "cd desktop/src/actions/schedule; wc -l scheduled_card_sequence_engine.js sequence_worktree_execution.js; cat scheduled_card_sequence_engine.js",
+          "content": "  363 scheduled_card_sequence_engine.js\n  321 sequence_worktree_execution.js\n  684 total\nfunction errorMessage(error) {\n    return error instanceof Error ? error.message : String(error);\n}\n\nclass ScheduledCardSequenceEngine {\n    constructor(dependencies) {\n        this.actionRunnerService = dependencies.actionRunnerService;\n        this.allocateConversationId = dependencies.allocateConversationId;\n        this.allocateRunId = dependencies.allocateRunId;\n        this.conversationResumeFailure = dependencies.conversationResumeFailure;\n        this.isCurrent = dependencies.isCurrent;\n        this.loadSchedules = dependencies.loadSchedules;\n        this.resolveCardContext = dependencies.resolveCardContext;\n        this.saveSequence = dependencies.saveSequence;\n        this.states = dependencies.states;\n        this.worktreeExecution = dependencies.worktreeExecution;\n        this.reportError = dependencies.reportError ?? console.error;\n        this.cancelledSchedules = new Set();\n        this.operations = new Map();\n        this.runCompletions = new Map();\n    }\n\n    activate(scheduleId) {\n        return this.enqueue(scheduleId, () => this.activateSafely(scheduleId));\n    }\n\n    handleCardStateChange(cardInternalId, state, checkoutPath = null) {\n        return this.handleCardStateChangeNow(cardInternalId, state, checkoutPath);\n    }\n\n    async handleCardStateChangeNow(cardInternalId, state, checkoutPath) {\n        const schedules = await this.loadSchedules();\n        const matchingSchedules = schedules.filter((schedule) => (\n            schedule.kind === 'sequence'\n            && schedule.status === 'running'\n            && (schedule.branchProgress?.checkoutPath ?? null) === checkoutPath\n            && schedule.cardInternalIds[schedule.currentIndex] === cardInternalId\n            && schedule.readyState === state\n        ));\n\n        for (const schedule of matchingSchedules) {\n            await this.enqueue(schedule.id, () => this.markReadyStateMet(schedule.id, cardInternalId, checkoutPath));\n        }\n    }\n\n    async cancel(scheduleId) {\n        this.cancelledSchedules.add(scheduleId);\n        const runId = await this.enqueue(scheduleId, () => this.cancelLocked(scheduleId));\n        const completion = runId ? this.runCompletions.get(runId) : null;\n        if (completion) await completion;\n        this.worktreeExecution?.release(scheduleId);\n    }\n\n    async cancelLocked(scheduleId) {\n        const schedules = await this.loadSchedules();\n        const schedule = schedules.find((candidate) => candidate.id === scheduleId);\n        if (!schedule || schedule.kind !== 'sequence') return;\n        await this.saveSequence({ ...schedule, status: 'cancelled', failure: 'Sequence cancelled' });\n        if (!schedule.currentRunId) return;\n        try {\n            this.actionRunnerService.cancel(schedule.currentRunId);\n        } catch (error) {\n            if (!errorMessage(error).startsWith('Unknown action run:')) throw error;\n        }\n\n        return schedule.currentRunId;\n    }\n\n    enqueue(scheduleId, operation) {\n        const previous = this.operations.get(scheduleId) ?? Promise.resolve();\n        const current = ScheduledCardSequenceEngine.runQueued(previous, operation);\n        this.operations.set(scheduleId, current);\n        void this.clearQueued(scheduleId, current);\n\n        return current;\n    }\n\n    static async runQueued(previous, operation) {\n        try {\n            await previous;\n        } catch {\n            // Later persisted transitions must still run after one failed operation.\n        }\n\n        return operation();\n    }\n\n    async clearQueued(scheduleId, operation) {\n        try {\n            await operation;\n        } catch {\n            // Caller owns operation failure.\n        }\n        if (this.operations.get(scheduleId) === operation) this.operations.delete(scheduleId);\n    }\n\n    async activateLocked(scheduleId) {\n        const schedule = await this.loadSequence(scheduleId);\n        if (!schedule || !this.isCurrent()) return;\n        if (schedule.status !== 'pending' && schedule.status !== 'r\n[8115 characters omitted]\n !== checkoutPath) return;\n        const ready = await this.saveSequence({ ...schedule, readyStateMet: true });\n        if (ready.actionCompleted) await this.advanceOrComplete(ready);\n    }\n\n    async advanceOrComplete(schedule) {\n        try {\n            await this.advanceOrCompleteNow(schedule);\n        } catch (error) {\n            if (this.cancelledSchedules.has(schedule.id)) return;\n            const current = await this.loadSequence(schedule.id);\n            await this.failSequence(current, errorMessage(error));\n        }\n    }\n\n    async advanceOrCompleteNow(schedule) {\n        if (this.cancelledSchedules.has(schedule.id)) return;\n        if (schedule.worktreeBranch) schedule = await this.worktreeExecution.integrate(schedule);\n        if (this.cancelledSchedules.has(schedule.id)) return;\n        const lastIndex = schedule.cardInternalIds.length - 1;\n        if (schedule.currentIndex === lastIndex) {\n            if (schedule.worktreeBranch) schedule = await this.worktreeExecution.finish(schedule);\n            await this.saveSequence({ ...schedule, failure: null, status: 'completed' });\n            this.worktreeExecution?.release(schedule.id);\n            return;\n        }\n        const next = await this.saveSequence({\n            ...schedule,\n            ...(schedule.branchProgress ? { branchProgress: { ...schedule.branchProgress, phase: 'sequence-ready', childBranch: null } } : {}),\n            actionCompleted: false,\n            conversationId: null,\n            currentIndex: schedule.currentIndex + 1,\n            currentRunId: null,\n            readyStateMet: false,\n        });\n        const prepared = next.worktreeBranch ? await this.worktreeExecution.prepare(next) : next;\n        const refreshed = await this.refreshReadyState(prepared);\n        await this.startCurrentAction(refreshed);\n    }\n\n    async failSequence(schedule, failure) {\n        try {\n            await this.saveSequence({ ...schedule, conversationId: null, currentRunId: null, failure, status: 'failed' });\n            this.reportError(new Error(`Sequence ${schedule.id} failed: ${failure}`));\n        } finally {\n            this.worktreeExecution?.release(schedule.id);\n        }\n    }\n\n    recoverHistory(scheduleId) {\n        return this.enqueue(scheduleId, () => this.recoverHistoryNow(scheduleId));\n    }\n\n    async recoverHistoryNow(scheduleId) {\n        const schedule = await this.loadSequence(scheduleId);\n        if (!schedule || schedule.status !== 'failed' || !schedule.worktreeBranch) return;\n        if (!['integrated', 'recording'].includes(schedule.branchProgress?.phase)) return;\n        try {\n            const prepared = await this.worktreeExecution.prepare(schedule);\n            await this.worktreeExecution.integrate(prepared);\n        } finally {\n            this.worktreeExecution.release(scheduleId);\n        }\n    }\n\n    failExternal(scheduleId, error) {\n        return this.enqueue(scheduleId, () => this.failExternalNow(scheduleId, error));\n    }\n\n    async failExternalNow(scheduleId, error) {\n        const schedule = await this.loadSequence(scheduleId);\n        if (!schedule || schedule.status !== 'running') return;\n        if (schedule.currentRunId) {\n            try {\n                this.actionRunnerService.cancel(schedule.currentRunId);\n            } catch (cancelError) {\n                if (!errorMessage(cancelError).startsWith('Unknown action run:')) throw cancelError;\n            }\n        }\n        if (schedule.currentRunId) await this.actionRunnerService.wait(schedule.currentRunId);\n        await this.failSequence(schedule, errorMessage(error));\n    }\n\n    async loadSequence(scheduleId) {\n        const schedules = await this.loadSchedules();\n\n        return schedules.find((schedule) => schedule.id === scheduleId && schedule.kind === 'sequence') ?? null;\n    }\n\n    validateReadyState(schedule) {\n        if (!this.states.includes(schedule.readyState)) {\n            throw new Error(`Sequence ready state is not configured: ${schedule.readyState}`);\n        }\n    }\n}\n\nmodule.exports = { ScheduledCardSequenceEngine };",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-5",
+          "kind": "event",
+          "label": "cd desktop/src/actions/schedule; wc -l scheduled_card_sequence_engine.js sequence_worktree_execution.js; cat scheduled_card_sequence_engine.js",
+          "providerItemId": "toolu_012H4r8iSHsDboWfxdo6ikH4",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:35:33.696Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cat desktop/src/actions/schedule/sequence_worktree_execution.js",
+          "content": "Exit code 1\ncat: desktop/src/actions/schedule/sequence_worktree_execution.js: No such file or directory",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-6",
+          "kind": "event",
+          "label": "cat desktop/src/actions/schedule/sequence_worktree_execution.js",
+          "providerItemId": "toolu_01BRtamzAijARdFbDcWJHSMo",
+          "sequence": 6,
+          "status": "failed",
+          "timestamp": "2026-10-13T14:35:33.809Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzQMji6oGJUDesXx4h88:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T14:35:35.343Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"handleCardStateChange|resolveCardContext|checkoutPath\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\desktop\\\\src\",\"glob\":\"!*.test.mjs\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-8",
+          "kind": "event",
+          "label": "Grep",
+          "output": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\shell\\local_bridge_dispatch.js:104:        if (actionSchedulerService) await actionSchedulerService.handleCardStateChange(transition.cardInternalId, transition.state);\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\shell\\local_bridge_dispatch.js:105:        actionRunnerService.handleCardStateChange(transition.cardInternalId, transition.state);\nsequence_worktree_execution.js:45:                    baseCommit, checkoutPath: record.path, childBranch: null, childBranches: [], childCommits: {},\nsequence_worktree_execution.js:52:        this.acquire(current.id, current.branchProgress.checkoutPath);\nsequence_worktree_execution.js:59:            const { checkoutPath, sequenceBranch } = current.branchProgress;\nsequence_worktree_execution.js:60:            await this.requireBranch(checkoutPath, sequenceBranch);\nsequence_worktree_execution.js:61:            await this.requireClean(checkoutPath);\nsequence_worktree_execution.js:62:            const targetCommit = await this.git(checkoutPath, ['rev-parse', 'HEAD']);\nsequence_worktree_execution.js:74:            await this.requireBranch(current.branchProgress.checkoutPath, current.branchProgress.expectedBranch);\nsequence_worktree_execution.js:75:            if (current.branchProgress.phase === 'child-ready') await this.requireClean(current.branchProgress.checkoutPath);\nsequence_worktree_execution.js:83:        const { checkoutPath, sequenceBranch, childBranch, childBranches } = schedule.branchProgress;\nsequence_worktree_execution.js:85:        this.checkoutOwnershipService.reserveBranches(checkoutPath, schedule.id, branches);\nsequence_worktree_execution.js:88:    acquire(scheduleId, checkoutPath) {\nsequence_worktree_execution.js:90:        this.leases.set(scheduleId, checkoutOwnershipService.acquire(checkoutPath, scheduleId, true));\nsequence_worktree_execution.js:107:        const expectedCheckoutKey = CheckoutOwnershipService.key(progress.checkoutPath);\nsequence_worktree_execution.js:108:        const record = records.find(({ path: checkoutPath }) => CheckoutOwnershipService.key(checkoutPath) === expectedCheckoutKey);\nsequence_worktree_execution.js:109:        if (!record?.valid) throw new Error(`Sequence worktree is missing or invalid: ${progress.checkoutPath}`);\nsequence_worktree_execution.js:114:        const { checkoutPath, expectedBranch } = schedule.branchProgress;\nsequence_worktree_execution.js:115:        const actualBranch = await this.git(checkoutPath, ['branch', '--show-current']);\nsequence_worktree_execution.js:116:        await this.requireClean(checkoutPath);\nsequence_worktree_execution.js:118:            if (await this.git(checkoutPath, ['rev-parse', 'HEAD']) !== baseCommit) throw new Error('Cannot recover sequence branch creation: unexpected commit');\nsequence_worktree_execution.js:120:            await this.requireBranch(checkoutPath, expectedBranch);\nsequence_worktree_execution.js:121:            await this.git(checkoutPath, ['check-ref-format', '--branch', branch]);\nsequence_worktree_execution.js:122:            if (await this.worktreeService.branchExists(checkoutPath, branch)) throw new Error(`Sequence branch already exists: ${branch}`);\nsequence_worktree_execution.js:123:            await this.git(checkoutPath, ['switch', '-c', branch, baseCommit]);\nsequence_worktree_execution.js:130:        const { checkoutPath, expectedBranch } = schedule.branchProgress;\nsequence_worktree_execution.js:132:        await this.requireBranch(checkoutPath, expectedBranch);\nsequence_worktree_execution.js:134:        const expectedCheckoutKey = CheckoutOwnershipService.key(checkoutPath);\nsequence_worktree_execution.js:139:            sequenceCheckoutPath: checkoutPath,\nsequence_worktree_execution.js:152:        const { checkoutPath, sequenceBranch, childBranch } = current.branchProgress;\nsequence_worktree_execution.js:155:            await this.requireBranch(checkoutPath, childBranch);\nsequence_worktree_execution.js:156:            await this.requireClean(checkoutPath);\nsequence_worktree_execution.js:157:            const sourceCo\n[6829 characters omitted]\nutPath) {\nscheduled_card_sequence_engine.js:36:            && (schedule.branchProgress?.checkoutPath ?? null) === checkoutPath\nscheduled_card_sequence_engine.js:42:            await this.enqueue(schedule.id, () => this.markReadyStateMet(schedule.id, cardInternalId, checkoutPath));\nscheduled_card_sequence_engine.js:145:        const context = await this.resolveCardContext(schedule.cardInternalIds[schedule.currentIndex], schedule);\nscheduled_card_sequence_engine.js:152:        const context = await this.resolveCardContext(schedule.cardInternalIds[schedule.currentIndex], schedule);\nscheduled_card_sequence_engine.js:263:    async markReadyStateMet(scheduleId, cardInternalId, checkoutPath) {\nscheduled_card_sequence_engine.js:267:        if ((schedule.branchProgress?.checkoutPath ?? null) !== checkoutPath) return;\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_runner_service.js:539:    handleCardStateChange(cardInternalId, state, checkoutPath = null) {\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_runner_service.js:541:            if ((run.context?.sequenceCheckoutPath ?? null) !== checkoutPath) continue;\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_runner_service.js:542:            run.handleCardStateChange(cardInternalId, state);\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_run.js:348:    handleCardStateChange(cardInternalId, state) {\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:165:            onStateChange: (cardInternalId, state, checkoutPath) => (\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:166:                this.handleSequenceCheckoutState(cardInternalId, state, checkoutPath, generation)\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:184:            resolveCardContext: (cardInternalId, sequence) => this.resolveSequenceCardContext(cardInternalId, sequence, executionContext),\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:411:    async handleCardStateChange(cardInternalId, state) {\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:429:        if (generation === this.projectGeneration) await this.sequenceEngine.handleCardStateChange(cardInternalId, state);\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:542:                context = await this.resolveCardContext(schedule.trigger.cardInternalId);\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:670:            ? { ...await this.resolveCardContext(schedule.context.cardInternalId, executionContext), kind: schedule.context.kind }\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:676:    async handleSequenceCheckoutState(cardInternalId, state, checkoutPath, generation) {\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:678:        await this.sequenceEngine.handleCardStateChange(cardInternalId, state, checkoutPath);\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:679:        this.actionRunnerService.handleCardStateChange(cardInternalId, state, checkoutPath);\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:683:        const primaryContext = await this.resolveCardContext(cardInternalId, executionContext);\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:687:        const checkoutPath = sequence.branchProgress.checkoutPath;\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:688:        const checkoutProject = { ...project, rootPath: checkoutPath, id: checkoutPath, branch: sequence.branchProgress.expectedBranch };\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_scheduler_service.js:698:    async resolveCardContext(cardInternalId, executionContext = null) {",
+          "providerItemId": "toolu_01MVwVe7wtuSXkUTVhaFV4aa",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:35:36.127Z",
+          "type": "tool.Grep"
+        },
+        {
+          "command": "sed -n 280,321p sequence_worktree_execution.js; echo ----; sed -n 150,200p ../action/action_scheduler_service.js; echo ----; sed -n 405,435p ../action/action_scheduler_service.js; echo ---; sed -n 670,730p ../action/action_scheduler_service.js; echo ---; sed -n 90,110p ../../shell/local_bridge_dispatch.js",
+          "content": "        const branch = await this.git(checkoutPath, ['branch', '--show-current']);\n        if (branch !== expectedBranch) throw new Error(`Sequence checkout is on ${branch || 'detached HEAD'}, expected ${expectedBranch}: ${checkoutPath}`);\n    }\n\n    async git(checkoutPath, argumentsValue) {\n        const ownerId = currentGitOperationContext().checkoutOwnerId;\n        if (ownerId && this.isCancelled(ownerId)) throw new Error('Sequence cancelled');\n        return (await this.worktreeService.runGit(checkoutPath, argumentsValue)).trim();\n    }\n\n    async watch(schedule) {\n        if (this.watchers.has(schedule.id)) return;\n        const checkoutPath = schedule.branchProgress.checkoutPath;\n        const project = { ...this.project, rootPath: checkoutPath, id: checkoutPath, branch: schedule.branchProgress.expectedBranch };\n        const tracker = new CardStateTracker({\n            readCardFile: async (cardPath) => {\n                const file = await this.localGitService.loadFile(project, cardPath);\n\n                return file.content;\n            },\n        });\n        const { files } = await this.localGitService.loadProject(project, this.activeCardsFolder);\n        tracker.seed(files);\n        const close = this.localGitService.watchProject(\n            project,\n            (event) => this.observe(schedule.id, checkoutPath, tracker, event),\n            (error) => this.onError(schedule.id, error),\n        );\n        this.watchers.set(schedule.id, close);\n    }\n\n    async observe(scheduleId, checkoutPath, tracker, event) {\n        try {\n            const transition = await tracker.observeChange(event);\n            if (transition) await this.onStateChange(transition.cardInternalId, transition.state, checkoutPath);\n        } catch (error) {\n            await this.onError(scheduleId, error);\n        }\n    }\n}\n\nmodule.exports = { SequenceWorktreeExecution };\n----\n        const executionContext = {\n            actionsFolder: this.actionsFolder,\n            activeCardsFolder: this.activeCardsFolder,\n            cardTypes: this.cardTypes,\n            generation,\n            project: this.project,\n            projectFolder: this.projectFolder,\n        };\n        const worktreeExecution = new SequenceWorktreeExecution({\n            project: this.project,\n            projectFolder: paths.projectFolder,\n            activeCardsFolder: this.activeCardsFolder,\n            worktreeService: this.worktreeService,\n            localGitService: this.localGitService,\n            saveSequence: (sequence) => this.saveSequence(sequence, executionContext),\n            onStateChange: (cardInternalId, state, checkoutPath) => (\n                this.handleSequenceCheckoutState(cardInternalId, state, checkoutPath, generation)\n            ),\n            onError: (scheduleId, error) => this.sequenceEngine.failExternal(scheduleId, error),\n            isCancelled: (scheduleId) => (\n                generation !== this.projectGeneration || this.sequenceEngine.cancelledSchedules.has(scheduleId)\n            ),\n        });\n        this.sequenceEngine = new ScheduledCardSequenceEngine({\n            worktreeExecution,\n            reportError: (error) => this.reportError(error),\n            actionRunnerService: this.actionRunnerService,\n            allocateConversationId,\n            allocateRunId: allocateActionRunId,\n            conversationResumeFailure: (cardInternalId, conversationId) => (\n                this.conversationResumeFailure(cardInternalId, conversationId, executionContext)\n            ),\n            isCurrent: () => generation === this.projectGeneration,\n            loadSchedules: () => this.loadSchedules(executionContext),\n            resolveCardContext: (cardInternalId, sequence) => this.resolveSequenceCardContext(cardInternalId, sequence, executionContext),\n            saveSequence: (sequence) => this.saveSequence(sequence, executionContext),\n            states: this.configuredStates,\n        });\n        await this.reconcile({ startup: true });\n    }\n\n    stop() {\n        this.clearProjectState();\n        for (const unsubscribe of th\n[2648 characters omitted]\nte, checkoutPath);\n        this.actionRunnerService.handleCardStateChange(cardInternalId, state, checkoutPath);\n    }\n\n    async resolveSequenceCardContext(cardInternalId, sequence = null, executionContext = null) {\n        const primaryContext = await this.resolveCardContext(cardInternalId, executionContext);\n        if (primaryContext.worktree !== undefined || primaryContext.worktreeError) throw new Error(`Sequence card already has a worktree assignment: ${cardInternalId}`);\n        if (!sequence?.branchProgress) return primaryContext;\n        const project = executionContext?.project ?? this.requireCurrentProject();\n        const checkoutPath = sequence.branchProgress.checkoutPath;\n        const checkoutProject = { ...project, rootPath: checkoutPath, id: checkoutPath, branch: sequence.branchProgress.expectedBranch };\n        const activeCardsFolder = executionContext?.activeCardsFolder ?? this.activeCardsFolder;\n        const { files } = await this.localGitService.loadProject(checkoutProject, activeCardsFolder);\n        const cardTypes = executionContext?.cardTypes ?? this.cardTypes;\n        const context = resolveScheduledCardContext(files, cardTypes, cardInternalId, []);\n        if (context.worktree !== undefined || context.worktreeError) throw new Error(`Sequence checkout card already has a worktree assignment: ${cardInternalId}`);\n\n        return this.sequenceEngine.worktreeExecution.context(sequence, context);\n    }\n\n    async resolveCardContext(cardInternalId, executionContext = null) {\n        const project = executionContext?.project ?? this.requireCurrentProject();\n        const activeCardsFolder = executionContext?.activeCardsFolder ?? this.activeCardsFolder;\n        const cardTypes = executionContext?.cardTypes ?? this.cardTypes;\n        if (!activeCardsFolder) throw new Error('Action scheduler has no activeCardsFolder');\n        const { files } = await this.localGitService.loadProject(project, activeCardsFolder);\n\n        const worktrees = this.worktreeService.getRecords(project);\n\n        return resolveScheduledCardContext(files, cardTypes, cardInternalId, worktrees);\n    }\n\n    async saveSequence(sequence, executionContext = null) {\n        const nextSchedules = await this.mutateSchedules(executionContext, (schedules) => (\n            replaceScheduleRecord(schedules, sequence)\n        ));\n\n        return nextSchedules.find(({ id }) => id === sequence.id);\n    }\n\n    async cancelRunningActionSchedule(scheduleKey) {\n        const executionControl = this.scheduleExecutionControls.get(scheduleKey);\n        if (executionControl) executionControl.cancelRequested = true;\n        const startedRunId = executionControl ? await executionControl.started : null;\n        const runId = startedRunId ?? this.runIdsByScheduleId.get(scheduleKey);\n        if (!runId) return false;\n        try {\n            this.actionRunnerService.cancel(runId);\n        } catch (error) {\n            if (!(error instanceof Error) || !error.message.startsWith('Unknown action run:')) throw error;\n        }\n\n        return true;\n---\n                const file = await localGitService.loadFile(currentLocalProject, path);\n\n                return typeof file?.content === 'string' ? file.content : null;\n            } catch {\n                // The file can be gone or unreadable by the time the settled event is handled;\n                // that is the same as having no status to compare against.\n                return null;\n            }\n        },\n    });\n\n    /** Runs the two consumers of one backend-detected card state transition, scheduler first. */\n    async function reportCardStateTransition(transition) {\n        if (!transition || !actionRunnerService) return;\n        if (actionSchedulerService) await actionSchedulerService.handleCardStateChange(transition.cardInternalId, transition.state);\n        actionRunnerService.handleCardStateChange(transition.cardInternalId, transition.state);\n    }\n\n    async function handleWatchedCardChange(event) {\n        try {\n            const transition = await cardStateTracker.observeChange(event);",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-9",
+          "kind": "event",
+          "label": "sed -n 280,321p sequence_worktree_execution.js; echo ----; sed -n 150,200p ../action/action_scheduler_service.js; echo ----; sed -n 405,435p ../action/action_scheduler_service.js; echo ---; sed -n 670,730p ../action/action_scheduler_service.js; echo ---; sed -n 90,110p ../../shell/local_bridge_dispatch.js",
+          "providerItemId": "toolu_01PnAXgZue3NhDqcRi6EfzpH",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:35:38.567Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-10",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzQN6Fch3TfkfeRzrPHW:thinking:0",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T14:35:42.911Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Confirmed the worktree sequence reads card state only from its checkout; now checking how the checkout is chosen and what the card's activity log shows.",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 11,
+          "timestamp": "2026-10-13T14:35:42.913Z"
+        },
+        {
+          "command": "sed -n 25,56p sequence_worktree_execution.js; sed -n 125,148p sequence_worktree_execution.js; ls ../../../../design/activity | grep 54a27abd",
+          "content": "        this.leases = new Map();\n        this.watchers = new Map();\n    }\n\n    prepare(schedule) {\n        return runWithGitOperationContext({ checkoutOwnerId: schedule.id }, () => this.prepareNow(schedule));\n    }\n\n    async prepareNow(schedule) {\n        let current = schedule;\n        if (typeof this.projectFolder !== 'string') throw new Error('Missing sequence project folder');\n        if (!current.branchProgress) {\n            await this.requireBranch(this.project.rootPath, this.project.branch);\n            const { record } = await this.worktreeService.resolveBranch(this.project, current.worktreeBranch);\n            this.acquire(current.id, record.path);\n            await this.requireClean(record.path);\n            const baseCommit = await this.git(this.project.rootPath, ['rev-parse', this.project.branch]);\n            const sequenceBranch = `md2/sequence/${crypto.randomUUID()}`;\n            current = await this.saveSequence({\n                ...current, branchProgress: {\n                    baseCommit, checkoutPath: record.path, childBranch: null, childBranches: [], childCommits: {},\n                    expectedBranch: record.branch,\n                    integrationCommit: null, runId: null,\n                    phase: 'preparing-sequence', sequenceBranch, sourceCommit: null, sourceTree: null, targetCommit: null,\n                },\n            });\n        }\n        this.acquire(current.id, current.branchProgress.checkoutPath);\n        this.reserveBranches(current);\n        await this.requireLinkedCheckout(current.branchProgress);\n        if (current.branchProgress.phase === 'preparing-sequence') {\n            current = await this.createBranch(current, current.branchProgress.sequenceBranch, current.branchProgress.baseCommit, 'sequence-ready');\n\n        return this.persist(schedule, nextPhase, { ...fields, expectedBranch: branch });\n    }\n\n    async context(schedule, context) {\n        const { checkoutPath, expectedBranch } = schedule.branchProgress;\n        await this.requireLinkedCheckout(schedule.branchProgress);\n        await this.requireBranch(checkoutPath, expectedBranch);\n        const records = this.worktreeService.getRecords(this.project);\n        const expectedCheckoutKey = CheckoutOwnershipService.key(checkoutPath);\n        const index = records.findIndex(({ path: checkout }) => CheckoutOwnershipService.key(checkout) === expectedCheckoutKey);\n\n        return {\n            ...context,\n            sequenceCheckoutPath: checkoutPath,\n            sequenceId: schedule.id,\n            worktree: String(index + 1),\n            worktreeBranch: expectedBranch,\n        };\n    }\n\n    integrate(schedule) {\n        return runWithGitOperationContext({ checkoutOwnerId: schedule.id }, () => this.integrateNow(schedule));\n    }\ncard__54a27abd-2174-4b6a-b688-ed2352c50856.json",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-12",
+          "kind": "event",
+          "label": "sed -n 25,56p sequence_worktree_execution.js; sed -n 125,148p sequence_worktree_execution.js; ls ../../../../design/activity | grep 54a27abd",
+          "providerItemId": "toolu_01HTthbNb9c6totP9MzaqCTw",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:35:43.808Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzQNUZ3hp5CweAwEUyc1:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T14:35:46.369Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "sed -n 335,370p ../action/action_run.js; sed -n 530,548p ../action/action_runner_service.js",
+          "content": "                this.promptQueueClosed = true;\n\n                return null;\n            }\n\n            entry.dispatchState = 'dispatching';\n            this.promptQueue = this.promptQueue.filter(({ id }) => id !== entry.id);\n            this.publishPromptQueueUpdate('agentPromptDispatched', { promptId: entry.id, revision: entry.revision });\n\n            return entry;\n        });\n    }\n\n    handleCardStateChange(cardInternalId, state) {\n        if (this.compactOnly) return;\n        if (this.context.cardInternalId !== cardInternalId) return;\n        if (\n            this.activeAction?.type !== 'agent'\n            || !this.activeAction.streaming\n            || this.activeAction.autoFinish?.when !== 'card-state'\n            || this.activeAction.autoFinish?.state !== state\n        ) return;\n        this.requestAutoFinish();\n    }\n\n    requestAutoFinish() {\n        if (!this.activeAgentRunId) {\n            this.autoFinishPending = true;\n            return;\n        }\n        this.discardQueuedPrompts();\n        this.agentRunnerService.finish(this.activeAgentRunId);\n    }\n\n    async run() {\n        return runWithGitOperationContext({ runId: this.runId, checkoutOwnerId: this.context.sequenceId }, () => this.runWithContext());\n        return this.requireRun(runId).answerAgentApproval(requestId, decision);\n    }\n\n    finishAgentRun(runId) {\n        const run = this.requireRun(runId);\n        this.invalidateCompactAcceptance(run);\n        run.finishAgent();\n    }\n\n    handleCardStateChange(cardInternalId, state, checkoutPath = null) {\n        for (const run of this.runs.values()) {\n            if ((run.context?.sequenceCheckoutPath ?? null) !== checkoutPath) continue;\n            run.handleCardStateChange(cardInternalId, state);\n        }\n    }\n\n    requireActionsFolder() {\n        if (!this.actionsFolder) throw new Error('Action runner has no actions folder');\n        if (!this.activeCardsFolder) throw new Error('Action runner has no activeCardsFolder');",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-14",
+          "kind": "event",
+          "label": "sed -n 335,370p ../action/action_run.js; sed -n 530,548p ../action/action_runner_service.js",
+          "providerItemId": "toolu_01VLKgFecCn4rYR3YAoS1G7d",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-10-13T14:35:46.942Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-event-15",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfzQNhwTvvrh98JscSpMB:thinking:0",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-13T14:35:59.717Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI checked the code, and your hypothesis is correct. A worktree sequence only reads the ready state from its own worktree checkout, so a state change made in the main repository is never noticed.\n\n## Findings\n\n1. **Events from the main repository are dropped.** When a card file changes in the main repository, `local_bridge_dispatch.js` forwards the change to `ActionSchedulerService.handleCardStateChange`. That passes it to `ScheduledCardSequenceEngine.handleCardStateChange` without a checkout path, so the path is `null`. The engine's filter in `scheduled_card_sequence_engine.js:36` only accepts the event if it equals the sequence's `branchProgress.checkoutPath`. A worktree sequence always has a real worktree path there, so the event is filtered out. `markReadyStateMet` (line 267) has the same check and would reject it anyway.\n\n2. **Only the worktree is watched.** `SequenceWorktreeExecution.watch` starts a separate `CardStateTracker` on the sequence worktree. Its events carry the worktree path, so these are the only state changes the sequence accepts.\n\n3. **The fallback check also reads the worktree.** `refreshReadyState` runs when a sequence is activated, resumed or advanced. It calls `resolveSequenceCardContext`, which loads the card from the worktree checkout (`action_scheduler_service.js:687-692`) rather than from the main repository. So even after a restart, a ready state set in the main repository is not seen.\n\n4. **Non-worktree sequences work.** Without a worktree, `branchProgress` is missing, so the checkout path is `null` on both sides and main repository events match. The bug only affects sequences that have a `worktreeBranch`.\n\n## Proposed solution\n\n1. In `ScheduledCardSequenceEngine`, judge readiness only from main repository events. `handleCardStateChangeNow` and `markReadyStateMet` would stop comparing checkout paths. `SequenceWorktreeExecution.observe` would stop forwarding worktree transitions to the sequence engine.\n2. Give the engine a separate main-repository lookup for `refreshReadyState`, using `ActionSchedulerService.resolveCardContext`. `startCurrentAction` keeps using `resolveSequenceCardContext`, because the action still needs to run in the worktree.\n3. Keep the worktree watcher, but only so it can call `ActionRunnerService.handleCardStateChange`. That handles `autoFinish` for an agent that edits the card inside the worktree.\n4. Add regression tests in `scheduled_card_sequence_engine.test.mjs` for both cases: a ready state set in the main repository advances a worktree sequence, and a worktree-only state change no longer does.\n\n## Open question\n\nShould the main repository be the only source of the ready state? If an action's agent can set the card's state inside the worktree, and that should also count, the engine needs to accept both sources instead. Please tell me which you want before I change any code.",
+          "id": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 16,
+          "timestamp": "2026-10-13T14:36:02.364Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-142b950d-9a2b-4515-b8c1-1f5e81cc0ac4",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "208f270b-c684-4b76-9039-f0c2ff7e64b2",
+          "createdAt": "2026-10-13T14:36:02.364Z",
+          "lastUsedAt": "2026-10-13T14:36:02.364Z",
+          "synchronizedThroughMessageId": "agent-turn-cbc967b4-95b4-43c7-ac72-d08bb79895d9-turn-1-assistant-2",
+          "usageBaseline": {
+            "costUsd": 0.44804439999999995,
+            "resultId": "109d844b-3bdb-43c6-bcd5-ea004f9d4d90",
+            "tokens": {
+              "cachedInputTokens": 369464,
+              "inputTokens": 16,
+              "outputTokens": 3049,
+              "reasoningTokens": 0,
+              "totalTokens": 372529
+            }
+          }
+        }
+      ],
       "startedAt": "2026-10-13T14:35:25.094Z",
       "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 16703,
+          "toolMs": 7454
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-10-13T14:35:25.094Z"
       },
       "title": "investigate",
+      "usage": {
+        "cachedInputTokens": 369464,
+        "inputTokens": 16,
+        "outputTokens": 3049,
+        "reasoningTokens": 0,
+        "totalTokens": 372529,
+        "costUsd": 0.44804439999999995
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
