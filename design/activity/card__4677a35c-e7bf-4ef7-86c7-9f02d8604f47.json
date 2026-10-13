@@ -856,14 +856,14 @@
         }
       ],
       "startedAt": "2026-10-13T08:57:51.281Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
-          "reasoningMs": 48197,
+          "reasoningMs": 72618,
           "toolMs": 69972
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-13T08:57:51.281Z"
+        "elapsedMs": 158421,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
