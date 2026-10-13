@@ -10,8 +10,6 @@ agents:
   - design/activity/card__cb89d441-e2d8-4006-bfbb-40df58243bba.json
 policy:
 after: 50bf5243-e489-4d76-9524-4933c3c78e36
-branch: b_269_pinned_broken
-worktree: 1
 changedFiles:
   - app/src/components/actions/conversation/state/action_conversation_store.node.test.ts
   - app/src/components/actions/conversation/state/action_conversation_store.ts

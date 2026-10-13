@@ -4369,13 +4369,13 @@
         "agent-76ad4202-8413-4d4d-b379-faa390bb6f1e"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-65f58748-10e9-4bf3-a04e-0264714f28d6",
       "origin": {
@@ -4384,9 +4384,43 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-76ad4202-8413-4d4d-b379-faa390bb6f1e",
       "startedAt": "2026-10-13T12:52:10.552Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-76ad4202-8413-4d4d-b379-faa390bb6f1e"
+    },
+    {
+      "commits": [
+        {
+          "commit": "7ace637804fdcddeb93ca655b5bd23ea9e1e9691",
+          "committedAt": "2026-10-13T15:07:57+02:00",
+          "deletions": 11,
+          "filePaths": [
+            "app/src/components/actions/conversation/state/action_conversation_store.node.test.ts",
+            "app/src/components/actions/conversation/state/action_conversation_store.ts",
+            "app/src/data/data_types.ts",
+            "app/src/services/agents/agent_integration.test.ts",
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/agents/conversation_pin_service.node.test.ts",
+            "app/src/services/agents/conversation_pin_service.ts",
+            "app/src/services/config/config_service.service.test.ts",
+            "app/src/services/config/config_service.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/project/project_loading.ts",
+            "app/src/services/release_operations.service.test.ts",
+            "app/src/services/release_operations.ts"
+          ],
+          "filesChanged": 13,
+          "insertions": 224,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-13T15:07:57+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "cb89d441-e2d8-4006-bfbb-40df58243bba",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
