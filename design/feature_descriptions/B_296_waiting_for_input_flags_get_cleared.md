@@ -1,6 +1,6 @@
 ---
 author: 
-id: F_424
+id: B_296
 internalId: 4be6bb38-fb9b-4f3c-b2d5-97aa23fa6ce1
 title: waiting for input flags get cleared
 status: design
