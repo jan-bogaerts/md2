@@ -3,7 +3,7 @@ author:
 id: B_300
 internalId: dc18bd32-58a2-4426-99ce-c79309619b03
 title: Error: Sequence schedule-1791896021654-jvp09iga fa
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
@@ -12,6 +12,9 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 153363943
 sentryOrganization: elastetic
+after: e461b100-4b8f-435e-9c0f-81426d7fdb47
+branch: b_300_error_sequence_schedule_1791896021654_jvp09iga_fa
+worktree: 2
 ---
 ## Sentry issue
 

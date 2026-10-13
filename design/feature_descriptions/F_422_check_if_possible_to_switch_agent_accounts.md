@@ -10,7 +10,6 @@ agents:
   - design/activity/card__733d678c-49a7-4409-9fa2-5fb384821513.json
 policy:
 branch: f_422_check_if_possible_to_switch_agent_accounts
-after: dc18bd32-58a2-4426-99ce-c79309619b03
 ---
 we need to investigate:
 
