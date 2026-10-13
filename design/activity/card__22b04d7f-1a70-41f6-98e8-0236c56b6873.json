@@ -375,20 +375,28 @@
           "sequence": 25,
           "timestamp": "2026-10-13T12:11:15.414Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Click + popup open (Recommended)\nclaude-question-1: Yes, Run = Send (Recommended)\nclaude-question-2: Focus input instead (Recommended)",
+          "id": "agent-turn-1fb7ed29-fc75-422e-83f2-9ef45bf3f481-answer-25",
+          "kind": "message",
+          "role": "user",
+          "sequence": 26,
+          "timestamp": "2026-10-13T12:17:17.695Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-b4575387-c2ff-4e6c-b0ba-974ec70e0b09",
       "providerSessions": [],
       "startedAt": "2026-10-13T12:10:27.265Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 7163,
           "toolMs": 23568
         },
         "elapsedMs": 48149,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-13T12:17:17.695Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
