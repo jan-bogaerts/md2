@@ -629,14 +629,14 @@
         }
       ],
       "startedAt": "2026-10-13T14:42:20.498Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 15871,
           "toolMs": 9600
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-13T14:42:20.498Z"
+        "elapsedMs": 41081,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
