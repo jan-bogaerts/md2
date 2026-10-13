@@ -33,11 +33,12 @@
   "pinnedConversations": [
     {
       "contextKind": "project",
-      "conversationId": "agent-cd87fe45-9170-44e6-9982-a860a79eb78e"
+      "conversationId": "agent-574c9b12-c5e8-43f1-8488-8cf70ce7c261"
     },
     {
+      "activityPath": "design/releases/0.8.0/project.json",
       "contextKind": "project",
-      "conversationId": "agent-574c9b12-c5e8-43f1-8488-8cf70ce7c261"
+      "conversationId": "agent-cd87fe45-9170-44e6-9982-a860a79eb78e"
     }
   ],
   "projectFolder": "design",
