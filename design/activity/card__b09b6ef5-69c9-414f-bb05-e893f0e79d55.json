@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "b09b6ef5-69c9-414f-bb05-e893f0e79d55",
+      "cardPath": "design/feature_descriptions/B_297_action_ready_state_no_longer_detected.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature\\_descriptions/B\\_297\\_action\\_ready\\_state\\_no\\_longer\\_detected.md. investigate what is happening, report your findings. Be short and to the point, full sentences.",
+          "id": "submission-f3efffcf-b852-439b-8d22-a8bbc45763ff",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-13T11:50:17.656Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-f555b2ca-c728-4a39-8bbd-d0f3466a3f09",
+      "providerSessions": [],
+      "startedAt": "2026-10-13T11:50:17.656Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-13T11:50:17.656Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "b09b6ef5-69c9-414f-bb05-e893f0e79d55",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
