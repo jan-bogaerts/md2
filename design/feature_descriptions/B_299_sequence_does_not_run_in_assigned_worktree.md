@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__5135bed0-6e69-4e19-9738-467ffdfb7348.json
 policy:
+after: dc18bd32-58a2-4426-99ce-c79309619b03
 ---
 
 The agent was not started in the worktree that was assigned to the sequence.

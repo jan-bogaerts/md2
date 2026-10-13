@@ -3,7 +3,7 @@ author:
 id: B_300
 internalId: dc18bd32-58a2-4426-99ce-c79309619b03
 title: Error: Sequence schedule-1791896021654-jvp09iga fa
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,9 +11,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 153363943
 sentryOrganization: elastetic
-after: c2391409-5ac7-4a3f-97fa-ac76e3739364
 ---
-
 ## Sentry issue
 
 **Title:** Error: Sequence schedule-1791896021654-jvp09iga failed: Cannot recover sequence action run action-25481df9-0ea9-4533-b1bd-5d3a39642958: Unknown action run: action-25481df9-0ea9-4533-b1bd-5d3a39642958
@@ -32,11 +30,15 @@ after: c2391409-5ac7-4a3f-97fa-ac76e3739364
 
 **Environment:** production
 
-**Culprit:** ScheduledCardSequenceEngine.failSequence(desktop.src.actions.schedule:scheduled_card_sequence_engine)
+**Culprit:** ScheduledCardSequenceEngine.failSequence(desktop.src.actions.schedule:scheduled\_card\_sequence\_engine)
 
 **Event ID:** 2e23301de3b740d88485252f87341568
 
 ### Application stack frames
 
-- `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:206:9` — ScheduledCardSequenceEngine.failUnrecoverableRun
-- `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:255:30` — ScheduledCardSequenceEngine.failSequence
+* `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:206:9` — ScheduledCardSequenceEngine.failUnrecoverableRun
+* `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:255:30` — ScheduledCardSequenceEngine.failSequence
+
+The first card was started, but was waiting for input. Then we closed the app and opened it again.
+
+The sequence algorithm should be able to pick up that the sequence was still running and waiting for a user interaction to finish.
