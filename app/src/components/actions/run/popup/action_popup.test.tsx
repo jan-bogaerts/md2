@@ -322,6 +322,7 @@ describe('ActionPopup', () => {
     beforeEach(async () => {
         vi.spyOn(agentCapabilitiesService, 'getCatalogSnapshot').mockImplementation(snapshotCatalogFixture);
         projectPersistenceService.init({ actionService, dataService, openFilesService })
+        vi.spyOn(dataService, 'writePendingFiles').mockResolvedValue()
         remoteConnectionService.disconnect()
         configService.init({
             desktopConfig: {

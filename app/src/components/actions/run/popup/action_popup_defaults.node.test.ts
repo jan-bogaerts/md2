@@ -21,6 +21,7 @@ describe('defaultPreparePrompt', () => {
         vi.spyOn(actionService.draftStore, 'hasPendingDrafts').mockReturnValue(pending);
         const flushDrafts = vi.spyOn(actionService.draftStore, 'flushDrafts').mockResolvedValue();
         const flushProject = vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockResolvedValue();
+        const writePendingFiles = vi.spyOn(dataService, 'writePendingFiles').mockResolvedValue();
         const action = { id: 'review' } as ActionDefinition;
         const context = { cardInternalId: 'card-1', kind: 'card' as const };
 
@@ -29,8 +30,10 @@ describe('defaultPreparePrompt', () => {
         expect(flushDrafts).toHaveBeenCalledTimes(pending ? 1 : 0);
         expect(flushProject).not.toHaveBeenCalled();
         expect(prepareActionPrompt).toHaveBeenCalledWith({ actionId: action.id, context });
+        expect(writePendingFiles).toHaveBeenCalledOnce();
+        expect(writePendingFiles.mock.invocationCallOrder[0]).toBeLessThan(prepareActionPrompt.mock.invocationCallOrder[0]);
         if (pending) {
-            expect(flushDrafts.mock.invocationCallOrder[0]).toBeLessThan(prepareActionPrompt.mock.invocationCallOrder[0]);
+            expect(flushDrafts.mock.invocationCallOrder[0]).toBeLessThan(writePendingFiles.mock.invocationCallOrder[0]);
         }
     });
 
@@ -40,6 +43,17 @@ describe('defaultPreparePrompt', () => {
         setActionBridgeOverride({ prepareActionPrompt } as unknown as ElectronActionBridge);
         vi.spyOn(actionService.draftStore, 'hasPendingDrafts').mockReturnValue(true);
         vi.spyOn(actionService.draftStore, 'flushDrafts').mockRejectedValue(failure);
+
+        await expect(defaultPreparePrompt({ id: 'review' } as ActionDefinition, { kind: 'project' })).rejects.toBe(failure);
+        expect(prepareActionPrompt).not.toHaveBeenCalled();
+    });
+
+    it('reports a pending file write failure without preparing from stale files', async () => {
+        const failure = new Error('Disk write failed');
+        const prepareActionPrompt = vi.fn();
+        setActionBridgeOverride({ prepareActionPrompt } as unknown as ElectronActionBridge);
+        vi.spyOn(actionService.draftStore, 'hasPendingDrafts').mockReturnValue(false);
+        vi.spyOn(dataService, 'writePendingFiles').mockRejectedValue(failure);
 
         await expect(defaultPreparePrompt({ id: 'review' } as ActionDefinition, { kind: 'project' })).rejects.toBe(failure);
         expect(prepareActionPrompt).not.toHaveBeenCalled();

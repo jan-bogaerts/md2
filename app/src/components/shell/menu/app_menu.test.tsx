@@ -93,6 +93,7 @@ function createBridge(): ElectronDataBridge {
         addWorktree: vi.fn(async () => undefined),
         removeWorktree: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
+        writeFiles: vi.fn(async () => undefined),
     }
 }
 

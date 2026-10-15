@@ -334,6 +334,37 @@ function commit(request, project) {
     return holdProjectMutation(rootPath, () => commitNow(request, project));
 }
 
+async function writeFilesNow(request, project) {
+    const rootPath = requireRootPath(project);
+
+    for (const move of request.moves ?? []) {
+        if (!move || typeof move.fromPath !== 'string' || move.fromPath.length === 0) throw new Error('Missing write move source path');
+        if (typeof move.toPath !== 'string' || move.toPath.length === 0) throw new Error('Missing write move target path');
+        if (typeof move.content !== 'string') throw new Error('Missing write move content');
+
+        const sourcePath = ensureInsideRoot(rootPath, path.join(rootPath, move.fromPath));
+        const targetPath = ensureInsideRoot(rootPath, path.join(rootPath, move.toPath));
+        const data = move.encoding === 'base64' ? Buffer.from(move.content, 'base64') : move.content;
+        await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+        if (await pathExists(sourcePath)) await fs.promises.rename(sourcePath, targetPath);
+        await fs.promises.writeFile(targetPath, data);
+    }
+
+    for (const file of request.files) {
+        const filePath = ensureInsideRoot(rootPath, path.join(rootPath, file.path));
+        const data = file.encoding === 'base64' ? Buffer.from(file.content, 'base64') : file.content;
+        await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+        await fs.promises.writeFile(filePath, data);
+    }
+}
+
+/** Writes pending files and moves to the working tree without staging or committing them. */
+function writeFiles(request, project) {
+    const rootPath = requireRootPath(project);
+
+    return holdProjectMutation(rootPath, () => writeFilesNow(request, project));
+}
+
 async function deleteFileNow(request, project) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -534,4 +565,6 @@ module.exports = {
     resolveExistingProjectEntry,
     saveProjectConfig,
     watchProject,
+    writeFiles,
+    writeFilesNow,
 };

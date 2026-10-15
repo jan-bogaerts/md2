@@ -183,6 +183,26 @@ describe('RemoteControlStorageService', () => {
         await expect(result).resolves.toEqual([])
     })
 
+    it('forwards write-only files and moves to the remote host without marking a pending push', async () => {
+        installWebSocket()
+        const service = createService()
+        const writeRequest = {
+            branch: 'main',
+            files: [{ content: '# New card', path: 'design/F-1.md' }],
+            moves: [{ content: '{"id":"review"}', fromPath: 'actions/new-action.json', toPath: 'actions/review.json' }],
+        }
+        const result = service.writeFiles(writeRequest)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'writeFiles', params: [writeRequest] })
+        socket.receive({ id: request.id, result: null })
+        await expect(result).resolves.toBeUndefined()
+        expect(service.hasPendingPush({ branch: 'main', id: 'project' })).toBe(false)
+    })
+
     it.each(persistentSubscriptionCases)('cleans retired $name subscriptions locally without reconnecting', async ({ method, subscribe }) => {
         installWebSocket()
         const service = createService()

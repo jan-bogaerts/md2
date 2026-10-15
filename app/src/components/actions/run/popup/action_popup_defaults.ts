@@ -108,6 +108,7 @@ export async function defaultPreparePrompt(action: ActionDefinition, context: Ac
         throw new Error('Preparing action prompts requires the Electron desktop app')
     }
     if (actionService.draftStore.hasPendingDrafts()) await actionService.draftStore.flushDrafts();
+    await dataService.writePendingFiles()
     const result = await bridge.prepareActionPrompt({ actionId: action.id, context })
 
     return result

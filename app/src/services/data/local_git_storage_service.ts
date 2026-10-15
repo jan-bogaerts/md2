@@ -22,6 +22,7 @@ import type {
     WorktreeOperationRequest,
     WorktreeRemovalMode,
     WorktreeState,
+    WriteFilesRequest,
 } from '../../data/data_types'
 import { withBridgeErrorRehydration } from '../../data/bridge_error_rehydration'
 import { getElectronDataBridge, type ElectronDataBridge } from '../../data/electron_data_bridge'
@@ -410,6 +411,10 @@ export class LocalGitStorageService implements StorageService {
         }
 
         return this.requireBridge().watchProject(project, handleNotification)
+    }
+
+    async writeFiles(request: WriteFilesRequest): Promise<void> {
+        await this.requireBridge().writeFiles(request)
     }
 
     private requireBridge() {

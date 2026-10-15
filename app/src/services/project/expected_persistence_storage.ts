@@ -5,6 +5,7 @@ import type {
     MoveFilesRequest,
     ProjectReference,
     StorageService,
+    WriteFilesRequest,
 } from '../../data/data_types';
 import { normalizePath } from '../../../../shared/path_utils.mjs';
 import {
@@ -19,7 +20,7 @@ export interface ExpectedPersistenceStorageDependencies {
     verifyRetainedOutcomes(): Promise<void>;
 }
 
-function commitOutcomes(request: CommitRequest): ExpectedPersistenceOutcome[] {
+function commitOutcomes(request: WriteFilesRequest): ExpectedPersistenceOutcome[] {
     return [
         ...(request.moves ?? []).flatMap(({ content, encoding, fromPath, toPath }) => [
             { kind: 'absent' as const, path: fromPath },
@@ -87,6 +88,10 @@ class ExpectedPersistenceStorage {
         return this.track(request.branch, commitOutcomes(request), () => this.storage.commit(request));
     }
 
+    writeFiles(writeFiles: NonNullable<StorageService['writeFiles']>, request: WriteFilesRequest) {
+        return this.track(request.branch, commitOutcomes(request), () => writeFiles(request));
+    }
+
     deleteFile(request: DeleteFileRequest) {
         const outcomes: ExpectedPersistenceOutcome[] = [{ kind: 'absent', path: request.path }];
 
@@ -117,6 +122,9 @@ export function withExpectedPersistenceOutcomes(
             if (property === 'deleteFile') return expectedStorage.deleteFile.bind(expectedStorage);
             if (property === 'deleteFolder') return expectedStorage.deleteFolder.bind(expectedStorage);
             if (property === 'moveFiles') return expectedStorage.moveFiles.bind(expectedStorage);
+            if (property === 'writeFiles' && target.writeFiles) {
+                return expectedStorage.writeFiles.bind(expectedStorage, target.writeFiles.bind(target));
+            }
 
             const value: unknown = Reflect.get(target, property, receiver);
 

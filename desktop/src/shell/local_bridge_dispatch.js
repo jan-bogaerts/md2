@@ -437,6 +437,7 @@ function createLocalBridgeDispatch(dependencies) {
             },
             (error) => callback({ error: watchErrorMessage(error) }),
         ),
+        writeFiles: (request) => localGitService.writeFiles(request, currentLocalProject),
     };
 
     async function finalizeIntegrationRepository(project, worktreeBranch, metadata, activeConflict, conflictRequest = null) {

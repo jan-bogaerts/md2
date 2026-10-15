@@ -272,6 +272,12 @@ export class DataService extends EventTarget {
         await this.saveStateService.drain()
     }
 
+    /** Writes queued batch changes to disk so the desktop reads current files; the timed commit still persists them. */
+    async writePendingFiles() {
+        const { commitBatcher } = this.requireDependencies()
+        await commitBatcher.writePending()
+    }
+
     getConfig(): ProjectConfig | null {
         return getProjectConfigOrNull(this.storage)
     }

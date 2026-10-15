@@ -274,6 +274,9 @@ export interface CommitRequest {
 
 export type CommitResult = MarkdownFile[]
 
+/** Files and moves to write to the working tree without a commit. */
+export type WriteFilesRequest = Omit<CommitRequest, 'message'>
+
 export interface MoveFile {
     content: string
     encoding?: FileEncoding
@@ -539,6 +542,7 @@ export interface StorageService {
         onRestored: () => void,
         onError: (error: Error) => void,
     ): () => void
+    writeFiles?(request: WriteFilesRequest): Promise<void>
 }
 
 const BUG_CARD_COLOR = '#d32f2f'

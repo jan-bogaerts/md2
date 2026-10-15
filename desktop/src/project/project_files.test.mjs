@@ -18,6 +18,7 @@ const {
     loadProjectRoot,
     loadTextFile,
     resolveExistingProjectEntry,
+    writeFilesNow,
 } = require('./project_files');
 
 function deferred() {
@@ -95,6 +96,47 @@ describe('project-files', () => {
             expect(gitCommands).toContainEqual(['add', '--', 'design/activity/card__card-1.json']);
             expect(gitCommands.some((args) => args.includes('design/activity/card__deleted.json'))).toBe(false);
             expect(gitCommands).toContainEqual(['commit', '-m', 'Update conversation view state']);
+        } finally {
+            vi.restoreAllMocks();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('writes files and moves without git, and a following commit stages and commits them', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await mkdir(join(rootPath, 'actions'));
+            await writeFile(join(rootPath, 'actions', 'new-action.json'), '{"id":"old"}');
+            const stagedChanges = Object.assign(new Error('staged changes'), { code: 1 });
+            const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockImplementation(async function run() {
+                if (this.args[0] === 'diff') throw stagedChanges;
+
+                return { stderr: '', stdout: '' };
+            });
+            const project = { branch: 'main', id: 'local', rootPath };
+            const writeRequest = {
+                branch: 'main',
+                files: [{ content: '# New card', path: 'design/F-001.md' }],
+                moves: [{ content: '{"id":"review"}', fromPath: 'actions/new-action.json', toPath: 'actions/review.json' }],
+            };
+
+            await writeFilesNow(writeRequest, project);
+
+            await expect(readFile(join(rootPath, 'design', 'F-001.md'), 'utf8')).resolves.toBe('# New card');
+            await expect(readFile(join(rootPath, 'actions', 'review.json'), 'utf8')).resolves.toBe('{"id":"review"}');
+            await expect(readFile(join(rootPath, 'actions', 'new-action.json'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+            expect(runGitProcess).not.toHaveBeenCalled();
+
+            const commitRequest = { ...writeRequest, message: 'Save' };
+            await commitNow(commitRequest, project);
+
+            const gitArguments = runGitProcess.mock.instances.map(({ args }) => args);
+            expect(gitArguments).toContainEqual(['add', '-u', '--', 'actions/new-action.json']);
+            expect(gitArguments).toContainEqual(['add', 'actions/review.json']);
+            expect(gitArguments).toContainEqual(['add', 'design/F-001.md']);
+            expect(gitArguments.some(([command]) => command === 'commit')).toBe(true);
         } finally {
             vi.restoreAllMocks();
             await rm(rootPath, { force: true, recursive: true });

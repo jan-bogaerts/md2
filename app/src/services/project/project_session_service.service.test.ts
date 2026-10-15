@@ -77,6 +77,7 @@ function createDataBridge(): ElectronDataBridge {
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
         watchProject: vi.fn(() => vi.fn()),
+        writeFiles: vi.fn(async () => undefined),
     }
 }
 

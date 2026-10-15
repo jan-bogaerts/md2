@@ -28,6 +28,7 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
         resolveProject: vi.fn(),
         saveProjectConfig: vi.fn(),
         watchProject: vi.fn().mockReturnValue(() => undefined),
+        writeFiles: vi.fn(async () => undefined),
         ...overrides,
     }
 }

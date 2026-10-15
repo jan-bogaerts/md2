@@ -1,6 +1,6 @@
 import { createCardFile } from '../../data/card_naming'
 import { computeMove, type CardMoveUpdate } from '../../data/card_ordering'
-import type { CardDraft, CardType, MarkdownFile, Card } from '../../data/data_types'
+import type { CardDraft, CardType, MarkdownFile, Card, WriteFilesRequest } from '../../data/data_types'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { actionService } from '../actions/action_service'
@@ -397,6 +397,10 @@ export class CardOperations {
 
     commitFiles(request: CommitRequest) {
         return this.context.commitFiles(request)
+    }
+
+    writeFiles(request: WriteFilesRequest) {
+        return this.context.writeTrackingPaths(request)
     }
 
     pushCommittedFiles(request: CommitRequest) {

@@ -82,6 +82,7 @@ describe('ListEditorToolbarControls', () => {
                 <ListEditorToolbarControls
                     cardTypes={[]}
                     historyStore={new MarkdownDocumentHistoryStore()}
+                    onFlushEditor={vi.fn()}
                     readOnly={false}
                     statusColors={new Map()}
                 />
@@ -105,6 +106,7 @@ describe('ListEditorToolbarControls', () => {
                 <ListEditorToolbarControls
                     cardTypes={[]}
                     historyStore={new MarkdownDocumentHistoryStore()}
+                    onFlushEditor={vi.fn()}
                     readOnly={false}
                     statusColors={new Map()}
                 />
@@ -127,6 +129,7 @@ describe('ListEditorToolbarControls', () => {
                 <ListEditorToolbarControls
                     cardTypes={[]}
                     historyStore={new MarkdownDocumentHistoryStore()}
+                    onFlushEditor={vi.fn()}
                     readOnly={false}
                     statusColors={new Map()}
                 />
@@ -143,5 +146,30 @@ describe('ListEditorToolbarControls', () => {
                 kind: 'file',
             },
         })
+    })
+
+    it('flushes the editor before the agent popup toggles', () => {
+        const flushEditor = vi.fn(() => {
+            expect(cardPopupService.getSnapshot()).toHaveLength(0)
+        })
+        vi.spyOn(cardMarkdownDataSource, 'getActiveCard').mockReturnValue(card)
+        vi.spyOn(cardMarkdownDataSource, 'getActiveDocument').mockReturnValue({ getObject: () => card } as never)
+        vi.spyOn(cardCommitsHook, 'useCardCommits').mockReturnValue({ commits: [], error: null, loading: false, reload: vi.fn() })
+        render(
+            <AppThemeProvider>
+                <ListEditorToolbarControls
+                    cardTypes={[]}
+                    historyStore={new MarkdownDocumentHistoryStore()}
+                    onFlushEditor={flushEditor}
+                    readOnly={false}
+                    statusColors={new Map()}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Agents' }))
+
+        expect(flushEditor).toHaveBeenCalledTimes(1)
+        expect(cardPopupService.getSnapshot()).toHaveLength(1)
     })
 })

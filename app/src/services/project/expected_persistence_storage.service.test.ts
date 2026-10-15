@@ -41,6 +41,37 @@ describe('withExpectedPersistenceOutcomes', () => {
         expect(outcomes.classify({ content: 'written', kind: 'present', path: 'design/written.md' })).toBe('matched');
     });
 
+    it('registers write-only files and moves the same way as a commit', async () => {
+        const write = createDeferred<void>();
+        const writeFiles = vi.fn(() => write.promise);
+        const storage = createStorage({ watchProject: vi.fn(), writeFiles });
+        const { outcomes, trackedStorage } = createTrackedStorage(storage);
+        const request = {
+            branch: 'main',
+            files: [{ content: 'written', path: 'design\\written.md' }],
+            moves: [{ content: 'moved', fromPath: 'design/old.md', toPath: 'design/new.md' }],
+        };
+
+        const pendingWrite = trackedStorage.writeFiles?.(request);
+
+        expect(writeFiles).toHaveBeenCalledWith(request);
+        expect(outcomes.getExpected('design/written.md')).toEqual({ content: 'written', kind: 'present', path: 'design/written.md' });
+        expect(outcomes.getExpected('design/old.md')).toEqual({ kind: 'absent', path: 'design/old.md' });
+        expect(outcomes.getExpected('design/new.md')).toEqual({ content: 'moved', kind: 'present', path: 'design/new.md' });
+        expect(outcomes.classify({ content: 'written', kind: 'present', path: 'design/written.md' })).toBe('pending');
+
+        write.resolve();
+        await pendingWrite;
+        expect(outcomes.classify({ content: 'written', kind: 'present', path: 'design/written.md' })).toBe('matched');
+    });
+
+    it('does not expose writeFiles when the storage has none', () => {
+        const storage = createStorage({ watchProject: vi.fn() });
+        const { trackedStorage } = createTrackedStorage(storage);
+
+        expect(trackedStorage.writeFiles).toBeUndefined();
+    });
+
     it('retains registered outcomes when storage fails', async () => {
         const storage = createStorage({
             deleteFile: vi.fn(async () => {

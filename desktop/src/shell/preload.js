@@ -81,6 +81,7 @@ const DATA_METHODS = [
     'selectWorktreeFolder',
     'showInFileExplorer',
     'stopAgent',
+    'writeFiles',
 ];
 const ACTION_METHODS = [
     'compactActionConversation',
