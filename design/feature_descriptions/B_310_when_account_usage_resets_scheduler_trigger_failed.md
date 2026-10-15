@@ -3,7 +3,7 @@ author:
 id: B_310
 internalId: bc79eb8f-91e4-4681-b503-ad6a119019bc
 title: when account usage resets scheduler trigger failed
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,8 @@ agents:
 policy:
 branch: b_310_when_account_usage_resets_scheduler_trigger_failed
 worktree: 1
+changedFiles:
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
 ---
 
 Tried to set up a scheduler that would trigger an action. the 'when account usage resets' trigger was selected. for the 'claude' agent and the '5-hour' account usage tracker.
