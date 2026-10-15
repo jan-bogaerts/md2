@@ -2215,14 +2215,14 @@
         }
       ],
       "startedAt": "2026-10-15T15:06:17.113Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 203,
           "toolMs": 5983
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-15T15:06:17.113Z"
+        "elapsedMs": 131237,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
