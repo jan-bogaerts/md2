@@ -1,11 +1,26 @@
 {
-  "actionSettings": {},
+  "actionSettings": {
+    "a82ceffa-4aa0-4d06-b6db-ac3edb008575": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
   "conversations": [
     {
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "bc79eb8f-91e4-4681-b503-ad6a119019bc",
       "cardPath": "design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md",
-      "completedAt": null,
+      "completedAt": "2026-10-15T15:02:18.556Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 54032
@@ -547,7 +562,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 39,
-          "timestamp": "2026-10-15T14:36:51.355Z"
+          "timestamp": "2026-10-15T15:02:18.556Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -557,12 +572,12 @@
           "agent": "codex",
           "conversationId": "01a13ffd-91e2-7a61-9fac-234f8bbcb753",
           "createdAt": "2026-10-15T14:36:51.355Z",
-          "lastUsedAt": "2026-10-15T14:36:51.355Z",
+          "lastUsedAt": "2026-10-15T15:02:18.556Z",
           "synchronizedThroughMessageId": "agent-turn-e707222c-eea0-4e54-b9ca-51f78423f83d-turn-1-assistant-3"
         }
       ],
       "startedAt": "2026-10-15T14:35:44.570Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 149,
