@@ -3,7 +3,7 @@ author:
 id: B_309
 internalId: d83805df-4700-49e0-b4af-5d29ee542ce4
 title: claude questions block conversation log
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
