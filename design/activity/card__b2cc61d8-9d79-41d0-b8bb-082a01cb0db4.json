@@ -487,20 +487,28 @@
           "sequence": 35,
           "timestamp": "2026-10-15T07:49:27.584Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Renderer CommitBatcher (Recommended)\nclaude-question-1: Both directions (Recommended)",
+          "id": "agent-turn-a350d2ec-b193-456c-9f2b-c5456aefbc4a-answer-35",
+          "kind": "message",
+          "role": "user",
+          "sequence": 36,
+          "timestamp": "2026-10-15T07:51:16.615Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-5a6257e8-3f9a-4232-a45e-e6b498cac5f5",
       "providerSessions": [],
       "startedAt": "2026-10-15T07:48:34.418Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 13628,
           "toolMs": 24083
         },
         "elapsedMs": 53166,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-15T07:51:16.615Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
