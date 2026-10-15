@@ -3,7 +3,7 @@ author:
 id: B_305
 internalId: 844f1b00-159f-43e2-a2d1-2c6cb40ec39b
 title: Error: ENOENT: no such file or directory, open 'C:
-status: new
+status: design
 owner: 
 affects:
 agents:
