@@ -2430,6 +2430,73 @@
       "startedAt": "2026-10-13T17:19:02.156Z",
       "status": "completed",
       "rootConversationId": "agent-1213e896-6ca2-4a0a-8596-3e8f10de2dd1"
+    },
+    {
+      "commits": [
+        {
+          "commit": "ff0168c90a1d72c903a07ad1df8e62d1d370fe26",
+          "committedAt": "2026-10-15T10:42:50+02:00",
+          "deletions": 2261,
+          "filePaths": [
+            "app/src/components/diagram_view/commands/diagram_save_button.test.tsx",
+            "app/src/components/diagram_view/comparison/diagram_comparison.test.tsx",
+            "app/src/components/diagram_view/comparison/tabbed_diagram_comparison.test.tsx",
+            "app/src/components/diagram_view/comparison/vertical_diagram_comparison.test.tsx",
+            "app/src/components/diagram_view/details/diagram_edge_details_editor.tsx",
+            "app/src/components/diagram_view/details/diagram_fragment_dialog.test.tsx",
+            "app/src/components/diagram_view/details/diagram_fragment_form.tsx",
+            "app/src/components/diagram_view/details/diagram_group_details_editor.tsx",
+            "app/src/components/diagram_view/details/diagram_group_membership_editor.test.tsx",
+            "app/src/components/diagram_view/details/diagram_group_membership_editor.tsx",
+            "app/src/components/diagram_view/details/diagram_metadata_details_editor.tsx",
+            "app/src/components/diagram_view/details/diagram_node_details_editor.tsx",
+            "app/src/components/diagram_view/details/diagram_object_details_dialog.test.tsx",
+            "app/src/components/diagram_view/diagram_view.test.tsx",
+            "app/src/components/diagram_view/editing/diagram_editor_integration.test.tsx",
+            "app/src/components/diagram_view/editing/diagram_editor_rendering.test.tsx",
+            "app/src/components/diagram_view/editing/diagram_inline_metadata_field.tsx",
+            "app/src/components/diagram_view/editing/diagram_inline_node_controls.tsx",
+            "app/src/components/diagram_view/editing/editable_diagram.test.tsx",
+            "app/src/components/diagram_view/editing/editable_diagram_leaves.test.tsx",
+            "app/src/components/diagram_view/editing/use_diagram_geometry.test.tsx",
+            "app/src/components/diagram_view/editing/use_editable_diagram.test.tsx",
+            "app/src/components/diagram_view/formatting/diagram_formatting_controls.tsx",
+            "app/src/components/diagram_view/legend/diagram_legend_details_editor.test.tsx",
+            "app/src/components/diagram_view/legend/diagram_legend_details_editor.tsx",
+            "app/src/components/diagram_view/legend/diagram_legend_entry_editor.tsx",
+            "app/src/components/diagram_view/legend/diagram_legend_entry_row.tsx",
+            "app/src/components/diagram_view/legend/diagram_session_legend_entries.test.tsx",
+            "app/src/components/diagram_view/legend/diagram_session_legend_entries.tsx",
+            "app/src/components/diagram_view/review/diagram_change_review_dialog.test.tsx",
+            "app/src/components/diagram_view/review/diagram_change_review_service.test.ts",
+            "app/src/components/diagram_view/surface/diagram_zoom_viewport.test.tsx",
+            "app/src/services/diagrams/diagram_edit_context.ts",
+            "app/src/services/diagrams/diagram_edit_session_service.test.ts",
+            "app/src/services/diagrams/diagram_edit_session_service.ts",
+            "app/src/services/diagrams/diagram_entity_field_editor.ts",
+            "app/src/services/diagrams/diagram_formatting_editor.ts",
+            "app/src/services/diagrams/diagram_fragment_editor.ts",
+            "app/src/services/diagrams/diagram_geometry_service.test.ts",
+            "app/src/services/diagrams/diagram_legend_editor.ts",
+            "app/src/services/diagrams/diagram_move_service.ts",
+            "app/src/services/diagrams/diagram_object_field_editor.ts",
+            "app/src/services/diagrams/diagram_resize_service.ts",
+            "app/src/services/diagrams/diagram_save_service.test.ts",
+            "app/src/services/diagrams/diagram_selection_service.test.ts",
+            "app/src/services/diagrams/diagram_view_service.test.ts"
+          ],
+          "filesChanged": 46,
+          "insertions": 2355,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-15T10:42:50+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "2ac96102-aba9-4901-a7f3-fcbd78b6b7fc",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

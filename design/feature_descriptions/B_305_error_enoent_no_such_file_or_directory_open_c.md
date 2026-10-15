@@ -12,6 +12,8 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 153402939
 sentryOrganization: elastetic
+branch: b_305_error_enoent_no_such_file_or_directory_open_c
+worktree: 2
 ---
 ## Sentry issue
 
