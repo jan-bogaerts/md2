@@ -3,7 +3,7 @@ author:
 id: F_429
 internalId: b2cc61d8-9d79-41d0-b8bb-082a01cb0db4
 title: no commit batch after conversation view changed
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,18 @@ agents:
 policy:
 branch: f_429_no_commit_batch_after_conversation_view_changed
 worktree: 1
+changedFiles:
+  - app/src/data/commit_batcher.test.ts
+  - app/src/data/commit_batcher.ts
+  - app/src/data/data_types.ts
+  - app/src/services/agents/agent_acknowledgement_service.node.test.ts
+  - app/src/services/agents/agent_acknowledgement_service.ts
+  - app/src/services/data/data_service.ts
+  - app/src/services/github/github_storage_writer.node.test.ts
+  - app/src/services/github/github_storage_writer.ts
+  - design/architecture/data_saving_and_commits.md
+  - desktop/src/project/project_files.js
+  - desktop/src/project/project_files.test.mjs
 ---
 
 When conversation view changes from 'true' to 'false', it does not seem that the activity log is scheduled for being committed. This should be fixed.
