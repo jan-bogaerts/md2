@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__94766c8f-2f01-42ee-b389-7e03c1753946.json
 policy:
-after: e43f6e59-8ffb-4668-8c07-49858b1bfeaa
+after: 2775052a-2e84-4466-a320-155c8ec05bac
 changedFiles:
   - design/feature_descriptions/F_430_agent_task_tracking_setting.md
   - design/feature_descriptions/F_431_agent_task_list_model_and_run_update.md

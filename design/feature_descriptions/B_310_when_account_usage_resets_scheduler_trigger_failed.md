@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__bc79eb8f-91e4-4681-b503-ad6a119019bc.json
 policy:
-branch: b_310_when_account_usage_resets_scheduler_trigger_failed
-worktree: 1
 changedFiles:
   - desktop/src/actions/action/action_scheduler_service.test.mjs
 ---

@@ -4647,6 +4647,45 @@
       "startedAt": "2026-10-15T15:17:29.821Z",
       "status": "completed",
       "rootConversationId": "agent-e648bcfe-7795-4b91-8ff3-fd1d02f75362"
+    },
+    {
+      "commits": [
+        {
+          "commit": "7fad8230e97b2bcbf0f637913cc2f71f7baae95f",
+          "committedAt": "2026-10-15T17:35:58+02:00",
+          "deletions": 78,
+          "filePaths": [
+            "app/src/components/actions/agent/action_prompt_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_defaults.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_defaults.ts",
+            "app/src/components/actions/run/popup/agent_action.tsx",
+            "app/src/components/actions/run/popup/command_action.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_owner.test.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_owner.tsx",
+            "app/src/components/actions/run/schedule/active_schedules_dialog.test.tsx",
+            "app/src/components/actions/run/schedule/active_schedules_dialog.tsx",
+            "app/src/data/action_schedule_types.node.test.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "desktop/src/actions/action/action_scheduler_service.js",
+            "desktop/src/actions/action/action_scheduler_service.test.mjs",
+            "desktop/src/actions/schedule/schedule_store.js",
+            "desktop/src/actions/schedule/schedule_store.test.mjs",
+            "shared/action_schedules.d.mts",
+            "shared/action_schedules.mjs"
+          ],
+          "filesChanged": 18,
+          "insertions": 359,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-15T17:35:58+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "bc79eb8f-91e4-4681-b503-ad6a119019bc",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
