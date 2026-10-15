@@ -1712,14 +1712,14 @@
         }
       ],
       "startedAt": "2026-10-15T15:02:22.907Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 38168,
           "toolMs": 57173
         },
-        "elapsedMs": 132670,
-        "runningStartedAt": "2026-10-15T15:07:27.633Z"
+        "elapsedMs": 200953,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
@@ -1731,13 +1731,13 @@
         "costUsd": 1.1819282
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     },
     {
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "bc79eb8f-91e4-4681-b503-ad6a119019bc",
       "cardPath": "design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md",
-      "completedAt": null,
+      "completedAt": "2026-10-15T15:09:03.436Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 103222
@@ -2659,7 +2659,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 65,
-          "timestamp": "2026-10-15T15:08:28.350Z"
+          "timestamp": "2026-10-15T15:09:03.436Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2669,12 +2669,12 @@
           "agent": "codex",
           "conversationId": "01a14019-881a-7410-a118-1d0efd4886ea",
           "createdAt": "2026-10-15T15:08:28.350Z",
-          "lastUsedAt": "2026-10-15T15:08:28.350Z",
+          "lastUsedAt": "2026-10-15T15:09:03.436Z",
           "synchronizedThroughMessageId": "agent-turn-72097030-e452-4291-a1ec-3a9764a1cec0-turn-1-assistant-3"
         }
       ],
       "startedAt": "2026-10-15T15:06:17.113Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 203,
