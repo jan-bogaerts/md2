@@ -15,24 +15,29 @@ When claude asked a question and we answered, the conversation log stops showing
 
 ## Current state
 
-* Claude sends assistant text twice: first as incremental `stream_event` frames, then as an authoritative aggregated `assistant` frame containing the complete message.
-* `AskUserQuestion` pauses that stream. After the answer, Claude can re-deliver the pre-question aggregate and begin another message. Thinking or tool blocks can also change the text block's array index between streamed and aggregated forms.
-* Conversation output is updated by stable assistant-item identity. `AgentRunnerService` maps that identity to one transcript entry, and `ActionRunRegistry` applies the resulting indexed update to the live conversation shown by `ActionConversationChatlogTracker`.
-* If the Claude adapter loses or changes a text item's identity across the pause, it starts or replaces the wrong transcript entry. Later indexed updates then fail identity or ordering checks, so Claude continues but the visible conversation stops receiving new messages.
+* `AgentRunnerService` owns the canonical `AgentConversation.entries` array. Streaming assistant and provider-event updates carry their exact backend `entryIndex`; `ActionRunRegistry` applies each update at that index and rejects an identity or sequence mismatch.
+* Since commit `0d18f34d7e5326d915637f74187e8342cd80df1a` on 2026-09-06, `handleQuestion` appends an `agentQuestion` event to the backend conversation. This entry persists the pending questions so they can be restored after restart.
+* The live question notification does not send that transcript entry. `ActionRun` publishes an `agentQuestion` update containing only questions and request id, and `ActionRunRegistry` only sets the question box. Its live conversation therefore becomes one entry shorter than the backend conversation.
+* Answering appends the answer message on both sides but does not repair that offset. The next backend `agentOutput` index is one greater than the renderer's append position. `updateAgentOutputAtIndex` rejects it; since commit `2cc2a439d06756c778e8c6bfaa19f05a27987d5c` on 2026-10-08, the registry catches the error, logs `[action:agentOutput]`, and drops the conversation update. Every later indexed update remains offset, so the live conversation appears frozen while Claude and the backend continue.
+* `ActionConversationChatlogTracker` already hides `agentQuestion` transcript events because the question box is their visible UI. Keeping the hidden entry in the live conversation will preserve index alignment without adding a duplicate row.
+* Claude's streamed and aggregated text reconciliation already has focused `AskUserQuestion` coverage. It is not the failing layer.
 
 ## implementation details
 
-* In `agent_claude_streaming_adapter.js`, identify each text item by Claude message id plus its ordinal among text blocks, not by the block's array index. A text ordinal is its zero-based position among text blocks only; thinking and tool blocks do not affect it. Namespace sub-agent items by their stream key.
-* Keep root assistant text-item metadata for the whole turn, including its paragraph separator. Do not clear it when the next Claude message starts or when a question is answered. Clear it only when the root `result` ends the turn.
-* Emit `assistantStarted` once per text-item identity. Reconcile every aggregated copy through `assistantCompleted`: replace the matching streamed entry, create one entry when no streamed copy exists, and treat repeated aggregates as updates to that same entry.
-* Keep question submission, persisted `agentQuestion` and answer entries, conversation status transitions, and renderer grouping unchanged. This fix concerns Claude output correlation, not question lifecycle or conversation identity.
-* Add a regression sequence to `agent_streaming_adapter.test.mjs`: stream text, receive `AskUserQuestion`, answer it, re-deliver the earlier aggregate with a shifted text-block index, then deliver later assistant text. Assert one transcript item per Claude text item and continued output after the answer. Cover repeated aggregates and an aggregate-only post-question message.
-* Add focused runner coverage proving reconciled items retain distinct transcript indexes and a later item remains appendable after an earlier item is finalized. Existing non-question Claude, Codex, sub-agent, approval, and persisted-question behavior must remain unchanged.
+* Change `appendQuestionEntry` in `agent_streaming_event_handlers.js` to return the created event and its index after appending it to `run.conversation.entries`.
+* For a newly received live question, keep checkpoint persistence first. After persistence succeeds, emit the returned entry through the existing `{ entryIndex, event, type: 'agentEvent' }` path before publishing the `question` update. `ActionRun` and `ActionRunRegistry` already forward and apply this granular transcript update; no new update type is needed.
+* Do not emit another transcript entry when `handleSessionReady` restores a pending question. The `agentStarted` conversation snapshot already contains its persisted `agentQuestion` entry; `sessionReady` should only restore the question box.
+* Keep `conversationEventIsVisible` unchanged so `agentQuestion` remains hidden from the transcript. Keep strict index, message identity, and sequence validation unchanged; they correctly expose backend-renderer divergence.
+* This uses the generic agent-question path and therefore fixes any provider that sends a structured live question, including Claude. Do not change Claude stream correlation, answer submission, dismissal, status transitions, or conversation identity.
+* Add `agent_runner_state.test.mjs` coverage asserting that a new question emits one indexed `agentEvent` matching the entry persisted in the backend conversation.
+* Add `action_run_registry.node.test.ts` regression sequences for question then answer then assistant output, and question then dismissal then assistant output. Assert backend indexes append successfully and later messages remain in the live conversation.
+* Keep or extend chatlog tracker coverage proving `agentQuestion` exists in canonical entries but renders no transcript row. Add restored-question coverage proving `sessionReady` does not duplicate the entry.
 
 ## acceptance criteria
 
-* After a user answers a live Claude question, the conversation log immediately shows the answer and every later Claude message in provider order.
-* Pre-question assistant text appears once. Re-delivered Claude aggregates update that text without duplicating it or replacing a later message.
-* Thinking or tool blocks before a text block do not change which transcript entry receives the completed text.
-* Multiple questions in one turn and repeated aggregated frames do not stop, duplicate, or reorder later conversation output.
-* Finishing the turn clears correlation state; output from a later turn cannot update entries from the previous turn.
+* Backend and live renderer conversations contain the same ordered entries and indexes throughout a live question, answer, or dismissal.
+* After a user answers or dismisses a live Claude question, every later assistant message and provider event appears immediately in the conversation log in backend order.
+* The canonical live conversation contains exactly one `agentQuestion` event for each question request, but the conversation transcript shows no extra question row.
+* Restarting with a persisted pending question restores the question box without duplicating its `agentQuestion` entry.
+* Index, message identity, and sequence mismatches remain rejected and logged; the fix does not translate indexes or add compatibility offsets.
+* Existing non-question output, Claude aggregate reconciliation, Codex questions, approvals, queued prompts, and persisted conversation behavior remain unchanged.
