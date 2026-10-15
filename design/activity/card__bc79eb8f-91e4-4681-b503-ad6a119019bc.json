@@ -601,7 +601,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "bc79eb8f-91e4-4681-b503-ad6a119019bc",
       "cardPath": "design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md",
-      "completedAt": null,
+      "completedAt": "2026-10-15T15:09:47.470Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 64099
@@ -1679,7 +1679,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 82,
-          "timestamp": "2026-10-15T15:08:35.916Z"
+          "timestamp": "2026-10-15T15:09:47.470Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1707,12 +1707,12 @@
           "agent": "codex",
           "conversationId": "01a1401a-9ad2-7f12-94ac-655955387da1",
           "createdAt": "2026-10-15T15:08:35.916Z",
-          "lastUsedAt": "2026-10-15T15:08:35.916Z",
+          "lastUsedAt": "2026-10-15T15:09:47.470Z",
           "synchronizedThroughMessageId": "agent-turn-670bd186-deec-456c-898f-097cf7d02275-turn-1-assistant-2"
         }
       ],
       "startedAt": "2026-10-15T15:02:22.907Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 38168,
@@ -1731,7 +1731,7 @@
         "costUsd": 1.1819282
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     },
     {
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
@@ -2757,13 +2757,13 @@
         "agent-87f04e2a-d43d-412b-ac40-3cbcb7d426f6"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-cf1b4643-f87e-4ad9-9fc9-d6d5aef75f88",
       "origin": {
@@ -2772,9 +2772,9 @@
       },
       "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "rootActionLabel": "investigate",
-      "rootConversationId": "agent-87f04e2a-d43d-412b-ac40-3cbcb7d426f6",
       "startedAt": "2026-10-15T15:06:17.112Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-87f04e2a-d43d-412b-ac40-3cbcb7d426f6"
     }
   ],
   "version": 5
