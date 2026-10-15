@@ -636,20 +636,28 @@
           "sequence": 47,
           "timestamp": "2026-10-15T07:59:02.505Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: New write-only save\nclaude-question-1: is it possible to have a dirty editor without being in the commit batcher? if so, how is this possible?",
+          "id": "agent-turn-83fb5e8b-5d67-4bd1-9950-9809ec82e310-answer-47",
+          "kind": "message",
+          "role": "user",
+          "sequence": 48,
+          "timestamp": "2026-10-15T08:01:22.109Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-7438d247-7b34-4cb8-a13c-aa59f3d63be4",
       "providerSessions": [],
       "startedAt": "2026-10-15T07:57:48.729Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 21415,
           "toolMs": 32083
         },
         "elapsedMs": 73776,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-15T08:01:22.109Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
