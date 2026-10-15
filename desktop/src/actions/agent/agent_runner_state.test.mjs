@@ -212,7 +212,7 @@ describe('AgentRunnerService published run status', () => {
 
         expect(run.conversation.status).toBe('waitingForInput');
         expect(service.hasPendingInteraction('run-1')).toBe(true);
-        expect(emittedStatuses(onEvent, 'agentEvent')).toEqual(['waitingForInput']);
+        expect(emittedStatuses(onEvent, 'agentEvent')).toEqual(['waitingForInput', 'waitingForInput']);
         expect(emittedStatuses(onEvent, 'usage')).toEqual(['waitingForInput']);
         expect(emittedStatuses(onEvent, 'output')).toEqual(['waitingForInput', 'waitingForInput']);
     });
@@ -1415,6 +1415,41 @@ describe('AgentRunnerService state handling', () => {
                 status: 'waitingForInput',
             }),
         }));
+        const agentEvent = run.onEvent.mock.calls.find(([emittedEvent]) => emittedEvent.type === 'agentEvent')[0];
+        expect(agentEvent).toMatchObject({ entryIndex: 0, event: run.conversation.entries[0], type: 'agentEvent' });
+        expect(persistConversationCheckpoint.mock.invocationCallOrder[0])
+            .toBeLessThan(run.onEvent.mock.invocationCallOrder[0]);
+    });
+
+    it('restores the question box without duplicating its transcript entry', async () => {
+        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });
+        const questions = [{ id: 'choice', question: 'How wide should the fix be?' }];
+        const questionEntry = { content: '', id: 'run-1-question-0', kind: 'event', questions, sequence: 1, timestamp: '2026-10-15T12:00:00.000Z', type: 'agentQuestion' };
+        const run = {
+            conversation: { entries: [questionEntry], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 'restored:conversation-1',
+            pendingQuestions: questions,
+            persistence: Promise.resolve(),
+            restoredQuestions: true,
+            sessionReady: false,
+            streaming: true,
+            streamingAdapter: {},
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', { type: 'sessionReady' });
+
+        expect(run.conversation.entries).toEqual([questionEntry]);
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            questions,
+            requestId: 'restored:conversation-1',
+            type: 'question',
+        }));
+        expect(run.onEvent.mock.calls.some(([emittedEvent]) => emittedEvent.type === 'agentEvent')).toBe(false);
     });
 
     it('orders the dismissal entry after the recorded question entry', async () => {

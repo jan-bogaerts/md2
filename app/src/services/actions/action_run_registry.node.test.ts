@@ -742,6 +742,118 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('keeps backend indexes aligned after a question is answered', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const userMessage = {
+            content: 'Plan', id: 'message-1', kind: 'message' as const, role: 'user' as const,
+            sequence: 1, timestamp: 'now',
+        }
+        const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
+        const questionEvent = {
+            content: '', id: 'question-1', kind: 'event' as const, questions, sequence: 2,
+            timestamp: 'question-time', type: 'agentQuestion',
+        }
+        const answerMessage = {
+            content: 'Approved', id: 'message-2', kind: 'message' as const, role: 'user' as const,
+            sequence: 3, timestamp: 'answer-time',
+        }
+
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation([userMessage]), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { entryIndex: 1, event: questionEvent, kind: 'agentEvent' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions, requestId: 7 },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { kind: 'agentQuestionAnswer', requestId: 7, userMessage: answerMessage },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: 'Continuing', entryIndex: 3, kind: 'agentOutput', messageId: 'assistant-1', sequence: 4 },
+        })
+
+        expect(getRun(service)).toMatchObject({
+            conversation: {
+                entries: [
+                    userMessage,
+                    questionEvent,
+                    answerMessage,
+                    expect.objectContaining({ content: 'Continuing', id: 'assistant-1', sequence: 4 }),
+                ],
+            },
+            question: null,
+        })
+        expect(getRun(service).conversation?.entries.filter((entry) => entry.kind === 'event' && entry.type === 'agentQuestion'))
+            .toEqual([questionEvent])
+        service.stop()
+    })
+
+    it('keeps backend indexes aligned after a question is dismissed', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const userMessage = {
+            content: 'Plan', id: 'message-1', kind: 'message' as const, role: 'user' as const,
+            sequence: 1, timestamp: 'now',
+        }
+        const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
+        const questionEvent = {
+            content: '', id: 'question-1', kind: 'event' as const, questions, sequence: 2,
+            timestamp: 'question-time', type: 'agentQuestion',
+        }
+        const dismissedEvent = {
+            content: '', id: 'dismissed-1', kind: 'event' as const, label: 'Questions dismissed',
+            sequence: 3, status: 'completed', timestamp: 'dismissed-time', type: 'questionsDismissed',
+        }
+
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation([userMessage]), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { entryIndex: 1, event: questionEvent, kind: 'agentEvent' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions, requestId: 7 },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { event: dismissedEvent, kind: 'agentQuestionDismissed', requestId: 7 },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: 'Continuing', entryIndex: 3, kind: 'agentOutput', messageId: 'assistant-1', sequence: 4 },
+        })
+
+        expect(getRun(service)).toMatchObject({
+            conversation: {
+                entries: [
+                    userMessage,
+                    questionEvent,
+                    dismissedEvent,
+                    expect.objectContaining({ content: 'Continuing', id: 'assistant-1', sequence: 4 }),
+                ],
+            },
+            question: null,
+        })
+        expect(getRun(service).conversation?.entries.filter((entry) => entry.kind === 'event' && entry.type === 'agentQuestion'))
+            .toEqual([questionEvent])
+        service.stop()
+    })
+
     it('logs dismissal and clears only the matching question request', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)

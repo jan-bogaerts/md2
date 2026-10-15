@@ -266,6 +266,7 @@ describe('ActionConversationChatlogTracker', () => {
         const { tracker } = setup(run('run-1', value, 'waitingForInput'))
         tracker.load()
 
+        expect(tracker.getConversation()?.entries).toEqual([user, questionEntry])
         const renderedEntries = [...tracker.getStableGroups(), ...tracker.getEvolvingGroups()]
             .flatMap((group) => (group.kind === 'entry' ? [group.entry] : group.kind === 'terminalToolCalls' ? group.entries : []))
 
