@@ -601,7 +601,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "bc79eb8f-91e4-4681-b503-ad6a119019bc",
       "cardPath": "design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md",
-      "completedAt": null,
+      "completedAt": "2026-10-15T15:17:12.593Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 76373
@@ -1837,7 +1837,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 95,
-          "timestamp": "2026-10-15T15:11:11.899Z"
+          "timestamp": "2026-10-15T15:17:12.593Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1865,19 +1865,19 @@
           "agent": "codex",
           "conversationId": "01a1401a-9ad2-7f12-94ac-655955387da1",
           "createdAt": "2026-10-15T15:08:35.916Z",
-          "lastUsedAt": "2026-10-15T15:11:11.899Z",
+          "lastUsedAt": "2026-10-15T15:17:12.593Z",
           "synchronizedThroughMessageId": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-turn-1-assistant-3"
         }
       ],
       "startedAt": "2026-10-15T15:02:22.907Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 38220,
           "toolMs": 57829
         },
-        "elapsedMs": 200953,
-        "runningStartedAt": "2026-10-15T15:10:37.656Z"
+        "elapsedMs": 235196,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
