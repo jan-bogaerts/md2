@@ -2,6 +2,10 @@ import { dataService } from '../../../../services/data/data_service';
 import { worktreeService } from '../../../../services/project/worktree_service';
 import { isSequenceCardAssigned } from './card_sequence_eligibility';
 import type { SequenceScheduleRegistrationRequest } from '../../../../data/electron_action_bridge'
+import type { ActionDefinition } from '../../../../data/action_types';
+import type { AgentProfile, AgentSelection, PermissionMode, SpeedMode, ThinkingLevel } from '../../../../data/agent_profiles';
+import { validateAgentSelection, validateThinkingLevel } from '../../../../data/agent_profiles';
+import { projectAgentSelection, resolveAgentSelectionState, resolveAgentSettings, selectAgent, selectModel, selectPermissionMode, selectSpeedMode, selectThinkingLevel, type AgentSelectionState } from '../../../../data/agent_selection';
 import type { ScheduleTrigger } from '../../../../data/action_schedule_types'
 import type { ActionScheduleTriggerSources } from '../schedule/action_schedule_trigger'
 import { createScheduleTrigger } from '../schedule/action_schedule_trigger'
@@ -22,6 +26,7 @@ interface CardSequenceCardSource {
 export interface CardSequenceDraftSnapshot {
     cardSources: readonly CardSequenceCardSource[];
     actionId: string
+    executionSelection: AgentSelectionState | null;
     agent: string
     canSubmit: boolean
     cardInternalId: string
@@ -41,6 +46,15 @@ export interface CardSequenceDraftSnapshot {
 
 interface CardSequenceValidationSources {
     actionIds: readonly string[]
+    actions?: readonly ActionDefinition[];
+    agentProfiles?: AgentProfile[];
+    desktopSelection?: AgentSelectionState;
+    agentAvailability?: Record<string, { available: boolean; error?: string | null }>;
+    availabilityError?: string | null;
+    availabilityLoading?: boolean;
+    modelIds?: readonly string[];
+    modelLoading?: boolean;
+    modelError?: string | null;
     cardsAvailable: boolean
     readyStates: readonly string[]
     triggerSources: ActionScheduleTriggerSources
@@ -58,6 +72,7 @@ function initialSnapshot(): CardSequenceDraftSnapshot {
     return {
         cardSources: [],
         actionId: '',
+        executionSelection: null,
         agent: '',
         canSubmit: false,
         cardInternalId: '',
@@ -118,6 +133,23 @@ function validationMessage(snapshot: CardSequenceDraftSnapshot, sources: CardSeq
     }
     if (!sources.cardsAvailable) return 'Every sequence card must remain active'
     if (!snapshot.actionId || !sources.actionIds.includes(snapshot.actionId)) return 'Select an action available for every card'
+    const action = sources.actions?.find(({ id }) => id === snapshot.actionId);
+    if (action?.type === 'agent') {
+        if (!snapshot.executionSelection) return 'Select sequence execution agent settings';
+        const selection = projectAgentSelection(snapshot.executionSelection, sources.agentProfiles);
+        try {
+            validateAgentSelection(sources.agentProfiles ?? [], selection, 'sequence execution settings');
+        } catch (error) {
+            return error instanceof Error ? error.message : 'Invalid sequence execution settings';
+        }
+        if (sources.availabilityLoading) return 'Checking agent availability';
+        if (sources.availabilityError) return sources.availabilityError;
+        const availability = sources.agentAvailability?.[selection.agent];
+        if (!availability?.available) return availability?.error ?? `Agent executable is unavailable for ${selection.agent}`;
+        if (sources.modelLoading) return 'Loading agent models';
+        if (sources.modelError) return sources.modelError;
+        if (!selection.model || !sources.modelIds?.includes(selection.model)) return `Unsupported sequence model: ${selection.model || '(none)'}`;
+    }
     if (!snapshot.readyState || !sources.readyStates.includes(snapshot.readyState)) return 'Select a configured ready state'
     if (snapshot.triggerType === 'card-state' && snapshot.cardInternalIds.includes(snapshot.cardInternalId)) {
         return 'Trigger card cannot be part of the sequence'
@@ -129,6 +161,28 @@ function validationMessage(snapshot: CardSequenceDraftSnapshot, sources: CardSeq
     }
 
     return null
+}
+
+function initialExecutionSelection(action: ActionDefinition, sources: CardSequenceValidationSources): AgentSelectionState {
+    const desktopSelection = sources.desktopSelection;
+    if (!desktopSelection) throw new Error('Desktop agent selection is unavailable');
+    const profiles = sources.agentProfiles ?? [];
+    const agent = action.agent ?? desktopSelection.activeAgent;
+    const settings = resolveAgentSettings(agent, profiles, [desktopSelection]);
+    const definitionSelection: AgentSelectionState = {
+        activeAgent: agent,
+        permissionMode: action.permissionMode ?? desktopSelection.permissionMode,
+        settingsByAgent: {
+            ...desktopSelection.settingsByAgent,
+            [agent]: {
+                ...settings,
+                model: action.model ?? settings.model,
+                thinkingLevel: validateThinkingLevel(action.thinkingLevel ?? settings.thinkingLevel, 'sequence action'),
+                speedMode: action.speedMode ?? settings.speedMode ?? 'default',
+            },
+        },
+    };
+    return resolveAgentSelectionState(definitionSelection, profiles, [desktopSelection]);
 }
 
 /** Owns one ordered card-sequence dialog draft and its derived validity. */
@@ -179,12 +233,17 @@ export class CardSequenceDraftService extends EventTarget {
     updateSources(sources: CardSequenceValidationSources) {
         this.sources = sources
         const actionId = sources.actionIds.includes(this.snapshot.actionId) ? this.snapshot.actionId : ''
+        const action = sources.actions?.find(({ id }) => id === actionId);
+        const executionSelection = action?.type === 'agent'
+            ? this.snapshot.executionSelection ?? (sources.desktopSelection ? initialExecutionSelection(action, sources) : null)
+            : null;
         const readyState = sources.readyStates.includes(this.snapshot.readyState) ? this.snapshot.readyState : ''
-        const nextSnapshot = { ...this.snapshot, actionId, readyState }
+        const nextSnapshot = { ...this.snapshot, actionId, executionSelection, readyState }
         const message = validationMessage(nextSnapshot, this.sources)
         const canSubmit = message === null && nextSnapshot.submitStatus === 'idle'
         if (
             actionId === this.snapshot.actionId
+            && executionSelection === this.snapshot.executionSelection
             && readyState === this.snapshot.readyState
             && message === this.snapshot.validationMessage
             && canSubmit === this.snapshot.canSubmit
@@ -242,7 +301,39 @@ export class CardSequenceDraftService extends EventTarget {
     }
 
     setActionId(actionId: string) {
-        this.publishValidated({ ...this.snapshot, actionId })
+        const action = this.sources.actions?.find(({ id }) => id === actionId);
+        const executionSelection = action?.type === 'agent' && this.sources.desktopSelection
+            ? initialExecutionSelection(action, this.sources)
+            : null;
+        this.publishValidated({ ...this.snapshot, actionId, executionSelection })
+    }
+
+    setExecutionAgent(agent: string) {
+        const selection = this.snapshot.executionSelection;
+        if (!selection) return;
+        const fallbackSources = this.sources.desktopSelection ? [this.sources.desktopSelection] : [];
+        const executionSelection = selectAgent(selection, agent, this.sources.agentProfiles ?? [], fallbackSources);
+        this.publishValidated({ ...this.snapshot, executionSelection });
+    }
+
+    setExecutionModel(model: string) {
+        const selection = this.snapshot.executionSelection;
+        if (selection) this.publishValidated({ ...this.snapshot, executionSelection: selectModel(selection, model) });
+    }
+
+    setExecutionThinkingLevel(thinkingLevel: ThinkingLevel) {
+        const selection = this.snapshot.executionSelection;
+        if (selection) this.publishValidated({ ...this.snapshot, executionSelection: selectThinkingLevel(selection, thinkingLevel) });
+    }
+
+    setExecutionPermissionMode(permissionMode: PermissionMode) {
+        const selection = this.snapshot.executionSelection;
+        if (selection) this.publishValidated({ ...this.snapshot, executionSelection: selectPermissionMode(selection, permissionMode) });
+    }
+
+    setExecutionSpeedMode(speedMode: SpeedMode) {
+        const selection = this.snapshot.executionSelection;
+        if (selection) this.publishValidated({ ...this.snapshot, executionSelection: selectSpeedMode(selection, speedMode) });
     }
 
     setReadyState(readyState: string) {
@@ -281,7 +372,18 @@ export class CardSequenceDraftService extends EventTarget {
         const message = validationMessage(this.snapshot, this.sources)
         if (message) throw new Error(message)
 
+        const selection = this.snapshot.executionSelection
+            ? projectAgentSelection(this.snapshot.executionSelection, this.sources.agentProfiles)
+            : null;
+        const agentSelection: AgentSelection | null = selection
+            ? {
+                agent: selection.agent, model: selection.model, thinkingLevel: selection.thinkingLevel,
+                ...(selection.permissionMode ? { permissionMode: selection.permissionMode } : {}),
+                ...(selection.speedMode !== undefined ? { speedMode: selection.speedMode } : {}),
+            }
+            : null;
         return {
+            ...(agentSelection ? { agentSelection } : {}),
             ...(this.snapshot.worktreeBranch ? { worktreeBranch: this.snapshot.worktreeBranch } : {}),
             actionId: this.snapshot.actionId,
             cardInternalIds: [...this.snapshot.cardInternalIds],

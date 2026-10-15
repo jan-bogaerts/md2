@@ -1,4 +1,5 @@
 import { parseSequenceBranchProgress } from './sequence_branch_progress.mjs';
+import { validatePermissionMode, validateSpeedMode, validateThinkingLevel } from './agent_profiles.mjs';
 
 export const ACTION_SCHEDULES_FILE = '.md2-schedules.json';
 
@@ -145,6 +146,7 @@ function parseSequenceSchedule(schedule, base) {
     if (schedule.branchProgress !== undefined && schedule.worktreeBranch === undefined) throw new Error('Sequence branch progress requires a worktree assignment');
 
     return {
+        ...(schedule.agentSelection === undefined ? {} : { agentSelection: parseSequenceAgentSelection(schedule.agentSelection) }),
         ...(schedule.worktreeBranch === undefined ? {} : { worktreeBranch: requireString(schedule.worktreeBranch, 'worktreeBranch') }),
         ...(schedule.branchProgress === undefined ? {} : { branchProgress: parseSequenceBranchProgress(schedule.branchProgress) }),
         actionCompleted: requireBoolean(schedule.actionCompleted, 'actionCompleted'),
@@ -158,6 +160,17 @@ function parseSequenceSchedule(schedule, base) {
         readyStateMet: requireBoolean(schedule.readyStateMet, 'readyStateMet'),
         ...base,
     };
+}
+
+export function parseSequenceAgentSelection(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid sequence agent selection');
+    if (typeof value.agent !== 'string' || !value.agent) throw new Error('Missing sequence execution agent');
+    if (typeof value.model !== 'string' || !value.model) throw new Error('Missing sequence execution model');
+    const thinkingLevel = validateThinkingLevel(value.thinkingLevel, 'sequence agent selection');
+    const selection = { agent: value.agent, model: value.model, thinkingLevel };
+    if (value.permissionMode !== undefined) selection.permissionMode = validatePermissionMode(value.permissionMode, 'sequence agent selection');
+    if (value.speedMode !== undefined) selection.speedMode = validateSpeedMode(value.speedMode, 'sequence agent selection');
+    return selection;
 }
 
 function parseSchedule(value) {

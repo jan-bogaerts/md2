@@ -1,5 +1,6 @@
 import type { SequenceBranchProgress } from './sequence_branch_progress.mjs';
 import type { ActionContext } from '../app/src/data/action_context'
+import type { AgentSelection } from './agent_profiles.mjs'
 
 export const ACTION_SCHEDULES_FILE: '.md2-schedules.json'
 
@@ -48,6 +49,7 @@ export interface ActionSchedule extends ScheduleBase {
 }
 
 export interface SequenceSchedule extends ScheduleBase {
+    agentSelection?: AgentSelection
     worktreeBranch?: string;
     branchProgress?: SequenceBranchProgress;
     actionCompleted: boolean
@@ -70,3 +72,4 @@ export interface ScheduleFile {
 
 export function parseScheduleFile(value: unknown): ScheduleFile
 export function createScheduleFile(schedules: Schedule[]): ScheduleFile
+export function parseSequenceAgentSelection(value: unknown): import('./agent_profiles.mjs').AgentSelection

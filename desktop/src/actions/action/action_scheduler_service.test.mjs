@@ -229,6 +229,39 @@ async function startProject(scheduler, localGitService) {
 }
 
 describe('ActionSchedulerService', () => {
+    it('validates and persists agent settings at sequence registration', async () => {
+        const localGitService = createLocalGitService([]);
+        const completion = createDeferred();
+        const actionRunnerService = {
+            agentConfigProvider: () => agentConfig(),
+            loadRootAction: vi.fn(async () => ({ type: 'agent' })),
+            start: vi.fn(async () => 'sequence-run-1'),
+            startProject: vi.fn(),
+            subscribe: vi.fn(),
+            wait: vi.fn(() => completion.promise),
+        };
+        const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true } }));
+        const agentModelCatalogService = {
+            load: vi.fn(async () => ({
+                agent: 'codex', models: [
+                    { id: 'gpt-6-sol', displayName: 'GPT 6 Sol', hidden: false },
+                ],
+            })),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService, agentExecutableAvailability, agentModelCatalogService });
+        await startProject(scheduler, localGitService);
+        const base = { actionId: 'implement', cardInternalIds: ['card-022'], readyState: 'ready', trigger: { type: 'now' } };
+        await expect(scheduler.registerSequenceSchedule(base)).rejects.toThrow('Missing sequence execution agent settings');
+        const agentSelection = { agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval', speedMode: 'fast', thinkingLevel: 'high' };
+        agentExecutableAvailability.mockResolvedValueOnce({ codex: { available: false, error: 'Codex missing' } });
+        await expect(scheduler.registerSequenceSchedule({ ...base, agentSelection })).rejects.toThrow('Codex missing');
+        await expect(scheduler.registerSequenceSchedule({ ...base, agentSelection: { ...agentSelection, model: 'unknown' } }))
+            .rejects.toThrow('Unsupported sequence model: unknown');
+        const schedule = await scheduler.registerSequenceSchedule({ ...base, agentSelection });
+        expect(schedule.agentSelection).toEqual(agentSelection);
+        expect(localGitService.schedules()[0].agentSelection).toEqual(agentSelection);
+        expect(actionRunnerService.start.mock.calls[0][0].runInput).toMatchObject(agentSelection);
+    });
     it('registers pending timers on project load', async () => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' });
         const localGitService = createLocalGitService([schedule]);
@@ -476,6 +509,7 @@ describe('ActionSchedulerService', () => {
             subscribe: vi.fn(),
             allocateRunId: vi.fn(() => 'sequence-run-1'),
             cancel: vi.fn(),
+            loadRootAction: vi.fn(async () => ({ type: 'command' })),
             start: vi.fn(async () => 'sequence-run-1'),
             startProject: vi.fn(),
             wait: vi.fn(() => completion.promise),

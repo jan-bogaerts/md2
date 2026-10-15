@@ -138,6 +138,8 @@ async function confirmCardStateScheduleContinuation(schedule, currentState) {
 }
 
 const actionSchedulerService = new ActionSchedulerService({
+    agentExecutableAvailability: (profiles) => loadAgentExecutableAvailability(profiles, { resolver: agentExecutableResolver }),
+    agentModelCatalogService,
     worktreeService,
     actionRunnerService,
     claudeRuntimeService,

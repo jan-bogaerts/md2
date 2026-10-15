@@ -18,6 +18,11 @@ function progress() {
 }
 
 describe('sequence schedule contract', () => {
+    it('retains execution agent selection and rejects incomplete selections', () => {
+        const agentSelection = { agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval', speedMode: 'default', thinkingLevel: 'high' };
+        expect(parseScheduleFile({ schedules: [sequence({ agentSelection })] }).schedules[0].agentSelection).toEqual(agentSelection);
+        expect(() => parseScheduleFile({ schedules: [sequence({ agentSelection: { agent: 'codex' } })] })).toThrow('Missing sequence execution model');
+    });
     it('preserves existing unassigned schedules without adding branch behavior', () => {
         const stored = sequence();
         expect(parseScheduleFile({ schedules: [stored] }).schedules).toEqual([stored]);

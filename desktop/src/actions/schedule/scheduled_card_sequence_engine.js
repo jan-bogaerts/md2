@@ -169,7 +169,7 @@ class ScheduledCardSequenceEngine {
         if (!this.isCurrent() || this.cancelledSchedules.has(schedule.id)) return;
         try {
             await this.actionRunnerService.start(
-                { actionId: activeSchedule.actionId, context, runInput: { conversationId } },
+                { actionId: activeSchedule.actionId, context, runInput: { ...activeSchedule.agentSelection, conversationId } },
                 { interactive: false, runId, ...(activeSchedule.worktreeBranch ? { sequenceId: activeSchedule.id } : {}) },
             );
         } catch (error) {

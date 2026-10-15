@@ -66,6 +66,7 @@ export interface ActionScheduleRegistrationRequest {
 }
 
 export interface SequenceScheduleRegistrationRequest {
+    agentSelection?: import('./agent_profiles').AgentSelection;
     worktreeBranch?: string;
     actionId: string
     cardInternalIds: string[]

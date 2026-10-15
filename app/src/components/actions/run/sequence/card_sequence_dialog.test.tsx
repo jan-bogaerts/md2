@@ -24,7 +24,7 @@ vi.mock('@dnd-kit/core', async (importOriginal) => {
 
 const testState = vi.hoisted(() => ({
     actions: [{ description: 'Build selected cards', id: 'build', label: 'Build', prompt: 'Build', type: 'agent' }],
-    register: vi.fn(async () => undefined),
+    register: vi.fn(async (request: unknown) => { void request; }),
 }))
 
 vi.mock('./card_sequence_registration', () => ({ registerCardSequence: testState.register }))
@@ -37,6 +37,18 @@ vi.mock('../../../hooks/use_project_config', () => ({
 }))
 vi.mock('../../../hooks/use_claude_rate_limits', () => ({useClaudeRateLimits: () => ({ receivedAt: null, snapshot: null, stale: false })}))
 vi.mock('../../../hooks/use_codex_rate_limits', () => ({useCodexRateLimits: () => ({ receivedAt: null, snapshot: null, stale: false })}))
+vi.mock('../../../hooks/use_agent_capabilities', () => ({useAgentCapabilities: () => ({availability: {error: null, loading: false, values: { codex: { available: true }, claude: { available: true } }}})}))
+vi.mock('../../../hooks/use_agent_model_catalog', () => ({
+    useAgentModelCatalog: () => ({
+        catalog: {
+            agent: 'codex', models: [
+                { id: 'gpt-6-sol', displayName: 'GPT 6 Sol', hidden: false },
+                { id: 'gpt-5.5', displayName: 'GPT 5.5', hidden: false },
+            ],
+        },
+        error: null, loading: false, refresh: vi.fn(),
+    }),
+}))
 
 function card(id: string, internalId: string): Card {
     return {
@@ -63,7 +75,26 @@ function renderDialog(service: CardSequenceDraftService) {
 }
 
 describe('CardSequenceDialog', () => {
+    it('shows sequence agent choices and submits changed settings', async () => {
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        act(() => { service.addCard('card-1'); service.setActionId('build'); service.setReadyState('ready'); });
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled());
+        expect(screen.getByRole('combobox', { name: 'Execution agent' })).toHaveTextContent('codex');
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Execution model' }));
+        fireEvent.click(screen.getByRole('option', { name: 'GPT 5.5' }));
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Execution thinking level' }));
+        fireEvent.click(screen.getByRole('option', { name: 'high' }));
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Execution permission mode' }));
+        fireEvent.click(screen.getByRole('option', { name: 'Full access — disables approvals' }));
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Execution speed' }));
+        fireEvent.click(screen.getByRole('option', { name: 'Fast' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+        await waitFor(() => expect(testState.register).toHaveBeenCalledWith(expect.objectContaining({agentSelection: {agent: 'codex', model: 'gpt-5.5', permissionMode: 'full-access', speedMode: 'fast', thinkingLevel: 'high'}})));
+    });
     beforeEach(() => {
+        testState.actions[0].type = 'agent';
         dragState.active = null;
         dragState.over = null;
         projectAccessService.setReadOnly(false)
@@ -80,6 +111,19 @@ describe('CardSequenceDialog', () => {
         cardPopupService.clear();
         vi.restoreAllMocks()
     })
+
+    it('hides execution settings for command actions', async () => {
+        testState.actions[0].type = 'command';
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        act(() => { service.addCard('card-1'); service.setActionId('build'); service.setReadyState('ready'); });
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled());
+        expect(screen.queryByRole('group', { name: 'Sequence execution settings' })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+        await waitFor(() => expect(testState.register).toHaveBeenCalled());
+        expect(testState.register.mock.calls[0][0]).not.toHaveProperty('agentSelection');
+    });
 
     it('refreshes choices and invalidates selected cards when worktree assignment changes', async () => {
         const selected = card('F-1', 'card-1');
@@ -215,7 +259,7 @@ describe('CardSequenceDialog', () => {
         await waitFor(() => expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled())
         fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 
-        await waitFor(() => expect(testState.register).toHaveBeenCalledWith({actionId: 'build', cardInternalIds: ['card-1'], readyState: 'ready', trigger: { type: 'now' }}))
+        await waitFor(() => expect(testState.register).toHaveBeenCalledWith({actionId: 'build', agentSelection: {agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval', speedMode: 'default', thinkingLevel: 'medium'}, cardInternalIds: ['card-1'], readyState: 'ready', trigger: { type: 'now' }}))
         await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add card sequence' })).not.toBeInTheDocument())
     })
 

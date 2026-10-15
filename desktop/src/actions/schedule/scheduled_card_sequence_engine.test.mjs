@@ -79,6 +79,19 @@ function createHarness(initialSchedule, statesByCard = { 'card-1': 'todo', 'card
 }
 
 describe('ScheduledCardSequenceEngine', () => {
+    it('uses persisted settings for each card after engine restart', async () => {
+        const agentSelection = { agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval', speedMode: 'fast', thinkingLevel: 'high' };
+        const harness = createHarness(createSequence({ agentSelection }));
+        await harness.engine.activate('sequence-1');
+        expect(harness.actionRunnerService.start.mock.calls[0][0].runInput).toEqual({ ...agentSelection, conversationId: 'agent-1' });
+        harness.runs.get('run-1').resolve({ failure: null, status: 'completed' });
+        await vi.waitFor(() => expect(harness.schedule().actionCompleted).toBe(true));
+        const restarted = createHarness(harness.schedule());
+        await restarted.engine.activate('sequence-1');
+        await restarted.engine.handleCardStateChange('card-1', 'ready');
+        expect(restarted.actionRunnerService.start.mock.calls[0][0].runInput).toMatchObject(agentSelection);
+        expect(restarted.schedule().agentSelection).toEqual(agentSelection);
+    });
     it('runs cards in order after state-before-completion satisfies both conditions', async () => {
         const harness = createHarness(createSequence());
 
