@@ -1245,14 +1245,14 @@
         }
       ],
       "startedAt": "2026-10-15T15:02:22.907Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 38077,
           "toolMs": 55030
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-15T15:02:22.907Z"
+        "elapsedMs": 132670,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
