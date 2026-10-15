@@ -57,6 +57,28 @@
         "timestamp": "2026-10-13T13:00:00.000Z",
         "type": "at"
       }
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "context": {
+        "kind": "card",
+        "file": "design/feature_descriptions/F_380_add_possibility_to_support_task_tracking_tool.md",
+        "title": "add possibility to support task-tracking tool",
+        "cardInternalId": "94766c8f-2f01-42ee-b389-7e03c1753946",
+        "type": "feature",
+        "state": "design"
+      },
+      "createdAt": "2026-10-13T17:26:30.267Z",
+      "id": "schedule-1791912390267-qo8ombgp",
+      "kind": "action",
+      "status": "failed",
+      "trigger": {
+        "agent": "claude",
+        "expectedResetAt": "2026-10-13T18:50:00.000Z",
+        "limitId": "default",
+        "type": "account-reset",
+        "windowId": "five_hour"
+      }
     }
   ]
 }
