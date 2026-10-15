@@ -601,10 +601,10 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "bc79eb8f-91e4-4681-b503-ad6a119019bc",
       "cardPath": "design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md",
-      "completedAt": "2026-10-15T15:09:47.470Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 64099
+        "usedTokens": 76373
       },
       "entries": [
         {
@@ -1680,6 +1680,164 @@
           "role": "assistant",
           "sequence": 82,
           "timestamp": "2026-10-15T15:09:47.470Z"
+        },
+        {
+          "content": "ok, update the card with the required changes",
+          "id": "submission-2e5e0571-69da-43ab-94a9-e1bcbd1e0736",
+          "kind": "message",
+          "role": "user",
+          "sequence": 83,
+          "timestamp": "2026-10-15T15:10:37.656Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-event-84",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb9330b8eed108b016ad0ecf4fb6c819184f8ff95eb057120",
+          "sequence": 84,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:10:43.468Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’m using the technical-writer skill because this is a focused design-document update. I’ll align the card with the verified scheduler and prompt data flow, then edit only that card.\n\n",
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 85,
+          "timestamp": "2026-10-15T15:10:44.096Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "durationMs": 61,
+          "exitCode": 0,
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-event-86",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "providerItemId": "exec-4acfe921-32b1-49de-845c-7e407940981c",
+          "sequence": 86,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:10:46.091Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-event-87",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb9330b8eed108b016ad0ecf8e8048191841e5f732802ff66",
+          "sequence": 87,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:10:47.397Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/architecture/architectural_decisions.md'; rg -n \\\"schedule|prompt|action run|runInput|scheduler\\\" design/architecture design/feature_descriptions | Select-Object -First 160\"",
+          "content": "---\ninternalId: 583d9c88-b71c-4560-92ad-3e23d33bf1d0\n---\n\n# Architectural decisions\n\nProject-wide decisions for MDÂ². The app is a Vite React web app in `app/`; `desktop/` is a separate Electron host that can load the website and expose local capabilities through preload bridges.\n\n## File naming\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Code files use lowercase snake_case names. | All code files in `app/src/` and `desktop/` use lowercase words separated by underscores, for example `github_auth_service.ts`, `project_workspace.tsx`, and `local_git_service.js`. Test files keep the same base name with `.test` before the extension, for example `github_auth_service.test.ts`. Exported symbols keep normal TypeScript/JavaScript casing such as `GithubAuthService`, `ProjectWorkspace`, and `useGithubAuth`. | A single file naming convention avoids mixed PascalCase, camelCase, and hyphenated filenames, and keeps imports predictable across Windows and case-sensitive environments. |\n\n## Services and state\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Global singleton services own domain state and logic. | Each domain is a class in `src/services/**`, instantiated once at module level and exported, for example `export const indexesService = new IndexesService()`. React components do not own domain state. | Keeps business logic out of components, testable without a DOM, and shared across windows/views without Redux, Zustand, or Context stores. |\n| Service location follows usage scope. | If a service is specific to one UI element and used only there, place it beside that component. Generic or shared services, such as logging, database access, config, storage, or cross-screen domain logic, belong in `src/services/`. | Keeps component-owned behavior local while preserving `src/services/` for reusable application services. |\n| Consumers use direct imports or the service injector. | Direct import when no import cycle exists; use `src/services/service_injector.js` when a cycle would occur. Every global singleton service registers itself in its constructor with `inj.register('myService', this)`. | The service graph is dense; the injector is a bare global registry that defers resolution to call time. |\n| Services have a two-phase lifecycle. | Constructors only register and set unloaded state such as `null`. Config-dependent or service-dependent work runs in `init()`, `start()`, app bootstrap (`App.jsx`), or a `loaded` lifecycle event. `configService.config` is private; callers use `get`, `set`, and `clear`. | Module evaluation order is not guaranteed, so `configService` is not usable at import time. Reading config in a constructor is a bug. |\n\n## Card state\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| The application has one `Card` domain type. | Do not create separate canonical, project, snapshot, or editor card types. The card-owning service holds the loaded cards and exposes focused operations that change only the requested field. React snapshots and editor drafts are read values; they must never replace or merge a complete card. Parser bookkeeping may remain private persistence metadata, but it is not another card model. | One card concept gives state a clear owner and prevents stale copies from overwriting newer worktree, activity, ordering, policy, or body values. |\n| Card UI subscribes at field level. | A component subscribes only to the primitive or stable reference it renders, using granular `EventTarget` events and `useSyncExternalStore`. Do not clone or stringify a complete card to detect a field change. Group fields only in a deliberately small, stable projection when they are always rendered together. | A one-field change allocates and rerenders only what consumes that field, keeping memory use bounded and the UI responsive. |\n| Cards are serialized only at persistence boundaries. | Mutate the owned `Card` through a focused operation, then serialize its current state when the persistence batch flushes. Editor changes update only the edited field. Activity linking updates only activity refe\n[35909 characters omitted]\nure_descriptions\\F_426_assign_agent_and_model_to_sequence.md:50:* Account-reset trigger provider remains independent of execution agent. Existing schedules without selection still load and run as before.\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:5:title: add schedule overview to status bar\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:13:  - app/src/components/shell/active_schedules_indicator.test.tsx\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:14:  - app/src/components/shell/active_schedules_indicator.tsx\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:18:it is currently difficult to track if there are cards and/or sequences scheduled.\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:22:when user clicks on it, show popup with list of current schedules and sequences, same or similar as the one currently shown when accessed from app bar's run tab\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:25:* `StatusBar` (`app/src/components/shell/status_bar.tsx`) is desktop only (`MainWindow` renders it when not mobile). It holds card count, sync, usage, rate limits, remote control, keyboard, pinned conversations and running agents. No schedule indicator.\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:26:* Active schedules are only reachable from app bar → `Run` tab → `Actions` section → `View active schedules` icon button (`app_menu.tsx`). It opens `ActiveSchedulesDialog` (`components/actions/run/schedule/active_schedules_dialog.tsx`), a modal with list, details, `Delete` and `Open`. The button is disabled when no project is open or `hasActiveScheduleBackend()` is false.\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:27:* `activeScheduleService` (`services/actions/active_schedule_service.ts`) owns the data. It starts at app startup and reloads when the project changes or when `<actionsFolder>/<ACTION_SCHEDULES_FILE>` changes. Its snapshot `items` holds both action schedules and sequence schedules. \"Active\" means status `pending` or `running`; the desktop `listActiveSchedules()` filters out the rest. The service publishes the whole snapshot on a single `changed` event, so selection, expand and delete changes in the dialog also fire it.\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:32:* New `app/src/components/shell/active_schedules_indicator.tsx` → `ActiveSchedulesIndicator`:\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:35:  * Button: same style as `PinnedConversationsIndicator` (neutral pill, `height: 22`, `fontSize: 11.5`), `ScheduleOutlined` start icon, text = count, `aria-label=\"Active schedules: <count>\"`.\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:42:  * Schedule finishes or is deleted: the schedules file changes → service refresh → count drops.\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:48:* With a local Electron project open, the status bar shows a schedule icon with the count of pending and running schedules (actions and sequences), `0` included.\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:49:* The indicator is hidden when no project is open or the schedule backend is unavailable.\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:50:* Registering, finishing or deleting a schedule updates the count without a manual refresh.\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:51:* Clicking the indicator opens the same `Active schedules` dialog as the `Run` tab button. Select, expand, `Open`, `Delete` and `Close` behave the same.\r\ndesign/feature_descriptions\\F_424_add_schedule_overview_to_status_bar.md:54:* Tests (`active_schedules_indicator.test.tsx`, mock the bridge and service boundaries):\r\ndesign/feature_descriptions\\F_94_no_prefill_prompt_running_conv.md.bak:5:title: no prefill prompt running conv\r\n",
+          "durationMs": 96,
+          "exitCode": 0,
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-event-88",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/architecture/architectural_decisions.md'; rg -n \\\"schedule|prompt|action run|runInput|scheduler\\\" design/architecture design/feature_descriptions | Select-Object -First 160\"",
+          "providerItemId": "exec-821fa07f-0c4b-44b5-87e5-25ec0d32ddef",
+          "sequence": 88,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:10:49.663Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-event-89",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb9330b8eed108b016ad0ed013cb0819194d708dea3c24bd7",
+          "sequence": 89,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:10:55.720Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The existing architecture confirms scheduled actions delegate to the normal action runner, so the card will specify capturing the run-specific prompt at registration and supplying it through that same runner. It will also retain compatibility for schedules created before this field exists.\n\n",
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 90,
+          "timestamp": "2026-10-15T15:10:56.919Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_310_when_account_usage_resets_scheduler_trigger_failed.md",
+          "deletions": 1,
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-event-91",
+          "insertions": 26,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-4a2dd81d-d0bc-4f87-8153-0fb814df9c49",
+          "sequence": 91,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:11:05.288Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-event-92",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb9330b8eed108b016ad0ed0c05ec81918459535cb726e064",
+          "sequence": 92,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:11:06.508Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md'\"",
+          "content": "diff --git a/design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md b/design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md\nindex 452d6087c..3c4f0e78b 100644\n--- a/design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md\n+++ b/design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md\n@@ -13,4 +13,29 @@ policy:\n \n Tried to set up a scheduler that would trigger an action. the 'when account usage resets' trigger was selected. for the 'claude' agent and the '5-hour' account usage tracker.\n \n-however, nothing happened. Although the account usage indicator clearly showed that the tracker had gone back to 0, no action was started again. so something went wrong, the trigger was not properly detected?\n\\ No newline at end of file\n+however, nothing happened. Although the account usage indicator clearly showed that the tracker had gone back to 0, no action was started again. so something went wrong, the trigger was not properly detected?\n+\n+## Findings\n+\n+The trigger fired and the schedule reached `failed`. The failure occurred while starting the scheduled custom-prompt action.\n+\n+Manual agent runs send the edited prompt as `runInput.prompt`. Schedule registration currently sends only the action ID, context, and trigger. The persisted action schedule therefore contains no prompt, and `startScheduledAction` starts the action with only a generated `conversationId`. For `md2.custom-prompt`, this leaves the resolved prompt empty.\n+\n+The scheduler also catches the start error without persisting or reporting it. This hides the cause and makes the failure appear to be a missed trigger.\n+\n+## Required changes\n+\n+* Flush the prompt editor before registration and capture its current effective prompt.\n+* Add an optional `prompt` to the action-schedule registration request and persisted `ActionSchedule`. Existing schedules without it must continue to load and retain their current behavior.\n+* Pass the persisted prompt to the action runner as `runInput.prompt` when the schedule fires, together with the generated `conversationId`.\n+* Reject registration of `md2.custom-prompt` when its captured prompt is empty.\n+* Persist the scheduler's caught error as the action schedule's failure reason and show it in the active-schedule details.\n+* Existing affected schedules must be recreated because their prompt text was never stored.\n+\n+## Testing\n+\n+* Verify that schedule registration flushes and sends the edited prompt.\n+* Verify that the schedule contract persists and reloads the optional prompt, including an existing schedule without it.\n+* Verify that a scheduled custom prompt starts with the persisted `runInput.prompt`.\n+* Verify that an empty custom prompt cannot be scheduled.\n+* Verify that a start failure is persisted and visible as the schedule failure reason.\n",
+          "durationMs": 40,
+          "exitCode": 0,
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-event-93",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md'\"",
+          "providerItemId": "exec-b0426d77-049f-4b73-91f3-9781f88118ac",
+          "sequence": 93,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:11:07.973Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-event-94",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb9330b8eed108b016ad0ed0f91c88191bddf02f966357e53",
+          "sequence": 94,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:11:10.051Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_310_when_account_usage_resets_scheduler_trigger_failed.md](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_310_when_account_usage_resets_scheduler_trigger_failed.md) with findings, required changes, compatibility behavior, and regression tests.\n\nNo code or status fields were changed.\n\n",
+          "id": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 95,
+          "timestamp": "2026-10-15T15:11:11.899Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1707,27 +1865,27 @@
           "agent": "codex",
           "conversationId": "01a1401a-9ad2-7f12-94ac-655955387da1",
           "createdAt": "2026-10-15T15:08:35.916Z",
-          "lastUsedAt": "2026-10-15T15:09:47.470Z",
-          "synchronizedThroughMessageId": "agent-turn-670bd186-deec-456c-898f-097cf7d02275-turn-1-assistant-2"
+          "lastUsedAt": "2026-10-15T15:11:11.899Z",
+          "synchronizedThroughMessageId": "agent-turn-cf62505f-baf6-4862-a571-b8ea8e96ef1d-turn-1-assistant-3"
         }
       ],
       "startedAt": "2026-10-15T15:02:22.907Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 38168,
-          "toolMs": 57173
+          "reasoningMs": 38220,
+          "toolMs": 57829
         },
         "elapsedMs": 200953,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-15T15:10:37.656Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 2297020,
-        "inputTokens": 43156,
-        "outputTokens": 10017,
-        "reasoningTokens": 1002,
-        "totalTokens": 2351195,
+        "cachedInputTokens": 2639420,
+        "inputTokens": 57029,
+        "outputTokens": 11003,
+        "reasoningTokens": 1404,
+        "totalTokens": 2708856,
         "costUsd": 1.1819282
       },
       "usageSchemaVersion": 1,
@@ -2783,13 +2941,13 @@
         "agent-396f576e-727d-460d-ae89-8b1bbec8f8ae"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-59635098-5c1b-482c-af6f-ef0301fb5f96",
       "origin": {
@@ -2798,9 +2956,9 @@
       },
       "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "rootActionLabel": "investigate",
-      "rootConversationId": "agent-396f576e-727d-460d-ae89-8b1bbec8f8ae",
       "startedAt": "2026-10-15T15:07:27.630Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-396f576e-727d-460d-ae89-8b1bbec8f8ae"
     }
   ],
   "version": 5
