@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__b2cc61d8-9d79-41d0-b8bb-082a01cb0db4.json
 policy:
-branch: f_429_no_commit_batch_after_conversation_view_changed
-worktree: 1
 changedFiles:
   - app/src/data/commit_batcher.test.ts
   - app/src/data/commit_batcher.ts
