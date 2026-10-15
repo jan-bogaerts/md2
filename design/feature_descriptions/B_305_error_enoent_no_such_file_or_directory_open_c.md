@@ -12,8 +12,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 153402939
 sentryOrganization: elastetic
-branch: b_305_error_enoent_no_such_file_or_directory_open_c
-worktree: 2
 changedFiles:
   - app/src/components/text_view/card_editor.real.test.tsx
   - app/src/services/data/data_service.ts
