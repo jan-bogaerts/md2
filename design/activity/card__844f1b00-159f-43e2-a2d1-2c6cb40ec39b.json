@@ -1352,7 +1352,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 65900
+        "usedTokens": 71892
       },
       "entries": [
         {
@@ -2740,6 +2740,164 @@
           "role": "assistant",
           "sequence": 109,
           "timestamp": "2026-10-15T08:13:51.644Z"
+        },
+        {
+          "content": "1. this must be fixed then\n\nI think, by adding the flush, and the save only path, we are ok?",
+          "id": "submission-e13fa4e9-a37d-4640-9963-8c036ca5b8c0",
+          "kind": "message",
+          "role": "user",
+          "sequence": 110,
+          "timestamp": "2026-10-15T08:32:14.926Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-event-111",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg3iGd2URMxtJSbSohFrT:thinking:0",
+          "sequence": 111,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T08:32:19.678Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Checking for action triggers that wouldn't blur the editor (toolbar buttons inside it, shortcuts).",
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 112,
+          "timestamp": "2026-10-15T08:32:20.118Z"
+        },
+        {
+          "content": "{\"pattern\":\"[Aa]ction\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\card_view\\\\card_popup_toolbar_controls.tsx\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-event-113",
+          "kind": "event",
+          "label": "Grep",
+          "output": "No matches found",
+          "providerItemId": "toolu_01UA43PfEzh9pVgg4JtWFvJq",
+          "sequence": 113,
+          "status": "completed",
+          "timestamp": "2026-10-15T08:32:21.229Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"pattern\":\"[Aa]ction\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\text_view\\\\list_editor_toolbar_controls.tsx\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-event-114",
+          "kind": "event",
+          "label": "Grep",
+          "output": "4:import { actionContextIdentity, fileContext } from '../../data/action_context'\n45:    const contextIdentity = context ? actionContextIdentity(context) : null\n47:        entry.kind === 'action' && actionContextIdentity(entry.context) === contextIdentity\n56:            cardPopupService.toggleAction(context, event.currentTarget)",
+          "providerItemId": "toolu_01S5vCVmaV2MzacbcPqTgvQX",
+          "sequence": 114,
+          "status": "completed",
+          "timestamp": "2026-10-15T08:32:22.080Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"pattern\":\"openActionPopup|actionPopupService\\\\.(open|show)|runAction\\\\(\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"content\",\"glob\":\"!**/*.test.*\"}",
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-event-115",
+          "kind": "event",
+          "label": "Grep",
+          "output": "No matches found",
+          "providerItemId": "toolu_014KBNv26zjaLA99ds98tfJA",
+          "sequence": 115,
+          "status": "completed",
+          "timestamp": "2026-10-15T08:32:23.238Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-event-116",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg3iHDD2qzqGbAJYrhuac:thinking:0",
+          "sequence": 116,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T08:32:25.990Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"toggleAction\\\\(\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"content\",\"glob\":\"!**/*.test.*\"}",
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-event-117",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\components\\text_view\\list_editor_toolbar_controls.tsx:56:            cardPopupService.toggleAction(context, event.currentTarget)\napp\\src\\components\\agents\\agent_chat_fab.tsx:16:    const handleActivate = (nextAnchorElement: HTMLElement) => cardPopupService.toggleAction(PROJECT_CONTEXT, nextAnchorElement)\napp\\src\\components\\actions\\run\\trigger\\card_run_button.tsx:42:        cardPopupService.toggleAction(context, event.currentTarget)\napp\\src\\services\\card_popup_service.ts:102:    toggleAction(context: ActionContext, anchorElement: HTMLElement) {",
+          "providerItemId": "toolu_012kpoZF6cspDNYze2XPVovR",
+          "sequence": 117,
+          "status": "completed",
+          "timestamp": "2026-10-15T08:32:26.863Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\text_view\\\\list_editor_toolbar_controls.tsx\"}",
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-event-118",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Button } from '@mui/material'\n2\timport { Separator } from '@mdxeditor/editor'\n3\timport { useCallback, useSyncExternalStore, type MouseEvent } from 'react'\n4\timport { actionContextIdentity, fileContext } from '../../data/action_context'\n5\timport type { CardTypeConfig } from '../../data/data_types'\n6\timport { cardPopupService, subscribeCardPopups } from '../../services/card_popup_service'\n7\timport { dialogService } from '../../services/dialog_service'\n8\timport { CardCommitMenu } from '../card_view/card_commit_menu'\n9\timport { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'\n10\timport { cardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'\n11\timport type { MarkdownDocumentHistoryStore } from '../editor/history/markdown_document_history_store'\n12\timport { MarkdownDocumentUndoRedo } from '../editor/history/markdown_document_undo_redo'\n13\timport { MarkdownFormatToolbarControls } from '../editor/toolbar/markdown_format_toolbar_controls'\n14\timport { useActiveCard } from '../hooks/use_active_card'\n15\timport { useCardCommits } from '../hooks/use_card_commits'\n16\timport { useProjectState } from '../hooks/use_project_state'\n17\timport { CardPropertiesControl } from './card_properties_control'\n18\t\n19\tfunction ignoreUnavailableWorktreeSelection() {\n20\t    // List editor exposes historical commits only.\n21\t}\n22\t\n23\tinterface ListEditorToolbarControlsProps {\n24\t    cardTypes: CardTypeConfig[]\n25\t    historyStore: MarkdownDocumentHistoryStore\n26\t    onAttachFiles?: (files: File[]) => void\n27\t    readOnly: boolean\n28\t    statusColors: Map<string, string>\n29\t}\n30\t\n31\t/** Formatting controls and card-specific controls for the active list-card document. */\n32\texport function ListEditorToolbarControls(props: ListEditorToolbarControlsProps) {\n33\t    const { cardTypes, historyStore, onAttachFiles, readOnly, statusColors } = props\n34\t    const card = useActiveCard('list-card')\n35\t    const cardInternalId = card?.header.internalId ?? null\n36\t    const historyKey = cardInternalId ?? card?.path ?? null\n37\t    const cardCommits = useCardCommits(cardInternalId)\n38\t    const { project } = useProjectState()\n39\t    const popupEntries = useSyncExternalStore(\n40\t        subscribeCardPopups,\n41\t        () => cardPopupService.getSnapshot(),\n42\t        () => cardPopupService.getSnapshot(),\n43\t    )\n44\t    const context = card && cardInternalId ? fileContext(card, cardTypes) : null\n45\t    const contextIdentity = context ? actionContextIdentity(context) : null\n46\t    const isAgentPopupOpen = !!contextIdentity && popupEntries.some((entry) => (\n47\t        entry.kind === 'action' && actionContextIdentity(entry.context) === contextIdentity\n48\t    ))\n49\t\n50\t    const handleToggleAgentPopup = useCallback((event: MouseEvent<HTMLButtonElement>) => {\n51\t        try {\n52\t            const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId\n53\t            if (!activeDocumentId) throw new Error('Cannot open card agents without an active list-card document')\n54\t            if (!context || !project) throw new Error('Cannot open card agents without a loaded project')\n55\t\n56\t            cardPopupService.toggleAction(context, event.currentTarget)\n57\t        } catch (error) {\n58\t            dialogService.error(error, { fallbackMessage: 'Card agents could not be opened' })\n59\t        }\n60\t    }, [context, project])\n61\t\n62\t    if (!card || !historyKey) return null\n63\t\n64\t    const endControls = cardInternalId ? (\n65\t        <>\n66\t            <Separator />\n67\t            {!readOnly ? (\n68\t                <Button onClick={handleToggleAgentPopup} size=\"small\" variant={isAgentPopupOpen ? 'contained' : 'outlined'}>\n69\t                    Agents{card.agentConversations.length > 0 ? ` (${card.agentConversations.length})` : ''}\n70\t                </Button>\n71\t            ) : null}\n72\t            <CardCommitMenu\n73\t                commits={cardCommits.commits}\n74\t                currentWorktreeAvailable={false}\n75\t                error={cardCommits.error}\n76\t                onSelectCommit={listCardCommitDiffDataSource.select}\n77\t                onSelectWorktree={ignoreUnavailableWorktreeSelection}\n78\t            />\n79\t            {!readOnly ? (\n80\t                <CardPropertiesControl\n81\t                    binding=\"list-card\"\n82\t                    cardTypes={cardTypes}\n83\t                    statusColors={statusColors}\n84\t                />\n85\t            ) : null}\n86\t        </>\n87\t    ) : undefined\n88\t    const undoRedoControls = <MarkdownDocumentUndoRedo historyKey={historyKey} historyStore={historyStore} />\n89\t\n90\t    return (\n91\t        <MarkdownFormatToolbarControls\n92\t            endControls={endControls}\n93\t            onAttachFiles={onAttachFiles}\n94\t            readOnly={readOnly}\n95\t            undoRedoControls={undoRedoControls}\n96\t        />\n97\t    )\n98\t}\n99\t",
+          "providerItemId": "toolu_019DtL9oTx5ZX2ZS6Enh5csr",
+          "sequence": 118,
+          "status": "completed",
+          "timestamp": "2026-10-15T08:32:27.288Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-event-119",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg3iHWdHuvbjG3gK5TiPs:thinking:0",
+          "sequence": 119,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T08:32:29.719Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"<CardRunButton\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"content\",\"glob\":\"!**/*.test.*\"}",
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-event-120",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\components\\card_view\\project_card_view.tsx:291:                        <CardRunButton",
+          "providerItemId": "toolu_01MW8hXo1M1hXrujDka8Ycxs",
+          "sequence": 120,
+          "status": "completed",
+          "timestamp": "2026-10-15T08:32:30.475Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-event-121",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg3iHkBNFUavE5T4JSUcA:thinking:0",
+          "sequence": 121,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T08:32:43.187Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNearly. Adding `flushOnBlur` to both card editors plus the save-only path covers every trigger except one: the **\"Agents\" button in the list view**.\n\n**Why the list view is the exception:**\n- That button is in the list editor's own toolbar (`list_editor_toolbar_controls.tsx:68`). It's passed in through `toolbarContents`, so it renders inside the editor's `Box`, the element that has `onBlur={handleBlur}`.\n- `handleBlur` skips the flush when focus moves to something inside that `Box`. That's the check `event.currentTarget.contains(event.relatedTarget)` at `markdown_editor.tsx:359`.\n- So when you type in a list card and click \"Agents\", focus stays inside the editor's `Box` and nothing flushes. The new text stays only in the open document's draft. The save-only write then puts the old card on disk, and the prompt reads stale content.\n\n**The other triggers are fine:**\n- **Board run button** (`CardRunButton` in `project_card_view.tsx:291`): it's on the card tile, outside the popup's editor, so blur flushes the editor.\n- **Board popup toolbar** (`CardPopupToolbarControls`): it has no action button.\n- **Project agent button** (`agent_chat_fab.tsx`): it's outside every editor, so blur flushes.\n\n**Fix options for the list view gap:**\n1. **Flush in the button handler (recommended):** `handleToggleAgentPopup` calls the list editor's flush before `cardPopupService.toggleAction`. It's small and fixes only the one place that needs it.\n2. **Stage all editors during prompt preparation:** call `stageMarkdownEditors` before the save-only write. This covers any trigger, including future ones, but it's a broader change.\n\nShould I go with option 1 and write B_305 on that basis (blur flush on both card editors, flush in the list \"Agents\" handler, save-only write before prompt preparation)?",
+          "id": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 122,
+          "timestamp": "2026-10-15T08:32:43.220Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2749,17 +2907,17 @@
           "agent": "claude",
           "conversationId": "e33cd60a-60fb-4465-9a61-6086a99497af",
           "createdAt": "2026-10-15T08:13:51.644Z",
-          "lastUsedAt": "2026-10-15T08:13:51.644Z",
-          "synchronizedThroughMessageId": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-turn-1-assistant-2",
+          "lastUsedAt": "2026-10-15T08:32:43.220Z",
+          "synchronizedThroughMessageId": "agent-turn-5412cff0-fbcd-4eea-a262-48c2134e845d-turn-2-assistant-2",
           "usageBaseline": {
-            "costUsd": 0.5582942000000001,
-            "resultId": "0a1c8902-749e-415c-be99-8144ff9d671d",
+            "costUsd": 0.7168134000000002,
+            "resultId": "20b0ffa4-c3d0-4591-86cd-6df634a49c87",
             "tokens": {
-              "cachedInputTokens": 460261,
-              "inputTokens": 16,
-              "outputTokens": 4078,
+              "cachedInputTokens": 740209,
+              "inputTokens": 24,
+              "outputTokens": 6866,
               "reasoningTokens": 0,
-              "totalTokens": 464355
+              "totalTokens": 747099
             }
           }
         }
@@ -2768,20 +2926,20 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 19095,
-          "toolMs": 18780
+          "reasoningMs": 37123,
+          "toolMs": 23851
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-15T08:13:01.985Z"
+        "elapsedMs": 49659,
+        "runningStartedAt": "2026-10-15T08:32:14.926Z"
       },
       "title": "complete (split)",
       "usage": {
-        "cachedInputTokens": 460261,
-        "inputTokens": 16,
-        "outputTokens": 4078,
+        "cachedInputTokens": 740209,
+        "inputTokens": 24,
+        "outputTokens": 6866,
         "reasoningTokens": 0,
-        "totalTokens": 464355,
-        "costUsd": 0.5582942000000001
+        "totalTokens": 747099,
+        "costUsd": 0.7168134000000002
       },
       "usageSchemaVersion": 1,
       "viewed": true
