@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 95908
+        "usedTokens": 96455
       },
       "entries": [
         {
@@ -840,20 +840,30 @@
           "sequence": 62,
           "timestamp": "2026-10-15T08:01:44.786Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-83fb5e8b-5d67-4bd1-9950-9809ec82e310-questions-dismissed-62",
+          "kind": "event",
+          "label": "Questions dismissed",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-10-15T08:03:06.262Z",
+          "type": "questionsDismissed"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-7438d247-7b34-4cb8-a13c-aa59f3d63be4",
       "providerSessions": [],
       "startedAt": "2026-10-15T07:57:48.729Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 38409,
           "toolMs": 37766
         },
         "elapsedMs": 96453,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-15T08:03:06.262Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
