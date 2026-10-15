@@ -2919,6 +2919,32 @@
       "startedAt": "2026-10-15T09:33:04.582Z",
       "status": "completed",
       "rootConversationId": "agent-20d3c0da-5b1e-4ab0-a31e-e60d9aeae255"
+    },
+    {
+      "commits": [
+        {
+          "commit": "c901006dc85e94b178bff3dc3eacf807f61d55ad",
+          "committedAt": "2026-10-15T15:08:04+02:00",
+          "deletions": 8,
+          "filePaths": [
+            "app/src/components/actions/conversation/transcript/action_conversation_chatlog_tracker.node.test.ts",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "desktop/src/actions/agent/agent_compact.test.mjs",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_event_handlers.js"
+          ],
+          "filesChanged": 5,
+          "insertions": 170,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-15T15:08:04+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d83805df-4700-49e0-b4af-5d29ee542ce4",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
