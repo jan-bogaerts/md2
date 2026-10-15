@@ -27,6 +27,10 @@ When flushing starts, `CommitBatcher` synchronously transfers the complete pendi
 
 A single `CommitRequest` passes both ordinary writes (`files`) and path replacements (`moves`: old path, new path, and latest content) to `StorageService.commit`.
 
+### Commit-only paths
+
+A commit-only path (`CommitRequest.paths`) is a repository path the batch stages and commits as it exists on disk at flush time; the renderer writes no content and registers no persistence outcome. It is used for desktop-written files whose content the renderer does not own, such as activity files after a conversation view-state change (`DataService.scheduleRepositoryPathCommit`). A content snapshot would be unsafe there: a running agent may write a newer activity version before the flush, and the snapshot would overwrite it. Pending entries use the key `path:<path>`, so repeated schedules for one file coalesce. The local desktop host stages each existing path with `git add` inside `ProjectOperationCoordinator` and skips paths that no longer exist. GitHub storage rejects requests with `paths`.
+
 ## Editor behavior
 
 ### Cards and Markdown

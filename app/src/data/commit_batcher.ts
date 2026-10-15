@@ -44,7 +44,14 @@ export interface CommitDiagramChange extends MarkdownFile, CommitChangeBase {
     sourcePath: string
 }
 
-export type CommitChange = CommitActionChange | CommitCardChange | CommitDiagramChange | CommitFileChange
+/** Repository path committed as it exists on disk at flush time; the renderer writes no content. */
+export interface CommitPathChange extends CommitChangeBase {
+    kind: 'path'
+    path: string
+}
+
+export type CommitChange = CommitActionChange | CommitCardChange | CommitDiagramChange | CommitFileChange | CommitPathChange
+type ContentChange = Exclude<CommitChange, CommitPathChange>
 
 interface PendingChange {
     change: CommitChange
@@ -62,6 +69,7 @@ function changeKey(change: CommitChange) {
     if (change.kind === 'card') return `card:${change.cardInternalId}`
     if (change.kind === 'action') return `action:${change.actionId}`
     if (change.kind === 'diagram') return `diagram:${change.diagramId}`
+    if (change.kind === 'path') return `path:${change.path}`
 
     return `file:${change.path}`
 }
@@ -76,7 +84,7 @@ function changeTargetPath(change: CommitChange) {
     return change.kind === 'card' ? change.targetPath ?? change.path : change.path
 }
 
-function serializeChange(change: CommitChange, cardOperations: CommitBatcherOperations): SerializedChange {
+function serializeChange(change: ContentChange, cardOperations: CommitBatcherOperations): SerializedChange {
     const sourcePath = changeSourcePath(change)
     if (change.kind !== 'card') {
         const file = {
@@ -262,13 +270,15 @@ export class CommitBatcher extends EventTarget {
     }
 
     private async commitActiveBatch(branch: string, activeBatch: Map<string, PendingChange>) {
-        const serializedChanges = new Map(
-            [...activeBatch.entries()].map(([key, { change }]) => [key, serializeChange(change, this.cardOperations)]),
-        )
+        const serializedChanges = new Map<string, SerializedChange>()
+        const paths: string[] = []
+        for (const [key, { change }] of activeBatch) {
+            if (change.kind === 'path') paths.push(change.path)
+            else serializedChanges.set(key, serializeChange(change, this.cardOperations))
+        }
         const files: MarkdownFile[] = []
         const moves = []
-        for (const [key] of activeBatch) {
-            const { file, sourcePath } = serializedChanges.get(key) as SerializedChange
+        for (const { file, sourcePath } of serializedChanges.values()) {
             if (sourcePath === file.path) files.push(file)
             else {
                 moves.push({
@@ -285,6 +295,7 @@ export class CommitBatcher extends EventTarget {
             files,
             message: createCommitMessage(activeBatch),
             ...(moves.length > 0 ? { moves } : {}),
+            ...(paths.length > 0 ? { paths } : {}),
         }
 
         try {
@@ -295,7 +306,10 @@ export class CommitBatcher extends EventTarget {
         }
 
         for (const [key, { change, onPathCommitted }] of activeBatch) {
-            const { card, file, sourcePath } = serializedChanges.get(key) as SerializedChange
+            const serializedChange = serializedChanges.get(key)
+            if (!serializedChange) continue
+
+            const { card, file, sourcePath } = serializedChange
             const newerPendingChange = this.pendingChanges.get(key)
             if (newerPendingChange && sourcePath !== file.path) {
                 this.pendingChanges.set(key, {

@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionRunEvent, ActionRunStatus } from '../../data/action_run_types'
 import type { AgentConversation } from '../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { actionRunRegistry } from '../actions/action_run_registry'
+import { register } from '../service_injector'
 import {
     actionAcknowledgementEvent,
     agentAcknowledgementService,
@@ -95,7 +96,15 @@ function startRunRegistry(runConversation: AgentConversation | null) {
     return { publish, updateActionConversationViewed }
 }
 
+const activityPath = 'design/activity/card__root-card.json'
+const scheduleRepositoryPathCommit = vi.fn()
+
 describe('AgentAcknowledgementService', () => {
+    beforeEach(() => {
+        scheduleRepositoryPathCommit.mockReset()
+        register('dataService', { scheduleRepositoryPathCommit })
+    })
+
     afterEach(() => {
         actionRunRegistry.stop()
         agentAcknowledgementService.reset()
@@ -252,6 +261,28 @@ describe('AgentAcknowledgementService', () => {
         await agentAcknowledgementService.setViewed(cardInternalId, actionId, unseen, true)
         expect(unseen.viewed).toBe(true)
         expect(updateActionConversationViewed).toHaveBeenCalledTimes(2)
+    })
+
+    it.each([true, false])('schedules the activity file for commit after writing viewed %s', async (viewed) => {
+        startRunRegistry(null)
+
+        await agentAcknowledgementService.setViewed(cardInternalId, actionId, conversation('conversation-1', !viewed), viewed)
+
+        expect(scheduleRepositoryPathCommit).toHaveBeenCalledOnce()
+        expect(scheduleRepositoryPathCommit).toHaveBeenCalledWith(activityPath, 'Update conversation view state')
+    })
+
+    it('schedules no commit when the view state write fails', async () => {
+        setActionBridgeOverride({
+            onActionRun: vi.fn(() => vi.fn()),
+            updateActionConversationViewed: vi.fn().mockRejectedValue(new Error('disk failed')),
+        } as unknown as ElectronActionBridge)
+        actionRunRegistry.start()
+
+        await expect(agentAcknowledgementService.setViewed(cardInternalId, actionId, conversation('conversation-1', false), true))
+            .rejects.toThrow('disk failed')
+
+        expect(scheduleRepositoryPathCommit).not.toHaveBeenCalled()
     })
 
     it('announces the view change before the backend write resolves', async () => {

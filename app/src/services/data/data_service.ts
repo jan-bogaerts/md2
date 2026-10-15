@@ -342,6 +342,15 @@ export class DataService extends EventTarget {
         commitBatcher.schedule(currentProject.branch, [{ ...file, kind: 'file' as const, saveReference }], message)
     }
 
+    /** Queues a desktop-written repository path; the batch commits its on-disk content at flush time. */
+    scheduleRepositoryPathCommit(path: string, message: string) {
+        const { commitBatcher } = this.requireDependencies()
+        const currentProject = this.projectState.project
+        if (!currentProject) throw new Error('Cannot commit a repository path before a project is open')
+
+        commitBatcher.schedule(currentProject.branch, [{ kind: 'path' as const, path }], message)
+    }
+
     /** Registers desktop-written integration history with the normal project commit batch. */
     async queueIntegratedActivity(path: string) {
         const { storage } = this.requireDependencies()

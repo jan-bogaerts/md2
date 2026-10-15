@@ -45,6 +45,52 @@ describe('CommitBatcher', () => {
         expect(persisted).toHaveBeenCalledOnce()
     })
 
+    it('sends commit-only paths in request paths without file content', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = createBatcher(commit)
+        const activityPath = 'design/activity/card__card-1.json'
+        batcher.schedule('main', [{ kind: 'path', path: activityPath }], 'Update conversation view state')
+        batcher.schedule('main', [{ content: 'card', kind: 'file', path: 'card.md' }], 'Update card')
+
+        await batcher.flush()
+
+        expect(commit.mock.calls[0][0].paths).toEqual([activityPath])
+        expect(commit.mock.calls[0][0].files).toEqual([{ content: 'card', path: 'card.md' }])
+    })
+
+    it('coalesces repeated schedules for one commit-only path into one entry', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = createBatcher(commit)
+        const activityPath = 'design/activity/card__card-1.json'
+        batcher.schedule('main', [{ kind: 'path', path: activityPath }], 'Update conversation view state')
+        batcher.schedule('main', [{ kind: 'path', path: activityPath }], 'Update conversation view state')
+
+        expect(batcher.describePendingChanges()).toHaveLength(1)
+        await batcher.flush()
+
+        expect(commit.mock.calls[0][0]).toEqual({
+            branch: 'main',
+            files: [],
+            message: 'Update conversation view state',
+            paths: [activityPath],
+        })
+    })
+
+    it('restores a commit-only path after a failed flush', async () => {
+        const commit = vi.fn<CommitCallback>()
+            .mockRejectedValueOnce(new Error('commit failed'))
+            .mockResolvedValue(undefined)
+        const batcher = createBatcher(commit)
+        const activityPath = 'design/activity/card__card-1.json'
+        batcher.schedule('main', [{ kind: 'path', path: activityPath }], 'Update conversation view state')
+
+        await expect(batcher.flush()).rejects.toThrow('commit failed')
+        expect(batcher.hasPendingFile(activityPath)).toBe(true)
+        await batcher.flush()
+
+        expect(commit.mock.calls[1][0].paths).toEqual([activityPath])
+    })
+
     it('serializes one owned card reference once with latest fields at flush', async () => {
         const card = { header: { status: 'design' }, path: 'design/F-1-root.md' } as Card
         const serializeCard = vi.spyOn(markdownParsingService, 'serializeCard').mockImplementation((currentCard: Card) => ({

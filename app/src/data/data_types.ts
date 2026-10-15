@@ -268,6 +268,8 @@ export interface CommitRequest {
     files: MarkdownFile[]
     message: string
     moves?: MoveFile[]
+    /** Repository paths staged and committed as they exist on disk at commit time. */
+    paths?: string[]
 }
 
 export type CommitResult = MarkdownFile[]

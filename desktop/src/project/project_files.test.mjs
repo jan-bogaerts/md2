@@ -69,6 +69,38 @@ describe('project-files', () => {
         }
     });
 
+    it('stages existing commit-only paths as they are on disk and skips missing ones', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await mkdir(join(rootPath, 'design', 'activity'), { recursive: true });
+            await writeFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), '{"version":3}');
+            const stagedChanges = Object.assign(new Error('staged changes'), { code: 1 });
+            const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockImplementation(async function run() {
+                if (this.args[0] === 'diff') throw stagedChanges;
+
+                return { stderr: '', stdout: '' };
+            });
+
+            await commitNow({
+                branch: 'main',
+                files: [],
+                message: 'Update conversation view state',
+                paths: ['design/activity/card__card-1.json', 'design/activity/card__deleted.json'],
+            }, { branch: 'main', id: 'local', rootPath });
+
+            const gitCommands = runGitProcess.mock.instances.map(({ args }) => args);
+            await expect(readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8')).resolves.toBe('{"version":3}');
+            expect(gitCommands).toContainEqual(['add', '--', 'design/activity/card__card-1.json']);
+            expect(gitCommands.some((args) => args.includes('design/activity/card__deleted.json'))).toBe(false);
+            expect(gitCommands).toContainEqual(['commit', '-m', 'Update conversation view state']);
+        } finally {
+            vi.restoreAllMocks();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('loads markdown files from the working folder and subfolders', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
 

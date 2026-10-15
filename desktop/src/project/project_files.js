@@ -316,6 +316,15 @@ async function commitNow(request, project) {
         await runGit(rootPath, ['add', file.path]);
     }
 
+    for (const repositoryPath of request.paths ?? []) {
+        if (typeof repositoryPath !== 'string' || repositoryPath.length === 0) throw new Error('Missing commit path');
+
+        const fullPath = ensureInsideRoot(rootPath, path.join(rootPath, repositoryPath));
+        if (!(await pathExists(fullPath))) continue;
+
+        await runGit(rootPath, ['add', '--', normalizePath(path.relative(rootPath, fullPath))]);
+    }
+
     await commitStagedChanges(rootPath, request.message);
 }
 
