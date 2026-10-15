@@ -1,5 +1,6 @@
 const { normalizeFolderPath } = require('../../../../shared/project_config_defaults.mjs');
 const { parseSequenceAgentSelection } = require('../../../../shared/action_schedules.mjs');
+const { CUSTOM_PROMPT_ACTION_ID } = require('../../../../shared/action_definitions.mjs');
 const { findCatalogModel } = require('../../../../shared/agent_model_catalog.mjs');
 const { findAgentProfile, mergeAgentProfiles, validateAgentSelection } = require('../../../../shared/agent_profiles.mjs');
 const {
@@ -7,6 +8,7 @@ const {
     appendActionSchedule,
     cancelPendingActionSchedule,
     deleteScheduleRecord,
+    failActionSchedule,
     findPendingSchedule,
     findRunningScheduleForConversation,
     replaceScheduleRecord,
@@ -66,6 +68,10 @@ function validateRegistrationRequest(request, now) {
     if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action schedule actionId');
     if (!request.context || typeof request.context !== 'object') throw new Error('Missing action schedule context');
     if (!request.trigger || typeof request.trigger !== 'object') throw new Error('Missing action schedule trigger');
+    if (request.prompt !== undefined && typeof request.prompt !== 'string') throw new Error('Invalid action schedule prompt');
+    if (request.actionId === CUSTOM_PROMPT_ACTION_ID && (request.prompt === undefined || request.prompt.trim().length === 0)) {
+        throw new Error('Custom prompt schedule requires a non-empty prompt');
+    }
     if (request.trigger.type === 'at') {
         validateFutureTimestamp(request.trigger.timestamp, 'timestamp', now);
         return request;
@@ -311,8 +317,10 @@ class ActionSchedulerService {
             actionId: registration.actionId,
             context: registration.context,
             createdAt: new Date(this.now()).toISOString(),
+            failure: null,
             id: createScheduleId(),
             kind: 'action',
+            ...(registration.prompt === undefined ? {} : { prompt: registration.prompt }),
             status: 'pending',
             trigger: registration.trigger,
         };
@@ -664,11 +672,12 @@ class ActionSchedulerService {
             const result = await this.actionRunnerService.wait(runId);
             const status = scheduleStatusFromResult(result.status);
             await this.updateScheduleStatus(scheduleId, status, executionContext);
-        } catch {
+        } catch (error) {
             executionControl.resolveStarted(null);
             const schedule = await this.findRunningSchedule(scheduleId, executionContext);
             if (schedule) {
-                await this.updateScheduleStatus(scheduleId, 'failed', executionContext);
+                const failure = errorMessage(error);
+                await this.mutateSchedules(executionContext, (schedules) => failActionSchedule(schedules, scheduleId, failure));
             }
         } finally {
             executionControl.resolveStarted(null);
@@ -700,7 +709,11 @@ class ActionSchedulerService {
         const context = schedule.context.cardInternalId
             ? { ...await this.resolveCardContext(schedule.context.cardInternalId, executionContext), kind: schedule.context.kind }
             : schedule.context;
-        const request = { actionId: schedule.actionId, context, runInput: { conversationId: schedule.conversationId } };
+        const runInput = {
+            conversationId: schedule.conversationId,
+            ...(schedule.prompt === undefined ? {} : { prompt: schedule.prompt }),
+        };
+        const request = { actionId: schedule.actionId, context, runInput };
         await this.actionRunnerService.start(request, { interactive: false, runId });
     }
 

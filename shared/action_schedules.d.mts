@@ -44,7 +44,9 @@ export interface ActionSchedule extends ScheduleBase {
     actionId: string
     context: ActionContext
     conversationId?: string | null
+    failure?: string | null
     kind: 'action'
+    prompt?: string
     trigger: ActionScheduleTrigger
 }
 

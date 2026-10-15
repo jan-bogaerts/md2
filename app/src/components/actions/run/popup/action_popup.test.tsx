@@ -1379,6 +1379,33 @@ describe('ActionPopup', () => {
         expect(saveProjectFile).not.toHaveBeenCalled()
     })
 
+    it('registers custom prompt schedule with latest edited prompt', async () => {
+        const registerActionSchedule = vi.fn(async () => undefined)
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { codex: { available: true, error: null } } }})
+        vi.spyOn(activeScheduleService, 'refresh').mockResolvedValue(undefined)
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            registerActionSchedule,
+        } as unknown as typeof window.md2Actions
+        renderPopup()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Custom prompt' }))
+        const prompt = within(await screen.findByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Earlier prompt' } })
+        fireEvent.change(prompt, { target: { value: 'Schedule latest prompt' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule' }))
+        fireEvent.change(screen.getByLabelText('Date and time'), { target: { value: '2099-07-07T10:30' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
+
+        await waitFor(() => expect(registerActionSchedule).toHaveBeenCalledWith({
+            actionId: CUSTOM_PROMPT_ACTION_ID,
+            context,
+            prompt: 'Schedule latest prompt',
+            trigger: { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
+        }))
+    })
+
     it('starts a prepared diagram prompt with its generated repository-relative path', async () => {
         const startAction = vi.fn(async () => 'diagram-run')
         const diagramPath = 'design/diagrams/Overview-20260831T142530123Z.json'

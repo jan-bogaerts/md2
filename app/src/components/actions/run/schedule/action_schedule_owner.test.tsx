@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../../../data/action_types'
+import { ActionPromptDraft } from '../../../../services/actions/action_prompt_draft_service'
 import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
@@ -32,11 +33,11 @@ function createDateStore() {
     return store
 }
 
-function renderOpenOwner(store = createDateStore()) {
+function renderOpenOwner(store = createDateStore(), promptDraft = new ActionPromptDraft('Prepared prompt', false)) {
     render(
         <div data-testid="action-popup-scroll-body">
             <button type="button">Schedule anchor</button>
-            <ActionScheduleOwner action={action} context={context} store={store} />
+            <ActionScheduleOwner action={action} context={context} promptDraft={promptDraft} store={store} />
         </div>,
     )
     const anchorElement = screen.getByRole('button', { name: 'Schedule anchor' })
@@ -64,11 +65,29 @@ describe('ActionScheduleOwner registration', () => {
             action,
             context,
             { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
+            'Prepared prompt',
         ))
         expect(screen.getByRole('dialog', { name: 'Schedule action' })).toBeInTheDocument()
         confirmRegistration()
         await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())
         expect(screen.getByTestId('action-popup-scroll-body')).toBeInTheDocument()
+    })
+
+    it('flushes editor buffer and registers latest effective prompt', async () => {
+        configureSources()
+        vi.mocked(defaultScheduleAction).mockResolvedValue(undefined)
+        const promptDraft = new ActionPromptDraft('Earlier prompt', false)
+        promptDraft.markdownDraft.addEventListener('flushRequested', () => promptDraft.edit('Latest prompt'))
+        renderOpenOwner(createDateStore(), promptDraft)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
+
+        await waitFor(() => expect(defaultScheduleAction).toHaveBeenCalledWith(
+            action,
+            context,
+            { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
+            'Latest prompt',
+        ))
     })
 
     it('reports backend errors through dialogService without crashing form', async () => {

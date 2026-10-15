@@ -394,7 +394,7 @@ describe('ActionSchedulerService', () => {
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'cancelled' }]);
     });
 
-    it('lists only pending and running schedules', async () => {
+    it('lists pending, running, and failed schedules', async () => {
         const pendingSchedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' });
         const runningSchedule = { ...createSchedule('schedule-2', 'implement', { timestamp: '2026-07-06T10:02:00.000Z', type: 'at' }), status: 'running' };
         const terminalSchedules = ['cancelled', 'completed', 'failed'].map((status, index) => ({
@@ -406,7 +406,11 @@ describe('ActionSchedulerService', () => {
         await startProject(scheduler, localGitService);
         localGitService.setSchedules([pendingSchedule, runningSchedule, ...terminalSchedules]);
 
-        await expect(scheduler.listActiveSchedules()).resolves.toEqual([pendingSchedule, runningSchedule]);
+        await expect(scheduler.listActiveSchedules()).resolves.toEqual([
+            pendingSchedule,
+            runningSchedule,
+            terminalSchedules[2],
+        ]);
     });
 
     it('marks an interrupted running action schedule failed during startup', async () => {
@@ -482,6 +486,45 @@ describe('ActionSchedulerService', () => {
         expect(schedule).toMatchObject({ actionId: 'implement', context, status: 'pending', trigger });
         expect(localGitService.schedules()).toEqual([schedule]);
         expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 5000);
+    });
+
+    it('persists a registration prompt and passes it to the scheduled run', async () => {
+        const localGitService = createLocalGitService([]);
+        const actionRunnerService = {
+            subscribe: vi.fn(),
+            cancel: vi.fn(),
+            start: vi.fn(async (_request, options) => options.runId),
+            startProject: vi.fn(),
+            wait: vi.fn(async (runId) => ({ failure: null, runId, status: 'completed' })),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+        const trigger = { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' };
+
+        const schedule = await scheduler.registerActionSchedule({ actionId: 'implement', context, prompt: 'Edited prompt', trigger });
+        await scheduler.fireSchedule(schedule.id);
+
+        expect(schedule).toMatchObject({ failure: null, prompt: 'Edited prompt' });
+        expect(actionRunnerService.start).toHaveBeenCalledWith({
+            actionId: 'implement',
+            context: expect.objectContaining({ cardInternalId: context.cardInternalId }),
+            runInput: { conversationId: expect.stringMatching(/^agent-/u), prompt: 'Edited prompt' },
+        }, { interactive: false, runId: expect.stringMatching(/^action-/u) });
+    });
+
+    it('rejects a blank custom prompt schedule', async () => {
+        const localGitService = createLocalGitService([]);
+        const scheduler = createScheduler(localGitService);
+        await startProject(scheduler, localGitService);
+        const trigger = { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' };
+
+        await expect(scheduler.registerActionSchedule({
+            actionId: 'md2.custom-prompt',
+            context,
+            prompt: '   ',
+            trigger,
+        })).rejects.toThrow('Custom prompt schedule requires a non-empty prompt');
+        expect(localGitService.saveActionSchedules).not.toHaveBeenCalled();
     });
 
     it('registers account-reset and card-state schedules from the shared contract', async () => {
@@ -916,9 +959,33 @@ describe('ActionSchedulerService', () => {
         expect(localGitService.histories[0]).toMatchObject({ entry: { command: 'echo done', status: 'completed', type: 'command' } });
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done');
         expect(localGitService.schedules()).toEqual([
-            { ...invalidSchedule, conversationId: expect.any(String), status: 'failed' },
+            { ...invalidSchedule, conversationId: expect.any(String), failure: 'Unknown action: missing', status: 'failed' },
             { ...validSchedule, conversationId: expect.any(String), status: 'completed' },
         ]);
+    });
+
+    it('persists a scheduled start failure reason', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
+        const localGitService = createLocalGitService([schedule]);
+        const actionRunnerService = {
+            subscribe: vi.fn(),
+            cancel: vi.fn(),
+            start: vi.fn(async () => { throw new Error('Scheduled start failed'); }),
+            startProject: vi.fn(),
+            wait: vi.fn(),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+
+        await scheduler.fireSchedule(schedule.id);
+
+        expect(localGitService.schedules()).toEqual([{
+            ...schedule,
+            conversationId: expect.any(String),
+            failure: 'Scheduled start failed',
+            status: 'failed',
+        }]);
+        expect(actionRunnerService.wait).not.toHaveBeenCalled();
     });
 
     it('resolves current card fields by internal ID before running a scheduled action', async () => {

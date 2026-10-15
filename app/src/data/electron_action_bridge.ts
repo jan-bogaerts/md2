@@ -62,6 +62,7 @@ export interface HistoricalFileContent {
 export interface ActionScheduleRegistrationRequest {
     actionId: string
     context: ActionContext
+    prompt?: string
     trigger: ActionScheduleTrigger
 }
 

@@ -9,6 +9,7 @@ const {
     cancelPendingActionSchedule,
     createActionScheduleFile,
     deleteScheduleRecord,
+    failActionSchedule,
     findPendingSchedule,
     findRunningScheduleForConversation,
     parseActionScheduleFile,
@@ -67,6 +68,17 @@ describe('schedule store', () => {
         expect(cancelPendingActionSchedule([schedule], 'schedule-1')).toEqual([{ ...schedule, status: 'cancelled' }]);
     });
 
+    it('persists an action schedule failure reason', () => {
+        const schedule = createSchedule();
+
+        expect(failActionSchedule([schedule], schedule.id, 'Action could not start')).toEqual([{
+            ...schedule,
+            failure: 'Action could not start',
+            status: 'failed',
+        }]);
+        expect(schedule).not.toHaveProperty('failure');
+    });
+
     it('finds pending schedules', () => {
         const pendingSchedule = createSchedule('schedule-1');
         const completedSchedule = { ...createSchedule('schedule-2'), status: 'completed' };
@@ -78,11 +90,14 @@ describe('schedule store', () => {
     it('filters active schedules and permanently removes one record', () => {
         const pendingSchedule = createSchedule('schedule-1');
         const runningSchedule = { ...createSchedule('schedule-2'), status: 'running' };
-        const completedSchedule = { ...createSchedule('schedule-3'), status: 'completed' };
+        const failedSchedule = { ...createSchedule('schedule-3'), failure: 'Action could not start', status: 'failed' };
+        const completedSchedule = { ...createSchedule('schedule-4'), status: 'completed' };
+        const cancelledSchedule = { ...createSchedule('schedule-5'), status: 'cancelled' };
 
-        expect(activeSchedules([pendingSchedule, runningSchedule, completedSchedule])).toEqual([
+        expect(activeSchedules([pendingSchedule, runningSchedule, failedSchedule, completedSchedule, cancelledSchedule])).toEqual([
             pendingSchedule,
             runningSchedule,
+            failedSchedule,
         ]);
         expect(deleteScheduleRecord([pendingSchedule, completedSchedule], pendingSchedule.id)).toEqual([completedSchedule]);
         expect(() => deleteScheduleRecord([pendingSchedule], 'missing')).toThrow('Schedule not found: missing');

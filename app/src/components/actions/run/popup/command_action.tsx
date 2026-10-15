@@ -2,7 +2,6 @@ import { Box, Stack, Typography } from '@mui/material'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
-import { ActionScheduleOwner } from '../schedule/action_schedule_owner'
 import { ActionRunHistoryOwner } from '../state/action_run_history_owner'
 import { ActionRunStatusOwner } from '../state/action_run_status_owner'
 import { ActionPromptOwner } from '../../agent/action_prompt_owner'
@@ -52,7 +51,6 @@ export function CommandAction(props: CommandActionProps) {
     return (
         <>
             <Stack data-testid="action-popup-scroll-body" spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
-                <ActionScheduleOwner action={action} context={baseContext} store={scheduleStore} />
                 <ActionRunStatusOwner bindingStore={bindingStore} resultStore={resultStore} />
                 <ActionRunDisabledMessage action={action} settingsStore={settingsStore} />
                 {runValidationError ? (
@@ -74,6 +72,7 @@ export function CommandAction(props: CommandActionProps) {
                             questionsEnabled={false}
                             resultStore={resultStore}
                             runValidationError={runValidationError}
+                            scheduleContext={baseContext}
                             scheduleStore={scheduleStore}
                             settingsStore={settingsStore}
                         />

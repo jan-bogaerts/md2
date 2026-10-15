@@ -47,6 +47,19 @@ function requireNullableString(value, fieldName) {
     return requireString(value, fieldName);
 }
 
+function parseOptionalString(schedule, fieldName) {
+    if (schedule[fieldName] === undefined) return {};
+    if (typeof schedule[fieldName] !== 'string') throw new Error(`Invalid schedule file: ${fieldName} must be a string`);
+
+    return { [fieldName]: schedule[fieldName] };
+}
+
+function parseOptionalNullableString(schedule, fieldName) {
+    if (schedule[fieldName] === undefined) return {};
+
+    return { [fieldName]: requireNullableString(schedule[fieldName], fieldName) };
+}
+
 function parseOptionalConversationId(schedule) {
     if (schedule.conversationId === undefined) return {};
 
@@ -123,7 +136,14 @@ function parseActionSchedule(schedule, base) {
         throw new Error('Invalid schedule file: scheduled action card and trigger card must differ');
     }
 
-    return { actionId: requireString(schedule.actionId, 'actionId'), context, ...parseOptionalConversationId(schedule), ...base };
+    return {
+        actionId: requireString(schedule.actionId, 'actionId'),
+        context,
+        ...parseOptionalConversationId(schedule),
+        ...parseOptionalNullableString(schedule, 'failure'),
+        ...parseOptionalString(schedule, 'prompt'),
+        ...base,
+    };
 }
 
 function parseCardInternalIds(value) {

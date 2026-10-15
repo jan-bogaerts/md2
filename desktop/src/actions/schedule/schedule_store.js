@@ -32,7 +32,7 @@ function pendingScheduleIds(schedules) {
 }
 
 function activeSchedules(schedules) {
-    return schedules.filter(({ status }) => status === 'pending' || status === 'running');
+    return schedules.filter(({ status }) => status === 'failed' || status === 'pending' || status === 'running');
 }
 
 function deleteScheduleRecord(schedules, scheduleId) {
@@ -47,6 +47,14 @@ function updateActionScheduleStatus(schedules, scheduleId, status) {
         if (schedule.id !== scheduleId) return schedule;
 
         return { ...schedule, status };
+    })).schedules;
+}
+
+function failActionSchedule(schedules, scheduleId, failure) {
+    return createActionScheduleFile(schedules.map((schedule) => {
+        if (schedule.id !== scheduleId) return schedule;
+
+        return { ...schedule, failure, status: 'failed' };
     })).schedules;
 }
 
@@ -71,6 +79,7 @@ module.exports = {
     cancelPendingActionSchedule,
     createActionScheduleFile,
     deleteScheduleRecord,
+    failActionSchedule,
     findPendingSchedule,
     findRunningScheduleForConversation,
     parseActionScheduleFile,
