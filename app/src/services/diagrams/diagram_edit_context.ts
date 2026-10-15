@@ -1,4 +1,4 @@
-import type { DiagramData } from './diagram_data';
+import type { DiagramData, DiagramEdge, DiagramGroup, DiagramNode, DiagramSequenceFragment } from './diagram_data';
 import { DiagramChangeRegistry } from './diagram_change_registry';
 import { DiagramEditValidation } from './diagram_edit_validation';
 import { DiagramEditIdAllocator } from './diagram_edit_id_allocator';
@@ -13,6 +13,16 @@ export interface DiagramEditContextAccess extends DiagramEditTransactionAccess {
     createId: () => string;
     hasNode(id: string): boolean;
     hasEdge(id: string): boolean;
+    hasFragment(id: string): boolean;
+    requireEdge(id: string): DiagramEdge;
+    requireGroup(id: string): DiagramGroup;
+    requireFragment(id: string): DiagramSequenceFragment;
+    setEdgeIds(ids: readonly string[]): void;
+    setFragmentIds(ids: readonly string[]): void;
+    setGroupNodeIds(groupId: string, ids: readonly string[]): void;
+    addFragment(fragment: DiagramSequenceFragment): void;
+    deleteFragment(id: string): void;
+    getLegendEntryKeys(): readonly string[];
 }
 
 /** Narrow edit boundary backed by the session's live diagram and indexes. */
@@ -38,6 +48,28 @@ export class DiagramEditContext {
     get changeRegistry(): DiagramChangeRegistry {
         return this.access.changeRegistry;
     }
+
+    get target(): EventTarget {
+        return this.access.target;
+    }
+
+    get legendEntryKeys(): readonly string[] {
+        return this.access.getLegendEntryKeys();
+    }
+
+    getNode(id: string): DiagramNode { return this.access.requireNode(id); }
+    getEdge(id: string): DiagramEdge { return this.access.requireEdge(id); }
+    getGroup(id: string): DiagramGroup { return this.access.requireGroup(id); }
+    getFragment(id: string): DiagramSequenceFragment { return this.access.requireFragment(id); }
+    hasNode(id: string): boolean { return this.access.hasNode(id); }
+    hasEdge(id: string): boolean { return this.access.hasEdge(id); }
+    hasFragment(id: string): boolean { return this.access.hasFragment(id); }
+    setEdgeIds(ids: readonly string[]): void { this.access.setEdgeIds(ids); }
+    setFragmentIds(ids: readonly string[]): void { this.access.setFragmentIds(ids); }
+    setGroupNodeIds(groupId: string, ids: readonly string[]): void { this.access.setGroupNodeIds(groupId, ids); }
+    addFragment(fragment: DiagramSequenceFragment): void { this.access.addFragment(fragment); }
+    deleteFragment(id: string): void { this.access.deleteFragment(id); }
+    setLegendEntryKeys(keys: readonly string[]): void { this.access.setLegendEntryKeys(keys); }
 
     validateOperation(operation: string, validation: () => void) {
         return validateOperation(operation, validation, this.access.reportValidationError);

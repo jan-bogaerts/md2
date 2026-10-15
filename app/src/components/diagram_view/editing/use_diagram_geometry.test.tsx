@@ -124,7 +124,7 @@ function createHarness() {
     session.start()
     const geometry = new DiagramGeometryService(session)
     // The surface is widened once up front, so the measured move stays inside the bounds and cannot wake the root.
-    session.setNodeField('store', 'x', 1200)
+    session.objects.setNodeField('store', 'x', 1200)
 
     return { geometry, session }
 }
@@ -143,7 +143,7 @@ describe('diagram geometry subscriptions', () => {
         const edgeRenders = counters.edge.mock.calls.length
         const groupRenders = counters.group.mock.calls.length
 
-        act(() => session.setNodeField('mail', 'x', 120))
+        act(() => session.objects.setNodeField('mail', 'x', 120))
 
         expect(counters.movedNode.mock.calls.length).toBeGreaterThan(movedRenders)
         expect(counters.edge.mock.calls.length).toBeGreaterThan(edgeRenders)
@@ -166,7 +166,7 @@ describe('diagram geometry subscriptions', () => {
         const comparisonRenders = comparisonCounters.comparison.mock.calls.length
         const comparisonCollectionRenders = comparisonCounters.collection.mock.calls.length
 
-        act(() => session.setNodeField('mail', 'x', 120))
+        act(() => session.objects.setNodeField('mail', 'x', 120))
 
         expect(comparisonCounters.comparison).toHaveBeenCalledTimes(comparisonRenders)
         expect(comparisonCounters.collection).toHaveBeenCalledTimes(comparisonCollectionRenders)
@@ -180,7 +180,7 @@ describe('diagram geometry subscriptions', () => {
         const edgeRenders = counters.edge.mock.calls.length
         const rootRenders = counters.root.mock.calls.length
 
-        act(() => session.setNodeField('mail', 'label', 'Mailer'))
+        act(() => session.objects.setNodeField('mail', 'label', 'Mailer'))
 
         expect(counters.movedNode).toHaveBeenCalledTimes(movedRenders)
         expect(counters.edge).toHaveBeenCalledTimes(edgeRenders)
@@ -193,7 +193,7 @@ describe('diagram geometry subscriptions', () => {
         render(<DiagramRoot counters={counters} geometry={geometry} session={session} />)
         const rootRenders = counters.root.mock.calls.length
 
-        act(() => session.setNodeField('store', 'x', 2000))
+        act(() => session.objects.setNodeField('store', 'x', 2000))
 
         expect(counters.root.mock.calls.length).toBeGreaterThan(rootRenders)
         expect(counters.root.mock.lastCall?.[0]).toBe(geometry.getSurfaceFieldSnapshot('width'))

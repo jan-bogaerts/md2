@@ -108,16 +108,16 @@ function synchronizeEntityFields(
     let saved = true
     for (let fieldIndex = currentIds.length - 1; fieldIndex >= 0; fieldIndex -= 1) {
         if (targetIds.includes(currentIds[fieldIndex])) continue
-        saved = session.removeEntityField(nodeId, fieldIndex) && saved
+        saved = session.entityFields.removeEntityField(nodeId, fieldIndex) && saved
         currentIds.splice(fieldIndex, 1)
     }
     for (const [targetIndex, draft] of drafts.entries()) {
         const currentIndex = currentIds.indexOf(draft.draftId)
         if (currentIndex < 0) {
-            saved = session.addEntityField(nodeId, entityFieldValue(draft), targetIndex) && saved
+            saved = session.entityFields.addEntityField(nodeId, entityFieldValue(draft), targetIndex) && saved
             currentIds.splice(targetIndex, 0, draft.draftId)
         } else if (currentIndex !== targetIndex) {
-            saved = session.moveEntityField(nodeId, currentIndex, targetIndex) && saved
+            saved = session.entityFields.moveEntityField(nodeId, currentIndex, targetIndex) && saved
             currentIds.splice(targetIndex, 0, currentIds.splice(currentIndex, 1)[0])
         }
     }
@@ -126,13 +126,13 @@ function synchronizeEntityFields(
         if (!entityField) continue
         const nextEntityField = entityFieldValue(draft)
         if (entityField.name !== nextEntityField.name) {
-            saved = session.setEntityField(nodeId, fieldIndex, 'name', nextEntityField.name) && saved
+            saved = session.entityFields.setEntityField(nodeId, fieldIndex, 'name', nextEntityField.name) && saved
         }
         if (entityField.type !== nextEntityField.type) {
-            saved = session.setEntityField(nodeId, fieldIndex, 'type', nextEntityField.type) && saved
+            saved = session.entityFields.setEntityField(nodeId, fieldIndex, 'type', nextEntityField.type) && saved
         }
         if (entityField.key !== nextEntityField.key) {
-            saved = session.setEntityField(nodeId, fieldIndex, 'key', nextEntityField.key) && saved
+            saved = session.entityFields.setEntityField(nodeId, fieldIndex, 'key', nextEntityField.key) && saved
         }
     }
 
@@ -211,13 +211,13 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
         const nextDrilldown = drilldownValue(draft.drilldown)
         const nextSublabel = optionalText(draft.sublabel)
         const nextTag = optionalText(draft.tag)
-        if (node.label !== draft.label) saved = session.setNodeField(nodeId, 'label', draft.label) && saved
-        if (node.role !== draft.role) saved = session.setNodeField(nodeId, 'role', draft.role) && saved
-        if (node.sublabel !== nextSublabel) saved = session.setNodeField(nodeId, 'sublabel', nextSublabel) && saved
-        if (node.tag !== nextTag) saved = session.setNodeField(nodeId, 'tag', nextTag) && saved
-        if (node.drilldown !== nextDrilldown) saved = session.setNodeField(nodeId, 'drilldown', nextDrilldown) && saved
+        if (node.label !== draft.label) saved = session.objects.setNodeField(nodeId, 'label', draft.label) && saved
+        if (node.role !== draft.role) saved = session.objects.setNodeField(nodeId, 'role', draft.role) && saved
+        if (node.sublabel !== nextSublabel) saved = session.objects.setNodeField(nodeId, 'sublabel', nextSublabel) && saved
+        if (node.tag !== nextTag) saved = session.objects.setNodeField(nodeId, 'tag', nextTag) && saved
+        if (node.drilldown !== nextDrilldown) saved = session.objects.setNodeField(nodeId, 'drilldown', nextDrilldown) && saved
         if (diagramType === 'flow' && node.kind !== draft.kind) {
-            saved = session.setNodeField(nodeId, 'kind', draft.kind as DiagramNodeKind) && saved
+            saved = session.objects.setNodeField(nodeId, 'kind', draft.kind as DiagramNodeKind) && saved
         }
         if (diagramType === 'entity') {
             saved = synchronizeEntityFields(nodeId, draft.entityFields, session) && saved

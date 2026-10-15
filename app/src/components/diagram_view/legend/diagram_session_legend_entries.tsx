@@ -94,6 +94,6 @@ export function DiagramSessionLegendEntries({
         label={label}
         reader={session.read}
         session={session}
-        store={session}
+        store={session.formatting}
     />
 }

@@ -15,15 +15,17 @@ export interface ReadonlySequenceFragment {
 }
 
 export interface FragmentDialogSession {
-    createFragment: (fragment: NewDiagramSequenceFragment) => string | null
+    fragments: {
+        createFragment: (fragment: NewDiagramSequenceFragment) => string | null
+        removeFragment: (fragmentId: string) => boolean
+        updateFragment: (fragmentId: string, fragment: NewDiagramSequenceFragment) => boolean
+    }
     read: {
         getEdgeIdsSnapshot: () => readonly string[]
         getEdgeSnapshot: (edgeId: string) => Readonly<{ id: string, label?: string }> | null
         getFragmentSnapshot: (fragmentId: string) => ReadonlySequenceFragment | null
         subscribeCollectionMembership: (objectKind: 'edge' | 'fragment', listener: () => void) => () => void
     }
-    removeFragment: (fragmentId: string) => boolean
-    updateFragment: (fragmentId: string, fragment: NewDiagramSequenceFragment) => boolean
 }
 
 interface FragmentDraft {
@@ -115,11 +117,13 @@ export function DiagramFragmentForm({
             return
         }
         const fragment = { operator: draft.operator, regions: draft.regions }
-        const saved = fragmentId ? session.updateFragment(fragmentId, fragment) : session.createFragment(fragment) !== null
+        const saved = fragmentId
+            ? session.fragments.updateFragment(fragmentId, fragment)
+            : session.fragments.createFragment(fragment) !== null
         if (saved) onClose()
     }
     const handleDelete = () => {
-        if (fragmentId && session.removeFragment(fragmentId)) onClose()
+        if (fragmentId && session.fragments.removeFragment(fragmentId)) onClose()
     }
 
     return (

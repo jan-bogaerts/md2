@@ -142,7 +142,7 @@ describe('DiagramComparison', () => {
         const next = screen.getByRole('region', { name: 'New' })
         const currentMarkup = current.innerHTML
 
-        act(() => { session.setNodeField('orders', 'label', 'Order intake') })
+        act(() => { session.objects.setNodeField('orders', 'label', 'Order intake') })
 
         expect(within(current).getByRole('button', { name: 'Orders' })).toBeTruthy()
         expect(within(next).getByRole('button', { name: 'Order intake' })).toBeTruthy()
@@ -173,7 +173,7 @@ describe('DiagramComparison', () => {
         const next = screen.getByRole('region', { name: 'New' })
         const currentMarkup = current.innerHTML
 
-        act(() => { session.setMetadataField(field, value) })
+        act(() => { session.objects.setMetadataField(field, value) })
 
         expect(within(current).getByText(originalValue)).toBeInTheDocument()
         expect(within(next).getByDisplayValue(value)).toBeInTheDocument()

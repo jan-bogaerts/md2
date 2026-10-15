@@ -47,10 +47,10 @@ function DiagramGroupMembershipEditorLeaf({
     const handleToggle = useCallback((event: ChangeEvent<HTMLInputElement>) => {
         const { checked, name } = event.target
         if (checked) {
-            session.addGroupMember(groupId, name)
+            session.objects.addGroupMember(groupId, name)
             return
         }
-        session.removeGroupMember(groupId, name)
+        session.objects.removeGroupMember(groupId, name)
     }, [groupId, session])
     if (memberIds === null) return null
 

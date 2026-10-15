@@ -111,7 +111,7 @@ export function DiagramLegendDetailsEditor({ onClose, session }: DiagramLegendDe
 
             return
         }
-        if (session.addLegendEntry(newEntryFor(selectedSemantic, addedLabel)) === null) {
+        if (session.legend.addLegendEntry(newEntryFor(selectedSemantic, addedLabel)) === null) {
             setValidationMessage('That node kind, node role, or connection kind already has a legend entry.')
 
             return

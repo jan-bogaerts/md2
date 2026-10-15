@@ -67,7 +67,7 @@ describe('diagram group membership editor', () => {
     it('adds one requested node ID without touching group geometry', async () => {
         const session = createService()
         const user = userEvent.setup()
-        const addGroupMember = vi.spyOn(session, 'addGroupMember')
+        const addGroupMember = vi.spyOn(session.objects, 'addGroupMember')
         const geometry = groupGeometry(session)
         const labelChanged = vi.fn()
         session.read.subscribeGroupField('backend', 'label', labelChanged)
@@ -86,7 +86,7 @@ describe('diagram group membership editor', () => {
     it('removes one requested node ID and leaves an empty group valid', async () => {
         const session = createService()
         const user = userEvent.setup()
-        const removeGroupMember = vi.spyOn(session, 'removeGroupMember')
+        const removeGroupMember = vi.spyOn(session.objects, 'removeGroupMember')
         render(<DiagramGroupMembershipEditor groupId="backend" session={session} />)
 
         await user.click(screen.getByRole('checkbox', { name: 'Orders' }))
@@ -100,8 +100,8 @@ describe('diagram group membership editor', () => {
     it('records a membership change that is distinct from the group move and resize changes', async () => {
         const session = createService()
         const user = userEvent.setup()
-        act(() => { session.setGroupField('backend', 'x', 12) })
-        act(() => { session.setGroupField('backend', 'width', 20) })
+        act(() => { session.objects.setGroupField('backend', 'x', 12) })
+        act(() => { session.objects.setGroupField('backend', 'width', 20) })
         const geometryChangeIds = session.read.getChangeIdsSnapshot()
         render(<DiagramGroupMembershipEditor groupId="backend" session={session} />)
 
@@ -133,7 +133,7 @@ describe('diagram group membership editor', () => {
         const session = createService()
         render(<DiagramGroupMembershipEditor groupId="backend" session={session} />)
 
-        act(() => { session.setNodeField('store', 'label', 'Storage') })
+        act(() => { session.objects.setNodeField('store', 'label', 'Storage') })
 
         expect(screen.getByRole('checkbox', { name: 'Storage' })).toBeInTheDocument()
         expect(screen.getByRole('checkbox', { name: 'Orders' })).toBeChecked()

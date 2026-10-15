@@ -29,7 +29,7 @@ export function DiagramInlineMetadataField({ field, session }: { field: MutableD
 
             return
         }
-        if (!session.setMetadataField(field, trimmed)) setError(`${field} could not be saved.`)
+        if (!session.objects.setMetadataField(field, trimmed)) setError(`${field} could not be saved.`)
     }
     const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Escape') {

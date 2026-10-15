@@ -113,7 +113,7 @@ describe('VerticalDiagramComparison', () => {
         const next = screen.getByRole('region', { name: 'New' })
         const currentMarkup = current.innerHTML
 
-        act(() => { session.setNodeField('orders', 'label', 'Order intake') })
+        act(() => { session.objects.setNodeField('orders', 'label', 'Order intake') })
 
         expect(screen.getByLabelText('Vertical diagram comparison')).toBe(comparison)
         expect(screen.getByRole('region', { name: 'Current' })).toBe(current)
@@ -140,7 +140,7 @@ describe('VerticalDiagramComparison', () => {
         const current = screen.getByRole('region', { name: 'Current' })
         const next = screen.getByRole('region', { name: 'New' })
         fireEvent.click(within(current).getByRole('button', { name: 'Orders' }))
-        act(() => { session.setNodeField('orders', 'label', 'Order intake') })
+        act(() => { session.objects.setNodeField('orders', 'label', 'Order intake') })
         const geometryBefore = {
             height: geometry.getSurfaceFieldSnapshot('height'),
             width: geometry.getSurfaceFieldSnapshot('width'),

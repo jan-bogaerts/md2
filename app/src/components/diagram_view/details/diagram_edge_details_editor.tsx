@@ -84,24 +84,24 @@ export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEd
         const nextLabel = optionalText(draft.label)
         const nextFromCardinality = draft.fromCardinality || undefined
         const nextToCardinality = draft.toCardinality || undefined
-        if (edge.kind !== draft.kind) saved = session.setEdgeField(edgeId, 'kind', draft.kind) && saved
-        if (edge.label !== nextLabel) saved = session.setEdgeField(edgeId, 'label', nextLabel) && saved
+        if (edge.kind !== draft.kind) saved = session.objects.setEdgeField(edgeId, 'kind', draft.kind) && saved
+        if (edge.label !== nextLabel) saved = session.objects.setEdgeField(edgeId, 'label', nextLabel) && saved
         if ((diagramType === 'architecture' || diagramType === 'sequence') && edge.from !== draft.from) {
-            saved = session.reconnectEdgeEndpoint(edgeId, 'sourceAttachment', draft.from) && saved
+            saved = session.objects.reconnectEdgeEndpoint(edgeId, 'sourceAttachment', draft.from) && saved
         }
         if ((diagramType === 'architecture' || diagramType === 'sequence') && edge.to !== draft.to) {
-            saved = session.reconnectEdgeEndpoint(edgeId, 'targetAttachment', draft.to) && saved
+            saved = session.objects.reconnectEdgeEndpoint(edgeId, 'targetAttachment', draft.to) && saved
         }
         const nextRowIndex = Number(draft.row) - 1
         const currentRowIndex = session.read.getEdgeIdsSnapshot().indexOf(edgeId)
         if (diagramType === 'sequence' && currentRowIndex !== nextRowIndex) {
-            saved = session.moveSequenceEdge(edgeId, nextRowIndex) && saved
+            saved = session.objects.moveSequenceEdge(edgeId, nextRowIndex) && saved
         }
         if (diagramType === 'entity' && edge.fromCardinality !== nextFromCardinality) {
-            saved = session.setEdgeField(edgeId, 'fromCardinality', nextFromCardinality) && saved
+            saved = session.objects.setEdgeField(edgeId, 'fromCardinality', nextFromCardinality) && saved
         }
         if (diagramType === 'entity' && edge.toCardinality !== nextToCardinality) {
-            saved = session.setEdgeField(edgeId, 'toCardinality', nextToCardinality) && saved
+            saved = session.objects.setEdgeField(edgeId, 'toCardinality', nextToCardinality) && saved
         }
         if (saved) onClose()
     }

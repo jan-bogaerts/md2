@@ -230,8 +230,8 @@ describe('DiagramZoomViewport', () => {
         const oldOriginY = geometry.getSurfaceFieldSnapshot('originY')
 
         act(() => {
-            session.setNodeField('orders', 'x', 20)
-            session.setNodeField('orders', 'y', 20)
+            session.objects.setNodeField('orders', 'x', 20)
+            session.objects.setNodeField('orders', 'y', 20)
         })
 
         expect(geometry.getSurfaceFieldSnapshot('originX')).toBeGreaterThan(oldOriginX)
@@ -242,8 +242,8 @@ describe('DiagramZoomViewport', () => {
 
     it('places at canonical pointer coordinates after left and top growth at zoom', () => {
         const { geometry, placement, session } = createHarness()
-        session.setNodeField('orders', 'x', 20)
-        session.setNodeField('orders', 'y', 20)
+        session.objects.setNodeField('orders', 'x', 20)
+        session.objects.setNodeField('orders', 'y', 20)
         render(<DiagramZoomViewport geometry={geometry} placement={placement} session={session} />)
         const scroller = screen.getByLabelText('New diagram scroller')
         const drawingSurface = screen.getByLabelText('New diagram')

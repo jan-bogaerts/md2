@@ -38,7 +38,7 @@ export function DiagramLegendEntryEditor({
 
             return
         }
-        if (session.setLegendEntryLabel(entryKey, draftLabel)) onValidationMessage(null)
+        if (session.legend.setLegendEntryLabel(entryKey, draftLabel)) onValidationMessage(null)
         else {
             onValidationMessage(`Label for ${semanticLabel(entryKey)} is required.`)
             setDraftLabel(label)
@@ -73,7 +73,7 @@ export function DiagramLegendEntryEditor({
                     <IconButton
                         aria-label={`Move ${semanticLabel(entryKey)} up`}
                         disabled={entryIndex === 0}
-                        onClick={() => session.moveLegendEntry(entryKey, entryIndex - 1)}
+                        onClick={() => session.legend.moveLegendEntry(entryKey, entryIndex - 1)}
                         size="small"
                     >
                         <ArrowUpwardOutlined fontSize="small" />
@@ -85,7 +85,7 @@ export function DiagramLegendEntryEditor({
                     <IconButton
                         aria-label={`Move ${semanticLabel(entryKey)} down`}
                         disabled={entryIndex === entryCount - 1}
-                        onClick={() => session.moveLegendEntry(entryKey, entryIndex + 1)}
+                        onClick={() => session.legend.moveLegendEntry(entryKey, entryIndex + 1)}
                         size="small"
                     >
                         <ArrowDownwardOutlined fontSize="small" />
@@ -95,7 +95,7 @@ export function DiagramLegendEntryEditor({
             <Tooltip title="Remove entry">
                 <IconButton
                     aria-label={`Remove ${semanticLabel(entryKey)}`}
-                    onClick={() => session.removeLegendEntry(entryKey)}
+                    onClick={() => session.legend.removeLegendEntry(entryKey)}
                     size="small"
                 >
                     <DeleteOutlineOutlined fontSize="small" />

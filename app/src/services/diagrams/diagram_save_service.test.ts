@@ -49,7 +49,7 @@ function createHarness(sourceDiagram: DiagramData = diagram) {
 describe('DiagramSaveService', () => {
     it('queues edits automatically and acknowledges only after persistence', async () => {
         const { flushQueuedDiagrams, queueEditedDiagramCopy, session } = createHarness()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
 
         await vi.waitFor(() => expect(queueEditedDiagramCopy).toHaveBeenCalled())
         expect(flushQueuedDiagrams).not.toHaveBeenCalled()
@@ -61,8 +61,8 @@ describe('DiagramSaveService', () => {
 
     it('persists New formatting through edited-copy save flow', async () => {
         const { queueEditedDiagramCopy, service, session } = createHarness()
-        session.setNodeRoleFormatting('focal', { box: { fillColor: '#112233' } })
-        session.setFormattingScale('spacingScalePercent', 120)
+        session.formatting.setNodeRoleFormatting('focal', { box: { fillColor: '#112233' } })
+        session.formatting.setFormattingScale('spacingScalePercent', 120)
 
         await service.save()
 
@@ -81,7 +81,7 @@ describe('DiagramSaveService', () => {
         const { queueEditedDiagramCopy, savedRecord, service, session } = createHarness(sourceWithRenderingData)
         const editableDiagram = session.read.getEditableDiagram()
         const originalDiagram = session.read.getOriginalDiagramSnapshot()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
 
         await expect(service.save()).resolves.toBe(savedRecord)
 
@@ -101,13 +101,13 @@ describe('DiagramSaveService', () => {
 
     it('uses the same saved record and rebases later dirty tracking to the saved copy', async () => {
         const { queueEditedDiagramCopy, savedRecord, service, session } = createHarness()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         await service.save()
-        session.setNodeField('orders', 'label', 'Sales')
+        session.objects.setNodeField('orders', 'label', 'Sales')
 
         await service.save()
-        session.setNodeField('orders', 'label', 'Sales')
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Sales')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
 
         expect(queueEditedDiagramCopy.mock.calls.at(-1)![0].savedRecord).toBe(savedRecord)
         expect(session.read.getDirtySnapshot()).toBe(true)
@@ -123,7 +123,7 @@ describe('DiagramSaveService', () => {
         const created = createHarness({ ...diagram, nodes: [] })
         created.session.discard()
         created.session.startCreation('source')
-        created.session.setMetadataField('title', 'Changed')
+        created.session.objects.setMetadataField('title', 'Changed')
         await expect(created.service.save()).resolves.toBe(created.savedRecord)
         expect(created.queueEditedDiagramCopy).toHaveBeenCalled()
         expect(created.session.read.getSessionSnapshot()?.creationSourceDiagramId).toBe('source')
@@ -133,7 +133,7 @@ describe('DiagramSaveService', () => {
         const { flushQueuedDiagrams, service, session } = createHarness()
         const editableDiagram = session.read.getEditableDiagram()
         const originalDiagram = session.read.getOriginalDiagramSnapshot()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         flushQueuedDiagrams.mockRejectedValueOnce(new Error('commit failed'))
 
         await expect(service.save()).rejects.toThrow('commit failed')
@@ -166,11 +166,11 @@ describe('DiagramSaveService', () => {
             }),
         }
         const concurrentService = new DiagramSaveService(session, persistence)
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
 
         const save = concurrentService.save()
         await vi.waitFor(() => expect(persistence.flushQueuedDiagrams).toHaveBeenCalled())
-        session.setNodeField('orders', 'label', 'Sales')
+        session.objects.setNodeField('orders', 'label', 'Sales')
         finishSave()
         await save
 

@@ -153,16 +153,16 @@ export class DiagramMoveService {
 
     private applyPosition(object: MovingDiagramObject, x: number | undefined, y: number | undefined) {
         if (object.objectKind === 'node') {
-            this.session.setNodeField(object.objectId, 'x', x)
-            this.session.setNodeField(object.objectId, 'y', y)
+            this.session.objects.setNodeField(object.objectId, 'x', x)
+            this.session.objects.setNodeField(object.objectId, 'y', y)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'height', object.startHeight)
-        this.session.setGroupField(object.objectId, 'width', object.startWidth)
-        this.session.setGroupField(object.objectId, 'x', x)
-        this.session.setGroupField(object.objectId, 'y', y)
+        this.session.objects.setGroupField(object.objectId, 'height', object.startHeight)
+        this.session.objects.setGroupField(object.objectId, 'width', object.startWidth)
+        this.session.objects.setGroupField(object.objectId, 'x', x)
+        this.session.objects.setGroupField(object.objectId, 'y', y)
     }
 
     private restoreMove() {
@@ -173,18 +173,18 @@ export class DiagramMoveService {
 
     private restorePosition(object: MovingDiagramObject) {
         if (object.objectKind === 'node') {
-            if (object.originalX === undefined) this.session.setNodeField(object.objectId, 'x', object.startX)
-            if (object.originalY === undefined) this.session.setNodeField(object.objectId, 'y', object.startY)
+            if (object.originalX === undefined) this.session.objects.setNodeField(object.objectId, 'x', object.startX)
+            if (object.originalY === undefined) this.session.objects.setNodeField(object.objectId, 'y', object.startY)
 
             this.applyPosition(object, object.originalX, object.originalY)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'height', object.originalHeight)
-        this.session.setGroupField(object.objectId, 'width', object.originalWidth)
-        this.session.setGroupField(object.objectId, 'x', object.originalX)
-        this.session.setGroupField(object.objectId, 'y', object.originalY)
+        this.session.objects.setGroupField(object.objectId, 'height', object.originalHeight)
+        this.session.objects.setGroupField(object.objectId, 'width', object.originalWidth)
+        this.session.objects.setGroupField(object.objectId, 'x', object.originalX)
+        this.session.objects.setGroupField(object.objectId, 'y', object.originalY)
     }
 
     private requireMove() {

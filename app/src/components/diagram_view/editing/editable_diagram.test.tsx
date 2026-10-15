@@ -179,7 +179,7 @@ describe('editable diagram', () => {
         fireEvent.blur(label)
         expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('A longer wrapped order label')
 
-        act(() => { session.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 24 } }) })
+        act(() => { session.formatting.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 24 } }) })
 
         const singleLine = screen.getByRole('textbox', { name: 'Edit A longer wrapped order label label' })
         expect(singleLine.tagName).toBe('INPUT')
@@ -220,7 +220,7 @@ describe('editable diagram', () => {
         render(<MeasuredMetadata counts={counts} onRootRender={onRootRender} session={session} />)
         const before = new Map(counts)
 
-        act(() => { session.setMetadataField(field, `Updated ${field}`) })
+        act(() => { session.objects.setMetadataField(field, `Updated ${field}`) })
 
         expect(counts.get(changedLeaf)).toBeGreaterThan(before.get(changedLeaf) ?? 0)
         expect(counts.get(unchangedLeaf)).toBe(before.get(unchangedLeaf))
@@ -231,7 +231,7 @@ describe('editable diagram', () => {
         const { geometry, selection, session } = createHarness()
         render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
 
-        act(() => { session.setNodeField('store', 'label', 'Order store') })
+        act(() => { session.objects.setNodeField('store', 'label', 'Order store') })
 
         expect(screen.getByRole('button', { name: 'Order store' })).toBeTruthy()
         expect(screen.queryByRole('button', { name: 'Store' })).toBeNull()
@@ -244,7 +244,7 @@ describe('editable diagram', () => {
         const before = new Map(counts)
         const nodeIds = session.read.getNodeIdsSnapshot()
 
-        act(() => { session.setNodeField('orders', 'label', 'Order intake') })
+        act(() => { session.objects.setNodeField('orders', 'label', 'Order intake') })
 
         expect(counts.get('orders')).toBeGreaterThan(before.get('orders') ?? 0)
         // The host observes this snapshot only, so an unchanged reference is exactly a skipped host render.
@@ -276,7 +276,7 @@ describe('editable diagram', () => {
         )
         const before = new Map(counts)
 
-        act(() => { session.setNodeField('store', 'x', 2000) })
+        act(() => { session.objects.setNodeField('store', 'x', 2000) })
 
         expect(geometry.getSurfaceFieldSnapshot('width')).toBeGreaterThan(2000)
         expect(counts.get('host')).toBe(before.get('host'))

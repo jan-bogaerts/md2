@@ -152,9 +152,9 @@ describe('DiagramLegendDetailsEditor', () => {
         await userEvent.keyboard('{Escape}')
 
         act(() => {
-            session.setNodeField('store', 'role', 'backend')
-            session.setEdgeField('orders-store', 'kind', 'data')
-            session.removeLegendEntry('connection:connection')
+            session.objects.setNodeField('store', 'role', 'backend')
+            session.objects.setEdgeField('orders-store', 'kind', 'data')
+            session.legend.removeLegendEntry('connection:connection')
         })
         await userEvent.click(screen.getByLabelText('Add entry for'))
         expect(screen.getByRole('option', { name: 'store node' })).toBeInTheDocument()

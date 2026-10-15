@@ -113,7 +113,7 @@ describe('diagram object details dialog', () => {
     it('validates both required metadata drafts before applying either field', async () => {
         const { details, session } = renderHarness()
         const user = userEvent.setup()
-        const setMetadataField = vi.spyOn(session, 'setMetadataField')
+        const setMetadataField = vi.spyOn(session.objects, 'setMetadataField')
         act(() => { details.open({ objectKind: 'meta' }) })
 
         const title = screen.getByRole('textbox', { name: 'Title' })
@@ -134,7 +134,7 @@ describe('diagram object details dialog', () => {
     it('trims and saves title and description through separate metadata operations', async () => {
         const { details, session } = renderHarness()
         const user = userEvent.setup()
-        const setMetadataField = vi.spyOn(session, 'setMetadataField')
+        const setMetadataField = vi.spyOn(session.objects, 'setMetadataField')
         act(() => { details.open({ objectKind: 'meta' }) })
 
         const title = screen.getByRole('textbox', { name: 'Title' })
@@ -471,8 +471,8 @@ describe('diagram object details dialog', () => {
     it('records a group membership change distinct from the group move and resize changes', async () => {
         const { details, session } = renderHarness()
         const user = userEvent.setup()
-        act(() => { session.setGroupField('backend', 'x', 12) })
-        act(() => { session.setGroupField('backend', 'width', 20) })
+        act(() => { session.objects.setGroupField('backend', 'x', 12) })
+        act(() => { session.objects.setGroupField('backend', 'width', 20) })
         const geometryChangeIds = session.read.getChangeIdsSnapshot()
 
         act(() => { details.open({ objectId: 'backend', objectKind: 'group' }) })

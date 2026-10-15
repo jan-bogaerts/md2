@@ -760,7 +760,7 @@ describe('DiagramView', () => {
         const { editSession, geometry } = createEditHarness()
         render(<DiagramView editSession={editSession} geometry={geometry} service={service} />)
 
-        act(() => { editSession.setMetadataField('title', 'New title') })
+        act(() => { editSession.objects.setMetadataField('title', 'New title') })
 
         expect(within(screen.getByLabelText('Diagram breadcrumb')).getByRole('button', { name: 'New title' })).toBeInTheDocument()
         expect(service.getIndexSnapshot().diagrams['child-1'].label).toBe('Orders')
@@ -821,7 +821,7 @@ describe('DiagramView', () => {
         const originalDiagram = editSession.read.getOriginalDiagramSnapshot()
         const editableDiagram = editSession.read.getEditableDiagram()
         const sessionSnapshot = editSession.read.getSessionSnapshot()
-        editSession.setNodeField('customer', 'label', 'Edited customer')
+        editSession.objects.setNodeField('customer', 'label', 'Edited customer')
         editSession.setActiveTool('node:component')
         editSession.setViewportScale(1.5)
         service.setViewportScale(0.5)
@@ -850,7 +850,7 @@ describe('DiagramView', () => {
             const layoutService = new DiagramComparisonLayoutService()
             const editableDiagram = editSession.read.getEditableDiagram()
             const sessionSnapshot = editSession.read.getSessionSnapshot()
-            editSession.setNodeField('customer', 'label', 'Edited customer')
+            editSession.objects.setNodeField('customer', 'label', 'Edited customer')
             layoutService.setComparisonMode(startingMode)
             layoutService.setHorizontalDividerRatio(0.3)
             layoutService.setVerticalDividerRatio(0.7)

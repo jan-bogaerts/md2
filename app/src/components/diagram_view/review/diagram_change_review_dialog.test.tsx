@@ -62,7 +62,7 @@ afterEach(() => {
 describe('DiagramChangeReviewDialog', () => {
     it('opens existing action popup with captured reviewed changes and diagram ID', async () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const review = new DiagramChangeReviewService(session, { replace: vi.fn(() => true) }, () => 'Reviewed changes')
         review.open()
 
@@ -96,7 +96,7 @@ describe('DiagramChangeReviewDialog', () => {
 
     it('shows grouped current changes, generated text, and valid actions', () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const review = new DiagramChangeReviewService(session, { replace: vi.fn(() => true) })
         review.open()
 
@@ -112,7 +112,7 @@ describe('DiagramChangeReviewDialog', () => {
 
     it('disables Save during persistence and closes only after success', async () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const review = new DiagramChangeReviewService(session, { replace: vi.fn(() => true) })
         review.open()
         const savedRecord = { ...record, id: 'copy', path: 'design/diagrams/overview-edited-copy.json', sourceDiagramId: record.id }
@@ -147,7 +147,7 @@ describe('DiagramChangeReviewDialog', () => {
 
     it('reports save failure while retaining review and edits', async () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const review = new DiagramChangeReviewService(session, { replace: vi.fn(() => true) })
         review.open()
         const persistence = {
@@ -173,7 +173,7 @@ describe('DiagramChangeReviewDialog', () => {
 
     it('identifies affected objects without modifying editable data', () => {
         const session = createSession()
-        session.removeGroupMember('backend', 'orders')
+        session.objects.removeGroupMember('backend', 'orders')
         const replace = vi.fn(() => true)
         const review = new DiagramChangeReviewService(session, { replace })
         const editableBefore = JSON.stringify(session.read.getEditableDiagram())
@@ -191,12 +191,12 @@ describe('DiagramChangeReviewDialog', () => {
 
     it('updates one row while retaining explicitly generated report text', () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const review = new DiagramChangeReviewService(session, { replace: vi.fn(() => true) })
         review.open()
 
         render(<DiagramChangeReviewDialog review={review} session={session} />)
-        act(() => session.setNodeField('orders', 'label', 'Sales'))
+        act(() => session.objects.setNodeField('orders', 'label', 'Sales'))
 
         const dialogElement = screen.getByRole('dialog', { name: 'Review diagram changes' })
         expect(within(dialogElement).getByText(/Change label of node "Sales" from "Orders" to "Sales"/u)).toBeInTheDocument()
@@ -205,7 +205,7 @@ describe('DiagramChangeReviewDialog', () => {
 
     it('lists validation blocker and disables save and handoff', () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const validate = () => {
             throw new Error('Malformed diagram data: nodes.orders.label has empty string')
         }
@@ -221,7 +221,7 @@ describe('DiagramChangeReviewDialog', () => {
 
     it('closes review without clearing edits', async () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const review = new DiagramChangeReviewService(session, { replace: vi.fn(() => true) })
         review.open()
 

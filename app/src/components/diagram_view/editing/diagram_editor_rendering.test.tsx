@@ -200,13 +200,13 @@ afterEach(cleanup)
 
 describe('diagram editor render isolation', () => {
     it.each([
-        ['metadata', 'metadata', ({ session }: ReturnType<typeof createHarness>) => session.setMetadataField('title', 'Updated')],
-        ['node', 'node:one', ({ session }: ReturnType<typeof createHarness>) => session.setNodeField('one', 'label', 'Updated')],
-        ['edge', 'edge:one-two', ({ session }: ReturnType<typeof createHarness>) => session.setEdgeField('one-two', 'label', 'Updated')],
-        ['group', 'group:first-group', ({ session }: ReturnType<typeof createHarness>) => session.setGroupField('first-group', 'label', 'Updated')],
-        ['fragment', 'fragment:first-fragment', ({ session }: ReturnType<typeof createHarness>) => session.updateFragment('first-fragment', { operator: 'loop', regions: session.read.getFragmentSnapshot('first-fragment')?.regions.map(({ edgeIds, guard }) => ({ edgeIds: [...edgeIds], guard })) ?? [] })],
+        ['metadata', 'metadata', ({ session }: ReturnType<typeof createHarness>) => session.objects.setMetadataField('title', 'Updated')],
+        ['node', 'node:one', ({ session }: ReturnType<typeof createHarness>) => session.objects.setNodeField('one', 'label', 'Updated')],
+        ['edge', 'edge:one-two', ({ session }: ReturnType<typeof createHarness>) => session.objects.setEdgeField('one-two', 'label', 'Updated')],
+        ['group', 'group:first-group', ({ session }: ReturnType<typeof createHarness>) => session.objects.setGroupField('first-group', 'label', 'Updated')],
+        ['fragment', 'fragment:first-fragment', ({ session }: ReturnType<typeof createHarness>) => session.fragments.updateFragment('first-fragment', { operator: 'loop', regions: session.read.getFragmentSnapshot('first-fragment')?.regions.map(({ edgeIds, guard }) => ({ edgeIds: [...edgeIds], guard })) ?? [] })],
         ['selection', 'selection:one', ({ selection }: ReturnType<typeof createHarness>) => selection.replace([{ objectId: 'one', objectKind: 'node' }])],
-        ['geometry', 'geometry:one', ({ session }: ReturnType<typeof createHarness>) => session.setNodeField('one', 'x', 200)],
+        ['geometry', 'geometry:one', ({ session }: ReturnType<typeof createHarness>) => session.objects.setNodeField('one', 'x', 200)],
         ['zoom', 'zoom', ({ session }: ReturnType<typeof createHarness>) => (
             session.setViewportScale(DEFAULT_DIAGRAM_ZOOM + DIAGRAM_ZOOM_STEP)
         )],

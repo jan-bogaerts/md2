@@ -175,7 +175,7 @@ describe('DiagramViewService', () => {
         expect(harness.editSession.read.getSavedRecordSnapshot()?.id).toBe('copy-2')
         expect(harness.editSession.read.getDirtySnapshot()).toBe(false)
 
-        harness.editSession.setMetadataField('title', 'Updated after restart')
+        harness.editSession.objects.setMetadataField('title', 'Updated after restart')
         const save = new DiagramSaveService(harness.editSession, harness.service)
         await save.save()
 
@@ -255,7 +255,7 @@ describe('DiagramViewService', () => {
         index.roots['user-created'].push('root-2')
         loadPendingIndex(harness, index)
         await harness.service.open()
-        harness.editSession.setMetadataField('title', 'Unsaved')
+        harness.editSession.objects.setMetadataField('title', 'Unsaved')
 
         await expect(harness.service.navigateToSavedDiagram('root-2')).rejects.toThrow('Save or discard')
 

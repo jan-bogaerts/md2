@@ -3,90 +3,52 @@ import { generateUuid } from '../../data/uuid'
 import { dialogService } from '../dialog_service'
 import { register } from '../service_injector'
 import {
-    requireDiagramString,
-    type DiagramConnectionKindFormatting,
     type DiagramData,
     type DiagramEdge,
-    type DiagramEntityField,
     type DiagramGroup,
     type DiagramLegendEntryData,
-    type DiagramMeta,
     type DiagramNode,
-    type DiagramEdgeKind,
-    type DiagramRole,
-    type DiagramNodeRoleFormatting,
     type DiagramSequenceFragment,
-    type DiagramSequenceFragmentRegion,
-    type DiagramSequenceOperator,
 } from './diagram_data'
-import {
-    diagramScale,
-    sameFormattingValue,
-    type DiagramScaleField,
-    withConnectionKindFormatting,
-    withDiagramScale,
-    withNodeRoleFormatting,
-} from './diagram_formatting'
 import type { DiagramRecord } from './diagram_index'
 import { DiagramChangeRegistry } from './diagram_change_registry'
 import { DiagramEditContext } from './diagram_edit_context'
+import { DiagramFormattingEditor } from './diagram_formatting_editor'
+import { DiagramLegendEditor } from './diagram_legend_editor'
+import { DiagramObjectFieldEditor } from './diagram_object_field_editor'
+import { DiagramFragmentEditor } from './diagram_fragment_editor'
+import { DiagramEntityFieldEditor } from './diagram_entity_field_editor'
 import { collectionMembershipEvent, fragmentRegionMembershipEvent, groupMembershipEvent, type PendingMembershipEvent } from './diagram_edit_membership_events'
 import type { DiagramEditErrorReporter } from './diagram_edit_operation_validation'
 import {
     DiagramEditValidation,
     invalidDiagramField,
-    requireEntityFieldValue,
-    requireOptionalGridNumber,
-    validateConnectionPointValue,
     validateNewGroup,
-    validateNewLegendEntry,
 } from './diagram_edit_validation'
 import { prepareDiagramPaste } from './diagram_paste_preparation'
-import { planFragmentUpdate } from './diagram_fragment_update_plan'
-import { planEdgeReconnection } from './diagram_edge_reconnection_plan'
 import { planDiagramRemoval } from './diagram_removal_plan'
 import { diagramViewService, type DiagramViewSourceSnapshot } from './diagram_view_service'
 import { DEFAULT_DIAGRAM_ZOOM } from './diagram_zoom'
 import type {
-    DiagramChange,
     DiagramCollectionKind,
-    DiagramConnectionEndpoint,
     DiagramCreationTool,
     DiagramEditSessionSnapshot,
-    DiagramFieldChangeDetail,
-    DiagramLegendMembershipChangeDetail,
     DiagramPasteFragment,
     DiagramPasteResult,
     DiagramPersistentTool,
     DiagramRemovalIdentity,
     DiagramTransientGesture,
-    MutableDiagramEdgeField,
-    MutableDiagramEntityField,
-    MutableDiagramGroupField,
-    MutableDiagramMetaField,
-    MutableDiagramNodeField,
     NewDiagramEdge,
     NewDiagramGroup,
-    NewDiagramLegendEntry,
     NewDiagramNode,
-    NewDiagramSequenceFragment,
     OriginalDiagramSnapshot,
 } from './diagram_edit_types'
 import {
     diagramChangeFieldChangedEvent,
-    diagramConnectionPointFieldChangedEvent,
-    diagramEntityFieldChangedEvent,
-    diagramFormattingCategoryChangedEvent,
-    diagramFormattingScaleChangedEvent,
-    diagramLegendEntryFieldChangedEvent,
-    diagramLegendMembershipChangedEvent,
-    diagramMetadataFieldChangedEvent,
-    diagramObjectFieldChangedEvent,
 } from './diagram_edit_events'
 import { diagramLegendEntryKey } from './diagram_legend_entry_key'
 import { DiagramEditSessionReadAdapter, type DiagramEditReadState } from './diagram_edit_session_read_adapter'
 import { derivedDiagramLegendEntries } from './diagram_derived_legend'
-import { diagramNodeKindLabel } from './diagram_creation_tool_labels'
 const DIRTY_CHANGED_EVENT = 'dirtyChanged'
 const ORIGINAL_DIAGRAM_CHANGED_EVENT = 'originalDiagramChanged'
 const SESSION_CHANGED_EVENT = 'sessionChanged'
@@ -106,21 +68,12 @@ function reportDiagramEditError(message: string) {
     dialogService.displayError(message, { title: 'Diagram edit rejected' })
 }
 
-function canonicalLegendLabel(entry: NewDiagramLegendEntry) {
-    return entry.label?.trim() || ('role' in entry ? entry.role
-        : 'nodeKind' in entry ? diagramNodeKindLabel(entry.nodeKind) : entry.kind)
-}
-
 function indexById<Item extends { id: string }>(items: Item[]) {
     return new Map(items.map((item) => [item.id, item]))
 }
 
 function frozenIds<Item extends { id: string }>(items: readonly Item[]) {
     return Object.freeze(items.map(({ id }) => id))
-}
-
-function sameOrderedValues<Value>(left: readonly Value[], right: readonly Value[]) {
-    return left.length === right.length && left.every((value, index) => value === right[index])
 }
 
 /** Owns original and editable model data for one project's active diagram edit session. */
@@ -155,6 +108,11 @@ export class DiagramEditSessionService extends EventTarget {
     private viewportScale = DEFAULT_DIAGRAM_ZOOM
 
     readonly read = new DiagramEditSessionReadAdapter(this, () => this.getReadState())
+    readonly formatting: DiagramFormattingEditor
+    readonly legend: DiagramLegendEditor
+    readonly objects: DiagramObjectFieldEditor
+    readonly fragments: DiagramFragmentEditor
+    readonly entityFields: DiagramEntityFieldEditor
 
     private getReadState(): DiagramEditReadState {
         return {
@@ -204,9 +162,24 @@ export class DiagramEditSessionService extends EventTarget {
             reportValidationError,
             hasNode: (id) => this.nodesById.has(id),
             hasEdge: (id) => this.edgesById.has(id),
+            hasFragment: (id) => this.fragmentsById.has(id),
+            requireEdge: (id) => this.requireEdge(id),
+            requireGroup: (id) => this.requireGroup(id),
+            requireFragment: (id) => this.requireFragment(id),
+            setEdgeIds: (ids) => { this.edgeIds = ids },
+            setFragmentIds: (ids) => { this.fragmentIds = ids },
+            setGroupNodeIds: (id, ids) => { this.groupNodeIdsById.set(id, ids) },
+            addFragment: (fragment) => { this.fragmentsById.set(fragment.id, fragment) },
+            deleteFragment: (id) => { this.fragmentsById.delete(id) },
+            getLegendEntryKeys: () => this.legendEntryKeys,
             setLegendEntryKeys: (keys) => { this.legendEntryKeys = keys },
             setEntityFieldIndexes: (nodeId, indexes) => { this.entityFieldIndexesByNodeId.set(nodeId, indexes) },
         })
+        this.formatting = new DiagramFormattingEditor(this.editContext)
+        this.legend = new DiagramLegendEditor(this.editContext)
+        this.objects = new DiagramObjectFieldEditor(this.editContext)
+        this.fragments = new DiagramFragmentEditor(this.editContext)
+        this.entityFields = new DiagramEntityFieldEditor(this.editContext)
     }
 
     selectLegendEntry(entryKey: string) {
@@ -410,466 +383,6 @@ export class DiagramEditSessionService extends EventTarget {
         return true
     }
 
-    setFormattingScale(field: DiagramScaleField, value: number) {
-        const diagram = this.requireEditableDiagram()
-        const previousValue = diagramScale(diagram.formatting, field)
-        const formatting = withDiagramScale(diagram, field, value)
-        if (previousValue === value) return
-
-        diagram.formatting = formatting
-        this.editContext.transaction.finishFormattingChange(
-            diagramFormattingScaleChangedEvent(field), 'diagram', field,
-            diagramScale(this.changeRegistry.baseline?.formatting, field), previousValue, value,
-        )
-    }
-
-    setNodeRoleFormatting(role: DiagramRole, value: DiagramNodeRoleFormatting) {
-        const diagram = this.requireEditableDiagram()
-        const previousValue = diagram.formatting?.nodeRoles?.[role]
-        const formatting = withNodeRoleFormatting(diagram, role, value)
-        const nextValue = formatting.nodeRoles?.[role]
-        if (sameFormattingValue(previousValue, nextValue)) return
-
-        diagram.formatting = formatting
-        this.editContext.transaction.finishFormattingChange(
-            diagramFormattingCategoryChangedEvent('nodeRole', role), role, 'nodeRole',
-            this.changeRegistry.baseline?.formatting?.nodeRoles?.[role], previousValue, nextValue,
-        )
-    }
-
-    setConnectionKindFormatting(kind: DiagramEdgeKind, value: DiagramConnectionKindFormatting) {
-        const diagram = this.requireEditableDiagram()
-        const previousValue = diagram.formatting?.connectionKinds?.[kind]
-        const formatting = withConnectionKindFormatting(diagram, kind, value)
-        const nextValue = formatting.connectionKinds?.[kind]
-        if (sameFormattingValue(previousValue, nextValue)) return
-
-        diagram.formatting = formatting
-        this.editContext.transaction.finishFormattingChange(
-            diagramFormattingCategoryChangedEvent('connectionKind', kind), kind, 'connectionKind',
-            this.changeRegistry.baseline?.formatting?.connectionKinds?.[kind], previousValue, nextValue,
-        )
-    }
-
-    setMetadataField<Field extends MutableDiagramMetaField>(field: Field, value: DiagramMeta[Field]) {
-        const diagram = this.requireEditableDiagram()
-        const previousValue = diagram.meta[field]
-        const trimmedValue = value.trim()
-        if (Object.is(previousValue, trimmedValue)) return false
-        if (!this.editContext.validateOperation('Set diagram metadata field', () => requireDiagramString(trimmedValue, `meta.${field}`))) return false
-
-        diagram.meta[field] = trimmedValue
-        const originalValue = this.changeRegistry.baseline?.meta[field]
-        const eventName = diagramMetadataFieldChangedEvent(field)
-        this.editContext.transaction.finishFieldChange(eventName, 'meta:diagram', 'meta', 'diagram', field, originalValue, previousValue, trimmedValue)
-
-        return true
-    }
-
-    /** Turns displayed semantic categories into editable legend entries. */
-    materializeDerivedLegend() {
-        const diagram = this.requireEditableDiagram()
-        if (diagram.meta.legend !== undefined) return false
-
-        const entries = DiagramEditSessionService.derivedLegendEntries(diagram)
-        diagram.meta.legend = entries
-        this.editContext.transaction.finishLegendMembershipChange(entries.map(diagramLegendEntryKey), [])
-
-        return true
-    }
-
-    /** Appends one explicit legend entry. */
-    addLegendEntry(entry: NewDiagramLegendEntry) {
-        const diagram = this.requireEditableDiagram()
-        const wasDerived = diagram.meta.legend === undefined
-        const existingEntries = diagram.meta.legend ?? DiagramEditSessionService.derivedLegendEntries(diagram)
-        if (!this.editContext.validateOperation('Add legend entry', () => {
-            validateNewLegendEntry(entry, diagram.meta.type, diagram.meta.preset)
-            const entryKey = diagramLegendEntryKey(entry as DiagramLegendEntryData)
-            if (existingEntries.some((existingEntry) => diagramLegendEntryKey(existingEntry) === entryKey)) {
-                invalidDiagramField('meta.legend', `duplicate entry for ${entryKey}`)
-            }
-        })) return null
-
-        const label = canonicalLegendLabel(entry)
-        const added = ('role' in entry ? { label, role: entry.role }
-            : 'nodeKind' in entry ? { label, nodeKind: entry.nodeKind }
-                : { kind: entry.kind, label }) as DiagramLegendEntryData
-        const entryKey = diagramLegendEntryKey(added)
-        diagram.meta.legend = [...existingEntries, added]
-        const addedKeys = !wasDerived ? [entryKey] : [
-            ...existingEntries.map(diagramLegendEntryKey), entryKey,
-        ]
-        this.editContext.transaction.finishLegendMembershipChange(addedKeys, [])
-
-        return entryKey
-    }
-
-    /** Removes one legend entry. Nodes and edges keep their own role and kind fields. */
-    removeLegendEntry(entryKey: string) {
-        const diagram = this.requireEditableDiagram()
-        if (!this.legendEntryKeys.includes(entryKey)) return false
-
-        const legend = (diagram.meta.legend ?? []).filter((entry) => diagramLegendEntryKey(entry) !== entryKey)
-        diagram.meta.legend = legend
-        this.editContext.transaction.finishLegendMembershipChange([], [entryKey])
-
-        return true
-    }
-
-    setLegendEntryLabel(entryKey: string, label: string) {
-        const entry = this.requireLegendEntry(entryKey)
-        const previousValue = entry.label
-        const trimmedValue = label.trim()
-        if (Object.is(previousValue, trimmedValue)) return false
-        if (!this.editContext.validateOperation(
-            'Set legend entry label',
-            () => requireDiagramString(trimmedValue, `meta.legend.${entryKey}.label`),
-        )) return false
-
-        entry.label = trimmedValue
-        const originalValue = this.findBaselineLegendEntry(entryKey)?.label
-        const eventName = diagramLegendEntryFieldChangedEvent(entryKey, 'label')
-        this.editContext.transaction.finishFieldChange(
-            eventName, `legendEntry:${entryKey}`, 'legendEntry', entryKey, 'label', originalValue, previousValue, trimmedValue,
-        )
-
-        return true
-    }
-
-    /** Moves one entry to a new position, changing only legend membership order. */
-    moveLegendEntry(entryKey: string, targetIndex: number) {
-        const diagram = this.requireEditableDiagram()
-        const legend = [...diagram.meta.legend ?? []]
-        const sourceIndex = legend.findIndex((entry) => diagramLegendEntryKey(entry) === entryKey)
-        if (sourceIndex < 0) throw new Error(`Diagram legend entry ${entryKey} does not exist`)
-        if (!this.editContext.validateOperation('Move legend entry', () => {
-            if (!Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= legend.length) {
-                invalidDiagramField('meta.legend', `index ${targetIndex} outside the legend`)
-            }
-        })) return false
-        if (sourceIndex === targetIndex) return false
-
-        const [moved] = legend.splice(sourceIndex, 1)
-        legend.splice(targetIndex, 0, moved)
-        diagram.meta.legend = legend
-        this.legendEntryKeys = Object.freeze(legend.map(diagramLegendEntryKey))
-        this.changeRegistry.markLegendOrderChanges()
-        this.editContext.transaction.commit([])
-        const detail: DiagramLegendMembershipChangeDetail = { addedKeys: EMPTY_IDS, removedKeys: EMPTY_IDS }
-        this.dispatchEvent(new CustomEvent<DiagramLegendMembershipChangeDetail>(
-            diagramLegendMembershipChangedEvent(),
-            { detail },
-        ))
-
-        return true
-    }
-
-    setNodeField<Field extends MutableDiagramNodeField>(nodeId: string, field: Field, value: DiagramNode[Field]) {
-        const node = this.requireNode(nodeId)
-        const previousValue = node[field]
-        if (Object.is(previousValue, value)) return false
-        if (!this.editContext.validateOperation('Set node field', () => {
-            this.requireValidation().validateNodeFieldValue(nodeId, field, value)
-            this.requireValidation().validateMindmapNode({ ...node, [field]: value }, nodeId)
-        })) return false
-
-        node[field] = value
-        const originalValue = this.changeRegistry.originalNodes.get(nodeId)?.[field]
-        const eventName = diagramObjectFieldChangedEvent('node', nodeId, field)
-        this.editContext.transaction.finishFieldChange(eventName, `node:${nodeId}`, 'node', nodeId, field, originalValue, previousValue, value)
-
-        return true
-    }
-
-    /** Writes both node dimensions through one validated transaction for aspect-locked shapes. */
-    setNodeSize(nodeId: string, width: number | undefined, height: number | undefined) {
-        const node = this.requireNode(nodeId)
-        const previousWidth = node.width
-        const previousHeight = node.height
-        if (Object.is(previousWidth, width) && Object.is(previousHeight, height)) return false
-        if (!this.editContext.validateOperation('Set node size', () => {
-            this.requireValidation().validateNodeFieldValue(nodeId, 'width', width)
-            this.requireValidation().validateNodeFieldValue(nodeId, 'height', height)
-            this.requireValidation().validateMindmapNode({ ...node, height, width }, nodeId)
-        })) return false
-
-        node.width = width
-        node.height = height
-        const original = this.changeRegistry.originalNodes.get(nodeId)
-        const changes = [
-            { field: 'width' as const, originalValue: original?.width, previousValue: previousWidth, value: width },
-            { field: 'height' as const, originalValue: original?.height, previousValue: previousHeight, value: height },
-        ].filter(({ previousValue, value }) => !Object.is(previousValue, value))
-        for (const change of changes) {
-            const eventName = diagramObjectFieldChangedEvent('node', nodeId, change.field)
-            const diagramChange: DiagramChange = {
-                category: 'field', field: change.field, id: eventName, objectId: nodeId, objectKind: 'node',
-                originalValue: change.originalValue, ownerId: null, regionIndex: null, value: change.value,
-            }
-            this.changeRegistry.set(diagramChange, `node:${nodeId}`, Object.is(change.originalValue, change.value))
-        }
-        this.editContext.transaction.commit([])
-        for (const change of changes) {
-            const eventName = diagramObjectFieldChangedEvent('node', nodeId, change.field)
-            const detail: DiagramFieldChangeDetail = {
-                field: change.field, objectId: nodeId, objectKind: 'node',
-                previousValue: change.previousValue, value: change.value,
-            }
-            this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(eventName, { detail }))
-        }
-
-        return true
-    }
-
-    setEdgeField<Field extends MutableDiagramEdgeField>(edgeId: string, field: Field, value: DiagramEdge[Field]) {
-        const edge = this.requireEdge(edgeId)
-        const previousValue = edge[field]
-        if (Object.is(previousValue, value)) return false
-        if (!this.editContext.validateOperation('Set edge field', () => this.requireValidation().validateEdgeFieldValue(edge, field, value))) return false
-
-        edge[field] = value
-        const originalValue = this.changeRegistry.originalEdges.get(edgeId)?.[field]
-        const eventName = diagramObjectFieldChangedEvent('edge', edgeId, field)
-        this.editContext.transaction.finishFieldChange(eventName, `edge:${edgeId}`, 'edge', edgeId, field, originalValue, previousValue, value)
-
-        return true
-    }
-
-    /** Reassigns one edge endpoint and its explicit attachment in one validated transaction. */
-    reconnectEdgeEndpoint(edgeId: string, endpoint: DiagramConnectionEndpoint, nodeId: string) {
-        const edge = this.requireEdge(edgeId)
-        const plan = planEdgeReconnection(edge, endpoint, nodeId)
-        if (!plan) return false
-
-        const { attachment, candidate, edgeField, previousNodeId } = plan
-        if (!this.editContext.validateOperation('Reconnect edge endpoint', () => {
-            this.requireValidation().validateEdgeFieldValue(candidate, edgeField, nodeId)
-            if (attachment) validateConnectionPointValue(candidate, endpoint, 'nodeId', nodeId)
-        })) return false
-
-        edge[edgeField] = nodeId
-        if (attachment) attachment.nodeId = nodeId
-
-        const originalEdge = this.changeRegistry.originalEdges.get(edgeId)
-        const edgeEventName = diagramObjectFieldChangedEvent('edge', edgeId, edgeField)
-        const edgeChange: DiagramChange = {
-            category: 'field',
-            field: edgeField,
-            id: edgeEventName,
-            objectId: edgeId,
-            objectKind: 'edge',
-            originalValue: originalEdge?.[edgeField],
-            ownerId: null,
-            regionIndex: null,
-            value: nodeId,
-        }
-        this.changeRegistry.set(edgeChange, `edge:${edgeId}`, Object.is(originalEdge?.[edgeField], nodeId))
-
-        const connectionEventName = attachment
-            ? diagramConnectionPointFieldChangedEvent(edgeId, endpoint, 'nodeId')
-            : null
-        if (connectionEventName) {
-            const connectionChange: DiagramChange = {
-                category: 'field',
-                field: 'nodeId',
-                id: connectionEventName,
-                objectId: `${edgeId}:${endpoint}`,
-                objectKind: 'connectionPoint',
-                originalValue: originalEdge?.[endpoint]?.nodeId,
-                ownerId: null,
-                regionIndex: null,
-                value: nodeId,
-            }
-            this.changeRegistry.set(
-                connectionChange,
-                `edge:${edgeId}`,
-                Object.is(originalEdge?.[endpoint]?.nodeId, nodeId),
-            )
-        }
-
-        this.editContext.transaction.commit([])
-        const edgeDetail: DiagramFieldChangeDetail = {
-            field: edgeField,
-            objectId: edgeId,
-            objectKind: 'edge',
-            previousValue: previousNodeId,
-            value: nodeId,
-        }
-        this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(edgeEventName, { detail: edgeDetail }))
-        if (connectionEventName) {
-            const connectionDetail: DiagramFieldChangeDetail = {
-                field: 'nodeId',
-                objectId: `${edgeId}:${endpoint}`,
-                objectKind: 'connectionPoint',
-                previousValue: previousNodeId,
-                value: nodeId,
-            }
-            this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(connectionEventName, { detail: connectionDetail }))
-        }
-
-        return true
-    }
-
-    setGroupField<Field extends MutableDiagramGroupField>(groupId: string, field: Field, value: DiagramGroup[Field]) {
-        const group = this.requireGroup(groupId)
-        const previousValue = group[field]
-        if (Object.is(previousValue, value)) return false
-        if (!this.editContext.validateOperation('Set group field', () => {
-            const fieldPath = `groups.${groupId}.${field}`
-            if (field === 'label') requireDiagramString(value, fieldPath)
-            if (field === 'height' || field === 'width') requireOptionalGridNumber(value, fieldPath, true)
-            if (field === 'x' || field === 'y') requireOptionalGridNumber(value, fieldPath)
-        })) return false
-
-        group[field] = value
-        const originalValue = this.changeRegistry.originalGroups.get(groupId)?.[field]
-        const eventName = diagramObjectFieldChangedEvent('group', groupId, field)
-        this.editContext.transaction.finishFieldChange(eventName, `group:${groupId}`, 'group', groupId, field, originalValue, previousValue, value)
-
-        return true
-    }
-
-    /** Validates one complete fragment edit before applying its field and ordered-membership changes atomically. */
-    updateFragment(fragmentId: string, candidate: NewDiagramSequenceFragment): boolean {
-        const fragment = this.requireFragment(fragmentId)
-        let regions: DiagramSequenceFragmentRegion[] = []
-        if (!this.editContext.validateOperation('Update fragment', () => {
-            this.requireValidation().validateFragment(candidate, `fragments.${fragmentId}`)
-            regions = this.requireOwnedRegions(candidate.operator, candidate.regions, `fragments.${fragmentId}.regions`)
-        })) return false
-        const plan = planFragmentUpdate(fragment, candidate.operator, regions)
-        if (!plan) return false
-
-        const { operatorChanged, changedRegionIndexes, previousOperator, previousRegions } = plan
-        fragment.operator = candidate.operator
-        for (let index = 0; index < regions.length; index += 1) {
-            const region = regions[index]
-            const existingRegion = fragment.regions[index]
-            if (!existingRegion) {
-                fragment.regions.push(region)
-                continue
-            }
-            existingRegion.guard = region.guard
-            existingRegion.edgeIds.splice(0, existingRegion.edgeIds.length, ...region.edgeIds)
-        }
-        if (fragment.regions.length > regions.length) fragment.regions.splice(regions.length)
-
-        const events: PendingMembershipEvent[] = []
-        if (operatorChanged) this.changeRegistry.markFragmentFieldChange(fragmentId, 'operator', candidate.operator)
-        for (const regionIndex of changedRegionIndexes) {
-            const previousRegion = previousRegions[regionIndex]
-            const region = fragment.regions[regionIndex]
-            const previousEdgeIds = previousRegion?.edgeIds ?? []
-            const edgeIds = region?.edgeIds ?? []
-            const addedIds = edgeIds.filter((edgeId) => !previousEdgeIds.includes(edgeId))
-            const removedIds = previousEdgeIds.filter((edgeId) => !edgeIds.includes(edgeId))
-            if (previousRegion?.guard !== region?.guard) {
-                this.changeRegistry.markFragmentRegionFieldChange(fragmentId, regionIndex, 'guard', region?.guard)
-            }
-            if (!sameOrderedValues(previousEdgeIds, edgeIds)) {
-                for (const edgeId of addedIds) this.changeRegistry.markFragmentRegionMembership(fragmentId, regionIndex, edgeId, true)
-                for (const edgeId of removedIds) this.changeRegistry.markFragmentRegionMembership(fragmentId, regionIndex, edgeId, false)
-                this.changeRegistry.markFragmentRegionFieldChange(fragmentId, regionIndex, 'edgeIds', edgeIds)
-                events.push(fragmentRegionMembershipEvent(fragmentId, regionIndex, addedIds, removedIds))
-            }
-        }
-        this.editContext.transaction.commit(events)
-        if (operatorChanged) this.editContext.transaction.publishFragmentFieldChange(fragmentId, 'operator', previousOperator, candidate.operator)
-        for (const regionIndex of changedRegionIndexes) {
-            const previousRegion = previousRegions[regionIndex]
-            const region = fragment.regions[regionIndex]
-            if (previousRegion?.guard !== region?.guard) {
-                this.editContext.transaction.publishFragmentRegionFieldChange(fragmentId, regionIndex, 'guard', previousRegion?.guard, region?.guard)
-            }
-        }
-
-        return true
-    }
-
-    setEntityField<Field extends MutableDiagramEntityField>(
-        nodeId: string,
-        fieldIndex: number,
-        field: Field,
-        value: DiagramEntityField[Field],
-    ) {
-        const entityField = this.requireEntityField(nodeId, fieldIndex)
-        const previousValue = entityField[field]
-        if (Object.is(previousValue, value)) return false
-        if (!this.editContext.validateOperation('Set entity field', () => {
-            const diagram = this.requireEditableDiagram()
-            if (diagram.meta.type !== 'entity') {
-                invalidDiagramField(`nodes.${nodeId}.fields`, 'value only allowed for entity diagrams')
-            }
-            requireEntityFieldValue(field, value, `nodes.${nodeId}.fields[${fieldIndex}].${field}`)
-        })) return false
-
-        entityField[field] = value
-        const originalValue = this.changeRegistry.originalNodes.get(nodeId)?.fields?.[fieldIndex]?.[field]
-        const objectId = `${nodeId}[${fieldIndex}]`
-        const eventName = diagramEntityFieldChangedEvent(nodeId, fieldIndex, field)
-        this.editContext.transaction.finishFieldChange(
-            eventName,
-            `node:${nodeId}`,
-            'entityField',
-            objectId,
-            field,
-            originalValue,
-            previousValue,
-            value,
-        )
-
-        return true
-    }
-
-    /** Adds one position-addressed field without replacing its owning field array. */
-    addEntityField(nodeId: string, field: DiagramEntityField, fieldIndex?: number) {
-        const node = this.requireEntityNode(nodeId)
-        const fields = node.fields ?? []
-        const index = fieldIndex ?? fields.length
-        if (!this.editContext.validateOperation('Add entity field', () => {
-            if (!Number.isInteger(index) || index < 0 || index > fields.length) {
-                invalidDiagramField(`nodes.${nodeId}.fields`, `invalid insertion index ${index}`)
-            }
-            requireEntityFieldValue('key', field.key, `nodes.${nodeId}.fields[${index}].key`)
-            requireEntityFieldValue('name', field.name, `nodes.${nodeId}.fields[${index}].name`)
-            requireEntityFieldValue('type', field.type, `nodes.${nodeId}.fields[${index}].type`)
-        })) return false
-
-        if (!node.fields) node.fields = fields
-        fields.splice(index, 0, { ...field })
-        this.editContext.transaction.finishEntityFieldMembershipChange(nodeId, [index], [])
-
-        return true
-    }
-
-    /** Removes one position-addressed field without replacing its owning field array. */
-    removeEntityField(nodeId: string, fieldIndex: number) {
-        const node = this.requireEntityNode(nodeId)
-        const fields = node.fields ?? []
-        if (!fields[fieldIndex]) return false
-
-        fields.splice(fieldIndex, 1)
-        this.editContext.transaction.finishEntityFieldMembershipChange(nodeId, [], [fieldIndex])
-
-        return true
-    }
-
-    /** Reorders one position-addressed field within its owning array. */
-    moveEntityField(nodeId: string, fieldIndex: number, targetIndex: number) {
-        const node = this.requireEntityNode(nodeId)
-        const fields = node.fields ?? []
-        const field = fields[fieldIndex]
-        if (!field || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= fields.length) return false
-        if (fieldIndex === targetIndex) return false
-
-        fields.splice(fieldIndex, 1)
-        fields.splice(targetIndex, 0, field)
-        this.editContext.transaction.finishEntityFieldMembershipChange(nodeId, [targetIndex], [fieldIndex])
-
-        return true
-    }
-
     /** Appends a new node and publishes a fresh node ID list; every existing object keeps its reference. */
     createNode(node: NewDiagramNode): string | null {
         const diagram = this.requireEditableDiagram()
@@ -908,28 +421,6 @@ export class DiagramEditSessionService extends EventTarget {
         return this.insertEdge(edge, rowIndex)
     }
 
-    /** Moves one existing sequence message to another persisted row without changing its identity. */
-    moveSequenceEdge(edgeId: string, rowIndex: number): boolean {
-        const diagram = this.requireEditableDiagram()
-        const edge = this.requireEdge(edgeId)
-        const previousRowIndex = diagram.edges.indexOf(edge)
-        if (!this.editContext.validateOperation('Move sequence edge', () => {
-            if (diagram.meta.type !== 'sequence') invalidDiagramField(`edges.${edgeId}.row`, 'value only allowed for sequence diagrams')
-            if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= diagram.edges.length) {
-                invalidDiagramField(`edges.${edgeId}.row`, `index ${rowIndex} outside the 0..${diagram.edges.length - 1} range`)
-            }
-        })) return false
-        if (rowIndex === previousRowIndex) return false
-
-        diagram.edges.splice(previousRowIndex, 1)
-        diagram.edges.splice(rowIndex, 0, edge)
-        this.edgeIds = frozenIds(diagram.edges)
-        this.changeRegistry.markSequenceEdgeOrderChanges()
-        this.editContext.transaction.commit([collectionMembershipEvent('edge', [], [])])
-
-        return true
-    }
-
     private insertEdge(edge: NewDiagramEdge, rowIndex: number) {
         const diagram = this.requireEditableDiagram()
         const id = this.editContext.generateSelectableId()
@@ -961,25 +452,6 @@ export class DiagramEditSessionService extends EventTarget {
         this.groupNodeIdsById.set(id, Object.freeze([...nodeIds]))
         this.changeRegistry.markCollectionMembership('group', id, true)
         this.editContext.transaction.commit([collectionMembershipEvent('group', [id], [])])
-
-        return id
-    }
-
-    createFragment(fragment: NewDiagramSequenceFragment): string | null {
-        const diagram = this.requireEditableDiagram()
-        let regions: DiagramSequenceFragmentRegion[] = []
-        if (!this.editContext.validateOperation('Create fragment', () => {
-            this.requireValidation().validateNewFragment(fragment)
-            regions = this.requireOwnedRegions(fragment.operator, fragment.regions)
-        })) return null
-        const id = this.editContext.generateObjectId((candidate) => this.fragmentsById.has(candidate))
-        const created: DiagramSequenceFragment = { id, operator: fragment.operator, regions }
-        if (!diagram.fragments) diagram.fragments = []
-        diagram.fragments.push(created)
-        this.fragmentsById.set(id, created)
-        this.fragmentIds = frozenIds(diagram.fragments)
-        this.changeRegistry.markCollectionMembership('fragment', id, true)
-        this.editContext.transaction.commit([collectionMembershipEvent('fragment', [id], [])])
 
         return id
     }
@@ -1037,22 +509,6 @@ export class DiagramEditSessionService extends EventTarget {
         return { identities: Object.freeze(identities) }
     }
 
-    /** Removes a fragment only; the edges its regions referenced stay in the diagram. */
-    removeFragment(fragmentId: string): boolean {
-        const diagram = this.requireEditableDiagram()
-        const fragment = this.findFragment(fragmentId)
-        if (!fragment || !diagram.fragments) return false
-
-        diagram.fragments.splice(diagram.fragments.indexOf(fragment), 1)
-        this.fragmentsById.delete(fragmentId)
-        this.fragmentIds = frozenIds(diagram.fragments)
-        this.changeRegistry.purgeOwner(`fragment:${fragmentId}`)
-        this.changeRegistry.markCollectionMembership('fragment', fragmentId, false)
-        this.editContext.transaction.commit([collectionMembershipEvent('fragment', [], [fragmentId])])
-
-        return true
-    }
-
     /** Deletes selected objects and every invalidated reference host through one mutation transaction. */
     removeObjects(identities: readonly DiagramRemovalIdentity[]): boolean {
         const diagram = this.requireEditableDiagram()
@@ -1098,32 +554,6 @@ export class DiagramEditSessionService extends EventTarget {
         return true
     }
 
-    /** Adds one node to one group; the node object and every other collection keep their references. */
-    addGroupMember(groupId: string, nodeId: string): boolean {
-        const group = this.requireGroup(groupId)
-        if (group.nodeIds.includes(nodeId)) return false
-        if (!this.editContext.validateOperation('Add group member', () => {
-            if (!this.nodesById.has(nodeId)) invalidDiagramField(`groups.${groupId}.nodeIds`, `unknown node ${nodeId}`)
-        })) return false
-
-        group.nodeIds.push(nodeId)
-        this.groupNodeIdsById.set(groupId, Object.freeze([...group.nodeIds]))
-        this.changeRegistry.markGroupMembership(groupId, nodeId, true)
-        this.editContext.transaction.commit([groupMembershipEvent(groupId, [nodeId], [])])
-
-        return true
-    }
-
-    removeGroupMember(groupId: string, nodeId: string): boolean {
-        const group = this.requireGroup(groupId)
-        const events: PendingMembershipEvent[] = []
-        if (!this.detachGroupMember(group, nodeId, events)) return false
-
-        this.editContext.transaction.commit(events)
-
-        return true
-    }
-
     private readonly handleSourceChange = () => {
         if (!this.session) return
         const sourceDiagramId = this.sourceService.getSourceSnapshot()?.record.id ?? null
@@ -1144,22 +574,6 @@ export class DiagramEditSessionService extends EventTarget {
 
     private findFragment(fragmentId: string) {
         return this.fragmentsById.get(fragmentId) ?? null
-    }
-
-    private findLegendEntry(entryKey: string) {
-        return this.editableDiagram?.meta.legend?.find((entry) => diagramLegendEntryKey(entry) === entryKey) ?? null
-    }
-
-    private findBaselineLegendEntry(entryKey: string) {
-        return this.changeRegistry.baseline?.meta.legend?.find((entry) => diagramLegendEntryKey(entry) === entryKey) ?? null
-    }
-
-    private requireLegendEntry(entryKey: string) {
-        this.requireEditableDiagram()
-        const entry = this.findLegendEntry(entryKey)
-        if (!entry) throw new Error(`Diagram legend entry ${entryKey} does not exist`)
-
-        return entry
     }
 
     private requireEditableDiagram() {
@@ -1206,22 +620,6 @@ export class DiagramEditSessionService extends EventTarget {
         return fragment
     }
 
-    private requireEntityField(nodeId: string, fieldIndex: number) {
-        const node = this.requireNode(nodeId)
-        const entityField = node.fields?.[fieldIndex]
-        if (!entityField) throw new Error(`Diagram entity field ${nodeId}[${fieldIndex}] does not exist`)
-
-        return entityField
-    }
-
-    private requireEntityNode(nodeId: string) {
-        const node = this.requireNode(nodeId)
-        const diagram = this.requireEditableDiagram()
-        if (diagram.meta.type !== 'entity') throw new Error(`Diagram node ${nodeId} does not belong to an entity diagram`)
-
-        return node
-    }
-
     private requireOwnedNodeIds(nodeIds: readonly string[]) {
         const owned: string[] = []
         for (const nodeId of nodeIds) {
@@ -1231,39 +629,6 @@ export class DiagramEditSessionService extends EventTarget {
         }
 
         return owned
-    }
-
-    private requireOwnedRegions(
-        operator: DiagramSequenceOperator,
-        regions: readonly DiagramSequenceFragmentRegion[],
-        fieldPath = 'fragments.new.regions',
-    ) {
-        const requiredRegionCount = operator === 'alt' ? 2 : 1
-        if (regions.length !== requiredRegionCount) invalidDiagramField(fieldPath, `expected ${requiredRegionCount} regions`)
-        const seenEdgeIds = new Set<string>()
-
-        return regions.map((region, regionIndex): DiagramSequenceFragmentRegion => ({
-            edgeIds: region.edgeIds.map((edgeId) => {
-                if (!this.edgesById.has(edgeId)) invalidDiagramField(`${fieldPath}[${regionIndex}].edgeIds`, `unknown edge ${edgeId}`)
-                if (seenEdgeIds.has(edgeId)) invalidDiagramField(fieldPath, `duplicate edge ${edgeId}`)
-                seenEdgeIds.add(edgeId)
-
-                return edgeId
-            }),
-            guard: region.guard,
-        }))
-    }
-
-    private detachGroupMember(group: DiagramGroup, nodeId: string, events: PendingMembershipEvent[]) {
-        const memberIndex = group.nodeIds.indexOf(nodeId)
-        if (memberIndex < 0) return false
-
-        group.nodeIds.splice(memberIndex, 1)
-        this.groupNodeIdsById.set(group.id, Object.freeze([...group.nodeIds]))
-        this.changeRegistry.markGroupMembership(group.id, nodeId, false)
-        events.push(groupMembershipEvent(group.id, [], [nodeId]))
-
-        return true
     }
 
     private detachGroupMembers(group: DiagramGroup, nodeIds: ReadonlySet<string>, events: PendingMembershipEvent[]) {

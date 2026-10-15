@@ -225,17 +225,17 @@ export class DiagramResizeService {
         const changesX = direction === 'west' || direction === 'north-west' || direction === 'south-west'
         const changesY = direction === 'north' || direction === 'north-east' || direction === 'north-west'
         if (object.objectKind === 'node') {
-            if (changesX) this.session.setNodeField(object.objectId, 'x', box.x)
-            if (changesY) this.session.setNodeField(object.objectId, 'y', box.y)
-            this.session.setNodeSize(object.objectId, box.width, box.height)
+            if (changesX) this.session.objects.setNodeField(object.objectId, 'x', box.x)
+            if (changesY) this.session.objects.setNodeField(object.objectId, 'y', box.y)
+            this.session.objects.setNodeSize(object.objectId, box.width, box.height)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'x', box.x)
-        this.session.setGroupField(object.objectId, 'y', box.y)
-        this.session.setGroupField(object.objectId, 'width', box.width)
-        this.session.setGroupField(object.objectId, 'height', box.height)
+        this.session.objects.setGroupField(object.objectId, 'x', box.x)
+        this.session.objects.setGroupField(object.objectId, 'y', box.y)
+        this.session.objects.setGroupField(object.objectId, 'width', box.width)
+        this.session.objects.setGroupField(object.objectId, 'height', box.height)
     }
 
     private restoreResize() {
@@ -263,33 +263,33 @@ export class DiagramResizeService {
 
     private applyX(object: ResizingDiagramObject, x: number | undefined) {
         if (object.objectKind === 'node') {
-            this.session.setNodeField(object.objectId, 'x', x)
+            this.session.objects.setNodeField(object.objectId, 'x', x)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'x', x)
+        this.session.objects.setGroupField(object.objectId, 'x', x)
     }
 
     private applyY(object: ResizingDiagramObject, y: number | undefined) {
         if (object.objectKind === 'node') {
-            this.session.setNodeField(object.objectId, 'y', y)
+            this.session.objects.setNodeField(object.objectId, 'y', y)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'y', y)
+        this.session.objects.setGroupField(object.objectId, 'y', y)
     }
 
     private applySize(object: ResizingDiagramObject, width: number | undefined, height: number | undefined) {
         if (object.objectKind === 'node') {
-            this.session.setNodeSize(object.objectId, width, height)
+            this.session.objects.setNodeSize(object.objectId, width, height)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'width', width)
-        this.session.setGroupField(object.objectId, 'height', height)
+        this.session.objects.setGroupField(object.objectId, 'width', width)
+        this.session.objects.setGroupField(object.objectId, 'height', height)
     }
 
     private requireResize() {

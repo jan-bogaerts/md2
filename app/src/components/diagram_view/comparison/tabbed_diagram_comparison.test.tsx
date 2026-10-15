@@ -132,7 +132,7 @@ describe('TabbedDiagramComparison', () => {
         newScroller.scrollTop = 47
         act(() => {
             session.setActiveTool('node:component')
-            session.setNodeField('orders', 'label', 'Order intake')
+            session.objects.setNodeField('orders', 'label', 'Order intake')
         })
 
         await user.click(currentTab)
@@ -174,7 +174,7 @@ describe('TabbedDiagramComparison', () => {
         const currentPanel = panelForTab(screen.getByRole('tab', { name: 'Current' }))
         const currentMarkup = currentPanel.innerHTML
 
-        act(() => { session.setNodeField('orders', 'label', 'Order intake') })
+        act(() => { session.objects.setNodeField('orders', 'label', 'Order intake') })
 
         expect(screen.getByRole('tablist', { name: 'Diagram comparison' })).toBe(tabList)
         expect(currentPanel.innerHTML).toBe(currentMarkup)

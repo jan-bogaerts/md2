@@ -47,10 +47,10 @@ export function DiagramMetadataDetailsEditor({ onClose, session }: DiagramMetada
 
         let saved = true
         if (session.read.getMetadataFieldSnapshot('title') !== title) {
-            saved = session.setMetadataField('title', title) && saved
+            saved = session.objects.setMetadataField('title', title) && saved
         }
         if (session.read.getMetadataFieldSnapshot('description') !== description) {
-            saved = session.setMetadataField('description', description) && saved
+            saved = session.objects.setMetadataField('description', description) && saved
         }
         if (saved) onClose()
     }

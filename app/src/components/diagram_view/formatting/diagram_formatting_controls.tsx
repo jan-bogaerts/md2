@@ -14,6 +14,7 @@ export function DiagramFormattingControls({
     surface: 'Current' | 'New'
 }) {
     const reader = store instanceof DiagramEditSessionService ? store.read : store
+    const formatting = store instanceof DiagramEditSessionService ? store.formatting : store
 
     return (
         <>
@@ -22,7 +23,7 @@ export function DiagramFormattingControls({
                 icon={<FormatSizeOutlined fontSize="small" />}
                 label="font size"
                 reader={reader}
-                store={store}
+                store={formatting}
                 surface={surface}
             />
             <DiagramFormattingScaleControl
@@ -30,7 +31,7 @@ export function DiagramFormattingControls({
                 icon={<AspectRatioOutlined fontSize="small" />}
                 label="box size"
                 reader={reader}
-                store={store}
+                store={formatting}
                 surface={surface}
             />
             <DiagramFormattingScaleControl
@@ -38,7 +39,7 @@ export function DiagramFormattingControls({
                 icon={<FormatLineSpacingOutlined fontSize="small" />}
                 label="spacing"
                 reader={reader}
-                store={store}
+                store={formatting}
                 surface={surface}
             />
         </>

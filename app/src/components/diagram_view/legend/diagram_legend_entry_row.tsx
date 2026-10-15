@@ -57,8 +57,8 @@ export function DiagramLegendEntryRow({ entry, reader, session, store }: {
 
             return
         }
-        session.materializeDerivedLegend()
-        if (!session.setLegendEntryLabel(entryKey, draftLabel)) setLabelError('Label could not be saved.')
+        session.legend.materializeDerivedLegend()
+        if (!session.legend.setLegendEntryLabel(entryKey, draftLabel)) setLabelError('Label could not be saved.')
     }
     const handleLabelKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
@@ -71,8 +71,8 @@ export function DiagramLegendEntryRow({ entry, reader, session, store }: {
         }
     }
     const handleRemove = () => {
-        session?.materializeDerivedLegend()
-        session?.removeLegendEntry(entryKey)
+        session?.legend.materializeDerivedLegend()
+        session?.legend.removeLegendEntry(entryKey)
     }
     const nodeFormatting = useDiagramNodeRoleFormatting(sampleRole ?? 'focal', reader)
     const handleOpen = (event: MouseEvent<HTMLButtonElement>) => {

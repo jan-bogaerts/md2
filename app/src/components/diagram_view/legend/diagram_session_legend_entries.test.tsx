@@ -185,7 +185,7 @@ describe('DiagramSessionLegendEntries', () => {
 
         expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:start' })).toHaveValue('Start')
         expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:step' })).toHaveValue('Step')
-        act(() => { session.setNodeField('second', 'kind', 'end') })
+        act(() => { session.objects.setNodeField('second', 'kind', 'end') })
         expect(screen.queryByRole('textbox', { name: 'Legend label for nodeKind:step' })).not.toBeInTheDocument()
         expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:end' })).toHaveValue('End')
         expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:start' })).toHaveValue('Start')
@@ -195,7 +195,7 @@ describe('DiagramSessionLegendEntries', () => {
         const session = startSession(diagram)
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
-        act(() => { session.setEdgeField('orders-store', 'kind', 'data') })
+        act(() => { session.objects.setEdgeField('orders-store', 'kind', 'data') })
         expect(screen.queryByRole('textbox', { name: 'Legend label for connection:connection' })).not.toBeInTheDocument()
         expect(screen.getByRole('textbox', { name: 'Legend label for connection:data' })).toHaveValue('Data')
         act(() => { session.createEdge({ from: 'orders', kind: 'async', to: 'store' }) })
@@ -237,7 +237,7 @@ describe('DiagramSessionLegendEntries', () => {
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
         act(() => {
-            session.setLegendEntryLabel('node:focal', 'Order service')
+            session.legend.setLegendEntryLabel('node:focal', 'Order service')
         })
 
         expect(screen.getByRole('textbox', { name: 'Legend label for node:focal' })).toHaveValue('Order service')
@@ -250,17 +250,17 @@ describe('DiagramSessionLegendEntries', () => {
         const entryList = screen.getByLabelText('New diagram legend entries')
 
         act(() => {
-            session.addLegendEntry({ label: 'Database', role: 'store' })
+            session.legend.addLegendEntry({ label: 'Database', role: 'store' })
         })
         expect(within(entryList).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)).toEqual(['Service', 'Calls', 'Database'])
 
         act(() => {
-            session.moveLegendEntry('node:store', 0)
+            session.legend.moveLegendEntry('node:store', 0)
         })
         expect(within(entryList).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)).toEqual(['Database', 'Service', 'Calls'])
 
         act(() => {
-            session.removeLegendEntry('node:focal')
+            session.legend.removeLegendEntry('node:focal')
         })
         expect(within(entryList).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)).toEqual(['Database', 'Calls'])
     })
@@ -270,7 +270,7 @@ describe('DiagramSessionLegendEntries', () => {
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
         act(() => {
-            for (const entryKey of [...session.read.getLegendEntryKeysSnapshot()]) session.removeLegendEntry(entryKey)
+            for (const entryKey of [...session.read.getLegendEntryKeysSnapshot()]) session.legend.removeLegendEntry(entryKey)
         })
 
         expect(within(screen.getByLabelText('New diagram legend entries')).queryAllByRole('textbox')).toHaveLength(0)
@@ -327,7 +327,7 @@ describe('DiagramLegend session tabs', () => {
             </ThemeProvider>,
         )
 
-        act(() => { session.setNodeField('first', 'kind', 'end') })
+        act(() => { session.objects.setNodeField('first', 'kind', 'end') })
         expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:end' })).toHaveValue('End')
         await userEvent.click(screen.getByRole('tab', { name: 'Current' }))
         expect(screen.getByLabelText('Current diagram legend entries')).toHaveTextContent('Start')
@@ -337,7 +337,7 @@ describe('DiagramLegend session tabs', () => {
         const session = startSession(legendDiagram)
         const service = new DiagramViewService()
         const setCurrentFormatting = vi.spyOn(service, 'setNodeRoleFormatting').mockImplementation(() => undefined)
-        const setNewFormatting = vi.spyOn(session, 'setNodeRoleFormatting')
+        const setNewFormatting = vi.spyOn(session.formatting, 'setNodeRoleFormatting')
         const user = userEvent.setup()
         render(
             <ThemeProvider theme={theme}>

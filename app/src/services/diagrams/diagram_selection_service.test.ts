@@ -119,7 +119,7 @@ describe('DiagramSelectionService', () => {
         selection.replace([orders, edge, group])
         expect(selection.getBoundarySnapshot()).toEqual({ height: 200, width: 340, x: 40, y: 40 })
 
-        session.setGroupField('backend', 'x', 400)
+        session.objects.setGroupField('backend', 'x', 400)
         expect(selection.getBoundarySnapshot()).toEqual({ height: 200, width: 440, x: 40, y: 40 })
         expect(changed).toHaveBeenCalledTimes(2)
 

@@ -22,7 +22,7 @@ export function DiagramGroupDetailsEditor({ groupId, onClose, session }: Diagram
 
         const currentLabel = session.read.getGroupFieldSnapshot(groupId, 'label')
         if (currentLabel === null) return
-        if (currentLabel === label || session.setGroupField(groupId, 'label', label)) onClose()
+        if (currentLabel === label || session.objects.setGroupField(groupId, 'label', label)) onClose()
     }
 
     return (

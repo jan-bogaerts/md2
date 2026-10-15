@@ -101,14 +101,14 @@ function change(overrides: Partial<DiagramChange>): DiagramChange {
 describe('DiagramChangeReviewService', () => {
     it('generates and validates only at explicit review and handoff boundaries', () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const selection = { replace: vi.fn(() => true) }
         const generate = vi.fn(() => 'generated report')
         const validate = vi.fn(() => diagram)
         const review = new DiagramChangeReviewService(session, selection, generate, validate)
 
         review.open()
-        session.setNodeField('orders', 'label', 'Sales')
+        session.objects.setNodeField('orders', 'label', 'Sales')
 
         expect(generate).toHaveBeenCalledTimes(1)
         expect(validate).toHaveBeenCalledTimes(1)
@@ -123,7 +123,7 @@ describe('DiagramChangeReviewService', () => {
 
     it('publishes exact reviewed text and IDs for valid handoff', () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const review = new DiagramChangeReviewService(
             session,
             { replace: vi.fn(() => true) },
@@ -146,7 +146,7 @@ describe('DiagramChangeReviewService', () => {
         })
         expect(review.getOpenSnapshot()).toBe(false)
 
-        session.setNodeField('orders', 'label', 'Sales')
+        session.objects.setNodeField('orders', 'label', 'Sales')
 
         expect(review.getAgentHandoffContextSnapshot()?.diagramChanges).toBe('agent text')
     })
@@ -155,7 +155,7 @@ describe('DiagramChangeReviewService', () => {
         'retains reviewed changes for retry after a %s run',
         (terminalStatus) => {
             const session = createSession()
-            session.setNodeField('orders', 'label', 'Purchases')
+            session.objects.setNodeField('orders', 'label', 'Purchases')
             const runEvents = createRunEvents()
             const review = new DiagramChangeReviewService(
                 session,
@@ -189,7 +189,7 @@ describe('DiagramChangeReviewService', () => {
 
     it('treats authoritative recovery failure as an interrupted retryable run', () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const runEvents = createRunEvents()
         const review = new DiagramChangeReviewService(
             session,
@@ -215,7 +215,7 @@ describe('DiagramChangeReviewService', () => {
         'marks only the exact %s implementation run review as delivered',
         (terminalStatus) => {
             const session = createSession()
-            session.setNodeField('orders', 'label', 'Purchases')
+            session.objects.setNodeField('orders', 'label', 'Purchases')
             const runEvents = createRunEvents()
             const review = new DiagramChangeReviewService(
                 session,
@@ -256,7 +256,7 @@ describe('DiagramChangeReviewService', () => {
 
     it('ignores results whose canonical action, run, diagram, or reviewed change-set identity changed', () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const runEvents = createRunEvents()
         const review = new DiagramChangeReviewService(
             session,
@@ -282,7 +282,7 @@ describe('DiagramChangeReviewService', () => {
 
     it('creates an undelivered review identity after later edits', () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const runEvents = createRunEvents()
         const reviewIds = ['review-1', 'review-2']
         const review = new DiagramChangeReviewService(
@@ -299,7 +299,7 @@ describe('DiagramChangeReviewService', () => {
         if (!firstContext) throw new Error('Missing first handoff context')
         runEvents.emit(implementationRunEvent(firstContext, 'completed'))
 
-        session.setNodeField('orders', 'label', 'Sales')
+        session.objects.setNodeField('orders', 'label', 'Sales')
         review.closeAgentHandoff()
         review.open()
         review.requestAgentHandoff()
@@ -311,11 +311,11 @@ describe('DiagramChangeReviewService', () => {
 
     it('rejects a reviewed set changed before handoff', () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const review = new DiagramChangeReviewService(session, { replace: vi.fn(() => true) })
         review.open()
 
-        session.setNodeField('orders', 'label', 'Sales')
+        session.objects.setNodeField('orders', 'label', 'Sales')
 
         expect(review.requestAgentHandoff()).toBe(false)
         expect(review.getBlockingItemsSnapshot()).toEqual([
@@ -334,7 +334,7 @@ describe('DiagramChangeReviewService', () => {
 
     it('shows parser failure as blocker and refuses save and handoff', () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const validate = vi.fn(() => {
             throw new Error('Malformed diagram data: nodes.orders.label has empty string')
         })
@@ -357,7 +357,7 @@ describe('DiagramChangeReviewService', () => {
 
     it('closes without modifying edit-session changes', () => {
         const session = createSession()
-        session.setNodeField('orders', 'label', 'Purchases')
+        session.objects.setNodeField('orders', 'label', 'Purchases')
         const changeIds = session.read.getChangeIdsSnapshot()
         const review = new DiagramChangeReviewService(session, { replace: vi.fn(() => true) })
 
