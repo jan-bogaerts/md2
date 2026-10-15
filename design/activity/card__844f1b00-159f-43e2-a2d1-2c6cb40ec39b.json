@@ -932,14 +932,14 @@
         }
       ],
       "startedAt": "2026-10-15T07:57:48.729Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
-          "reasoningMs": 43121,
+          "reasoningMs": 48059,
           "toolMs": 37776
         },
-        "elapsedMs": 100189,
-        "runningStartedAt": "2026-10-15T08:03:18.995Z"
+        "elapsedMs": 106113,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
