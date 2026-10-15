@@ -875,6 +875,14 @@
           "role": "assistant",
           "sequence": 65,
           "timestamp": "2026-10-15T08:03:09.998Z"
+        },
+        {
+          "content": "before we can continue, answer my question",
+          "id": "submission-56fcde2b-315e-4711-a925-f7a38860fe89",
+          "kind": "message",
+          "role": "user",
+          "sequence": 66,
+          "timestamp": "2026-10-15T08:03:18.995Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -900,14 +908,14 @@
         }
       ],
       "startedAt": "2026-10-15T07:57:48.729Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 42135,
           "toolMs": 37776
         },
         "elapsedMs": 100189,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-15T08:03:18.995Z"
       },
       "title": "complete",
       "usage": {
