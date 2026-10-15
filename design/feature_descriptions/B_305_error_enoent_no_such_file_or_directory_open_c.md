@@ -3,7 +3,7 @@ author:
 id: B_305
 internalId: 844f1b00-159f-43e2-a2d1-2c6cb40ec39b
 title: Error: ENOENT: no such file or directory, open 'C:
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -14,6 +14,11 @@ sentryIssueId: 153402939
 sentryOrganization: elastetic
 branch: b_305_error_enoent_no_such_file_or_directory_open_c
 worktree: 2
+changedFiles:
+  - app/src/components/text_view/card_editor.real.test.tsx
+  - app/src/services/data/data_service.ts
+  - app/src/services/project/expected_persistence_storage.service.test.ts
+  - desktop/src/shell/local_bridge_dispatch.js
 ---
 ## Sentry issue
 
