@@ -20,10 +20,10 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "94766c8f-2f01-42ee-b389-7e03c1753946",
       "cardPath": "design/feature_descriptions/F_380_add_possibility_to_support_task_tracking_tool.md",
-      "completedAt": "2026-10-15T15:30:24.909Z",
+      "completedAt": "2026-10-15T15:33:28.473Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 159264
+        "usedTokens": 173371
       },
       "entries": [
         {
@@ -1579,6 +1579,326 @@
           "role": "assistant",
           "sequence": 126,
           "timestamp": "2026-10-15T15:30:24.909Z"
+        },
+        {
+          "content": "turning codex off: this is done through environment variable I think",
+          "id": "submission-f9750240-48e6-4bd4-a2cc-efbc9318cce1",
+          "kind": "message",
+          "role": "user",
+          "sequence": 127,
+          "timestamp": "2026-10-15T15:31:30.661Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-128",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg4GF9MnSkXZsZQES8qYr:thinking:0",
+          "sequence": 128,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:31:34.346Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Checking the installed Codex for a plan-tool switch (environment variable or config key).",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 129,
+          "timestamp": "2026-10-15T15:31:34.637Z"
+        },
+        {
+          "command": "cd \"$(npm root -g)/@openai/codex\" 2>/dev/null && pwd; find . -name \"codex*.exe\" -o -name \"codex\" -type f 2>/dev/null | grep -v node_modules/.bin | head",
+          "content": "/c/Program Files/nodejs/node_modules/@openai/codex\n./node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex-code-mode-host.exe\n./node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe\n./node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/codex-resources/codex-command-runner.exe\n./node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/codex-resources/codex-windows-sandbox-setup.exe\n./node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/codex-resources/voice/bin/codex-voice-host.exe\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-130",
+          "kind": "event",
+          "label": "cd \"$(npm root -g)/@openai/codex\" 2>/dev/null && pwd; find . -name \"codex*.exe\" -o -name \"codex\" -type f 2>/dev/null | grep -v node_modules/.bin | head",
+          "providerItemId": "toolu_01FBzZdX5xiveo2V1ud5q1Vi",
+          "sequence": 130,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:31:40.694Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "B=\"/c/Program Files/nodejs/node_modules/@openai/codex/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe\"; strings -n 6 \"$B\" | grep -iE 'plan_tool|update_plan|CODEX_[A-Z_]*PLAN|PLAN[A-Z_]*TOOL|todo' | sort -u | head -30",
+          "content": "/usr/bin/bash: line 1: strings: command not found",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-131",
+          "kind": "event",
+          "label": "B=\"/c/Program Files/nodejs/node_modules/@openai/codex/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe\"; strings -n 6 \"$B\" | grep -iE 'plan_tool|update_plan|CODEX_[A-Z_]*PLAN|PLAN[A-Z_]*TOOL|todo' | sort -u | head -30",
+          "providerItemId": "toolu_016E9JHLNzrboLzBNSoCiq9G",
+          "sequence": 131,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:31:45.722Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "B=\"/c/Program Files/nodejs/node_modules/@openai/codex/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe\"; grep -aoE '[A-Za-z0-9_./ -]{0,60}(plan_tool|update_plan|CODEX_[A-Z_]*PLAN[A-Z_]*|todo_list)[A-Za-z0-9_./ -]{0,60}' \"$B\" | sort -u | head -40",
+          "content": " Plan Mode vs update_plan tool\nIf update_plan is available and the next work is meaningfully multi-step\nLatest task progress from update_plan \nProgress visibillan is availableIf update_plan iupdate_plan tool\nToolsTomlweb_searchexperimental_request_user_inputupdate_plan\n_executionfile_changemcp_tool_callcollab_tool_callweb_searchtodo_listexec\nexperimental_request_user_inputupdate_planstruct ToolsToml with 3 elements\nken_budgetToolsTomlweb_searchexperimental_request_user_inputupdate_plan\noning levelCurrent reasoning levelLatest task progress from update_plan \ntructionstools.experimental_request_user_input.enabledtools.update_plan.enabled\nupdate_plan\nupdate_plan is a TODO/checklist tool and is not allowed in Plan modeupd\nupdate_plan_instructions.rs\nweb_searchexperimental_request_user_inputupdate_planstruct ToolsToml with 3 elements",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-132",
+          "kind": "event",
+          "label": "B=\"/c/Program Files/nodejs/node_modules/@openai/codex/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe\"; grep -aoE '[A-Za-z0-9_./ -]{0,60}(plan_tool|update_plan|CODEX_[A-Z_]*PLAN[A-Z_]*|todo_list)[A-Za-z0-9_./ -]{0,60}' \"$B\" | sort -u | head -40",
+          "providerItemId": "toolu_01UbNkbwfrDLcZvzCHVVVmGA",
+          "sequence": 132,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:31:51.724Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-133",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg4GGaKFHKQ4LXsgCR99g:thinking:0",
+          "sequence": 133,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:31:54.863Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "codex features list 2>&1 | head -40; B=\"/c/Program Files/nodejs/node_modules/@openai/codex/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe\"; grep -aoE 'tools\\.[a-z_]+\\.enabled' \"$B\" | sort -u",
+          "content": "agent_message_board                      under development  false\nanalytics_plan_history                   experimental       false\napi_key_model_discovery                  under development  false\napply_patch_freeform                     removed            false\napply_patch_preserve_line_endings        under development  false\napply_patch_streaming_events             under development  false\napps                                     stable             true\napps_mcp_path_override                   removed            false\nartifact                                 under development  false\nauth_elicitation                         stable             true\nbackground_paginated_rollout_migration   under development  false\nbedrock_setup_wizard                     under development  false\nbrowser_use                              stable             true\nbrowser_use_external                     stable             true\nbrowser_use_full_cdp_access              stable             true\nchronicle                                under development  false\ncode_mode                                under development  false\ncode_mode_buffered_exec                  removed            false\ncode_mode_host                           stable             true\ncode_mode_interrupt                      under development  false\ncode_mode_only                           under development  false\ncode_mode_prewarm                        under development  false\ncodex_apps_mcp_2026_07_28                under development  false\ncodex_git_commit                         removed            false\ncollaboration_modes                      removed            true\ncompaction_image_budget                  stable             true\ncomputer_use                             stable             true\nconcurrent_reasoning_summaries           under development  false\ncontent_item_kinds                       stable             true\ncontext_management                       under development  false\ncurrent_time_reminder                    under development  false\ncwd_relative_turn_diffs                  under development  false\ndaemon_auto_start                        stable             true\ndefault_mode_request_user_input          under development  false\ndefer_mailbox_preemption                 under development  false\ndeferred_executor                        under development  false\ndeferred_tool_world_state                under development  false\nelevated_windows_sandbox                 removed            false\nenable_fanout                            removed            false\nenable_mcp_apps                          under development  false\ntools.experimental_request_user_input.enabled\ntools.update_plan.enabled",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-134",
+          "kind": "event",
+          "label": "codex features list 2>&1 | head -40; B=\"/c/Program Files/nodejs/node_modules/@openai/codex/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe\"; grep -aoE 'tools\\.[a-z_]+\\.enabled' \"$B\" | sort -u",
+          "providerItemId": "toolu_01Ka7rx7ur2N5RjEFViXuWyc",
+          "sequence": 134,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:31:58.917Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-135",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg4GH6wV33ipXa8UPmj7c:thinking:0",
+          "sequence": 135,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:32:06.630Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI don't think it's an environment variable. Codex controls this with a config setting instead: `tools.update_plan.enabled`.\n\n**What I checked in the installed Codex (0.156.1):**\n- The program contains exactly two tool switches, `tools.update_plan.enabled` and `tools.experimental_request_user_input.enabled`. Both are settings for Codex's `config.toml` file.\n- I searched it for environment variables mentioning the plan tool (anything like `CODEX_*PLAN*`) and found none.\n- `codex features list` has no entry for the plan tool either.\n\nLike any Codex setting, md2 can pass it per run on the command line: `-c tools.update_plan.enabled=false`. That's the same way the agent profiles already pass settings, e.g. `-c model_reasoning_effort=...`. md2 can therefore turn Codex off from the same global setting, so it applies to all agents as you asked.\n\n**Not confirmed yet:** I didn't run Codex with the setting to see the tool actually disappear. That should be checked during implementation, for example by confirming no `turn/plan/updated` arrives.\n\nIf you agree, I'll update F_430 to:\n- replace the \"check whether it can be switched off\" step with this setting;\n- add `-c tools.update_plan.enabled=false` when the setting is off, alongside the existing `codexSearchEnabled` handling in `resolveAgentExecution`;\n- make the setting's description say it covers both Claude and Codex.\n\nShould I make that change?",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 136,
+          "timestamp": "2026-10-15T15:32:06.649Z"
+        },
+        {
+          "content": "ah,ok, so command line argument when starting the agent, right? lets note this in the cards",
+          "id": "submission-07e2eb4d-f0ac-41b8-822a-f9ed846f8103",
+          "kind": "message",
+          "role": "user",
+          "sequence": 137,
+          "timestamp": "2026-10-15T15:32:51.498Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-138",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg4GLzSS3zeaW2z5voPDW:thinking:0",
+          "sequence": 138,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:32:54.149Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Yes: a command-line argument added when md2 starts Codex. Checking where md2 builds the Codex arguments for one-shot and streaming runs, so the cards name the right spot.",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 139,
+          "timestamp": "2026-10-15T15:32:54.744Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; sed -n 1,60p shared/agent_profiles.mjs; grep -n \"export function build\\|-c'\\|'-c'\" shared/agent_profiles.mjs",
+          "content": "export const MODEL_PLACEHOLDER = '{{model}}'\nexport const SESSION_ID_PLACEHOLDER = '{{sessionId}}'\nexport const THINKING_LEVELS = ['none', 'low', 'medium', 'high', 'max']\nexport const DEFAULT_AGENT_PROFILE_NAME = 'codex'\nexport const PERMISSION_MODES = ['ask-for-approval', 'approve-for-me', 'full-access']\nexport const DEFAULT_PERMISSION_MODE = 'ask-for-approval'\nexport const PERMISSION_MODE_OPTIONS = [\n    {\n        description: 'Ask before commands or file changes cross the normal approval boundary.',\n        label: 'Ask for approval',\n        value: 'ask-for-approval',\n    },\n    {\n        description: 'Let the provider safety reviewer approve changes automatically.',\n        label: 'Approve for me',\n        value: 'approve-for-me',\n    },\n    {\n        description: 'Disable the normal approval boundary and allow unrestricted access.',\n        label: 'Full access — disables approvals',\n        value: 'full-access',\n    },\n]\n\nexport const CODEX_MAX_THINKING_LEVEL = 'xhigh'\n\nfunction buildCodexOutputCommand(command, searchEnabled) {\n    return [...command, ...(searchEnabled ? ['--search'] : []), 'exec', '--json']\n}\n\nfunction buildClaudeOutputCommand(command) {\n    return [...command, '--print', '--verbose', '--output-format', 'stream-json']\n}\n\nfunction buildClaudeStreamingCommand(command) {\n    return [\n        ...buildClaudeOutputCommand(command),\n        '--include-partial-messages',\n        '--input-format',\n        'stream-json',\n        '--permission-prompt-tool',\n        'stdio',\n    ]\n}\n\nfunction buildCodexStreamingCommand(command) {\n    return [...command, 'app-server', '--stdio']\n}\n\nexport const BUILTIN_AGENT_PROFILES = [\n    {\n        command: ['codex'],\n        defaultModel: 'gpt-6-sol',\n        defaultThinkingLevel: 'medium',\n        modelArgument: '--model',\n        models: ['gpt-6-astra', 'gpt-6-sol', 'gpt-6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5'],\n        name: 'codex',\n    },\n    {\n        command: ['claude'],\n264:export function buildAgentCommand(profile, model) {\n277:    return [...command, '-c', `model_reasoning_effort=${providerLevel}`]\n292:        ['approve-for-me', ['--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '-c', 'approvals_reviewer=auto_review']],\n359:        ...(speedMode === 'fast' ? ['-c', 'features.fast_mode=true'] : []),\n360:        '-c', `service_tier=${JSON.stringify(settings.serviceTier)}`,\n364:export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined, speedSettings = {}) {\n385:export function buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode = undefined, speedSettings = {}) {\n401:export function buildResumeAgentCommand(profile, sessionId, executionCommand) {",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-140",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; sed -n 1,60p shared/agent_profiles.mjs; grep -n \"export function build\\|-c'\\|'-c'\" shared/agent_profiles.mjs",
+          "providerItemId": "toolu_01Up9369qimsJLtDL1ogy2Jb",
+          "sequence": 140,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:32:56.108Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; sed -n 340,420p shared/agent_profiles.mjs",
+          "content": "function buildClaudeResumeCommand(command, sessionId) {\n    return [...command, '--resume', sessionId]\n}\n\nconst RESUME_COMMAND_ADAPTERS = new Map([\n    ['claude', buildClaudeResumeCommand],\n    ['codex', buildCodexResumeCommand],\n])\n\nfunction buildSpeedCommand(command, profile, settings) {\n    const speedMode = settings.speedMode === undefined ? 'default' : validateSpeedMode(settings.speedMode, 'agent command');\n    if (speedMode === 'default') return command;\n    if (profile.name !== 'codex') throw new Error(`Speed settings are unsupported for ${profile.name}`);\n    if (typeof settings.serviceTier !== 'string' || settings.serviceTier.length === 0) {\n        throw new Error('Explicit speed mode requires a validated provider service tier');\n    }\n\n    return [\n        ...command,\n        ...(speedMode === 'fast' ? ['-c', 'features.fast_mode=true'] : []),\n        '-c', `service_tier=${JSON.stringify(settings.serviceTier)}`,\n    ];\n}\n\nexport function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined, speedSettings = {}) {\n    const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)\n    let command = buildAgentCommand(profile, model)\n\n    if (validatedThinkingLevel !== 'none') {\n        const thinkingAdapter = THINKING_LEVEL_ADAPTERS.get(profile.name)\n        if (!thinkingAdapter) throw new Error(`Agent profile does not support thinking levels: ${profile.name}`)\n        command = thinkingAdapter(command, validatedThinkingLevel)\n    }\n    command = buildPermissionModeCommand(command, profile, permissionMode)\n    command = buildSpeedCommand(command, profile, speedSettings);\n\n    const outputAdapter = OUTPUT_COMMAND_ADAPTERS.get(profile.name)\n\n    return outputAdapter ? outputAdapter(command, searchEnabled) : command\n}\n\nexport function supportsAgentStreaming(profile) {\n    return STREAMING_COMMAND_ADAPTERS.has(profile.name)\n}\n\nexport function buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode = undefined, speedSettings = {}) {\n    if (!supportsAgentStreaming(profile)) throw new Error(`Agent profile does not support streaming: ${profile.name}`)\n    const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)\n    let command = buildAgentCommand(profile, model)\n\n    if (validatedThinkingLevel !== 'none') {\n        const thinkingAdapter = THINKING_LEVEL_ADAPTERS.get(profile.name)\n        if (!thinkingAdapter) throw new Error(`Agent profile does not support thinking levels: ${profile.name}`)\n        command = thinkingAdapter(command, validatedThinkingLevel)\n    }\n    command = buildPermissionModeCommand(command, profile, permissionMode)\n    command = buildSpeedCommand(command, profile, speedSettings);\n\n    return STREAMING_COMMAND_ADAPTERS.get(profile.name)(command)\n}\n\nexport function buildResumeAgentCommand(profile, sessionId, executionCommand) {\n    const resumeAdapter = RESUME_COMMAND_ADAPTERS.get(profile.name)\n    if (resumeAdapter) {\n        const command = executionCommand ?? buildAgentExecutionCommand(profile, '', 'none', false)\n\n        return resumeAdapter(command, sessionId)\n    }\n    if (!profile.resumeCommand) throw new Error(`Agent profile does not support native resume: ${profile.name}`)\n\n    return profile.resumeCommand.map((argument) => argument.replaceAll(SESSION_ID_PLACEHOLDER, sessionId))\n}",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-141",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; sed -n 340,420p shared/agent_profiles.mjs",
+          "providerItemId": "toolu_01G7UCAWxvwjB3efnjTab44Y",
+          "sequence": 141,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:32:57.743Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-142",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg4GMSaHtiPiV5aezhrsw:thinking:0",
+          "sequence": 142,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:33:00.982Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"buildAgent(Execution|Streaming)Command\\\\(|buildResumeAgentCommand\\\\(\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\",\"glob\":\"{app/src,desktop/src,shared}/**/*.{ts,tsx,js,mjs}\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-143",
+          "kind": "event",
+          "label": "Grep",
+          "output": "shared\\agent_profiles.mjs:364:export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined, speedSettings = {}) {\nshared\\agent_profiles.mjs:385:export function buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode = undefined, speedSettings = {}) {\nshared\\agent_profiles.mjs:401:export function buildResumeAgentCommand(profile, sessionId, executionCommand) {\nshared\\agent_profiles.mjs:404:        const command = executionCommand ?? buildAgentExecutionCommand(profile, '', 'none', false)\ndesktop\\src\\actions\\action\\action_agent_executor.js:23:        return buildResumeAgentCommand(resolvedAgent.profile, providerSession.conversationId, resolvedAgent.command);\ndesktop\\src\\actions\\action\\action_agent_executor.js:170:        const command = buildAgentStreamingCommand(\napp\\src\\data\\agent_profiles.node.test.ts:26:        expect(buildResumeAgentCommand(profile, 'session-1')).toEqual(['agent', 'resume', 'session-1'])\ndesktop\\src\\actions\\agent\\agent_profiles_parity.test.mjs:28:        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'low')).toEqual([\ndesktop\\src\\actions\\agent\\agent_profiles_parity.test.mjs:31:        expect(buildAgentStreamingCommand(codex, 'gpt-5', 'none')).toEqual([\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:68:        expect(buildAgentExecutionCommand(profile, model, 'none', true, permissionMode)).toEqual([...base, ...output]);\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:69:        expect(buildAgentStreamingCommand(profile, model, 'none', permissionMode)).toEqual([...base, ...streamingOutput]);\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:70:        expect(buildResumeAgentCommand(\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:73:            buildAgentExecutionCommand(profile, model, 'none', false, permissionMode),\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:85:        expect(() => buildAgentExecutionCommand(custom, 'model', 'none', true, 'ask-for-approval'))\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:93:        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'high')).toEqual(['codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=high', '--search', 'exec', '--json']);\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:94:        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'max')).toEqual(['codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=xhigh', '--search', 'exec', '--json']);\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:95:        expect(buildAgentExecutionCommand(claude, 'sonnet', 'max')).toEqual(['claude', '--model', 'sonnet', '--effort', 'max', '--print', '--verbose', '--output-format', 'stream-json']);\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:96:        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none')).toEqual(['codex', '--model', 'gpt-5', '--search', 'exec', '--json']);\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:97:        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none', false)).toEqual(['codex', '--model', 'gpt-5', 'exec', '--json']);\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:105:        expect(buildAgentStreamingCommand(codex, 'gpt-5', 'high')).toEqual([\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:108:        expect(buildAgentStreamingCommand(claude, 'sonnet', 'none')).toEqual([\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:113:        expect(() => buildAgentStreamingCommand(custom, 'fast', 'none'))\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:121:        expect(() => buildAgentExecutionCommand(custom, 'fast', 'high')).toThrow('Agent profile does not support thinking levels: custom');\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:164:        expect(buildResumeAgentCommand(profile, 'session-1')).toEqual(['agent', 'resume', 'session-1']);\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:191:        expect(buildResumeAgentCommand(codex, 'session-1')).toEqual(['codex', 'exec', 'resume', '--json', 'session-1']);\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:192:        expect(buildResumeAgentCommand(claude, 'session-1')).toEqual(['claude', '--print', '--verbose', '--output-format', 'stream-json', '--resume', 'session-1']);\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:199:        expect(buildResumeAgentCommand(codex, 'thread-1', ['C:\\\\Tools\\\\codex.cmd', '--model', 'gpt-5', 'exec', '--json'])).toEqual(\ndesktop\\src\\actions\\agent\\agent_profiles.test.mjs:202:        expect(buildResumeAgentCommand(claude, 'session-1', ['C:\\\\Tools\\\\claude.cmd', '--model', 'sonnet', '--print', '--verbose', '--output-format', 'stream-json'])).toEqual(\ndesktop\\src\\actions\\agent\\agent_execution.test.mjs:39:        const resumed = buildResumeAgentCommand(resolved.profile, 'saved-session', resolved.command);\ndesktop\\src\\actions\\agent\\agent_execution.js:10:        ? buildAgentStreamingCommand(\ndesktop\\src\\actions\\agent\\agent_execution.js:13:        : buildAgentExecutionCommand(",
+          "providerItemId": "toolu_012ZXSP9yXiL62jn9wBpTUPU",
+          "sequence": 143,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:33:02.321Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-144",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg4GMmycX6n6rQFhgF34M:thinking:0",
+          "sequence": 144,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:33:04.067Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nUpdating F_430 and F_433.",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 145,
+          "timestamp": "2026-10-15T15:33:04.069Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_430_agent_task_tracking_setting.md",
+          "deletions": 1,
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-146",
+          "insertions": 6,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_430_agent_task_tracking_setting.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Dk12LrGndsbWWeMcwXR2PK",
+          "sequence": 146,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:33:07.403Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_430_agent_task_tracking_setting.md",
+          "deletions": 1,
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-147",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_430_agent_task_tracking_setting.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01XC7ychxhgYCDhHSqHzKaq1",
+          "sequence": 147,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:33:08.643Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_430_agent_task_tracking_setting.md",
+          "deletions": 1,
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-148",
+          "insertions": 2,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_430_agent_task_tracking_setting.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01GiSAmYhdL9KZAmGjfAUvNs",
+          "sequence": 148,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:33:11.351Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_430_agent_task_tracking_setting.md",
+          "deletions": 0,
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-149",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_430_agent_task_tracking_setting.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01XxWWvgX4S6MXw4HJXmbQZ6",
+          "sequence": 149,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:33:12.948Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_433_codex_plan_decoder.md",
+          "deletions": 1,
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-150",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_433_codex_plan_decoder.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01B1HxHw6q35gykEPuqHFMyv",
+          "sequence": 150,
+          "status": "completed",
+          "timestamp": "2026-10-15T15:33:14.693Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-event-151",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg4GNhTmTThDEGqpBSrBR:thinking:0",
+          "sequence": 151,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-15T15:33:19.630Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nYes: when the setting is off, md2 adds `-c tools.update_plan.enabled=false` to the command line when it starts Codex. Claude is the other way round: it gets an environment variable, `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`, when the setting is on.\n\nI've noted this in two cards:\n\n- **F_430:**\n  - The \"Current state\" section now names the Codex setting and says no environment variable exists for it.\n  - It lists where md2 builds the Codex command: `buildAgentExecutionCommand` for one-shot runs and `buildAgentStreamingCommand` for streaming runs. The streaming builder is also called directly from `action_agent_executor.js`, and it doesn't receive the existing web-search setting today, so the new value has to be passed in explicitly.\n  - Resumed runs reuse the one-shot command, so they pick up the argument automatically.\n  - The old \"check whether Codex can be switched off\" step is replaced by: add the argument when the setting is off, and add nothing when it's on.\n  - There's still a step to confirm during implementation that Codex really stops sending plan updates.\n  - The setting's description now mentions both Claude and Codex, and there's a test for the Codex command with and without the argument.\n- **F_433:** The Codex plan decoder doesn't need to check the setting itself, because Codex sends no plan updates when it's off.",
+          "id": "agent-turn-4c8c5b88-20e0-4e4a-b38b-e6fc373e6170-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 152,
+          "timestamp": "2026-10-15T15:33:28.473Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1607,10 +1927,10 @@
       "status": "cancelled",
       "timer": {
         "breakdown": {
-          "reasoningMs": 107112,
-          "toolMs": 204055
+          "reasoningMs": 124265,
+          "toolMs": 237202
         },
-        "elapsedMs": 867631,
+        "elapsedMs": 985227,
         "runningStartedAt": null
       },
       "title": "+",
@@ -1705,11 +2025,11 @@
         "agent-6e4ada36-0d51-4a2e-abef-d0c44d3c69b7"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-4d2e790a-5168-4dc5-b59a-3e8e79dce711",
       "origin": {
@@ -1718,9 +2038,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-6e4ada36-0d51-4a2e-abef-d0c44d3c69b7",
       "startedAt": "2026-10-15T15:21:18.650Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-6e4ada36-0d51-4a2e-abef-d0c44d3c69b7"
     }
   ],
   "version": 5
