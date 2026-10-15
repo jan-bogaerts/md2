@@ -3853,6 +3853,41 @@
       "startedAt": "2026-10-13T16:56:48.618Z",
       "status": "completed",
       "rootConversationId": "agent-f555e6c0-3bab-495a-af12-fea45e03ed04"
+    },
+    {
+      "commits": [
+        {
+          "commit": "5d75d6a0394547a853bd6cafefb2e7da13117c18",
+          "committedAt": "2026-10-15T10:42:41+02:00",
+          "deletions": 6,
+          "filePaths": [
+            "app/src/components/actions/run/sequence/card_sequence_agent_selection.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_dialog.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_draft_service.node.test.ts",
+            "app/src/components/actions/run/sequence/card_sequence_draft_service.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "desktop/main.js",
+            "desktop/src/actions/action/action_scheduler_service.js",
+            "desktop/src/actions/action/action_scheduler_service.test.mjs",
+            "desktop/src/actions/schedule/scheduled_card_sequence_engine.js",
+            "desktop/src/actions/schedule/scheduled_card_sequence_engine.test.mjs",
+            "desktop/src/actions/schedule/sequence_schedule_contract.test.mjs",
+            "shared/action_schedules.d.mts",
+            "shared/action_schedules.mjs"
+          ],
+          "filesChanged": 14,
+          "insertions": 386,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-15T10:42:41+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "26179cc3-97a2-4a33-9e4f-a3b7116e217c",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

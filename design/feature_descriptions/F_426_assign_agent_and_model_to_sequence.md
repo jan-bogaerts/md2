@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__26179cc3-97a2-4a33-9e4f-a3b7116e217c.json
 policy:
-branch: f_426_assign_agent_and_model_to_sequence
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/sequence/card_sequence_agent_selection.tsx
   - app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx
