@@ -5,7 +5,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "c4a908bd-423a-4c5f-8a18-1a5e24d91740",
       "cardPath": "design/feature_descriptions/F_430_agent_task_tracking_setting.md",
-      "completedAt": null,
+      "completedAt": "2026-10-16T12:09:19.378Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 113207
@@ -2226,7 +2226,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 167,
-          "timestamp": "2026-10-16T12:05:10.721Z"
+          "timestamp": "2026-10-16T12:09:19.378Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2236,12 +2236,12 @@
           "agent": "codex",
           "conversationId": "01a1448b-0ee7-7f53-827c-9d398cb32666",
           "createdAt": "2026-10-16T11:50:21.886Z",
-          "lastUsedAt": "2026-10-16T12:05:10.721Z",
+          "lastUsedAt": "2026-10-16T12:09:19.378Z",
           "synchronizedThroughMessageId": "agent-turn-923aeb2e-40f2-423a-842b-c682a2f9f46a-turn-2-assistant-11"
         }
       ],
       "startedAt": "2026-10-16T11:48:45.903Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 968,
@@ -2259,7 +2259,7 @@
         "totalTokens": 5279723
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
