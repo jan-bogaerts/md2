@@ -932,7 +932,7 @@
         "costUsd": 0.7774487999999999
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -991,6 +991,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "585e4c5c28b39215efff3980ea4d466237e98895",
           "committedAt": "2026-10-13T17:27:46+02:00",
           "deletions": 15,
@@ -1001,8 +1002,7 @@
             "desktop/src/actions/schedule/sequence_worktree_execution.test.mjs"
           ],
           "filesChanged": 4,
-          "insertions": 71,
-          "branch": "dev_main"
+          "insertions": 71
         }
       ],
       "completedAt": "2026-10-13T17:27:46+02:00",
