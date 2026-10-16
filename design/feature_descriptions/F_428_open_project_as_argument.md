@@ -3,7 +3,7 @@ author:
 id: F_428
 internalId: 03d0a58e-10e5-403f-bba2-585bd1445fd4
 title: open project as argument
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,17 @@ policy:
 after: b6bfdd41-b224-4656-8ba0-12c841e72bac
 branch: f_428_open_project_as_argument
 worktree: 1
+changedFiles:
+  - app/src/app/use_app_bootstrap.test.ts
+  - app/src/services/application_startup_service.test.ts
+  - app/src/services/project/project_open_flow_service.test.ts
+  - desktop/src/shell/preload.js
+  - desktop/src/shell/preload.test.mjs
+  - desktop/src/shell/recent_projects_jump_list.js
+  - desktop/src/shell/recent_projects_jump_list.test.mjs
+  - desktop/src/shell/startup_project_argument.js
+  - desktop/src/shell/startup_project_argument.test.mjs
+  - desktop/start_electron.js
 ---
 lets accept a folder as an argument for starting the application so the user can open a project directly. This should also allow for opening projects directly from the windows taskbar icon's context menu
 
