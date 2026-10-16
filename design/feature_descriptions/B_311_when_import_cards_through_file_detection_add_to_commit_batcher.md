@@ -3,7 +3,7 @@ author:
 id: B_311
 internalId: b6bfdd41-b224-4656-8ba0-12c841e72bac
 title: when import cards through file detection add to commit batcher
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,11 @@ policy:
 after: 349bbb7d-ab48-4ef5-85df-3f6caf2fd460
 branch: b_311_when_import_cards_through_file_detection_add_to_commit_batcher
 worktree: 1
+changedFiles:
+  - app/src/data/commit_batcher.test.ts
+  - app/src/data/commit_batcher.ts
+  - app/src/services/project/project_loading.test.ts
+  - app/src/services/project/project_loading.ts
 ---
 
 ## Problem
