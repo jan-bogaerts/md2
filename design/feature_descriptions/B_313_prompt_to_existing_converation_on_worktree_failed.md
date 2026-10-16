@@ -12,3 +12,5 @@ policy:
 I have a card. it was assigned to a worktree, then we started an agent, which ran in the worktree. there were no file changes, so we switched to the primary repository again.
 
 Then I wanted to continue the conversation, but now we get the error: `Failed to sendAssigned worktree branch "f_422_check_if_possible_to_switch_agent_accounts" is unavailable. Select a worktree again.`
+
+This is strange. I don't understand this restriction, it seems over engineered again
