@@ -1538,7 +1538,7 @@
         "totalTokens": 3729085
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -1553,14 +1553,14 @@
         "agent-c3cf17ec-08db-45ae-a7dc-9b7d9a0af7af"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "speedMode": "default",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-a072337a-8975-4a29-be86-bf9c3cafc426",
       "origin": {
@@ -1569,9 +1569,36 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-c3cf17ec-08db-45ae-a7dc-9b7d9a0af7af",
       "startedAt": "2026-10-16T13:26:36.024Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-c3cf17ec-08db-45ae-a7dc-9b7d9a0af7af"
+    },
+    {
+      "commits": [
+        {
+          "commit": "f7648a1b867d490f69b7263dc4ce2a77f778f743",
+          "committedAt": "2026-10-16T15:33:33+02:00",
+          "deletions": 6,
+          "filePaths": [
+            "desktop/src/actions/agent/agent_claude_events.js",
+            "desktop/src/actions/agent/agent_claude_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_provider_protocol.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+            "desktop/src/actions/agent/claude_task_list_decoder.js",
+            "desktop/src/actions/agent/claude_task_list_decoder.test.mjs"
+          ],
+          "filesChanged": 6,
+          "insertions": 446,
+          "branch": "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9"
+        }
+      ],
+      "completedAt": "2026-10-16T15:33:33+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "a26843ed-31d2-45f1-93b7-80a3256094d2",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
