@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 118496
+        "usedTokens": 120664
       },
       "entries": [
         {
@@ -1004,6 +1004,57 @@
           "role": "user",
           "sequence": 77,
           "timestamp": "2026-10-16T13:38:27.262Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-b263fccc-18d6-436e-b052-5dc8212097ec-event-78",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg61RuKFoRbHCAYWxZvtj:thinking:0",
+          "sequence": 78,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T13:38:30.312Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\desktop\\\\src\\\\git\\\\worktree_service.js\",\"offset\":130,\"limit\":35}",
+          "id": "agent-turn-b263fccc-18d6-436e-b052-5dc8212097ec-event-79",
+          "kind": "event",
+          "label": "Read",
+          "output": "130\t    async startProject(project) {\n131\t        const primaryRoot = await WorktreeService.requirePrimaryRoot(project);\n132\t        const nextProject = { ...project, rootPath: primaryRoot };\n133\t        if (this.project && pathKey(this.project.rootPath) === pathKey(primaryRoot) && this.project.branch === project.branch) return;\n134\t\n135\t        this.stopTimer();\n136\t        this.projectGeneration += 1;\n137\t        this.refreshPromise = null;\n138\t        this.project = nextProject;\n139\t        this.primaryStatus = null;\n140\t        this.records = [];\n141\t        this.publish(null);\n142\t        await this.refreshLocal();\n143\t    }\n144\t\n145\t    stopProject() {\n146\t        this.stopTimer();\n147\t        this.projectGeneration += 1;\n148\t        this.project = null;\n149\t        this.primaryStatus = null;\n150\t        this.records = [];\n151\t        this.refreshPromise = null;\n152\t        this.publish(null);\n153\t    }\n154\t\n155\t    subscribe(listener) {\n156\t        if (typeof listener !== 'function') throw new Error('Worktree listener must be a function');\n157\t        this.listeners.add(listener);\n158\t        this.notifyListener(listener, this.state);\n159\t\n160\t        return () => this.listeners.delete(listener);\n161\t    }\n162\t\n163\t    getRecords(project) {\n164\t        this.requireActiveProject(project);",
+          "providerItemId": "toolu_016Vq9VBwzbDixLUS4jr697U",
+          "sequence": 79,
+          "status": "completed",
+          "timestamp": "2026-10-16T13:38:31.109Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-b263fccc-18d6-436e-b052-5dc8212097ec-event-80",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cg61SAfEh4QqdtRdWStLm:thinking:0",
+          "sequence": 80,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T13:38:37.638Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "It's a polling loop in the desktop worktree service, `desktop/src/git/worktree_service.js`. It is not something I added or am proposing.\n\n**What it is.** `REFRESH_INTERVAL_MS = 5000` is set at `desktop/src/git/worktree_service.js:10`. The loop works like this:\n\n- `startProject` (line 130) runs `refreshLocal()` once when a project opens.\n- `refreshLocal` (line 844) runs `performRefresh`. In its `finally` block it calls `scheduleRefresh()` (lines 857-858).\n- `scheduleRefresh` (line 919) sets a 5-second `setTimeout` that calls `refreshLocal()` again.\n\nSo while a project is open, the desktop re-reads the worktree state every 5 seconds. `refreshAfterMutation` and `refreshRecordAfterMutation` restart the same timer after an explicit worktree change. `stopProject` stops it.\n\n**What it does.** Each refresh calls `primaryRepositoryStatus` and `readWorktreeRecords`. These read `git worktree list` plus each worktree's branch and status (valid, dirty, and so on). If the result differs from the last state, `publish` sends it to the app through `onWorktreesChanged`. In the app, `WorktreeService.handleState` (`app/src/services/project/worktree_service.ts:560`) updates its records and fires `recordsChanged` or `recordChanged`. The card worktree indicator listens for those events through `useOpenWorktrees`.\n\n**Why it matters for B_312.** Polling is the only thing that picks up a branch change made by a plain `git switch`. Nothing pushes an update when the sequence switches branches. So after the sequence changes `expectedBranch`, the app can keep seeing the old branch for up to about 5 seconds, until the next poll. That's why I said the display should correct itself after a while. It also means the fix I proposed (refreshing the record right after each switch) doesn't depend on this timer.",
+          "id": "agent-turn-b263fccc-18d6-436e-b052-5dc8212097ec-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 81,
+          "timestamp": "2026-10-16T13:38:37.668Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1013,17 +1064,17 @@
           "agent": "claude",
           "conversationId": "6ca765cc-e3b3-4fba-acc6-dff4f6e3e3e0",
           "createdAt": "2026-10-16T13:34:28.573Z",
-          "lastUsedAt": "2026-10-16T13:34:28.573Z",
-          "synchronizedThroughMessageId": "agent-turn-b263fccc-18d6-436e-b052-5dc8212097ec-turn-1-assistant-6",
+          "lastUsedAt": "2026-10-16T13:38:37.668Z",
+          "synchronizedThroughMessageId": "agent-turn-b263fccc-18d6-436e-b052-5dc8212097ec-turn-2-assistant-1",
           "usageBaseline": {
-            "costUsd": 1.719445,
-            "resultId": "00e356da-8690-4f0d-82de-b253bd53cee1",
+            "costUsd": 1.8050278,
+            "resultId": "a4bcc3fe-d86e-4139-9b45-7956d4e0f3c0",
             "tokens": {
-              "cachedInputTokens": 2897471,
-              "inputTokens": 76,
-              "outputTokens": 17239,
+              "cachedInputTokens": 3137953,
+              "inputTokens": 80,
+              "outputTokens": 18267,
               "reasoningTokens": 0,
-              "totalTokens": 2914786
+              "totalTokens": 3156300
             }
           }
         }
@@ -1032,20 +1083,20 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 94073,
-          "toolMs": 43423
+          "reasoningMs": 101560,
+          "toolMs": 44220
         },
         "elapsedMs": 187481,
         "runningStartedAt": "2026-10-16T13:38:27.262Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 2897471,
-        "inputTokens": 76,
-        "outputTokens": 17239,
+        "cachedInputTokens": 3137953,
+        "inputTokens": 80,
+        "outputTokens": 18267,
         "reasoningTokens": 0,
-        "totalTokens": 2914786,
-        "costUsd": 1.719445
+        "totalTokens": 3156300,
+        "costUsd": 1.8050278
       },
       "usageSchemaVersion": 1,
       "viewed": true
