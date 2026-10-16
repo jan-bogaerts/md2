@@ -10,5 +10,4 @@ agents:
 policy:
 after: b6df6526-3cec-4077-a31e-03269835f435
 ---
-
-so we can open a project directly
+lets accept a folder as an argument for starting the application so the user can open a project directly. This should also allow for opening projects directly from the windows taskbar icon's context menu
