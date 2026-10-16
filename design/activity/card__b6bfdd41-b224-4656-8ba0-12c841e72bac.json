@@ -1116,7 +1116,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "b6bfdd41-b224-4656-8ba0-12c841e72bac",
       "cardPath": "design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md",
-      "completedAt": null,
+      "completedAt": "2026-10-16T15:05:12.995Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 134257
@@ -3261,7 +3261,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 163,
-          "timestamp": "2026-10-16T14:57:25.960Z"
+          "timestamp": "2026-10-16T15:05:12.995Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3271,12 +3271,12 @@
           "agent": "codex",
           "conversationId": "01a1450e-664b-77e2-b100-d9a8b33d32e1",
           "createdAt": "2026-10-16T14:14:07.485Z",
-          "lastUsedAt": "2026-10-16T14:57:25.960Z",
+          "lastUsedAt": "2026-10-16T15:05:12.995Z",
           "synchronizedThroughMessageId": "agent-turn-ddf3707a-d9d4-4fac-b7eb-d9c685546145-turn-2-assistant-3"
         }
       ],
       "startedAt": "2026-10-16T14:12:13.494Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 1302,
@@ -3294,7 +3294,7 @@
         "totalTokens": 6809973
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
