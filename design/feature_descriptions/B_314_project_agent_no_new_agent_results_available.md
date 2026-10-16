@@ -3,7 +3,7 @@ author:
 id: B_314
 internalId: 0a89e47c-403c-4f6f-aa8b-97c9493dd2d4
 title: project agent - no new agent results available
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
