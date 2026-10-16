@@ -15,6 +15,11 @@ worktree: 1
 changedFiles:
   - app/src/data/commit_batcher.test.ts
   - app/src/data/commit_batcher.ts
+  - app/src/services/data/card_internal_id_operations.ts
+  - app/src/services/data/card_operations.ts
+  - app/src/services/data/data_service.ts
+  - app/src/services/data/external_card_import_service.node.test.ts
+  - app/src/services/data/external_card_import_service.ts
   - app/src/services/project/project_loading.test.ts
   - app/src/services/project/project_loading.ts
 ---
