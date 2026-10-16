@@ -4631,14 +4631,14 @@
         }
       ],
       "startedAt": "2026-10-16T15:14:10.930Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 120,
           "toolMs": 23261
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-16T15:14:10.930Z"
+        "elapsedMs": 104853,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
