@@ -3,7 +3,7 @@ author:
 id: B_313
 internalId: 7fe6eb2d-0bcd-43aa-ba7c-f1fb3ade4a4c
 title: prompt to existing converation on worktree failed
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
