@@ -27,14 +27,14 @@ The project agent fab indicates that there are `new agent results available`, bu
 
 ## Implementation details
 
-* `AgentChatFab`: compute the project action IDs from `displayActionsForContext(actions, projectContext())`, using `useActions`, memoized on `actions`. Pass them to `useProjectActionsAgentState` in place of `useProjectAgentState`. The fab then counts only conversations that have a button in the project popup.
+* `AgentChatFab`: resolve the project context with `useActionAssignmentContext(projectContext())`, the same hook `ActionPopup` uses. That hook applies the project worktree assignment (`worktreeService.getProjectActionWorktree()`) and re-renders on `assignmentChanged`. Compute the project action IDs from `displayActionsForContext(actions, assignmentContext)`, using `useActions`, memoized on `actions` and the context. Pass them to `useProjectActionsAgentState` in place of `useProjectAgentState`. The fab then counts exactly the conversations that have a button in the project popup, including actions limited to the assigned worktree by `appliesTo.worktree`.
 * Remove `useProjectAgentState` from `use_agent_acknowledgements.ts`. `AgentChatFab` is its only caller.
 * `DiagramView`: also compute `diagramActionIds`, the IDs of all non-builtin actions with `appliesTo.kind === 'diagram'` (root and child). Pass them to `DiagramAgentFab`.
 * `DiagramAgentFab`: take `diagramActionIds` as a prop. Use it for `useProjectActionsAgentState`. Keep using `rootActionIds` for the `disabled` state and for filtering live root-context runs. Activating the fab still opens the root popup.
 * No change to conversation loading, `viewed` persistence, acknowledgement events or `ActionSelectorButton`.
 * Edge cases:
   * Conversations of deleted actions, and conversations without an `actionId`, no longer light any fab. They stay listed in the project agent usage details and in conversation history.
-  * When the project popup has a session worktree, it can show actions with `appliesTo.worktree` that are absent from the plain project context. Unseen results of those actions do not light the project fab.
+  * Changing the project worktree assignment changes the action set, and with it the fab state. Results of worktree-limited actions count only while that worktree is assigned, matching the popup buttons.
   * A child-diagram result lights the diagram fab, but it is opened from its node popup, not from the root popup.
 
 ## Tests
@@ -42,12 +42,14 @@ The project agent fab indicates that there are `new agent results available`, bu
 * `agent_chat_fab.test.tsx`:
   * An unviewed project conversation of a diagram action, or of an unknown action ID, leaves the fab idle.
   * An unviewed conversation of a displayed project action shows `New agent result available`.
+  * With a project worktree assigned, an unviewed conversation of an action limited to that worktree (`appliesTo.worktree`) shows `New agent result available`. After the assignment is removed, the fab returns to idle.
 * `diagram_agent_fab.test.tsx`: an unviewed conversation of a child-diagram action shows `New agent result available`. With no root actions configured, the fab stays disabled.
 * Update existing tests that rely on `useProjectAgentState` or on the current `DiagramAgentFab` props.
 
 ## Acceptance criteria
 
 * The project fab shows `New agent result available` only when at least one project popup action button shows the unseen-result dot.
+* When a project worktree is assigned, unviewed results of actions limited to that worktree light the project fab.
 * Unviewed diagram action conversations never change the project fab state.
 * Unviewed conversations of root and child diagram actions show `New agent result available` on the diagram fab.
 * The diagram fab is still disabled when no root diagram actions are configured.
