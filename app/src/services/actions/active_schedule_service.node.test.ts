@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ActionService } from './action_service'
 import type { ActionSchedule, AnySchedule, SequenceSchedule } from '../../data/action_schedule_types'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import type { DataService } from '../data/data_service'
-import type { Card, ProjectSnapshot } from '../../data/data_types'
+import { DEFAULT_PROJECT_CONFIG, type Card, type ProjectSnapshot } from '../../data/data_types'
 import type { ClaudeRateLimitService } from '../agents/claude_rate_limit_service'
 import type { CodexRateLimitService } from '../agents/codex_rate_limit_service'
+import { configService } from '../config/config_service'
+import { dataService } from '../data/data_service'
 import { worktreeService } from '../project/worktree_service'
 import { ActiveScheduleService } from './active_schedule_service'
 
@@ -160,6 +163,54 @@ describe('ActiveScheduleService', () => {
         await vi.waitFor(() => expect(bridge.listActiveSchedules).toHaveBeenCalledTimes(2))
 
         service.stop()
+    })
+
+    it('reloads sequence progress when the resolved schedule file changes', async () => {
+        const firstCard = sequenceSchedule()
+        const secondCard = {
+            ...firstCard,
+            branchProgress: { ...firstCard.branchProgress!, expectedBranch: 'child-2' },
+            currentIndex: 1,
+        }
+        const bridge = {
+            deleteSchedule: vi.fn(async () => []),
+            listActiveSchedules: vi.fn()
+                .mockResolvedValueOnce([firstCard])
+                .mockResolvedValueOnce([secondCard]),
+        }
+        const project = { branch: 'main', id: 'project', rootPath: 'C:/project' }
+        const cards = [
+            { header: { id: 'F-1', internalId: 'card-1', title: 'First' }, path: 'design/F-1.md' } as Card,
+            { header: { id: 'F-2', internalId: 'card-2', title: 'Second' }, path: 'design/F-2.md' } as Card,
+        ]
+        vi.spyOn(configService, 'getProjectConfig').mockReturnValue({
+            ...DEFAULT_PROJECT_CONFIG,
+            actionsFolder: 'actions',
+            projectFolder: 'design',
+        })
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project,
+            runningAgents: [],
+            snapshot: { activeCards: cards, backgroundCards: [] } as unknown as ProjectSnapshot,
+        })
+        setActionBridgeOverride(bridge as unknown as ElectronActionBridge)
+        const service = new ActiveScheduleService()
+
+        try {
+            service.start()
+            await vi.waitFor(() => expect(service.getSequenceWorktreeForCard('card-1')).toEqual({ checkoutPath: 'C:/checkout', expectedBranch: 'child-1' }))
+
+            dataService.dispatchEvent(new CustomEvent('repositoryChanged', {detail: { changeKind: 'changed', path: 'design/actions/.md2-schedules.json' }}))
+
+            await vi.waitFor(() => expect(bridge.listActiveSchedules).toHaveBeenCalledTimes(2))
+            expect(service.getSequenceWorktreeForCard('card-1')).toBeNull()
+            expect(service.getSequenceWorktreeForCard('card-2')).toEqual({ checkoutPath: 'C:/checkout', expectedBranch: 'child-2' })
+            expect(service.getSnapshot().items[0].schedule).toMatchObject({ currentIndex: 1 })
+        } finally {
+            service.stop()
+            setActionBridgeOverride(null)
+            vi.restoreAllMocks()
+        }
     })
 
     it('asks backend to delete once and reloads canonical active list', async () => {

@@ -1,6 +1,6 @@
 import { ACTION_SCHEDULES_FILE, type AnySchedule } from '../../data/action_schedule_types'
 import { getElectronActionBridge, type ElectronActionBridge } from '../../data/electron_action_bridge'
-import type { ProjectReference, ProjectWatchEvent } from '../../data/data_types'
+import { resolveProjectConfigPaths, type ProjectReference, type ProjectWatchEvent } from '../../data/data_types'
 import { normalizePath } from '../../../../shared/path_utils.mjs'
 import { actionService, ACTIONS_CHANGED_EVENT, type ActionService } from './action_service'
 import { claudeRateLimitService, type ClaudeRateLimitService } from '../agents/claude_rate_limit_service'
@@ -60,7 +60,7 @@ function defaultDependencies(): ActiveScheduleServiceDependencies {
         claudeRateLimitService,
         codexRateLimitService,
         dataService,
-        getActionsFolder: () => configService.getProjectConfig().actionsFolder,
+        getActionsFolder: () => resolveProjectConfigPaths(configService.getProjectConfig()).actionsFolder,
         getBridge: getElectronActionBridge,
         getProject: () => dataService.getState().project,
     }
