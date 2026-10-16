@@ -1158,7 +1158,7 @@
         "totalTokens": 3272293
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -1173,14 +1173,14 @@
         "agent-97ba7725-7412-4ad4-a554-089bba74ac02"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "speedMode": "default",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-bfd37fea-5acd-4fae-b3bc-2ed5c37b2b2a",
       "origin": {
@@ -1189,9 +1189,34 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-97ba7725-7412-4ad4-a554-089bba74ac02",
       "startedAt": "2026-10-16T13:33:36.532Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-97ba7725-7412-4ad4-a554-089bba74ac02"
+    },
+    {
+      "commits": [
+        {
+          "commit": "44ff2a79fb62799eea081861e393e337c6aa181a",
+          "committedAt": "2026-10-16T15:39:42+02:00",
+          "deletions": 5,
+          "filePaths": [
+            "desktop/src/actions/agent/agent_provider_protocol.js",
+            "desktop/src/actions/agent/agent_provider_protocol.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs"
+          ],
+          "filesChanged": 4,
+          "insertions": 225,
+          "branch": "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9"
+        }
+      ],
+      "completedAt": "2026-10-16T15:39:42+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "bdfd6fc4-a938-4be2-86c7-2d8f92c55d96",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
