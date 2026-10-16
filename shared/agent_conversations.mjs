@@ -2,6 +2,7 @@ import { normalizeAgentTokenUsage, validateAgentTokenUsage } from './agent_usage
 
 const AGENT_MESSAGE_ROLES = new Set(['assistant', 'user']);
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput']);
+const AGENT_TASK_STATUSES = new Set(['pending', 'inProgress', 'completed']);
 const INTERNAL_EVENT_TYPES = new Set(['closed', 'started', 'turnCompleted']);
 export const AGENT_RESULT_MAX_LENGTH = 8_192;
 export const AGENT_CONVERSATION_USAGE_SCHEMA_VERSION = 1;
@@ -305,6 +306,40 @@ function normalizeTimer(value) {
     return adjustAgentConversationTimer(timer);
 }
 
+function normalizeTask(value, index) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error(`Malformed agent conversation: invalid taskList.tasks[${index}]`);
+    }
+    const id = optionalString(value.id);
+    const subject = optionalString(value.subject);
+    if (!id) throw new Error(`Malformed agent conversation: invalid taskList.tasks[${index}].id`);
+    if (!subject) throw new Error(`Malformed agent conversation: invalid taskList.tasks[${index}].subject`);
+    if (!AGENT_TASK_STATUSES.has(value.status)) {
+        throw new Error(`Malformed agent conversation: invalid taskList.tasks[${index}].status`);
+    }
+    if (value.activeForm !== undefined && !optionalString(value.activeForm)) {
+        throw new Error(`Malformed agent conversation: invalid taskList.tasks[${index}].activeForm`);
+    }
+
+    return {
+        id,
+        subject,
+        status: value.status,
+        ...(value.activeForm !== undefined ? { activeForm: value.activeForm } : {}),
+    };
+}
+
+function normalizeTaskList(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Malformed agent conversation: invalid taskList');
+    }
+    if (!Array.isArray(value.tasks)) throw new Error('Malformed agent conversation: invalid taskList.tasks');
+    const updatedAt = optionalString(value.updatedAt);
+    if (!updatedAt) throw new Error('Malformed agent conversation: invalid taskList.updatedAt');
+
+    return { tasks: value.tasks.map(normalizeTask), updatedAt };
+}
+
 function normalizeArray(value, normalize) {
     if (!Array.isArray(value)) return [];
 
@@ -381,6 +416,7 @@ export function parseAgentConversationValue(parsed, referencePath) {
         throw new Error('Malformed agent conversation: inconsistent usage.totalTokens');
     }
     const timer = parsed.timer === undefined ? null : normalizeTimer(parsed.timer);
+    const taskList = parsed.taskList === undefined ? null : normalizeTaskList(parsed.taskList);
     if (parsed.viewed !== undefined && typeof parsed.viewed !== 'boolean') {
         throw new Error('Malformed agent conversation: invalid viewed');
     }
@@ -398,6 +434,7 @@ export function parseAgentConversationValue(parsed, referencePath) {
         providerSessions: normalizeArray(parsed.providerSessions, normalizeProviderSession),
         startedAt,
         status,
+        ...(taskList ? { taskList } : {}),
         ...(timer ? { timer } : {}),
         title: hasExplicitTitle ? parsed.title : id,
         ...(usage ? { usage } : {}),

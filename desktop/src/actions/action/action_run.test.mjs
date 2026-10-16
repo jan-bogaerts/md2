@@ -1282,6 +1282,10 @@ describe('ActionRun', () => {
     });
 
     it('publishes nested agent events and terminal metadata', async () => {
+        const taskList = {
+            tasks: [{ id: 'task-1', status: 'inProgress', subject: 'Implement task list' }],
+            updatedAt: '2026-10-16T10:00:00.000Z',
+        };
         const runningConversation = {
             actionId: 'main', cardInternalId: 'card-1', cardPath: 'design/F-1.md', completedAt: null, entries: [],
             hasExplicitTitle: true, id: 'conversation', path: 'run.json', providerSessions: [],
@@ -1298,6 +1302,7 @@ describe('ActionRun', () => {
                     type: 'state',
                 });
                 input.onEvent({content: 'chunk', entryIndex: 0, messageId: 'assistant-1', sequence: 2, status: 'running', type: 'output'});
+                input.onEvent({ status: 'running', taskList, type: 'taskList' });
                 input.onEvent({
                     contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
                     status: 'running',
@@ -1340,6 +1345,11 @@ describe('ActionRun', () => {
             status: 'running',
             type: 'update',
             update: { content: 'chunk', entryIndex: 0, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
+        }));
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'running',
+            type: 'update',
+            update: { kind: 'agentTaskList', taskList },
         }));
         expect(events).toContainEqual(expect.objectContaining({
             status: 'running',

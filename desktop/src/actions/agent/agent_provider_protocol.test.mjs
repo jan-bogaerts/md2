@@ -47,6 +47,73 @@ describe('agent provider protocol', () => {
         expect(events[1].providerEvents[0].paths).toBeUndefined();
     });
 
+    it('decodes Codex todo lists across lifecycle updates without provider or transcript rows', () => {
+        const { events, instance } = parser('codex');
+        const lifecycleEvents = [
+            {
+                item: { id: 'todo-1', items: [{ completed: false, text: 'Inspect code' }], type: 'todo_list' },
+                type: 'item.started',
+            },
+            {
+                item: {
+                    id: 'todo-1',
+                    items: [
+                        { completed: true, text: 'Inspect code' },
+                        { completed: false, text: 'Implement decoder' },
+                    ],
+                    type: 'todo_list',
+                },
+                type: 'item.updated',
+            },
+            {
+                item: {
+                    id: 'todo-1',
+                    items: [
+                        { completed: true, text: 'Inspect code' },
+                        { completed: true, text: 'Implement decoder' },
+                    ],
+                    type: 'todo_list',
+                },
+                type: 'item.completed',
+            },
+        ];
+
+        for (const event of lifecycleEvents) instance.push(`${JSON.stringify(event)}\n`);
+        instance.finish();
+
+        const taskListEvents = events.filter(({ type }) => type === 'taskList');
+        const protocolEvents = events.filter(({ type }) => type !== 'taskList');
+        expect(taskListEvents.map(({ taskList }) => taskList.tasks)).toEqual([
+            [{ id: '0', status: 'pending', subject: 'Inspect code' }],
+            [
+                { id: '0', status: 'completed', subject: 'Inspect code' },
+                { id: '1', status: 'pending', subject: 'Implement decoder' },
+            ],
+            [
+                { id: '0', status: 'completed', subject: 'Inspect code' },
+                { id: '1', status: 'completed', subject: 'Implement decoder' },
+            ],
+        ]);
+        expect(taskListEvents.every(({ taskList }) => !Number.isNaN(Date.parse(taskList.updatedAt)))).toBe(true);
+        expect(protocolEvents).toHaveLength(3);
+        expect(protocolEvents.every(({ providerEvents }) => providerEvents.length === 0)).toBe(true);
+        expect(protocolEvents.every(({ transcriptEvents }) => transcriptEvents.length === 0)).toBe(true);
+    });
+
+    it('diagnoses malformed Codex todo lists that cannot be decoded', () => {
+        const { events, instance } = parser('codex');
+
+        instance.push('{"type":"item.completed","item":{"id":"todo-1","type":"todo_list"}}\n');
+        instance.finish();
+
+        expect(events).toHaveLength(1);
+        expect(events[0].providerEvents).toEqual([expect.objectContaining({
+            content: 'item.completed: todo_list (todo-1)',
+            type: 'diagnostic',
+        })]);
+        expect(events[0].transcriptEvents).toEqual([]);
+    });
+
     it('extracts Codex thread ids and completed assistant messages', () => {
         const { events, instance } = parser('codex');
 

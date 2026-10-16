@@ -111,6 +111,85 @@ function claudeRootAssistant(messageId, inputTokens, outputTokens) {
     };
 }
 
+function claudeTaskFixtureEvents() {
+    return [
+        {
+            message: {
+                content: [{
+                    id: 'task-create-root', input: { activeForm: 'Building root', subject: 'Build root' },
+                    name: 'TaskCreate', type: 'tool_use',
+                }], id: 'task-message-1',
+            },
+            type: 'assistant',
+        },
+        {
+            message: { content: [{ content: 'created', tool_use_id: 'task-create-root', type: 'tool_result' }] },
+            tool_use_result: { task: { id: '1' } },
+            type: 'user',
+        },
+        {
+            message: {content: [{id: 'task-update-progress', input: { status: 'in_progress', taskId: '1' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-2'},
+            type: 'assistant',
+        },
+        {
+            message: {content: [{id: 'task-update-complete', input: { id: '1', status: 'completed' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-3'},
+            type: 'assistant',
+        },
+        {
+            message: {
+                content: [{
+                    id: 'task-create-child', input: { activeForm: 'Building child', subject: 'Build child' },
+                    name: 'TaskCreate', type: 'tool_use',
+                }], id: 'task-message-child',
+            },
+            parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,
+            type: 'assistant',
+        },
+        {
+            message: { content: [{ content: 'created', tool_use_id: 'task-create-child', type: 'tool_result' }] },
+            parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,
+            tool_use_result: { task: { id: '2' } },
+            type: 'user',
+        },
+        {
+            message: {
+                content: [{
+                    id: 'task-create-failed', input: { activeForm: 'Failing', subject: 'Failed task' },
+                    name: 'TaskCreate', type: 'tool_use',
+                }], id: 'task-message-4',
+            },
+            type: 'assistant',
+        },
+        {
+            message: { content: [{ content: 'failed', is_error: true, tool_use_id: 'task-create-failed', type: 'tool_result' }] },
+            tool_use_result: { task: { id: '3' } },
+            type: 'user',
+        },
+        {
+            message: {content: [{id: 'task-update-delete', input: { status: 'deleted', task_id: '1' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-5'},
+            type: 'assistant',
+        },
+        {
+            message: {
+                content: [
+                    { id: 'task-get', input: { taskId: '2' }, name: 'TaskGet', type: 'tool_use' },
+                    { id: 'task-list', input: {}, name: 'TaskList', type: 'tool_use' },
+                ], id: 'task-message-6',
+            },
+            type: 'assistant',
+        },
+        {
+            message: {
+                content: [
+                    { content: 'task', tool_use_id: 'task-get', type: 'tool_result' },
+                    { content: 'tasks', tool_use_id: 'task-list', type: 'tool_result' },
+                ],
+            },
+            type: 'user',
+        },
+    ];
+}
+
 async function answerClaudeContextUsage(adapter, writes, response = { maxTokens: 258_400, totalTokens: 42_000 }) {
     const request = latestClaudeContextUsageRequest(writes);
     await adapter.handleMessage(claudeContextUsageResponse(request.request_id, response));
@@ -536,6 +615,49 @@ describe('ClaudeStreamingAdapter', () => {
 
         const streamingCompletion = streaming.events.findLast(({ event }) => event?.providerItemId === 'edit-parity').event;
         expect(streamingCompletion).toEqual(protocolEvents.at(-1).providerEvents[0]);
+    });
+
+    it('decodes identical Claude task fixtures through streaming and one-shot paths without transcript rows', async () => {
+        const fixtureEvents = claudeTaskFixtureEvents();
+        const streaming = harness('claude');
+        await streaming.adapter.handleMessage(claudeStreamEvent({ message: { id: 'task-message-1' }, type: 'message_start' }));
+        await streaming.adapter.handleMessage(claudeStreamEvent({
+            content_block: { id: 'task-create-root', input: {}, name: 'TaskCreate', type: 'tool_use' },
+            index: 0,
+            type: 'content_block_start',
+        }));
+        await streaming.adapter.handleMessage(claudeStreamEvent({
+            delta: { partial_json: '{"subject":"Build root"}', type: 'input_json_delta' },
+            index: 0,
+            type: 'content_block_delta',
+        }));
+        for (const event of fixtureEvents) await streaming.adapter.handleMessage(event);
+
+        const protocolEvents = [];
+        const parser = createAgentProviderProtocolParser('claude', (event) => protocolEvents.push(event), vi.fn(), 'C:\\repo');
+        for (const event of fixtureEvents) parser.push(`${JSON.stringify(event)}\n`);
+        parser.finish();
+
+        const streamingTaskLists = streaming.events
+            .filter(({ type }) => type === 'taskList')
+            .map(({ taskList }) => taskList.tasks);
+        const protocolTaskLists = protocolEvents
+            .filter(({ type }) => type === 'taskList')
+            .map(({ taskList }) => taskList.tasks);
+        expect(streamingTaskLists).toEqual([
+            [{ activeForm: 'Building root', id: '1', status: 'pending', subject: 'Build root' }],
+            [{ activeForm: 'Building root', id: '1', status: 'inProgress', subject: 'Build root' }],
+            [{ activeForm: 'Building root', id: '1', status: 'completed', subject: 'Build root' }],
+            [
+                { activeForm: 'Building root', id: '1', status: 'completed', subject: 'Build root' },
+                { activeForm: 'Building child', id: '2', status: 'pending', subject: 'Build child' },
+            ],
+            [{ activeForm: 'Building child', id: '2', status: 'pending', subject: 'Build child' }],
+        ]);
+        expect(protocolTaskLists).toEqual(streamingTaskLists);
+        expect(streaming.events.filter(({ event }) => event?.type?.startsWith('tool.Task'))).toEqual([]);
+        const ordinaryProtocolEvents = protocolEvents.filter(({ type }) => type !== 'taskList');
+        expect(ordinaryProtocolEvents.every(({ transcriptEvents }) => transcriptEvents.length === 0)).toBe(true);
     });
 
     it('bounds Claude command and tool results without truncating their inputs or duplicating command output', async () => {
@@ -1253,6 +1375,114 @@ describe('CodexStreamingAdapter', () => {
             expect.objectContaining({ content: 'found it', label: 'wait', status: 'completed', type: 'agentMessage' }),
         ]);
         expect(events.filter(({ type }) => type === 'assistant' || type === 'assistantStarted')).toEqual([]);
+    });
+
+    it('replaces Codex root plans with task lists and omits explanations', async () => {
+        const { adapter, events } = harness('codex');
+        adapter.threadId = 'thread-root';
+
+        await adapter.handleMessage({
+            method: 'turn/started',
+            params: { threadId: 'thread-root', turn: { id: 'turn-1' }, turnId: 'turn-1' },
+        });
+        await adapter.handleMessage({
+            method: 'turn/plan/updated',
+            params: {
+                explanation: 'Internal explanation',
+                plan: [
+                    { status: 'completed', step: 'Inspect decoder' },
+                    { status: 'inProgress', step: 'Implement decoder' },
+                ],
+                threadId: 'thread-root',
+                turnId: 'turn-1',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'turn/plan/updated',
+            params: {
+                plan: [{ status: 'pending', step: 'Run focused tests' }],
+                threadId: 'thread-root',
+                turnId: 'turn-1',
+            },
+        });
+
+        const taskLists = events.filter(({ type }) => type === 'taskList').map(({ taskList }) => taskList);
+        expect(taskLists.map(({ tasks }) => tasks)).toEqual([
+            [
+                { id: '0', status: 'completed', subject: 'Inspect decoder' },
+                { id: '1', status: 'inProgress', subject: 'Implement decoder' },
+            ],
+            [{ id: '0', status: 'pending', subject: 'Run focused tests' }],
+        ]);
+        expect(taskLists.every(({ updatedAt }) => typeof updatedAt === 'string')).toBe(true);
+        expect(JSON.stringify(taskLists)).not.toContain('Internal explanation');
+    });
+
+    it('merges child-thread plans with thread-prefixed task ids', async () => {
+        const { adapter, events } = await startCodexCollaboration();
+
+        await adapter.handleMessage({
+            method: 'turn/plan/updated',
+            params: {
+                plan: [{ status: 'inProgress', step: 'Coordinate work' }],
+                threadId: 'thread-root',
+                turnId: 'turn-root',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'turn/plan/updated',
+            params: {
+                plan: [
+                    { status: 'completed', step: 'Inspect child state' },
+                    { status: 'pending', step: 'Report findings' },
+                ],
+                threadId: 'thread-child',
+                turnId: 'turn-child',
+            },
+        });
+
+        expect(events.filter(({ type }) => type === 'taskList').at(-1).taskList.tasks).toEqual([
+            { id: '0', status: 'inProgress', subject: 'Coordinate work' },
+            { id: 'thread-child:0', status: 'completed', subject: 'Inspect child state' },
+            { id: 'thread-child:1', status: 'pending', subject: 'Report findings' },
+        ]);
+    });
+
+    it('replaces prior root and child plans when a new root turn publishes its plan', async () => {
+        const { adapter, events } = await startCodexCollaboration();
+
+        await adapter.handleMessage({
+            method: 'turn/plan/updated',
+            params: {
+                plan: [{ status: 'inProgress', step: 'Old root task' }],
+                threadId: 'thread-root',
+                turnId: 'turn-root',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'turn/plan/updated',
+            params: {
+                plan: [{ status: 'pending', step: 'Old child task' }],
+                threadId: 'thread-child',
+                turnId: 'turn-child',
+            },
+        });
+        await adapter.handleMessage({
+            method: 'turn/started',
+            params: { threadId: 'thread-root', turn: { id: 'turn-next' }, turnId: 'turn-next' },
+        });
+        await adapter.handleMessage({
+            method: 'turn/plan/updated',
+            params: {
+                plan: [{ status: 'pending', step: 'New root task' }],
+                threadId: 'thread-root',
+                turnId: 'turn-next',
+            },
+        });
+
+        expect(events.filter(({ type }) => type === 'taskList').at(-1).taskList.tasks).toEqual([
+            { id: '0', status: 'pending', subject: 'New root task' },
+        ]);
     });
 
     it('keeps root assistant text on the main stream while a child thread interleaves its own', async () => {

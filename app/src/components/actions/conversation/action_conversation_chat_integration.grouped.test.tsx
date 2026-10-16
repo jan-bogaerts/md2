@@ -157,6 +157,69 @@ describe('ActionConversationChat integration', () => {
         expect(chatRenderProbe).not.toHaveBeenCalled()
     })
 
+    it('renders a live task-list update without re-rendering the conversation parent', () => {
+        let listener: ((event: ActionRunEvent) => void) | null = null
+        setActionBridgeOverride({
+            onActionRun: vi.fn((nextListener) => {
+                listener = nextListener
+
+                return vi.fn()
+            }),
+        } as unknown as ElectronActionBridge)
+        actionRunRegistry.start()
+        render(
+            <AppThemeProvider>
+                <ActionConversationChatRenderProbe actionId="review" bindingStore={bindingStore} context={context}
+                    searchService={conversationSearchService} store={store} />
+            </AppThemeProvider>,
+        )
+        if (!listener) throw new Error('Missing run listener')
+        const emit = listener as (event: ActionRunEvent) => void
+        const event = { actionId: 'review', context, phase: 'main' as const, rootActionId: 'review', runId: 'run-1', status: 'running' as const }
+
+        act(() => {
+            emit({ ...event, type: 'run' })
+            emit({
+                ...event,
+                type: 'update',
+                update: {
+                    conversation: {
+                        actionId: 'review',
+                        cardInternalId: null,
+                        cardPath: context.file,
+                        completedAt: null,
+                        entries: [],
+                        hasExplicitTitle: false,
+                        id: 'conversation-1',
+                        path: 'conversation.json',
+                        providerSessions: [],
+                        startedAt: '2026-08-04T10:00:00.000Z',
+                        status: 'running',
+                        title: 'Review',
+                        viewed: true,
+                    },
+                    kind: 'agentStarted',
+                },
+            })
+        })
+        chatRenderProbe.mockClear()
+
+        act(() => emit({
+            ...event,
+            type: 'update',
+            update: {
+                kind: 'agentTaskList',
+                taskList: {
+                    tasks: [{ id: 'task-1', status: 'inProgress', subject: 'Integrate task list' }],
+                    updatedAt: '2026-10-16T10:00:00.000Z',
+                },
+            },
+        }))
+
+        expect(screen.getByRole('region', { name: 'Agent tasks' })).toHaveTextContent('Integrate task list')
+        expect(chatRenderProbe).not.toHaveBeenCalled()
+    })
+
     it('renders streamed output and live context usage from its conversation selector', async () => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         const bridge = {

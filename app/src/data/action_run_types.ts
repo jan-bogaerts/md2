@@ -6,6 +6,7 @@ import type {
     AgentConversationEventEntry,
     AgentConversationMessageEntry,
     AgentConversationTimer,
+    AgentTaskList,
     AgentTokenUsage,
 } from './data_types'
 import type { PermissionMode, ThinkingLevel, SpeedMode } from './agent_profiles'
@@ -203,6 +204,10 @@ export type ActionRunUpdate =
         contextWindowUsage?: AgentContextWindowUsage | null
         kind: 'agentUsage'
         usage: AgentTokenUsage
+    }
+    | {
+        kind: 'agentTaskList'
+        taskList: AgentTaskList
     }
     | {
         entry: ActionQueuedPrompt

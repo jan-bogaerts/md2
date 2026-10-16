@@ -138,6 +138,7 @@ function createCodexThreadState() {
         assistantItemOrder: [],
         assistantStreams: new Map(),
         completedItemIds: new Set(),
+        planTasks: [],
         turnContextWindowUsage: undefined,
         turnUsage: null,
         turnUsageBaseline: null,
@@ -506,6 +507,7 @@ class CodexStreamingAdapter {
             state.assistantItemOrder = [];
             state.assistantStreams.clear();
             state.completedItemIds.clear();
+            state.planTasks = [];
             state.activeTurnId = turnId;
             if (isChild) return;
             await this.onEvent({ turnId, type: 'turnStarted' });
@@ -567,6 +569,10 @@ class CodexStreamingAdapter {
             await this.emitEvent(context, trackedItem.event);
             return;
         }
+        if (method === 'turn/plan/updated') {
+            await this.handlePlanUpdated(context, params);
+            return;
+        }
         if (method === 'thread/tokenUsage/updated') {
             await this.handleTokenUsage(context, params);
             return;
@@ -605,6 +611,17 @@ class CodexStreamingAdapter {
         if (method?.startsWith('item/') && typeof params.itemId === 'string') {
             await this.emitDiagnostic(context, method, null, params.itemId);
         }
+    }
+
+    async handlePlanUpdated(context, params) {
+        context.state.planTasks = params.plan.map(({ status, step }, index) => ({
+            id: context.isChild ? `${context.threadId}:${index}` : String(index),
+            status,
+            subject: step,
+        }));
+        const tasks = [...this.threadStates.values()].flatMap(({ planTasks }) => planTasks);
+        const taskList = { tasks, updatedAt: new Date().toISOString() };
+        await this.onEvent({ taskList, type: 'taskList' });
     }
 
     /**

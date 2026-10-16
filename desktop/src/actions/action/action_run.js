@@ -860,6 +860,11 @@ class ActionRun {
                 this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 return;
             }
+            if (agentEvent.type === 'taskList') {
+                const update = { kind: 'agentTaskList', taskList: agentEvent.taskList };
+                this.publish(action, phase, agentEvent.status, { type: 'update', update });
+                return;
+            }
 
             const update = agentEvent.type === 'output'
                 ? {

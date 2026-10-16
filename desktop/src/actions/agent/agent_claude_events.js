@@ -2,6 +2,7 @@ const { sumAgentTokenUsage, validateAgentTokenUsage } = require('../../../../sha
 const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 const { normalizeChangedPaths, normalizedContent } = require('./agent_event_utils');
 const { countLineChanges, countPatchLines } = require('./agent_file_change');
+const { isClaudeTaskToolName } = require('./claude_task_list_decoder');
 
 const CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);
 const CLAUDE_PATCH_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'Write']);
@@ -132,16 +133,16 @@ function claudeAssistantText(event) {
 }
 
 /** Tool calls and their results, so the transcript shows what ran as well as what came back. */
-function claudeTranscriptEvents(event) {
+function claudeTranscriptEvents(event, taskListDecoder = null) {
     if (!Array.isArray(event.message?.content)) return [];
     if (event.type === 'assistant') {
         return event.message.content
-            .filter((block) => block?.type === 'tool_use')
+            .filter((block) => block?.type === 'tool_use' && !isClaudeTaskToolName(block.name))
             .map((block) => ({ content: JSON.stringify(block.input ?? {}), toolType: `tool.${block.name}` }));
     }
     if (event.type === 'user') {
         return event.message.content
-            .filter((block) => block?.type === 'tool_result')
+            .filter((block) => block?.type === 'tool_result' && !taskListDecoder?.isTaskToolResult(event, block))
             .map((block) => ({ content: normalizedContent(block.content), toolType: 'tool.result' }))
             .filter(({ content }) => content !== null);
     }

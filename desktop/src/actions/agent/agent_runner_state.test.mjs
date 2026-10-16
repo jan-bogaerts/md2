@@ -290,6 +290,22 @@ describe('AgentRunnerService published run status', () => {
 });
 
 describe('AgentRunnerService state handling', () => {
+    it.each([
+        ['one-shot', (service, runId, event) => service.handleProviderEvent(runId, event)],
+        ['streaming', (service, runId, event) => service.handleStreamingEvent(runId, event)],
+    ])('replaces and publishes a task list from the %s decoder path', async (_path, dispatch) => {
+        const { onEvent, run, service } = streamingRunService();
+        const taskList = {
+            tasks: [{ id: 'task-1', status: 'inProgress', subject: 'Implement task list' }],
+            updatedAt: '2026-10-16T10:00:00.000Z',
+        };
+
+        await dispatch(service, run.id, { taskList, type: 'taskList' });
+
+        expect(run.conversation.taskList).toBe(taskList);
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({status: 'running', taskList, type: 'taskList'}));
+    });
+
     it('replaces a running codex exec command and persists turn usage once at close', async () => {
         const { onEvent, run, service } = streamingRunService();
         run.streaming = false;

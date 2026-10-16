@@ -10,6 +10,7 @@ const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { codexTranscriptEvents } = require('./agent_codex_events');
 const { diagnosticEvent, normalizeCodexEvent } = require('./agent_codex_event');
 const { JsonLineBuffer } = require('./agent_event_utils');
+const { ClaudeTaskListDecoder } = require('./claude_task_list_decoder');
 
 const MISSING_SESSION_CODES = new Set([
     'conversation_not_found',
@@ -54,8 +55,23 @@ function normalizeCodexExecItem(item) {
     };
 }
 
-function providerTranscriptEvents(agent, event, providerEvents) {
-    if (agent !== 'codex') return claudeTranscriptEvents(event);
+function codexTaskListEvent(event) {
+    const isTaskListLifecycle = event.type === 'item.started'
+        || event.type === 'item.updated'
+        || event.type === 'item.completed';
+    if (!isTaskListLifecycle || event.item?.type !== 'todo_list' || !Array.isArray(event.item.items)) return null;
+    const tasks = event.item.items.map(({ completed, text }, index) => ({
+        id: String(index),
+        status: completed ? 'completed' : 'pending',
+        subject: text,
+    }));
+
+    return { taskList: { tasks, updatedAt: new Date().toISOString() }, type: 'taskList' };
+}
+
+function providerTranscriptEvents(agent, event, providerEvents, taskListDecoder, codexTaskList) {
+    if (agent !== 'codex') return claudeTranscriptEvents(event, taskListDecoder);
+    if (codexTaskList) return [];
     if (event.type !== 'item.completed' || !event.item || providerEvents.length > 0) return [];
 
     return codexTranscriptEvents(event.item);
@@ -109,7 +125,12 @@ function providerConversationId(agent, event) {
 }
 
 function isTurnEvent(agent, event) {
-    if (agent === 'codex') return event.type === 'turn.started' || event.type === 'item.started' || event.type === 'item.completed';
+    if (agent === 'codex') {
+        return event.type === 'turn.started'
+            || event.type === 'item.started'
+            || event.type === 'item.updated'
+            || event.type === 'item.completed';
+    }
     if (agent === 'claude') return event.type === 'assistant' || event.type === 'user';
 
     return false;
@@ -132,6 +153,7 @@ class AgentProviderProtocolParser {
         this.rootPath = rootPath;
         this.turnStarted = false;
         this.claudeFileResultDecoder = agent === 'claude' ? new ClaudeFileResultDecoder(rootPath) : null;
+        this.claudeTaskListDecoder = agent === 'claude' ? new ClaudeTaskListDecoder() : null;
         this.claudeMessageUsages = new Map();
         this.claudeUsageTracker = agent === 'claude' ? claudeUsageTracker ?? new ClaudeUsageTracker() : null;
     }
@@ -184,11 +206,21 @@ class AgentProviderProtocolParser {
             ? normalizeCodexEvent(normalizedItem, lifecycleStatus, this.rootPath)
             : null;
         const providerEvents = normalizedEvent ? [normalizedEvent] : this.claudeFileResultDecoder?.decode(event) ?? [];
-        const transcriptEvents = providerTranscriptEvents(this.agent, event, providerEvents);
+        const codexTaskList = this.agent === 'codex' ? codexTaskListEvent(event) : null;
+        const taskListEvents = codexTaskList ? [codexTaskList] : this.claudeTaskListDecoder?.decode(event) ?? [];
+        const transcriptEvents = providerTranscriptEvents(
+            this.agent,
+            event,
+            providerEvents,
+            this.claudeTaskListDecoder,
+            codexTaskList,
+        );
         if (codexItemEvent && event.type === 'item.completed' && providerEvents.length === 0 && transcriptEvents.length === 0
-            && event.item.type !== 'agent_message' && event.item.type !== 'error' && event.item.type !== 'user_message') {
+            && !codexTaskList && event.item.type !== 'agent_message' && event.item.type !== 'error'
+            && event.item.type !== 'user_message') {
             providerEvents.push(diagnosticEvent('item.completed', event.item.type, event.item.id, 0));
         }
+        for (const taskListEvent of taskListEvents) this.onEvent(taskListEvent);
         this.onEvent({
             assistantText,
             conversationId: providerConversationId(this.agent, event),
