@@ -10,8 +10,6 @@ agents:
   - design/activity/card__b6bfdd41-b224-4656-8ba0-12c841e72bac.json
 policy:
 after: 349bbb7d-ab48-4ef5-85df-3f6caf2fd460
-branch: b_311_when_import_cards_through_file_detection_add_to_commit_batcher
-worktree: 1
 changedFiles:
   - app/src/data/commit_batcher.test.ts
   - app/src/data/commit_batcher.ts

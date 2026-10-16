@@ -3387,13 +3387,13 @@
         "agent-ddd30319-0d75-40d0-b979-fc5b417c818a"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-f8077c50-2b9d-46ac-b60e-abf127101788",
       "origin": {
@@ -3402,9 +3402,39 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-ddd30319-0d75-40d0-b979-fc5b417c818a",
       "startedAt": "2026-10-16T14:51:16.983Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-ddd30319-0d75-40d0-b979-fc5b417c818a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "86e7811145f434855dcca868c2f1e0e8bffe50ea",
+          "committedAt": "2026-10-16T17:05:22+02:00",
+          "deletions": 142,
+          "filePaths": [
+            "app/src/data/commit_batcher.test.ts",
+            "app/src/data/commit_batcher.ts",
+            "app/src/services/data/card_internal_id_operations.ts",
+            "app/src/services/data/card_operations.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/data/external_card_import_service.node.test.ts",
+            "app/src/services/data/external_card_import_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "app/src/services/project/project_loading.ts"
+          ],
+          "filesChanged": 9,
+          "insertions": 392,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-16T17:05:22+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "b6bfdd41-b224-4656-8ba0-12c841e72bac",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
