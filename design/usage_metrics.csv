@@ -8190,3 +8190,5 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-16T14:05:42.853Z,account_usage,codex,codex,primary,10080,2026-10-22T07:54:19.000Z,,,,,,8,0
 2026-10-16T14:07:12.246Z,account_usage,codex,codex,primary,10080,2026-10-22T07:54:20.000Z,,,,,,8,0
 2026-10-16T14:07:18.420Z,account_usage,codex,codex,primary,10080,2026-10-22T07:54:19.000Z,,,,,,8,0
+2026-10-16T14:07:25.984Z,account_usage,codex,codex,primary,10080,2026-10-22T07:54:20.000Z,,,,,,8,0
+2026-10-16T14:07:26.005Z,token_usage,codex,,,,,8960,1139200,1581,793,1150534,,
