@@ -2241,14 +2241,14 @@
         }
       ],
       "startedAt": "2026-10-16T11:48:45.903Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 968,
           "toolMs": 410645
         },
-        "elapsedMs": 95983,
-        "runningStartedAt": "2026-10-16T11:53:10.217Z"
+        "elapsedMs": 816487,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {

@@ -3,7 +3,7 @@ author:
 id: F_430
 internalId: c4a908bd-423a-4c5f-8a18-1a5e24d91740
 title: agent task tracking setting
-status: design
+status: ready
 owner: 
 affects:
 agents:
