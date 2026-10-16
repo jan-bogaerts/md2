@@ -933,6 +933,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "54a27abd-2174-4b6a-b688-ed2352c50856",
+      "cardPath": "design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md. we just tried to run a sequence and it got stuck again. the card was correctly moved, but the system did not see that the action was complete. something is very much broken here.\n\n* the action was in 'waitingForInput' while the 'implement' action is configured to end automatically when the 'ready' state is reached on the card.\n* the card's state was set to 'ready'\n* when manually stopping the conversation, so the action was ready, the next card in the sequence was not started.",
+          "id": "submission-333e9e73-1bdd-49db-8302-3c97b666a6b4",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-16T12:15:38.797Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-74386a6a-d4e0-4717-ae2a-455a53d4c424",
+      "providerSessions": [],
+      "startedAt": "2026-10-16T12:15:38.797Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-16T12:15:38.797Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
