@@ -1503,7 +1503,7 @@
         "totalTokens": 3450253
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1541,6 +1541,7 @@
     {
       "commits": [
         {
+          "branch": "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9",
           "commit": "79755556ceaa30afcd8d878ff1af1bf4a82e910d",
           "committedAt": "2026-10-16T15:26:32+02:00",
           "deletions": 0,
@@ -1557,8 +1558,7 @@
             "shared/agent_conversations.mjs"
           ],
           "filesChanged": 10,
-          "insertions": 172,
-          "branch": "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9"
+          "insertions": 172
         }
       ],
       "completedAt": "2026-10-16T15:26:32+02:00",
