@@ -947,6 +947,14 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-16T12:15:38.797Z"
+        },
+        {
+          "content": "what is wrong",
+          "id": "submission-989b4a66-9687-4729-bf62-af95c750d668",
+          "kind": "message",
+          "role": "user",
+          "sequence": 2,
+          "timestamp": "2026-10-16T12:15:42.808Z"
         }
       ],
       "hasExplicitTitle": true,
