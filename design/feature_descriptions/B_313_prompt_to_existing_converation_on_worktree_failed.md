@@ -3,7 +3,7 @@ author:
 id: B_313
 internalId: 7fe6eb2d-0bcd-43aa-ba7c-f1fb3ade4a4c
 title: prompt to existing converation on worktree failed
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,12 @@ agents:
 policy:
 branch: b_313_prompt_to_existing_converation_on_worktree_failed
 worktree: 3
+changedFiles:
+  - app/src/components/actions/conversation/messages/action_conversation_message.tsx
+  - app/src/components/actions/conversation/transcript/action_conversation_rendering.test.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_operations.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_operations.ts
 ---
 I have a card. it was assigned to a worktree, then we started an agent, which ran in the worktree. there were no file changes, so we switched to the primary repository again.
 
