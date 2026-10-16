@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 98562
+        "usedTokens": 105843
       },
       "entries": [
         {
@@ -864,6 +864,220 @@
           "role": "assistant",
           "sequence": 65,
           "timestamp": "2026-10-16T14:09:04.779Z"
+        },
+        {
+          "content": "ok, update design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md so we know the problem and how to fix it",
+          "id": "submission-fb32b147-94c8-4479-b75e-20c567bae5ea",
+          "kind": "message",
+          "role": "user",
+          "sequence": 66,
+          "timestamp": "2026-10-16T14:09:48.409Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-67",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05c5e808b9c09f36016ad23030e6f48191ae240b946ca547c9",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:09:51.568Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’m using the technical-writer skill because this is a focused design-document update. I’ll preserve the existing metadata and add a concise problem analysis, intended behavior, implementation direction, and tests based on the code paths already investigated.\n\n",
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 68,
+          "timestamp": "2026-10-16T14:09:52.426Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "durationMs": 36,
+          "exitCode": 0,
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-69",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "providerItemId": "exec-b4e0d5c2-a746-4ca6-ba84-8eeaa058c57d",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:09:53.846Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-70",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05c5e808b9c09f36016ad230391c048191981955c394da0d29",
+          "sequence": 70,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:10:00.006Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$file='\"'desktop/src/project/project_files.js'; \"'$lines=Get-Content $file; $lines[460..530]; $file2='\"'app/src/services/project/project_loading.ts'; \"'$l2=Get-Content $file2; $l2[40..75]'",
+          "content": "    } catch (error) {\r\n        console.error('Project watcher failed to close:', error);\r\n    }\r\n}\r\n\r\nasync function startProjectWatcher(rootPath, handleEvents, handleError, watcherState) {\r\n    try {\r\n        const subscription = await parcelWatcher.subscribe(rootPath, handleEvents, {\r\n            backend: WATCHER_BACKEND,\r\n            ignore: [path.join(rootPath, GIT_FOLDER)],\r\n        });\r\n        if (watcherState.isClosed) {\r\n            await closeProjectWatcher(subscription);\r\n            return;\r\n        }\r\n        watcherState.subscription = subscription;\r\n    } catch (error) {\r\n        if (!watcherState.isClosed) handleError(error);\r\n    }\r\n}\r\n\r\n/**\r\n * Reports one settled change per path. Atomic rewrites can produce several native\r\n * events, so existence is checked only after the path stops changing.\r\n */\r\nfunction watchProject(project, onChange, onError) {\r\n    const rootPath = requireRootPath(project);\r\n    const settleTimersByPath = new Map();\r\n    const watcherState = { isClosed: false, subscription: null };\r\n\r\n    const reportSettledPath = async (normalizedPath) => {\r\n        settleTimersByPath.delete(normalizedPath);\r\n\r\n        let exists = false;\r\n        try {\r\n            exists = await pathExists(ensureInsideRoot(rootPath, path.join(rootPath, normalizedPath)));\r\n        } catch {\r\n            return;\r\n        }\r\n\r\n        if (watcherState.isClosed) return;\r\n        onChange({ changeKind: exists ? 'changed' : 'removed', path: normalizedPath });\r\n    };\r\n\r\n    const handleEvents = (error, events) => {\r\n        if (error) {\r\n            onError(error);\r\n            return;\r\n        }\r\n        if (watcherState.isClosed) return;\r\n\r\n        for (const event of events) {\r\n            const fullPath = ensureInsideRoot(rootPath, event.path);\r\n            const normalizedPath = normalizePath(path.relative(rootPath, fullPath));\r\n            const lowerPath = normalizedPath.toLowerCase();\r\n            if (!isWatchedProjectPath(lowerPath)) continue;\r\n\r\n            const pendingTimer = settleTimersByPath.get(normalizedPath);\r\n            if (pendingTimer) clearTimeout(pendingTimer);\r\n            settleTimersByPath.set(normalizedPath, setTimeout(() => {\r\n                void reportSettledPath(normalizedPath);\r\n            }, WATCH_SETTLE_MS));\r\n        }\r\n    };\r\n\r\n    const ready = startProjectWatcher(rootPath, handleEvents, onError, watcherState);\r\n\r\n    const closeWatcher = () => {\r\n        watcherState.isClosed = true;\r\n        for (const timer of settleTimersByPath.values()) clearTimeout(timer);\r\n        settleTimersByPath.clear();\r\n    excludeAgentInstructionFiles,\r\n    excludeAgentInstructionPaths,\r\n    findAgentInstructionPaths,\r\n} from '../agent_instructions/agent_instruction_paths'\r\n\r\nconst ACTION_RELOAD_DEBOUNCE_MS = 150\r\nconst JSON_EXTENSION = '.json'\r\nconst MERGE_CONFLICT_VERIFY_DEBOUNCE_MS = 150\r\nconst MARKDOWN_EXTENSION = '.md'\r\nconst PROJECT_CONFIG_PATH = 'md2.config.json'\r\n// The watcher already settles each path before reporting, so this only has to group\r\n// events for different files into a single snapshot rebuild.\r\nconst MARKDOWN_RELOAD_DEBOUNCE_MS = 50\r\nconst MARKDOWN_REMOVAL_GRACE_MS = 750\r\nconst PROJECT_LOAD_ERROR_REPORTED = Symbol('project-load-error-reported')\r\n\r\ntype ReportedProjectLoadError = object & { [PROJECT_LOAD_ERROR_REPORTED]?: boolean }\r\n\r\ninterface ExternalCardImportResult {\r\n    files: MarkdownFile[]\r\n    importedFiles: MarkdownFile[]\r\n    sourcePaths: string[]\r\n    succeeded: boolean\r\n}\r\n\r\ninterface ExternalCardImportInProgress {\r\n    project: ProjectReference\r\n    promise: Promise<ExternalCardImportResult>\r\n}\r\n\r\nexport function isProjectLoadErrorReported(error: unknown) {\r\n    return typeof error === 'object' && error !== null && !!(error as ReportedProjectLoadError)[PROJECT_LOAD_ERROR_REPORTED]\r\n}\r\n\r\nfunction markProjectLoadErrorReported(error: unknown) {\r\n    if (typeof error === 'object' && error !== null) (error as ReportedProjectLoadError)[PROJECT_LOAD_ERROR_REPORTED] = true\r\n",
+          "durationMs": 70,
+          "exitCode": 0,
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-71",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$file='\"'desktop/src/project/project_files.js'; \"'$lines=Get-Content $file; $lines[460..530]; $file2='\"'app/src/services/project/project_loading.ts'; \"'$l2=Get-Content $file2; $l2[40..75]'",
+          "providerItemId": "exec-a3c70783-98b8-4fcc-b6cb-56e049f004fb",
+          "sequence": 71,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:10:01.616Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-72",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05c5e808b9c09f36016ad2304855a88191b99741ceb5363f5a",
+          "sequence": 72,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:10:15.002Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-73",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05c5e808b9c09f36016ad2305283f88191b8f3c457d3f20d28",
+          "sequence": 73,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:10:25.229Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The documentation will distinguish normalization from persistence. It will also record the important implementation detail that conforming files should be queued as disk-authoritative path commits, while non-conforming files need card path changes because MD² rewrites and renames them.\n\n",
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 74,
+          "timestamp": "2026-10-16T14:10:26.547Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md",
+          "deletions": 1,
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-75",
+          "insertions": 53,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-cbd87714-3c6b-48d5-bf74-ae1accafe39a",
+          "sequence": 75,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:10:43.008Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-76",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05c5e808b9c09f36016ad2306576cc8191be7bf2f8cc542b31",
+          "sequence": 76,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:10:44.128Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md'; git diff --stat -- 'design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md'\"",
+          "content": " ...through_file_detection_add_to_commit_batcher.md | 54 +++++++++++++++++++++-\n 1 file changed, 53 insertions(+), 1 deletion(-)\n",
+          "durationMs": 169,
+          "exitCode": 0,
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-77",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md'; git diff --stat -- 'design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md'\"",
+          "providerItemId": "exec-e68b096c-56da-46bb-877f-2f52f725ef54",
+          "sequence": 77,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:10:46.848Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md'\"",
+          "content": "---\nauthor: \nid: B_311\ninternalId: b6bfdd41-b224-4656-8ba0-12c841e72bac\ntitle: when import cards through file detection add to commit batcher\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__b6bfdd41-b224-4656-8ba0-12c841e72bac.json\npolicy:\nafter: 94766c8f-2f01-42ee-b389-7e03c1753946\n---\n\n## Problem\n\nThe desktop watcher detects Markdown files created by external tools, including agents, and reloads them into application state. Persistence then depends on the filename:\n\n- A non-conforming filename is treated as an external import. MDÂ² completes its header, renames it, and commits it immediately through `StorageService.moveFiles`.\n- A conforming filename is treated as an existing card. MDÂ² adds it to the UI but does not schedule it for persistence. `ensureCardInternalIds` only schedules a change when the card lacks an `internalId`.\n\nThe filename check was introduced for import idempotency: after `notes.md` becomes `F_123_notes.md`, later project loads must not import and rename it again. It incorrectly conflates two decisions:\n\n- whether the file needs normalization;\n- whether a newly detected file needs to be committed.\n\nAgents can create valid card files directly. Such a file needs no normalization, but it is still a new repository change. If it already has an `internalId`, it remains uncommitted and is not represented in `CommitBatcher` or the pending-save state.\n\nThe non-conforming path also bypasses `CommitBatcher`, so imports cannot join the normal pending batch and do not use its retry and save-state behavior.\n\n## Required behavior\n\nWhen the watcher detects a previously unknown card file in the working folder:\n\n- Add the card to application state immediately.\n- Preserve the existing idempotency rule: do not rename or regenerate fields for a complete, conforming card.\n- Queue the repository change in `CommitBatcher`, regardless of whether normalization is required.\n- Let the normal batch flush, push, retry, and pending-save flows own persistence.\n- Do not automatically queue ordinary external edits to cards that were already known.\n\n## Implementation direction\n\nSeparate detection, normalization, and persistence scheduling.\n\n- For a new conforming card, schedule a commit-only path entry. The file on disk is authoritative, so the batch must stage its latest content at flush time instead of writing a renderer snapshot over possible later agent output.\n- For a new non-conforming card, create the normalized card in service-owned state and schedule one card path change from the detected source path to the generated target path. Use `Card.header.internalId` as the pending card identity.\n- Remove the direct `StorageService.moveFiles` commit and direct push handling from the watcher import flow.\n- Ensure later watcher events for a pending commit-only external card refresh application state and keep the same path queued. They must not be reported as conflicts merely because that path is awaiting commit.\n- Keep watcher echoes produced by the eventual batch write classified as local persistence echoes.\n\n## Edge cases\n\n- Repeated watcher events for one new path must produce one pending entry.\n- Multiple new files detected together must join the same commit batch.\n- A conforming card with a complete header must remain byte-for-byte unchanged.\n- A non-conforming card must receive one id and one target path, even when watcher reloads overlap.\n- Project or branch changes must flush the pending import through the existing persistence workflow.\n- A failed batch flush must retain the pending import for retry and keep the save state dirty.\n\n## Tests\n\n- A watcher-detected conforming card with an `internalId` is added to the UI and queued as a commit-only path.\n- A later disk update to that pending card is loaded and the flush commits the latest disk content.\n- A watcher-detected non-conforming file is normalized and queued as a card path change rather than committed through `moveFiles`.\n- Repeated watcher events do not duplicate either kind of pending change.\n- Conforming and non-conforming files detected together are committed in one batch.\n- A failed flush leaves the changes pending for retry.\n\r\n",
+          "durationMs": 69,
+          "exitCode": 0,
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-78",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md'\"",
+          "providerItemId": "exec-54778f83-e5ae-4ab9-ad41-1c33f50b1ccf",
+          "sequence": 78,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:10:46.790Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-79",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05c5e808b9c09f36016ad2306b54a88191ac26fafc37d27023",
+          "sequence": 79,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:10:49.988Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md'\"",
+          "content": "diff --git a/design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md b/design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md\nindex f525359df..cf2ae174b 100644\n--- a/design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md\n+++ b/design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md\n@@ -12,4 +12,56 @@ policy:\n after: 94766c8f-2f01-42ee-b389-7e03c1753946\n ---\n \n-The desktop has a file watcher which can detect new files (ex: generated by an agent). these are correctly detected and we add  or update the headers if needed and add them to the UI. however, they don't appear to be added to the commit batcher or are they?\n\\ No newline at end of file\n+## Problem\n+\n+The desktop watcher detects Markdown files created by external tools, including agents, and reloads them into application state. Persistence then depends on the filename:\n+\n+- A non-conforming filename is treated as an external import. MD² completes its header, renames it, and commits it immediately through `StorageService.moveFiles`.\n+- A conforming filename is treated as an existing card. MD² adds it to the UI but does not schedule it for persistence. `ensureCardInternalIds` only schedules a change when the card lacks an `internalId`.\n+\n+The filename check was introduced for import idempotency: after `notes.md` becomes `F_123_notes.md`, later project loads must not import and rename it again. It incorrectly conflates two decisions:\n+\n+- whether the file needs normalization;\n+- whether a newly detected file needs to be committed.\n+\n+Agents can create valid card files directly. Such a file needs no normalization, but it is still a new repository change. If it already has an `internalId`, it remains uncommitted and is not represented in `CommitBatcher` or the pending-save state.\n+\n+The non-conforming path also bypasses `CommitBatcher`, so imports cannot join the normal pending batch and do not use its retry and save-state behavior.\n+\n+## Required behavior\n+\n+When the watcher detects a previously unknown card file in the working folder:\n+\n+- Add the card to application state immediately.\n+- Preserve the existing idempotency rule: do not rename or regenerate fields for a complete, conforming card.\n+- Queue the repository change in `CommitBatcher`, regardless of whether normalization is required.\n+- Let the normal batch flush, push, retry, and pending-save flows own persistence.\n+- Do not automatically queue ordinary external edits to cards that were already known.\n+\n+## Implementation direction\n+\n+Separate detection, normalization, and persistence scheduling.\n+\n+- For a new conforming card, schedule a commit-only path entry. The file on disk is authoritative, so the batch must stage its latest content at flush time instead of writing a renderer snapshot over possible later agent output.\n+- For a new non-conforming card, create the normalized card in service-owned state and schedule one card path change from the detected source path to the generated target path. Use `Card.header.internalId` as the pending card identity.\n+- Remove the direct `StorageService.moveFiles` commit and direct push handling from the watcher import flow.\n+- Ensure later watcher events for a pending commit-only external card refresh application state and keep the same path queued. They must not be reported as conflicts merely because that path is awaiting commit.\n+- Keep watcher echoes produced by the eventual batch write classified as local persistence echoes.\n+\n+## Edge cases\n+\n+- Repeated watcher events for one new path must produce one pending entry.\n+- Multiple new files detected together must join the same commit batch.\n+- A conforming card with a complete header must remain byte-for-byte unchanged.\n+- A non-conforming card must receive one id and one target path, even when watcher reloads overlap.\n+- Project or branch changes must flush the pending import through the existing persistence workflow.\n+- A failed batch flush must retain the pending import for retry and keep the save state dirty.\n+\n+## Tests\n+\n+- A watcher-detected conforming card with an `internalId` is added to the UI and queued as a commit-only path.\n+- A later disk update to that pending card is loaded and the flush commits the latest disk content.\n+- A watcher-detected non-conforming file is normalized and queued as a card path change rather than committed through `moveFiles`.\n+- Repeated watcher events do not duplicate either kind of pending change.\n+- Conforming and non-conforming files detected together are committed in one batch.\n+- A failed flush leaves the changes pending for retry.\n",
+          "durationMs": 40,
+          "exitCode": 0,
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-80",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md'\"",
+          "providerItemId": "exec-fc440c29-f604-4e41-9978-19c3687b8f38",
+          "sequence": 80,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:10:51.279Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-81",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05c5e808b9c09f36016ad2306dfaa48191b74268268c325234",
+          "sequence": 81,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:10:52.639Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_311](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md) with:\n\n- Root cause and idempotency history.\n- Conforming versus non-conforming behavior.\n- Required batching behavior.\n- Implementation direction.\n- Edge cases and test coverage.\n\n`git diff --check` passes. No code or tests were changed.\n\n",
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-turn-3-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 82,
+          "timestamp": "2026-10-16T14:10:53.827Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -873,27 +1087,27 @@
           "agent": "codex",
           "conversationId": "01a144e9-3fb6-7133-8166-f3b92a2a6a46",
           "createdAt": "2026-10-16T13:32:51.213Z",
-          "lastUsedAt": "2026-10-16T14:09:04.779Z",
-          "synchronizedThroughMessageId": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-turn-2-assistant-1"
+          "lastUsedAt": "2026-10-16T14:10:53.827Z",
+          "synchronizedThroughMessageId": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-turn-3-assistant-3"
         }
       ],
       "startedAt": "2026-10-16T13:31:38.678Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 208,
-          "toolMs": 8765
+          "reasoningMs": 274,
+          "toolMs": 9547
         },
-        "elapsedMs": 172291,
-        "runningStartedAt": "2026-10-16T14:09:00.453Z"
+        "elapsedMs": 176617,
+        "runningStartedAt": "2026-10-16T14:09:48.409Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 1363328,
-        "inputTokens": 89442,
-        "outputTokens": 4484,
-        "reasoningTokens": 3304,
-        "totalTokens": 1460558
+        "cachedInputTokens": 1968512,
+        "inputTokens": 97882,
+        "outputTokens": 6149,
+        "reasoningTokens": 4682,
+        "totalTokens": 2077225
       },
       "usageSchemaVersion": 1,
       "viewed": true
