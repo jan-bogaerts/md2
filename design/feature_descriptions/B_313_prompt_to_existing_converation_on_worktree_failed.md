@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__7fe6eb2d-0bcd-43aa-ba7c-f1fb3ade4a4c.json
 policy:
 ---
 I have a card. it was assigned to a worktree, then we started an agent, which ran in the worktree. there were no file changes, so we switched to the primary repository again.

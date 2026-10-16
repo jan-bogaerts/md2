@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "7fe6eb2d-0bcd-43aa-ba7c-f1fb3ade4a4c",
+      "cardPath": "design/feature_descriptions/B_313_prompt_to_existing_converation_on_worktree_failed.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_313_prompt_to_existing_converation_on_worktree_failed.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-8667f3f5-e98c-4ba8-84cc-d9f69cc7d1e2",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-16T14:24:32.742Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-cdef5a0f-1924-4ebb-897b-1006dd2dc407",
+      "providerSessions": [],
+      "startedAt": "2026-10-16T14:24:32.742Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-16T14:24:32.742Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "7fe6eb2d-0bcd-43aa-ba7c-f1fb3ade4a4c",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
