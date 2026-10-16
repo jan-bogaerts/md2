@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "b6bfdd41-b224-4656-8ba0-12c841e72bac",
+      "cardPath": "design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-088a341a-2b71-45a9-a2d6-64c663c41807",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-16T13:31:38.678Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-09e94d52-8d51-4783-8ca6-3926dfa930fe",
+      "providerSessions": [],
+      "startedAt": "2026-10-16T13:31:38.678Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-16T13:31:38.678Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "b6bfdd41-b224-4656-8ba0-12c841e72bac",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
