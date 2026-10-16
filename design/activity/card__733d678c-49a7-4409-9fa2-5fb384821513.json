@@ -725,6 +725,25 @@
       "rootActionLabel": "+",
       "startedAt": "2026-10-16T14:19:19.019Z",
       "status": "failed"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-10-16T14:20:00.257Z",
+      "conversationIds": [],
+      "details": {
+        "command": "",
+        "output": "Assigned worktree branch \"f_422_check_if_possible_to_switch_agent_accounts\" is unavailable. Select a worktree again.",
+        "type": "command"
+      },
+      "runId": "action-012fe65c-c28b-4c90-a3fa-e5952a089079",
+      "origin": {
+        "cardInternalId": "733d678c-49a7-4409-9fa2-5fb384821513",
+        "kind": "card"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "startedAt": "2026-10-16T14:19:59.942Z",
+      "status": "failed"
     }
   ],
   "version": 5
