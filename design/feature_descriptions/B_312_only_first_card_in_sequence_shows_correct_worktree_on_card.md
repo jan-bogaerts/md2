@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__349bbb7d-ab48-4ef5-85df-3f6caf2fd460.json
 policy:
-branch: b_312_only_first_card_in_sequence_shows_correct_worktree_on_card
-worktree: 3
 ---
 When the second card started in the sequence, it did not show the correct worktree number in the icon on the card
 
