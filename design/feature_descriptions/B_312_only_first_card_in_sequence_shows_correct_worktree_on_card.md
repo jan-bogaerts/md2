@@ -3,7 +3,7 @@ author:
 id: B_312
 internalId: 349bbb7d-ab48-4ef5-85df-3f6caf2fd460
 title: only first card in sequence shows correct worktree on card
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
