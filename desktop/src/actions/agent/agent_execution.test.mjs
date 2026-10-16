@@ -10,6 +10,7 @@ function config(speedMode) {
     const profile = { ...BUILTIN_AGENT_PROFILES.find(({ name }) => name === 'codex'), defaultModel: 'gpt-6.1-sol' };
 
     return {
+        agentTaskTrackingEnabled: false,
         agentProfiles: [profile],
         agentSelection: {
             activeAgent: 'codex', permissionMode: 'ask-for-approval',
@@ -33,6 +34,8 @@ describe('agent execution settings', () => {
 
     it('applies Fast settings and retains them during one-shot resume', () => {
         const resolved = resolveAgentExecution(config('fast'), {}, false);
+        expect(resolved.agentTaskTrackingEnabled).toBe(false);
+        expect(resolved.command).toContain('tools.update_plan.enabled=false');
         expect(resolved.command).toContain('service_tier="priority"');
         expect(resolved.command).toContain('features.fast_mode=true');
         expect(resolved.executionSettings).toEqual({ model: 'gpt-6.1-sol', effort: 'xhigh', serviceTier: 'priority' });

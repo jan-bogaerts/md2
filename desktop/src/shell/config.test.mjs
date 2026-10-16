@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const {
+    DEFAULT_AGENT_TASK_TRACKING_ENABLED,
     DEFAULT_CODEX_SEARCH_ENABLED,
     DEFAULT_DESKTOP_AGENT_SELECTION,
     DEFAULT_EDITOR_COMMAND,
@@ -46,6 +47,7 @@ describe('resolveDesktopConfig', () => {
         expect(resolveDesktopConfig({})).toEqual({
             agentSelection: DEFAULT_DESKTOP_AGENT_SELECTION,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['codex'], name: 'codex' })]),
+            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
@@ -57,6 +59,7 @@ describe('resolveDesktopConfig', () => {
         expect(resolveDesktopConfig({MD2_AGENT: 'custom-codex'})).toEqual({
             agentSelection: DEFAULT_DESKTOP_AGENT_SELECTION,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['custom-codex'], name: 'codex' })]),
+            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
@@ -72,6 +75,7 @@ describe('readDesktopConfig', () => {
         expect(readDesktopConfig(store, {})).toEqual({
             agentSelection: DEFAULT_DESKTOP_AGENT_SELECTION,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),
+            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
@@ -85,6 +89,7 @@ describe('readDesktopConfig', () => {
         expect(readDesktopConfig(store, {})).toEqual({
             agentSelection: selection('claude', 'default', 'medium'),
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
+            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
@@ -123,6 +128,7 @@ describe('readDesktopConfig', () => {
                 expect.objectContaining({ command: ['env-codex'], name: 'codex' }),
                 expect.objectContaining({ command: ['stored-custom'], name: 'custom' }),
             ]),
+            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
@@ -180,6 +186,7 @@ describe('writeDesktopConfig', () => {
         expect(readDesktopConfig(store, {})).toEqual({
             agentSelection: selection('claude'),
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
+            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
@@ -196,6 +203,7 @@ describe('writeDesktopConfig', () => {
         expect(readDesktopConfig(store, {})).toEqual({
             agentSelection: selection('claude', 'custom-model'),
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
+            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
@@ -209,6 +217,14 @@ describe('writeDesktopConfig', () => {
         writeDesktopConfig(store, { codexSearchEnabled: false });
 
         expect(readDesktopConfig(store, {})).toMatchObject({ codexSearchEnabled: false });
+    });
+
+    it('persists enabled agent task tracking', () => {
+        const store = createFakeStore();
+
+        writeDesktopConfig(store, { agentTaskTrackingEnabled: true });
+
+        expect(readDesktopConfig(store, {})).toMatchObject({ agentTaskTrackingEnabled: true });
     });
 
     it('persists custom editor command globally', () => {
@@ -249,6 +265,7 @@ describe('saveDesktopConfig', () => {
     const validConfig = {
         agentSelection: selection('custom', 'custom-model', 'high', 'full-access'),
         agentProfiles: [{ command: ['custom-agent'], defaultThinkingLevel: 'none', monthlySubscriptionCostUsd: 100, models: ['custom-model'], name: 'custom' }],
+        agentTaskTrackingEnabled: false,
         codexSearchEnabled: false,
         editorCommand: 'code "{{file}}"',
         mergeConflictResolverCommand: '',
@@ -266,6 +283,8 @@ describe('saveDesktopConfig', () => {
         ['agent', { ...validConfig, agentSelection: { ...validConfig.agentSelection, activeAgent: '' } }, 'activeAgent'],
         ['agent profiles', { ...validConfig, agentProfiles: null }, 'Missing config field: desktop.agentProfiles'],
         ['zero subscription cost', { ...validConfig, agentProfiles: [{ ...validConfig.agentProfiles[0], monthlySubscriptionCostUsd: 0 }] }, 'monthlySubscriptionCostUsd'],
+        ['missing task tracking', { ...validConfig, agentTaskTrackingEnabled: undefined }, 'Missing config field: desktop.agentTaskTrackingEnabled'],
+        ['invalid task tracking', { ...validConfig, agentTaskTrackingEnabled: 'yes' }, 'Missing config field: desktop.agentTaskTrackingEnabled'],
         ['web search', { ...validConfig, codexSearchEnabled: 'yes' }, 'Missing config field: desktop.codexSearchEnabled'],
         ['editor command', { ...validConfig, editorCommand: 'code file.txt' }, 'requires {{file}} placeholder'],
         ['merge command', { ...validConfig, mergeConflictResolverCommand: 'merge file.txt' }, 'requires {{file}} placeholder'],

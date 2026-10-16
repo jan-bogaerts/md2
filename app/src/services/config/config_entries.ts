@@ -28,6 +28,7 @@ export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json
 export interface ConfigValueTypes {
     'desktop.agentSelection': AgentSelectionState
     'desktop.agentProfiles': AgentProfile[]
+    'desktop.agentTaskTrackingEnabled': boolean
     'desktop.codexSearchEnabled': boolean
     'desktop.editorCommand': string
     'desktop.mergeConflictResolverCommand': string
@@ -93,6 +94,7 @@ export type ConfigValues = ConfigValueTypes
 export interface DesktopConfigValues {
     agentSelection: AgentSelectionState
     agentProfiles: AgentProfile[]
+    agentTaskTrackingEnabled?: boolean
     codexSearchEnabled?: boolean
     editorCommand: string
     mergeConflictResolverCommand: string
@@ -324,6 +326,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'desktop',
         source: 'desktop',
         type: 'json',
+    },
+    {
+        defaultValue: false,
+        description: 'Lets Claude and Codex keep a task list shown in the conversation; costs extra context.',
+        editable: true,
+        key: 'desktop.agentTaskTrackingEnabled',
+        label: 'Agent task tracking',
+        section: 'desktop',
+        source: 'desktop',
+        type: 'boolean',
     },
     {
         defaultValue: true,

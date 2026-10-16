@@ -1,3 +1,4 @@
+const DEFAULT_AGENT_TASK_TRACKING_ENABLED = false;
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
 const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"';
 const DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND = '';
@@ -38,6 +39,7 @@ function validateDesktopConfig(values) {
         throw new Error('Config field desktop.mergeConflictResolverCommand requires {{file}} placeholder when configured');
     }
     if (typeof values.codexSearchEnabled !== 'boolean') throw new Error('Missing config field: desktop.codexSearchEnabled');
+    if (typeof values.agentTaskTrackingEnabled !== 'boolean') throw new Error('Missing config field: desktop.agentTaskTrackingEnabled');
     if (!Number.isInteger(values.remoteControlPort) || values.remoteControlPort < 1 || values.remoteControlPort > 65535) {
         throw new Error('Config field desktop.remoteControlPort must be an integer from 1 through 65535');
     }
@@ -45,6 +47,7 @@ function validateDesktopConfig(values) {
     return {
         agentSelection: validateAgentSelectionState(values.agentSelection, 'desktop.agentSelection'),
         agentProfiles: validateAgentProfiles(migrateAgentProfiles(values.agentProfiles)),
+        agentTaskTrackingEnabled: values.agentTaskTrackingEnabled,
         codexSearchEnabled: values.codexSearchEnabled,
         editorCommand,
         mergeConflictResolverCommand,
@@ -88,6 +91,7 @@ function resolveDesktopConfig(env = process.env) {
     return {
         agentSelection: structuredClone(DEFAULT_DESKTOP_AGENT_SELECTION),
         agentProfiles,
+        agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
         codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
         editorCommand: DEFAULT_EDITOR_COMMAND,
         mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
@@ -186,6 +190,7 @@ module.exports = {
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_DESKTOP_THINKING_LEVEL,
     DEFAULT_DESKTOP_AGENT_SELECTION,
+    DEFAULT_AGENT_TASK_TRACKING_ENABLED,
     DEFAULT_CODEX_SEARCH_ENABLED,
     DEFAULT_EDITOR_COMMAND,
     DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,

@@ -18,8 +18,9 @@ const {
 } = require('./agent_profiles.mjs');
 const { resolveAgentExecution } = require('./agent_execution');
 
-function agentConfig(activeAgent, model, agentProfiles, thinkingLevel = 'none', permissionMode = 'ask-for-approval') {
+function agentConfig(activeAgent, model, agentProfiles, thinkingLevel = 'none', permissionMode = 'ask-for-approval', agentTaskTrackingEnabled = true) {
     return {
+        agentTaskTrackingEnabled,
         agentProfiles,
         agentSelection: { activeAgent, permissionMode, settingsByAgent: { [activeAgent]: { model, thinkingLevel } } },
     };
@@ -112,6 +113,28 @@ describe('agent profile resolution', () => {
         expect(supportsAgentStreaming(custom)).toBe(false);
         expect(() => buildAgentStreamingCommand(custom, 'fast', 'none'))
             .toThrow('Agent profile does not support streaming: custom');
+    });
+
+    it('disables Codex task tracking in one-shot, streaming, and resumed commands only when setting is off', () => {
+        const codex = { command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' };
+        const claude = { command: ['claude'], modelArgument: '--model', models: ['sonnet'], name: 'claude' };
+        const disabledArguments = ['-c', 'tools.update_plan.enabled=false'];
+        const executionCommand = buildAgentExecutionCommand(codex, 'gpt-5', 'none', true, undefined, {}, false);
+        const streamingCommand = buildAgentStreamingCommand(codex, 'gpt-5', 'none', undefined, {}, false);
+
+        expect(executionCommand).toEqual(['codex', '--model', 'gpt-5', ...disabledArguments, '--search', 'exec', '--json']);
+        expect(streamingCommand).toEqual(['codex', '--model', 'gpt-5', ...disabledArguments, 'app-server', '--stdio']);
+        expect(buildResumeAgentCommand(codex, 'thread-1', executionCommand)).toEqual([
+            'codex', '--model', 'gpt-5', ...disabledArguments, '--search', 'exec', 'resume', '--json', 'thread-1',
+        ]);
+        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none', true, undefined, {}, true))
+            .not.toContain('tools.update_plan.enabled=false');
+        expect(buildAgentStreamingCommand(codex, 'gpt-5', 'none', undefined, {}, true))
+            .not.toContain('tools.update_plan.enabled=false');
+        expect(buildAgentExecutionCommand(claude, 'sonnet', 'none', true, undefined, {}, false))
+            .toEqual(buildAgentExecutionCommand(claude, 'sonnet', 'none'));
+        expect(buildAgentStreamingCommand(claude, 'sonnet', 'none', undefined, {}, false))
+            .toEqual(buildAgentStreamingCommand(claude, 'sonnet', 'none'));
     });
 
     it('rejects invalid levels and profiles without a thinking-level adapter', () => {
