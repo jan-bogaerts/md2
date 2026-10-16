@@ -432,6 +432,14 @@
           "role": "assistant",
           "sequence": 31,
           "timestamp": "2026-10-16T13:32:51.213Z"
+        },
+        {
+          "content": "then how come we had a couple of uncommitted files like this recently. an agent had generated these files, they were imported but not committed. how can this occur?",
+          "id": "submission-62e2c756-16a9-484a-8d60-6ba4814900b4",
+          "kind": "message",
+          "role": "user",
+          "sequence": 32,
+          "timestamp": "2026-10-16T13:36:16.984Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -446,14 +454,14 @@
         }
       ],
       "startedAt": "2026-10-16T13:31:38.678Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 124,
           "toolMs": 2540
         },
         "elapsedMs": 72535,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-16T13:36:16.984Z"
       },
       "title": "investigate",
       "usage": {
