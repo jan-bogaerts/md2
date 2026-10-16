@@ -1503,7 +1503,7 @@
         "totalTokens": 3450253
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -1518,14 +1518,14 @@
         "agent-597c87a2-d315-435b-81d5-90a567d83931"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "speedMode": "default",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-6d4719f5-4ad8-43c4-a0c5-24dba06792b9",
       "origin": {
@@ -1534,9 +1534,40 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-597c87a2-d315-435b-81d5-90a567d83931",
       "startedAt": "2026-10-16T13:20:52.759Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-597c87a2-d315-435b-81d5-90a567d83931"
+    },
+    {
+      "commits": [
+        {
+          "commit": "79755556ceaa30afcd8d878ff1af1bf4a82e910d",
+          "committedAt": "2026-10-16T15:26:32+02:00",
+          "deletions": 0,
+          "filePaths": [
+            "app/src/data/action_run_types.ts",
+            "app/src/data/data_types.ts",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "app/src/services/agents/agent_conversation_service.node.test.ts",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "shared/agent_conversations.mjs"
+          ],
+          "filesChanged": 10,
+          "insertions": 172,
+          "branch": "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9"
+        }
+      ],
+      "completedAt": "2026-10-16T15:26:32+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "9b09a37c-cd87-4996-a6cd-ef49b2f60090",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
