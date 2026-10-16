@@ -10,6 +10,26 @@ agents:
   - design/activity/card__c4a908bd-423a-4c5f-8a18-1a5e24d91740.json
 policy:
 after: 94766c8f-2f01-42ee-b389-7e03c1753946
+changedFiles:
+  - app/src/components/config/config_page.test.tsx
+  - app/src/services/config/config_entries.ts
+  - app/src/services/config/config_service.service.test.ts
+  - app/src/services/config/config_service.ts
+  - app/src/services/project/project_session_service.service.test.ts
+  - desktop/src/actions/action/action_agent_executor.js
+  - desktop/src/actions/action/action_agent_executor.test.mjs
+  - desktop/src/actions/agent/agent_environment.js
+  - desktop/src/actions/agent/agent_environment.test.mjs
+  - desktop/src/actions/agent/agent_execution.js
+  - desktop/src/actions/agent/agent_execution.test.mjs
+  - desktop/src/actions/agent/agent_profiles.test.mjs
+  - desktop/src/actions/agent/agent_runner_service.js
+  - desktop/src/shell/config.js
+  - desktop/src/shell/config.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - shared/agent_profiles.d.mts
+  - shared/agent_profiles.mjs
 ---
 
 Part of [F_380](F_380_add_possibility_to_support_task_tracking_tool.md). Add one global setting that turns agent task tracking on for all agents.
