@@ -1423,6 +1423,14 @@
           "role": "assistant",
           "sequence": 100,
           "timestamp": "2026-10-16T14:28:14.563Z"
+        },
+        {
+          "content": "> This is not a conversation-continuation restriction. The two failed runs never reached conversation loading.\r\n> The card still supplied its former worktree assignment. After switching to Primary, that checkout had been parked on another branch, so branch validation correctly rejected the stale f_422... assignment.\r\n> The validation prevents accidentally running in a different checkout after worktrees are reordered. The bug is that unassignment leaves stale execution context.\r\n> Failed to sendAssigned... is also a display-spacing defect.\n\nI don't understand any of this.\n\nwhy does it matter if it is a conversation restriction or any other restriction?\\\nWhy is there a restriction at all? is this a functional restriction or just something you made up cause you thought it would fit the 'rules'?\n\nthe point is, if there is no functional reason, why are we checking at all on this?\n\nwhere do you see that the card still had a worktree assigned? cause on the UI, nothing says it did.",
+          "id": "submission-5de13546-4aca-4fda-aed6-ecb599ed6c59",
+          "kind": "message",
+          "role": "user",
+          "sequence": 101,
+          "timestamp": "2026-10-16T14:32:11.146Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1437,14 +1445,14 @@
         }
       ],
       "startedAt": "2026-10-16T14:24:32.742Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 484,
           "toolMs": 11062
         },
         "elapsedMs": 221821,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-16T14:32:11.146Z"
       },
       "title": "investigate",
       "usage": {
