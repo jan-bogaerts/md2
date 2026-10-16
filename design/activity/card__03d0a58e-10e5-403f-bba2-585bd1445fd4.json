@@ -374,7 +374,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 29,
-          "timestamp": "2026-10-16T12:04:07.810Z"
+          "timestamp": "2026-10-16T12:48:33.338Z"
         },
         {
           "content": "{\"questions\":[{\"question\":\"What should the taskbar icon's context menu (Windows Jump List) show?\",\"header\":\"Jump List\",\"multiSelect\":false,\"options\":[{\"label\":\"Recent projects (Recommended)\",\"description\":\"Custom 'Recent projects' category built from the existing 5-item recent local folders list (md2.recentLocalRepositories). Rebuilt whenever that list changes.\"},{\"label\":\"Recent + 'Open project…' task\",\"description\":\"Same recent category plus a fixed task that starts MD² with the open-project dialog shown.\"}]},{\"question\":\"Clicking a Jump List entry (or launching with a folder) while MD² already runs: what happens?\",\"header\":\"Instances\",\"multiSelect\":false,\"options\":[{\"label\":\"New instance (Recommended)\",\"description\":\"Start a separate process/window, consistent with J_33 (no single-instance lock). Existing window untouched.\"},{\"label\":\"Reuse running window\",\"description\":\"Add single-instance lock and open in existing window. Contradicts J_33 decision.\"}]},{\"question\":\"Folder argument is invalid (missing, not a Git work tree). What should startup do?\",\"header\":\"Bad arg\",\"multiSelect\":false,\"options\":[{\"label\":\"Error + open dialog (Recommended)\",\"description\":\"Show error via dialogService, do not restore last project, show open-project dialog.\"},{\"label\":\"Error + restore last\",\"description\":\"Show error, then fall back to restoring last project as on a normal start.\"}]},{\"question\":\"Should the Jump List also be maintained in development mode (unpackaged electron.exe '.')?\",\"header\":\"Dev mode\",\"multiSelect\":false,\"options\":[{\"label\":\"Packaged only (Recommended)\",\"description\":\"Only set the Jump List when app.isPackaged. Argument parsing still works in dev.\"},{\"label\":\"Both\",\"description\":\"Dev entries also pass the app path argument to electron.exe.\"}]}]}",
@@ -383,7 +383,7 @@
           "label": "AskUserQuestion",
           "providerItemId": "toolu_01LDrhUzrwEwBVm7RDSJEUtY",
           "sequence": 30,
-          "status": "inProgress",
+          "status": "cancelled",
           "timestamp": "2026-10-16T12:04:13.347Z",
           "type": "tool.AskUserQuestion"
         },
