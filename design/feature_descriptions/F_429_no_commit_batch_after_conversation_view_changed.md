@@ -21,6 +21,7 @@ changedFiles:
   - design/architecture/data_saving_and_commits.md
   - desktop/src/project/project_files.js
   - desktop/src/project/project_files.test.mjs
+after: 06697134-10b3-44b2-a8c6-e35881b33f56
 ---
 
 When conversation view changes from 'true' to 'false', it does not seem that the activity log is scheduled for being committed. This should be fixed.

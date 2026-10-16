@@ -3,7 +3,7 @@ id: F_377
 internalId: 2245678c-d69e-4b1d-b6b8-cca720fc468d
 status: ready
 title: Extract diagram edit transaction plumbing
-after: 2775052a-2e84-4466-a320-155c8ec05bac
+after: bc79eb8f-91e4-4681-b503-ad6a119019bc
 agents:
   - design/activity/card__2245678c-d69e-4b1d-b6b8-cca720fc468d.json
 branch: f_377_extract_diagram_edit_transaction_plumbing

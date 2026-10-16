@@ -16,6 +16,7 @@ changedFiles:
   - app/src/components/shell/menu/mobile_create_menu.tsx
   - docs/actions/running-actions.md
   - docs/tutorials/sequencing-and-scheduling.md
+after: 2ac96102-aba9-4901-a7f3-fcbd78b6b7fc
 ---
 
 on the app bar we have a button to add a sequence. currently says 'add sequence'. the rest says 'new' so we should change to 'new sequence'

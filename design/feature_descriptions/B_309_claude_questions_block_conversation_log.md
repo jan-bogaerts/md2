@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__d83805df-4700-49e0-b4af-5d29ee542ce4.json
 policy:
+after: 844f1b00-159f-43e2-a2d1-2c6cb40ec39b
 ---
 
 When claude asked a question and we answered, the conversation log stops showing any next messages. it seems the conversation log is in an incorrect state

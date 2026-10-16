@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__03d0a58e-10e5-403f-bba2-585bd1445fd4.json
 policy:
-after: b6bfdd41-b224-4656-8ba0-12c841e72bac
+after: 6c251422-b0dc-4d72-a279-ca60271a41bb
 branch: f_428_open_project_as_argument
 worktree: 1
 changedFiles:

@@ -13,6 +13,7 @@ changedFiles:
   - app/src/components/shell/active_schedules_indicator.test.tsx
   - app/src/components/shell/active_schedules_indicator.tsx
   - app/src/components/shell/status_bar.tsx
+after: ef3c3a56-28a9-4ca5-9402-16972e140c01
 ---
 
 it is currently difficult to track if there are cards and/or sequences scheduled.

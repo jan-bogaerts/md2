@@ -11,6 +11,7 @@ agents:
 policy:
 changedFiles:
   - app/src/components/editor/placeholders/markdown_placeholder_typeahead_plugin.real.test.tsx
+after: dc18bd32-58a2-4426-99ce-c79309619b03
 ---
 check [F\_420\_missing\_placeholder\_popup.md](design/releases/0.8.3/F_420_missing_placeholder_popup.md). we added the placeholder popup again to the card popup, but implementation is not correct. see how the positioning is done when used on the [action\_popup.tsx](app/src/components/actions/run/popup/action_popup.tsx).&#x20;
 

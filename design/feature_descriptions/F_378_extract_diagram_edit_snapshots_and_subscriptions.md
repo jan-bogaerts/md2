@@ -10,6 +10,7 @@ changedFiles:
   - app/src/components/diagram_view/formatting/diagram_formatting_scale_control.tsx
   - app/src/components/diagram_view/legend/diagram_legend_entry_list.tsx
   - app/src/components/diagram_view/legend/diagram_legend_entry_row.tsx
+after: 2245678c-d69e-4b1d-b6b8-cca720fc468d
 ---
 
 # Extract diagram edit snapshots and subscriptions

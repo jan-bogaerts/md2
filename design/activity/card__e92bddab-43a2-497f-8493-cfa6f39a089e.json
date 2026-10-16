@@ -1357,7 +1357,7 @@
         "totalTokens": 2101455
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1395,6 +1395,7 @@
     {
       "commits": [
         {
+          "branch": "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9",
           "commit": "83aac4e98e701275379a5d3c61605d59d2f88267",
           "committedAt": "2026-10-16T16:07:29+02:00",
           "deletions": 0,
@@ -1405,8 +1406,7 @@
             "app/src/components/actions/conversation/tasks/agent_task_list.tsx"
           ],
           "filesChanged": 4,
-          "insertions": 326,
-          "branch": "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9"
+          "insertions": 326
         }
       ],
       "completedAt": "2026-10-16T16:07:29+02:00",

@@ -11,6 +11,7 @@ agents:
 policy:
 changedFiles:
   - desktop/src/actions/action/action_scheduler_service.test.mjs
+after: d83805df-4700-49e0-b4af-5d29ee542ce4
 ---
 
 Tried to set up a scheduler that would trigger an action. the 'when account usage resets' trigger was selected. for the 'claude' agent and the '5-hour' account usage tracker.

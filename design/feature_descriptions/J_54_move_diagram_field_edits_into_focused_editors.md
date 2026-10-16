@@ -3,7 +3,7 @@ id: J_54
 internalId: 2ac96102-aba9-4901-a7f3-fcbd78b6b7fc
 status: ready
 title: Move diagram field edits into focused editors
-after: 26179cc3-97a2-4a33-9e4f-a3b7116e217c
+after: bdfd6fc4-a938-4be2-86c7-2d8f92c55d96
 agents:
   - design/activity/card__2ac96102-aba9-4901-a7f3-fcbd78b6b7fc.json
 changedFiles:

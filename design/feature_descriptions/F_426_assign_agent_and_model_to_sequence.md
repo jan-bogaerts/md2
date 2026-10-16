@@ -24,6 +24,7 @@ changedFiles:
   - desktop/src/actions/schedule/sequence_schedule_contract.test.mjs
   - shared/action_schedules.d.mts
   - shared/action_schedules.mjs
+after: f65510e2-6beb-4c9d-87be-077031583414
 ---
 
 We need to be able to assign agent, model, reasoning level and such (same bunch as for actions) to a sequence
