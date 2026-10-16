@@ -121,6 +121,7 @@ class ActionAgentExecutor {
         const request = {
             actionId: input.action.id,
             agent: resolvedAgent.agent,
+            agentTaskTrackingEnabled: resolvedAgent.agentTaskTrackingEnabled,
             activityOrigin: input.activityOrigin,
             activityProject: input.primaryProject,
             ...(input.context.file ? { cardPath: input.context.file } : {}),
@@ -166,13 +167,16 @@ class ActionAgentExecutor {
             || conversation.actionId !== input.action.id) throw new Error('Compact conversation identity or ownership changed');
         const providerSession = conversation.providerSessions.find(({ agent }) => agent === input.runInput.agent);
         if (!providerSession?.conversationId) throw new Error('Missing provider session for compact');
-        const resolvedAgent = resolveAgentConfiguration(this.agentConfigProvider(), { agent: providerSession.agent });
+        const config = this.agentConfigProvider();
+        const resolvedAgent = resolveAgentConfiguration(config, { agent: providerSession.agent });
+        const agentTaskTrackingEnabled = config.agentTaskTrackingEnabled ?? false;
         const command = buildAgentStreamingCommand(
             resolvedAgent.profile, resolvedAgent.model, resolvedAgent.thinkingLevel, resolvedAgent.permissionMode,
+            {}, agentTaskTrackingEnabled,
         );
         const request = {
             actionId: input.action.id, actionRunId: input.runId, activityOrigin: input.activityOrigin,
-            activityProject: input.primaryProject, agent: resolvedAgent.agent,
+            activityProject: input.primaryProject, agent: resolvedAgent.agent, agentTaskTrackingEnabled,
             command: executionCommand({ ...resolvedAgent, command }, providerSession, true), compactOnly: true, conversation,
             projectFolder: input.projectFolder, providerConversationId: providerSession.conversationId,
             reference: input.runInput.continueFrom, releasesFolder: input.releasesFolder, streaming: true, title: conversation.title,

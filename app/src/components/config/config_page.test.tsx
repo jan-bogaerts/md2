@@ -167,6 +167,7 @@ describe('ConfigPage', () => {
         renderConfigPage('#desktop')
 
         expect(screen.getByLabelText('Agent')).toBeInTheDocument()
+        expect(screen.getByRole('switch', { name: 'Agent task tracking' })).not.toBeChecked()
         expect(screen.queryByRole('switch', { name: 'Delete integrated card branch' })).toBeNull()
         expect(screen.getByRole('tab', { name: 'Desktop' })).toHaveAttribute('href', '#/config/desktop')
     })
@@ -693,12 +694,14 @@ describe('ConfigPage', () => {
         renderConfigPage('#desktop')
         configService.setDraftValue('desktop.agentSelection', agentSelection('claude'))
         fireEvent.change(screen.getByLabelText('Editor command'), { target: { value: 'notepad "{{file}}"' } })
+        fireEvent.click(screen.getByRole('switch', { name: 'Agent task tracking' }))
         fireEvent.click(screen.getByRole('switch', { name: 'Codex web search' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(setDesktopConfig).toHaveBeenCalledWith({
             agentSelection: agentSelection('claude'),
             agentProfiles: BUILTIN_AGENT_PROFILES,
+            agentTaskTrackingEnabled: true,
             codexSearchEnabled: false,
             editorCommand: 'notepad "{{file}}"',
             mergeConflictResolverCommand: '',
@@ -838,6 +841,7 @@ describe('ConfigPage', () => {
         const hostConfig: DesktopConfigValues = {
             agentSelection: agentSelection('custom', 'host-model', 'medium'),
             agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['host-model'], name: 'custom' }],
+            agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
@@ -870,6 +874,7 @@ describe('ConfigPage', () => {
         const hostConfig: DesktopConfigValues = {
             agentSelection: agentSelection('codex'),
             agentProfiles: BUILTIN_AGENT_PROFILES,
+            agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',

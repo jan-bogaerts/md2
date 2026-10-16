@@ -68,6 +68,7 @@ describe('ConfigService', () => {
         service.replaceDesktopConfig({
             agentSelection: agentSelection('custom', 'custom-model', 'high'),
             agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['custom-model'], name: 'custom' }],
+            agentTaskTrackingEnabled: true,
             codexSearchEnabled: false,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
@@ -442,6 +443,7 @@ describe('ConfigService', () => {
         expect(service.getDesktopValues()).toEqual({
             agentSelection: agentSelection('claude', '', 'high'),
             agentProfiles: BUILTIN_AGENT_PROFILES,
+            agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,
             editorCommand: 'notepad "{{file}}"',
             mergeConflictResolverCommand: 'merge-tool "{{file}}"',

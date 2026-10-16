@@ -237,6 +237,7 @@ describe('ProjectSessionService storage activation', () => {
         const desktopConfig = {
             agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval' as const, settingsByAgent: { codex: { model: 'gpt-5', thinkingLevel: 'high' as const } } },
             agentProfiles: [{ command: ['codex'], defaultThinkingLevel: 'none' as const, models: ['gpt-5'], name: 'codex' }],
+            agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',

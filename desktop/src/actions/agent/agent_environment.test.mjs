@@ -26,6 +26,24 @@ describe('createAgentEnvironment', () => {
             .toEqual({ claude_code_forward_subagent_text: '0' });
     });
 
+    it('enables task tools only for Claude when task tracking is on', () => {
+        expect(createAgentEnvironment({ Path: 'C:/tools' }, 'claude', true)).toEqual({
+            CLAUDE_CODE_ENABLE_TODO_TOOLS: '1',
+            CLAUDE_CODE_FORWARD_SUBAGENT_TEXT: '1',
+            Path: 'C:/tools',
+        });
+        expect(createAgentEnvironment({ Path: 'C:/tools' }, 'codex', true)).toEqual({ Path: 'C:/tools' });
+        expect(createAgentEnvironment({ Path: 'C:/tools' }, 'claude', false))
+            .not.toHaveProperty('CLAUDE_CODE_ENABLE_TODO_TOOLS');
+    });
+
+    it('keeps an inherited Claude task-tools choice whatever its casing', () => {
+        expect(createAgentEnvironment({ claude_code_enable_todo_tools: '0' }, 'claude', true)).toEqual({
+            claude_code_enable_todo_tools: '0',
+            CLAUDE_CODE_FORWARD_SUBAGENT_TEXT: '1',
+        });
+    });
+
     it('leaves other agents without the Claude-only forwarding variable', () => {
         expect(createAgentEnvironment({ Path: 'C:/tools' }, 'codex')).toEqual({ Path: 'C:/tools' });
     });

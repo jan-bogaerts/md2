@@ -690,6 +690,7 @@ function createLocalBridgeDispatch(dependencies) {
                 : configuredReleasesFolder;
             const request = {
                 agent: resolved.agent,
+                agentTaskTrackingEnabled: resolved.agentTaskTrackingEnabled,
                 activityOrigin: { kind: 'project' },
                 activityProject: currentLocalProject,
                 command: resolved.command,

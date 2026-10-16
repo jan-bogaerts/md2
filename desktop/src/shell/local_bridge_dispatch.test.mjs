@@ -1107,8 +1107,12 @@ describe('createLocalBridgeDispatch', () => {
         expect(agentModelCatalogService.load).not.toHaveBeenCalled();
 
         expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({
+            agentTaskTrackingEnabled: false,
             activityOrigin: { kind: 'project' },
-            command: ['codex', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '--search', 'exec', '--json'],
+            command: [
+                'codex', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request',
+                '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json',
+            ],
             prompt: expect.stringContaining('find beta cards'),
         }), expect.any(Function));
     });

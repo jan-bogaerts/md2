@@ -310,6 +310,7 @@ function readDesktopConfig(values: ConfigValues): DesktopConfigValues {
     return {
         agentSelection: values['desktop.agentSelection'],
         agentProfiles: values['desktop.agentProfiles'],
+        agentTaskTrackingEnabled: values['desktop.agentTaskTrackingEnabled'],
         codexSearchEnabled: values['desktop.codexSearchEnabled'],
         editorCommand: values['desktop.editorCommand'],
         mergeConflictResolverCommand: values['desktop.mergeConflictResolverCommand'],
@@ -333,6 +334,9 @@ function replaceDesktopValues(values: ConfigValues, desktopConfig: Partial<Deskt
         nextValues = mergeValue(nextValues, 'desktop.agentSelection', desktopConfig.agentSelection)
     }
     if (desktopConfig.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
+    if (desktopConfig.agentTaskTrackingEnabled !== undefined) {
+        nextValues = mergeValue(nextValues, 'desktop.agentTaskTrackingEnabled', desktopConfig.agentTaskTrackingEnabled)
+    }
     if (desktopConfig.codexSearchEnabled !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
     }

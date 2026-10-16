@@ -150,7 +150,7 @@ class AgentRunnerService {
         await this.persistConversationCheckpoint({ conversation: initialConversation, request });
         onConversationSaved?.();
         const [configuredExecutable, ...configuredArguments] = command;
-        const environment = createAgentEnvironment(process.env, agent);
+        const environment = createAgentEnvironment(process.env, agent, request.agentTaskTrackingEnabled === true);
         const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
         if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);
         const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];

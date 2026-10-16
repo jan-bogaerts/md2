@@ -9,8 +9,9 @@ const action = { agent: 'codex', id: 'main', label: 'Main', model: 'gpt-5.5', pr
 const cardContext = { cardInternalId: 'card-1', file: 'design/card.md', kind: 'card' };
 const project = { branch: 'main', rootPath: 'C:/repo' };
 
-function agentConfig(activeAgent = 'codex', model = '', agentProfiles = [], permissionMode = 'ask-for-approval') {
+function agentConfig(activeAgent = 'codex', model = '', agentProfiles = [], permissionMode = 'ask-for-approval', agentTaskTrackingEnabled = true) {
     return {
+        agentTaskTrackingEnabled,
         agentProfiles,
         agentSelection: { activeAgent, permissionMode, settingsByAgent: { [activeAgent]: { model, thinkingLevel: 'none' } } },
     };
@@ -99,6 +100,24 @@ describe('ActionAgentExecutor', () => {
         expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 
+    it('keeps disabled Codex task tracking during compact streaming', async () => {
+        const agentConfigProvider = () => agentConfig('codex', '', [], 'ask-for-approval', false);
+        const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider });
+        localGitService.loadAgentConversation.mockResolvedValue(conversation({
+            actionId: action.id,
+            providerSessions: [{ agent: 'codex', conversationId: 'provider-session', synchronizedThroughMessageId: 'm1' }],
+        }));
+
+        await executor.execute(executionInput({
+            compactOnly: true,
+            runInput: { agent: 'codex', conversationId: 'conversation-1', continueFrom: 'activity.json#conversation=conversation-1' },
+        }));
+
+        const request = agentRunnerService.start.mock.calls[0][1];
+        expect(request.agentTaskTrackingEnabled).toBe(false);
+        expect(request.command).toContain('tools.update_plan.enabled=false');
+    });
+
     it('resolves version in definition and edited popup prompts', async () => {
         const { agentRunnerService, executor } = createExecutor();
         await executor.execute(executionInput({ action: { ...action, prompt: 'Ship {{version}} twice {{version}}' }, version: 'candidate 2' }));
@@ -125,6 +144,17 @@ describe('ActionAgentExecutor', () => {
         await expect(executor.execute(input)).resolves.toMatchObject({agent: 'codex', conversationId: 'run-conversation', exitCode: 0, model: 'gpt-5.5', prompt: 'Review design/card.md\n\nfocus', thinkingLevel: 'high'});
         expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, cardPath: cardContext.file, prompt: 'Review design/card.md\n\nfocus'}), expect.any(Function), expect.any(Function), expect.any(Function), undefined);
         expect(input.onActiveRunChange.mock.calls.map(([runId]) => runId)).toEqual(['active-run', null]);
+    });
+
+    it('passes disabled task tracking into command and agent run request', async () => {
+        const agentConfigProvider = () => agentConfig('codex', '', [], 'ask-for-approval', false);
+        const { agentRunnerService, executor } = createExecutor({ agentConfigProvider });
+
+        await executor.execute(executionInput());
+
+        const request = agentRunnerService.start.mock.calls[0][1];
+        expect(request.agentTaskTrackingEnabled).toBe(false);
+        expect(request.command).toContain('tools.update_plan.enabled=false');
     });
 
     it('passes the client conversation and submission IDs into the first agent turn', async () => {
