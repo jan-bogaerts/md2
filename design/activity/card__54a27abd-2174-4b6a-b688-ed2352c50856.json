@@ -1489,6 +1489,14 @@
           "role": "assistant",
           "sequence": 41,
           "timestamp": "2026-10-16T12:18:16.175Z"
+        },
+        {
+          "content": "1. this needs to be fixed. why is the running action checking this at all?\n2. part of the sequence step should be to commit all the files in the worktree after a card is done. so it should not have failed, it should have committed the changes.",
+          "id": "submission-b7a09440-8425-44ff-8897-df67571da5d9",
+          "kind": "message",
+          "role": "user",
+          "sequence": 42,
+          "timestamp": "2026-10-16T12:44:21.431Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1503,14 +1511,14 @@
         }
       ],
       "startedAt": "2026-10-16T12:15:38.797Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 149,
           "toolMs": 2275
         },
         "elapsedMs": 157378,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-16T12:44:21.431Z"
       },
       "title": "+",
       "usage": {
