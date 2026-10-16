@@ -3,13 +3,20 @@ author:
 id: F_432
 internalId: a26843ed-31d2-45f1-93b7-80a3256094d2
 title: claude task list decoder
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__a26843ed-31d2-45f1-93b7-80a3256094d2.json
 policy:
 after: 9b09a37c-cd87-4996-a6cd-ef49b2f60090
+changedFiles:
+  - desktop/src/actions/agent/agent_claude_events.js
+  - desktop/src/actions/agent/agent_claude_streaming_adapter.js
+  - desktop/src/actions/agent/agent_provider_protocol.js
+  - desktop/src/actions/agent/agent_streaming_adapter.test.mjs
+  - desktop/src/actions/agent/claude_task_list_decoder.js
+  - desktop/src/actions/agent/claude_task_list_decoder.test.mjs
 ---
 
 Part of [F_380](F_380_add_possibility_to_support_task_tracking_tool.md). Turn Claude's task tool calls into the task list from [F_431](F_431_agent_task_list_model_and_run_update.md). Needs [F_430](F_430_agent_task_tracking_setting.md) for Claude to have the tools.
