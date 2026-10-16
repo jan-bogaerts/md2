@@ -1357,7 +1357,7 @@
         "totalTokens": 2101455
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -1372,14 +1372,14 @@
         "agent-f8166100-b4e6-4465-b8ab-2a8fe1a9200e"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "speedMode": "default",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-8f696944-bd90-4cc1-a914-7742d1f8e965",
       "origin": {
@@ -1388,9 +1388,34 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-f8166100-b4e6-4465-b8ab-2a8fe1a9200e",
       "startedAt": "2026-10-16T13:39:45.571Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-f8166100-b4e6-4465-b8ab-2a8fe1a9200e"
+    },
+    {
+      "commits": [
+        {
+          "commit": "83aac4e98e701275379a5d3c61605d59d2f88267",
+          "committedAt": "2026-10-16T16:07:29+02:00",
+          "deletions": 0,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat_integration.grouped.test.tsx",
+            "app/src/components/actions/conversation/tasks/agent_task_list.test.tsx",
+            "app/src/components/actions/conversation/tasks/agent_task_list.tsx"
+          ],
+          "filesChanged": 4,
+          "insertions": 326,
+          "branch": "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9"
+        }
+      ],
+      "completedAt": "2026-10-16T16:07:29+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "e92bddab-43a2-497f-8493-cfa6f39a089e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
