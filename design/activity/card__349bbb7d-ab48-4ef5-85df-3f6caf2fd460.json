@@ -1688,7 +1688,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 57661
+        "usedTokens": 64310
       },
       "entries": [
         {
@@ -2185,6 +2185,320 @@
           "role": "user",
           "sequence": 37,
           "timestamp": "2026-10-16T14:11:03.741Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00fd81de6111e261016ad2307d6cf08191bd96ae87aa10a360",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:11:08.084Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Approved. Blocks 1 and 2 start in parallel. Block 3 waits for both, then verifies and sets source feature status `ready`.\n\n",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-10-16T14:11:08.720Z"
+        },
+        {
+          "content": "item/started: subAgentActivity (call_3d0a059263b946418b84741527fbdc54)\nitem/completed: subAgentActivity (call_3d0a059263b946418b84741527fbdc54)\nitem/started: subAgentActivity (call_dc31a8d9ce10499b8d6847aad364ac22)\nitem/completed: subAgentActivity (call_dc31a8d9ce10499b8d6847aad364ac22)",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-40",
+          "kind": "event",
+          "label": "Codex protocol diagnostic",
+          "providerItemId": "diagnostic:call_3d0a059263b946418b84741527fbdc54:13",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:11:09.657Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00fd81de6111e261016ad23083b6c08191bad16d64806e37dd",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:11:14.374Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-42",
+          "kind": "event",
+          "label": "Collaboration: wait",
+          "output": "",
+          "providerItemId": "call_2bd8cff2904b4d798cf2bada1de065f0",
+          "runningSubThreads": 0,
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:11:23.163Z",
+          "type": "collabAgentToolCall"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-43",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00fd81de6111e261016ad2308e4a5c8191a92c9d1f05adf591",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:11:24.954Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 1 done. Default schedule path now resolves `projectFolder` plus `actionsFolder`; injected contract unchanged. Regression block still working.\n\n",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 44,
+          "timestamp": "2026-10-16T14:11:25.556Z"
+        },
+        {
+          "content": "item/started: subAgentActivity (subagent-completed-01a1450d-6ad9-7fc2-a05d-9f3ecb95d24f)\nitem/completed: subAgentActivity (subagent-completed-01a1450d-6ad9-7fc2-a05d-9f3ecb95d24f)",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-45",
+          "kind": "event",
+          "label": "Codex protocol diagnostic",
+          "providerItemId": "diagnostic:subagent-completed-01a1450d-6ad9-7fc2-a05d-9f3ecb95d24f:17",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:11:25.298Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-46",
+          "kind": "event",
+          "label": "Collaboration: wait",
+          "output": "",
+          "providerItemId": "call_a6084654e2dc42ee9f85a7f0a9f36ab1",
+          "runningSubThreads": 0,
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:13:18.539Z",
+          "type": "collabAgentToolCall"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00fd81de6111e261016ad2310196448191b5ebdbbe81bc371b",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:13:20.240Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 2 done. Regression uses production defaults, so test fails under old raw `actionsFolder` behavior. Target test and scoped lint passed. Reviewing exact diff before final verification.\n\n",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 48,
+          "timestamp": "2026-10-16T14:13:21.077Z"
+        },
+        {
+          "content": "item/started: subAgentActivity (subagent-completed-01a1450d-74e1-7f01-af5c-e590edc1bc78)\nitem/completed: subAgentActivity (subagent-completed-01a1450d-74e1-7f01-af5c-e590edc1bc78)",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-49",
+          "kind": "event",
+          "label": "Codex protocol diagnostic",
+          "providerItemId": "diagnostic:subagent-completed-01a1450d-74e1-7f01-af5c-e590edc1bc78:19",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:13:21.005Z",
+          "type": "diagnostic"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- app/src/services/actions/active_schedule_service.ts app/src/services/actions/active_schedule_service.node.test.ts'",
+          "content": "diff --git a/app/src/services/actions/active_schedule_service.node.test.ts b/app/src/services/actions/active_schedule_service.node.test.ts\nindex 6770b68a5..31feec136 100644\n--- a/app/src/services/actions/active_schedule_service.node.test.ts\n+++ b/app/src/services/actions/active_schedule_service.node.test.ts\n@@ -1,10 +1,13 @@\n import { describe, expect, it, vi } from 'vitest'\n import type { ActionService } from './action_service'\n import type { ActionSchedule, AnySchedule, SequenceSchedule } from '../../data/action_schedule_types'\n+import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'\n import type { DataService } from '../data/data_service'\n-import type { Card, ProjectSnapshot } from '../../data/data_types'\n+import { DEFAULT_PROJECT_CONFIG, type Card, type ProjectSnapshot } from '../../data/data_types'\n import type { ClaudeRateLimitService } from '../agents/claude_rate_limit_service'\n import type { CodexRateLimitService } from '../agents/codex_rate_limit_service'\n+import { configService } from '../config/config_service'\n+import { dataService } from '../data/data_service'\n import { worktreeService } from '../project/worktree_service'\n import { ActiveScheduleService } from './active_schedule_service'\n \n@@ -162,6 +165,54 @@ describe('ActiveScheduleService', () => {\n         service.stop()\n     })\n \n+    it('reloads sequence progress when the resolved schedule file changes', async () => {\n+        const firstCard = sequenceSchedule()\n+        const secondCard = {\n+            ...firstCard,\n+            branchProgress: { ...firstCard.branchProgress!, expectedBranch: 'child-2' },\n+            currentIndex: 1,\n+        }\n+        const bridge = {\n+            deleteSchedule: vi.fn(async () => []),\n+            listActiveSchedules: vi.fn()\n+                .mockResolvedValueOnce([firstCard])\n+                .mockResolvedValueOnce([secondCard]),\n+        }\n+        const project = { branch: 'main', id: 'project', rootPath: 'C:/project' }\n+        const cards = [\n+            { header: { id: 'F-1', internalId: 'card-1', title: 'First' }, path: 'design/F-1.md' } as Card,\n+            { header: { id: 'F-2', internalId: 'card-2', title: 'Second' }, path: 'design/F-2.md' } as Card,\n+        ]\n+        vi.spyOn(configService, 'getProjectConfig').mockReturnValue({\n+            ...DEFAULT_PROJECT_CONFIG,\n+            actionsFolder: 'actions',\n+            projectFolder: 'design',\n+        })\n+        vi.spyOn(dataService, 'getState').mockReturnValue({\n+            project,\n+            runningAgents: [],\n+            snapshot: { activeCards: cards, backgroundCards: [] } as unknown as ProjectSnapshot,\n+        })\n+        setActionBridgeOverride(bridge as unknown as ElectronActionBridge)\n+        const service = new ActiveScheduleService()\n+\n+        try {\n+            service.start()\n+            await vi.waitFor(() => expect(service.getSequenceWorktreeForCard('card-1')).toEqual({ checkoutPath: 'C:/checkout', expectedBranch: 'child-1' }))\n+\n+            dataService.dispatchEvent(new CustomEvent('repositoryChanged', {detail: { changeKind: 'changed', path: 'design/actions/.md2-schedules.json' }}))\n+\n+            await vi.waitFor(() => expect(bridge.listActiveSchedules).toHaveBeenCalledTimes(2))\n+            expect(service.getSequenceWorktreeForCard('card-1')).toBeNull()\n+            expect(service.getSequenceWorktreeForCard('card-2')).toEqual({ checkoutPath: 'C:/checkout', expectedBranch: 'child-2' })\n+            expect(service.getSnapshot().items[0].schedule).toMatchObject({ currentIndex: 1 })\n+        } finally {\n+            service.stop()\n+            setActionBridgeOverride(null)\n+            vi.restoreAllMocks()\n+        }\n+    })\n+\n     it('asks backend to delete once and reloads canonical active list', async () => {\n         const { bridge, service } = createHarness()\n         bridge.listActiveSchedules.mockResolvedValueOnce([schedule()]).mockResolvedValueOnce([])\ndiff --git a/app/src/services/actions/active_schedule_service.ts b/app/src/services/actions/active_schedule_service.ts\nindex 82e2a40c1..8e02bec59 100644\n--- a/app/src/services/actions/active_schedule_service.ts\n+++ b/app/src/services/actions/active_schedule_service.ts\n@@ -1,6 +1,6 @@\n import { ACTION_SCHEDULES_FILE, type AnySchedule } from '../../data/action_schedule_types'\n import { getElectronActionBridge, type ElectronActionBridge } from '../../data/electron_action_bridge'\n-import type { ProjectReference, ProjectWatchEvent } from '../../data/data_types'\n+import { resolveProjectConfigPaths, type ProjectReference, type ProjectWatchEvent } from '../../data/data_types'\n import { normalizePath } from '../../../../shared/path_utils.mjs'\n import { actionService, ACTIONS_CHANGED_EVENT, type ActionService } from './action_service'\n import { claudeRateLimitService, type ClaudeRateLimitService } from '../agents/claude_rate_limit_service'\n@@ -60,7 +60,7 @@ function defaultDependencies(): ActiveScheduleServiceDependencies {\n         claudeRateLimitService,\n         codexRateLimitService,\n         dataService,\n-        getActionsFolder: () => configService.getProjectConfig().actionsFolder,\n+        getActionsFolder: () => resolveProjectConfigPaths(configService.getProjectConfig()).actionsFolder,\n         getBridge: getElectronActionBridge,\n         getProject: () => dataService.getState().project,\n     }\n",
+          "durationMs": 58,
+          "exitCode": 0,
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-50",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- app/src/services/actions/active_schedule_service.ts app/src/services/actions/active_schedule_service.node.test.ts'",
+          "providerItemId": "exec-2564e58f-9fa4-4bb2-8335-e6e4090642eb",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:13:24.738Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00fd81de6111e261016ad2310fd6648191b4d96de75c6ef40b",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:13:34.507Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "item/started: subAgentActivity (call_3708539d20f44b91901cfc466cf05040)\nitem/completed: subAgentActivity (call_3708539d20f44b91901cfc466cf05040)",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-52",
+          "kind": "event",
+          "label": "Codex protocol diagnostic",
+          "providerItemId": "diagnostic:call_3708539d20f44b91901cfc466cf05040:21",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:13:35.523Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-53",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00fd81de6111e261016ad2311288c08191b47a653fdb77ae2b",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:13:37.184Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-54",
+          "kind": "event",
+          "label": "Collaboration: wait",
+          "output": "",
+          "providerItemId": "call_a14db9020be1439789b3e4bb554c4fc8",
+          "runningSubThreads": 0,
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:13:55.280Z",
+          "type": "collabAgentToolCall"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-55",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00fd81de6111e261016ad231263b8c819198a1d69acd9d40ee",
+          "sequence": 55,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:13:56.880Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Verification passed: 11/11 related tests; scoped lint clean. Final required action: change canonical feature file status from `ready for implementation` to `ready`.\n\n",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 56,
+          "timestamp": "2026-10-16T14:13:57.540Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_312_only_first_card_in_sequence_shows_correct_worktree_on_card.md",
+          "deletions": 2,
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-57",
+          "insertions": 2,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-cfdbeefe-8cb2-4f43-a0f9-f937bcf4b29d",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:14:01.318Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "item/started: subAgentActivity (subagent-completed-01a1450f-a4a3-7520-a2c5-b55c3ca4d294)\nitem/completed: subAgentActivity (subagent-completed-01a1450f-a4a3-7520-a2c5-b55c3ca4d294)",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-58",
+          "kind": "event",
+          "label": "Codex protocol diagnostic",
+          "providerItemId": "diagnostic:subagent-completed-01a1450f-a4a3-7520-a2c5-b55c3ca4d294:23",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:13:59.191Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00fd81de6111e261016ad2312da0648191a8b463395064cc15",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:14:04.293Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_312_only_first_card_in_sequence_shows_correct_worktree_on_card.md' | Select-Object -First 12\"",
+          "content": "---\r\nauthor: \r\nid: B_312\r\ninternalId: 349bbb7d-ab48-4ef5-85df-3f6caf2fd460\r\ntitle: only first card in sequence shows correct worktree on card\r\nstatus: ready\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__349bbb7d-ab48-4ef5-85df-3f6caf2fd460.json\r\npolicy:\r\nbranch: b_312_only_first_card_in_sequence_shows_correct_worktree_on_card\r\n",
+          "durationMs": 84,
+          "exitCode": 0,
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-60",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_312_only_first_card_in_sequence_shows_correct_worktree_on_card.md' | Select-Object -First 12\"",
+          "providerItemId": "exec-fed73154-163d-4420-9ded-95352fac1bd6",
+          "sequence": 60,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:14:07.527Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"resolveProjectConfigPaths|reloads sequence progress|currentIndex: 1|design/actions/.md2-schedules.json\" app/src/services/actions/active_schedule_service.ts app/src/services/actions/active_schedule_service.node.test.ts'",
+          "content": "app/src/services/actions/active_schedule_service.ts:3:import { resolveProjectConfigPaths, type ProjectReference, type ProjectWatchEvent } from '../../data/data_types'\napp/src/services/actions/active_schedule_service.ts:63:        getActionsFolder: () => resolveProjectConfigPaths(configService.getProjectConfig()).actionsFolder,\napp/src/services/actions/active_schedule_service.node.test.ts:111:        const nextCard = { ...next, currentIndex: 1, branchProgress: { ...next.branchProgress!, expectedBranch: 'child-2' } }\napp/src/services/actions/active_schedule_service.node.test.ts:162:        dataEvents.dispatchEvent(new CustomEvent('repositoryChanged', {detail: { changeKind: 'changed', path: 'design/actions/.md2-schedules.json' }}))\napp/src/services/actions/active_schedule_service.node.test.ts:168:    it('reloads sequence progress when the resolved schedule file changes', async () => {\napp/src/services/actions/active_schedule_service.node.test.ts:173:            currentIndex: 1,\napp/src/services/actions/active_schedule_service.node.test.ts:203:            dataService.dispatchEvent(new CustomEvent('repositoryChanged', {detail: { changeKind: 'changed', path: 'design/actions/.md2-schedules.json' }}))\napp/src/services/actions/active_schedule_service.node.test.ts:208:            expect(service.getSnapshot().items[0].schedule).toMatchObject({ currentIndex: 1 })\n",
+          "durationMs": 17,
+          "exitCode": 0,
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-61",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"resolveProjectConfigPaths|reloads sequence progress|currentIndex: 1|design/actions/.md2-schedules.json\" app/src/services/actions/active_schedule_service.ts app/src/services/actions/active_schedule_service.node.test.ts'",
+          "providerItemId": "exec-962a061d-f492-49d5-83fc-982bdfd190dc",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-10-16T14:14:07.473Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00fd81de6111e261016ad23133bcfc81918e92728958014f91",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:14:10.435Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Implemented B_312.\n\n- Schedule watcher now resolves `projectFolder/actionsFolder`.\n- Regression verifies reload, card 1 worktree removal, card 2 worktree assignment, and `currentIndex`.\n- Related tests: 11/11 passed.\n- Scoped lint: passed.\n- Feature [status updated to `ready`](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_312_only_first_card_in_sequence_shows_correct_worktree_on_card.md:6).\n\n",
+          "id": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 63,
+          "timestamp": "2026-10-16T14:14:11.627Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2194,27 +2508,27 @@
           "agent": "codex",
           "conversationId": "01a1450b-3081-79a3-a3c4-9055bed10fc7",
           "createdAt": "2026-10-16T14:09:55.974Z",
-          "lastUsedAt": "2026-10-16T14:09:55.974Z",
-          "synchronizedThroughMessageId": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-turn-1-assistant-3"
+          "lastUsedAt": "2026-10-16T14:14:11.627Z",
+          "synchronizedThroughMessageId": "agent-turn-52a56390-983a-4a56-ad8b-ee71878d6b2e-turn-2-assistant-5"
         }
       ],
       "startedAt": "2026-10-16T14:08:43.091Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 96,
-          "toolMs": 3741
+          "reasoningMs": 210,
+          "toolMs": 142511
         },
         "elapsedMs": 72883,
         "runningStartedAt": "2026-10-16T14:11:03.741Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 434304,
-        "inputTokens": 46870,
-        "outputTokens": 1730,
-        "reasoningTokens": 1207,
-        "totalTokens": 484111
+        "cachedInputTokens": 1044992,
+        "inputTokens": 54894,
+        "outputTokens": 2735,
+        "reasoningTokens": 1773,
+        "totalTokens": 1104394
       },
       "usageSchemaVersion": 1,
       "viewed": true
