@@ -78,6 +78,15 @@ describe('CommitBatcher', () => {
         })
     })
 
+    it('distinguishes a pending commit-only path from renderer-owned content', () => {
+        const batcher = createBatcher(vi.fn<CommitCallback>(async () => undefined))
+        batcher.schedule('main', [{ kind: 'path', path: 'external.md' }], 'Import external card')
+        batcher.schedule('main', [{ content: 'local', kind: 'file', path: 'local.md' }], 'Update local card')
+
+        expect(batcher.hasPendingRepositoryPath('external.md')).toBe(true)
+        expect(batcher.hasPendingRepositoryPath('local.md')).toBe(false)
+    })
+
     it('restores a commit-only path after a failed flush', async () => {
         const commit = vi.fn<CommitCallback>()
             .mockRejectedValueOnce(new Error('commit failed'))

@@ -233,6 +233,10 @@ export class CommitBatcher extends EventTarget {
         ))
     }
 
+    hasPendingRepositoryPath(path: string) {
+        return this.pendingChanges.has(`path:${path}`)
+    }
+
     discardPendingFile(path: string) {
         const entry = [...this.pendingChanges.entries()].find(([, { change }]) => (
             changeSourcePath(change) === path || changeTargetPath(change) === path

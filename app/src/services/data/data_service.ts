@@ -510,8 +510,8 @@ export class DataService extends EventTarget {
                 this.projectState.replaceProject(project)
                 if (projectChanged) this.cards.resetProjectTracking()
             },
-            ensureCardInternalIds: async () => {
-                if (this.cards.ensureCardInternalIds() > 0) await this.cards.flushPendingCommits()
+            ensureCardInternalIds: async (excludedPaths) => {
+                if (this.cards.ensureCardInternalIds(excludedPaths) > 0) await this.cards.flushPendingCommits()
             },
             replaceProjectFiles: (files, workingFolder, repositoryFiles) => (
                 this.projectState.replaceProjectFiles(files, workingFolder, repositoryFiles)

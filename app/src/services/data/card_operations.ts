@@ -290,8 +290,8 @@ export class CardOperations {
         )
     }
 
-    ensureCardInternalIds() {
-        return this.internalIds.ensureCardInternalIds()
+    ensureCardInternalIds(deferredPersistencePaths: string[] = []) {
+        return this.internalIds.ensureCardInternalIds(deferredPersistencePaths)
     }
 
     /** Drops card-operation tracking scoped to the previously open project. */

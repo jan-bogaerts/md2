@@ -1,7 +1,8 @@
 import { ACTION_SCHEDULES_FILE } from '../../data/action_schedule_types'
 import { deriveStatesFromCards, mergeStatesWithDefaults } from '../../data/card_ordering'
 import type { CardSeparator } from '../../data/card_identifiers'
-import { isMissingWorkingFolderError, resolveProjectConfigPaths, type AgentConversation, type MarkdownFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../../data/data_types'
+import type { CommitChange } from '../../data/commit_batcher'
+import { isMissingWorkingFolderError, resolveProjectConfigPaths, type AgentConversation, type MarkdownFile, type MoveFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../../data/data_types'
 import { actionService, type ActionReloadChange } from '../actions/action_service'
 import { configService } from '../config/config_service'
 import {
@@ -12,7 +13,8 @@ import {
     reportWorkspaceError,
     reportWorkspaceNotice,
 } from '../data/data_service_context'
-import { planExternalCardImports, type ExternalCardImportPlan } from '../data/external_card_import_service'
+import { isExternalCardImportCandidate, planExternalCardImports } from '../data/external_card_import_service'
+import { markdownParsingService } from '../data/markdown_parsing_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { createRandomProjectBackgroundShade } from '../../theme/project_background_shade'
 import { worktreeService } from './worktree_service'
@@ -56,16 +58,15 @@ const PROJECT_LOAD_ERROR_REPORTED = Symbol('project-load-error-reported')
 
 type ReportedProjectLoadError = object & { [PROJECT_LOAD_ERROR_REPORTED]?: boolean }
 
-interface ExternalCardImportResult {
-    files: MarkdownFile[]
-    importedFiles: MarkdownFile[]
-    sourcePaths: string[]
-    succeeded: boolean
+interface PendingDetectedCardImport {
+    cardInternalId: string
+    importedFile: MarkdownFile
+    move: MoveFile
 }
 
-interface ExternalCardImportInProgress {
-    project: ProjectReference
-    promise: Promise<ExternalCardImportResult>
+interface DetectedCardImportPlan {
+    files: MarkdownFile[]
+    imports: PendingDetectedCardImport[]
 }
 
 export function isProjectLoadErrorReported(error: unknown) {
@@ -136,7 +137,7 @@ export interface ProjectLoadingDeps {
     dispatchChanged(): void
     dispatchPersistenceChanged(): void
     dispatchRepositoryChanged(event: ProjectWatchEvent): void
-    ensureCardInternalIds(): Promise<void>
+    ensureCardInternalIds(deferredPersistencePaths?: string[]): Promise<void>
     files(): MarkdownFile[]
     flushPendingChanges(): Promise<void>
     hydrateActiveCardConversations(): Promise<void>
@@ -169,7 +170,7 @@ export class ProjectLoading {
     private markdownRemovalTimeoutsByPath: Map<string, number> = new Map()
     private markdownReloadTimeout: number | null = null
     private mergeConflictVerifyTimeout: number | null = null
-    private externalCardImportInProgress: ExternalCardImportInProgress | null = null
+    private pendingDetectedCardImportsBySourcePath: Map<string, PendingDetectedCardImport> = new Map()
     private watchCleanup: (() => void) | null = null
 
     constructor(
@@ -188,6 +189,7 @@ export class ProjectLoading {
         this.clearMergeConflictVerifyTimeout()
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath = new Map()
+        this.pendingDetectedCardImportsBySourcePath.clear()
         this.dependencies.beginProjectLoad()
         projectAgentTokenUsageService.clear()
         projectStatsService.clear()
@@ -258,9 +260,12 @@ export class ProjectLoading {
             await this.loadActions(project, config.actionsFolder)
             const projectFiles = await storage.loadProjectRoot(project, config.workingFolder)
             const cardFiles = excludeAgentInstructionFiles(projectFiles.files, projectFiles.files.map(({ path }) => path))
+            const externalImportPaths = cardFiles
+                .filter((file) => isExternalCardImportCandidate(file, config.workingFolder))
+                .map(({ path }) => path)
             const repositoryFiles: string[] = []
             this.dependencies.replaceProjectFiles(cardFiles, config.workingFolder, repositoryFiles)
-            await this.ensureCardInternalIds()
+            await this.ensureCardInternalIds(externalImportPaths)
             await this.dependencies.migrateAgentLogReferences()
             this.tryStartProjectWatch()
             const currentSnapshot = this.dependencies.snapshot()
@@ -509,76 +514,78 @@ export class ProjectLoading {
         }
     }
 
-    private async importExternalCardFiles(files: MarkdownFile[], workingFolder: string) {
-        if (projectAccessService.getSnapshot()) return files
-
-        const currentProject = this.dependencies.project()
-        if (!currentProject) return files
+    private planDetectedCardImports(files: MarkdownFile[], workingFolder: string): DetectedCardImportPlan {
+        if (projectAccessService.getSnapshot()) return { files, imports: [] }
 
         let nextFiles = files
-        while (this.externalCardImportInProgress) {
-            const activeImport = this.externalCardImportInProgress
-            const result = await activeImport.promise
-            const isSameProject = activeImport.project.id === currentProject.id
-                && activeImport.project.branch === currentProject.branch
-            if (isSameProject) {
-                if (!result.succeeded) return nextFiles
-                nextFiles = mergeFiles(removeFilesByPath(nextFiles, result.sourcePaths), result.importedFiles)
-            }
-            if (this.externalCardImportInProgress === activeImport) this.externalCardImportInProgress = null
-        }
+        for (const [sourcePath, pendingImport] of this.pendingDetectedCardImportsBySourcePath) {
+            if (!nextFiles.some(({ path }) => path === sourcePath)) continue
 
-        const activeProject = this.dependencies.project()
-        if (activeProject?.id !== currentProject.id || activeProject.branch !== currentProject.branch) return nextFiles
+            const hasTarget = nextFiles.some(({ path }) => path === pendingImport.importedFile.path)
+            nextFiles = removeFilesByPath(nextFiles, [sourcePath])
+            if (!hasTarget) nextFiles = mergeFiles(nextFiles, [pendingImport.importedFile])
+        }
 
         const { config } = this.dependencies.requireDependencies()
-        const plan = planExternalCardImports(nextFiles, workingFolder, config.cardSeparator, config.cardTypes, config.states[0].state)
-        if (plan.moves.length === 0) return nextFiles
+        const snapshot = this.dependencies.snapshot()
+        const cards = snapshot ? [...snapshot.activeCards, ...snapshot.backgroundCards] : []
+        const internalIdsByPath = new Map(cards.flatMap((card) => (
+            card.header.internalId ? [[card.path, card.header.internalId]] : []
+        )))
+        const plan = planExternalCardImports(
+            nextFiles,
+            workingFolder,
+            config.cardSeparator,
+            config.cardTypes,
+            config.states[0].state,
+            internalIdsByPath,
+        )
+        const imports = plan.moves.map((move, index) => {
+            const importedFile = plan.importedFiles[index]
+            const card = markdownParsingService.parseCard(importedFile, workingFolder)
+            const cardInternalId = card.header.internalId
+            if (!cardInternalId) throw new Error(`Cannot import a card without an internal ID: ${move.fromPath}`)
 
-        const promise = this.executeExternalCardImport(nextFiles, currentProject, plan)
-        const activeImport = { project: currentProject, promise }
-        this.externalCardImportInProgress = activeImport
+            const pendingImport = { cardInternalId, importedFile, move }
+            this.pendingDetectedCardImportsBySourcePath.set(move.fromPath, pendingImport)
 
-        try {
-            const result = await promise
+            return pendingImport
+        })
+        const sourcePaths = plan.moves.map(({ fromPath }) => fromPath)
+        const importedFiles = mergeFiles(removeFilesByPath(nextFiles, sourcePaths), plan.importedFiles)
 
-            return result.files
-        } finally {
-            if (this.externalCardImportInProgress === activeImport) this.externalCardImportInProgress = null
-        }
+        return { files: importedFiles, imports }
     }
 
-    private async executeExternalCardImport(
-        files: MarkdownFile[],
+    private queueDetectedCardImports(
+        conformingPaths: string[],
+        imports: PendingDetectedCardImport[],
         currentProject: ProjectReference,
-        plan: ExternalCardImportPlan,
-    ): Promise<ExternalCardImportResult> {
-        const { config, storage } = this.dependencies.requireDependencies()
+    ) {
+        const { commitBatcher } = this.dependencies.requireDependencies()
+        const changes: CommitChange[] = [
+            ...conformingPaths.map((path) => ({ kind: 'path' as const, path })),
+            ...imports.map(({ cardInternalId, move }) => ({
+                cardInternalId,
+                kind: 'card' as const,
+                onPersisted: () => {
+                    const pendingImport = this.pendingDetectedCardImportsBySourcePath.get(move.fromPath)
+                    if (pendingImport?.cardInternalId === cardInternalId) {
+                        this.pendingDetectedCardImportsBySourcePath.delete(move.fromPath)
+                    }
+                },
+                path: move.fromPath,
+                targetPath: move.toPath,
+            })),
+        ]
+        if (changes.length === 0) return
 
-        const sourcePaths = plan.moves.map((move) => move.fromPath)
+        const message = `Import ${changes.length} external ${changes.length === 1 ? 'file' : 'files'}`
+        commitBatcher.schedule(currentProject.branch, changes, message)
+        if (imports.length === 0) return
 
-        try {
-            await storage.moveFiles({
-                branch: currentProject.branch,
-                message: `Import ${plan.moves.length} external ${plan.moves.length === 1 ? 'file' : 'files'}`,
-                moves: plan.moves,
-            })
-        } catch (error) {
-            reportWorkspaceError(errorMessage(error, 'External file import failed'))
-            telemetryService.captureError(error)
-
-            return { files, importedFiles: [], sourcePaths: [], succeeded: false }
-        }
-
-        if (config.pushMode === 'auto') await storage.push(currentProject)
-        if (config.pushMode === 'manual') this.dependencies.dispatchPersistenceChanged()
-
-        reportWorkspaceNotice(importedNoticeMessage(plan.moves.length))
+        reportWorkspaceNotice(importedNoticeMessage(imports.length))
         telemetryService.trackEvent('external_file_import')
-
-        const importedFiles = mergeFiles(removeFilesByPath(files, sourcePaths), plan.importedFiles)
-
-        return { files: importedFiles, importedFiles: plan.importedFiles, sourcePaths, succeeded: true }
     }
 
     private async loadFullProjectInBackground(
@@ -595,28 +602,15 @@ export class ProjectLoading {
         if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
         let nextFiles = this.dependencies.files()
+        let loadedFiles: MarkdownFile[] | null = null
         let projectFilesLoaded = false
         if (projectFilesResult.status === 'fulfilled') {
-            try {
-                const classificationPaths = repositoryFilesResult.status === 'fulfilled'
-                    ? repositoryFilesResult.value
-                    : projectFilesResult.value.files.map(({ path }) => path)
-                const projectCardFiles = excludeAgentInstructionFiles(projectFilesResult.value.files, classificationPaths)
-                const loadedFiles = mergeFiles(projectCardFiles, this.dependencies.files())
-                const importedFiles = await this.importExternalCardFiles(loadedFiles, workingFolder)
-                if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
-
-                const importedPaths = new Set(importedFiles.map((file) => file.path))
-                const removedImportedPaths = loadedFiles
-                    .filter((file) => !importedPaths.has(file.path))
-                    .map((file) => file.path)
-                const remainingFiles = removeFilesByPath(this.dependencies.files(), removedImportedPaths)
-                nextFiles = mergeFiles(importedFiles, remainingFiles)
-                projectFilesLoaded = true
-            } catch (error) {
-                reportWorkspaceError(backgroundProjectLoadFailureMessage(error))
-                telemetryService.captureError(error)
-            }
+            const classificationPaths = repositoryFilesResult.status === 'fulfilled'
+                ? repositoryFilesResult.value
+                : projectFilesResult.value.files.map(({ path }) => path)
+            const projectCardFiles = excludeAgentInstructionFiles(projectFilesResult.value.files, classificationPaths)
+            loadedFiles = mergeFiles(projectCardFiles, this.dependencies.files())
+            projectFilesLoaded = true
         } else {
             reportWorkspaceError(backgroundProjectLoadFailureMessage(projectFilesResult.reason))
             telemetryService.captureError(projectFilesResult.reason)
@@ -634,8 +628,26 @@ export class ProjectLoading {
 
         await agentInstructionsService.load(project, repositoryFiles, storage)
         if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+        let imports: PendingDetectedCardImport[] = []
+        if (loadedFiles) {
+            try {
+                const importPlan = this.planDetectedCardImports(loadedFiles, workingFolder)
+                const importedPaths = new Set(importPlan.files.map((file) => file.path))
+                const removedImportedPaths = loadedFiles
+                    .filter((file) => !importedPaths.has(file.path))
+                    .map((file) => file.path)
+                const remainingFiles = removeFilesByPath(this.dependencies.files(), removedImportedPaths)
+                nextFiles = mergeFiles(importPlan.files, remainingFiles)
+                imports = importPlan.imports
+            } catch (error) {
+                reportWorkspaceError(backgroundProjectLoadFailureMessage(error))
+                telemetryService.captureError(error)
+                projectFilesLoaded = false
+            }
+        }
         const cardRepositoryFiles = excludeAgentInstructionPaths(repositoryFiles)
         this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, cardRepositoryFiles)
+        this.queueDetectedCardImports([], imports, project)
         await this.ensureCardInternalIds()
         await this.dependencies.migrateAgentLogReferences()
         try {
@@ -1027,6 +1039,8 @@ export class ProjectLoading {
         this.clearMarkdownReloadTimeout()
         const events = [...this.markdownReloadEventsByPath.values()]
         this.markdownReloadEventsByPath.clear()
+        const { config } = this.dependencies.requireDependencies()
+        const conformingPaths = new Set<string>()
         const updatedFiles: MarkdownFile[] = []
         const removedPaths: string[] = []
 
@@ -1036,7 +1050,10 @@ export class ProjectLoading {
             const dirtyOpenDocument = openFilesService.getRegisteredDocuments().some((document) => (
                 document.kind === 'card' && document.path === event.path && document.dirty
             ))
-            if (commitBatcher.hasPendingFile(event.path) || dirtyOpenDocument) {
+            const hasPendingRepositoryPath = commitBatcher.hasPendingRepositoryPath(event.path)
+            const hasPendingDetectedImport = this.pendingDetectedCardImportsBySourcePath.has(event.path)
+            if ((commitBatcher.hasPendingFile(event.path) && !hasPendingRepositoryPath && !hasPendingDetectedImport)
+                || dirtyOpenDocument) {
                 reportMarkdownWatchConflict(event.path)
                 continue
             }
@@ -1053,6 +1070,15 @@ export class ProjectLoading {
 
             const currentFile = this.dependencies.files().find((file) => file.path === loadedFile.path)
             if (currentFile?.content === loadedFile.content) continue
+            const parsedFile = markdownParsingService.parse(loadedFile.content)
+            const hasInternalId = typeof parsedFile.header.internalId === 'string'
+                && parsedFile.header.internalId.trim().length > 0
+            if (!currentFile
+                && hasInternalId
+                && markdownParsingService.isRootWorkingFolderFile(loadedFile.path, config.workingFolder)
+                && markdownParsingService.followsCardNamingConvention(loadedFile.path)) {
+                conformingPaths.add(loadedFile.path)
+            }
 
             updatedFiles.push(loadedFile)
         }
@@ -1062,10 +1088,10 @@ export class ProjectLoading {
             this.dependencies.files().filter((file) => !removedPathSet.has(file.path)),
             updatedFiles,
         )
-        const importedFiles = await this.importExternalCardFiles(watchedFiles, this.dependencies.requireDependencies().config.workingFolder)
-        if (updatedFiles.length === 0 && removedPaths.length === 0 && importedFiles === watchedFiles) return
+        const importPlan = this.planDetectedCardImports(watchedFiles, config.workingFolder)
+        const importedFiles = importPlan.files
+        if (updatedFiles.length === 0 && removedPaths.length === 0 && importPlan.imports.length === 0) return
 
-        const { config } = this.dependencies.requireDependencies()
         const currentFiles = this.dependencies.files()
         const currentFilesByPath = new Map(currentFiles.map((file) => [file.path, file]))
         const importedPaths = new Set(importedFiles.map((file) => file.path))
@@ -1075,15 +1101,16 @@ export class ProjectLoading {
         })
         const deletedPaths = currentFiles.filter((file) => !importedPaths.has(file.path)).map((file) => file.path)
         this.dependencies.updateFiles(changedFiles, deletedPaths, config.workingFolder)
+        this.queueDetectedCardImports([...conformingPaths], importPlan.imports, currentProject)
         await this.ensureCardInternalIds()
         await this.dependencies.migrateAgentLogReferences()
         this.dependencies.dispatchChanged()
     }
 
-    private async ensureCardInternalIds() {
+    private async ensureCardInternalIds(deferredPersistencePaths: string[] = []) {
         if (projectAccessService.getSnapshot()) return
 
-        await this.dependencies.ensureCardInternalIds()
+        await this.dependencies.ensureCardInternalIds(deferredPersistencePaths)
     }
 
     private async loadWatchedMarkdownFile(event: ProjectWatchEvent) {
