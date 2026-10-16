@@ -3276,14 +3276,14 @@
         }
       ],
       "startedAt": "2026-10-16T14:12:13.494Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 1302,
           "toolMs": 92838
         },
-        "elapsedMs": 368377,
-        "runningStartedAt": "2026-10-16T14:52:42.166Z"
+        "elapsedMs": 652171,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
@@ -3294,7 +3294,7 @@
         "totalTokens": 6809973
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
