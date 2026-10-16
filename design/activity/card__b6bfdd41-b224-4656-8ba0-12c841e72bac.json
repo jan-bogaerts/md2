@@ -1116,10 +1116,10 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "b6bfdd41-b224-4656-8ba0-12c841e72bac",
       "cardPath": "design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md",
-      "completedAt": "2026-10-16T14:28:41.964Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 106819
+        "usedTokens": 107442
       },
       "entries": [
         {
@@ -2266,6 +2266,36 @@
           "role": "assistant",
           "sequence": 87,
           "timestamp": "2026-10-16T14:28:41.964Z"
+        },
+        {
+          "content": "wait, so the file watcher now does 2 different things? when the file needs migration, it commits immediately, but when it's just a new file, it's batched?\n\nthat does not make much sense does it?\n\ni suppose you also duplicated all the code?",
+          "id": "submission-4b7f67ec-5497-4102-95e8-2b1a4e100e0a",
+          "kind": "message",
+          "role": "user",
+          "sequence": 88,
+          "timestamp": "2026-10-16T14:51:18.105Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ddf3707a-d9d4-4fac-b7eb-d9c685546145-event-89",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04296ded2d278dc9016ad239f127c081919393b13d4c849e8b",
+          "sequence": 89,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T14:51:27.747Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Not exactly, but concern valid.\n\nCurrent behavior:\n\n- Watcher sees conforming new card: batches commit-only path.\n- Watcher sees non-conforming new card: normalizes and batches card move.\n- Background full-project load sees non-conforming card: still calls immediate `moveFiles` and push.\n\nSo watcher itself always batches. But same external-import domain flow now has two persistence paths depending on detection timing. That is inconsistent.\n\nYes, orchestration was duplicated: `planWatchedCardImports` repeats planning/merging work already present in `importExternalCardFiles`. I preserved background behavior from approved plan, but that produced wrong architectural split.\n\nBetter design: one shared detection/normalization result, applied to state once, then always scheduled through `CommitBatcher`; caller timing must not select persistence policy.\n\n",
+          "id": "agent-turn-ddf3707a-d9d4-4fac-b7eb-d9c685546145-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 90,
+          "timestamp": "2026-10-16T14:51:30.509Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2275,27 +2305,27 @@
           "agent": "codex",
           "conversationId": "01a1450e-664b-77e2-b100-d9a8b33d32e1",
           "createdAt": "2026-10-16T14:14:07.485Z",
-          "lastUsedAt": "2026-10-16T14:28:41.964Z",
-          "synchronizedThroughMessageId": "agent-turn-e8103444-14f0-4a47-b85e-64bd08015e57-turn-2-assistant-5"
+          "lastUsedAt": "2026-10-16T14:51:30.509Z",
+          "synchronizedThroughMessageId": "agent-turn-ddf3707a-d9d4-4fac-b7eb-d9c685546145-turn-1-assistant-1"
         }
       ],
       "startedAt": "2026-10-16T14:12:13.494Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 573,
+          "reasoningMs": 582,
           "toolMs": 42408
         },
         "elapsedMs": 355973,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-16T14:51:18.105Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 2751616,
-        "inputTokens": 100558,
-        "outputTokens": 9509,
-        "reasoningTokens": 9207,
-        "totalTokens": 2870890
+        "cachedInputTokens": 2857984,
+        "inputTokens": 101068,
+        "outputTokens": 9680,
+        "reasoningTokens": 9600,
+        "totalTokens": 2978332
       },
       "usageSchemaVersion": 1,
       "viewed": true
