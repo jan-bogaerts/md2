@@ -5,10 +5,10 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "b6bfdd41-b224-4656-8ba0-12c841e72bac",
       "cardPath": "design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md",
-      "completedAt": "2026-10-16T13:45:20.986Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 82051
+        "usedTokens": 95974
       },
       "entries": [
         {
@@ -722,6 +722,131 @@
           "role": "user",
           "sequence": 53,
           "timestamp": "2026-10-16T13:45:18.335Z"
+        },
+        {
+          "content": "> Most likely, the agent created files whose names already matched the card convention, such as B_311_....md. Such files are explicitly excluded from external import\n\nthis was the problem. why are they excluded?&#x20;",
+          "id": "submission-25a3506e-2863-4c38-8366-5cef723be256",
+          "kind": "message",
+          "role": "user",
+          "sequence": 54,
+          "timestamp": "2026-10-16T13:45:47.147Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-55",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05c5e808b9c09f36016ad22a91771881918de050f721c25c84",
+          "sequence": 55,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T13:45:52.263Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll trace the exclusion to the original import implementation and nearby parsing behavior, then explain the design intent and why it creates this gap.\n\n",
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 56,
+          "timestamp": "2026-10-16T13:45:52.929Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git log --all --oneline -- design/feature_descriptions | Select-String -Pattern 'external|markdown|import'; rg -n -S \\\"external markdown|external file|card naming convention|nonconforming|conforming\\\" design app/src/services/data/*.test.ts app/src/services/project/*.test.ts\"",
+          "content": "\r\n2abcf119e Create design/feature_descriptions/B_311_when_import_cards_through_file_detection_add_to_commit_batcher.md\r\nd92bb5631 Import 4 Sentry issues\r\n8141eaf8e Import 2 Sentry issues\r\n31471d75e Import 23 Sentry issues\r\n8186b66ca Update design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md\r\ncb7e0840e Update design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md\r\n0d585c1fc Create design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md\r\n7929c14c7 Update design/feature_descriptions/F_376_markdown_config_editor_improvements.md\r\n0dbea770a Update design/feature_descriptions/F_376_markdown_config_editor_improvements.md\r\n6a871f907 Import 1 external file\r\n83213dc8a Import 1 external file\r\n1e2d8d6d2 Import 1 external file\r\n12cd768fc Import 1 external file\r\n0c57a983b Import 1 external file\r\nb989807f6 Import 1 external file\r\nc9be522de Import 1 external file\r\ncf64b0e93 Import 1 external file\r\nf2b83e4ed Import 4 external files\r\n144ab9df2 Update design/feature_descriptions/F_376_markdown_config_editor_improvements.md\r\n499d96a94 Create design/feature_descriptions/F_376_markdown_config_editor_improvements.md\r\nf3886f363 Update design/feature_descriptions/J_50_markdown_toolbar_attach_files_pos.md\r\n10122d53c Update design/feature_descriptions/J_50_markdown_toolbar_attach_files_pos.md\r\n70a740c3e Move design/feature_descriptions/J_50_markdown_toolbar_attach_files_pos.md\r\n80af28322 Move design/feature_descriptions/J_50_markdown_toolbar_attach_files_pos.md\r\n5fa8373e2 Create design/feature_descriptions/J_50_markdown_toolbar_attach_files_pos.md\r\nd1c59418b Move design/feature_descriptions/F_237_add_menu_items_to_markdown_editor.md\r\nc74f5f7c0 Move design/feature_descriptions/F_237_add_menu_items_to_markdown_editor.md\r\nf5cb9ed98 Update design/feature_descriptions/J_43_code_blocks_in_read_only_markdown.md\r\n32b8a9666 Import 1 external file\r\n8c4c8955a Update design/feature_descriptions/J_43_code_blocks_in_read_only_markdown.md\r\n41a583494 Update design/feature_descriptions/J_43_code_blocks_in_read_only_markdown.md\r\n0180581e7 Update design/feature_descriptions/J_43_code_blocks_in_read_only_markdown.md\r\n54ac45ce1 Move design/feature_descriptions/J_43_code_blocks_in_read_only_markdown.md\r\n682ffde53 Update design/feature_descriptions/J_43_code_blocks_in_read_only_markdown.md\r\nd52b56f2a Add design/feature_descriptions/readonlymarkdown.jpg\r\n86856da98 Update design/feature_descriptions/J_43_code_blocks_in_read_only_markdown.md\r\n707b036ac Create design/feature_descriptions/J_43_code_blocks_in_read_only_markdown.md\r\n0a26ad56e Update design/feature_descriptions/F_202_improve_manual_sentry_import.md\r\n59c4815de Update design/feature_descriptions/F_202_improve_manual_sentry_import.md\r\ncbf36ec66 Import 1 Sentry issue\r\n88877a774 Import 4 Sentry issues\r\nd7ba8fd99 Update design/feature_descriptions/F_202_improve_manual_sentry_import.md\r\n7cbbe753a Update design/feature_descriptions/F_202_improve_manual_sentry_import.md\r\n9e1c2270e Import 2 external files\r\nc8530175f Update design/feature_descriptions/B_172_error_cannot_switch_markdown_history_before_editor_is_attached.md\r\n50da50c47 Update design/feature_descriptions/B_172_error_cannot_switch_markdown_history_before_editor_is_attached.md\r\nad000cacf Delete design/feature_descriptions/F_231_code_blocks_in_markdown_editor.md\r\ne2c7fcf10 Repair ordering after deleting design/feature_descriptions/F_231_code_blocks_in_markdown_editor.md\r\nda05acc28 Update design/feature_descriptions/F_231_code_blocks_in_markdown_editor.md\r\n16557c618 Update design/feature_descriptions/B_172_error_cannot_switch_markdown_history_before_editor_is_attached.md\r\n3ec504ca0 Move design/feature_descriptions/B_172_error_cannot_switch_markdown_history_before_editor_is_attached.md\r\n2c8ae46c1 Delete design/feature_descriptions/B_173_error_switch_markdown_history.md\r\nce9527b78 Create design/feature_descriptions/B_173_error_switch_markdown_history.md\r\n463dee449 Import 1 Sentry issue\r\nf83d89fcf Create design/feature_descriptions/F_237_add_menu_items_to_markdown_editor.md\r\n577db2fe1 Import 1 \n[1038867 characters omitted]\nhangeKind === 'removed' ? null : await this.loadWatchedMarkdownFile(event)\\r\\n            if (loadedFile && this.dependencies.matchesCurrentContent(loadedFile.path, loadedFile.content)) continue\\r\\n            const dirtyOpenDocument = openFilesService.getRegisteredDocuments().some((document) => (\\r\\n                document.kind === 'card' && document.path === event.path && document.dirty\\r\\n            ))\\r\\n            if (commitBatcher.hasPendingFile(event.path) || dirtyOpenDocument) {\\r\\n                reportMarkdownWatchConflict(event.path)\\r\\n                continue\\r\\n            }\\r\\n\\r\\n            if (event.changeKind === 'removed') {\\r\\n                removedPaths.push(event.path)\\r\\n                continue\\r\\n            }\\r\\n\\r\\n            if (!loadedFile) {\\r\\n                if (event.changeKind === 'unknown') removedPaths.push(event.path)\\r\\n                continue\\r\\n            }\\r\\n\\r\\n            const currentFile = this.dependencies.files().find((file) => file.path === loadedFile.path)\\r\\n            if (currentFile?.content === loadedFile.content) continue\\r\\n\\r\\n            updatedFiles.push(loadedFile)\\r\\n        }\\r\\n\\r\\n        const removedPathSet = new Set(removedPaths)\\r\\n        const watchedFiles = mergeFiles(\\r\\n            this.dependencies.files().filter((file) => !removedPathSet.has(file.path)),\\r\\n            updatedFiles,\\r\\n        )\\r\\n        const importedFiles = await this.importExternalCardFiles(watchedFiles, this.dependencies.requireDependencies().config.workingFolder)\\r\\n        if (updatedFiles.length === 0 && removedPaths.length === 0 && importedFiles === watchedFiles) return\\r\\n\\r\\n        const { config } = this.dependencies.requireDependencies()\\r\\n        const currentFiles = this.dependencies.files()\\r\\n        const currentFilesByPath = new Map(currentFiles.map((file) => [file.path, file]))\\r\\n        const importedPaths = new Set(importedFiles.map((file) => file.path))\\r\\n        const changedFiles = importedFiles.filter((file) => {\\r\\n            const currentFile = currentFilesByPath.get(file.path)\\r\\n            return !currentFile || currentFile.content !== file.content || currentFile.sha !== file.sha\\r\\n        })\\r\\n        const deletedPaths = currentFiles.filter((file) => !importedPaths.has(file.path)).map((file) => file.path)\\r\\n        this.dependencies.updateFiles(changedFiles, deletedPaths, config.workingFolder)\\r\\n        await this.ensureCardInternalIds()\\r\\n        await this.dependencies.migrateAgentLogReferences()\\r\\n        this.dependencies.dispatchChanged()\\r\\n    }\\r\\n\\r\\n    private async ensureCardInternalIds() {\\r\\n        if (projectAccessService.getSnapshot()) return\\r\\n\\r\\n        await this.dependencies.ensureCardInternalIds()\\r\\n    }\\r\\n\\r\\n    private async loadWatchedMarkdownFile(event: ProjectWatchEvent) {\\r\\n        const { storage } = this.dependencies.requireDependencies()\\r\\n        const currentProject = this.dependencies.project()\\r\\n        if (!currentProject || !storage.loadFile) return null\\r\\n\\r\\n        try {\\r\\n            return await storage.loadFile(currentProject, event.path)\\r\\n        } catch (error) {\\r\\n            if (event.changeKind === 'unknown' || event.changeKind === 'removed') return null\\r\\n\\r\\n            console.error('Failed to load watched markdown file', error)\\r\\n\\r\\n            return null\\r\\n        }\\r\\n    }\\r\\n\\r\\n    private async reloadActionsFromCurrentProject() {\\r\\n        const { config, storage } = this.dependencies.requireDependencies()\\r\\n        const currentProject = this.dependencies.project()\\r\\n        if (!currentProject) return\\r\\n\\r\\n        const changes = [...this.actionReloadChangesByPath.values()]\\r\\n        if (changes.length === 0) return\\r\\n\\r\\n        this.clearActionReloadTimeout()\\r\\n        this.actionReloadChangesByPath.clear()\\r\\n        const actionFiles = await storage.loadActionFiles(currentProject, config.actionsFolder)\\r\\n        actionService.reloadFromFiles(actionFiles, changes)\\r\\n        reportActionLoadIssues()\\r\\n    }\\r\\n}\\r\\n\",\n\r\n\r\n",
+          "durationMs": 769,
+          "exitCode": 1,
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-57",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git log --all --oneline -- design/feature_descriptions | Select-String -Pattern 'external|markdown|import'; rg -n -S \\\"external markdown|external file|card naming convention|nonconforming|conforming\\\" design app/src/services/data/*.test.ts app/src/services/project/*.test.ts\"",
+          "providerItemId": "exec-3ed86dd2-bd4a-4976-a99a-f74e1f579e11",
+          "sequence": 57,
+          "status": "failed",
+          "timestamp": "2026-10-16T13:46:01.091Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git show --stat --oneline c7b5b193c; git show c7b5b193c -- 'app/src/services/data/external_card_import_service.ts' 'app/src/services/project/project_loading.ts' 'app/src/services/data/external_card_import_service.node.test.ts'\"",
+          "content": "c7b5b193c import external markdown files as feature cards\n app/src/components/project_command_events.ts       |    1 +\n app/src/components/project_workspace.tsx           |   18 +-\n app/src/data/card_naming.ts                        |    2 +-\n app/src/data/data.test.ts                          | 3116 ++++++++++----------\n app/src/services/data_service_facade.ts            |   67 +-\n app/src/services/external_card_import_service.ts   |   87 +\n app/src/services/telemetry_service.ts              |    2 +\n .../B_026_external_files_not_imported.md           |    2 +-\n .../B_025_agent_continue_without_context.md        |    0\n desktop/local_git_service_core.js                  |    6 +-\n 10 files changed, 1807 insertions(+), 1494 deletions(-)\n",
+          "durationMs": 130,
+          "exitCode": 0,
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-58",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git show --stat --oneline c7b5b193c; git show c7b5b193c -- 'app/src/services/data/external_card_import_service.ts' 'app/src/services/project/project_loading.ts' 'app/src/services/data/external_card_import_service.node.test.ts'\"",
+          "providerItemId": "exec-577bb679-94ce-41ad-83d3-bd29c123d78d",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-10-16T13:45:58.626Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git log --follow -p -- 'app/src/services/data/external_card_import_service.ts'\"",
+          "content": "commit 9f27508c2e464c9208e1b2a9e28c86c19d967e8d\nAuthor: Jan Bogaerts <jb@elastetic.com>\nDate:   Sat Jul 18 14:28:23 2026 +0200\n\n    refactor\n\ndiff --git a/app/src/services/external_card_import_service.ts b/app/src/services/data/external_card_import_service.ts\nsimilarity index 95%\nrename from app/src/services/external_card_import_service.ts\nrename to app/src/services/data/external_card_import_service.ts\nindex a4613e350..12c6800bb 100644\n--- a/app/src/services/external_card_import_service.ts\n+++ b/app/src/services/data/external_card_import_service.ts\n@@ -1,6 +1,6 @@\n-import { getNextCardNumber, slugifyTitle } from '../data/card_naming'\n-import { buildCardId, type CardSeparator } from '../data/card_identifiers'\n-import type { CardTypeConfig, MarkdownFile, MoveFile } from '../data/data_types'\n+import { getNextCardNumber, slugifyTitle } from '../../data/card_naming'\n+import { buildCardId, type CardSeparator } from '../../data/card_identifiers'\n+import type { CardTypeConfig, MarkdownFile, MoveFile } from '../../data/data_types'\n import { markdownParsingService, type HeaderValue, type MarkdownHeaderFields } from './markdown_parsing_service'\n \n const DEFAULT_CARD_TYPE = 'feature'\n\ncommit d3959e8e4fb62bf5a0ed42fc56d5d0c8cab320f8\nAuthor: Jan Bogaerts <jb@elastetic.com>\nDate:   Mon Jul 13 14:27:58 2026 +0200\n\n    improvements\n\ndiff --git a/app/src/services/external_card_import_service.ts b/app/src/services/external_card_import_service.ts\nindex 6c7ef90fd..a4613e350 100644\n--- a/app/src/services/external_card_import_service.ts\n+++ b/app/src/services/external_card_import_service.ts\n@@ -1,4 +1,5 @@\n import { getNextCardNumber, slugifyTitle } from '../data/card_naming'\n+import { buildCardId, type CardSeparator } from '../data/card_identifiers'\n import type { CardTypeConfig, MarkdownFile, MoveFile } from '../data/data_types'\n import { markdownParsingService, type HeaderValue, type MarkdownHeaderFields } from './markdown_parsing_service'\n \n@@ -66,13 +67,14 @@ function buildImportedContent(\n     return markdownParsingService.rewriteHeader(file.content, { id, internalId, status, title })\n }\n \n-function importedPath(workingFolder: string, id: string, title: string) {\n-    return `${workingFolder}/${id}-${slugifyTitle(title)}${MARKDOWN_EXTENSION}`\n+function importedPath(workingFolder: string, id: string, title: string, cardSeparator: CardSeparator) {\n+    return `${workingFolder}/${id}${cardSeparator}${slugifyTitle(title, cardSeparator)}${MARKDOWN_EXTENSION}`\n }\n \n export function planExternalCardImports(\n     files: MarkdownFile[],\n     workingFolder: string,\n+    cardSeparator: CardSeparator,\n     cardTypes: CardTypeConfig[],\n     initialState: string,\n ): ExternalCardImportPlan {\n@@ -85,8 +87,8 @@ export function planExternalCardImports(\n     for (const file of candidates) {\n         const parsed = markdownParsingService.parse(file.content)\n         const title = importTitle(file, parsed.header, parsed.body)\n-        const id = `${cardType.idPrefix}-${nextNumber}`\n-        const path = importedPath(workingFolder, id, title)\n+        const id = buildCardId(cardType.idPrefix, nextNumber, cardSeparator)\n+        const path = importedPath(workingFolder, id, title, cardSeparator)\n         const content = buildImportedContent(file, id, initialState, title, parsed)\n         const importedFile = { content, path }\n         moves.push({ content, fromPath: file.path, sha: file.sha, toPath: path })\n\ncommit 57bff4b47a8a83c9993b2f1bbfcf6ccf389eaed1\nAuthor: Jan Bogaerts <jb@elastetic.com>\nDate:   Sat Jul 11 13:51:48 2026 +0200\n\n    improvements\n\ndiff --git a/app/src/services/external_card_import_service.ts b/app/src/services/external_card_import_service.ts\nindex 41bd725a8..6c7ef90fd 100644\n--- a/app/src/services/external_card_import_service.ts\n+++ b/app/src/services/external_card_import_service.ts\n@@ -53,9 +53,15 @@ function isExternalImportCandidate(file: MarkdownFile, workingFolder: string) {\n     return !markdownParsingService.followsCardNamingConvention(file.path)\n }\n \n-function buildImportedContent(file: MarkdownFile, id: string, title:\n[2043 characters omitted]\n Tue Jul 7 15:04:55 2026 +0200\n\n    import external markdown files as feature cards\n\ndiff --git a/app/src/services/external_card_import_service.ts b/app/src/services/external_card_import_service.ts\nnew file mode 100644\nindex 000000000..41bd725a8\n--- /dev/null\n+++ b/app/src/services/external_card_import_service.ts\n@@ -0,0 +1,87 @@\n+import { getNextCardNumber, slugifyTitle } from '../data/card_naming'\n+import type { CardTypeConfig, MarkdownFile, MoveFile } from '../data/data_types'\n+import { markdownParsingService, type HeaderValue, type MarkdownHeaderFields } from './markdown_parsing_service'\n+\n+const DEFAULT_CARD_TYPE = 'feature'\n+const MARKDOWN_EXTENSION = '.md'\n+const TITLE_HEADING_PATTERN = /^#\\s+(.+)$/mu\n+\n+export interface ExternalCardImportPlan {\n+    importedFiles: MarkdownFile[]\n+    moves: MoveFile[]\n+}\n+\n+function getFeatureCardType(cardTypes: CardTypeConfig[]) {\n+    const cardType = cardTypes.find((candidate) => candidate.type === DEFAULT_CARD_TYPE)\n+    if (!cardType) throw new Error(`Missing card type config: ${DEFAULT_CARD_TYPE}`)\n+\n+    return cardType\n+}\n+\n+function getFileName(path: string) {\n+    return path.split('/').at(-1) ?? path\n+}\n+\n+function titleFromFileName(path: string) {\n+    const fileName = getFileName(path)\n+    const withoutExtension = fileName.toLowerCase().endsWith(MARKDOWN_EXTENSION) ? fileName.slice(0, -MARKDOWN_EXTENSION.length) : fileName\n+    const normalizedTitle = withoutExtension.replace(/[-_]+/gu, ' ').replace(/\\s+/gu, ' ').trim()\n+\n+    return normalizedTitle.length > 0 ? normalizedTitle : 'Untitled'\n+}\n+\n+function titleFromBody(body: string) {\n+    const match = body.match(TITLE_HEADING_PATTERN)\n+\n+    return match?.[1].trim() ?? null\n+}\n+\n+function stringField(fields: MarkdownHeaderFields, key: string) {\n+    const value: HeaderValue | undefined = fields[key]\n+\n+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null\n+}\n+\n+function importTitle(file: MarkdownFile, fields: MarkdownHeaderFields, body: string) {\n+    return stringField(fields, 'title') ?? titleFromBody(body) ?? titleFromFileName(file.path)\n+}\n+\n+function isExternalImportCandidate(file: MarkdownFile, workingFolder: string) {\n+    if (!markdownParsingService.isRootWorkingFolderFile(file.path, workingFolder)) return false\n+    if (!markdownParsingService.isMarkdownFile(file.path)) return false\n+\n+    return !markdownParsingService.followsCardNamingConvention(file.path)\n+}\n+\n+function buildImportedContent(file: MarkdownFile, id: string, title: string, parsed: ReturnType<typeof markdownParsingService.parse>) {\n+    const internalId = stringField(parsed.header, 'internalId') ?? markdownParsingService.generateInternalId()\n+    const status = stringField(parsed.header, 'status') ?? 'new'\n+\n+    return markdownParsingService.rewriteHeader(file.content, { id, internalId, status, title })\n+}\n+\n+function importedPath(workingFolder: string, id: string, title: string) {\n+    return `${workingFolder}/${id}-${slugifyTitle(title)}${MARKDOWN_EXTENSION}`\n+}\n+\n+export function planExternalCardImports(files: MarkdownFile[], workingFolder: string, cardTypes: CardTypeConfig[]): ExternalCardImportPlan {\n+    const cardType = getFeatureCardType(cardTypes)\n+    const candidates = files.filter((file) => isExternalImportCandidate(file, workingFolder))\n+    let nextNumber = getNextCardNumber(files, cardType.idPrefix)\n+    const moves: MoveFile[] = []\n+    const importedFiles: MarkdownFile[] = []\n+\n+    for (const file of candidates) {\n+        const parsed = markdownParsingService.parse(file.content)\n+        const title = importTitle(file, parsed.header, parsed.body)\n+        const id = `${cardType.idPrefix}-${nextNumber}`\n+        const path = importedPath(workingFolder, id, title)\n+        const content = buildImportedContent(file, id, title, parsed)\n+        const importedFile = { content, path }\n+        moves.push({ content, fromPath: file.path, sha: file.sha, toPath: path })\n+        importedFiles.push(importedFile)\n+        nextNumber += 1\n+    }\n+\n+    return { importedFiles, moves }\n+}\n",
+          "durationMs": 222,
+          "exitCode": 0,
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-59",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git log --follow -p -- 'app/src/services/data/external_card_import_service.ts'\"",
+          "providerItemId": "exec-6907aec8-7f77-4c2f-9511-f557ca6d2015",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-10-16T13:45:58.913Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-60",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05c5e808b9c09f36016ad22a9a5b18819186a4b3507e5417ac",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T13:46:01.093Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files design | rg 'B_026_external_files_not_imported|external_files_not_imported'; git show c7b5b193c\"'^:'\"'design/feature_descriptions/B_026_external_files_not_imported.md'; git show c7b5b193c:'design/feature_descriptions/B_026_external_files_not_imported.md'\"",
+          "content": "design\\releases\\0_0_2\\B_026_external_files_not_imported.md\r\n---\nid: B-026\ntitle: external non-conforming files are not imported as new cards\nstatus: design\nowner: JB\naffects:\npolicy:\n  checkLinting: true\n  requireTests: true\n---\n\n## Problem\nData management (data management.md) requires: when loading a project — and when new files appear during usage — any markdown file that does not follow the `{id}-{title}.md` naming convention is presumed to come from an external app and must be **imported as a new feature** (header is optional in the source file). The implementation only papers over the parse: `parseCardHeader` in `app/src/services/markdown_parsing_service.ts` falls back to `DEFAULT_IMPORTED_ID = 'F-0'` and `status: new`. Nothing assigns a real next-available id, generates an `internalId`, writes the missing header back, or renames the file to the convention. Consequences:\n- every non-conforming file shows as `F-0`, so multiple imports collide on the same id;\n- the card has no `internalId`, so drag ordering (`after` chains) cannot reference it and delete-repair skips it;\n- the fallback header lives only in memory — the repository file stays non-conforming forever, so the \"import\" repeats on every load;\n- new files appearing during usage (watch events) are not detected as cards at all: `handleProjectWatchEvent` in `app/src/services/data_service.ts` only reacts to action-definition json changes.\n\n## Fix\n- On project load (and full background load), detect working-folder markdown files that lack a conforming name or a complete header and run an import step:\n  - allocate the next available id for the default type (feature) via the existing `getNextCardNumber` logic — after the full project (including subfolders) is loaded, to avoid number reuse;\n  - build/complete the header (`id`, `internalId`, `title` from first `#` heading or file name, `status: new`), preserving any header fields the file already has;\n  - rename the file to `{id}-{title-slug}.md` in the working folder and commit header rewrite + rename as one import commit (respect `pushMode`).\n- Extend the project watcher path so a newly appearing working-folder `.md` file triggers the same import (debounced, and ignoring writes the app itself just made).\n- Surface imports to the user (e.g. workspace notice: \"Imported N external files as new cards\") and record a telemetry event.\n- Keep the current lenient parse as the read-side fallback, but it should only ever apply transiently before the import commit lands.\n\n## acceptance criteria\n- Opening a project containing `notes.md` (no header) in the working folder produces a committed, renamed card `F-{next}-notes.md` with a complete header including a generated `internalId`; the original content is preserved as the body.\n- Two non-conforming files imported together receive distinct sequential ids; ids never collide with cards in subfolders (history).\n- Dropping a new markdown file into the working folder while the project is open (Electron watch) imports it the same way without a manual reload.\n- Files that already conform are untouched; re-opening the project performs no repeat import.\n- Import failures (e.g. commit error) are reported and leave the source file unmodified.\n- Tests cover header completion, renaming, id allocation after full load, watch-triggered import, idempotency and the multi-file collision case.\n\n## see also\n- `design\\architecture\\initial description\\data management.md`\n- `design\\feature_descriptions\\F_002_data_management.md`\n- `design\\feature_descriptions\\F_021_parsing_service.md`\n- `design\\feature_descriptions\\F_026_external_change_watching.md`\n---\nid: B-026\ntitle: external non-conforming files are not imported as new cards\nstatus: ready\nowner: JB\naffects:\npolicy:\n  checkLinting: true\n  requireTests: true\n---\n\n## Problem\nData management (data management.md) requires: when loading a project — and when new files appear during usage — any markdown file that does not follow the `{id}-{title}.md` naming convention is presumed to come from an external app and must be **imported as a new feature** (header is optional in the source file). The implementation only papers over the parse: `parseCardHeader` in `app/src/services/markdown_parsing_service.ts` falls back to `DEFAULT_IMPORTED_ID = 'F-0'` and `status: new`. Nothing assigns a real next-available id, generates an `internalId`, writes the missing header back, or renames the file to the convention. Consequences:\n- every non-conforming file shows as `F-0`, so multiple imports collide on the same id;\n- the card has no `internalId`, so drag ordering (`after` chains) cannot reference it and delete-repair skips it;\n- the fallback header lives only in memory — the repository file stays non-conforming forever, so the \"import\" repeats on every load;\n- new files appearing during usage (watch events) are not detected as cards at all: `handleProjectWatchEvent` in `app/src/services/data_service.ts` only reacts to action-definition json changes.\n\n## Fix\n- On project load (and full background load), detect working-folder markdown files that lack a conforming name or a complete header and run an import step:\n  - allocate the next available id for the default type (feature) via the existing `getNextCardNumber` logic — after the full project (including subfolders) is loaded, to avoid number reuse;\n  - build/complete the header (`id`, `internalId`, `title` from first `#` heading or file name, `status: new`), preserving any header fields the file already has;\n  - rename the file to `{id}-{title-slug}.md` in the working folder and commit header rewrite + rename as one import commit (respect `pushMode`).\n- Extend the project watcher path so a newly appearing working-folder `.md` file triggers the same import (debounced, and ignoring writes the app itself just made).\n- Surface imports to the user (e.g. workspace notice: \"Imported N external files as new cards\") and record a telemetry event.\n- Keep the current lenient parse as the read-side fallback, but it should only ever apply transiently before the import commit lands.\n\n## acceptance criteria\n- Opening a project containing `notes.md` (no header) in the working folder produces a committed, renamed card `F-{next}-notes.md` with a complete header including a generated `internalId`; the original content is preserved as the body.\n- Two non-conforming files imported together receive distinct sequential ids; ids never collide with cards in subfolders (history).\n- Dropping a new markdown file into the working folder while the project is open (Electron watch) imports it the same way without a manual reload.\n- Files that already conform are untouched; re-opening the project performs no repeat import.\n- Import failures (e.g. commit error) are reported and leave the source file unmodified.\n- Tests cover header completion, renaming, id allocation after full load, watch-triggered import, idempotency and the multi-file collision case.\n\n## see also\n- `design\\architecture\\initial description\\data management.md`\n- `design\\feature_descriptions\\F_002_data_management.md`\n- `design\\feature_descriptions\\F_021_parsing_service.md`\n- `design\\feature_descriptions\\F_026_external_change_watching.md`\n",
+          "durationMs": 184,
+          "exitCode": 0,
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-61",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files design | rg 'B_026_external_files_not_imported|external_files_not_imported'; git show c7b5b193c\"'^:'\"'design/feature_descriptions/B_026_external_files_not_imported.md'; git show c7b5b193c:'design/feature_descriptions/B_026_external_files_not_imported.md'\"",
+          "providerItemId": "exec-c980c07b-b74a-4ea8-8617-ec94f92b81f2",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-10-16T13:46:03.615Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05c5e808b9c09f36016ad22aa991c881918d5ede5b64ff5362",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T13:46:16.437Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "They are excluded intentionally for idempotency.\n\nThe original feature defined a non-conforming filename as the signal for “external file requiring import.” A conforming filename was treated as proof that MD² had already imported and persisted the card. This prevented existing cards from being assigned new IDs or renamed again whenever the project loaded.\n\nThat assumption is explicitly captured in the original acceptance criterion: “Files that already conform are untouched.”\n\nThe assumption became invalid once agents started creating correctly named cards directly. A conforming filename now means only “no normalization required,” not “already committed.”\n\nThe logic should therefore separate:\n\n- Whether the card needs header/path normalization.\n- Whether a newly detected file needs to enter the commit batch.\n\nA conforming agent-created card needs no rename, but it must still be queued for commit.\n\n",
+          "id": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 63,
+          "timestamp": "2026-10-16T13:46:21.071Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -731,27 +856,27 @@
           "agent": "codex",
           "conversationId": "01a144e9-3fb6-7133-8166-f3b92a2a6a46",
           "createdAt": "2026-10-16T13:32:51.213Z",
-          "lastUsedAt": "2026-10-16T13:37:20.311Z",
-          "synchronizedThroughMessageId": "agent-turn-d83dad40-b319-404b-a83d-d5618e2109f2-turn-2-assistant-2"
+          "lastUsedAt": "2026-10-16T13:46:21.071Z",
+          "synchronizedThroughMessageId": "agent-turn-73cda112-e7ee-42d2-9dea-59a25758db58-turn-1-assistant-2"
         }
       ],
       "startedAt": "2026-10-16T13:31:38.678Z",
-      "status": "cancelled",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 189,
-          "toolMs": 5948
+          "reasoningMs": 208,
+          "toolMs": 8765
         },
         "elapsedMs": 138367,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-16T13:45:47.147Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 1008896,
-        "inputTokens": 72412,
-        "outputTokens": 3713,
-        "reasoningTokens": 2984,
-        "totalTokens": 1088005
+        "cachedInputTokens": 1267968,
+        "inputTokens": 86387,
+        "outputTokens": 4337,
+        "reasoningTokens": 3304,
+        "totalTokens": 1361996
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -769,13 +894,13 @@
         "agent-09e94d52-8d51-4783-8ca6-3926dfa930fe"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-cb7f2934-8b0d-4dda-b91e-d28d08338f0c",
       "origin": {
@@ -784,9 +909,9 @@
       },
       "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "rootActionLabel": "investigate",
-      "rootConversationId": "agent-09e94d52-8d51-4783-8ca6-3926dfa930fe",
       "startedAt": "2026-10-16T13:31:38.677Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-09e94d52-8d51-4783-8ca6-3926dfa930fe"
     }
   ],
   "version": 5
