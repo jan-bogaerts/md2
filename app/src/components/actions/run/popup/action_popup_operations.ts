@@ -1,4 +1,4 @@
-import type { ActionContext } from '../../../../data/action_context'
+import { contextWithCurrentWorktree, type ActionContext } from '../../../../data/action_context'
 import type { AgentQuestion } from '../../../../data/data_types'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { generateUuid } from '../../../../data/uuid'
@@ -10,6 +10,7 @@ import type {
 } from '../../../../services/actions/action_run_settings_service'
 import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
+import { worktreeService } from '../../../../services/project/worktree_service'
 import {
     defaultCancelAction,
     defaultCloseWaitingConversation,
@@ -27,6 +28,7 @@ import type { ActionHistoryStore } from '../state/action_history_store'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
 import type { ActionRunResultStore } from '../state/action_run_result_store'
 import type { ActionRunBindingStore } from '../state/action_run_binding_store'
+import { worktreeValidationMessage } from './action_popup_runtime'
 
 const DEFAULT_CONVERT_LABEL_LENGTH = 40
 
@@ -78,6 +80,27 @@ function activeRunHasHistoricalDisplay(
     )
 }
 
+function currentCardExecutionContext(context: ActionContext) {
+    if (!context.cardInternalId) return context
+
+    const snapshot = dataService.getState().snapshot
+    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+    const card = cards.find(({ header }) => header.internalId === context.cardInternalId)
+    if (!card) throw new Error(`Cannot run action for unknown card: ${context.cardInternalId}`)
+
+    const executionContext = { ...context }
+    delete executionContext.worktree
+    delete executionContext.worktreeBranch
+    delete executionContext.worktreeError
+    if (!card.header.worktreeValue) return executionContext
+
+    executionContext.worktree = card.header.worktreeValue
+    if (card.header.branch) executionContext.worktreeBranch = card.header.branch
+    if (card.header.worktreeError) executionContext.worktreeError = card.header.worktreeError
+
+    return contextWithCurrentWorktree(executionContext, worktreeService.getRecords())
+}
+
 async function runWithPrompt(
     input: ActionPopupOperationInput,
     prompt: string,
@@ -85,9 +108,10 @@ async function runWithPrompt(
     submissionId: string | null = null,
     submittedDiagramPath: string | null = null,
     submittedConversationId: string | null = null,
+    executionContext: ActionContext = currentCardExecutionContext(input.context),
 ) {
     const {
-        action, bindingStore, context, conversationStore, historyStore, resultStore, runValidationError, settings,
+        action, bindingStore, context, conversationStore, historyStore, resultStore, settings,
         settingsStore,
     } = input
     resultStore.setRunning()
@@ -95,7 +119,8 @@ async function runWithPrompt(
     const selectedConversationId = conversationStore.getSnapshot().selectedConversation?.id ?? null
     let started = false
     try {
-        if (runValidationError) throw new Error(runValidationError)
+        const validationMessage = worktreeValidationMessage(action, executionContext)
+        if (validationMessage) throw new Error(validationMessage)
 
         const liveConversation = currentActionRun(bindingStore)?.conversation ?? null
         const continuationPath = conversationStore.continuationPath(liveConversation)
@@ -131,8 +156,8 @@ async function runWithPrompt(
             settingsStore.markSettingsApplied()
         }
         const result = previousRunId
-            ? await defaultRestartAction(previousRunId, action, context, runInput, handleStarted)
-            : await defaultRunAction(action, context, runInput, handleStarted)
+            ? await defaultRestartAction(previousRunId, action, executionContext, runInput, handleStarted)
+            : await defaultRunAction(action, executionContext, runInput, handleStarted)
         resultStore.setResult(result)
         await historyStore.load()
         if (action.type === 'agent') {
@@ -167,6 +192,7 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
     const { action, bindingStore, context, conversationStore, settingsStore } = input
     const run = currentActionRun(bindingStore)
     if (activeRunHasHistoricalDisplay(run, conversationStore)) return
+    const executionContext = currentCardExecutionContext(context)
 
     const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
     const agentActive = sessionActive && run?.activeActionType === 'agent'
@@ -182,10 +208,10 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
         ) {
             const conversationId = run.conversation?.id ?? conversationStore.getSnapshot().selectedConversation?.id
             if (!conversationId) throw new Error('Restart requires a conversation ID')
-            const submissionId = actionRunRegistry.beginSubmission(action.id, context, prompt, null, conversationId);
+            const submissionId = actionRunRegistry.beginSubmission(action.id, executionContext, prompt, null, conversationId);
             const diagramPath = promptDraft.getDiagramPath()
             promptDraft.clearForSend()
-            await runWithPrompt(input, prompt, run.runId, submissionId, diagramPath, conversationId)
+            await runWithPrompt(input, prompt, run.runId, submissionId, diagramPath, conversationId, executionContext)
             return
         }
         let submissionId: string | null = null
@@ -193,7 +219,7 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
             if (!run.activeActionId) throw new Error('Action run has no active agent')
             if (prompt.trim().length === 0) throw new Error('Queued agent prompt is empty')
 
-            submissionId = actionRunRegistry.beginSubmission(action.id, context, prompt, run.runId, run.conversation?.id ?? null);
+            submissionId = actionRunRegistry.beginSubmission(action.id, executionContext, prompt, run.runId, run.conversation?.id ?? null);
             promptDraft.clearForSend()
             await actionRunRegistry.enqueueSubmission(submissionId);
         } catch (error) {
@@ -206,11 +232,11 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
         ? conversationStore.getSnapshot().selectedConversation?.id ?? run?.conversation?.id ?? `agent-${generateUuid()}`
         : null
     const submissionId = action.type === 'agent' && prompt.trim().length > 0 && conversationId
-        ? actionRunRegistry.beginSubmission(action.id, context, prompt, null, conversationId)
+        ? actionRunRegistry.beginSubmission(action.id, executionContext, prompt, null, conversationId)
         : null;
     const diagramPath = promptDraft.getDiagramPath()
     if (submissionId) promptDraft.clearForSend()
-    await runWithPrompt(input, prompt, null, submissionId, diagramPath, conversationId)
+    await runWithPrompt(input, prompt, null, submissionId, diagramPath, conversationId, executionContext)
 }
 
 /**

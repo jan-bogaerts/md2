@@ -10,6 +10,7 @@ import { actionRunRegistry } from '../../../../services/actions/action_run_regis
 import { ActionRunSettingsStore, type ResolvedActionRunSettings } from '../../../../services/actions/action_run_settings_service'
 import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
+import { worktreeService } from '../../../../services/project/worktree_service'
 import {
     answerRestoredConversationQuestions,
     cancelPopupAction,
@@ -24,7 +25,7 @@ import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunBindingStore } from '../state/action_run_binding_store'
 
 const action = { id: 'stream', label: 'Stream', streaming: true, type: 'agent' } as ActionDefinition
-const context: ActionContext = { file: 'design/F-1.md', kind: 'card', worktree: '3' }
+const context: ActionContext = { file: 'design/F-1.md', kind: 'card', worktree: '3', worktreeBranch: 'feature' }
 const dismissWaitingConversationQuestions = vi.hoisted(() => vi.fn())
 const restartAction = vi.hoisted(() => vi.fn())
 const runAction = vi.hoisted(() => vi.fn())
@@ -125,6 +126,11 @@ describe('runPopupAction waiting follow-up', () => {
     let bridge: ElectronActionBridge
 
     beforeEach(() => {
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([{
+            branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:/feature',
+            status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },
+            valid: true,
+        }])
         let listener: ((event: ActionRunEvent) => void) | null = null
         bridge = {
             cancelActionRun: vi.fn(async () => undefined),
@@ -418,6 +424,14 @@ describe('runPopupAction waiting follow-up', () => {
 })
 
 describe('restored conversation questions', () => {
+    beforeEach(() => {
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([{
+            branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:/feature',
+            status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },
+            valid: true,
+        }])
+    })
+
     afterEach(() => {
         actionPromptDraftService.clearAll()
         vi.restoreAllMocks()

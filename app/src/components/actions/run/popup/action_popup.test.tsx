@@ -1599,6 +1599,16 @@ describe('ActionPopup', () => {
         { context: { diagramId: 'diagram-1', kind: 'diagram', type: 'root' } as ActionContext, label: 'diagram' },
     ])('starts a second $label run from New conversation while the first remains active', async ({ context: selectedContext }) => {
         actionRunRegistry.stop()
+        if (selectedContext.kind === 'card') {
+            const currentCard = {
+                path: selectedContext.file,
+                header: { id: 'F-010', internalId: 'card-1', title: 'Card', worktreeValue: null, branch: null, worktreeError: null },
+            } as Card;
+            vi.spyOn(dataService, 'getState').mockReturnValue({
+                project, runningAgents: [],
+                snapshot: { activeCards: [currentCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+            });
+        }
         let runListener: ((event: ActionRunEvent) => void) | null = null
         const enqueueActionPrompt = vi.fn()
         const startAction = vi.fn(async (request: ActionStartRequest) => {
@@ -2928,6 +2938,14 @@ describe('ActionPopup', () => {
 
     it('restores response prompts from a scoped persisted waiting conversation after restart', async () => {
         actionRunRegistry.stop()
+        const currentCard = {
+            path: context.file,
+            header: { id: 'F-010', internalId: 'card-1', title: 'Card', worktreeValue: null, branch: null, worktreeError: null },
+        } as Card;
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project, runningAgents: [],
+            snapshot: { activeCards: [currentCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        });
         let runListener: ((event: ActionRunEvent) => void) | null = null
         const conversations = deferredValue<AgentConversation[]>()
         const startAction = vi.fn(async () => 'continued-run')
@@ -3147,6 +3165,40 @@ describe('ActionPopup', () => {
             context: expect.objectContaining({ ...popupContext, worktree: '2', worktreeBranch: 'other' }),
             runInput: expect.objectContaining({ continueFrom: waiting.path, prompt: 'Continue after assignment' }),
         })));
+    });
+
+    it('uses current Primary card assignment when continuing a conversation', async () => {
+        const popupContext = { ...context, cardInternalId: 'card-1', worktree: '1', worktreeBranch: 'feature' };
+        const assignedCard = {
+            path: context.file,
+            header: { id: 'F-010', internalId: 'card-1', title: 'Card', worktreeValue: '1', branch: 'feature', worktreeError: null },
+        } as Card;
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project, runningAgents: [],
+            snapshot: { activeCards: [assignedCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        });
+        const waiting = agentConversation({ entries: [{ content: 'Continue on Primary', id: 'message-1', kind: 'message', role: 'assistant', timestamp: '2026-08-01T12:00:00Z' }] });
+        const startAction = vi.fn(async () => 'continued-run');
+        window.md2Actions = {
+            loadCardActivity: vi.fn(async () => createActivityFile({ cardInternalId: 'card-1', kind: 'card' })),
+            onActionRun: vi.fn(() => vi.fn()), prepareActionPrompt: vi.fn(async () => ({ prompt: '' })), startAction,
+        } as unknown as typeof window.md2Actions;
+        mockCodexAvailable();
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waiting]);
+        actionService.loadFromFiles([file(agentDefinition('respond', { label: 'Respond', streaming: true }))]);
+        renderPopup(popupContext);
+        expect(await screen.findByText('Continue on Primary')).toBeInTheDocument();
+
+        assignedCard.header.worktreeValue = null;
+        fireEvent.change(within(screen.getByLabelText('Prompt')).getByRole('textbox'), { target: { value: 'Continue here' } });
+        await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+        await waitFor(() => expect(startAction).toHaveBeenCalled());
+        const request = startAction.mock.calls[0]?.[0] as ActionStartRequest;
+        expect(request.context).not.toHaveProperty('worktree');
+        expect(request.context).not.toHaveProperty('worktreeBranch');
+        expect(request.context).not.toHaveProperty('worktreeError');
+        expect(request.runInput).toMatchObject({ continueFrom: waiting.path, prompt: 'Continue here' });
     });
 
     it('allows manual input for a persisted waiting conversation and starts its continuation', async () => {
