@@ -82,6 +82,9 @@ export function DiagramView({
     const { actions } = useActions()
     const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions])
     const rootActionIds = useMemo(() => rootActions.map(({ id }) => id), [rootActions])
+    const diagramActionIds = useMemo(() => actions
+        .filter(({ appliesTo, builtin }) => !builtin && appliesTo?.kind === 'diagram')
+        .map(({ id }) => id), [actions])
     const rootDiagrams = index.activePath.length === 0 ? service.getRootDiagrams() : []
     const diagramTitle = (record: DiagramRecord) => {
         const label = record.sourceDiagramId ? record.label : actions.find(({ id }) => id === record.actionId)?.label ?? record.label
@@ -225,7 +228,7 @@ export function DiagramView({
         >
             {content}
             {status === 'ready' ? (
-                <DiagramAgentFab rootActionIds={rootActionIds} service={service} />
+                <DiagramAgentFab diagramActionIds={diagramActionIds} rootActionIds={rootActionIds} service={service} />
             ) : null}
             <DiagramItemMenu emphasis={emphasis} service={service} />
             <DiagramActionPopup service={service} visible={viewMode === 'diagrams'} />

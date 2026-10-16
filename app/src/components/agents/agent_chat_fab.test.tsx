@@ -2,16 +2,47 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CUSTOM_PROMPT_ACTION_ID } from '../../data/action_types'
 import type { ActionRunEvent } from '../../data/action_run_types'
-import type { AgentConversation } from '../../data/data_types'
+import type { AgentConversation, WorktreeRecord } from '../../data/data_types'
 import { actionRunRegistry } from '../../services/actions/action_run_registry'
+import { actionService } from '../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
 import { configService } from '../../services/config/config_service'
 import { cardPopupService } from '../../services/card_popup_service'
 import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
+import { worktreeService } from '../../services/project/worktree_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardActionPopupHost } from '../actions/run/popup/card_action_popup_host'
 import { AgentChatFab } from './agent_chat_fab'
+
+const worktree: WorktreeRecord = {
+    branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:\feature', valid: true,
+    status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },
+}
+
+function actionFile(id: string, appliesTo: Record<string, string>) {
+    const definition = { appliesTo, description: `${id} description`, id, label: id, prompt: 'Review', type: 'agent' }
+
+    return { content: JSON.stringify(definition), path: `actions/${id}.json` }
+}
+
+function unseenProjectConversation(actionId: string): AgentConversation {
+    return {
+        actionId,
+        cardInternalId: null,
+        cardPath: null,
+        completedAt: '2026-01-01T00:01:00.000Z',
+        entries: [],
+        hasExplicitTitle: true,
+        id: `${actionId}-unseen`,
+        path: `design/activity/project.json#conversation=${actionId}-unseen`,
+        providerSessions: [],
+        startedAt: '2026-01-01T00:00:00.000Z',
+        status: 'completed',
+        title: actionId,
+        viewed: false,
+    }
+}
 
 /** The fab owns no popup of its own; the service-owned host renders it. */
 function renderFabWithPopupHost() {
@@ -50,6 +81,8 @@ describe('AgentChatFab', () => {
     afterEach(() => {
         cleanup()
         cardPopupService.clear()
+        actionService.clear()
+        worktreeService.clear()
         actionRunRegistry.stop()
         agentAcknowledgementService.reset()
         delete window.md2Actions
@@ -205,5 +238,37 @@ describe('AgentChatFab', () => {
         await waitFor(() => expect(window.md2Actions?.updateActionConversationViewed)
             .toHaveBeenCalledWith(unseenConversation.path, true))
         await waitFor(() => expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument())
+    })
+
+    it('stays idle for unviewed conversations of diagram actions and unknown actions', () => {
+        actionService.loadFromFiles([actionFile('overview', { kind: 'diagram', type: 'root' })])
+        projectConversations = [unseenProjectConversation('overview'), unseenProjectConversation('deleted-action')]
+
+        render(<AgentChatFab />, { wrapper: AppThemeProvider })
+
+        expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
+    })
+
+    it('shows an unseen result of a displayed project action', () => {
+        actionService.loadFromFiles([actionFile('review', { kind: 'project' })])
+        projectConversations = [unseenProjectConversation('review')]
+
+        render(<AgentChatFab />, { wrapper: AppThemeProvider })
+
+        expect(screen.getByRole('button', { name: 'Project agent — New agent result available' })).toBeInTheDocument()
+    })
+
+    it('counts unseen results of worktree-limited actions only while that worktree is assigned', () => {
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([worktree])
+        actionService.loadFromFiles([actionFile('assigned', { kind: 'project', worktree: '1' })])
+        projectConversations = [unseenProjectConversation('assigned')]
+        render(<AgentChatFab />, { wrapper: AppThemeProvider })
+        expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
+
+        act(() => worktreeService.setProjectActionWorktree('feature'))
+        expect(screen.getByRole('button', { name: 'Project agent — New agent result available' })).toBeInTheDocument()
+
+        act(() => worktreeService.setProjectActionWorktree(null))
+        expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
     })
 })

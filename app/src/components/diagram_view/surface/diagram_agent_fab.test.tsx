@@ -62,7 +62,7 @@ describe('DiagramAgentFab', () => {
     })
 
     it('shows exact root-context live states with shared priority', () => {
-        render(<DiagramAgentFab rootActionIds={['overview']} service={service} />, { wrapper: AppThemeProvider })
+        render(<DiagramAgentFab diagramActionIds={['overview', 'detail']} rootActionIds={['overview']} service={service} />, { wrapper: AppThemeProvider })
         if (!actionRunListener) throw new Error('Missing action run listener')
         const emit = actionRunListener as (event: ActionRunEvent) => void
         const rootEvent = {
@@ -83,7 +83,7 @@ describe('DiagramAgentFab', () => {
     })
 
     it('ignores project, child diagram, and unconfigured root action runs', () => {
-        render(<DiagramAgentFab rootActionIds={['overview']} service={service} />, { wrapper: AppThemeProvider })
+        render(<DiagramAgentFab diagramActionIds={['overview', 'detail']} rootActionIds={['overview']} service={service} />, { wrapper: AppThemeProvider })
         if (!actionRunListener) throw new Error('Missing action run listener')
         const emit = actionRunListener as (event: ActionRunEvent) => void
         const baseEvent = {
@@ -105,13 +105,13 @@ describe('DiagramAgentFab', () => {
         expect(screen.getByRole('button', { name: 'Diagram action' })).toBeInTheDocument()
     })
 
-    it('filters persisted project-origin conversations to root action IDs', () => {
+    it('filters persisted project-origin conversations to diagram action IDs', () => {
         projectConversations = [
             conversation('project-action', 'waitingForInput'),
-            conversation('detail', 'running'),
+            conversation('other-detail', 'running'),
             conversation('overview', 'completed', false),
         ]
-        render(<DiagramAgentFab rootActionIds={['overview']} service={service} />, { wrapper: AppThemeProvider })
+        render(<DiagramAgentFab diagramActionIds={['overview', 'detail']} rootActionIds={['overview']} service={service} />, { wrapper: AppThemeProvider })
 
         expect(screen.getByRole('button', { name: 'Diagram action — New agent result available' })).toBeInTheDocument()
         projectConversations = [conversation('overview', 'running'), conversation('overview', 'completed', false)]
@@ -125,7 +125,7 @@ describe('DiagramAgentFab', () => {
     it('clears unseen state only when diagram popup reports displayed conversation visible', async () => {
         const unseenConversation = conversation('overview', 'completed', false)
         projectConversations = [unseenConversation]
-        render(<DiagramAgentFab rootActionIds={['overview']} service={service} />, { wrapper: AppThemeProvider })
+        render(<DiagramAgentFab diagramActionIds={['overview', 'detail']} rootActionIds={['overview']} service={service} />, { wrapper: AppThemeProvider })
 
         expect(screen.getByRole('button', { name: 'Diagram action — New agent result available' })).toBeInTheDocument()
         agentAcknowledgementService.setConversationVisible(
@@ -140,5 +140,19 @@ describe('DiagramAgentFab', () => {
         await waitFor(() => expect(window.md2Actions?.updateActionConversationViewed)
             .toHaveBeenCalledWith(unseenConversation.path, true))
         await waitFor(() => expect(screen.getByRole('button', { name: 'Diagram action' })).toBeInTheDocument())
+    })
+
+    it('shows unseen results of child diagram actions', () => {
+        projectConversations = [conversation('detail', 'completed', false)]
+        render(<DiagramAgentFab diagramActionIds={['overview', 'detail']} rootActionIds={['overview']} service={service} />, { wrapper: AppThemeProvider })
+
+        expect(screen.getByRole('button', { name: 'Diagram action — New agent result available' })).toBeInTheDocument()
+    })
+
+    it('stays disabled without root actions even when a child action has an unseen result', () => {
+        projectConversations = [conversation('detail', 'completed', false)]
+        render(<DiagramAgentFab diagramActionIds={['detail']} rootActionIds={[]} service={service} />, { wrapper: AppThemeProvider })
+
+        expect(screen.getByRole('button', { name: /No root diagram actions configured/u })).toBeDisabled()
     })
 })

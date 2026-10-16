@@ -10,15 +10,16 @@ const ROOT_DIAGRAM_CONTEXT = diagramContext('root')
 const NO_ROOT_ACTIONS_LABEL = 'No root diagram actions configured'
 
 interface DiagramAgentFabProps {
+    diagramActionIds: string[]
     rootActionIds: string[]
     service: Pick<DiagramViewService, 'closePopup' | 'openRootPopup'>
 }
 
-/** Diagram-root agent launcher with scoped live and persisted state. */
-export function DiagramAgentFab({ rootActionIds, service }: DiagramAgentFabProps) {
+/** Diagram-root agent launcher with root live state and persisted state of all diagram actions. */
+export function DiagramAgentFab({ diagramActionIds, rootActionIds, service }: DiagramAgentFabProps) {
     const activeRuns = useActiveActionRunsForContext(ROOT_DIAGRAM_CONTEXT)
         .filter(({ rootActionId }) => rootActionIds.includes(rootActionId))
-    const persistedState = useProjectActionsAgentState(rootActionIds)
+    const persistedState = useProjectActionsAgentState(diagramActionIds)
     const state = resolveAgentFabState(activeRuns, persistedState)
     const handleActivate = (anchorElement: HTMLElement) => service.openRootPopup(anchorElement)
     const handleDragStart = () => service.closePopup()
