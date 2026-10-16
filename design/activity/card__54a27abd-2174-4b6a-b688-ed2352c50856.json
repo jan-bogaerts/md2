@@ -939,6 +939,10 @@
       "cardInternalId": "54a27abd-2174-4b6a-b688-ed2352c50856",
       "cardPath": "design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 23091
+      },
       "entries": [
         {
           "content": "read design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md. we just tried to run a sequence and it got stuck again. the card was correctly moved, but the system did not see that the action was complete. something is very much broken here.\n\n* the action was in 'waitingForInput' while the 'implement' action is configured to end automatically when the 'ready' state is reached on the card.\n* the card's state was set to 'ready'\n* when manually stopping the conversation, so the action was ready, the next card in the sequence was not started.",
@@ -955,6 +959,99 @@
           "role": "user",
           "sequence": 2,
           "timestamp": "2026-10-16T12:15:42.808Z"
+        },
+        {
+          "content": "Reconnecting... 2/5",
+          "id": "agent-turn-ed80f4b5-c6de-453d-929d-6a10b80d5ce1-event-3",
+          "kind": "event",
+          "label": "Turn failure",
+          "providerItemId": "system:01a144a3-adba-7501-b499-16b861d47fd0:error",
+          "sequence": 3,
+          "status": "failed",
+          "timestamp": "2026-10-16T12:15:44.809Z",
+          "type": "system"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ed80f4b5-c6de-453d-929d-6a10b80d5ce1-event-4",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05e1c2132f7a79d4016ad2157be21081919388bca386d84eb4",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T12:15:54.855Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll trace the documented sequence lifecycle against the current implementation, focusing on three transitions: `waitingForInput → ready`, automatic conversation completion on card `ready`, and sequence advancement after manual stop. I’ll diagnose first and won’t change files unless you ask.\n\n",
+          "id": "agent-turn-ed80f4b5-c6de-453d-929d-6a10b80d5ce1-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 5,
+          "timestamp": "2026-10-16T12:15:55.919Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md'\"",
+          "content": "---\nauthor: \nid: B_303\ninternalId: 54a27abd-2174-4b6a-b688-ed2352c50856\ntitle: sequence does not see the correct ready state\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__54a27abd-2174-4b6a-b688-ed2352c50856.json\npolicy:\nafter: 11011a61-0393-4aa1-9b89-f52be576aa72\nchangedFiles:\n  - desktop/src/actions/action/action_scheduler_service.js\n  - desktop/src/actions/schedule/scheduled_card_sequence_engine.js\n  - desktop/src/actions/schedule/scheduled_card_sequence_engine.test.mjs\n  - desktop/src/actions/schedule/sequence_worktree_execution.test.mjs\n---\n\nMost likely the sequence scheduler is monitoring the file in the worktree and not the one in the main repository. this is where the change will occur.\n\n## Findings\n\nThe hypothesis is confirmed. A sequence that runs in a worktree only reads the ready state from its worktree checkout, so a state change made in the main repository is never noticed.\n\n1. Main repository card changes reach `ActionSchedulerService.handleCardStateChange` through `local_bridge_dispatch.js`. That method calls `ScheduledCardSequenceEngine.handleCardStateChange` without a checkout path, so the path is `null`. `handleCardStateChangeNow` only accepts schedules whose `branchProgress.checkoutPath` equals the event path. A worktree sequence always has a real worktree path, so the event is filtered out. `markReadyStateMet` repeats the same check.\n2. `SequenceWorktreeExecution.watch` runs a separate `CardStateTracker` on the sequence worktree. Its events carry the worktree path, so they are the only state changes a worktree sequence currently accepts.\n3. `refreshReadyState` runs on activation, recovery and advance. It uses `ActionSchedulerService.resolveSequenceCardContext`, which loads the card from the worktree checkout and not from the main repository. A ready state set in the main repository is therefore also missed after a restart.\n4. Sequences without a worktree are not affected. They have no `branchProgress`, so both sides are `null` and main repository events match.\n\n## Proposed solution\n\nBoth the main repository and the sequence worktree are valid sources of the ready state.\n\n1. In `ScheduledCardSequenceEngine.handleCardStateChangeNow` and `markReadyStateMet`, accept an event when its checkout path is `null` (main repository) or equals the sequence's `branchProgress.checkoutPath` (sequence worktree). Events from other worktrees remain ignored.\n2. Keep `SequenceWorktreeExecution.watch` forwarding worktree transitions to the engine, unchanged.\n3. Give the engine a main repository card lookup through `ActionSchedulerService.resolveCardContext`. `refreshReadyState` marks the ready state as met when either the main repository card or the worktree card is in the ready state. `startCurrentAction` keeps using `resolveSequenceCardContext`, because the action still runs in the worktree.\n4. `ActionRunnerService.handleCardStateChange` keeps its current checkout path matching, so `autoFinish` behavior does not change.\n\n## Testing\n\nAdd regression tests to `scheduled_card_sequence_engine.test.mjs`:\n\n* a ready state set in the main repository advances a worktree sequence;\n* a ready state set in the sequence worktree still advances it;\n* a ready state set in another worktree does not advance it;\n* `refreshReadyState` detects a ready state that exists only in the main repository.\n\r\n",
+          "durationMs": 71,
+          "exitCode": 0,
+          "id": "agent-turn-ed80f4b5-c6de-453d-929d-6a10b80d5ce1-event-6",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_303_sequence_does_not_see_the_correct_ready_state.md'\"",
+          "providerItemId": "exec-551f2ad9-fd1e-47ca-a47c-3a155845ef42",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-10-16T12:15:57.535Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ed80f4b5-c6de-453d-929d-6a10b80d5ce1-event-7",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05e1c2132f7a79d4016ad21586f198819180c929133963939f",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-16T12:16:05.945Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The feature note identifies an earlier path-filtering bug, but your symptoms show a second lifecycle break: the ready signal is not being converted into action completion, and stopping the action is not advancing the sequence. I’m checking whether the documented fix was implemented and where those two responsibilities currently disconnect.\n\n",
+          "id": "agent-turn-ed80f4b5-c6de-453d-929d-6a10b80d5ce1-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 8,
+          "timestamp": "2026-10-16T12:16:07.152Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"handleCardStateChangeNow|markReadyStateMet|refreshReadyState|resolveSequenceCardContext|resolveCardContext|waitingForInput|autoFinish|startCurrentAction|advance\" desktop/src/actions desktop/src -g \"*.js\" -g \"*.mjs\"'",
+          "content": "desktop/src\\actions\\schedule\\sequence_worktree_execution.test.mjs:139:    it('advances unchanged children without empty commit or activity record', async () => {\ndesktop/src\\actions\\schedule\\sequence_worktree_execution.test.mjs:290:            resolveCardContext: async (cardInternalId) => ({ cardInternalId, kind: 'card', state: 'todo' }),\ndesktop/src/actions\\schedule\\sequence_worktree_execution.test.mjs:139:    it('advances unchanged children without empty commit or activity record', async () => {\ndesktop/src/actions\\schedule\\sequence_worktree_execution.test.mjs:290:            resolveCardContext: async (cardInternalId) => ({ cardInternalId, kind: 'card', state: 'todo' }),\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.test.mjs:68:        resolveCardContext: async (cardInternalId) => createCardContext(cardInternalId, statesByCard[cardInternalId]),\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.test.mjs:280:        harness.engine.resolveCardContext = async () => {\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.test.mjs:322:        ])('advances when the ready state is set in the %s', async (_source, checkoutPath) => {\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.test.mjs:333:        it('does not advance when the ready state is set in another worktree', async () => {\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:21:        this.resolveCardContext = dependencies.resolveCardContext;\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:37:        return this.handleCardStateChangeNow(cardInternalId, state, checkoutPath);\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:40:    async handleCardStateChangeNow(cardInternalId, state, checkoutPath) {\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:51:            await this.enqueue(schedule.id, () => this.markReadyStateMet(schedule.id, cardInternalId, checkoutPath));\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:123:        current = await this.refreshReadyState(current);\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:125:            await this.advanceOrComplete(current);\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:139:        if (!current.actionCompleted) await this.startCurrentAction(current);\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:152:    async refreshReadyState(schedule) {\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:158:            : await this.resolveCardContext(cardInternalId, schedule);\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:164:    async startCurrentAction(schedule) {\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:165:        const context = await this.resolveCardContext(schedule.cardInternalIds[schedule.currentIndex], schedule);\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:224:        if (completed.readyStateMet) await this.advanceOrComplete(completed);\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:276:    async markReadyStateMet(scheduleId, cardInternalId, checkoutPath) {\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:282:        if (ready.actionCompleted) await this.advanceOrComplete(ready);\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:285:    async advanceOrComplete(schedule) {\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:287:            await this.advanceOrCompleteNow(schedule);\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:295:    async advanceOrCompleteNow(schedule) {\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:316:        const refreshed = await this.refreshReadyState(prepared);\ndesktop/src\\actions\\schedule\\scheduled_card_sequence_engine.js:317:        await this.startCurrentAction(refreshed);\ndesktop/src/actions\\schedule\\scheduled_card_sequence_engine.test.mjs:68:        resolveCardContext: async (cardInternalId) => createCardContext(cardInternalId, statesByCard[cardInternalId]),\ndesktop/src/a\n[44508 characters omitted]\nversation.status).toBe('waitingForInput');\ndesktop/src/actions\\agent\\agent_runner_state.test.mjs:2296:        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ state: 'waitingForInput', type: 'approvalResolved' }));\ndesktop/src/actions\\agent\\agent_runner_state.test.mjs:2302:            conversation: { entries: [], status: 'waitingForInput' },\ndesktop/src/actions\\agent\\agent_runner_state.test.mjs:2312:        expect(run.conversation.status).toBe('waitingForInput');\ndesktop/src/actions\\agent\\agent_streaming_adapter.test.mjs:276:            await vi.advanceTimersByTimeAsync(10_000);\ndesktop/src/actions\\agent\\agent_streaming_adapter.test.mjs:389:            await vi.advanceTimersByTimeAsync(1_000);\ndesktop/src\\actions\\agent\\claude_runtime_service.test.mjs:54:    it('advances observation time without republishing unchanged usage', () => {\ndesktop/src/actions\\agent\\agent_streaming_event_handlers.js:30:        transitionConversationStatus(run.conversation, 'waitingForInput', new Date().toISOString(), run.phases);\ndesktop/src/actions\\agent\\agent_streaming_event_handlers.js:33:        emitRunEvent(run, { state: 'waitingForInput', type: 'state' });\ndesktop/src/actions\\agent\\agent_streaming_event_handlers.js:157:    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp, run.phases);\ndesktop/src/actions\\agent\\agent_streaming_event_handlers.js:163:    emitRunEvent(run, { state: 'waitingForInput', type: 'state' });\ndesktop/src/actions\\agent\\agent_streaming_event_handlers.js:164:    emitRunEvent(run, { questions: event.questions, requestId: event.requestId, state: 'waitingForInput', type: 'question' });\ndesktop/src/actions\\agent\\agent_streaming_event_handlers.js:171:    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp, run.phases);\ndesktop/src/actions\\agent\\agent_streaming_event_handlers.js:173:    emitRunEvent(run, { state: 'waitingForInput', type: 'state' });\ndesktop/src/actions\\agent\\agent_streaming_event_handlers.js:174:    emitRunEvent(run, { approval: event.approval, state: 'waitingForInput', type: 'approval' });\ndesktop/src/actions\\agent\\agent_streaming_event_handlers.js:186:    const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';\ndesktop/src/actions\\agent\\agent_streaming_event_handlers.js:240:    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp, run.phases);\ndesktop/src/actions\\agent\\agent_streaming_event_handlers.js:243:    emitRunEvent(run, { state: 'waitingForInput', type: 'state' });\ndesktop/src\\actions\\agent\\claude_usage_poller.test.mjs:101:        await vi.advanceTimersByTimeAsync(119_999);\ndesktop/src\\actions\\agent\\claude_usage_poller.test.mjs:103:        await vi.advanceTimersByTimeAsync(1);\ndesktop/src\\actions\\agent\\claude_usage_poller.test.mjs:441:        await vi.advanceTimersByTimeAsync(5_000);\ndesktop/src/actions\\agent\\claude_runtime_service.test.mjs:54:    it('advances observation time without republishing unchanged usage', () => {\ndesktop/src/actions\\agent\\claude_usage_poller.test.mjs:101:        await vi.advanceTimersByTimeAsync(119_999);\ndesktop/src/actions\\agent\\claude_usage_poller.test.mjs:103:        await vi.advanceTimersByTimeAsync(1);\ndesktop/src/actions\\agent\\claude_usage_poller.test.mjs:441:        await vi.advanceTimersByTimeAsync(5_000);\ndesktop/src/actions\\agent\\claude_usage_terminal_host.test.mjs:109:        await vi.advanceTimersByTimeAsync(REQUEST.timeoutMs + 5_000);\ndesktop/src/actions\\agent\\claude_usage_terminal_host.test.mjs:171:        await vi.advanceTimersByTimeAsync(REQUEST.timeoutMs + 5_000);\ndesktop/src/actions\\agent\\codex_usage_poller.test.mjs:93:        await vi.advanceTimersByTimeAsync(50);\ndesktop/src\\actions\\agent\\claude_usage_terminal_host.test.mjs:109:        await vi.advanceTimersByTimeAsync(REQUEST.timeoutMs + 5_000);\ndesktop/src\\actions\\agent\\claude_usage_terminal_host.test.mjs:171:        await vi.advanceTimersByTimeAsync(REQUEST.timeoutMs + 5_000);\ndesktop/src\\actions\\agent\\codex_usage_poller.test.mjs:93:        await vi.advanceTimersByTimeAsync(50);\n",
+          "durationMs": 28,
+          "exitCode": 0,
+          "id": "agent-turn-ed80f4b5-c6de-453d-929d-6a10b80d5ce1-event-9",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"handleCardStateChangeNow|markReadyStateMet|refreshReadyState|resolveSequenceCardContext|resolveCardContext|waitingForInput|autoFinish|startCurrentAction|advance\" desktop/src/actions desktop/src -g \"*.js\" -g \"*.mjs\"'",
+          "providerItemId": "exec-44476f74-5f09-4403-97c4-1dbc3338f185",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-10-16T12:16:08.968Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "we did get this error: Sequence checkout has uncommitted changes: C:\\Us...",
+          "id": "submission-efe3ad6c-70fa-4aa6-97ea-5c5a3581483b",
+          "kind": "message",
+          "role": "user",
+          "sequence": 10,
+          "timestamp": "2026-10-16T12:16:12.205Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -963,6 +1060,10 @@
       "startedAt": "2026-10-16T12:15:38.797Z",
       "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 22,
+          "toolMs": 133
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-10-16T12:15:38.797Z"
       },
