@@ -1055,6 +1055,14 @@
           "role": "assistant",
           "sequence": 81,
           "timestamp": "2026-10-16T13:38:37.668Z"
+        },
+        {
+          "content": "> The card worktree indicator listens for those events through useOpenWorktrees.",
+          "id": "submission-9a61d34a-855c-48b6-b622-9f221e982fc2",
+          "kind": "message",
+          "role": "user",
+          "sequence": 82,
+          "timestamp": "2026-10-16T13:40:26.509Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1080,14 +1088,14 @@
         }
       ],
       "startedAt": "2026-10-16T13:31:21.092Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 101560,
           "toolMs": 44220
         },
         "elapsedMs": 197887,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-16T13:40:26.509Z"
       },
       "title": "investigate",
       "usage": {
