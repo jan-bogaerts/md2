@@ -144,6 +144,12 @@ function readArgumentJson(name, fallback) {
     return JSON.parse(decodeURIComponent(value));
 }
 
+function readStartupProjectPath() {
+    const value = readArgumentValue('md2-startup-project');
+
+    return value ? decodeURIComponent(value) : null;
+}
+
 function createEventId(method) {
     const eventId = `${method}-${nextEventId}`;
     nextEventId += 1;
@@ -280,8 +286,10 @@ if (!isAllowedOrigin()) {
     };
     const sentryBridge = { request: (request) => ipcRenderer.invoke(SENTRY_REQUEST_CHANNEL, request) };
     const fileBridge = { getPathForFile: (file) => webUtils.getPathForFile(file) };
+    const startupProjectPath = readStartupProjectPath();
     const dataBridge = {
         ...createBridge(DATA_METHODS),
+        getStartupProjectPath: () => startupProjectPath,
         onMergeConflictSessionChanged: (callback) => subscribeBridge('onMergeConflictSessionChanged', [], callback),
         onAgentModelCatalogChanged: (callback) => subscribeBridge('onAgentModelCatalogChanged', [], callback),
         onWorktreesChanged: (callback) => subscribeBridge('onWorktreesChanged', [], callback),

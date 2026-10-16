@@ -52,6 +52,23 @@ function folderSetupOf(resolution: ProjectOpenResolution | null): ProjectFolderS
         : null
 }
 
+/** Resolves a command-line folder to its local project; reports failures and returns null. */
+async function resolveStartupProject(rootPath: string) {
+    const bridge = getElectronDataBridge()
+    if (!bridge) {
+        dialogService.displayError('Local project bridge is unavailable')
+
+        return null
+    }
+    try {
+        return unwrapBridgeResult(await bridge.resolveProject({ branch: '', id: rootPath, rootPath }))
+    } catch (error) {
+        dialogService.error(error, { fallbackMessage: 'Could not open project folder' })
+
+        return null
+    }
+}
+
 export function isDesktopProjectMode() {
     return !!getElectronDataBridge()
 }
@@ -264,6 +281,30 @@ export class ProjectOpenFlowService extends EventTarget {
         } catch {
             // ProjectSessionService emits the user-visible error.
             this.update({ phase: 'folder-setup' })
+        }
+    }
+
+    /** Opens the folder passed on the command line; failures fall back to the local open dialog. */
+    async openStartupProject(rootPath: string) {
+        const project = await resolveStartupProject(rootPath)
+        if (!project) {
+            this.show({ source: 'local' })
+
+            return
+        }
+        try {
+            const resolution = await projectSessionService.openProject('local', project, null)
+            this.pendingLocalRootPath = project.rootPath ?? null
+            const folderSetup = folderSetupOf(resolution)
+            if (folderSetup) {
+                this.update({ phase: 'folder-setup', resolution: folderSetup, folderValues: folderSetup.values })
+
+                return
+            }
+            await this.recordOpenedLocalProject()
+        } catch {
+            // ProjectSessionService emits the user-visible error.
+            this.show({ source: 'local' })
         }
     }
 

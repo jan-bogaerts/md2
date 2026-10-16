@@ -19,6 +19,8 @@ function createDependencies(overrides: Partial<ApplicationStartupDependencies> =
         initializeAgentCapabilities: vi.fn(async () => {}),
         refreshStartupModelCatalogs: vi.fn(async () => {}),
         initializeServices: vi.fn(),
+        openStartupProject: vi.fn(async () => {}),
+        readStartupProjectPath: vi.fn(() => null),
         restoreGithubSession: vi.fn(async () => {}),
         restoreLastProject: vi.fn(async () => null),
         ...overrides,

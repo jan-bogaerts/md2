@@ -68,6 +68,8 @@ const { registerUpdateBridge, UpdateService } = require('./src/shell/update_serv
 const { CloseCoordinator } = require('./src/shell/close_coordinator');
 const { createManagedWindow } = require('./src/shell/window_state');
 const { ProjectStatsWorkerService } = require('./src/stats/project_stats_worker_service');
+const { readStartupProjectPath } = require('./src/shell/startup_project_argument');
+const { registerRecentProjectsJumpList } = require('./src/shell/recent_projects_jump_list');
 
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
@@ -83,6 +85,7 @@ const SUBSCRIPTION_METHODS = new Set([
     'watchProject',
 ]);
 
+const startupProjectPath = readStartupProjectPath(process.argv, app.isPackaged);
 const store = new Store();
 const applicationStateStore = createApplicationStateStore(Store);
 Store.initRenderer();
@@ -318,13 +321,19 @@ function registerThemeBridge() {
     });
 }
 
-function createWindow() {
+function createWindow(projectPath) {
     const mode = resolveThemeMode(store.get(THEME_MODE_STORE_KEY));
     const desktopConfig = readDesktopConfig(store);
     const rendererTarget = resolveRendererTarget(app.isPackaged, __dirname);
     const bridgeAllowedOrigins = rendererTarget.type === 'url'
         ? resolveBridgeAllowedOrigins(desktopConfig, rendererTarget.url)
         : [];
+    const additionalArguments = [
+        `--md2-bridge-allowed-origins=${encodeURIComponent(JSON.stringify(bridgeAllowedOrigins))}`,
+        `--md2-bridge-trusted-location=${encodeURIComponent(rendererTarget.trustedLocation)}`,
+        `--md2-desktop-config=${encodeURIComponent(JSON.stringify(desktopConfig))}`,
+    ];
+    if (projectPath) additionalArguments.push(`--md2-startup-project=${encodeURIComponent(projectPath)}`);
     nativeTheme.themeSource = mode;
 
     const browserWindowOptions = {
@@ -332,11 +341,7 @@ function createWindow() {
         titleBarStyle: 'hidden',
         titleBarOverlay: resolveTitleBarOverlay(mode),
         webPreferences: {
-            additionalArguments: [
-                `--md2-bridge-allowed-origins=${encodeURIComponent(JSON.stringify(bridgeAllowedOrigins))}`,
-                `--md2-bridge-trusted-location=${encodeURIComponent(rendererTarget.trustedLocation)}`,
-                `--md2-desktop-config=${encodeURIComponent(JSON.stringify(desktopConfig))}`,
-            ],
+            additionalArguments,
             preload: path.join(__dirname, 'src', 'shell', 'preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
@@ -416,12 +421,13 @@ app.whenReady().then(async () => {
     registerThemeBridge();
     const getPrimaryWindow = () => BrowserWindow.getAllWindows()[0] ?? null;
     registerUpdateBridge({ getWindow: getPrimaryWindow, ipcMain, updateService });
-    createWindow();
+    registerRecentProjectsJumpList({ app, applicationStateStore, errorReporter: captureError });
+    createWindow(startupProjectPath);
     void updateService.checkForUpdate();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
+            createWindow(null);
         }
     });
 });

@@ -9,7 +9,7 @@ const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 if (!env.MD2_APP_URL) env.MD2_APP_URL = DEVELOPMENT_APP_URL;
 
-const child = spawn(electron, ['.'], {
+const child = spawn(electron, ['.', ...process.argv.slice(2)], {
     env,
     stdio: 'inherit',
 });

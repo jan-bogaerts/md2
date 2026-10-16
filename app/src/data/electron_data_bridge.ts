@@ -54,6 +54,7 @@ export interface ElectronDataBridge {
     hasPendingPush(project: ProjectReference): Promise<boolean>
     continueMergeConflict?(request: MergeConflictSessionRequest): Promise<WorktreeOperationOutcome>
     getMergeConflictSession?(): Promise<MergeConflictSession | null>
+    getStartupProjectPath?(): string | null
     integrateWorktree?(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome>
     launchMergeConflictResolver?(request: MergeConflictPathRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
