@@ -4,6 +4,7 @@ const { currentGitOperationContext, runWithGitOperationContext } = require('../.
 const { CardStateTracker } = require('../card/card_state_tracker');
 
 const INTEGRATION_LABEL = 'Integrate into project';
+const STEP_COMMIT_LABEL = 'Complete sequence card';
 
 /** Owns one sequence's checkout, branch transitions, and recovery evidence. */
 class SequenceWorktreeExecution {
@@ -153,7 +154,7 @@ class SequenceWorktreeExecution {
         await this.requireLinkedCheckout(current.branchProgress);
         if (['child-ready', 'running'].includes(current.branchProgress.phase)) {
             await this.requireBranch(checkoutPath, childBranch);
-            await this.requireClean(checkoutPath);
+            await this.commitStepChanges(checkoutPath);
             const sourceCommit = await this.git(checkoutPath, ['rev-parse', 'HEAD']);
             const sourceTree = await this.git(checkoutPath, ['rev-parse', 'HEAD^{tree}']);
             const targetCommit = await this.git(checkoutPath, ['rev-parse', sequenceBranch]);
@@ -274,6 +275,12 @@ class SequenceWorktreeExecution {
 
     async requireClean(checkoutPath) {
         if (await this.git(checkoutPath, ['status', '--porcelain'])) throw new Error(`Sequence checkout has uncommitted changes: ${checkoutPath}`);
+    }
+
+    async commitStepChanges(checkoutPath) {
+        if (!await this.git(checkoutPath, ['status', '--porcelain'])) return;
+        await this.git(checkoutPath, ['add', '-A']);
+        await this.git(checkoutPath, ['commit', '-m', STEP_COMMIT_LABEL]);
     }
 
     async requireBranch(checkoutPath, expectedBranch) {

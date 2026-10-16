@@ -7,7 +7,7 @@ const { resolveWorktreeAssignment } = require('../../../shared/worktree_assignme
 
 const PARKING_BRANCH_PREFIX = 'md2/parking/';
 const REMOVAL_MODES = new Set(['files', 'folder', 'unregister']);
-const REFRESH_INTERVAL_MS = 5000;
+const REFRESH_INTERVAL_MS = 10000;
 const INTEGRATION_COMMIT_MESSAGE = 'Integrate into project';
 const PRIMARY_CHECKPOINT_MESSAGE = 'Save project changes before worktree synchronization';
 const WORKTREE_MUTATION_COMMANDS = new Set(['add', 'commit', 'switch', 'checkout', 'reset', 'rebase', 'merge', 'pull', 'push']);

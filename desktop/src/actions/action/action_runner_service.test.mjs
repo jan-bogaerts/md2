@@ -328,10 +328,10 @@ describe('ActionRunnerService', () => {
         expect(runner.loadRunRecoverySnapshot([]).activeRunEvents).toEqual([firstEvent, secondEvent]);
     });
 
-    it('forwards card-state changes to every live run', () => {
+    it('forwards primary card-state changes to ordinary and sequence runs', () => {
         const { runner } = createRunner();
-        const firstRun = { handleCardStateChange: vi.fn() };
-        const secondRun = { handleCardStateChange: vi.fn() };
+        const firstRun = { context: {}, handleCardStateChange: vi.fn() };
+        const secondRun = { context: { sequenceCheckoutPath: 'C:/sequence' }, handleCardStateChange: vi.fn() };
         runner.runs.set('first', firstRun);
         runner.runs.set('second', secondRun);
 
@@ -339,6 +339,22 @@ describe('ActionRunnerService', () => {
 
         expect(firstRun.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
         expect(secondRun.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
+    });
+
+    it('forwards worktree card-state changes only to runs in that checkout', () => {
+        const { runner } = createRunner();
+        const primaryRun = { context: {}, handleCardStateChange: vi.fn() };
+        const matchingSequenceRun = { context: { sequenceCheckoutPath: 'C:/sequence' }, handleCardStateChange: vi.fn() };
+        const otherSequenceRun = { context: { sequenceCheckoutPath: 'C:/other' }, handleCardStateChange: vi.fn() };
+        runner.runs.set('primary', primaryRun);
+        runner.runs.set('matching-sequence', matchingSequenceRun);
+        runner.runs.set('other-sequence', otherSequenceRun);
+
+        runner.handleCardStateChange('card-1', 'ready', 'C:/sequence');
+
+        expect(primaryRun.handleCardStateChange).not.toHaveBeenCalled();
+        expect(matchingSequenceRun.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
+        expect(otherSequenceRun.handleCardStateChange).not.toHaveBeenCalled();
     });
 
     it('requires project and collaborators before start', async () => {

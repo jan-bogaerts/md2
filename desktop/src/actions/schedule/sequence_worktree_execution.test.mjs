@@ -44,6 +44,7 @@ function harness(initial = schedule()) {
             const [command, ...argumentsRest] = argumentsValue;
             const head = state.branches.get(root === PROJECT.rootPath ? 'main' : state.branch);
             if (command === 'status') return state.dirty ? 'M file' : '';
+            if (command === 'add') { state.indexTree = 'working-tree'; return ''; }
             if (command === 'check-ref-format' || command === 'merge-base') return '';
             if (command === 'branch' && argumentsRest[0] === '--show-current') return root === PROJECT.rootPath ? PROJECT.branch : state.branch;
             if (command === 'branch' && argumentsRest[0] === '-D') { state.branches.delete(argumentsRest[1]); return ''; }
@@ -69,8 +70,9 @@ function harness(initial = schedule()) {
             if (command === 'diff' || command === 'ls-files') return '';
             if (command === 'write-tree') return state.indexTree;
             if (command === 'commit') {
-                state.commits.set('integrated', { message: argumentsRest[1], parent: head, tree: state.indexTree });
-                state.branches.set(state.branch, 'integrated');
+                const commit = state.branch === 'sequence-card-1' ? 'step-commit' : 'integrated';
+                state.commits.set(commit, { message: argumentsRest[1], parent: head, tree: state.indexTree });
+                state.branches.set(state.branch, commit);
                 state.indexTree = null;
                 state.dirty = false;
                 return '';
@@ -128,12 +130,14 @@ describe('SequenceWorktreeExecution', () => {
         expect(test.state.branches.has('sequence-card-1')).toBe(true);
     });
 
-    it('stops dirty integration without committing, switching, or discarding files', async () => {
+    it('commits all child checkout changes before integration', async () => {
         const test = harness(schedule(progress()));
         test.state.dirty = true;
-        await expect(test.execution.integrate(test.state.persisted)).rejects.toThrow('uncommitted changes');
-        expect(test.state.branch).toBe('sequence-card-1');
-        expect(test.worktreeService.runGit.mock.calls.some(([, argumentsValue]) => ['commit', 'switch', 'reset'].includes(argumentsValue[0]))).toBe(false);
+        const integrated = await test.execution.integrate(test.state.persisted);
+        expect(integrated.branchProgress.phase).toBe('recorded');
+        expect(test.worktreeService.runGit).toHaveBeenCalledWith(CHECKOUT, ['add', '-A']);
+        expect(test.worktreeService.runGit).toHaveBeenCalledWith(CHECKOUT, ['commit', '-m', 'Complete sequence card']);
+        expect(test.state.commits.get('step-commit')).toMatchObject({ parent: 'change', tree: 'working-tree' });
     });
 
     it('advances unchanged children without empty commit or activity record', async () => {

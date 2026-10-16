@@ -1,83 +1,58 @@
 {
   "schedules": [
     {
-      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
-      "context": {
-        "kind": "card",
-        "file": "design/feature_descriptions/F_377_extract_diagram_edit_transaction_plumbing.md",
-        "title": "Extract diagram edit transaction plumbing",
-        "cardInternalId": "2245678c-d69e-4b1d-b6b8-cca720fc468d",
-        "type": "feature",
-        "state": "design"
+      "agentSelection": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "thinkingLevel": "medium",
+        "permissionMode": "approve-for-me",
+        "speedMode": "default"
       },
-      "createdAt": "2026-10-02T13:07:28.823Z",
-      "id": "schedule-1790946448823-9wdts29b",
-      "kind": "action",
-      "status": "failed",
-      "trigger": {
-        "timestamp": "2026-10-02T13:12:00.000Z",
-        "type": "at"
-      }
-    },
-    {
-      "worktreeBranch": "md2/parking/dev3",
+      "worktreeBranch": "md2/parking/dev2",
       "branchProgress": {
-        "checkoutPath": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3",
-        "expectedBranch": "md2/sequence/f2304624-b15f-48ab-90dc-6a62de4d9270-card-1-e164cd2b-6658-414e-854e-40e4f4209236",
-        "sequenceBranch": "md2/sequence/f2304624-b15f-48ab-90dc-6a62de4d9270",
-        "baseCommit": "f63b48e6e769410fedf7420aac6c023ad083dcef",
-        "childBranch": "md2/sequence/f2304624-b15f-48ab-90dc-6a62de4d9270-card-1-e164cd2b-6658-414e-854e-40e4f4209236",
+        "checkoutPath": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2",
+        "expectedBranch": "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9-card-4-d0fb2df5-a6fe-4d58-a5a4-04a5d95992d6",
+        "sequenceBranch": "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9",
+        "baseCommit": "cc413259c7d6c53be9eb06398b56df7067e59999",
+        "childBranch": "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9-card-4-d0fb2df5-a6fe-4d58-a5a4-04a5d95992d6",
         "sourceCommit": null,
-        "targetCommit": "f63b48e6e769410fedf7420aac6c023ad083dcef",
+        "targetCommit": "44ff2a79fb62799eea081861e393e337c6aa181a",
         "integrationCommit": null,
         "sourceTree": null,
-        "runId": "action-25481df9-0ea9-4533-b1bd-5d3a39642958",
+        "runId": "action-8f696944-bd90-4cc1-a914-7742d1f8e965",
         "childBranches": [
-          "md2/sequence/f2304624-b15f-48ab-90dc-6a62de4d9270-card-1-e164cd2b-6658-414e-854e-40e4f4209236"
+          "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9-card-1-816dad89-fe37-4d56-85ef-9cd0db1ebd3e",
+          "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9-card-2-4ea4a818-e043-4e1c-b2c8-e3a9f95e9f9d",
+          "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9-card-3-ba14c88e-47bc-4ba0-b947-e43489798a5f",
+          "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9-card-4-d0fb2df5-a6fe-4d58-a5a4-04a5d95992d6"
         ],
-        "childCommits": {},
+        "childCommits": {
+          "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9-card-1-816dad89-fe37-4d56-85ef-9cd0db1ebd3e": "6f249f079f1ea914b604dad28789ded3534118c6",
+          "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9-card-2-4ea4a818-e043-4e1c-b2c8-e3a9f95e9f9d": "998bf73171b787afe36fd0d706866b71eb9a4447",
+          "md2/sequence/6628f395-e470-4627-8fa4-8ccbd20d37f9-card-3-ba14c88e-47bc-4ba0-b947-e43489798a5f": "5ba9ad5f275fbb947660164029a726afd45d5262"
+        },
         "phase": "running"
       },
       "actionCompleted": false,
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalIds": [
-        "2245678c-d69e-4b1d-b6b8-cca720fc468d",
-        "11011a61-0393-4aa1-9b89-f52be576aa72"
+        "9b09a37c-cd87-4996-a6cd-ef49b2f60090",
+        "a26843ed-31d2-45f1-93b7-80a3256094d2",
+        "bdfd6fc4-a938-4be2-86c7-2d8f92c55d96",
+        "e92bddab-43a2-497f-8493-cfa6f39a089e"
       ],
-      "currentIndex": 0,
-      "currentRunId": null,
-      "failure": "Cannot recover sequence action run action-25481df9-0ea9-4533-b1bd-5d3a39642958: Unknown action run: action-25481df9-0ea9-4533-b1bd-5d3a39642958",
+      "conversationId": "agent-f8166100-b4e6-4465-b8ab-2a8fe1a9200e",
+      "currentIndex": 3,
+      "currentRunId": "action-8f696944-bd90-4cc1-a914-7742d1f8e965",
+      "failure": null,
       "readyState": "ready",
-      "readyStateMet": false,
-      "createdAt": "2026-10-13T12:53:41.654Z",
-      "id": "schedule-1791896021654-jvp09iga",
+      "readyStateMet": true,
+      "createdAt": "2026-10-16T13:20:48.972Z",
+      "id": "schedule-1792156848972-ldh49w3u",
       "kind": "sequence",
-      "status": "failed",
+      "status": "running",
       "trigger": {
-        "timestamp": "2026-10-13T13:00:00.000Z",
-        "type": "at"
-      }
-    },
-    {
-      "actionId": "md2.custom-prompt",
-      "context": {
-        "kind": "card",
-        "file": "design/feature_descriptions/F_380_add_possibility_to_support_task_tracking_tool.md",
-        "title": "add possibility to support task-tracking tool",
-        "cardInternalId": "94766c8f-2f01-42ee-b389-7e03c1753946",
-        "type": "feature",
-        "state": "design"
-      },
-      "createdAt": "2026-10-13T17:26:30.267Z",
-      "id": "schedule-1791912390267-qo8ombgp",
-      "kind": "action",
-      "status": "failed",
-      "trigger": {
-        "agent": "claude",
-        "expectedResetAt": "2026-10-13T18:50:00.000Z",
-        "limitId": "default",
-        "type": "account-reset",
-        "windowId": "five_hour"
+        "type": "now"
       }
     }
   ]

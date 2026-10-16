@@ -538,7 +538,9 @@ class ActionRunnerService {
 
     handleCardStateChange(cardInternalId, state, checkoutPath = null) {
         for (const run of this.runs.values()) {
-            if ((run.context?.sequenceCheckoutPath ?? null) !== checkoutPath) continue;
+            const sequenceCheckoutPath = run.context?.sequenceCheckoutPath ?? null;
+            const isPrimarySequenceEvent = sequenceCheckoutPath !== null && checkoutPath === null;
+            if (!isPrimarySequenceEvent && sequenceCheckoutPath !== checkoutPath) continue;
             run.handleCardStateChange(cardInternalId, state);
         }
     }

@@ -3,7 +3,7 @@ author:
 id: F_433
 internalId: bdfd6fc4-a938-4be2-86c7-2d8f92c55d96
 title: codex plan decoder
-status: design
+status: ready
 owner: 
 affects:
 agents:
