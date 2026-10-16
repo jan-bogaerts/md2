@@ -3,13 +3,24 @@ author:
 id: F_431
 internalId: 9b09a37c-cd87-4996-a6cd-ef49b2f60090
 title: agent task list model and run update
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__9b09a37c-cd87-4996-a6cd-ef49b2f60090.json
 policy:
 after: c4a908bd-423a-4c5f-8a18-1a5e24d91740
+changedFiles:
+  - app/src/data/action_run_types.ts
+  - app/src/data/data_types.ts
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
+  - app/src/services/agents/agent_conversation_service.node.test.ts
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run.test.mjs
+  - desktop/src/actions/agent/agent_runner_service.js
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
+  - shared/agent_conversations.mjs
 ---
 
 Part of [F_380](F_380_add_possibility_to_support_task_tracking_tool.md). Provider-neutral task list on the conversation, persisted and sent to the renderer. Provider decoders ([F_432](F_432_claude_task_list_decoder.md), [F_433](F_433_codex_plan_decoder.md)) and the panel ([F_434](F_434_agent_task_list_component.md)) build on this.
