@@ -11,9 +11,12 @@ agents:
 policy:
 after: 11011a61-0393-4aa1-9b89-f52be576aa72
 changedFiles:
+  - desktop/src/actions/action/action_runner_service.js
+  - desktop/src/actions/action/action_runner_service.test.mjs
   - desktop/src/actions/action/action_scheduler_service.js
   - desktop/src/actions/schedule/scheduled_card_sequence_engine.js
   - desktop/src/actions/schedule/scheduled_card_sequence_engine.test.mjs
+  - desktop/src/actions/schedule/sequence_worktree_execution.js
   - desktop/src/actions/schedule/sequence_worktree_execution.test.mjs
 ---
 
