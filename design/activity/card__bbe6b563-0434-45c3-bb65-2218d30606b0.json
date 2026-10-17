@@ -1380,6 +1380,14 @@
           "role": "assistant",
           "sequence": 100,
           "timestamp": "2026-10-17T09:47:18.445Z"
+        },
+        {
+          "content": "> The cardInternalId exists exactly once.\r\n> The card has id, status, and title.\r\n> Its ID maps to a configured card type.\n\nthese checks should not be done, remove. Nothing should be loaded for checking these cards.\n\n> The action exists.\r\n> The selected agent profile, executable, and model exist.\r\n> The selected worktree branch exists, belongs to the repository, is available, and has the expected branch.\n\nhow and why are these things validated?\n\nreasons given to keep the popup open are not sufficient. it should close sooner\n\nabout your better submission flow:\n\n* why is 'load project' in there? it is already loaded.\n* why do we need to validate these cards? none of the info being checked is crucial for the algorithm.&#x20;\n* rest of flow seems ok\n* `Run git worktree list once to locate the selected checkout.` why do we need to run this? other parts of the system already do this on a regular basis. we should have this info already",
+          "id": "submission-d22d7145-b8c7-4f78-af07-e0b6f77b1c0b",
+          "kind": "message",
+          "role": "user",
+          "sequence": 101,
+          "timestamp": "2026-10-17T10:11:44.666Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1394,14 +1402,14 @@
         }
       ],
       "startedAt": "2026-10-17T09:23:37.798Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 641,
           "toolMs": 14165
         },
         "elapsedMs": 271599,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-17T10:11:44.666Z"
       },
       "title": "investigate",
       "usage": {
