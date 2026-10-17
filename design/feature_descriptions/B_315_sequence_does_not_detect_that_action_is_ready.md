@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 2775052a-2e84-4466-a320-155c8ec05bac
 ---
 
 The first card in a sequence is ready. The 'ready' state was correctly detected. the action is also done, but the sequence runner did not detect that the action was ready. this is a problem. Now the sequence is stuck. what caused this?
