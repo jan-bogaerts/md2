@@ -1773,14 +1773,14 @@
         }
       ],
       "startedAt": "2026-10-17T09:23:37.798Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 762,
           "toolMs": 15169
         },
-        "elapsedMs": 318425,
-        "runningStartedAt": "2026-10-17T10:16:50.040Z"
+        "elapsedMs": 359737,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
@@ -1791,7 +1791,7 @@
         "totalTokens": 5069658
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
