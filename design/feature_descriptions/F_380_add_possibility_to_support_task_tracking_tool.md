@@ -3,13 +3,13 @@ author:
 id: F_380
 internalId: 94766c8f-2f01-42ee-b389-7e03c1753946
 title: add possibility to support task-tracking tool
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__94766c8f-2f01-42ee-b389-7e03c1753946.json
 policy:
-after: 2775052a-2e84-4466-a320-155c8ec05bac
+after: b2cc61d8-9d79-41d0-b8bb-082a01cb0db4
 changedFiles:
   - design/feature_descriptions/F_430_agent_task_tracking_setting.md
   - design/feature_descriptions/F_431_agent_task_list_model_and_run_update.md

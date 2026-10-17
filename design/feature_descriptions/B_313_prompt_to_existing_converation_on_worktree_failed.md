@@ -15,6 +15,7 @@ changedFiles:
   - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/components/actions/run/popup/action_popup_operations.node.test.ts
   - app/src/components/actions/run/popup/action_popup_operations.ts
+after: b6bfdd41-b224-4656-8ba0-12c841e72bac
 ---
 I have a card. it was assigned to a worktree, then we started an agent, which ran in the worktree. there were no file changes, so we switched to the primary repository again.
 

@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__0a89e47c-403c-4f6f-aa8b-97c9493dd2d4.json
 policy:
+after: 7fe6eb2d-0bcd-43aa-ba7c-f1fb3ade4a4c
 ---
 
 The project agent fab indicates that there are `new agent results available`, but when opening the action popup, there is no action button to be found that indicates the same state.
