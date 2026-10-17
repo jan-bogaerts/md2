@@ -3,7 +3,7 @@ author:
 id: J_62
 internalId: bbe6b563-0434-45c3-bb65-2218d30606b0
 title: analyze start sequence traces
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,14 @@ agents:
 policy:
 branch: j_62_analyze_start_sequence_traces
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/sequence/card_sequence_registration.node.test.ts
+  - app/src/components/actions/run/sequence/card_sequence_registration.ts
+  - desktop/main.js
+  - desktop/src/actions/schedule/sequence_worktree_execution.test.mjs
+  - desktop/src/git/worktree_service.js
+  - desktop/tmp_edit.py
+  - desktop/tmp_edit_scheduler_tests.py
 ---
 
 Starting a sequence takes a long time. the `add sequence` popup also remains open long after it is visually clear that the first action already started.
