@@ -20,10 +20,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "35e2668b-44b4-4be8-9a82-cc3c7f2b4003",
       "cardPath": "design/feature_descriptions/B_317_usage_metrics_not_committed.md",
-      "completedAt": "2026-10-19T09:35:52.754Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 99850
+        "usedTokens": 114616
       },
       "entries": [
         {
@@ -658,6 +658,307 @@
           "role": "assistant",
           "sequence": 50,
           "timestamp": "2026-10-19T09:35:52.754Z"
+        },
+        {
+          "content": "this is a bit too much cause that would generate a lot of commits cause the file is updated regularly. instead we need to just include it when other files also are going to be committed. so it's a bit of a 'commit with other commits'",
+          "id": "submission-5646d79f-ef68-4cdb-8bef-abf12bd4ea0c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 51,
+          "timestamp": "2026-10-19T09:55:46.319Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-52",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgBPsntMavpSTZkE4fLp4:thinking:0",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-19T09:55:57.670Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; grep -rn \"new CommitBatcher\" app/src | grep -v \"\\.test\\.\"; grep -rn \"projectUsageMetricsService.load\" -B8 app/src/services/stats/project_stats_loader.ts | head -20",
+          "content": "app/src/services/data/data_service.ts:226:        this.commitBatcher = new CommitBatcher(this.cards, () => configService.get('project.autoCommitDelayMs'))\n94-        const repositoryFiles = await binding.storage.listRepositoryFiles(binding.project);\n95-        if (!isCurrent()) return null;\n96-        const { currentActivityPaths, releaseActivityPaths } = findStatsSourcePaths(repositoryFiles, binding.config);\n97-        const [current, released] = await Promise.all([\n98-            this.calculateStats(binding.storage, binding.project, currentActivityPaths, signal),\n99-            this.loadReleasedStats(binding, repositoryFiles, releaseActivityPaths, signal),\n100-        ]);\n101-        if (!isCurrent()) return null;\n102:        const usageMetrics = await projectUsageMetricsService.load(",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-53",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; grep -rn \"new CommitBatcher\" app/src | grep -v \"\\.test\\.\"; grep -rn \"projectUsageMetricsService.load\" -B8 app/src/services/stats/project_stats_loader.ts | head -20",
+          "providerItemId": "toolu_01KgXZMKM482BwjKQN4W88FY",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:56:00.217Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; sed -n 215,235p app/src/services/data/data_service.ts; grep -n \"projectFolder\\|designFolder\" app/src/services/data/data_service.ts | head; grep -rn \"projectFolder\" app/src/services/stats/project_stats_loader.ts | head -5",
+          "content": "            clearCardBranch: (path) => this.cards.clearCardBranch(path),\n            flushPendingChanges: flushAggregatePendingChanges,\n            projectFolderProvider: () => this.requireDependencies().config.projectFolder,\n            projectProvider: () => this.projectState.project,\n            queueIntegratedActivity: (path) => this.queueIntegratedActivity(path),\n            snapshotProvider: () => this.projectState.snapshot,\n            storageProvider: () => this.storage,\n            unassignCardWorktree: (path) => this.cards.updateCardWorktree(path, null),\n        })\n        this.agents.startScheduledRunWatch()\n        this.conversationPins.start()\n        this.commitBatcher = new CommitBatcher(this.cards, () => configService.get('project.autoCommitDelayMs'))\n        this.commitBatcher.addEventListener(\n            COMMIT_BATCHER_FLUSH_FAILED_EVENT,\n            (event) => this.reportCommitFlushFailure((event as CustomEvent<unknown>).detail),\n        )\n        this.commitBatcher.addEventListener(\n            COMMIT_BATCHER_PENDING_CHANGED_EVENT,\n            () => this.dispatchPersistenceChanged(),\n        )\n        this.dispatchChanged()\n217:            projectFolderProvider: () => this.requireDependencies().config.projectFolder,\n34:    const activityFolder = normalizePath(projectActivityFolder(config.projectFolder));\n104:            binding.config.projectFolder,\n127:        const statsPath = projectStatsFilePath(binding.config.projectFolder);",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-54",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; sed -n 215,235p app/src/services/data/data_service.ts; grep -n \"projectFolder\\|designFolder\" app/src/services/data/data_service.ts | head; grep -rn \"projectFolder\" app/src/services/stats/project_stats_loader.ts | head -5",
+          "providerItemId": "toolu_01HcRPcqgEBuKpLhag5eMz58",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:56:04.683Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-55",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgBPu4JaRorqW1Nc7NFqQ:thinking:0",
+          "sequence": 55,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-19T09:56:11.294Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; grep -n \"commitFiles\\|commitProjectFiles\" desktop/src/shell/local_bridge_dispatch.js; grep -n \"function holdProjectMutation\" -A8 desktop/src/project/project_files.js",
+          "content": "91:function holdProjectMutation(rootPath, operation) {\n92-    return projectOperationCoordinator.run(rootPath, () => withGitIndexMutation(rootPath, operation));\n93-}\n94-\n95-async function isTrackedFile(rootPath, repositoryPath) {\n96-    try {\n97-        await runGit(rootPath, ['ls-files', '--error-unmatch', '--', repositoryPath]);\n98-\n99-        return true;",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-56",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; grep -n \"commitFiles\\|commitProjectFiles\" desktop/src/shell/local_bridge_dispatch.js; grep -n \"function holdProjectMutation\" -A8 desktop/src/project/project_files.js",
+          "providerItemId": "toolu_011HQ9yLVVBQ7wuK1edqKZQb",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:56:12.756Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; grep -rn \"projectFiles.commit\\|\\.commit(request\\|commit: (\" desktop/src/shell/*.js desktop/main.js | grep -v test; grep -n \"^module.exports\" -A30 desktop/src/project/project_files.js | grep -n commit",
+          "content": "desktop/src/shell/local_bridge_dispatch.js:221:            await localGitService.commit(request, currentLocalProject);\ndesktop/src/shell/local_bridge_dispatch.js:301:            return worktreeService.commit(request.project, request.worktreeBranch, request.message);\ndesktop/src/shell/local_bridge_dispatch.js:314:                await uncommittedProjectWrites.commit(request.project.rootPath);\n2:548-    commit,\n3:549-    commitNow,",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-57",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; grep -rn \"projectFiles.commit\\|\\.commit(request\\|commit: (\" desktop/src/shell/*.js desktop/main.js | grep -v test; grep -n \"^module.exports\" -A30 desktop/src/project/project_files.js | grep -n commit",
+          "providerItemId": "toolu_01DhvE3DTr4TypCsVoCjz3qc",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:56:15.279Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; sed -n 205,235p desktop/src/shell/local_bridge_dispatch.js; grep -n \"commit(request\\|commit(\" desktop/src/git/local_git_service.js | head",
+          "content": "            if (!projectStatsWorkerService) return undefined;\n\n            return projectStatsWorkerService.cancel(calculationId);\n        },\n        checkoutBranch: async (project, branch) => {\n            const checkedOutProject = await localGitService.checkoutBranch(project, branch);\n            await activateProject(checkedOutProject);\n\n            return currentLocalProject;\n        },\n        cancelActionSchedule: (project, actionsFolder, scheduleId) => {\n            if (actionSchedulerService) return actionSchedulerService.cancelActionSchedule(scheduleId);\n\n            return localGitService.cancelActionSchedule(project, actionsFolder, scheduleId);\n        },\n        commit: async (request) => {\n            await localGitService.commit(request, currentLocalProject);\n\n            return [];\n        },\n        createProject: async (project, folders) => {\n            const createdProject = await localGitService.createProject(project, folders);\n            await activateProject(createdProject);\n\n            return currentLocalProject;\n        },\n        deleteFile: async (request) => {\n            if (actionRunnerService) await actionRunnerService.cancelCompactsForPath(request.path);\n            return localGitService.deleteFile(request, currentLocalProject);\n        },\n        deleteFolder: async (request) => {",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-58",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; sed -n 205,235p desktop/src/shell/local_bridge_dispatch.js; grep -n \"commit(request\\|commit(\" desktop/src/git/local_git_service.js | head",
+          "providerItemId": "toolu_01DZrcNM47LsUrU2tX4XJZ3J",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:56:18.180Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-59",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgBPv3HbDNFZTGBH6Ancm:thinking:0",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-19T09:56:20.091Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Confirming dispatch dependencies, then rewriting the doc sections.",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 60,
+          "timestamp": "2026-10-19T09:56:20.092Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; sed -n 60,95p desktop/src/shell/local_bridge_dispatch.js; sed -n 165,185p desktop/main.js",
+          "content": "        actionWorktreeRunService,\n        agentExecutableAvailability,\n        agentModelCatalogService,\n        agentRunnerService,\n        claudeRuntimeService,\n        codexRuntimeService,\n        desktopConfigStore,\n        diffService,\n        localGitService,\n        mergeConflictService,\n        openProjectFolder,\n        openProjectSubFolder,\n        openWorktreeFolder,\n        projectOperationCoordinator,\n        projectStatsWorkerService,\n        readDesktopConfig,\n        saveDesktopConfig,\n        showItemInFolder,\n        uncommittedProjectWrites,\n        updateCodexCli,\n        worktreeService,\n    } = dependencies;\n    let currentLocalProject = null;\n    let projectServicesReady = false;\n    let closeCardStateWatcher = null;\n    const conversationViewEvents = new ConversationViewEvents();\n    const cardStateTracker = new CardStateTracker({\n        readCardFile: async (path) => {\n            if (!currentLocalProject) return null;\n            try {\n                const file = await localGitService.loadFile(currentLocalProject, path);\n\n                return typeof file?.content === 'string' ? file.content : null;\n            } catch {\n                // The file can be gone or unreadable by the time the settled event is handled;\n                // that is the same as having no status to compare against.\n    mergeConflictService,\n    openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),\n    openProjectSubFolder: (rootPath) => openProjectSubFolder(BrowserWindow.getFocusedWindow(), rootPath),\n    openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),\n    projectOperationCoordinator,\n    projectStatsWorkerService,\n    readDesktopConfig,\n    saveDesktopConfig,\n    showItemInFolder: (fullPath) => shell.showItemInFolder(fullPath),\n    uncommittedProjectWrites,\n    updateCodexCli,\n    worktreeService,\n});\nconst remoteControlService = new RemoteControlService(localBridgeDispatch);\nconst electronTelemetryStarted = startElectronTelemetry({ isDevelopment: !app.isPackaged });\nconst subscriptionCleanups = new Map();\nlet isQuittingAfterTelemetry = false;\nconst closeCoordinator = new CloseCoordinator({\n    completeApplicationQuit: () => stopAndQuit(),\n    getWindows: () => BrowserWindow.getAllWindows(),\n    sendFlushRequest: (webContents, request) => webContents.send(LIFECYCLE_FLUSH_REQUEST_CHANNEL, request),",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-61",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; sed -n 60,95p desktop/src/shell/local_bridge_dispatch.js; sed -n 165,185p desktop/main.js",
+          "providerItemId": "toolu_015cNBhfUsW5SVyZqcPeP7sD",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:56:21.124Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-62",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgBPvFfyLym27WQkaYJ2j:thinking:0",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-19T09:56:30.400Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_317_usage_metrics_not_committed.md\",\"offset\":24,\"limit\":6}",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-63",
+          "kind": "event",
+          "label": "Read",
+          "output": "24\t  * activity files and the token usage summary are committed directly by the desktop (`commitTrackedPaths` in `project_agent_token_usage.js`);\n25\t  * conversation view state is committed through the renderer `CommitBatcher`: `agent_acknowledgement_service.ts` calls `DataService.scheduleRepositoryPathCommit(path, message)`, which queues a `kind: 'path'` change. At flush time, the desktop `commit` in `project_files.js` stages that path as it is on disk and commits it together with the rest of the batch. A path that no longer exists is skipped.\n26\t* There is no desktop-to-renderer event for usage metrics writes. Existing desktop-to-renderer subscriptions (for example `onActionConversationViewed`, `onClaudeRateLimits`) use `SUBSCRIPTION_METHODS` in `desktop/main.js`, `subscribeBridge` in `desktop/src/shell/preload.js`, and a handler in `local_bridge_dispatch.js`.\n27\t\n28\t## Implementation details\n29\t",
+          "providerItemId": "toolu_01BN6SpbTqNovoRXoMSbN56M",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:56:31.409Z",
+          "type": "tool.Read"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow replacing everything from line 26 to the end with the \"ride along\" design.",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 64,
+          "timestamp": "2026-10-19T09:56:46.104Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; f=design/feature_descriptions/B_317_usage_metrics_not_committed.md; head -c 300 \"$f\" | od -c | grep -c '\\\\r'; wc -l \"$f\"",
+          "content": "8\n65 design/feature_descriptions/B_317_usage_metrics_not_committed.md",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-65",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; f=design/feature_descriptions/B_317_usage_metrics_not_committed.md; head -c 300 \"$f\" | od -c | grep -c '\\\\r'; wc -l \"$f\"",
+          "providerItemId": "toolu_01UWPQr5X1peHtV5foUnytZw",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:56:50.869Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-66",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgBPxSuTunkorCYybBie1:thinking:0",
+          "sequence": 66,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-19T09:56:54.879Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_317_usage_metrics_not_committed.md\",\"offset\":26}",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-67",
+          "kind": "event",
+          "label": "Read",
+          "output": "26\t* There is no desktop-to-renderer event for usage metrics writes. Existing desktop-to-renderer subscriptions (for example `onActionConversationViewed`, `onClaudeRateLimits`) use `SUBSCRIPTION_METHODS` in `desktop/main.js`, `subscribeBridge` in `desktop/src/shell/preload.js`, and a handler in `local_bridge_dispatch.js`.\n27\t\n28\t## Implementation details\n29\t\n30\tGoal: every usage metrics append is committed through the shared `CommitBatcher`, using the same `kind: 'path'` mechanism as conversation view state. The batcher's delay (`AUTO_COMMIT_DELAY_MS`) groups frequent appends into one commit.\n31\t\n32\t### Desktop\n33\t\n34\t* `UsageMetricsService` extends `EventTarget`. After a successful `appendFile` in `appendRecords`, it dispatches a `written` event (`USAGE_METRICS_WRITTEN_EVENT`). The `CustomEvent` detail is `{ path }`: the repository-relative path of the CSV with forward slashes (for example `design/usage_metrics.csv`). No event is dispatched when the append fails or when `recordAccountUsage` finds no changed window.\n35\t* Keep `uncommittedProjectWrites.mark(...)`. It stays the fallback: if the renderer is not subscribed or scheduling fails, the next integration still commits the file. When the batcher already committed the file, `commitTrackedPaths` finds no staged changes and does nothing.\n36\t* `local_bridge_dispatch.js`: add `onUsageMetricsWritten(callback)` to `actionBridge`. It calls `addEventListener` on the injected `usageMetricsService`, forwards `event.detail` to the callback, and returns a cleanup that calls `removeEventListener`. Pass `usageMetricsService` into `createLocalBridgeDispatch` from `desktop/main.js`.\n37\t* `desktop/main.js`: add `'onUsageMetricsWritten'` to `SUBSCRIPTION_METHODS`.\n38\t* `desktop/src/shell/preload.js`: add `onUsageMetricsWritten: (callback) => subscribeBridge('onUsageMetricsWritten', [], callback)`.\n39\t* Remote control is not changed. The desktop window's renderer owns this commit.\n40\t\n41\t### App\n42\t\n43\t* `app/src/data/electron_action_bridge.ts`: add an optional `onUsageMetricsWritten?(callback: (event: UsageMetricsWrittenEvent) => void): () => void` with `UsageMetricsWrittenEvent = { path: string }`.\n44\t* `app/src/services/agents/agent_integration.ts`: add a `startUsageMetricsWatch` next to `startConversationViewWatch`, with the same lifecycle (start with the project watch, clean up in `stopScheduledRunWatch`). On each event it calls `dataService.scheduleRepositoryPathCommit(event.path, 'Update usage metrics')`. A scheduling error is reported through `telemetryService.captureError`, like the conversation view watch. It must not be shown as a dialog every 2 minutes.\n45\t\n46\t### Edge cases\n47\t\n48\t* Many appends before the flush: `changeKey` for a path change is `path:<path>`, so they collapse into one pending entry. The flush commits the file content that is on disk at that moment.\n49\t* An append that lands after the flush has staged the file: it dispatches a new event, so it is committed in the next batch.\n50\t* An event from the previous project that arrives after a project switch: the path is resolved against the new project root. If the file does not exist there, the desktop skips it. If it exists, committing it is correct because it is also an uncommitted usage metrics change of the open project.\n51\t* Commit failure: the batcher keeps the path pending (`restoreFailedBatch`) and reports the failure through its existing `flushFailed` event.\n52\t\n53\t### Tests\n54\t\n55\t* `desktop/src/actions/agent/usage_metrics_service.test.mjs`: a `written` event with the relative path after a token append and after a changed account append; no event when nothing changed or when `appendFile` rejects.\n56\t* `desktop/src/shell/local_bridge_dispatch.test.mjs`: `onUsageMetricsWritten` forwards the event detail, and the cleanup removes the listener.\n57\t* App test next to `agent_integration.ts`: a bridge event schedules `scheduleRepositoryPathCommit` with the event path and `'Update usage metrics'`. Stopping the project watch removes the subscription.\n58\t\n59\t## Acceptance criteria\n60\t\n61\t* After an agent turn or a changed account usage poll, `usage_metrics.csv` is committed by the regular commit batch within the auto-commit delay. No worktree integration is needed.\n62\t* Several appends within one batch window produce one commit that contains the latest file content.\n63\t* The CSV content and format do not change.\n64\t* If the renderer does not schedule the commit, the file is still committed by the next worktree integration, as it is now.\n65\t* A failed commit leaves the path pending for the next flush. It does not affect agent runs.\n66\t* The new desktop and app tests pass, and lint passes in `app` and `desktop`.",
+          "providerItemId": "toolu_01AfYubEq4kxFr83A4NBy19m",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:56:55.584Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-68",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgBPxnviu4Qu8ydwJ7sx3:thinking:0",
+          "sequence": 68,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-19T09:57:01.427Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_317_usage_metrics_not_committed.md",
+          "deletions": 26,
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-69",
+          "insertions": 20,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_317_usage_metrics_not_committed.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_014wBAscp4K5XTRyViW8MLm6",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:57:25.019Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-70",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgBPzxpbbdPzfnmwYUham:thinking:0",
+          "sequence": 70,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-19T09:57:32.433Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; grep -n \"commitTrackedPaths\" desktop/src/actions/activity/activity_files.js | head -3; grep -n \"'commit'\\|commit:\" desktop/src/integrations/remote_control_service.js | head",
+          "content": "23:    commitTrackedPaths,\n194:        const commit = await commitTrackedPaths(rootPath, [relativePath], message);",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-71",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; grep -n \"commitTrackedPaths\" desktop/src/actions/activity/activity_files.js | head -3; grep -n \"'commit'\\|commit:\" desktop/src/integrations/remote_control_service.js | head",
+          "providerItemId": "toolu_01UVqidcCGakTTsbbom2zPuh",
+          "sequence": 71,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:57:33.580Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; grep -n \"dispatcher.invoke\\|invoke(method\" desktop/src/integrations/remote_control_service.js | head -5",
+          "content": "288:            return this.dispatcher.invoke(method, [...params, (event) => sendJson(client, { event: 'agentRun', payload: { event, requestId: id } })]);\n291:        return this.dispatcher.invoke(method, params);\n299:        const cleanup = this.dispatcher.invoke('watchProject', [\n312:        const cleanup = this.dispatcher.invoke('onActionRun', [\n324:        const cleanup = this.dispatcher.invoke('onAgentModelCatalogChanged', [",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-72",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; grep -n \"dispatcher.invoke\\|invoke(method\" desktop/src/integrations/remote_control_service.js | head -5",
+          "providerItemId": "toolu_013B699g1pVLh8K5A7twckqT",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-10-19T09:57:38.267Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-event-73",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgBQ1wXESXfaG2iLkC2PQ:thinking:0",
+          "sequence": 73,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-19T09:57:45.868Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI reworked B_317 so `usage_metrics.csv` never gets a commit of its own. It now goes along with commits that are already happening. Status stays `ready for implementation`; nothing staged or committed.\n\n**New design** (desktop only; no app or `CommitBatcher` change):\n- Each time the commit batcher commits other changes, the desktop also stages `usage_metrics.csv`. This happens in the `commit` handler in `desktop/src/shell/local_bridge_dispatch.js`, before `localGitService.commit` runs, by adding the file to `request.paths`.\n- `UsageMetricsService` gets a `repositoryPath(rootPath)` method. It returns the CSV path relative to the repository root, or `null` when no project is active or the root is a different project.\n- If the CSV is unchanged, `git add` stages nothing and the commit holds only the batch. The commit message stays the batch's message.\n- The existing \"uncommitted\" mark stays, so the next worktree integration still commits the file if no batch commit happened first.\n\nEdge cases checked in the code:\n- **Appends during a commit:** both run under the same per-project lock (`projectOperationCoordinator`), so a commit only ever contains complete rows.\n- **No file yet:** `commitNow` skips paths that don't exist.\n- **Remote-control clients:** their commits go through the same desktop `commit` handler, so they carry the file too.\n\n**One open question:** should the desktop's direct activity commits also carry the CSV? These are the \"Update … activity\" commits made after each agent turn, in `project_agent_token_usage.js` and `activity_files.js`. Token rows are written at exactly that moment. Right now the doc leaves those commits unchanged, so token rows wait for the next batch commit.",
+          "id": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 74,
+          "timestamp": "2026-10-19T09:57:45.920Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -667,39 +968,39 @@
           "agent": "claude",
           "conversationId": "f98acf1b-47ca-431f-9bf7-6fe7d6da7a75",
           "createdAt": "2026-10-19T09:35:52.153Z",
-          "lastUsedAt": "2026-10-19T09:35:52.754Z",
-          "synchronizedThroughMessageId": "agent-turn-29cc339c-610d-477f-9688-291432dde4bd-turn-1-assistant-5",
+          "lastUsedAt": "2026-10-19T09:57:45.920Z",
+          "synchronizedThroughMessageId": "agent-turn-d10eee16-64d6-4182-9f41-7befca5bd2ca-turn-1-assistant-3",
           "usageBaseline": {
-            "costUsd": 1.2803293999999998,
-            "resultId": "fe6041dd-8faf-4dbb-a8f2-9d8a58c7989b",
+            "costUsd": 1.8318922,
+            "resultId": "b27dc770-cacc-4653-8d39-2f2c4a128006",
             "tokens": {
-              "cachedInputTokens": 1889056,
-              "inputTokens": 48,
-              "outputTokens": 11994,
+              "cachedInputTokens": 3290576,
+              "inputTokens": 74,
+              "outputTokens": 19793,
               "reasoningTokens": 0,
-              "totalTokens": 1901098
+              "totalTokens": 3310443
             }
           }
         }
       ],
       "startedAt": "2026-10-19T09:33:21.735Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 42301,
-          "toolMs": 62391
+          "reasoningMs": 66875,
+          "toolMs": 104209
         },
         "elapsedMs": 151019,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-19T09:55:46.319Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1889056,
-        "inputTokens": 48,
-        "outputTokens": 11994,
+        "cachedInputTokens": 3290576,
+        "inputTokens": 74,
+        "outputTokens": 19793,
         "reasoningTokens": 0,
-        "totalTokens": 1901098,
-        "costUsd": 1.2803293999999998
+        "totalTokens": 3310443,
+        "costUsd": 1.8318922
       },
       "usageSchemaVersion": 1,
       "viewed": true
