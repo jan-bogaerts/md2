@@ -6,7 +6,6 @@ title: Extract diagram edit transaction plumbing
 after: bc79eb8f-91e4-4681-b503-ad6a119019bc
 agents:
   - design/releases/0.9.0/card__2245678c-d69e-4b1d-b6b8-cca720fc468d.json
-branch: f_377_extract_diagram_edit_transaction_plumbing
 changedFiles:
   - .f377_edit.py
   - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
