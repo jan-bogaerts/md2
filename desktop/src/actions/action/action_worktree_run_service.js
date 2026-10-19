@@ -45,8 +45,10 @@ class ActionWorktreeRunService {
     async runWithCardLock(primaryProject, contextValue, operation, options = {}) {
         const context = requireActionContext(contextValue);
         const cardKey = ActionWorktreeRunService.cardKey(primaryProject, context);
-        const resolution = context.worktreeBranch ? await this.worktreeService.resolveBranch(primaryProject, context.worktreeBranch) : null;
-        const rootPath = resolution?.record.path ?? primaryProject.rootPath;
+        // A sequence run locks its leased checkout without resolving its branch again.
+        const rootPath = context.sequenceCheckoutPath ?? (context.worktreeBranch
+            ? (await this.worktreeService.resolveBranch(primaryProject, context.worktreeBranch)).record.path
+            : primaryProject.rootPath);
         const release = checkoutOwnershipService.acquire(rootPath, context.sequenceId ?? crypto.randomUUID(), false);
         try {
             if (cardKey === null) return await operation();
@@ -87,15 +89,30 @@ class ActionWorktreeRunService {
 
         const index = worktreeIndex(context);
         if (index === null) throw new Error(`Action "${action.label}" requires a worktree assignment`);
+        if (context.sequenceCheckoutPath) return this.resolveSequenceCheckout(primaryProject, context, index);
 
         const resolution = await this.worktreeService.resolveBranch(primaryProject, context.worktreeBranch);
         const { record } = resolution;
         checkoutOwnershipService.assertAvailable(record.path, context.sequenceId);
-        if (context.sequenceCheckoutPath && path.resolve(record.path) !== path.resolve(context.sequenceCheckoutPath)) throw new Error('Sequence checkout binding changed');
 
         return {
             runProject: { ...primaryProject, branch: record.branch, id: record.path, rootPath: record.path },
             runWorktree: resolution.index,
+        };
+    }
+
+    /** A sequence run uses its leased checkout directly; only that checkout's current branch is checked. */
+    async resolveSequenceCheckout(primaryProject, context, index) {
+        const checkoutPath = context.sequenceCheckoutPath;
+        checkoutOwnershipService.assertAvailable(checkoutPath, context.sequenceId);
+        const branch = (await this.worktreeService.runGit(checkoutPath, ['branch', '--show-current'])).trim();
+        if (branch !== context.worktreeBranch) {
+            throw new Error(`Sequence checkout is on ${branch || 'detached HEAD'}, expected ${context.worktreeBranch}: ${checkoutPath}`);
+        }
+
+        return {
+            runProject: { ...primaryProject, branch, id: checkoutPath, rootPath: checkoutPath },
+            runWorktree: index,
         };
     }
 

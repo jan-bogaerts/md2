@@ -36,7 +36,7 @@ class SequenceWorktreeExecution {
         if (typeof this.projectFolder !== 'string') throw new Error('Missing sequence project folder');
         if (!current.branchProgress) {
             await this.requireBranch(this.project.rootPath, this.project.branch);
-            const { record } = await this.worktreeService.resolveBranch(this.project, current.worktreeBranch);
+            const record = await this.worktreeService.requireSelectedRecord(this.project, current.worktreeBranch);
             this.acquire(current.id, record.path);
             await this.requireClean(record.path);
             const baseCommit = await this.git(this.project.rootPath, ['rev-parse', this.project.branch]);
@@ -102,8 +102,8 @@ class SequenceWorktreeExecution {
         for (const scheduleId of this.leases.keys()) this.release(scheduleId);
     }
 
+    /** Checks only the leased checkout against the existing records; unrelated worktrees are not refreshed. */
     async requireLinkedCheckout(progress) {
-        await this.worktreeService.refreshLocal();
         const records = this.worktreeService.getRecords(this.project);
         const expectedCheckoutKey = CheckoutOwnershipService.key(progress.checkoutPath);
         const record = records.find(({ path: checkoutPath }) => CheckoutOwnershipService.key(checkoutPath) === expectedCheckoutKey);

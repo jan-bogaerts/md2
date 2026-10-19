@@ -39,7 +39,7 @@ function harness(initial = schedule()) {
         getRecords: vi.fn(() => [{ branch: state.branch, path: CHECKOUT, valid: true }]),
         refreshLocal: vi.fn(async () => undefined),
         requireRepositoryMatch: vi.fn(async () => undefined),
-        resolveBranch: vi.fn(async () => ({ index: 1, record: { branch: state.branch, path: CHECKOUT, valid: true } })),
+        requireSelectedRecord: vi.fn(async () => ({ branch: state.branch, path: CHECKOUT, valid: true })),
         runGit: vi.fn(async (root, argumentsValue) => {
             const [command, ...argumentsRest] = argumentsValue;
             const head = state.branches.get(root === PROJECT.rootPath ? 'main' : state.branch);
@@ -117,6 +117,34 @@ describe('SequenceWorktreeExecution', () => {
         const prepared = await test.execution.prepare(next);
         expect(test.worktreeService.runGit).toHaveBeenCalledWith(CHECKOUT, ['switch', '-c', prepared.branchProgress.childBranch, 'integrated']);
         expect(() => checkoutOwnershipService.assertAvailable(CHECKOUT)).toThrow('owned by a sequence');
+    });
+
+    it('prepares from the selected record without refreshing unrelated worktrees', async () => {
+        const test = harness();
+        const prepared = await test.execution.prepare(test.state.persisted);
+        expect(test.worktreeService.requireSelectedRecord).toHaveBeenCalledWith(PROJECT, 'parking');
+        expect(test.worktreeService.refreshLocal).not.toHaveBeenCalled();
+        expect(test.worktreeService.runGit.mock.calls.some(([, argumentsValue]) => argumentsValue[0] === 'worktree')).toBe(false);
+        expect(prepared.branchProgress).toMatchObject({ checkoutPath: CHECKOUT, phase: 'child-ready' });
+    });
+
+    it.each([
+        'Assigned worktree belongs to another repository: C:/sequence-test-checkout',
+        'Assigned worktree branch changed to other, expected parking: C:/sequence-test-checkout',
+        'Checkout is owned by a sequence',
+    ])('stops before branch creation when the selected checkout fails validation: %s', async (failure) => {
+        const test = harness();
+        test.worktreeService.requireSelectedRecord.mockRejectedValueOnce(new Error(failure));
+        await expect(test.execution.prepare(test.state.persisted)).rejects.toThrow(failure);
+        expect(test.saveSequence).not.toHaveBeenCalled();
+        expect(test.worktreeService.runGit.mock.calls.some(([, argumentsValue]) => argumentsValue[0] === 'switch')).toBe(false);
+    });
+
+    it('stops before branch creation when the selected checkout is dirty', async () => {
+        const test = harness();
+        test.state.dirty = true;
+        await expect(test.execution.prepare(test.state.persisted)).rejects.toThrow('uncommitted changes');
+        expect(test.saveSequence).not.toHaveBeenCalled();
     });
 
     it('integrates a clean child once and records sequence branch in existing activity format', async () => {
@@ -285,6 +313,7 @@ describe('SequenceWorktreeExecution', () => {
         const completions = new Map();
         let runNumber = 0;
         const actionRunnerService = {
+            loadRootAction: vi.fn(async () => ({ type: 'command' })),
             start: vi.fn(async (_request, { runId }) => runId),
             wait: vi.fn((runId) => new Promise((resolve) => completions.set(runId, resolve))),
         };

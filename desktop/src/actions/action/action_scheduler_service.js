@@ -1,8 +1,6 @@
 const { normalizeFolderPath } = require('../../../../shared/project_config_defaults.mjs');
 const { parseSequenceAgentSelection } = require('../../../../shared/action_schedules.mjs');
 const { CUSTOM_PROMPT_ACTION_ID } = require('../../../../shared/action_definitions.mjs');
-const { findCatalogModel } = require('../../../../shared/agent_model_catalog.mjs');
-const { findAgentProfile, mergeAgentProfiles, validateAgentSelection } = require('../../../../shared/agent_profiles.mjs');
 const {
     activeSchedules,
     appendActionSchedule,
@@ -95,6 +93,9 @@ function validateSequenceRegistrationRequest(request) {
         throw new Error('Missing sequence schedule readyState');
     }
     if (!request.trigger || typeof request.trigger !== 'object') throw new Error('Missing sequence schedule trigger');
+    if (request.worktreeBranch !== undefined && (typeof request.worktreeBranch !== 'string' || !request.worktreeBranch)) {
+        throw new Error('Missing sequence worktree branch');
+    }
 
     return request;
 }
@@ -108,8 +109,6 @@ function requireProject(project) {
 class ActionSchedulerService {
     constructor(dependencies) {
         this.actionRunnerService = dependencies?.actionRunnerService;
-        this.agentExecutableAvailability = dependencies?.agentExecutableAvailability;
-        this.agentModelCatalogService = dependencies?.agentModelCatalogService;
         this.confirmCardStateScheduleContinuation = dependencies?.confirmCardStateScheduleContinuation ?? null;
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
         this.clearTimeout = dependencies?.clearTimeout ?? clearTimeout;
@@ -330,18 +329,13 @@ class ActionSchedulerService {
         return schedule;
     }
 
+    /**
+     * Persists a pending sequence and returns it without awaiting activation; action, agent, card, and worktree
+     * resolution happen when the sequence executes, and their failures fail the persisted sequence.
+     */
     async registerSequenceSchedule(request) {
         const registration = validateSequenceRegistrationRequest(request);
-        const action = await this.actionRunnerService.loadRootAction(registration.actionId);
-        const agentSelection = await this.resolveSequenceAgentSelection(action, registration.agentSelection);
-        for (const cardInternalId of registration.cardInternalIds) {
-            const context = await this.resolveSequenceCardContext(cardInternalId);
-            if (!context) throw new Error(`Sequence card not found: ${cardInternalId}`);
-        }
-        if (registration.worktreeBranch !== undefined) {
-            if (typeof registration.worktreeBranch !== 'string' || !registration.worktreeBranch) throw new Error('Missing sequence worktree branch');
-            await this.worktreeService.resolveBranch(this.requireCurrentProject(), registration.worktreeBranch);
-        }
+        const agentSelection = registration.agentSelection === undefined ? null : parseSequenceAgentSelection(registration.agentSelection);
         const schedule = {
             ...(agentSelection ? { agentSelection } : {}),
             ...(registration.worktreeBranch ? { worktreeBranch: registration.worktreeBranch } : {}),
@@ -360,32 +354,10 @@ class ActionSchedulerService {
             trigger: registration.trigger,
         };
         await this.mutateSchedules(null, (schedules) => appendActionSchedule(schedules, schedule));
-        if (schedule.trigger.type === 'now') await this.fireSchedule(schedule.id);
-        else await this.reconcile();
+        const activation = schedule.trigger.type === 'now' ? this.fireSchedule(schedule.id) : this.reconcile();
+        void activation.catch((error) => this.reportError(error));
 
         return schedule;
-    }
-
-    async resolveSequenceAgentSelection(action, value) {
-        if (action.type !== 'agent') {
-            if (value !== undefined) throw new Error('Command sequence cannot have agent settings');
-            return null;
-        }
-        if (value === undefined) throw new Error('Missing sequence execution agent settings');
-        const selection = parseSequenceAgentSelection(value);
-        const profiles = this.actionRunnerService.agentConfigProvider().agentProfiles;
-        validateAgentSelection(profiles, selection, 'sequence registration');
-        const profile = findAgentProfile(profiles, selection.agent);
-        if (!profile) throw new Error(`Unknown sequence execution agent: ${selection.agent}`);
-        if (!this.agentExecutableAvailability) throw new Error('Agent availability check is unavailable');
-        const availability = await this.agentExecutableAvailability(mergeAgentProfiles(profiles));
-        if (!availability[selection.agent]?.available) {
-            throw new Error(availability[selection.agent]?.error ?? `Agent executable is unavailable for ${selection.agent}`);
-        }
-        if (!this.agentModelCatalogService) throw new Error('Agent model catalog is unavailable');
-        const catalog = await this.agentModelCatalogService.load(profile);
-        if (!findCatalogModel(catalog, selection.model)) throw new Error(`Unsupported sequence model: ${selection.model}`);
-        return selection;
     }
 
     async listActiveSchedules() {

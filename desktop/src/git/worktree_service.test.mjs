@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const { runGit } = require('./git_commands');
 const { MergeConflictService } = require('./merge_conflict_service');
 const { WorktreeService, parseWorktreeList } = require('./worktree_service');
+const { checkoutOwnershipService } = require('./checkout_ownership_service');
 
 async function createRepository() {
     const folderPath = await realpath(await mkdtemp(join(tmpdir(), 'md2-worktree-sync-')));
@@ -605,4 +606,89 @@ describe('WorktreeService local branch deletion', () => {
             await rm(repository.folderPath, { force: true, recursive: true });
         }
     }, 30_000);
+});
+
+describe('WorktreeService selected record validation', () => {
+    async function createSelectedRecordHarness(options = {}) {
+        const folderPath = await realpath(await mkdtemp(join(tmpdir(), 'md2-selected-record-')));
+        const primaryPath = join(folderPath, 'primary');
+        const selectedPath = join(folderPath, 'selected');
+        const otherPath = join(folderPath, 'other');
+        await mkdir(primaryPath);
+        await mkdir(selectedPath);
+        const project = { branch: 'main', id: primaryPath, rootPath: primaryPath };
+        const gitCommonDirectory = options.foreignRepository ? '.' : primaryPath;
+        const runGit = vi.fn(async (rootPath, argumentsValue) => {
+            const [command, option] = argumentsValue;
+            if (command === 'rev-parse' && option === '--git-common-dir') return rootPath === primaryPath ? primaryPath : gitCommonDirectory;
+            if (command === 'branch') return `${options.actualBranch ?? 'selected'}\n`;
+            if (command === 'status') return '';
+            if (command === 'rev-list') return '0\t0';
+            if (command === 'for-each-ref') return '';
+            throw new Error(`Unexpected mocked Git command: ${argumentsValue.join(' ')}`);
+        });
+        const service = new WorktreeService({ clearTimeout: () => {}, runGit, setTimeout: () => 1 });
+        service.project = project;
+        const status = { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false };
+        service.records = [
+            { branch: 'other', error: null, parkingBranch: null, path: otherPath, status, valid: true },
+            { branch: 'selected', error: null, parkingBranch: null, path: selectedPath, status, valid: true },
+        ];
+        const cleanup = () => rm(folderPath, { force: true, recursive: true });
+
+        return { cleanup, project, runGit, selectedPath, service };
+    }
+
+    it('validates only the selected checkout without listing worktrees', async () => {
+        const test = await createSelectedRecordHarness();
+        try {
+            const record = await test.service.requireSelectedRecord(test.project, 'selected');
+
+            expect(record).toMatchObject({ branch: 'selected', path: test.selectedPath });
+            const inspectedRoots = new Set(test.runGit.mock.calls.map(([rootPath]) => rootPath));
+            expect(inspectedRoots).toEqual(new Set([test.project.rootPath, test.selectedPath]));
+            expect(test.runGit.mock.calls.some(([, argumentsValue]) => argumentsValue[0] === 'worktree')).toBe(false);
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('rejects a branch without an existing record', async () => {
+        const test = await createSelectedRecordHarness();
+        try {
+            await expect(test.service.requireSelectedRecord(test.project, 'missing')).rejects.toThrow('Assigned worktree branch "missing" is unavailable');
+            expect(test.runGit).not.toHaveBeenCalled();
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('rejects a checkout of another repository', async () => {
+        const test = await createSelectedRecordHarness({ foreignRepository: true });
+        try {
+            await expect(test.service.requireSelectedRecord(test.project, 'selected')).rejects.toThrow('belongs to another repository');
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('rejects a checkout whose branch changed', async () => {
+        const test = await createSelectedRecordHarness({ actualBranch: 'external' });
+        try {
+            await expect(test.service.requireSelectedRecord(test.project, 'selected')).rejects.toThrow('Assigned worktree branch changed to external, expected selected');
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('rejects a checkout owned by another sequence', async () => {
+        const test = await createSelectedRecordHarness();
+        const release = checkoutOwnershipService.acquire(test.selectedPath, 'other-sequence', true);
+        try {
+            await expect(test.service.requireSelectedRecord(test.project, 'selected')).rejects.toThrow('Checkout is owned by a sequence');
+        } finally {
+            release();
+            await test.cleanup();
+        }
+    });
 });

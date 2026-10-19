@@ -199,6 +199,19 @@ class WorktreeService {
         return { index: resolution.index, record };
     }
 
+    /**
+     * Select a checkout from the existing records and validate only that checkout live; unlike `resolveBranch`,
+     * this neither lists nor inspects other worktrees.
+     */
+    async requireSelectedRecord(project, branchName) {
+        const activeProject = this.requireActiveProject(project);
+        const resolution = resolveWorktreeAssignment(this.records, branchName);
+        if (resolution.error) throw new Error(resolution.error);
+        await this.requireRepositoryMatch(activeProject, resolution.record);
+
+        return this.revalidateRecord(resolution.record, activeProject.branch);
+    }
+
     /** A registered folder may have been replaced by a checkout of another repository. */
     async requireRepositoryMatch(project, record) {
         const primaryDirectory = await this.runGit(project.rootPath, ['rev-parse', '--git-common-dir']);

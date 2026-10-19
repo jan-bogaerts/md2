@@ -44,8 +44,10 @@ function createHarness(initialSchedule, statesByCard = { 'card-1': 'todo', 'card
     let nextConversationNumber = 1;
     const runs = new Map();
     const actionRunnerService = {
+        agentConfigProvider: () => ({ agentProfiles: [] }),
         allocateRunId: vi.fn(() => `run-${nextRunNumber++}`),
         cancel: vi.fn((runId) => runs.get(runId).resolve({ failure: null, status: 'cancelled' })),
+        loadRootAction: vi.fn(async () => ({ type: schedule.agentSelection ? 'agent' : 'command' })),
         start: vi.fn(async (_request, { runId }) => {
             if (!runs.has(runId)) runs.set(runId, createDeferred());
 
@@ -296,6 +298,32 @@ describe('ScheduledCardSequenceEngine', () => {
             failure: 'Cannot start sequence action: Unknown action: implement',
             status: 'failed',
         });
+    });
+
+    it('fails before checkout preparation when the action cannot be resolved', async () => {
+        const harness = createHarness(createSequence({ worktreeBranch: 'selected' }));
+        harness.engine.worktreeExecution = { prepare: vi.fn(), release: vi.fn() };
+        harness.actionRunnerService.loadRootAction.mockRejectedValueOnce(new Error('Unknown action: implement'));
+
+        await harness.engine.activate('sequence-1');
+
+        expect(harness.schedule()).toMatchObject({ failure: 'Unknown action: implement', status: 'failed' });
+        expect(harness.engine.worktreeExecution.prepare).not.toHaveBeenCalled();
+        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ['command', { agent: 'codex', model: 'gpt-5.5' }, 'Command sequence cannot have agent settings'],
+        ['agent', undefined, 'Missing sequence execution agent settings'],
+        ['agent', { agent: 'unknown', model: 'gpt-5.5' }, 'Unknown agent profile in sequence execution: unknown'],
+    ])('fails a %s action with invalid agent settings at activation', async (type, agentSelection, failure) => {
+        const harness = createHarness(createSequence(agentSelection ? { agentSelection } : {}));
+        harness.actionRunnerService.loadRootAction.mockResolvedValueOnce({ type });
+
+        await harness.engine.activate('sequence-1');
+
+        expect(harness.schedule()).toMatchObject({ failure, status: 'failed' });
+        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();
     });
 
     it('cancels current action when sequence is deleted', async () => {

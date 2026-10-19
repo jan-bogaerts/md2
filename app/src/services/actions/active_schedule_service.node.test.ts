@@ -313,6 +313,26 @@ describe('ActiveScheduleService', () => {
         service.stop()
     })
 
+    it('applies a registered schedule without reloading and replaces it on later updates', async () => {
+        const { bridge, service } = createHarness()
+        service.start()
+        await vi.waitFor(() => expect(service.getSnapshot().loading).toBe(false))
+        bridge.listActiveSchedules.mockClear()
+        const pending: SequenceSchedule = { ...pendingSequenceSchedule('sequence-1'), worktreeBranch: 'parking' }
+
+        service.applySchedule(pending)
+
+        expect(bridge.listActiveSchedules).not.toHaveBeenCalled()
+        expect(service.getSnapshot().items.map(({ schedule: item }) => item.id)).toEqual(['schedule-1', 'sequence-1'])
+        expect(service.getSequenceWorktreeForCard('card-1')).toBeNull()
+
+        service.applySchedule(sequenceSchedule())
+
+        expect(service.getSnapshot().items.map(({ schedule: item }) => item.id)).toEqual(['schedule-1', 'sequence-1'])
+        expect(service.getSequenceWorktreeForCard('card-1')).toEqual({ checkoutPath: 'C:/checkout', expectedBranch: 'child-1' })
+        service.stop()
+    })
+
     it('clears pending indicators before loading another project', async () => {
         const { bridge, dataEvents, service, setProject } = createHarness()
         service.start()

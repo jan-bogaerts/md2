@@ -177,6 +177,16 @@ export class ActiveScheduleService extends EventTarget {
         }
     }
 
+    /** Applies a schedule returned by Electron so its view updates without waiting for a schedule reload. */
+    applySchedule(schedule: AnySchedule) {
+        const known = this.schedules.some(({ id }) => id === schedule.id)
+        const schedules = known
+            ? this.schedules.map((current) => current.id === schedule.id ? schedule : current)
+            : [...this.schedules, schedule]
+        this.setSchedules(schedules)
+        this.publishProjection()
+    }
+
     async deleteSchedule(scheduleId: string) {
         if (this.snapshot.deletingScheduleIds.includes(scheduleId)) return
         projectAccessService.requireWritable()

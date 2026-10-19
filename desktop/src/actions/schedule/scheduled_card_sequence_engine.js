@@ -1,3 +1,5 @@
+const { validateAgentSelection } = require('../../../../shared/agent_profiles.mjs');
+
 function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
 }
@@ -108,6 +110,7 @@ class ScheduledCardSequenceEngine {
         if (!schedule || !this.isCurrent()) return;
         if (schedule.status !== 'pending' && schedule.status !== 'running') return;
         this.validateReadyState(schedule);
+        await this.requireExecutableAction(schedule);
         let current = schedule;
         if (current.status === 'pending') {
             current = await this.saveSequence({ ...current, failure: null, status: 'running' });
@@ -364,6 +367,18 @@ class ScheduledCardSequenceEngine {
         const schedules = await this.loadSchedules();
 
         return schedules.find((schedule) => schedule.id === scheduleId && schedule.kind === 'sequence') ?? null;
+    }
+
+    /** Resolves the sequence action and its agent settings before any checkout or run is prepared. */
+    async requireExecutableAction(schedule) {
+        const action = await this.actionRunnerService.loadRootAction(schedule.actionId);
+        if (action.type !== 'agent') {
+            if (schedule.agentSelection) throw new Error('Command sequence cannot have agent settings');
+            return;
+        }
+        if (!schedule.agentSelection) throw new Error('Missing sequence execution agent settings');
+        const { agentProfiles } = this.actionRunnerService.agentConfigProvider();
+        validateAgentSelection(agentProfiles, schedule.agentSelection, 'sequence execution');
     }
 
     validateReadyState(schedule) {
