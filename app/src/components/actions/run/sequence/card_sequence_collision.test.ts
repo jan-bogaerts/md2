@@ -18,14 +18,14 @@ describe('cardSequenceCollision', () => {
     it('prioritizes sequence drop targets under a board card pointer', () => {
         vi.mocked(pointerWithin).mockReturnValueOnce([{ id: CARD_SEQUENCE_DROP_ID }]);
         const argumentsValue = collisionArguments('board-card');
-        cardSequenceCollision(argumentsValue);
-        expect(closestCorners).toHaveBeenCalledWith({...argumentsValue, droppableContainers: argumentsValue.droppableContainers.slice(1)});
+        expect(cardSequenceCollision(argumentsValue)).toEqual([{ id: CARD_SEQUENCE_DROP_ID }]);
+        expect(closestCorners).not.toHaveBeenCalled();
     });
 
-    it('keeps dragged sequence rows inside sequence targets when pointer misses', () => {
+    it('clears sequence target when pointer leaves the sequence', () => {
         const argumentsValue = collisionArguments(cardSequenceItemId('card-1'));
-        cardSequenceCollision(argumentsValue);
-        expect(closestCorners).toHaveBeenCalledWith({...argumentsValue, droppableContainers: argumentsValue.droppableContainers.slice(1)});
+        expect(cardSequenceCollision(argumentsValue)).toEqual([]);
+        expect(closestCorners).not.toHaveBeenCalled();
     });
 
     it('retains ordinary board collision behavior outside sequence targets', () => {

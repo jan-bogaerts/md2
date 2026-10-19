@@ -47,7 +47,7 @@ function importTitle(file: MarkdownFile, fields: MarkdownHeaderFields, body: str
     return stringField(fields, 'title') ?? titleFromBody(body) ?? titleFromFileName(file.path)
 }
 
-function isExternalImportCandidate(file: MarkdownFile, workingFolder: string) {
+export function isExternalCardImportCandidate(file: MarkdownFile, workingFolder: string) {
     if (!markdownParsingService.isRootWorkingFolderFile(file.path, workingFolder)) return false
     if (!markdownParsingService.isMarkdownFile(file.path)) return false
 
@@ -57,14 +57,15 @@ function isExternalImportCandidate(file: MarkdownFile, workingFolder: string) {
 function buildImportedContent(
     file: MarkdownFile,
     id: string,
+    internalId: string | undefined,
     initialState: string,
     title: string,
     parsed: ReturnType<typeof markdownParsingService.parse>,
 ) {
-    const internalId = stringField(parsed.header, 'internalId') ?? markdownParsingService.generateInternalId()
+    const resolvedInternalId = stringField(parsed.header, 'internalId') ?? internalId ?? markdownParsingService.generateInternalId()
     const status = stringField(parsed.header, 'status') ?? initialState
 
-    return markdownParsingService.rewriteHeader(file.content, { id, internalId, status, title })
+    return markdownParsingService.rewriteHeader(file.content, { id, internalId: resolvedInternalId, status, title })
 }
 
 function importedPath(workingFolder: string, id: string, title: string, cardSeparator: CardSeparator) {
@@ -77,9 +78,10 @@ export function planExternalCardImports(
     cardSeparator: CardSeparator,
     cardTypes: CardTypeConfig[],
     initialState: string,
+    internalIdsByPath: ReadonlyMap<string, string>,
 ): ExternalCardImportPlan {
     const cardType = getFeatureCardType(cardTypes)
-    const candidates = files.filter((file) => isExternalImportCandidate(file, workingFolder))
+    const candidates = files.filter((file) => isExternalCardImportCandidate(file, workingFolder))
     let nextNumber = getNextCardNumber(files, cardType.idPrefix)
     const moves: MoveFile[] = []
     const importedFiles: MarkdownFile[] = []
@@ -89,7 +91,7 @@ export function planExternalCardImports(
         const title = importTitle(file, parsed.header, parsed.body)
         const id = buildCardId(cardType.idPrefix, nextNumber, cardSeparator)
         const path = importedPath(workingFolder, id, title, cardSeparator)
-        const content = buildImportedContent(file, id, initialState, title, parsed)
+        const content = buildImportedContent(file, id, internalIdsByPath.get(file.path), initialState, title, parsed)
         const importedFile = { content, path }
         moves.push({ content, fromPath: file.path, sha: file.sha, toPath: path })
         importedFiles.push(importedFile)

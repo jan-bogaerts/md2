@@ -2,7 +2,7 @@ import { register } from '../service_injector'
 import type { DiagramData, DiagramEdge } from './diagram_data'
 import {
     diagramEditSessionService,
-    type DiagramEditSessionService,
+    type DiagramEditSessionAccess,
 } from './diagram_edit_session_service'
 import type {
     ReadonlyDiagramData,
@@ -35,13 +35,7 @@ interface DiagramEmphasisState {
     target: DiagramEmphasisTarget
 }
 
-type EmphasisEditSession = Pick<DiagramEditSessionService,
-    'getEditableDiagram'
-    | 'getEdgeIdsSnapshot'
-    | 'getSessionSnapshot'
-    | 'subscribeCollectionMembership'
-    | 'subscribeEdgeField'
-    | 'subscribeSession'>
+type EmphasisEditSession = DiagramEditSessionAccess<'getEditableDiagram' | 'getEdgeIdsSnapshot' | 'getSessionSnapshot' | 'subscribeCollectionMembership' | 'subscribeEdgeField' | 'subscribeSession', never>
 
 type EmphasisDiagramView = Pick<DiagramViewService, 'getSourceSnapshot' | 'subscribeSource'>
 
@@ -160,9 +154,9 @@ export class DiagramEmphasisService extends EventTarget {
         if (this.started) return
         this.started = true
         this.view.subscribeSource(this.handleSourceChange)
-        this.editSession.subscribeSession(this.handleSessionChange)
-        this.editSession.subscribeCollectionMembership('edge', this.handleEditableCollectionChange)
-        this.editSession.subscribeCollectionMembership('node', this.handleEditableCollectionChange)
+        this.editSession.read.subscribeSession(this.handleSessionChange)
+        this.editSession.read.subscribeCollectionMembership('edge', this.handleEditableCollectionChange)
+        this.editSession.read.subscribeCollectionMembership('node', this.handleEditableCollectionChange)
         this.refreshEdgeFieldSubscriptions()
     }
 
@@ -191,7 +185,7 @@ export class DiagramEmphasisService extends EventTarget {
     private readonly handleSessionChange = () => {
         this.refreshEdgeFieldSubscriptions()
         if (this.state?.target.surface !== 'new') return
-        const session = this.editSession.getSessionSnapshot()
+        const session = this.editSession.read.getSessionSnapshot()
         if (!session || session.sourceDiagramId !== this.state.target.diagramId) this.clear()
     }
 
@@ -209,8 +203,8 @@ export class DiagramEmphasisService extends EventTarget {
 
             return { diagram: source.diagram, diagramId: source.record.id }
         }
-        const session = this.editSession.getSessionSnapshot()
-        const diagram = this.editSession.getEditableDiagram()
+        const session = this.editSession.read.getSessionSnapshot()
+        const diagram = this.editSession.read.getEditableDiagram()
         if (!session || !diagram || session.sourceDiagramId !== target.diagramId) {
             throw new Error('New diagram emphasis target does not match active edit session')
         }
@@ -221,8 +215,8 @@ export class DiagramEmphasisService extends EventTarget {
     private recomputeNewState() {
         const target = this.state?.target
         if (!target || target.surface !== 'new') return
-        const session = this.editSession.getSessionSnapshot()
-        const diagram = this.editSession.getEditableDiagram()
+        const session = this.editSession.read.getSessionSnapshot()
+        const diagram = this.editSession.read.getEditableDiagram()
         if (!session || !diagram || session.sourceDiagramId !== target.diagramId) {
             this.clear()
 
@@ -239,9 +233,9 @@ export class DiagramEmphasisService extends EventTarget {
 
     private refreshEdgeFieldSubscriptions() {
         this.edgeFieldUnsubscribers.forEach((unsubscribe) => unsubscribe())
-        this.edgeFieldUnsubscribers = this.editSession.getEdgeIdsSnapshot().flatMap((edgeId) => [
-            this.editSession.subscribeEdgeField(edgeId, 'from' satisfies keyof DiagramEdge, this.handleEditableEdgeEndpointChange),
-            this.editSession.subscribeEdgeField(edgeId, 'to' satisfies keyof DiagramEdge, this.handleEditableEdgeEndpointChange),
+        this.edgeFieldUnsubscribers = this.editSession.read.getEdgeIdsSnapshot().flatMap((edgeId) => [
+            this.editSession.read.subscribeEdgeField(edgeId, 'from' satisfies keyof DiagramEdge, this.handleEditableEdgeEndpointChange),
+            this.editSession.read.subscribeEdgeField(edgeId, 'to' satisfies keyof DiagramEdge, this.handleEditableEdgeEndpointChange),
         ])
     }
 

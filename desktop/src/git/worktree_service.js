@@ -7,7 +7,7 @@ const { resolveWorktreeAssignment } = require('../../../shared/worktree_assignme
 
 const PARKING_BRANCH_PREFIX = 'md2/parking/';
 const REMOVAL_MODES = new Set(['files', 'folder', 'unregister']);
-const REFRESH_INTERVAL_MS = 5000;
+const REFRESH_INTERVAL_MS = 10000;
 const INTEGRATION_COMMIT_MESSAGE = 'Integrate into project';
 const PRIMARY_CHECKPOINT_MESSAGE = 'Save project changes before worktree synchronization';
 const WORKTREE_MUTATION_COMMANDS = new Set(['add', 'commit', 'switch', 'checkout', 'reset', 'rebase', 'merge', 'pull', 'push']);
@@ -197,6 +197,19 @@ class WorktreeService {
         if (record.branch !== branchName) throw new Error(`Assigned worktree branch changed to ${record.branch}, expected ${branchName}: ${record.path}`);
 
         return { index: resolution.index, record };
+    }
+
+    /**
+     * Select a checkout from the existing records and validate only that checkout live; unlike `resolveBranch`,
+     * this neither lists nor inspects other worktrees.
+     */
+    async requireSelectedRecord(project, branchName) {
+        const activeProject = this.requireActiveProject(project);
+        const resolution = resolveWorktreeAssignment(this.records, branchName);
+        if (resolution.error) throw new Error(resolution.error);
+        await this.requireRepositoryMatch(activeProject, resolution.record);
+
+        return this.revalidateRecord(resolution.record, activeProject.branch);
     }
 
     /** A registered folder may have been replaced by a checkout of another repository. */
@@ -814,8 +827,14 @@ class WorktreeService {
     async requireCleanPrimaryForIntegration(project) {
         const branch = (await this.runGit(project.rootPath, ['branch', '--show-current'])).trim();
         if (branch !== project.branch) throw new Error(`Primary worktree is on ${branch || 'a detached HEAD'}, expected ${project.branch}`);
-        const status = await this.primaryRepositoryStatus(project);
-        if (status.dirty) throw new Error('Primary worktree changed after pending saves were flushed; save changes and retry integration');
+        const porcelain = await this.runGit(project.rootPath, ['status', '--porcelain']);
+        const dirtyPaths = porcelain.split(/\r?\n/u)
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .map((line) => line.replace(/^\S+\s+/u, ''));
+        if (dirtyPaths.length === 0) return;
+
+        throw new Error(`Primary worktree has uncommitted changes; commit or discard them and retry integration: ${dirtyPaths.join(', ')}`);
     }
 
     async revalidateRecord(record, projectBranch) {

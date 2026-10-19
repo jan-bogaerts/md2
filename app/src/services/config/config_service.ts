@@ -164,7 +164,7 @@ function validatePinnedConversations(value: unknown): PinnedConversationLocator[
         if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
             throw new Error('Config field project.pinnedConversations must contain objects')
         }
-        const { cardInternalId, contextKind, conversationId } = candidate as Partial<PinnedConversationLocator>
+        const { activityPath, cardInternalId, contextKind, conversationId } = candidate as Partial<PinnedConversationLocator>
         if (typeof conversationId !== 'string' || conversationId.length === 0) {
             throw new Error('Config field project.pinnedConversations requires conversationId')
         }
@@ -177,8 +177,22 @@ function validatePinnedConversations(value: unknown): PinnedConversationLocator[
         if (contextKind === 'card' && !cardInternalId) {
             throw new Error('Config field project.pinnedConversations requires cardInternalId for card context')
         }
+        if (activityPath !== undefined && (typeof activityPath !== 'string' || activityPath.length === 0)) {
+            throw new Error('Config field project.pinnedConversations contains invalid activityPath')
+        }
+        if (activityPath) {
+            const pathSegments = activityPath.replace(/\\/gu, '/').split('/')
+            if (activityPath.startsWith('/') || /^[A-Za-z]:/u.test(activityPath) || pathSegments.includes('..')) {
+                throw new Error('Config field project.pinnedConversations requires a repository-relative activityPath')
+            }
+        }
 
-        return { ...(cardInternalId ? { cardInternalId } : {}), contextKind, conversationId } as PinnedConversationLocator
+        return {
+            ...(activityPath ? { activityPath } : {}),
+            ...(cardInternalId ? { cardInternalId } : {}),
+            contextKind,
+            conversationId,
+        } as PinnedConversationLocator
     })
     const conversationIds = locators.map(({ conversationId }) => conversationId)
     if (new Set(conversationIds).size !== locators.length) {
@@ -296,6 +310,7 @@ function readDesktopConfig(values: ConfigValues): DesktopConfigValues {
     return {
         agentSelection: values['desktop.agentSelection'],
         agentProfiles: values['desktop.agentProfiles'],
+        agentTaskTrackingEnabled: values['desktop.agentTaskTrackingEnabled'],
         codexSearchEnabled: values['desktop.codexSearchEnabled'],
         editorCommand: values['desktop.editorCommand'],
         mergeConflictResolverCommand: values['desktop.mergeConflictResolverCommand'],
@@ -319,6 +334,9 @@ function replaceDesktopValues(values: ConfigValues, desktopConfig: Partial<Deskt
         nextValues = mergeValue(nextValues, 'desktop.agentSelection', desktopConfig.agentSelection)
     }
     if (desktopConfig.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
+    if (desktopConfig.agentTaskTrackingEnabled !== undefined) {
+        nextValues = mergeValue(nextValues, 'desktop.agentTaskTrackingEnabled', desktopConfig.agentTaskTrackingEnabled)
+    }
     if (desktopConfig.codexSearchEnabled !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
     }

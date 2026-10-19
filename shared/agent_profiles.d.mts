@@ -54,8 +54,8 @@ export function validatePermissionMode(value: unknown, source: string): Permissi
 export function defaultModelForProfile(profile: AgentProfile): string
 export function defaultThinkingLevelForProfile(profile: AgentProfile): ThinkingLevel
 export function buildAgentCommand(profile: AgentProfile, model: string): string[]
-export function buildAgentExecutionCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, searchEnabled?: boolean, permissionMode?: PermissionMode, speedSettings?: AgentSpeedSettings): string[]
-export function buildAgentStreamingCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, permissionMode?: PermissionMode, speedSettings?: AgentSpeedSettings): string[]
+export function buildAgentExecutionCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, searchEnabled?: boolean, permissionMode?: PermissionMode, speedSettings?: AgentSpeedSettings, agentTaskTrackingEnabled?: boolean): string[]
+export function buildAgentStreamingCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, permissionMode?: PermissionMode, speedSettings?: AgentSpeedSettings, agentTaskTrackingEnabled?: boolean): string[]
 export function supportsAgentStreaming(profile: AgentProfile): boolean
 export function supportsPermissionMode(profile: AgentProfile): boolean
 export function supportsThinkingLevel(profile: Pick<AgentProfile, 'name'>, thinkingLevel: ThinkingLevel): boolean

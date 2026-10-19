@@ -34,13 +34,20 @@ function createSequence(overrides = {}) {
     };
 }
 
-function createHarness(initialSchedule, statesByCard = { 'card-1': 'todo', 'card-2': 'todo' }) {
+function createCardContext(cardInternalId, state) {
+    return { cardInternalId, file: `cards/${cardInternalId}.md`, kind: 'card', state, title: cardInternalId, type: 'feature' };
+}
+
+function createHarness(initialSchedule, statesByCard = { 'card-1': 'todo', 'card-2': 'todo' }, primaryStatesByCard = statesByCard) {
     let schedule = initialSchedule;
     let nextRunNumber = 1;
+    let nextConversationNumber = 1;
     const runs = new Map();
     const actionRunnerService = {
+        agentConfigProvider: () => ({ agentProfiles: [] }),
         allocateRunId: vi.fn(() => `run-${nextRunNumber++}`),
         cancel: vi.fn((runId) => runs.get(runId).resolve({ failure: null, status: 'cancelled' })),
+        loadRootAction: vi.fn(async () => ({ type: schedule.agentSelection ? 'agent' : 'command' })),
         start: vi.fn(async (_request, { runId }) => {
             if (!runs.has(runId)) runs.set(runId, createDeferred());
 
@@ -55,17 +62,13 @@ function createHarness(initialSchedule, statesByCard = { 'card-1': 'todo', 'card
     const engine = new ScheduledCardSequenceEngine({
         actionRunnerService,
         reportError: vi.fn(),
+        allocateConversationId: () => `agent-${nextConversationNumber++}`,
         allocateRunId: () => actionRunnerService.allocateRunId(),
+        conversationResumeFailure: vi.fn(async () => null),
         isCurrent: () => true,
         loadSchedules: async () => [schedule],
-        resolveCardContext: async (cardInternalId) => ({
-            cardInternalId,
-            file: `cards/${cardInternalId}.md`,
-            kind: 'card',
-            state: statesByCard[cardInternalId],
-            title: cardInternalId,
-            type: 'feature',
-        }),
+        resolveCardContext: async (cardInternalId) => createCardContext(cardInternalId, statesByCard[cardInternalId]),
+        resolvePrimaryCardContext: async (cardInternalId) => createCardContext(cardInternalId, primaryStatesByCard[cardInternalId]),
         saveSequence: async (nextSchedule) => {
             schedule = nextSchedule;
 
@@ -78,6 +81,19 @@ function createHarness(initialSchedule, statesByCard = { 'card-1': 'todo', 'card
 }
 
 describe('ScheduledCardSequenceEngine', () => {
+    it('uses persisted settings for each card after engine restart', async () => {
+        const agentSelection = { agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval', speedMode: 'fast', thinkingLevel: 'high' };
+        const harness = createHarness(createSequence({ agentSelection }));
+        await harness.engine.activate('sequence-1');
+        expect(harness.actionRunnerService.start.mock.calls[0][0].runInput).toEqual({ ...agentSelection, conversationId: 'agent-1' });
+        harness.runs.get('run-1').resolve({ failure: null, status: 'completed' });
+        await vi.waitFor(() => expect(harness.schedule().actionCompleted).toBe(true));
+        const restarted = createHarness(harness.schedule());
+        await restarted.engine.activate('sequence-1');
+        await restarted.engine.handleCardStateChange('card-1', 'ready');
+        expect(restarted.actionRunnerService.start.mock.calls[0][0].runInput).toMatchObject(agentSelection);
+        expect(restarted.schedule().agentSelection).toEqual(agentSelection);
+    });
     it('runs cards in order after state-before-completion satisfies both conditions', async () => {
         const harness = createHarness(createSequence());
 
@@ -141,7 +157,16 @@ describe('ScheduledCardSequenceEngine', () => {
         expect(harness.actionRunnerService.start.mock.calls[0][0].context.cardInternalId).toBe('card-2');
     });
 
-    it('fails instead of duplicating active action when recovery cannot prove outcome', async () => {
+    it('persists the conversation of a started step and passes it to the run', async () => {
+        const harness = createHarness(createSequence());
+
+        await harness.engine.activate('sequence-1');
+
+        expect(harness.actionRunnerService.start.mock.calls[0][0].runInput).toEqual({ conversationId: 'agent-1' });
+        expect(harness.schedule()).toMatchObject({ conversationId: 'agent-1', currentRunId: 'run-1', status: 'running' });
+    });
+
+    it('fails instead of duplicating active action when no conversation was recorded', async () => {
         const schedule = createSequence({ currentRunId: 'lost-run', status: 'running' });
         const harness = createHarness(schedule);
         harness.actionRunnerService.wait.mockRejectedValueOnce(new Error('Unknown action run: lost-run'));
@@ -151,6 +176,93 @@ describe('ScheduledCardSequenceEngine', () => {
 
         expect(harness.actionRunnerService.start).not.toHaveBeenCalled();
         expect(harness.schedule().failure).toContain('Cannot recover sequence action run lost-run');
+    });
+
+    it('keeps running and waits on its conversation when the run was lost', async () => {
+        const schedule = createSequence({ conversationId: 'agent-waiting', currentRunId: 'lost-run', status: 'running' });
+        const harness = createHarness(schedule);
+        harness.actionRunnerService.wait.mockRejectedValueOnce(new Error('Unknown action run: lost-run'));
+
+        await harness.engine.activate('sequence-1');
+        await vi.waitFor(() => expect(harness.schedule().currentRunId).toBeNull());
+
+        expect(harness.engine.conversationResumeFailure).toHaveBeenCalledWith('card-1', 'agent-waiting');
+        expect(harness.schedule()).toMatchObject({ conversationId: 'agent-waiting', failure: null, status: 'running' });
+        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();
+    });
+
+    it('keeps waiting on its conversation after another restart', async () => {
+        const schedule = createSequence({ conversationId: 'agent-waiting', status: 'running' });
+        const harness = createHarness(schedule);
+
+        await harness.engine.activate('sequence-1');
+
+        expect(harness.schedule()).toMatchObject({ conversationId: 'agent-waiting', currentRunId: null, status: 'running' });
+        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ['terminal', 'conversation agent-waiting is completed'],
+        ['missing', 'conversation agent-waiting could not be loaded: Unknown agent conversation'],
+    ])('fails naming the conversation when it is %s', async (_case, resumeFailure) => {
+        const schedule = createSequence({ conversationId: 'agent-waiting', currentRunId: 'lost-run', status: 'running' });
+        const harness = createHarness(schedule);
+        harness.actionRunnerService.wait.mockRejectedValueOnce(new Error('Unknown action run: lost-run'));
+        harness.engine.conversationResumeFailure.mockResolvedValueOnce(resumeFailure);
+
+        await harness.engine.activate('sequence-1');
+        await vi.waitFor(() => expect(harness.schedule().status).toBe('failed'));
+
+        expect(harness.schedule().failure).toBe(`Cannot recover sequence action run lost-run: Unknown action run: lost-run: ${resumeFailure}`);
+        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();
+    });
+
+    it('adopts a continued run of its conversation and finishes the step with its result', async () => {
+        const schedule = createSequence({ conversationId: 'agent-waiting', readyStateMet: true, status: 'running' });
+        const harness = createHarness(schedule);
+
+        await harness.engine.adoptRun('sequence-1', 'agent-waiting', 'continued-run');
+        expect(harness.schedule().currentRunId).toBe('continued-run');
+        harness.runs.get('continued-run').resolve({ failure: null, status: 'completed' });
+        await vi.waitFor(() => expect(harness.actionRunnerService.start).toHaveBeenCalledOnce());
+
+        expect(harness.actionRunnerService.start.mock.calls[0][0].context.cardInternalId).toBe('card-2');
+        expect(harness.schedule()).toMatchObject({ currentIndex: 1, status: 'running' });
+    });
+
+    it('ignores a run of another conversation or while its own run is live', async () => {
+        const harness = createHarness(createSequence({ conversationId: 'agent-waiting', status: 'running' }));
+
+        await harness.engine.adoptRun('sequence-1', 'agent-other', 'other-run');
+        expect(harness.schedule().currentRunId).toBeNull();
+        await harness.engine.adoptRun('sequence-1', 'agent-waiting', 'continued-run');
+        await harness.engine.adoptRun('sequence-1', 'agent-waiting', 'second-run');
+
+        expect(harness.schedule().currentRunId).toBe('continued-run');
+    });
+
+    it('completes the step when its waiting conversation is closed as completed', async () => {
+        const schedule = createSequence({ conversationId: 'agent-waiting', readyStateMet: true, status: 'running' });
+        const harness = createHarness(schedule);
+
+        await harness.engine.closeConversation('sequence-1', 'agent-waiting', 'completed');
+
+        expect(harness.actionRunnerService.start).toHaveBeenCalledOnce();
+        expect(harness.actionRunnerService.start.mock.calls[0][0].context.cardInternalId).toBe('card-2');
+        expect(harness.schedule()).toMatchObject({ currentIndex: 1, status: 'running' });
+    });
+
+    it('cancels the sequence when its waiting conversation is closed as cancelled', async () => {
+        const harness = createHarness(createSequence({ conversationId: 'agent-waiting', status: 'running' }));
+
+        await harness.engine.closeConversation('sequence-1', 'agent-waiting', 'cancelled');
+
+        expect(harness.schedule()).toMatchObject({
+            conversationId: null,
+            failure: 'Sequence action was cancelled',
+            status: 'cancelled',
+        });
+        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();
     });
 
     it('fails clearly when ready state was removed', async () => {
@@ -188,6 +300,32 @@ describe('ScheduledCardSequenceEngine', () => {
         });
     });
 
+    it('fails before checkout preparation when the action cannot be resolved', async () => {
+        const harness = createHarness(createSequence({ worktreeBranch: 'selected' }));
+        harness.engine.worktreeExecution = { prepare: vi.fn(), release: vi.fn() };
+        harness.actionRunnerService.loadRootAction.mockRejectedValueOnce(new Error('Unknown action: implement'));
+
+        await harness.engine.activate('sequence-1');
+
+        expect(harness.schedule()).toMatchObject({ failure: 'Unknown action: implement', status: 'failed' });
+        expect(harness.engine.worktreeExecution.prepare).not.toHaveBeenCalled();
+        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ['command', { agent: 'codex', model: 'gpt-5.5' }, 'Command sequence cannot have agent settings'],
+        ['agent', undefined, 'Missing sequence execution agent settings'],
+        ['agent', { agent: 'unknown', model: 'gpt-5.5' }, 'Unknown agent profile in sequence execution: unknown'],
+    ])('fails a %s action with invalid agent settings at activation', async (type, agentSelection, failure) => {
+        const harness = createHarness(createSequence(agentSelection ? { agentSelection } : {}));
+        harness.actionRunnerService.loadRootAction.mockResolvedValueOnce({ type });
+
+        await harness.engine.activate('sequence-1');
+
+        expect(harness.schedule()).toMatchObject({ failure, status: 'failed' });
+        expect(harness.actionRunnerService.start).not.toHaveBeenCalled();
+    });
+
     it('cancels current action when sequence is deleted', async () => {
         const harness = createHarness(createSequence());
         await harness.engine.activate('sequence-1');
@@ -196,5 +334,50 @@ describe('ScheduledCardSequenceEngine', () => {
 
         expect(harness.actionRunnerService.cancel).toHaveBeenCalledWith('run-1');
         expect(harness.schedule().status).toBe('cancelled');
+    });
+
+    describe('worktree sequence ready state', () => {
+        const SEQUENCE_CHECKOUT = 'C:/worktrees/sequence-1';
+        const OTHER_CHECKOUT = 'C:/worktrees/other';
+
+        function createWorktreeSequence() {
+            return createSequence({ branchProgress: { checkoutPath: SEQUENCE_CHECKOUT, phase: 'sequence-ready' } });
+        }
+
+        it.each([
+            ['main repository', null],
+            ['sequence worktree', SEQUENCE_CHECKOUT],
+        ])('advances when the ready state is set in the %s', async (_source, checkoutPath) => {
+            const harness = createHarness(createWorktreeSequence());
+
+            await harness.engine.activate('sequence-1');
+            await harness.engine.handleCardStateChange('card-1', 'ready', checkoutPath);
+            harness.runs.get('run-1').resolve({ failure: null, status: 'completed' });
+            await vi.waitFor(() => expect(harness.actionRunnerService.start).toHaveBeenCalledTimes(2));
+
+            expect(harness.schedule()).toMatchObject({ currentIndex: 1, status: 'running' });
+        });
+
+        it('does not advance when the ready state is set in another worktree', async () => {
+            const harness = createHarness(createWorktreeSequence());
+
+            await harness.engine.activate('sequence-1');
+            await harness.engine.handleCardStateChange('card-1', 'ready', OTHER_CHECKOUT);
+            harness.runs.get('run-1').resolve({ failure: null, status: 'completed' });
+            await vi.waitFor(() => expect(harness.schedule().actionCompleted).toBe(true));
+
+            expect(harness.schedule()).toMatchObject({ currentIndex: 0, readyStateMet: false });
+            expect(harness.actionRunnerService.start).toHaveBeenCalledOnce();
+        });
+
+        it('detects on activation a ready state that exists only in the main repository', async () => {
+            const worktreeStates = { 'card-1': 'todo', 'card-2': 'todo' };
+            const primaryStates = { 'card-1': 'ready', 'card-2': 'todo' };
+            const harness = createHarness(createWorktreeSequence(), worktreeStates, primaryStates);
+
+            await harness.engine.activate('sequence-1');
+
+            expect(harness.schedule().readyStateMet).toBe(true);
+        });
     });
 });

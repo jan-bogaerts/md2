@@ -113,7 +113,7 @@ describe('VerticalDiagramComparison', () => {
         const next = screen.getByRole('region', { name: 'New' })
         const currentMarkup = current.innerHTML
 
-        act(() => { session.setNodeField('orders', 'label', 'Order intake') })
+        act(() => { session.objects.setNodeField('orders', 'label', 'Order intake') })
 
         expect(screen.getByLabelText('Vertical diagram comparison')).toBe(comparison)
         expect(screen.getByRole('region', { name: 'Current' })).toBe(current)
@@ -140,12 +140,12 @@ describe('VerticalDiagramComparison', () => {
         const current = screen.getByRole('region', { name: 'Current' })
         const next = screen.getByRole('region', { name: 'New' })
         fireEvent.click(within(current).getByRole('button', { name: 'Orders' }))
-        act(() => { session.setNodeField('orders', 'label', 'Order intake') })
+        act(() => { session.objects.setNodeField('orders', 'label', 'Order intake') })
         const geometryBefore = {
             height: geometry.getSurfaceFieldSnapshot('height'),
             width: geometry.getSurfaceFieldSnapshot('width'),
         }
-        const changeIdsBefore = session.getChangeIdsSnapshot()
+        const changeIdsBefore = session.read.getChangeIdsSnapshot()
 
         fireEvent.pointerDown(separator, { pointerId: 1 })
         fireEvent.pointerMove(separator, { clientX: 20, pointerId: 1 })
@@ -159,8 +159,8 @@ describe('VerticalDiagramComparison', () => {
 
         expect(separator).toHaveAttribute('aria-valuenow', '70')
         expect(onCurrentSelect).toHaveBeenCalledTimes(1)
-        expect(session.getChangeIdsSnapshot()).toBe(changeIdsBefore)
-        expect(session.getDirtySnapshot()).toBe(true)
+        expect(session.read.getChangeIdsSnapshot()).toBe(changeIdsBefore)
+        expect(session.read.getDirtySnapshot()).toBe(true)
         expect(within(next).getByRole('button', { name: 'Order intake' })).toBeInTheDocument()
         expect({
             height: geometry.getSurfaceFieldSnapshot('height'),

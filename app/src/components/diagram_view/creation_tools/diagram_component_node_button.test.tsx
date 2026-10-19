@@ -8,6 +8,7 @@ import {
 } from './diagram_component_node_button';
 
 class ComponentNodeSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool = 'select';
     private readonly diagramType: DiagramType;
 
@@ -58,7 +59,7 @@ describe('DiagramComponentNodeButton', () => {
                 defaults: { height: 72, label: 'New component', role: 'focal', width: 160 },
                 kind: 'component',
             });
-            expect(session.subscribeMetadataField.mock.calls.every(([field]) => field === 'type')).toBe(true);
+            expect(session.read.subscribeMetadataField.mock.calls.every(([field]) => field === 'type')).toBe(true);
 
             act(() => { session.setActiveTool('node:component'); });
             expect(button).toHaveAttribute('aria-pressed', 'true');

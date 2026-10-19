@@ -1,0 +1,13 @@
+{
+  "description": "investigate what is described in the card",
+  "id": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+  "label": "investigate",
+  "streaming": true,
+  "phrases": [],
+  "prompt": "read {{this-card}}. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+  "type": "agent",
+  "appliesTo": {
+    "kind": "card",
+    "state": "design"
+  }
+}

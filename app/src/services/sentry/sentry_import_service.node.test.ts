@@ -4,7 +4,7 @@ import type { DataService } from '../data/data_service'
 import type { ProjectAccessService } from '../project/project_access_service'
 import { createDeferred } from '../test_support/data_service_test_support'
 import type { SentryConnectionService, SentryConnectionSnapshot } from './sentry_connection_service'
-import { SentryImportService, SENTRY_POLL_INTERVAL_MS } from './sentry_import_service'
+import { SentryImportService, SENTRY_EVENT_REQUEST_SPACING_MS, SENTRY_POLL_INTERVAL_MS } from './sentry_import_service'
 import { createDefaultSentryProjectSettings, type SentryIssueEvent, type SentryIssueSummary } from './sentry_types'
 
 const project: ProjectReference = { branch: 'main', id: 'project-1' }
@@ -101,6 +101,7 @@ function createService() {
         intervalCallbacks.push(callback)
         return intervalCallbacks.length
     })
+    const wait = vi.fn<(delayMs: number) => Promise<void>>(async () => {})
     const service = new SentryImportService({
         apiClient,
         clearInterval,
@@ -109,9 +110,10 @@ function createService() {
         now: () => new Date('2026-01-03T00:00:00.000Z'),
         projectAccessService: projectAccessService as unknown as ProjectAccessService,
         setInterval,
+        wait,
     })
 
-    return { apiClient, clearInterval, connectionService, dataService, intervalCallbacks, projectAccessService, service, setInterval }
+    return { apiClient, clearInterval, connectionService, dataService, intervalCallbacks, projectAccessService, service, setInterval, wait }
 }
 
 describe('SentryImportService', () => {
@@ -245,5 +247,50 @@ describe('SentryImportService', () => {
 
         expect(setup.apiClient.loadRecommendedEvent).toHaveBeenCalledOnce()
         expect(setup.apiClient.loadRecommendedEvent).toHaveBeenCalledWith(expect.any(Object), '101')
+    })
+
+    it('loads event details one at a time with spacing between requests', async () => {
+        const setup = createService()
+        const firstEvent = createDeferred<SentryIssueEvent>()
+        const secondEvent = createDeferred<SentryIssueEvent>()
+        const thirdEvent = createDeferred<SentryIssueEvent>()
+        setup.apiClient.listUnresolvedIssues.mockResolvedValue([issue, { ...issue, id: '101' }, { ...issue, id: '102' }])
+        setup.apiClient.loadRecommendedEvent
+            .mockImplementationOnce(() => firstEvent.promise)
+            .mockImplementationOnce(() => secondEvent.promise)
+            .mockImplementationOnce(() => thirdEvent.promise)
+
+        const importing = setup.service.importNow()
+        await vi.waitFor(() => expect(setup.apiClient.loadRecommendedEvent).toHaveBeenCalledOnce())
+        await Promise.resolve()
+        expect(setup.apiClient.loadRecommendedEvent).toHaveBeenCalledOnce()
+
+        firstEvent.resolve(event)
+        await vi.waitFor(() => expect(setup.apiClient.loadRecommendedEvent).toHaveBeenCalledTimes(2))
+        secondEvent.resolve(event)
+        await vi.waitFor(() => expect(setup.apiClient.loadRecommendedEvent).toHaveBeenCalledTimes(3))
+        thirdEvent.resolve(event)
+        await importing
+
+        expect(setup.wait).toHaveBeenCalledTimes(2)
+        expect(setup.wait).toHaveBeenCalledWith(SENTRY_EVENT_REQUEST_SPACING_MS)
+        expect(setup.dataService.cards.importSentryIssues).toHaveBeenCalledOnce()
+    })
+
+    it('stops loading event details after project identity changes', async () => {
+        const setup = createService()
+        const firstEvent = createDeferred<SentryIssueEvent>()
+        setup.apiClient.listUnresolvedIssues.mockResolvedValue([issue, { ...issue, id: '101' }])
+        setup.apiClient.loadRecommendedEvent.mockImplementationOnce(() => firstEvent.promise)
+
+        const importing = setup.service.importNow()
+        await vi.waitFor(() => expect(setup.apiClient.loadRecommendedEvent).toHaveBeenCalledOnce())
+        setup.dataService.changeProject({ branch: 'main', id: 'project-2' })
+        firstEvent.resolve(event)
+        const imported = await importing
+
+        expect(imported).toBe(0)
+        expect(setup.apiClient.loadRecommendedEvent).toHaveBeenCalledOnce()
+        expect(setup.dataService.cards.importSentryIssues).not.toHaveBeenCalled()
     })
 })

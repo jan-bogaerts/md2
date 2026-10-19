@@ -50,6 +50,7 @@ function createPreloadHarness(options = {}) {
         `--md2-bridge-allowed-origins=${encodeURIComponent(JSON.stringify(allowedOrigins))}`,
         `--md2-bridge-trusted-location=${encodeURIComponent(trustedLocation)}`,
         `--md2-desktop-config=${encodeURIComponent(JSON.stringify(desktopConfig))}`,
+        ...(options.startupProjectPath ? [`--md2-startup-project=${encodeURIComponent(options.startupProjectPath)}`] : []),
     ];
     const mockedModules = { electron };
     const fakeRequire = (moduleName) => mockedModules[moduleName];
@@ -397,6 +398,18 @@ describe('preload desktop agent bridge', () => {
 
         expect(exposed.md2Config.getDesktopConfig()).toEqual(nextConfig);
         expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith('md2-config:set-desktop', nextConfig);
+    });
+
+    it('exposes the decoded startup project path', () => {
+        const { exposed } = createPreloadHarness({ startupProjectPath: 'C:\\Work Space\\répo' });
+
+        expect(exposed.md2Data.getStartupProjectPath()).toBe('C:\\Work Space\\répo');
+    });
+
+    it('returns null when no startup project path was passed', () => {
+        const { exposed } = createPreloadHarness();
+
+        expect(exposed.md2Data.getStartupProjectPath()).toBeNull();
     });
 });
 

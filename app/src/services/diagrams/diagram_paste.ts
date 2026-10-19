@@ -3,7 +3,7 @@ import { register } from '../service_injector'
 import { parseDiagramFragmentClipboardPayload } from './diagram_fragment_clipboard'
 import {
     diagramEditSessionService,
-    type DiagramEditSessionService,
+    type DiagramEditSessionAccess,
 } from './diagram_edit_session_service'
 import type {
     DiagramEditSessionSnapshot,
@@ -17,7 +17,7 @@ import {
 export type DiagramPasteClipboardReader = () => Promise<string>
 export type DiagramPasteErrorReporter = (error: unknown) => void
 
-type DiagramPasteSession = Pick<DiagramEditSessionService, 'getSessionSnapshot' | 'pasteFragment'>
+type DiagramPasteSession = DiagramEditSessionAccess<'getSessionSnapshot', 'pasteFragment'>
 type DiagramPasteSelection = Pick<DiagramSelectionService, 'replace'>
 
 function readClipboard() {
@@ -53,7 +53,7 @@ export class DiagramPasteService {
     async paste() {
         try {
             const content = await this.clipboardReader()
-            const sessionSnapshot = this.session.getSessionSnapshot()
+            const sessionSnapshot = this.session.read.getSessionSnapshot()
             if (!sessionSnapshot) throw new Error('Cannot paste a diagram fragment without an active edit session')
             const payload = parseDiagramFragmentClipboardPayload(content)
             const repeatedPaste = content === this.lastClipboardContent && sessionSnapshot === this.lastSession

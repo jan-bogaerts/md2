@@ -3,7 +3,7 @@ import StopOutlined from '@mui/icons-material/StopOutlined';
 import { Box, Button, IconButton, Tooltip } from '@mui/material';
 import CalendarOutline from 'mdi-material-ui/CalendarOutline';
 import Play from 'mdi-material-ui/Play';
-import { useEffect, useSyncExternalStore, type MouseEvent } from 'react';
+import { useEffect, useRef, useSyncExternalStore, type MouseEvent } from 'react';
 import type { ActionContext } from '../../../../data/action_context';
 import type { ActionDefinition } from '../../../../data/action_types';
 import type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service';
@@ -27,12 +27,14 @@ import type { ActionScheduleStore } from '../schedule/action_schedule_store';
 import { useActionRunSettings } from '../../shared/use_action_run_settings';
 import { ActionPopupFinishButton } from './action_popup_finish_button';
 import type { ActionRunBindingStore } from '../state/action_run_binding_store';
+import type { ActionPopupFocusRequest } from './action_popup_focus_request';
 
 interface ActionPopupRunControlsProps {
     action: ActionDefinition;
     assignmentContext: ActionContext;
     bindingStore: ActionRunBindingStore;
     conversationStore: ActionConversationStore;
+    focusRequest: ActionPopupFocusRequest;
     historyStore: ActionHistoryStore;
     inputStore: ActionRunInputStore;
     resultStore: ActionRunResultStore;
@@ -44,9 +46,10 @@ interface ActionPopupRunControlsProps {
 /** Owns prompt readiness, run operations, and scheduling controls at their rendering boundary. */
 export function ActionPopupRunControls(props: ActionPopupRunControlsProps) {
     const {
-        action, assignmentContext, bindingStore, conversationStore, historyStore, inputStore, resultStore,
+        action, assignmentContext, bindingStore, conversationStore, focusRequest, historyStore, inputStore, resultStore,
         runValidationError, scheduleStore, settingsStore,
     } = props;
+    const primaryButtonRef = useRef<HTMLButtonElement>(null);
     const settings = useActionRunSettings(action, settingsStore);
     const scheduled = usePendingActionScheduleForCardAndAction(assignmentContext.cardInternalId, action.id);
     const boundRunId = useBoundRunId(bindingStore);
@@ -97,6 +100,7 @@ export function ActionPopupRunControls(props: ActionPopupRunControlsProps) {
         || (agentActive && interactionReady && promptHasText);
     const showCommandRun = !orphanWaiting && !hasDisplayedConversation && action.type === 'command';
     const showStopControl = showStop && !showAgentSend;
+    const primaryButtonVisible = showAgentSend || showCommandRun;
     const runState = {
         agentActive,
         interactionReady,
@@ -145,6 +149,17 @@ export function ActionPopupRunControls(props: ActionPopupRunControlsProps) {
         return () => scheduleStore.close();
     }, [scheduleAvailable, scheduleStore]);
 
+    // Not a layout effect: runs after the popup paper takes focus on mount, so the selection rule wins.
+    useEffect(() => {
+        const preparationStatus = editorSnapshot.preparationStatus;
+        if (preparationStatus === 'loading') return;
+        if (!focusRequest.consume()) return;
+        if (preparationStatus === 'failed') return;
+
+        if (!promptEmpty && primaryButtonVisible && !runDisabled) primaryButtonRef.current?.focus();
+        else promptDraft.requestFocus();
+    }, [editorSnapshot.preparationStatus, focusRequest, primaryButtonVisible, promptDraft, promptEmpty, runDisabled]);
+
     return (
         <Box
             data-footer-controls
@@ -191,7 +206,14 @@ export function ActionPopupRunControls(props: ActionPopupRunControlsProps) {
             {showAgentSend ? (
                 <Tooltip title="Send. Ctrl+Enter.">
                     <span>
-                        <IconButton aria-label="Send" color="primary" disabled={runDisabled} onClick={handlePrimaryRun} size="small">
+                        <IconButton
+                            aria-label="Send"
+                            color="primary"
+                            disabled={runDisabled}
+                            onClick={handlePrimaryRun}
+                            ref={primaryButtonRef}
+                            size="small"
+                        >
                             <ArrowUpwardOutlined sx={{ fontSize: 18 }} />
                         </IconButton>
                     </span>
@@ -201,6 +223,7 @@ export function ActionPopupRunControls(props: ActionPopupRunControlsProps) {
                     <Button
                         disabled={runDisabled}
                         onClick={handlePrimaryRun}
+                        ref={primaryButtonRef}
                         size="small"
                         startIcon={<Play sx={{ fontSize: '13px !important' }} />}
                         sx={{ height: 34, px: 2 }}

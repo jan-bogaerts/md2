@@ -79,6 +79,36 @@ describe('ActiveSchedulesDialog', () => {
         expect(selectSchedule).not.toHaveBeenCalled()
     })
 
+    it('shows persisted action failure in expanded details', () => {
+        const failedAction = {
+            actionId: 'md2.custom-prompt',
+            context: { cardInternalId: 'card-1', kind: 'card' as const },
+            createdAt: '2026-09-18T10:00:00.000Z',
+            failure: 'Prompt could not be resolved',
+            id: 'schedule-1',
+            kind: 'action' as const,
+            status: 'failed' as const,
+            trigger: { timestamp: '2026-09-18T11:00:00.000Z', type: 'at' as const },
+        }
+        hookState.snapshot = snapshot({
+            expandedScheduleIds: ['schedule-1'],
+            items: [{
+                actionAvailable: true,
+                actionLabel: '+',
+                schedule: failedAction,
+                target: { available: true, id: 'card-1', label: 'F-1 â€” First', path: 'design/F-1.md' },
+                tracker: null,
+                triggerCard: null,
+                unavailableReasons: [],
+            }],
+            selectedScheduleId: 'schedule-1',
+        })
+        renderDialog()
+
+        expect(screen.getByText('Status: failed')).toBeInTheDocument()
+        expect(screen.getByText('Failure: Prompt could not be resolved')).toBeInTheDocument()
+    })
+
     it('opens selected target by internal ID and supports row double-click', () => {
         const openCard = vi.spyOn(workspaceNavigationService, 'openCard').mockImplementation(() => undefined)
         vi.spyOn(activeScheduleService, 'selectSchedule').mockImplementation(() => undefined)

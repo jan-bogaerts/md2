@@ -69,8 +69,8 @@ export class DiagramGroupDrawingService extends EventTarget {
         super()
         this.selection = selection
         this.session = session
-        this.session.subscribeActiveTool(this.handleActiveToolChanged)
-        this.session.subscribeSession(this.handleSessionChanged)
+        this.session.read.subscribeActiveTool(this.handleActiveToolChanged)
+        this.session.read.subscribeSession(this.handleSessionChanged)
     }
 
     getPendingLabelBoxSnapshot = () => this.pendingLabelBox
@@ -82,11 +82,11 @@ export class DiagramGroupDrawingService extends EventTarget {
     subscribePreview = (listener: () => void) => this.subscribe(PREVIEW_CHANGED_EVENT, listener)
 
     isDrawingActive() {
-        return this.session.getActiveToolSnapshot() === 'group'
+        return this.session.read.getActiveToolSnapshot() === 'group'
     }
 
     activate() {
-        if (!this.session.getSessionSnapshot()) throw new Error('Cannot activate group drawing without an active edit session')
+        if (!this.session.read.getSessionSnapshot()) throw new Error('Cannot activate group drawing without an active edit session')
 
         this.clearDrawing()
         this.session.setActiveTool('group')

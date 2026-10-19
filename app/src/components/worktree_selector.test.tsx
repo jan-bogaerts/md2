@@ -58,6 +58,7 @@ describe('WorktreeSelector', () => {
         cleanup()
         configService.clear()
         window.localStorage.clear()
+        worktreeService.setSequenceReservations([])
         vi.restoreAllMocks()
     })
 
@@ -187,6 +188,27 @@ describe('WorktreeSelector', () => {
     it('disables a worktree reserved by another active card', () => {
         withRecords(worktrees)
         vi.spyOn(worktreeService, 'isWorktreeAvailableForCard').mockReturnValue(false)
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree')
+        render(
+            <AppThemeProvider>
+                <WorktreeSelector
+                    assignment={{ worktree: null }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                    primaryPath={null}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Primary worktree' }))
+        const reservedWorktree = screen.getByRole('menuitem', { name: '1 — C:\\feature' })
+        expect(reservedWorktree).toHaveAttribute('aria-disabled', 'true')
+        fireEvent.click(reservedWorktree)
+        expect(setCardWorktree).not.toHaveBeenCalled()
+    })
+
+    it('disables a worktree reserved by a sequence', () => {
+        withRecords(worktrees)
+        worktreeService.setSequenceReservations([{ checkoutPath: null, worktreeBranch: 'feature' }])
         const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree')
         render(
             <AppThemeProvider>

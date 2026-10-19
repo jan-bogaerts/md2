@@ -119,7 +119,7 @@ describe('DiagramSelectionService', () => {
         selection.replace([orders, edge, group])
         expect(selection.getBoundarySnapshot()).toEqual({ height: 200, width: 340, x: 40, y: 40 })
 
-        session.setGroupField('backend', 'x', 400)
+        session.objects.setGroupField('backend', 'x', 400)
         expect(selection.getBoundarySnapshot()).toEqual({ height: 200, width: 440, x: 40, y: 40 })
         expect(changed).toHaveBeenCalledTimes(2)
 
@@ -129,8 +129,8 @@ describe('DiagramSelectionService', () => {
 
     it('replaces, adds, removes, toggles, clears, and queries mixed object identities', () => {
         const { selection, session } = createHarness()
-        const editableDiagram = session.getEditableDiagram()
-        const ordersNode = session.getNodeSnapshot('orders')
+        const editableDiagram = session.read.getEditableDiagram()
+        const ordersNode = session.read.getNodeSnapshot('orders')
 
         expect(selection.replace([orders])).toBe(true)
         expect(selection.isSelected(orders)).toBe(true)
@@ -148,8 +148,8 @@ describe('DiagramSelectionService', () => {
         expect(selection.clear()).toBe(true)
         expect(selection.clear()).toBe(false)
         expect(selection.getSelectionSnapshot()).toEqual([])
-        expect(session.getEditableDiagram()).toBe(editableDiagram)
-        expect(session.getNodeSnapshot('orders')).toBe(ordersNode)
+        expect(session.read.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.read.getNodeSnapshot('orders')).toBe(ordersNode)
     })
 
     it('deletes complete selection through one edit-session mutation batch', () => {
@@ -159,23 +159,23 @@ describe('DiagramSelectionService', () => {
         const selectionDuringEdgePublication: DiagramSelectionIdentity[][] = []
         const selectionDuringGroupPublication: DiagramSelectionIdentity[][] = []
         selection.replace([orders, edge, group])
-        session.subscribeChangeIds(changeIdsChanged)
-        session.subscribeCollectionMembership('node', () => {
+        session.read.subscribeChangeIds(changeIdsChanged)
+        session.read.subscribeCollectionMembership('node', () => {
             selectionDuringNodePublication.push([...selection.getSelectionSnapshot()])
         })
-        session.subscribeCollectionMembership('edge', () => {
+        session.read.subscribeCollectionMembership('edge', () => {
             selectionDuringEdgePublication.push([...selection.getSelectionSnapshot()])
         })
-        session.subscribeCollectionMembership('group', () => {
+        session.read.subscribeCollectionMembership('group', () => {
             selectionDuringGroupPublication.push([...selection.getSelectionSnapshot()])
         })
 
         expect(selection.deleteSelection()).toBe(true)
 
         expect(selection.getSelectionSnapshot()).toEqual([])
-        expect(session.getNodeIdsSnapshot()).toEqual(['store'])
-        expect(session.getEdgeIdsSnapshot()).toEqual([])
-        expect(session.getGroupIdsSnapshot()).toEqual([])
+        expect(session.read.getNodeIdsSnapshot()).toEqual(['store'])
+        expect(session.read.getEdgeIdsSnapshot()).toEqual([])
+        expect(session.read.getGroupIdsSnapshot()).toEqual([])
         expect(selectionDuringNodePublication).toEqual([[]])
         expect(selectionDuringEdgePublication).toEqual([[]])
         expect(selectionDuringGroupPublication).toEqual([[]])
@@ -247,13 +247,13 @@ describe('DiagramSelectionService', () => {
         const selectionDuringNodePublication: DiagramSelectionIdentity[][] = []
         const selectionDuringEdgePublication: DiagramSelectionIdentity[][] = []
         const selectionDuringGroupPublication: DiagramSelectionIdentity[][] = []
-        session.subscribeCollectionMembership('node', () => {
+        session.read.subscribeCollectionMembership('node', () => {
             selectionDuringNodePublication.push([...selection.getSelectionSnapshot()])
         })
-        session.subscribeCollectionMembership('edge', () => {
+        session.read.subscribeCollectionMembership('edge', () => {
             selectionDuringEdgePublication.push([...selection.getSelectionSnapshot()])
         })
-        session.subscribeCollectionMembership('group', () => {
+        session.read.subscribeCollectionMembership('group', () => {
             selectionDuringGroupPublication.push([...selection.getSelectionSnapshot()])
         })
 
@@ -270,10 +270,10 @@ describe('DiagramSelectionService', () => {
     it('owns rectangle state and replaces selection with every intersecting selectable object', () => {
         const { selection, session } = createRectangleHarness()
         selection.replace([store, edge])
-        const editableDiagram = session.getEditableDiagram()
-        const ordersNode = session.getNodeSnapshot('orders')
-        const transientGesture = session.getTransientGestureSnapshot()
-        const viewportScale = session.getViewportScaleSnapshot()
+        const editableDiagram = session.read.getEditableDiagram()
+        const ordersNode = session.read.getNodeSnapshot('orders')
+        const transientGesture = session.read.getTransientGestureSnapshot()
+        const viewportScale = session.read.getViewportScaleSnapshot()
         const rectangleChanged = vi.fn()
         const ordersChanged = vi.fn()
         const storeChanged = vi.fn()
@@ -299,12 +299,12 @@ describe('DiagramSelectionService', () => {
         expect(storeChanged).toHaveBeenCalledOnce()
         expect(edgeChanged).not.toHaveBeenCalled()
         expect(groupChanged).toHaveBeenCalledOnce()
-        expect(session.getEditableDiagram()).toBe(editableDiagram)
-        expect(session.getNodeSnapshot('orders')).toBe(ordersNode)
-        expect(session.getTransientGestureSnapshot()).toBe(transientGesture)
-        expect(session.getViewportScaleSnapshot()).toBe(viewportScale)
-        expect(session.getChangeIdsSnapshot()).toEqual([])
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.read.getNodeSnapshot('orders')).toBe(ordersNode)
+        expect(session.read.getTransientGestureSnapshot()).toBe(transientGesture)
+        expect(session.read.getViewportScaleSnapshot()).toBe(viewportScale)
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(session.read.getDirtySnapshot()).toBe(false)
     })
 
     it('clears selection for a zero-distance rectangle completion', () => {
@@ -342,7 +342,7 @@ describe('DiagramSelectionService', () => {
         selection.completeRectangleSelection({ x: 45, y: 55 })
 
         expect(selection.getSelectionSnapshot()).toEqual([edge])
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getDirtySnapshot()).toBe(false)
 
         selection.beginRectangleSelection({ x: 45, y: 55 })
         selection.completeRectangleSelection({ x: 35, y: 45 })

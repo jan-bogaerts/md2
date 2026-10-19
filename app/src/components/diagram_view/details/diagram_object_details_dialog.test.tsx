@@ -113,7 +113,7 @@ describe('diagram object details dialog', () => {
     it('validates both required metadata drafts before applying either field', async () => {
         const { details, session } = renderHarness()
         const user = userEvent.setup()
-        const setMetadataField = vi.spyOn(session, 'setMetadataField')
+        const setMetadataField = vi.spyOn(session.objects, 'setMetadataField')
         act(() => { details.open({ objectKind: 'meta' }) })
 
         const title = screen.getByRole('textbox', { name: 'Title' })
@@ -128,13 +128,13 @@ describe('diagram object details dialog', () => {
         fireEvent.submit(screen.getByRole('button', { name: 'Save' }).closest('form') as HTMLFormElement)
         expect(screen.getByText('Description is required.')).toBeInTheDocument()
         expect(setMetadataField).not.toHaveBeenCalled()
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getDirtySnapshot()).toBe(false)
     })
 
     it('trims and saves title and description through separate metadata operations', async () => {
         const { details, session } = renderHarness()
         const user = userEvent.setup()
-        const setMetadataField = vi.spyOn(session, 'setMetadataField')
+        const setMetadataField = vi.spyOn(session.objects, 'setMetadataField')
         act(() => { details.open({ objectKind: 'meta' }) })
 
         const title = screen.getByRole('textbox', { name: 'Title' })
@@ -147,8 +147,8 @@ describe('diagram object details dialog', () => {
 
         expect(setMetadataField).toHaveBeenNthCalledWith(1, 'title', 'Updated title')
         expect(setMetadataField).toHaveBeenNthCalledWith(2, 'description', 'Updated description')
-        expect(session.getMetadataFieldSnapshot('title')).toBe('Updated title')
-        expect(session.getMetadataFieldSnapshot('description')).toBe('Updated description')
+        expect(session.read.getMetadataFieldSnapshot('title')).toBe('Updated title')
+        expect(session.read.getMetadataFieldSnapshot('description')).toBe('Updated description')
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     })
 
@@ -165,9 +165,9 @@ describe('diagram object details dialog', () => {
         await user.type(description, 'Draft description')
         await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
-        expect(session.getMetadataFieldSnapshot('title')).toBe('Overview')
-        expect(session.getMetadataFieldSnapshot('description')).toBe('Orders diagram')
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getMetadataFieldSnapshot('title')).toBe('Overview')
+        expect(session.read.getMetadataFieldSnapshot('description')).toBe('Orders diagram')
+        expect(session.read.getDirtySnapshot()).toBe(false)
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     })
 
@@ -189,17 +189,17 @@ describe('diagram object details dialog', () => {
     it('saves changed node fields through their scoped operations only', async () => {
         const { session } = renderHarness()
         const user = userEvent.setup()
-        const node = session.getNodeSnapshot('orders')
+        const node = session.read.getNodeSnapshot('orders')
         const labelChanged = vi.fn()
         const roleChanged = vi.fn()
         const tagChanged = vi.fn()
         const sublabelChanged = vi.fn()
         const drilldownChanged = vi.fn()
-        session.subscribeNodeField('orders', 'label', labelChanged)
-        session.subscribeNodeField('orders', 'role', roleChanged)
-        session.subscribeNodeField('orders', 'tag', tagChanged)
-        session.subscribeNodeField('orders', 'sublabel', sublabelChanged)
-        session.subscribeNodeField('orders', 'drilldown', drilldownChanged)
+        session.read.subscribeNodeField('orders', 'label', labelChanged)
+        session.read.subscribeNodeField('orders', 'role', roleChanged)
+        session.read.subscribeNodeField('orders', 'tag', tagChanged)
+        session.read.subscribeNodeField('orders', 'sublabel', sublabelChanged)
+        session.read.subscribeNodeField('orders', 'drilldown', drilldownChanged)
 
         await user.dblClick(screen.getByRole('button', { name: 'Orders' }))
         const label = screen.getByRole('textbox', { name: 'Label' })
@@ -213,12 +213,12 @@ describe('diagram object details dialog', () => {
         await user.click(screen.getByRole('option', { name: 'Enabled' }))
         await user.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(session.getNodeSnapshot('orders')).toBe(node)
-        expect(session.getNodeFieldSnapshot('orders', 'label')).toBe('Order intake')
-        expect(session.getNodeFieldSnapshot('orders', 'role')).toBe('backend')
-        expect(session.getNodeFieldSnapshot('orders', 'tag')).toBe('API')
-        expect(session.getNodeFieldSnapshot('orders', 'sublabel')).toBe('Receives orders')
-        expect(session.getNodeFieldSnapshot('orders', 'drilldown')).toBe(true)
+        expect(session.read.getNodeSnapshot('orders')).toBe(node)
+        expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('Order intake')
+        expect(session.read.getNodeFieldSnapshot('orders', 'role')).toBe('backend')
+        expect(session.read.getNodeFieldSnapshot('orders', 'tag')).toBe('API')
+        expect(session.read.getNodeFieldSnapshot('orders', 'sublabel')).toBe('Receives orders')
+        expect(session.read.getNodeFieldSnapshot('orders', 'drilldown')).toBe(true)
         expect(labelChanged).toHaveBeenCalledOnce()
         expect(roleChanged).toHaveBeenCalledOnce()
         expect(tagChanged).toHaveBeenCalledOnce()
@@ -238,9 +238,9 @@ describe('diagram object details dialog', () => {
         await user.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(screen.getByText('Label is required.')).toBeInTheDocument()
-        expect(session.getNodeFieldSnapshot('orders', 'label')).toBe('Orders')
+        expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('Orders')
         await user.click(screen.getByRole('button', { name: 'Cancel' }))
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getDirtySnapshot()).toBe(false)
     })
 
     it('shows only fields supported by active diagram type', async () => {
@@ -258,19 +258,19 @@ describe('diagram object details dialog', () => {
         expect(screen.queryByRole('combobox', { name: 'Kind' })).toBeNull()
         expect(screen.queryByRole('combobox', { name: 'From' })).toBeNull()
         expect(screen.queryByRole('combobox', { name: 'To' })).toBeNull()
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getDirtySnapshot()).toBe(false)
     })
 
     it('edits an entity relationship label and both optional cardinalities on the stable edge', async () => {
         const { details, session } = renderHarness('entity')
         const user = userEvent.setup()
-        const edge = session.getEdgeSnapshot('orders-store')
+        const edge = session.read.getEdgeSnapshot('orders-store')
         const labelChanged = vi.fn()
         const fromCardinalityChanged = vi.fn()
         const toCardinalityChanged = vi.fn()
-        session.subscribeEdgeField('orders-store', 'label', labelChanged)
-        session.subscribeEdgeField('orders-store', 'fromCardinality', fromCardinalityChanged)
-        session.subscribeEdgeField('orders-store', 'toCardinality', toCardinalityChanged)
+        session.read.subscribeEdgeField('orders-store', 'label', labelChanged)
+        session.read.subscribeEdgeField('orders-store', 'fromCardinality', fromCardinalityChanged)
+        session.read.subscribeEdgeField('orders-store', 'toCardinality', toCardinalityChanged)
 
         act(() => { details.open({ objectId: 'orders-store', objectKind: 'edge' }) })
         const label = screen.getByRole('textbox', { name: 'Label' })
@@ -282,8 +282,8 @@ describe('diagram object details dialog', () => {
         await user.click(screen.getByRole('option', { name: '0..1' }))
         await user.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(session.getEdgeSnapshot('orders-store')).toBe(edge)
-        expect(session.getEdgeSnapshot('orders-store')).toMatchObject({fromCardinality: '1', label: 'contains', toCardinality: '0..1'})
+        expect(session.read.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(session.read.getEdgeSnapshot('orders-store')).toMatchObject({fromCardinality: '1', label: 'contains', toCardinality: '0..1'})
         expect(labelChanged).toHaveBeenCalledOnce()
         expect(fromCardinalityChanged).toHaveBeenCalledOnce()
         expect(toCardinalityChanged).toHaveBeenCalledOnce()
@@ -293,7 +293,7 @@ describe('diagram object details dialog', () => {
         const { session } = renderHarness('entity')
         const user = userEvent.setup()
         const membershipChanged = vi.fn()
-        session.subscribeEntityFieldMembership('orders', membershipChanged)
+        session.read.subscribeEntityFieldMembership('orders', membershipChanged)
 
         await user.dblClick(screen.getByRole('button', { name: 'Orders' }))
         await user.click(screen.getByRole('button', { name: 'Add field' }))
@@ -305,7 +305,7 @@ describe('diagram object details dialog', () => {
         await user.click(screen.getByRole('button', { name: 'Remove field 2' }))
         await user.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(session.getNodeFieldSnapshot('orders', 'fields')).toEqual([
+        expect(session.read.getNodeFieldSnapshot('orders', 'fields')).toEqual([
             { key: 'foreign', name: 'customerId', type: 'uuid' },
         ])
         expect(membershipChanged).toHaveBeenCalledTimes(2)
@@ -338,8 +338,8 @@ describe('diagram object details dialog', () => {
         const user = userEvent.setup()
         const edgeChanged = vi.fn()
         const groupChanged = vi.fn()
-        session.subscribeEdgeField('orders-store', 'label', edgeChanged)
-        session.subscribeGroupField('backend', 'label', groupChanged)
+        session.read.subscribeEdgeField('orders-store', 'label', edgeChanged)
+        session.read.subscribeGroupField('backend', 'label', groupChanged)
 
         act(() => { details.open({ objectId: 'orders-store', objectKind: 'edge' }) })
         const edgeLabel = screen.getByRole('textbox', { name: 'Label' })
@@ -353,8 +353,8 @@ describe('diagram object details dialog', () => {
         await user.type(groupLabel, 'Services')
         await user.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(session.getEdgeFieldSnapshot('orders-store', 'label')).toBe('stores')
-        expect(session.getGroupFieldSnapshot('backend', 'label')).toBe('Services')
+        expect(session.read.getEdgeFieldSnapshot('orders-store', 'label')).toBe('stores')
+        expect(session.read.getGroupFieldSnapshot('backend', 'label')).toBe('Services')
         expect(edgeChanged).toHaveBeenCalledOnce()
         expect(groupChanged).toHaveBeenCalledOnce()
     })
@@ -362,13 +362,13 @@ describe('diagram object details dialog', () => {
     it('reconnects architecture edge endpoints without replacing edge or attachments', async () => {
         const { details, session } = renderHarness()
         const user = userEvent.setup()
-        const edge = session.getEdgeSnapshot('orders-store')
-        const sourceAttachment = session.getEdgeSnapshot('orders-store')?.sourceAttachment
-        const targetAttachment = session.getEdgeSnapshot('orders-store')?.targetAttachment
+        const edge = session.read.getEdgeSnapshot('orders-store')
+        const sourceAttachment = session.read.getEdgeSnapshot('orders-store')?.sourceAttachment
+        const targetAttachment = session.read.getEdgeSnapshot('orders-store')?.targetAttachment
         const fromChanged = vi.fn()
         const toChanged = vi.fn()
-        session.subscribeEdgeField('orders-store', 'from', fromChanged)
-        session.subscribeEdgeField('orders-store', 'to', toChanged)
+        session.read.subscribeEdgeField('orders-store', 'from', fromChanged)
+        session.read.subscribeEdgeField('orders-store', 'to', toChanged)
 
         act(() => { details.open({ objectId: 'orders-store', objectKind: 'edge' }) })
         await user.click(screen.getByRole('combobox', { name: 'From' }))
@@ -377,13 +377,13 @@ describe('diagram object details dialog', () => {
         await user.click(screen.getByRole('option', { name: 'Orders' }))
         await user.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(session.getEdgeSnapshot('orders-store')).toBe(edge)
-        expect(session.getEdgeSnapshot('orders-store')?.sourceAttachment).toBe(sourceAttachment)
-        expect(session.getEdgeSnapshot('orders-store')?.targetAttachment).toBe(targetAttachment)
-        expect(session.getEdgeFieldSnapshot('orders-store', 'from')).toBe('store')
-        expect(session.getEdgeFieldSnapshot('orders-store', 'to')).toBe('orders')
-        expect(session.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('store')
-        expect(session.getConnectionPointFieldSnapshot('orders-store', 'targetAttachment', 'nodeId')).toBe('orders')
+        expect(session.read.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(session.read.getEdgeSnapshot('orders-store')?.sourceAttachment).toBe(sourceAttachment)
+        expect(session.read.getEdgeSnapshot('orders-store')?.targetAttachment).toBe(targetAttachment)
+        expect(session.read.getEdgeFieldSnapshot('orders-store', 'from')).toBe('store')
+        expect(session.read.getEdgeFieldSnapshot('orders-store', 'to')).toBe('orders')
+        expect(session.read.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('store')
+        expect(session.read.getConnectionPointFieldSnapshot('orders-store', 'targetAttachment', 'nodeId')).toBe('orders')
         expect(fromChanged).toHaveBeenCalledOnce()
         expect(toChanged).toHaveBeenCalledOnce()
     })
@@ -397,15 +397,15 @@ describe('diagram object details dialog', () => {
         await user.click(screen.getByRole('option', { name: 'Store' }))
         await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
-        expect(session.getEdgeFieldSnapshot('orders-store', 'from')).toBe('orders')
-        expect(session.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('orders')
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getEdgeFieldSnapshot('orders-store', 'from')).toBe('orders')
+        expect(session.read.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('orders')
+        expect(session.read.getDirtySnapshot()).toBe(false)
     })
 
     it('edits sequence label, endpoints, kind, and persisted message row', async () => {
         const { details, session } = renderHarness('sequence')
         const user = userEvent.setup()
-        const edge = session.getEdgeSnapshot('orders-store')
+        const edge = session.read.getEdgeSnapshot('orders-store')
 
         act(() => { details.open({ objectId: 'orders-store', objectKind: 'edge' }) })
         const label = screen.getByRole('textbox', { name: 'Label' })
@@ -421,9 +421,9 @@ describe('diagram object details dialog', () => {
         await user.click(screen.getByRole('option', { name: '2' }))
         await user.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(session.getEdgeSnapshot('orders-store')).toBe(edge)
-        expect(session.getEdgeSnapshot('orders-store')).toMatchObject({from: 'store', kind: 'success', label: 'completed', to: 'orders'})
-        expect(session.getEdgeIdsSnapshot()).toEqual(['store-orders', 'orders-store'])
+        expect(session.read.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(session.read.getEdgeSnapshot('orders-store')).toMatchObject({from: 'store', kind: 'success', label: 'completed', to: 'orders'})
+        expect(session.read.getEdgeIdsSnapshot()).toEqual(['store-orders', 'orders-store'])
     })
 
     it('closes and reports outside render when open object disappears', async () => {
@@ -444,47 +444,47 @@ describe('diagram object details dialog', () => {
     it('edits group membership through scoped member operations only', async () => {
         const { details, session } = renderHarness()
         const user = userEvent.setup()
-        const group = session.getGroupSnapshot('backend')
-        const node = session.getNodeSnapshot('store')
-        const groupIds = session.getGroupIdsSnapshot()
+        const group = session.read.getGroupSnapshot('backend')
+        const node = session.read.getNodeSnapshot('store')
+        const groupIds = session.read.getGroupIdsSnapshot()
         const labelChanged = vi.fn()
         const membershipChanged = vi.fn()
-        session.subscribeGroupField('backend', 'label', labelChanged)
-        session.subscribeGroupMembership('backend', membershipChanged)
+        session.read.subscribeGroupField('backend', 'label', labelChanged)
+        session.read.subscribeGroupMembership('backend', membershipChanged)
 
         act(() => { details.open({ objectId: 'backend', objectKind: 'group' }) })
         await user.click(screen.getByRole('checkbox', { name: 'Store' }))
 
-        expect(session.getGroupNodeIdsSnapshot('backend')).toEqual(['orders'])
+        expect(session.read.getGroupNodeIdsSnapshot('backend')).toEqual(['orders'])
         expect(membershipChanged).toHaveBeenCalledOnce()
         expect(labelChanged).not.toHaveBeenCalled()
-        expect(session.getGroupSnapshot('backend')).toBe(group)
-        expect(session.getNodeSnapshot('store')).toBe(node)
-        expect(session.getGroupIdsSnapshot()).toBe(groupIds)
+        expect(session.read.getGroupSnapshot('backend')).toBe(group)
+        expect(session.read.getNodeSnapshot('store')).toBe(node)
+        expect(session.read.getGroupIdsSnapshot()).toBe(groupIds)
 
         await user.click(screen.getByRole('checkbox', { name: 'Store' }))
 
-        expect(session.getGroupNodeIdsSnapshot('backend')).toEqual(['orders', 'store'])
+        expect(session.read.getGroupNodeIdsSnapshot('backend')).toEqual(['orders', 'store'])
         expect(membershipChanged).toHaveBeenCalledTimes(2)
     })
 
     it('records a group membership change distinct from the group move and resize changes', async () => {
         const { details, session } = renderHarness()
         const user = userEvent.setup()
-        act(() => { session.setGroupField('backend', 'x', 12) })
-        act(() => { session.setGroupField('backend', 'width', 20) })
-        const geometryChangeIds = session.getChangeIdsSnapshot()
+        act(() => { session.objects.setGroupField('backend', 'x', 12) })
+        act(() => { session.objects.setGroupField('backend', 'width', 20) })
+        const geometryChangeIds = session.read.getChangeIdsSnapshot()
 
         act(() => { details.open({ objectId: 'backend', objectKind: 'group' }) })
         await user.click(screen.getByRole('checkbox', { name: 'Store' }))
 
-        const membershipChangeIds = session.getChangeIdsSnapshot().filter((id) => !geometryChangeIds.includes(id))
+        const membershipChangeIds = session.read.getChangeIdsSnapshot().filter((id) => !geometryChangeIds.includes(id))
         expect(membershipChangeIds).toHaveLength(1)
-        expect(session.getChangeFieldSnapshot(membershipChangeIds[0], 'category')).toBe('membership')
-        expect(session.getChangeFieldSnapshot(membershipChangeIds[0], 'field')).toBe('nodeIds')
-        expect(session.getChangeFieldSnapshot(membershipChangeIds[0], 'ownerId')).toBe('backend')
-        expect(session.getGroupFieldSnapshot('backend', 'x')).toBe(12)
-        expect(session.getGroupFieldSnapshot('backend', 'width')).toBe(20)
+        expect(session.read.getChangeFieldSnapshot(membershipChangeIds[0], 'category')).toBe('membership')
+        expect(session.read.getChangeFieldSnapshot(membershipChangeIds[0], 'field')).toBe('nodeIds')
+        expect(session.read.getChangeFieldSnapshot(membershipChangeIds[0], 'ownerId')).toBe('backend')
+        expect(session.read.getGroupFieldSnapshot('backend', 'x')).toBe(12)
+        expect(session.read.getGroupFieldSnapshot('backend', 'width')).toBe(20)
     })
 
     it('drops the membership of a node removed while the group dialog is open', async () => {
@@ -494,7 +494,7 @@ describe('diagram object details dialog', () => {
         act(() => { session.removeObjects([{ objectId: 'store', objectKind: 'node' }]) })
 
         await waitFor(() => expect(screen.queryByRole('checkbox', { name: 'Store' })).toBeNull())
-        expect(session.getGroupNodeIdsSnapshot('backend')).toEqual(['orders'])
+        expect(session.read.getGroupNodeIdsSnapshot('backend')).toEqual(['orders'])
         expect(screen.getByRole('checkbox', { name: 'Orders' })).toBeChecked()
     })
 })

@@ -42,14 +42,14 @@ function edgeKindOptions(diagramType: DiagramType) {
 }
 
 function initialDraft(edgeId: string, session: DiagramEditSessionService): EdgeDraft {
-    const edge = session.getEdgeSnapshot(edgeId)
+    const edge = session.read.getEdgeSnapshot(edgeId)
 
     return {
         from: edge?.from ?? '',
         fromCardinality: edge?.fromCardinality ?? '',
         kind: edge?.kind ?? 'connection',
         label: edge?.label ?? '',
-        row: String(Math.max(session.getEdgeIdsSnapshot().indexOf(edgeId), 0) + 1),
+        row: String(Math.max(session.read.getEdgeIdsSnapshot().indexOf(edgeId), 0) + 1),
         to: edge?.to ?? '',
         toCardinality: edge?.toCardinality ?? '',
     }
@@ -58,12 +58,12 @@ function initialDraft(edgeId: string, session: DiagramEditSessionService): EdgeD
 export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEdgeDetailsEditorProps) {
     const [draft, setDraft] = useState(() => initialDraft(edgeId, session))
     const [validationError, setValidationError] = useState<string | null>(null)
-    const diagramType = session.getMetadataFieldSnapshot('type') ?? 'architecture'
-    const preset = session.getMetadataFieldSnapshot('preset')
+    const diagramType = session.read.getMetadataFieldSnapshot('type') ?? 'architecture'
+    const preset = session.read.getMetadataFieldSnapshot('preset')
     const kindOptions = edgeKindOptions(diagramType)
-    const nodeOptions = session.getNodeIdsSnapshot().map((nodeId) => ({
+    const nodeOptions = session.read.getNodeIdsSnapshot().map((nodeId) => ({
         id: nodeId,
-        label: session.getNodeFieldSnapshot(nodeId, 'label') ?? nodeId,
+        label: session.read.getNodeFieldSnapshot(nodeId, 'label') ?? nodeId,
     }))
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target
@@ -71,9 +71,9 @@ export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEd
     }
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
-        const edge = session.getEdgeSnapshot(edgeId)
+        const edge = session.read.getEdgeSnapshot(edgeId)
         if (!edge) return
-        const sourceKind = session.getNodeFieldSnapshot(edge.from, 'kind')
+        const sourceKind = session.read.getNodeFieldSnapshot(edge.from, 'kind')
         const labelRequired = diagramType === 'flow' && (preset === 'state' || sourceKind === 'decision')
         if (labelRequired && draft.label.trim().length === 0) {
             setValidationError('Label is required for this flow edge.')
@@ -84,24 +84,24 @@ export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEd
         const nextLabel = optionalText(draft.label)
         const nextFromCardinality = draft.fromCardinality || undefined
         const nextToCardinality = draft.toCardinality || undefined
-        if (edge.kind !== draft.kind) saved = session.setEdgeField(edgeId, 'kind', draft.kind) && saved
-        if (edge.label !== nextLabel) saved = session.setEdgeField(edgeId, 'label', nextLabel) && saved
+        if (edge.kind !== draft.kind) saved = session.objects.setEdgeField(edgeId, 'kind', draft.kind) && saved
+        if (edge.label !== nextLabel) saved = session.objects.setEdgeField(edgeId, 'label', nextLabel) && saved
         if ((diagramType === 'architecture' || diagramType === 'sequence') && edge.from !== draft.from) {
-            saved = session.reconnectEdgeEndpoint(edgeId, 'sourceAttachment', draft.from) && saved
+            saved = session.objects.reconnectEdgeEndpoint(edgeId, 'sourceAttachment', draft.from) && saved
         }
         if ((diagramType === 'architecture' || diagramType === 'sequence') && edge.to !== draft.to) {
-            saved = session.reconnectEdgeEndpoint(edgeId, 'targetAttachment', draft.to) && saved
+            saved = session.objects.reconnectEdgeEndpoint(edgeId, 'targetAttachment', draft.to) && saved
         }
         const nextRowIndex = Number(draft.row) - 1
-        const currentRowIndex = session.getEdgeIdsSnapshot().indexOf(edgeId)
+        const currentRowIndex = session.read.getEdgeIdsSnapshot().indexOf(edgeId)
         if (diagramType === 'sequence' && currentRowIndex !== nextRowIndex) {
-            saved = session.moveSequenceEdge(edgeId, nextRowIndex) && saved
+            saved = session.objects.moveSequenceEdge(edgeId, nextRowIndex) && saved
         }
         if (diagramType === 'entity' && edge.fromCardinality !== nextFromCardinality) {
-            saved = session.setEdgeField(edgeId, 'fromCardinality', nextFromCardinality) && saved
+            saved = session.objects.setEdgeField(edgeId, 'fromCardinality', nextFromCardinality) && saved
         }
         if (diagramType === 'entity' && edge.toCardinality !== nextToCardinality) {
-            saved = session.setEdgeField(edgeId, 'toCardinality', nextToCardinality) && saved
+            saved = session.objects.setEdgeField(edgeId, 'toCardinality', nextToCardinality) && saved
         }
         if (saved) onClose()
     }
@@ -124,7 +124,7 @@ export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEd
                     ) : null}
                     {diagramType === 'sequence' ? (
                         <TextField label="Message row" name="row" onChange={handleFieldChange} select size="small" value={draft.row}>
-                            {session.getEdgeIdsSnapshot().map((_edgeId, index) => (
+                            {session.read.getEdgeIdsSnapshot().map((_edgeId, index) => (
                                 <MenuItem key={index} value={String(index + 1)}>{index + 1}</MenuItem>
                             ))}
                         </TextField>

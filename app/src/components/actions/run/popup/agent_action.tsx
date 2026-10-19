@@ -2,7 +2,6 @@ import { Box, Stack, Typography } from '@mui/material'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { ActionConversationChat } from '../../conversation/action_conversation_chat'
-import { ActionScheduleOwner } from '../schedule/action_schedule_owner'
 import { ActionRunHistoryOwner } from '../state/action_run_history_owner'
 import { ActionPromptOwner } from '../../agent/action_prompt_owner';
 import { ActionAgentApprovals } from '../../agent/action_agent_approvals';
@@ -28,7 +27,7 @@ interface AgentActionProps {
 export function AgentAction(props: AgentActionProps) {
     const { action, assignmentContext, baseContext, popupEntryId, popupVisible, readOnlyMessage, runtime, showHistoricalHistory } = props
     const {
-        agentLayoutStore, bindingStore, conversationSearchService, conversationStore, historyStore,
+        agentLayoutStore, bindingStore, conversationSearchService, conversationStore, focusRequest, historyStore,
         inputStore, resultStore, usageValuesService,
     } = runtime;
     const { runValidationError, scheduleStore, settingsStore } = runtime
@@ -53,7 +52,6 @@ export function AgentAction(props: AgentActionProps) {
 
     return (
         <Stack data-testid="action-popup-scroll-body" spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
-            <ActionScheduleOwner action={action} context={baseContext} store={scheduleStore} />
             {action.type === 'command' ? <ActionRunStatusOwner bindingStore={bindingStore} resultStore={resultStore} /> : null}
             <ActionRunDisabledMessage action={action} settingsStore={settingsStore} />
             {runValidationError ? (
@@ -84,12 +82,14 @@ export function AgentAction(props: AgentActionProps) {
                     bindingStore={bindingStore}
                     context={assignmentContext}
                     conversationStore={conversationStore}
+                    focusRequest={focusRequest}
                     historyStore={historyStore}
                     inputStore={inputStore}
                     layoutStore={agentLayoutStore}
                     questionsEnabled
                     resultStore={resultStore}
                     runValidationError={runValidationError}
+                    scheduleContext={baseContext}
                     scheduleStore={scheduleStore}
                     settingsStore={settingsStore}
                 />

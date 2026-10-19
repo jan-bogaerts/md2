@@ -120,8 +120,8 @@ describe('editable diagram', () => {
             fireEvent.change(subtitle, { target: { value: 'New subtitle' } })
             fireEvent.blur(subtitle)
 
-            expect(session.getMetadataFieldSnapshot('title')).toBe('New title')
-            expect(session.getMetadataFieldSnapshot('description')).toBe('New subtitle')
+            expect(session.read.getMetadataFieldSnapshot('title')).toBe('New title')
+            expect(session.read.getMetadataFieldSnapshot('description')).toBe('New subtitle')
         },
     )
 
@@ -136,12 +136,12 @@ describe('editable diagram', () => {
         fireEvent.change(subtitle, { target: { value: 'Revised description' } })
         fireEvent.blur(subtitle)
 
-        expect(session.getMetadataFieldSnapshot('title')).toBe('Revised overview')
-        expect(session.getMetadataFieldSnapshot('description')).toBe('Revised description')
+        expect(session.read.getMetadataFieldSnapshot('title')).toBe('Revised overview')
+        expect(session.read.getMetadataFieldSnapshot('description')).toBe('Revised description')
         fireEvent.change(title, { target: { value: ' ' } })
         fireEvent.blur(title)
         expect(screen.getByText('Title is required.')).toBeInTheDocument()
-        expect(session.getMetadataFieldSnapshot('title')).toBe('Revised overview')
+        expect(session.read.getMetadataFieldSnapshot('title')).toBe('Revised overview')
     })
 
     it('edits node label in place and opens details from its action', () => {
@@ -152,13 +152,13 @@ describe('editable diagram', () => {
 
         fireEvent.change(label, { target: { value: 'Purchases' } })
         fireEvent.blur(label)
-        expect(session.getNodeFieldSnapshot('orders', 'label')).toBe('Purchases')
+        expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('Purchases')
         fireEvent.pointerDown(label, { button: 0, clientX: 20, clientY: 20, pointerId: 1 })
         expect(selection.getSelectionSnapshot()).toEqual([])
         fireEvent.change(screen.getByRole('textbox', { name: 'Edit Purchases label' }), { target: { value: '' } })
         fireEvent.blur(screen.getByRole('textbox', { name: 'Edit Purchases label' }))
         expect(screen.getByText('Label is required.')).toBeInTheDocument()
-        expect(session.getNodeFieldSnapshot('orders', 'label')).toBe('Purchases')
+        expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('Purchases')
 
         fireEvent.click(screen.getByRole('button', { name: 'Details for Purchases' }))
         expect(details.getTargetSnapshot()).toEqual({ objectId: 'orders', objectKind: 'node' })
@@ -177,9 +177,9 @@ describe('editable diagram', () => {
         expect(getComputedStyle(field).right).toBe('4px')
         fireEvent.change(label, { target: { value: 'A longer wrapped order label' } })
         fireEvent.blur(label)
-        expect(session.getNodeFieldSnapshot('orders', 'label')).toBe('A longer wrapped order label')
+        expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('A longer wrapped order label')
 
-        act(() => { session.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 24 } }) })
+        act(() => { session.formatting.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 24 } }) })
 
         const singleLine = screen.getByRole('textbox', { name: 'Edit A longer wrapped order label label' })
         expect(singleLine.tagName).toBe('INPUT')
@@ -220,7 +220,7 @@ describe('editable diagram', () => {
         render(<MeasuredMetadata counts={counts} onRootRender={onRootRender} session={session} />)
         const before = new Map(counts)
 
-        act(() => { session.setMetadataField(field, `Updated ${field}`) })
+        act(() => { session.objects.setMetadataField(field, `Updated ${field}`) })
 
         expect(counts.get(changedLeaf)).toBeGreaterThan(before.get(changedLeaf) ?? 0)
         expect(counts.get(unchangedLeaf)).toBe(before.get(unchangedLeaf))
@@ -231,7 +231,7 @@ describe('editable diagram', () => {
         const { geometry, selection, session } = createHarness()
         render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
 
-        act(() => { session.setNodeField('store', 'label', 'Order store') })
+        act(() => { session.objects.setNodeField('store', 'label', 'Order store') })
 
         expect(screen.getByRole('button', { name: 'Order store' })).toBeTruthy()
         expect(screen.queryByRole('button', { name: 'Store' })).toBeNull()
@@ -242,13 +242,13 @@ describe('editable diagram', () => {
         const counts: RenderCounts = new Map()
         render(<MeasuredNodes counts={counts} geometry={geometry} selection={selection} session={session} />)
         const before = new Map(counts)
-        const nodeIds = session.getNodeIdsSnapshot()
+        const nodeIds = session.read.getNodeIdsSnapshot()
 
-        act(() => { session.setNodeField('orders', 'label', 'Order intake') })
+        act(() => { session.objects.setNodeField('orders', 'label', 'Order intake') })
 
         expect(counts.get('orders')).toBeGreaterThan(before.get('orders') ?? 0)
         // The host observes this snapshot only, so an unchanged reference is exactly a skipped host render.
-        expect(session.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(session.read.getNodeIdsSnapshot()).toBe(nodeIds)
     })
 
     it('rerenders the node collection host and adds one leaf when a node is added', () => {
@@ -256,11 +256,11 @@ describe('editable diagram', () => {
         const counts: RenderCounts = new Map()
         render(<MeasuredNodes counts={counts} geometry={geometry} selection={selection} session={session} />)
         const before = new Map(counts)
-        const nodeIds = session.getNodeIdsSnapshot()
+        const nodeIds = session.read.getNodeIdsSnapshot()
 
         act(() => { session.createNode({ label: 'Mail', role: 'external' }) })
 
-        expect(session.getNodeIdsSnapshot()).not.toBe(nodeIds)
+        expect(session.read.getNodeIdsSnapshot()).not.toBe(nodeIds)
         expect(screen.getByRole('button', { name: 'Mail' })).toBeTruthy()
         // The added member creates one leaf; the existing leaf is reused rather than rerendered.
         expect(counts.get('orders')).toBe(before.get('orders'))
@@ -276,7 +276,7 @@ describe('editable diagram', () => {
         )
         const before = new Map(counts)
 
-        act(() => { session.setNodeField('store', 'x', 2000) })
+        act(() => { session.objects.setNodeField('store', 'x', 2000) })
 
         expect(geometry.getSurfaceFieldSnapshot('width')).toBeGreaterThan(2000)
         expect(counts.get('host')).toBe(before.get('host'))
@@ -286,7 +286,7 @@ describe('editable diagram', () => {
         const { geometry, selection, session } = createHarness()
         const movement = new DiagramMoveService(session, geometry, selection)
         const counts: RenderCounts = new Map()
-        const nodeIds = session.getNodeIdsSnapshot()
+        const nodeIds = session.read.getNodeIdsSnapshot()
         const ViewportHarness = () => {
             return (
                 <>
@@ -307,7 +307,7 @@ describe('editable diagram', () => {
         fireEvent.pointerUp(scroller, { pointerId: 6 })
 
         expect(counts.get('unmoved-store')).toBe(before.get('unmoved-store'))
-        expect(session.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(session.read.getNodeIdsSnapshot()).toBe(nodeIds)
     })
 
     it('keeps collections and an unrelated leaf isolated during resize', () => {
@@ -315,7 +315,7 @@ describe('editable diagram', () => {
         const movement = new DiagramMoveService(session, geometry, selection)
         const resize = new DiagramResizeService(session, geometry, selection)
         const counts: RenderCounts = new Map()
-        const nodeIds = session.getNodeIdsSnapshot()
+        const nodeIds = session.read.getNodeIdsSnapshot()
         const ViewportHarness = () => {
             return (
                 <>
@@ -343,6 +343,6 @@ describe('editable diagram', () => {
         fireEvent.pointerUp(scroller, { pointerId: 7 })
 
         expect(counts.get('unrelated-store')).toBe(before.get('unrelated-store'))
-        expect(session.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(session.read.getNodeIdsSnapshot()).toBe(nodeIds)
     })
 })

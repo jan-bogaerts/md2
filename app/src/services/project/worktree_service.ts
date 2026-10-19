@@ -43,6 +43,12 @@ export interface WorktreeDraft {
     selecting: boolean
 }
 
+/** A linked worktree used by a pending or running sequence; `checkoutPath` is known once the sequence started. */
+export interface SequenceWorktreeReservation {
+    checkoutPath: string | null
+    worktreeBranch: string
+}
+
 function worktreePathKey(folderPath: string) {
     return folderPath.replace(/\\/gu, '/').replace(/\/+$/u, '').toLowerCase()
 }
@@ -69,6 +75,7 @@ export class WorktreeService extends EventTarget {
     private projectProvider: (() => ProjectReference | null) | null = null
     private queueIntegratedActivity: ((path: string) => Promise<void>) | null = null
     private records: WorktreeRecord[] = []
+    private sequenceReservations: readonly SequenceWorktreeReservation[] = []
     private snapshotProvider: (() => ProjectSnapshot | null) | null = null
     private storageProvider: (() => StorageService | null) | null = null
     private subscriptionCleanup: (() => void) | null = null
@@ -143,6 +150,32 @@ export class WorktreeService extends EventTarget {
 
         return !this.activeCards().some((card) => card.header.internalId !== cardInternalId
             && card.header.worktree !== null && card.header.worktree !== undefined && card.header.branch === branch);
+    }
+
+    /** Replace sequence reservations owned by the active schedule service. */
+    setSequenceReservations(reservations: readonly SequenceWorktreeReservation[]) {
+        if (JSON.stringify(reservations) === JSON.stringify(this.sequenceReservations)) return;
+
+        this.sequenceReservations = reservations;
+        this.dispatchEvent(new Event('assignmentChanged'));
+    }
+
+    /** Running sequences match by checkout path because their checkout moved to a sequence branch. */
+    isWorktreeReservedBySequence(record: WorktreeRecord) {
+        const pathKey = worktreePathKey(record.path);
+
+        return this.sequenceReservations.some(({ checkoutPath, worktreeBranch }) => (checkoutPath === null
+            ? worktreeBranch === record.branch
+            : worktreePathKey(checkoutPath) === pathKey));
+    }
+
+    /** Whether a new sequence may use the worktree: not reserved by a sequence nor assigned to a card. */
+    isWorktreeAvailableForSequence(record: WorktreeRecord) {
+        if (this.isWorktreeReservedBySequence(record)) return false;
+        if (record.branch && this.pendingAssignments.has(record.branch)) return false;
+
+        return !this.activeCards().some(({ header }) => header.worktree !== null && header.worktree !== undefined
+            && header.branch === record.branch);
     }
 
     /** Whether card has same valid outgoing worktree state required by integration. */
@@ -250,6 +283,7 @@ export class WorktreeService extends EventTarget {
         if (resolution.error !== null) throw new Error(resolution.error);
         if (!card.header.internalId) throw new Error(`Cannot assign a worktree without a card internal ID: ${path}`);
         if (!this.isWorktreeAvailableForCard(selectedBranch, card.header.internalId)) throw new Error(`Worktree branch ${selectedBranch} is already assigned to another active card`);
+        if (this.isWorktreeReservedBySequence(resolution.record)) throw new Error(`Worktree branch ${selectedBranch} is assigned to a sequence`);
         if (card.header.worktree && card.header.branch === selectedBranch && !card.header.worktreeError) return;
 
         const storage = this.requireStorage()

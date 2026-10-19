@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import {
-    DiagramEditSessionService,
+    type DiagramEditSessionAccess,
 } from '../../../services/diagrams/diagram_edit_session_service';
 import type {
     DiagramPersistentTool,
@@ -11,7 +11,7 @@ import { useActiveDiagramTool } from '../editing/use_diagram_tool';
 
 interface DiagramToolboxToolButtonProps {
     label: string;
-    session?: Pick<DiagramEditSessionService, 'getActiveToolSnapshot' | 'setActiveTool' | 'subscribeActiveTool'>;
+    session?: DiagramEditSessionAccess<'getActiveToolSnapshot' | 'subscribeActiveTool', 'setActiveTool'>;
     tool: DiagramPersistentTool;
     tooltip: string;
 }

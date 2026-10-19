@@ -1,6 +1,6 @@
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionScheduleTrigger } from '../../../../data/action_schedule_types'
-import type { ActionDefinition } from '../../../../data/action_types'
+import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
 import type {
     ActionRunInput,
     ActionRunResult,
@@ -60,7 +60,12 @@ export type RunAction = (
     input?: ActionRunInput,
     onStarted?: (runId: string) => void,
 ) => Promise<ActionRunResult>
-export type ScheduleAction = (action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) => Promise<void>
+export type ScheduleAction = (
+    action: ActionDefinition,
+    context: ActionContext,
+    trigger: ActionScheduleTrigger,
+    prompt: string,
+) => Promise<void>
 
 export function defaultRunAction(
     action: ActionDefinition,
@@ -108,6 +113,7 @@ export async function defaultPreparePrompt(action: ActionDefinition, context: Ac
         throw new Error('Preparing action prompts requires the Electron desktop app')
     }
     if (actionService.draftStore.hasPendingDrafts()) await actionService.draftStore.flushDrafts();
+    await dataService.writePendingFiles()
     const result = await bridge.prepareActionPrompt({ actionId: action.id, context })
 
     return result
@@ -173,12 +179,26 @@ export function defaultAnswerApproval(
     return answerActionApproval(runId, requestId, decision)
 }
 
-export async function defaultScheduleAction(action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) {
+export async function defaultScheduleAction(
+    action: ActionDefinition,
+    context: ActionContext,
+    trigger: ActionScheduleTrigger,
+    prompt: string,
+) {
     projectAccessService.requireWritable()
     const bridge = getElectronActionBridge()
     if (!bridge?.registerActionSchedule) throw new Error('Scheduling actions requires Electron local mode')
+    if (action.id === CUSTOM_PROMPT_ACTION_ID && prompt.trim().length === 0) {
+        throw new Error('Custom prompt cannot be empty')
+    }
 
-    await bridge.registerActionSchedule({ actionId: action.id, context, trigger })
+    const request = {
+        actionId: action.id,
+        context,
+        ...(action.type === 'agent' ? { prompt } : {}),
+        trigger,
+    }
+    await bridge.registerActionSchedule(request)
     await activeScheduleService.refresh()
     const { error } = activeScheduleService.getSnapshot()
     if (error) throw new Error(error)

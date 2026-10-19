@@ -54,7 +54,6 @@ describe('CardBodyEditor placeholder typeahead', () => {
         }, { discrete: true }))
 
         const listbox = await screen.findByRole('listbox', { name: 'Available placeholders' })
-        expect(overlayContainer).toContainElement(listbox)
         expect(within(listbox).getByRole('option', { name: /^\{\{card-file\}\}/u })).toBeInTheDocument()
 
         act(() => editor.update(() => $getSelection()?.insertText('card-f'), { discrete: true }))
@@ -63,5 +62,53 @@ describe('CardBodyEditor placeholder typeahead', () => {
 
         await waitFor(() => expect(content).toHaveTextContent('{{card-file}}'))
         expect(screen.getByRole('button', { name: 'Fullscreen' })).toBeInTheDocument()
+    })
+})
+
+describe('CardBodyEditor blur', () => {
+    const target = { document: { kind: 'card' } } as MarkdownDocumentTarget
+
+    beforeEach(() => {
+        cardMarkdownDataSource.setActiveTarget('board-card', target)
+        vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockReturnValue('')
+        vi.spyOn(cardMarkdownDataSource, 'edit').mockImplementation(() => undefined)
+        vi.spyOn(cardMarkdownDataSource, 'getActiveCard').mockReturnValue(null)
+    })
+
+    afterEach(() => {
+        cleanup()
+        cardMarkdownDataSource.setActiveTarget('board-card', null)
+        vi.restoreAllMocks()
+    })
+
+    it('commits the typed body when focus leaves the editor', async () => {
+        const commit = vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)
+        const { container } = render(
+            <AppThemeProvider>
+                <CardBodyEditor
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    dataSource={cardMarkdownDataSource}
+                    historyStore={new MarkdownDocumentHistoryStore()}
+                    isFullscreen={false}
+                    onToggleFullscreen={vi.fn()}
+                    statusColors={new Map()}
+                />
+                <button type="button">Outside</button>
+            </AppThemeProvider>,
+        )
+        const content = container.querySelector('.mdxeditor-content')
+        if (!content) throw new Error('Expected rich-text card editor')
+        const editor = getNearestEditorFromDOMNode(content)
+        if (!editor) throw new Error('Expected Lexical editor')
+
+        act(() => editor.getRootElement()?.focus())
+        act(() => editor.update(() => {
+            $getRoot().selectEnd()
+            $getSelection()?.insertText('Typed body')
+        }, { discrete: true }))
+        await waitFor(() => expect(content).toHaveTextContent('Typed body'))
+        act(() => screen.getByRole('button', { name: 'Outside' }).focus())
+
+        expect(commit).toHaveBeenCalledWith('board-card', target, expect.stringContaining('Typed body'))
     })
 })

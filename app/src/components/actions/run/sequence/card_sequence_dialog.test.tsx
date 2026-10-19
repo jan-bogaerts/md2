@@ -1,18 +1,30 @@
 import { DndContext } from '@dnd-kit/core'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_CARD_TYPES, type Card } from '../../../../data/data_types'
+import { DEFAULT_CARD_TYPES, type Card, type WorktreeRecord } from '../../../../data/data_types'
 import { cardCollectionFieldChangedEvent, dataService } from '../../../../services/data/data_service'
 import { cardPopupService } from '../../../../services/card_popup_service';
 import { dialogService } from '../../../../services/dialog_service'
 import { projectAccessService } from '../../../../services/project/project_access_service'
+import { worktreeService } from '../../../../services/project/worktree_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { CardSequenceDialog } from './card_sequence_dialog'
 import { CardSequenceDraftService } from './card_sequence_draft_service'
+import { CARD_SEQUENCE_DROP_ID, cardSequenceItemId } from './card_sequence_dnd'
+
+const dragState = vi.hoisted(() => ({
+    active: null as { id: string } | null,
+    over: null as { id: string } | null,
+}));
+
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@dnd-kit/core')>();
+    return { ...actual, useDndContext: () => dragState };
+});
 
 const testState = vi.hoisted(() => ({
     actions: [{ description: 'Build selected cards', id: 'build', label: 'Build', prompt: 'Build', type: 'agent' }],
-    register: vi.fn(async () => undefined),
+    register: vi.fn(async (request: unknown) => { void request; }),
 }))
 
 vi.mock('./card_sequence_registration', () => ({ registerCardSequence: testState.register }))
@@ -25,6 +37,18 @@ vi.mock('../../../hooks/use_project_config', () => ({
 }))
 vi.mock('../../../hooks/use_claude_rate_limits', () => ({useClaudeRateLimits: () => ({ receivedAt: null, snapshot: null, stale: false })}))
 vi.mock('../../../hooks/use_codex_rate_limits', () => ({useCodexRateLimits: () => ({ receivedAt: null, snapshot: null, stale: false })}))
+vi.mock('../../../hooks/use_agent_capabilities', () => ({useAgentCapabilities: () => ({availability: {error: null, loading: false, values: { codex: { available: true }, claude: { available: true } }}})}))
+vi.mock('../../../hooks/use_agent_model_catalog', () => ({
+    useAgentModelCatalog: () => ({
+        catalog: {
+            agent: 'codex', models: [
+                { id: 'gpt-6-sol', displayName: 'GPT 6 Sol', hidden: false },
+                { id: 'gpt-5.5', displayName: 'GPT 5.5', hidden: false },
+            ],
+        },
+        error: null, loading: false, refresh: vi.fn(),
+    }),
+}))
 
 function card(id: string, internalId: string): Card {
     return {
@@ -51,7 +75,28 @@ function renderDialog(service: CardSequenceDraftService) {
 }
 
 describe('CardSequenceDialog', () => {
+    it('shows sequence agent choices and submits changed settings', async () => {
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        act(() => { service.addCard('card-1'); service.setActionId('build'); service.setReadyState('ready'); });
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled());
+        expect(screen.getByRole('combobox', { name: 'Execution agent' })).toHaveTextContent('codex');
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Execution model' }));
+        fireEvent.click(screen.getByRole('option', { name: 'GPT 5.5' }));
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Execution thinking level' }));
+        fireEvent.click(screen.getByRole('option', { name: 'high' }));
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Execution permission mode' }));
+        fireEvent.click(screen.getByRole('option', { name: 'Full access — disables approvals' }));
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Execution speed' }));
+        fireEvent.click(screen.getByRole('option', { name: 'Fast' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+        await waitFor(() => expect(testState.register).toHaveBeenCalledWith(expect.objectContaining({agentSelection: {agent: 'codex', model: 'gpt-5.5', permissionMode: 'full-access', speedMode: 'fast', thinkingLevel: 'high'}})));
+    });
     beforeEach(() => {
+        testState.actions[0].type = 'agent';
+        dragState.active = null;
+        dragState.over = null;
         projectAccessService.setReadOnly(false)
         vi.spyOn(dataService, 'getState').mockReturnValue({
             project: { branch: 'main', id: 'project', rootPath: 'C:\\project' },
@@ -66,6 +111,19 @@ describe('CardSequenceDialog', () => {
         cardPopupService.clear();
         vi.restoreAllMocks()
     })
+
+    it('hides execution settings for command actions', async () => {
+        testState.actions[0].type = 'command';
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        act(() => { service.addCard('card-1'); service.setActionId('build'); service.setReadyState('ready'); });
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled());
+        expect(screen.queryByRole('group', { name: 'Sequence execution settings' })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+        await waitFor(() => expect(testState.register).toHaveBeenCalled());
+        expect(testState.register.mock.calls[0][0]).not.toHaveProperty('agentSelection');
+    });
 
     it('refreshes choices and invalidates selected cards when worktree assignment changes', async () => {
         const selected = card('F-1', 'card-1');
@@ -126,6 +184,67 @@ describe('CardSequenceDialog', () => {
         await waitFor(() => expect(screen.queryByText(/F-1 title/u)).not.toBeInTheDocument())
     })
 
+    it('keeps append target visible and hides card paths after adding cards', () => {
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        const list = screen.getByRole('listbox', { name: 'Sequence cards' });
+        expect(within(list).getByLabelText('Append sequence card')).toBeInTheDocument();
+
+        act(() => service.addCard('card-1'));
+        expect(within(list).getByLabelText('Append sequence card')).toBeInTheDocument();
+        expect(within(list).getByText(/F-1 title/u)).toBeInTheDocument();
+        expect(within(list).queryByText('design/F-1.md')).not.toBeInTheDocument();
+    });
+
+    it('marks only permitted insertion positions and clears marker after drag leaves', () => {
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        act(() => service.addCard('card-1'));
+        const list = screen.getByRole('listbox', { name: 'Sequence cards' });
+        const append = within(list).getByLabelText('Append sequence card');
+        const row = within(list).getByRole('option', { name: /F-1/u });
+
+        dragState.active = { id: 'design/F-2.md' };
+        dragState.over = { id: cardSequenceItemId('card-1') };
+        act(() => service.selectCard(null));
+        expect(row).toHaveAttribute('data-insertion-target', 'true');
+        expect(append).not.toHaveAttribute('data-insertion-target');
+
+        dragState.over = { id: CARD_SEQUENCE_DROP_ID };
+        act(() => service.selectCard('card-1'));
+        expect(row).not.toHaveAttribute('data-insertion-target');
+        expect(append).toHaveAttribute('data-insertion-target', 'true');
+
+        dragState.over = null;
+        act(() => service.selectCard(null));
+        expect(append).not.toHaveAttribute('data-insertion-target');
+
+        dragState.active = { id: 'design/F-1.md' };
+        dragState.over = { id: CARD_SEQUENCE_DROP_ID };
+        act(() => service.selectCard('card-1'));
+        expect(append).not.toHaveAttribute('data-insertion-target');
+    });
+
+    it('does not mark drop target for worktree-assigned board card', () => {
+        const assigned = card('F-2', 'card-2');
+        assigned.header.worktreeValue = 'invalid';
+        vi.mocked(dataService.getState).mockReturnValue({
+            project: { branch: 'main', id: 'project', rootPath: 'C:\\project' }, runningAgents: [],
+            snapshot: { activeCards: [cards[0], assigned], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        });
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        dragState.active = { id: assigned.path };
+        dragState.over = { id: CARD_SEQUENCE_DROP_ID };
+        act(() => service.selectCard(null));
+
+        expect(screen.getByLabelText('Append sequence card')).not.toHaveAttribute('data-insertion-target');
+        expect(service.getSnapshot().cardInternalIds).toEqual([]);
+    });
+
     it('submits canonical ids and closes only after registration succeeds', async () => {
         const service = new CardSequenceDraftService()
         service.open()
@@ -140,7 +259,7 @@ describe('CardSequenceDialog', () => {
         await waitFor(() => expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled())
         fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 
-        await waitFor(() => expect(testState.register).toHaveBeenCalledWith({actionId: 'build', cardInternalIds: ['card-1'], readyState: 'ready', trigger: { type: 'now' }}))
+        await waitFor(() => expect(testState.register).toHaveBeenCalledWith({actionId: 'build', agentSelection: {agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval', speedMode: 'default', thinkingLevel: 'medium'}, cardInternalIds: ['card-1'], readyState: 'ready', trigger: { type: 'now' }}))
         await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add card sequence' })).not.toBeInTheDocument())
     })
 
@@ -178,4 +297,48 @@ describe('CardSequenceDialog', () => {
         expect(screen.queryByRole('option', { name: /F-1/u })).not.toBeInTheDocument()
         expect(screen.getByRole('option', { name: /F-2/u })).toBeInTheDocument()
     })
+
+    it('disables worktrees used by a card or another sequence', () => {
+        const status = { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false };
+        const records: WorktreeRecord[] = ['card-used', 'sequence-used', 'free'].map((branch) => ({branch, error: null, parkingBranch: `md2/parking/${branch}`, path: `C:\\${branch}`, status, valid: true}));
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue(records);
+        vi.spyOn(worktreeService, 'isWorktreeAvailableForSequence').mockImplementation(({ branch }) => branch === 'free');
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Sequence worktree' }));
+
+        expect(screen.getByRole('option', { name: '1: card-used' })).toHaveAttribute('aria-disabled', 'true');
+        expect(screen.getByRole('option', { name: '2: sequence-used' })).toHaveAttribute('aria-disabled', 'true');
+        expect(screen.getByRole('option', { name: '3: free' })).not.toHaveAttribute('aria-disabled');
+    });
+
+    it('moves the popup when dragging its title on desktop', () => {
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        const dialog = screen.getByRole('dialog', { name: 'Add card sequence' });
+        const title = screen.getByRole('heading', { name: 'Add card sequence' });
+        dialog.getBoundingClientRect = vi.fn(() => new DOMRect(20, 10, 400, 300));
+
+        expect(title).toHaveStyle({ cursor: 'move' });
+        fireEvent.pointerDown(title, { clientX: 50, clientY: 30, pointerId: 1 });
+        fireEvent.pointerMove(window, { clientX: 100, clientY: 70, pointerId: 1 });
+        fireEvent.pointerUp(window, { pointerId: 1 });
+
+        expect(dialog).toHaveStyle({ left: '70px', position: 'fixed', top: '50px' });
+    });
+
+    it('does not make the title a drag handle on mobile', () => {
+        vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({
+            matches: query.includes('max-width'), media: query, onchange: null,
+            addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+        }));
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+
+        expect(screen.getByRole('heading', { name: 'Add card sequence' }).closest('[data-drag-handle="true"]')).toBeNull();
+    });
 })

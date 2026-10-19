@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ActionDefinition } from '../../../../data/action_types'
+import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge'
 import { activeScheduleService } from '../../../../services/actions/active_schedule_service'
 import { dataService } from '../../../../services/data/data_service'
@@ -21,6 +21,7 @@ describe('defaultPreparePrompt', () => {
         vi.spyOn(actionService.draftStore, 'hasPendingDrafts').mockReturnValue(pending);
         const flushDrafts = vi.spyOn(actionService.draftStore, 'flushDrafts').mockResolvedValue();
         const flushProject = vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockResolvedValue();
+        const writePendingFiles = vi.spyOn(dataService, 'writePendingFiles').mockResolvedValue();
         const action = { id: 'review' } as ActionDefinition;
         const context = { cardInternalId: 'card-1', kind: 'card' as const };
 
@@ -29,8 +30,10 @@ describe('defaultPreparePrompt', () => {
         expect(flushDrafts).toHaveBeenCalledTimes(pending ? 1 : 0);
         expect(flushProject).not.toHaveBeenCalled();
         expect(prepareActionPrompt).toHaveBeenCalledWith({ actionId: action.id, context });
+        expect(writePendingFiles).toHaveBeenCalledOnce();
+        expect(writePendingFiles.mock.invocationCallOrder[0]).toBeLessThan(prepareActionPrompt.mock.invocationCallOrder[0]);
         if (pending) {
-            expect(flushDrafts.mock.invocationCallOrder[0]).toBeLessThan(prepareActionPrompt.mock.invocationCallOrder[0]);
+            expect(flushDrafts.mock.invocationCallOrder[0]).toBeLessThan(writePendingFiles.mock.invocationCallOrder[0]);
         }
     });
 
@@ -40,6 +43,17 @@ describe('defaultPreparePrompt', () => {
         setActionBridgeOverride({ prepareActionPrompt } as unknown as ElectronActionBridge);
         vi.spyOn(actionService.draftStore, 'hasPendingDrafts').mockReturnValue(true);
         vi.spyOn(actionService.draftStore, 'flushDrafts').mockRejectedValue(failure);
+
+        await expect(defaultPreparePrompt({ id: 'review' } as ActionDefinition, { kind: 'project' })).rejects.toBe(failure);
+        expect(prepareActionPrompt).not.toHaveBeenCalled();
+    });
+
+    it('reports a pending file write failure without preparing from stale files', async () => {
+        const failure = new Error('Disk write failed');
+        const prepareActionPrompt = vi.fn();
+        setActionBridgeOverride({ prepareActionPrompt } as unknown as ElectronActionBridge);
+        vi.spyOn(actionService.draftStore, 'hasPendingDrafts').mockReturnValue(false);
+        vi.spyOn(dataService, 'writePendingFiles').mockRejectedValue(failure);
 
         await expect(defaultPreparePrompt({ id: 'review' } as ActionDefinition, { kind: 'project' })).rejects.toBe(failure);
         expect(prepareActionPrompt).not.toHaveBeenCalled();
@@ -57,14 +71,49 @@ describe('defaultScheduleAction', () => {
         setActionBridgeOverride({ registerActionSchedule } as unknown as ElectronActionBridge)
         projectAccessService.setReadOnly(false)
         const refresh = vi.spyOn(activeScheduleService, 'refresh').mockResolvedValue(undefined)
-        const action = { id: 'implement' } as ActionDefinition
+        const action = { id: 'implement', type: 'command' } as ActionDefinition
         const context = { cardInternalId: 'card-1', kind: 'card' as const }
         const trigger = { timestamp: '2026-09-19T10:00:00.000Z', type: 'at' as const }
 
-        await defaultScheduleAction(action, context, trigger)
+        await defaultScheduleAction(action, context, trigger, 'Edited command')
 
         expect(registerActionSchedule).toHaveBeenCalledWith({ actionId: 'implement', context, trigger })
         expect(refresh).toHaveBeenCalledOnce()
+    })
+
+    it('sends captured prompt for agent schedules', async () => {
+        const registerActionSchedule = vi.fn(async () => undefined)
+        setActionBridgeOverride({ registerActionSchedule } as unknown as ElectronActionBridge)
+        projectAccessService.setReadOnly(false)
+        vi.spyOn(activeScheduleService, 'refresh').mockResolvedValue(undefined)
+        const action = { id: 'implement', type: 'agent' } as ActionDefinition
+        const context = { cardInternalId: 'card-1', kind: 'card' as const }
+        const trigger = { timestamp: '2026-09-19T10:00:00.000Z', type: 'at' as const }
+
+        await defaultScheduleAction(action, context, trigger, 'Review latest changes')
+
+        expect(registerActionSchedule).toHaveBeenCalledWith({
+            actionId: 'implement',
+            context,
+            prompt: 'Review latest changes',
+            trigger,
+        })
+    })
+
+    it.each(['', '  \n\t'])('rejects empty custom prompt before registration: %#', async (prompt) => {
+        const registerActionSchedule = vi.fn(async () => undefined)
+        setActionBridgeOverride({ registerActionSchedule } as unknown as ElectronActionBridge)
+        projectAccessService.setReadOnly(false)
+        const refresh = vi.spyOn(activeScheduleService, 'refresh').mockResolvedValue(undefined)
+
+        await expect(defaultScheduleAction(
+            { id: CUSTOM_PROMPT_ACTION_ID, type: 'agent' } as ActionDefinition,
+            { cardInternalId: 'card-1', kind: 'card' },
+            { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' },
+            prompt,
+        )).rejects.toThrow('Custom prompt cannot be empty')
+        expect(registerActionSchedule).not.toHaveBeenCalled()
+        expect(refresh).not.toHaveBeenCalled()
     })
 
     it('does not refresh or claim success when registration fails', async () => {
@@ -78,6 +127,7 @@ describe('defaultScheduleAction', () => {
             { id: 'implement' } as ActionDefinition,
             { cardInternalId: 'card-1', kind: 'card' },
             { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' },
+            'Review latest changes',
         )).rejects.toBe(failure)
         expect(refresh).not.toHaveBeenCalled()
     })
@@ -92,6 +142,7 @@ describe('defaultScheduleAction', () => {
             { id: 'implement' } as ActionDefinition,
             { cardInternalId: 'card-1', kind: 'card' },
             { timestamp: '2026-09-19T10:00:00.000Z', type: 'at' },
+            'Review latest changes',
         )).rejects.toThrow('Could not load schedules')
     })
 })

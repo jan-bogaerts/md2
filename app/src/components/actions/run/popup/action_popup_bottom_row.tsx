@@ -14,6 +14,7 @@ import { ActionAgentSelectors } from '../../agent/action_agent_selectors';
 import { ActionPromptMenu } from './action_prompt_menu';
 import { ActionPopupRunControls } from './action_popup_run_controls';
 import type { ActionRunBindingStore } from '../state/action_run_binding_store';
+import type { ActionPopupFocusRequest } from './action_popup_focus_request';
 
 interface ActionPopupBottomRowProps {
     action: ActionDefinition;
@@ -23,6 +24,7 @@ interface ActionPopupBottomRowProps {
     historyStore: ActionHistoryStore;
     /** Embedded inside idle input surfaces; standalone while a command run is active. */
     embedded?: boolean;
+    focusRequest: ActionPopupFocusRequest;
     inputStore: ActionRunInputStore;
     resultStore: ActionRunResultStore;
     runValidationError: string | null;
@@ -33,7 +35,8 @@ interface ActionPopupBottomRowProps {
 /** Agent settings and run controls for the popup footer. */
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const {
-        action, assignmentContext, bindingStore, conversationStore, embedded = false, historyStore, inputStore, resultStore,
+        action, assignmentContext, bindingStore, conversationStore, embedded = false, focusRequest, historyStore, inputStore,
+        resultStore,
         runValidationError, scheduleStore, settingsStore,
     } = props;
     const theme = useTheme();
@@ -83,7 +86,8 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                 ) : <Box data-footer-selectors sx={{ flexShrink: 1, minWidth: 158, overflow: 'hidden' }} />}
                 <ActionPopupRunControls
                     action={action} assignmentContext={assignmentContext} bindingStore={bindingStore}
-                    conversationStore={conversationStore} historyStore={historyStore} inputStore={inputStore}
+                    conversationStore={conversationStore} focusRequest={focusRequest} historyStore={historyStore}
+                    inputStore={inputStore}
                     resultStore={resultStore} runValidationError={runValidationError}
                     scheduleStore={scheduleStore} settingsStore={settingsStore}
                 />

@@ -598,6 +598,64 @@ describe('WorktreeService', () => {
         expect(assignedCard.header.branch).toBe(first.branch)
     })
 
+    it('reserves a worktree for a pending sequence by branch and a running sequence by checkout path', () => {
+        const { emit, storage } = createStorage();
+        const service = new WorktreeService();
+        initService(service, storage);
+        const runningCheckout = { ...second, branch: 'md2/sequence/sequence-1' };
+        emit(project, [first, runningCheckout]);
+
+        service.setSequenceReservations([
+            { checkoutPath: null, worktreeBranch: first.branch! },
+            { checkoutPath: 'c:/SECOND/', worktreeBranch: second.branch! },
+        ]);
+
+        expect(service.isWorktreeReservedBySequence(first)).toBe(true);
+        expect(service.isWorktreeReservedBySequence(runningCheckout)).toBe(true);
+        service.setSequenceReservations([]);
+        expect(service.isWorktreeReservedBySequence(first)).toBe(false);
+        expect(service.isWorktreeReservedBySequence(runningCheckout)).toBe(false);
+    });
+
+    it('announces sequence reservations only when they change', () => {
+        const service = new WorktreeService();
+        const assignmentChanged = vi.fn();
+        service.addEventListener('assignmentChanged', assignmentChanged);
+        const reservation = { checkoutPath: null, worktreeBranch: first.branch! };
+
+        service.setSequenceReservations([reservation]);
+        service.setSequenceReservations([{ ...reservation }]);
+
+        expect(assignmentChanged).toHaveBeenCalledOnce();
+    });
+
+    it('rejects assigning a sequence-reserved worktree to a card without a desktop call', async () => {
+        const { emit, storage } = createStorage();
+        const service = new WorktreeService();
+        const activeCard = card('design/F-1.md', 'Card', null);
+        const { assignCardWorktree } = initService(service, storage, snapshot([activeCard]));
+        emit(project, [first]);
+        service.setSequenceReservations([{ checkoutPath: null, worktreeBranch: first.branch! }]);
+
+        await expect(service.setCardWorktree(activeCard.path, first.branch)).rejects.toThrow(`Worktree branch ${first.branch} is assigned to a sequence`);
+
+        expect(storage.prepareWorktree).not.toHaveBeenCalled();
+        expect(assignCardWorktree).not.toHaveBeenCalled();
+    });
+
+    it('marks card-assigned and sequence-reserved worktrees unavailable for a new sequence', () => {
+        const { emit, storage } = createStorage();
+        const service = new WorktreeService();
+        const third = { ...second, branch: 'third', path: 'C:\\third' };
+        initService(service, storage, snapshot([card('design/F-1.md', 'Assigned', 1)]));
+        emit(project, [first, second, third]);
+        service.setSequenceReservations([{ checkoutPath: null, worktreeBranch: second.branch! }]);
+
+        expect(service.isWorktreeAvailableForSequence(first)).toBe(false);
+        expect(service.isWorktreeAvailableForSequence(second)).toBe(false);
+        expect(service.isWorktreeAvailableForSequence(third)).toBe(true);
+    });
+
     it('integrates a project worktree without card tracking fields', async () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()

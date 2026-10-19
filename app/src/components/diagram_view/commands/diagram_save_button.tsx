@@ -10,7 +10,7 @@ export function DiagramSaveButton({ save = diagramSaveService, session = diagram
     save?: DiagramSaveService
     session?: DiagramEditSessionService
 }) {
-    const dirty = useSyncExternalStore(session.subscribeDirty, session.getDirtySnapshot, session.getDirtySnapshot)
+    const dirty = useSyncExternalStore(session.read.subscribeDirty, session.read.getDirtySnapshot, session.read.getDirtySnapshot)
     const status = useSyncExternalStore(save.subscribeStatus, save.getStatusSnapshot, save.getStatusSnapshot)
     const handleSave = async () => {
         try {

@@ -1,8 +1,9 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-const { commitTrackedPaths, ensureInsideRoot, pathExists } = require('../../git/git_commands');
+const { ensureInsideRoot } = require('../../git/git_commands');
 const { projectOperationCoordinator } = require('../../project/project_operation_coordinator');
+const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 
 const CSV_COLUMNS = [
     'recorded_at',
@@ -332,10 +333,10 @@ function usageMetricsPath(project, projectFolder) {
 class UsageMetricsService {
     constructor(dependencies = {}) {
         this.appendFile = dependencies.appendFile ?? fs.appendFile;
-        this.commitTrackedPaths = dependencies.commitTrackedPaths ?? commitTrackedPaths;
         this.errorReporter = dependencies.errorReporter ?? (() => undefined);
         this.projectOperationCoordinator = dependencies.projectOperationCoordinator ?? projectOperationCoordinator;
         this.readFile = dependencies.readFile ?? fs.readFile;
+        this.uncommittedProjectWrites = dependencies.uncommittedProjectWrites ?? uncommittedProjectWrites;
         this.fileStates = new Map();
         this.fileWrites = new Map();
         this.filePath = null;
@@ -459,17 +460,9 @@ class UsageMetricsService {
         const recordSeparator = state.needsRecordSeparator ? '\r\n' : '';
         const content = `${recordSeparator}${header}${rows}\r\n`;
         await this.appendFile(filePath, content, 'utf8');
+        this.uncommittedProjectWrites.mark(this.requireRootPath(), [filePath]);
         state.hasContent = true;
         state.needsRecordSeparator = false;
-    }
-
-    /** Commits only the metrics file before an operation that requires a clean primary worktree. */
-    async flushPendingChanges() {
-        const filePath = this.requireFilePath();
-        const rootPath = this.requireRootPath();
-        if (!await pathExists(filePath)) return null;
-
-        return this.commitTrackedPaths(rootPath, [filePath], 'Update usage metrics');
     }
 }
 

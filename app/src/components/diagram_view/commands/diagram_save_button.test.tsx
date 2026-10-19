@@ -39,11 +39,11 @@ describe('DiagramSaveButton', () => {
         render(<DiagramSaveButton save={save} session={session} />)
 
         expect(screen.getByRole('button', { name: 'Saved' })).toBeDisabled()
-        act(() => { session.setNodeField('orders', 'label', 'Purchases') })
+        act(() => { session.objects.setNodeField('orders', 'label', 'Purchases') })
         await user.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(persistence.flushQueuedDiagrams).toHaveBeenCalledOnce()
         expect(screen.getByRole('button', { name: 'Saved' })).toBeDisabled()
-        expect(session.getSavedRecordSnapshot()).toEqual(savedRecord)
+        expect(session.read.getSavedRecordSnapshot()).toEqual(savedRecord)
     })
 })

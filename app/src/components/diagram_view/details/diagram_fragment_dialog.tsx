@@ -16,9 +16,9 @@ export function DiagramFragmentDialog({
 }) {
     const target = useSyncExternalStore(dialog.subscribeTarget, dialog.getTargetSnapshot, dialog.getTargetSnapshot)
     const fragmentExists = useSyncExternalStore(
-        (listener) => session.subscribeCollectionMembership('fragment', listener),
-        () => !target?.fragmentId || !!session.getFragmentSnapshot(target.fragmentId),
-        () => !target?.fragmentId || !!session.getFragmentSnapshot(target.fragmentId),
+        (listener) => session.read.subscribeCollectionMembership('fragment', listener),
+        () => !target?.fragmentId || !!session.read.getFragmentSnapshot(target.fragmentId),
+        () => !target?.fragmentId || !!session.read.getFragmentSnapshot(target.fragmentId),
     )
     const handleClose = () => dialog.close()
 

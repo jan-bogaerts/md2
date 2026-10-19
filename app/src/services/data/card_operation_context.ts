@@ -1,5 +1,5 @@
 import type { CardMoveUpdate } from '../../data/card_ordering'
-import type { Card, MarkdownFile, MoveFile, ProjectReference, ProjectSnapshot, StorageService } from '../../data/data_types'
+import type { Card, MarkdownFile, MoveFile, ProjectReference, ProjectSnapshot, StorageService, WriteFilesRequest } from '../../data/data_types'
 import type { CardOpenDocument, OpenDocumentSaveReference } from '../open_files_service'
 import { openFilesService } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
@@ -141,6 +141,18 @@ export class CardOperationContext {
         ])
 
         return committedFiles
+    }
+
+    /** Writes files to disk without committing; storage records expected persistence outcomes. */
+    async writeTrackingPaths(request: WriteFilesRequest) {
+        const { storage } = this.dependencies.requireDependencies()
+        if (!storage.writeFiles) throw new Error('Current storage cannot write files without committing')
+
+        await storage.writeFiles(request)
+        this.dependencies.recordCurrentContent([
+            ...request.files,
+            ...(request.moves ?? []).map(({ content, toPath }) => ({ content, path: toPath })),
+        ])
     }
 
     /** Commits and merges the result into local state. */

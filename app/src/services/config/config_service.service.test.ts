@@ -68,6 +68,7 @@ describe('ConfigService', () => {
         service.replaceDesktopConfig({
             agentSelection: agentSelection('custom', 'custom-model', 'high'),
             agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['custom-model'], name: 'custom' }],
+            agentTaskTrackingEnabled: true,
             codexSearchEnabled: false,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
@@ -214,7 +215,7 @@ describe('ConfigService', () => {
         service.init()
         const pinnedConversations = [
             { cardInternalId: 'card-1', contextKind: 'card' as const, conversationId: 'conversation-1' },
-            { contextKind: 'project' as const, conversationId: 'conversation-2' },
+            { activityPath: 'design/releases/v1/project.json', contextKind: 'project' as const, conversationId: 'conversation-2' },
         ]
         service.loadProjectConfig({ pinnedConversations })
 
@@ -223,6 +224,10 @@ describe('ConfigService', () => {
             .toThrow('contains duplicate conversation identities')
         expect(() => service.loadProjectConfig({ pinnedConversations: [{ contextKind: 'project', conversationId: '' }] }))
             .toThrow('requires conversationId')
+        expect(() => service.loadProjectConfig({ pinnedConversations: [{ activityPath: '', contextKind: 'project', conversationId: 'conversation-2' }] }))
+            .toThrow('contains invalid activityPath')
+        expect(() => service.loadProjectConfig({ pinnedConversations: [{ activityPath: '../project.json', contextKind: 'project', conversationId: 'conversation-2' }] }))
+            .toThrow('requires a repository-relative activityPath')
     })
 
     it('defaults a missing pinned conversation identity list to empty', () => {
@@ -438,6 +443,7 @@ describe('ConfigService', () => {
         expect(service.getDesktopValues()).toEqual({
             agentSelection: agentSelection('claude', '', 'high'),
             agentProfiles: BUILTIN_AGENT_PROFILES,
+            agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,
             editorCommand: 'notepad "{{file}}"',
             mergeConflictResolverCommand: 'merge-tool "{{file}}"',

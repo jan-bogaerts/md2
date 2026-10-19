@@ -36,15 +36,15 @@ export function DiagramParticipantButton({
     session = diagramEditSessionService,
 }: DiagramParticipantButtonProps) {
     const subscribeDiagramType = useCallback((listener: () => void) => {
-        const unsubscribeMetadata = session.subscribeMetadataField('type', listener);
-        const unsubscribeSession = session.subscribeSession(listener);
+        const unsubscribeMetadata = session.read.subscribeMetadataField('type', listener);
+        const unsubscribeSession = session.read.subscribeSession(listener);
 
         return () => {
             unsubscribeMetadata();
             unsubscribeSession();
         };
     }, [session]);
-    const getDiagramType = useCallback(() => session.getMetadataFieldSnapshot('type'), [session]);
+    const getDiagramType = useCallback(() => session.read.getMetadataFieldSnapshot('type'), [session]);
     const diagramType = useSyncExternalStore(subscribeDiagramType, getDiagramType, getDiagramType);
     const activeTool = useActiveDiagramTool(session, 'node:participant');
     const handleActivate = useCallback(() => {

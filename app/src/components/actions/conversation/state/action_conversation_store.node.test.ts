@@ -378,6 +378,22 @@ describe('ActionConversationStore', () => {
         expect(store.getSnapshot().pinningConversationId).toBeNull()
     })
 
+    it('stores the activity file path when pinning a project conversation', async () => {
+        const path = 'design/releases/v1/project.json'
+        const source = projectConversation(`${path}#conversation=project-1`)
+        vi.spyOn(dataService.conversationPins, 'isPinned').mockReturnValue(false)
+        const setPinned = vi.spyOn(dataService.conversationPins, 'setPinned').mockResolvedValue()
+        const { store } = createConversationStore('implement', { kind: 'project' })
+
+        await store.togglePinned(source)
+
+        expect(setPinned).toHaveBeenCalledWith({
+            activityPath: path,
+            contextKind: 'project',
+            conversationId: source.id,
+        }, true)
+    })
+
     it('reports a project pin write failure', async () => {
         const source = conversation('conversation.json')
         const error = new Error('pin write failed')

@@ -24,13 +24,14 @@ interface ListEditorToolbarControlsProps {
     cardTypes: CardTypeConfig[]
     historyStore: MarkdownDocumentHistoryStore
     onAttachFiles?: (files: File[]) => void
+    onFlushEditor: () => void
     readOnly: boolean
     statusColors: Map<string, string>
 }
 
 /** Formatting controls and card-specific controls for the active list-card document. */
 export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps) {
-    const { cardTypes, historyStore, onAttachFiles, readOnly, statusColors } = props
+    const { cardTypes, historyStore, onAttachFiles, onFlushEditor, readOnly, statusColors } = props
     const card = useActiveCard('list-card')
     const cardInternalId = card?.header.internalId ?? null
     const historyKey = cardInternalId ?? card?.path ?? null
@@ -53,11 +54,12 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
             if (!activeDocumentId) throw new Error('Cannot open card agents without an active list-card document')
             if (!context || !project) throw new Error('Cannot open card agents without a loaded project')
 
+            onFlushEditor()
             cardPopupService.toggleAction(context, event.currentTarget)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Card agents could not be opened' })
         }
-    }, [context, project])
+    }, [context, onFlushEditor, project])
 
     if (!card || !historyKey) return null
 

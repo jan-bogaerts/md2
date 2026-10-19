@@ -51,6 +51,8 @@ export class GithubStorageWriter {
     }
 
     async commit(request: CommitRequest) {
+        if ((request.paths?.length ?? 0) > 0) throw new Error('Commit-only paths require a local Git bridge')
+
         const branchHead = await this.gitData.getBranchHead(request.branch)
         await this.gitData.assertFileShasMatch(branchHead.treeSha, request.files)
 

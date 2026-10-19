@@ -189,7 +189,7 @@ describe('editable diagram subscriptions', () => {
             Object.entries(counters).map(([name, counter]) => [name, counter.mock.calls.length]),
         )
 
-        act(() => service.setNodeField('orders', 'label', 'Order API'))
+        act(() => service.objects.setNodeField('orders', 'label', 'Order API'))
 
         expect(counters.label).toHaveBeenCalledTimes(initialCounts.label + 1)
         expect(counters.label).toHaveBeenLastCalledWith('Order API')
@@ -203,15 +203,15 @@ describe('editable diagram subscriptions', () => {
 
     it('rerenders one change leaf without rerendering the change collection', () => {
         const service = createService()
-        service.setNodeField('orders', 'x', 4)
+        service.objects.setNodeField('orders', 'x', 4)
         const collectionCounter = vi.fn()
         const leafCounter = vi.fn()
         render(<ChangeCollection collectionCounter={collectionCounter} leafCounter={leafCounter} service={service} />)
-        const changeIds = service.getChangeIdsSnapshot()
+        const changeIds = service.read.getChangeIdsSnapshot()
 
-        act(() => service.setNodeField('orders', 'x', 8))
+        act(() => service.objects.setNodeField('orders', 'x', 8))
 
-        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(service.read.getChangeIdsSnapshot()).toBe(changeIds)
         expect(collectionCounter).toHaveBeenCalledOnce()
         expect(leafCounter).toHaveBeenCalledTimes(2)
         expect(leafCounter).toHaveBeenLastCalledWith(8)
@@ -235,14 +235,14 @@ describe('editable diagram subscriptions', () => {
         )
         expect(membershipCounter).toHaveBeenLastCalledWith(['orders', 'store'])
 
-        act(() => { service.removeGroupMember('backend', 'store') })
+        act(() => { service.objects.removeGroupMember('backend', 'store') })
 
         expect(membershipCounter).toHaveBeenCalledTimes(2)
         expect(membershipCounter).toHaveBeenLastCalledWith(['orders'])
         expect(otherMembershipCounter).toHaveBeenCalledOnce()
         expect(geometryCounter).toHaveBeenCalledOnce()
 
-        act(() => { service.addGroupMember(otherGroupId, 'store') })
+        act(() => { service.objects.addGroupMember(otherGroupId, 'store') })
 
         expect(otherMembershipCounter).toHaveBeenCalledTimes(2)
         expect(otherMembershipCounter).toHaveBeenLastCalledWith(['store'])
@@ -264,12 +264,12 @@ describe('editable diagram subscriptions', () => {
                 service={service}
             />,
         )
-        const membership = service.getGroupNodeIdsSnapshot('backend')
+        const membership = service.read.getGroupNodeIdsSnapshot('backend')
 
-        act(() => { service.setGroupField('backend', 'x', 8) })
+        act(() => { service.objects.setGroupField('backend', 'x', 8) })
 
         expect(geometryCounter).toHaveBeenCalledTimes(2)
         expect(membershipCounter).toHaveBeenCalledOnce()
-        expect(service.getGroupNodeIdsSnapshot('backend')).toBe(membership)
+        expect(service.read.getGroupNodeIdsSnapshot('backend')).toBe(membership)
     })
 })

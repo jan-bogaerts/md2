@@ -8,6 +8,7 @@ import {
 } from './diagram_entity_node_button'
 
 class EntityNodeSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool = 'select'
     private readonly diagramType: DiagramType
 
@@ -56,7 +57,7 @@ describe('DiagramEntityNodeButton', () => {
             kind: 'entity',
             previewSize: { height: 48, width: 160 },
         })
-        expect(session.subscribeMetadataField.mock.calls.every(([field]) => field === 'type')).toBe(true)
+        expect(session.read.subscribeMetadataField.mock.calls.every(([field]) => field === 'type')).toBe(true)
         act(() => { session.setActiveTool('node:entity') })
         expect(button).toHaveAttribute('aria-pressed', 'true')
     })

@@ -6,17 +6,19 @@ import {
 } from './commit_batcher'
 import { createDeferred, type CommitCallback } from '../services/test_support/data_service_test_support'
 import { markdownParsingService } from '../services/data/markdown_parsing_service'
-import type { Card, CommitRequest } from './data_types'
+import type { Card, CommitRequest, WriteFilesRequest } from './data_types'
 
 type PushCallback = (request: CommitRequest) => Promise<unknown>
+type WriteCallback = (request: WriteFilesRequest) => Promise<unknown>
 
 function createBatcher(
     commit: CommitCallback,
     push: PushCallback = vi.fn(async () => undefined),
     delayMs = 30000,
     requireCardByInternalId: (internalId: string) => Card = () => { throw new Error('Unexpected card lookup') },
+    writeFiles: WriteCallback = vi.fn(async () => undefined),
 ) {
-    const cardOperations = { commitFiles: commit, pushCommittedFiles: push, requireCardByInternalId }
+    const cardOperations = { commitFiles: commit, pushCommittedFiles: push, requireCardByInternalId, writeFiles }
 
     return new CommitBatcher(cardOperations, () => delayMs)
 }
@@ -43,6 +45,61 @@ describe('CommitBatcher', () => {
             moves: [{ content: 'second', fromPath: 'design/diagrams/original-diagram-1.json', toPath: 'design/diagrams/second-diagram-1.json' }],
         })
         expect(persisted).toHaveBeenCalledOnce()
+    })
+
+    it('sends commit-only paths in request paths without file content', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = createBatcher(commit)
+        const activityPath = 'design/activity/card__card-1.json'
+        batcher.schedule('main', [{ kind: 'path', path: activityPath }], 'Update conversation view state')
+        batcher.schedule('main', [{ content: 'card', kind: 'file', path: 'card.md' }], 'Update card')
+
+        await batcher.flush()
+
+        expect(commit.mock.calls[0][0].paths).toEqual([activityPath])
+        expect(commit.mock.calls[0][0].files).toEqual([{ content: 'card', path: 'card.md' }])
+    })
+
+    it('coalesces repeated schedules for one commit-only path into one entry', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = createBatcher(commit)
+        const activityPath = 'design/activity/card__card-1.json'
+        batcher.schedule('main', [{ kind: 'path', path: activityPath }], 'Update conversation view state')
+        batcher.schedule('main', [{ kind: 'path', path: activityPath }], 'Update conversation view state')
+
+        expect(batcher.describePendingChanges()).toHaveLength(1)
+        await batcher.flush()
+
+        expect(commit.mock.calls[0][0]).toEqual({
+            branch: 'main',
+            files: [],
+            message: 'Update conversation view state',
+            paths: [activityPath],
+        })
+    })
+
+    it('distinguishes a pending commit-only path from renderer-owned content', () => {
+        const batcher = createBatcher(vi.fn<CommitCallback>(async () => undefined))
+        batcher.schedule('main', [{ kind: 'path', path: 'external.md' }], 'Import external card')
+        batcher.schedule('main', [{ content: 'local', kind: 'file', path: 'local.md' }], 'Update local card')
+
+        expect(batcher.hasPendingRepositoryPath('external.md')).toBe(true)
+        expect(batcher.hasPendingRepositoryPath('local.md')).toBe(false)
+    })
+
+    it('restores a commit-only path after a failed flush', async () => {
+        const commit = vi.fn<CommitCallback>()
+            .mockRejectedValueOnce(new Error('commit failed'))
+            .mockResolvedValue(undefined)
+        const batcher = createBatcher(commit)
+        const activityPath = 'design/activity/card__card-1.json'
+        batcher.schedule('main', [{ kind: 'path', path: activityPath }], 'Update conversation view state')
+
+        await expect(batcher.flush()).rejects.toThrow('commit failed')
+        expect(batcher.hasPendingFile(activityPath)).toBe(true)
+        await batcher.flush()
+
+        expect(commit.mock.calls[1][0].paths).toEqual([activityPath])
     })
 
     it('serializes one owned card reference once with latest fields at flush', async () => {
@@ -491,6 +548,115 @@ describe('CommitBatcher', () => {
         expect(batcher.hasPendingFile('other.md')).toBe(true)
         await batcher.flush()
         expect(commit.mock.calls[0][0].files).toEqual([{ content: 'other', path: 'other.md' }])
+    })
+
+    describe('writePending', () => {
+        it('writes pending files and moves without a message and keeps them pending', async () => {
+            const commit = vi.fn<CommitCallback>(async () => undefined)
+            const writeFiles = vi.fn<WriteCallback>(async () => undefined)
+            const acknowledge = vi.fn()
+            const onPersisted = vi.fn()
+            const onPathCommitted = vi.fn()
+            const saveReference = { acknowledge, document: {} } as never
+            const batcher = createBatcher(commit, undefined, undefined, undefined, writeFiles)
+            batcher.schedule('main', [{ content: 'new card', kind: 'file', onPersisted, path: 'design/F-1.md', saveReference }], 'Create card')
+            batcher.schedule('main', [{
+                actionId: 'review',
+                content: 'action',
+                kind: 'action',
+                onPathCommitted,
+                path: 'actions/review.json',
+                sourcePath: 'actions/new-action.json',
+            }], 'Rename action')
+
+            await batcher.writePending()
+
+            expect(writeFiles).toHaveBeenCalledOnce()
+            expect(writeFiles.mock.calls[0][0]).toEqual({
+                branch: 'main',
+                files: [{ content: 'new card', path: 'design/F-1.md' }],
+                moves: [{ content: 'action', fromPath: 'actions/new-action.json', toPath: 'actions/review.json' }],
+            })
+            expect(commit).not.toHaveBeenCalled()
+            expect(batcher.hasPendingFile('design/F-1.md')).toBe(true)
+            expect(batcher.hasPendingAction('review')).toBe(true)
+            expect(acknowledge).not.toHaveBeenCalled()
+            expect(onPersisted).not.toHaveBeenCalled()
+            expect(onPathCommitted).not.toHaveBeenCalled()
+        })
+
+        it('does nothing when nothing is pending', async () => {
+            const writeFiles = vi.fn<WriteCallback>(async () => undefined)
+            const batcher = createBatcher(vi.fn<CommitCallback>(async () => undefined), undefined, undefined, undefined, writeFiles)
+
+            await batcher.writePending()
+
+            expect(writeFiles).not.toHaveBeenCalled()
+        })
+
+        it('does not reset the timed commit', async () => {
+            vi.useFakeTimers()
+            const commit = vi.fn<CommitCallback>(async () => undefined)
+            const batcher = createBatcher(commit)
+            batcher.schedule('main', [{ content: 'one', kind: 'file', path: 'card.md' }], 'Update card')
+            await vi.advanceTimersByTimeAsync(20000)
+
+            await batcher.writePending()
+            await vi.advanceTimersByTimeAsync(10000)
+
+            expect(commit).toHaveBeenCalledOnce()
+            expect(commit.mock.calls[0][0]).toMatchObject({ files: [{ content: 'one', path: 'card.md' }], message: 'Update card' })
+            vi.useRealTimers()
+        })
+
+        it('keeps the batch pending and rethrows when the write fails', async () => {
+            const failure = new Error('disk unavailable')
+            const writeFiles = vi.fn<WriteCallback>(async () => { throw failure })
+            const batcher = createBatcher(vi.fn<CommitCallback>(async () => undefined), undefined, undefined, undefined, writeFiles)
+            batcher.schedule('main', [{ content: 'one', kind: 'file', path: 'card.md' }], 'Update card')
+
+            await expect(batcher.writePending()).rejects.toBe(failure)
+
+            expect(batcher.hasPendingFile('card.md')).toBe(true)
+        })
+
+        it('waits for an in-flight commit before writing', async () => {
+            const pendingCommit = createDeferred<void>()
+            const commit = vi.fn<CommitCallback>(async () => pendingCommit.promise)
+            const writeFiles = vi.fn<WriteCallback>(async () => undefined)
+            const batcher = createBatcher(commit, undefined, undefined, undefined, writeFiles)
+            batcher.schedule('main', [{ content: 'one', kind: 'file', path: 'card.md' }], 'Update card')
+            const flush = batcher.flush()
+            batcher.schedule('main', [{ content: 'two', kind: 'file', path: 'card.md' }], 'Update card')
+
+            const write = batcher.writePending()
+            await Promise.resolve()
+            expect(writeFiles).not.toHaveBeenCalled()
+
+            pendingCommit.resolve()
+            await flush
+            await write
+            expect(writeFiles.mock.calls[0][0]).toEqual({ branch: 'main', files: [{ content: 'two', path: 'card.md' }] })
+        })
+
+        it('makes flush wait for an in-flight write', async () => {
+            const pendingWrite = createDeferred<void>()
+            const commit = vi.fn<CommitCallback>(async () => undefined)
+            const writeFiles = vi.fn<WriteCallback>(async () => pendingWrite.promise)
+            const batcher = createBatcher(commit, undefined, undefined, undefined, writeFiles)
+            batcher.schedule('main', [{ content: 'one', kind: 'file', path: 'card.md' }], 'Update card')
+            const write = batcher.writePending()
+            await vi.waitFor(() => expect(writeFiles).toHaveBeenCalledOnce())
+
+            const flush = batcher.flush()
+            await Promise.resolve()
+            expect(commit).not.toHaveBeenCalled()
+
+            pendingWrite.resolve()
+            await write
+            await flush
+            expect(commit).toHaveBeenCalledOnce()
+        })
     })
 
     it('describes each queued change with kind, target path and messages', () => {

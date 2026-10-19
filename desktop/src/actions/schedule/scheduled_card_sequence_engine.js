@@ -1,14 +1,27 @@
+const { validateAgentSelection } = require('../../../../shared/agent_profiles.mjs');
+
 function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * The ready state of a sequence card can be set in the main repository (`checkoutPath` null) or in the
+ * sequence's own worktree checkout; changes in any other checkout are ignored.
+ */
+function isReadyStateSource(schedule, checkoutPath) {
+    return checkoutPath === null || (schedule.branchProgress?.checkoutPath ?? null) === checkoutPath;
 }
 
 class ScheduledCardSequenceEngine {
     constructor(dependencies) {
         this.actionRunnerService = dependencies.actionRunnerService;
+        this.allocateConversationId = dependencies.allocateConversationId;
         this.allocateRunId = dependencies.allocateRunId;
+        this.conversationResumeFailure = dependencies.conversationResumeFailure;
         this.isCurrent = dependencies.isCurrent;
         this.loadSchedules = dependencies.loadSchedules;
         this.resolveCardContext = dependencies.resolveCardContext;
+        this.resolvePrimaryCardContext = dependencies.resolvePrimaryCardContext;
         this.saveSequence = dependencies.saveSequence;
         this.states = dependencies.states;
         this.worktreeExecution = dependencies.worktreeExecution;
@@ -31,7 +44,7 @@ class ScheduledCardSequenceEngine {
         const matchingSchedules = schedules.filter((schedule) => (
             schedule.kind === 'sequence'
             && schedule.status === 'running'
-            && (schedule.branchProgress?.checkoutPath ?? null) === checkoutPath
+            && isReadyStateSource(schedule, checkoutPath)
             && schedule.cardInternalIds[schedule.currentIndex] === cardInternalId
             && schedule.readyState === state
         ));
@@ -97,6 +110,7 @@ class ScheduledCardSequenceEngine {
         if (!schedule || !this.isCurrent()) return;
         if (schedule.status !== 'pending' && schedule.status !== 'running') return;
         this.validateReadyState(schedule);
+        await this.requireExecutableAction(schedule);
         let current = schedule;
         if (current.status === 'pending') {
             current = await this.saveSequence({ ...current, failure: null, status: 'running' });
@@ -118,6 +132,10 @@ class ScheduledCardSequenceEngine {
             this.observeRun(current.id, current.currentRunId);
             return;
         }
+        if (current.conversationId) {
+            await this.awaitConversationOrFail(current, 'Cannot recover sequence action waiting on its conversation');
+            return;
+        }
         if (!current.actionCompleted && current.branchProgress?.phase === 'running') {
             throw new Error('Cannot recover sequence action with unknown run outcome');
         }
@@ -136,7 +154,11 @@ class ScheduledCardSequenceEngine {
 
     async refreshReadyState(schedule) {
         if (schedule.readyStateMet) return schedule;
-        const context = await this.resolveCardContext(schedule.cardInternalIds[schedule.currentIndex], schedule);
+        const cardInternalId = schedule.cardInternalIds[schedule.currentIndex];
+        const primaryContext = await this.resolvePrimaryCardContext(cardInternalId);
+        const context = primaryContext.state === schedule.readyState
+            ? primaryContext
+            : await this.resolveCardContext(cardInternalId, schedule);
         if (context.state !== schedule.readyState) return schedule;
 
         return this.saveSequence({ ...schedule, readyStateMet: true });
@@ -145,11 +167,12 @@ class ScheduledCardSequenceEngine {
     async startCurrentAction(schedule) {
         const context = await this.resolveCardContext(schedule.cardInternalIds[schedule.currentIndex], schedule);
         const runId = this.allocateRunId();
-        const activeSchedule = await this.saveSequence({ ...schedule, currentRunId: runId, ...(schedule.branchProgress ? { branchProgress: { ...schedule.branchProgress, phase: 'running', runId } } : {}) });
+        const conversationId = this.allocateConversationId();
+        const activeSchedule = await this.saveSequence({ ...schedule, conversationId, currentRunId: runId, ...(schedule.branchProgress ? { branchProgress: { ...schedule.branchProgress, phase: 'running', runId } } : {}) });
         if (!this.isCurrent() || this.cancelledSchedules.has(schedule.id)) return;
         try {
             await this.actionRunnerService.start(
-                { actionId: activeSchedule.actionId, context, runInput: {} },
+                { actionId: activeSchedule.actionId, context, runInput: { ...activeSchedule.agentSelection, conversationId } },
                 { interactive: false, runId, ...(activeSchedule.worktreeBranch ? { sequenceId: activeSchedule.id } : {}) },
             );
         } catch (error) {
@@ -187,8 +210,12 @@ class ScheduledCardSequenceEngine {
     async applyRunResult(scheduleId, runId, result) {
         const schedule = await this.loadSequence(scheduleId);
         if (!schedule || schedule.status !== 'running' || schedule.currentRunId !== runId || !this.isCurrent()) return;
+        await this.applyStepResult(schedule, result);
+    }
+
+    async applyStepResult(schedule, result) {
         if (result.status === 'cancelled') {
-            await this.saveSequence({ ...schedule, currentRunId: null, failure: result.failure ?? 'Sequence action was cancelled', status: 'cancelled' });
+            await this.saveSequence({ ...schedule, conversationId: null, currentRunId: null, failure: result.failure ?? 'Sequence action was cancelled', status: 'cancelled' });
             this.worktreeExecution?.release(schedule.id);
             return;
         }
@@ -196,21 +223,64 @@ class ScheduledCardSequenceEngine {
             await this.failSequence(schedule, result.failure ?? `Sequence action ended with status ${result.status}`);
             return;
         }
-        const completed = await this.saveSequence({ ...schedule, actionCompleted: true, currentRunId: null });
+        const completed = await this.saveSequence({ ...schedule, actionCompleted: true, conversationId: null, currentRunId: null });
         if (completed.readyStateMet) await this.advanceOrComplete(completed);
     }
 
     async failUnrecoverableRun(scheduleId, runId, error) {
         const schedule = await this.loadSequence(scheduleId);
         if (!schedule || schedule.status !== 'running' || !this.isCurrent()) return;
-        await this.failSequence(schedule, `Cannot recover sequence action run ${runId}: ${errorMessage(error)}`);
+        const failure = `Cannot recover sequence action run ${runId}: ${errorMessage(error)}`;
+        if (!schedule.conversationId) {
+            await this.failSequence(schedule, failure);
+            return;
+        }
+        await this.awaitConversationOrFail(schedule, failure);
+    }
+
+    /**
+     * Keeps a step whose run died with the previous process alive while its persisted conversation can still be
+     * continued by the user; the continued run is adopted later through `adoptRun`.
+     */
+    async awaitConversationOrFail(schedule, failure) {
+        const cardInternalId = schedule.cardInternalIds[schedule.currentIndex];
+        const resumeFailure = await this.conversationResumeFailure(cardInternalId, schedule.conversationId);
+        if (resumeFailure) {
+            await this.failSequence(schedule, `${failure}: ${resumeFailure}`);
+            return;
+        }
+        if (schedule.currentRunId) await this.saveSequence({ ...schedule, currentRunId: null });
+    }
+
+    adoptRun(scheduleId, conversationId, runId) {
+        return this.enqueue(scheduleId, () => this.adoptRunLocked(scheduleId, conversationId, runId));
+    }
+
+    async adoptRunLocked(scheduleId, conversationId, runId) {
+        const schedule = await this.loadSequence(scheduleId);
+        if (!schedule || schedule.status !== 'running' || schedule.currentRunId || !this.isCurrent()) return;
+        if (schedule.conversationId !== conversationId) return;
+        await this.saveSequence({ ...schedule, currentRunId: runId });
+        this.observeRun(scheduleId, runId);
+    }
+
+    closeConversation(scheduleId, conversationId, status) {
+        return this.enqueue(scheduleId, () => this.closeConversationLocked(scheduleId, conversationId, status));
+    }
+
+    async closeConversationLocked(scheduleId, conversationId, status) {
+        const schedule = await this.loadSequence(scheduleId);
+        if (!schedule || schedule.status !== 'running' || schedule.currentRunId || !this.isCurrent()) return;
+        if (schedule.conversationId !== conversationId) return;
+        const result = { failure: null, status };
+        await this.applyStepResult(schedule, result);
     }
 
     async markReadyStateMet(scheduleId, cardInternalId, checkoutPath) {
         const schedule = await this.loadSequence(scheduleId);
         if (!schedule || schedule.status !== 'running' || schedule.readyStateMet || !this.isCurrent()) return;
         if (schedule.cardInternalIds[schedule.currentIndex] !== cardInternalId) return;
-        if ((schedule.branchProgress?.checkoutPath ?? null) !== checkoutPath) return;
+        if (!isReadyStateSource(schedule, checkoutPath)) return;
         const ready = await this.saveSequence({ ...schedule, readyStateMet: true });
         if (ready.actionCompleted) await this.advanceOrComplete(ready);
     }
@@ -240,6 +310,7 @@ class ScheduledCardSequenceEngine {
             ...schedule,
             ...(schedule.branchProgress ? { branchProgress: { ...schedule.branchProgress, phase: 'sequence-ready', childBranch: null } } : {}),
             actionCompleted: false,
+            conversationId: null,
             currentIndex: schedule.currentIndex + 1,
             currentRunId: null,
             readyStateMet: false,
@@ -251,7 +322,7 @@ class ScheduledCardSequenceEngine {
 
     async failSequence(schedule, failure) {
         try {
-            await this.saveSequence({ ...schedule, currentRunId: null, failure, status: 'failed' });
+            await this.saveSequence({ ...schedule, conversationId: null, currentRunId: null, failure, status: 'failed' });
             this.reportError(new Error(`Sequence ${schedule.id} failed: ${failure}`));
         } finally {
             this.worktreeExecution?.release(schedule.id);
@@ -296,6 +367,18 @@ class ScheduledCardSequenceEngine {
         const schedules = await this.loadSchedules();
 
         return schedules.find((schedule) => schedule.id === scheduleId && schedule.kind === 'sequence') ?? null;
+    }
+
+    /** Resolves the sequence action and its agent settings before any checkout or run is prepared. */
+    async requireExecutableAction(schedule) {
+        const action = await this.actionRunnerService.loadRootAction(schedule.actionId);
+        if (action.type !== 'agent') {
+            if (schedule.agentSelection) throw new Error('Command sequence cannot have agent settings');
+            return;
+        }
+        if (!schedule.agentSelection) throw new Error('Missing sequence execution agent settings');
+        const { agentProfiles } = this.actionRunnerService.agentConfigProvider();
+        validateAgentSelection(agentProfiles, schedule.agentSelection, 'sequence execution');
     }
 
     validateReadyState(schedule) {

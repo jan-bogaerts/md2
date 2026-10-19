@@ -2,7 +2,6 @@ import { useEffect, type RefObject } from 'react'
 import { DIAGRAM_ZOOM_VALUES } from '../../../services/diagrams/diagram_zoom'
 
 interface DiagramZoomStore {
-    getViewportScaleSnapshot: () => number
     setViewportScale: (scale: number) => boolean
 }
 
@@ -20,6 +19,7 @@ function nextDiagramZoom(scale: number, deltaY: number) {
 export function useDiagramCtrlWheelZoom(
     scrollerRef: RefObject<HTMLElement | null>,
     store: DiagramZoomStore,
+    getViewportScaleSnapshot: () => number,
 ) {
     useEffect(() => {
         const scroller = scrollerRef.current
@@ -29,10 +29,10 @@ export function useDiagramCtrlWheelZoom(
             if (!event.ctrlKey || event.deltaY === 0) return
 
             event.preventDefault()
-            store.setViewportScale(nextDiagramZoom(store.getViewportScaleSnapshot(), event.deltaY))
+            store.setViewportScale(nextDiagramZoom(getViewportScaleSnapshot(), event.deltaY))
         }
         scroller.addEventListener('wheel', handleWheel, { passive: false })
 
         return () => scroller.removeEventListener('wheel', handleWheel)
-    }, [scrollerRef, store])
+    }, [scrollerRef, store, getViewportScaleSnapshot])
 }

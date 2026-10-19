@@ -4,6 +4,7 @@ const { currentGitOperationContext, runWithGitOperationContext } = require('../.
 const { CardStateTracker } = require('../card/card_state_tracker');
 
 const INTEGRATION_LABEL = 'Integrate into project';
+const STEP_COMMIT_LABEL = 'Complete sequence card';
 
 /** Owns one sequence's checkout, branch transitions, and recovery evidence. */
 class SequenceWorktreeExecution {
@@ -35,7 +36,7 @@ class SequenceWorktreeExecution {
         if (typeof this.projectFolder !== 'string') throw new Error('Missing sequence project folder');
         if (!current.branchProgress) {
             await this.requireBranch(this.project.rootPath, this.project.branch);
-            const { record } = await this.worktreeService.resolveBranch(this.project, current.worktreeBranch);
+            const record = await this.worktreeService.requireSelectedRecord(this.project, current.worktreeBranch);
             this.acquire(current.id, record.path);
             await this.requireClean(record.path);
             const baseCommit = await this.git(this.project.rootPath, ['rev-parse', this.project.branch]);
@@ -101,8 +102,8 @@ class SequenceWorktreeExecution {
         for (const scheduleId of this.leases.keys()) this.release(scheduleId);
     }
 
+    /** Checks only the leased checkout against the existing records; unrelated worktrees are not refreshed. */
     async requireLinkedCheckout(progress) {
-        await this.worktreeService.refreshLocal();
         const records = this.worktreeService.getRecords(this.project);
         const expectedCheckoutKey = CheckoutOwnershipService.key(progress.checkoutPath);
         const record = records.find(({ path: checkoutPath }) => CheckoutOwnershipService.key(checkoutPath) === expectedCheckoutKey);
@@ -153,7 +154,7 @@ class SequenceWorktreeExecution {
         await this.requireLinkedCheckout(current.branchProgress);
         if (['child-ready', 'running'].includes(current.branchProgress.phase)) {
             await this.requireBranch(checkoutPath, childBranch);
-            await this.requireClean(checkoutPath);
+            await this.commitStepChanges(checkoutPath);
             const sourceCommit = await this.git(checkoutPath, ['rev-parse', 'HEAD']);
             const sourceTree = await this.git(checkoutPath, ['rev-parse', 'HEAD^{tree}']);
             const targetCommit = await this.git(checkoutPath, ['rev-parse', sequenceBranch]);
@@ -274,6 +275,12 @@ class SequenceWorktreeExecution {
 
     async requireClean(checkoutPath) {
         if (await this.git(checkoutPath, ['status', '--porcelain'])) throw new Error(`Sequence checkout has uncommitted changes: ${checkoutPath}`);
+    }
+
+    async commitStepChanges(checkoutPath) {
+        if (!await this.git(checkoutPath, ['status', '--porcelain'])) return;
+        await this.git(checkoutPath, ['add', '-A']);
+        await this.git(checkoutPath, ['commit', '-m', STEP_COMMIT_LABEL]);
     }
 
     async requireBranch(checkoutPath, expectedBranch) {

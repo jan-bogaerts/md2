@@ -7,6 +7,11 @@ ex: instruction is to split up feature descriptions, nothing is mentioned about 
 
 * app: react-front end
 * desktop: electron desktop-host / backend app
+* design: all design related documentation in md and json format
+  * feature\_descriptions: currently active design work
+  * architecture: set of md files containing architectural decisions
+  * releases: historical design work, grouped per release, each folder has a `release_notes.md`
+  * actions: json files defining prompts, responses and agent configuration
 
 ## domain identity
 

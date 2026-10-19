@@ -27,6 +27,7 @@ import { createRandomProjectBackgroundShade } from '../../theme/project_backgrou
 import { isProjectLoadErrorReported } from './project_loading'
 import { projectPersistenceService } from './project_persistence_service'
 import { projectAccessService } from './project_access_service'
+import { ReleaseBlockedByRunningActionsError } from '../release_blocked_by_running_actions_error'
 import { createDefaultActionFiles } from '../../project_template/project_template'
 
 /** Configurable folders edited by setup; sub-folders are relative to `projectFolder`. */
@@ -653,7 +654,8 @@ export class ProjectSessionService extends EventTarget {
                 pendingGithubConflictProject: error instanceof GithubPendingCommitConflictError ? error.project : null,
             }
             this.dispatchChanged()
-            if (!isProjectLoadErrorReported(error)) dialogService.error(error, { fallbackMessage })
+            if (error instanceof ReleaseBlockedByRunningActionsError) dialogService.displayError(error.message)
+            else if (!isProjectLoadErrorReported(error)) dialogService.error(error, { fallbackMessage })
             throw error
         } finally {
             if (this.state.isLoading) {

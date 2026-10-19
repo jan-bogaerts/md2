@@ -218,6 +218,7 @@ export function DiagramLegend({ creationSession = false, data, service = diagram
                             <DiagramLegendEntryList
                                 entries={entries}
                                 label={session ? 'Current diagram legend entries' : 'Diagram legend entries'}
+                                reader={service}
                                 store={service}
                             />
                         ) : <DiagramSessionLegendEntries session={session} />}

@@ -171,6 +171,60 @@ describe('SearchControl', () => {
         expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus();
     });
 
+    it('keeps shortcut search closed after Escape and reopens it from the launcher', async () => {
+        const user = userEvent.setup();
+        render(<SearchControl presentation="shortcut" />);
+        await user.click(screen.getByRole('textbox', { name: 'Search project' }));
+
+        await user.keyboard('{Escape}');
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Search dropdown' })).not.toBeInTheDocument());
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveAttribute('readonly');
+        expect(screen.getByRole('textbox', { name: 'Search project' })).not.toHaveFocus();
+
+        await user.click(screen.getByRole('textbox', { name: 'Search project' }));
+
+        expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument();
+    });
+
+    it('keeps the query and its results when resizing between inline and popover search', async () => {
+        const user = userEvent.setup();
+        const { rerender } = render(<SearchControl presentation="full" />);
+        await user.click(screen.getByRole('textbox', { name: 'Search project' }));
+        await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Beta');
+
+        rerender(<SearchControl presentation="icon" />);
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Beta');
+        expect(screen.getByRole('button', { name: /Beta feature/ })).toBeInTheDocument();
+
+        rerender(<SearchControl presentation="full" />);
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Beta');
+        expect(screen.getByRole('button', { name: /Beta feature/ })).toBeInTheDocument();
+    });
+
+    it('keeps search options and their behavior when resizing to popover search', async () => {
+        const user = userEvent.setup();
+        const { rerender } = render(<SearchControl presentation="full" />);
+        await user.click(screen.getByRole('textbox', { name: 'Search project' }));
+        await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Hidden secret');
+        await user.click(screen.getByRole('button', { name: 'RegExp mode' }));
+        await user.click(screen.getByRole('button', { name: 'Search released and archived file bodies' }));
+        await user.click(screen.getByRole('button', { name: 'Search actions' }));
+
+        rerender(<SearchControl presentation="icon" />);
+
+        expect(screen.getByRole('button', { name: 'RegExp mode' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: 'Search released and archived file bodies' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: 'Search actions' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: /History note/ })).toBeInTheDocument();
+
+        await user.type(screen.getByRole('textbox', { name: 'Search project' }), '.*text');
+
+        expect(screen.getByRole('button', { name: /History note/ })).toBeInTheDocument();
+    });
+
     it('opens and focuses desktop search when requested by the search service', () => {
         render(<SearchControl />)
 

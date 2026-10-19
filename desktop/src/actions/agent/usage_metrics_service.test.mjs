@@ -163,20 +163,15 @@ describe('UsageMetricsService', () => {
         expect(appendMetric).toHaveBeenCalledOnce();
     });
 
-    it('flushes only the metrics file through scoped Git persistence', async () => {
+    it('marks the metrics file as an uncommitted project write after appending', async () => {
         const { destination, filePath } = await createDestination();
-        const commitTrackedPaths = vi.fn(async () => 'commit');
-        const service = new UsageMetricsService({ commitTrackedPaths });
+        const uncommittedProjectWrites = { mark: vi.fn() };
+        const service = new UsageMetricsService({ uncommittedProjectWrites });
         startProject(service, destination);
+
         await service.recordTokenUsage('codex', TOKEN_USAGE, Date.parse('2026-08-17T10:00:00.000Z'));
 
-        await expect(service.flushPendingChanges()).resolves.toBe('commit');
-
-        expect(commitTrackedPaths).toHaveBeenCalledWith(
-            destination.rootPath,
-            [filePath],
-            'Update usage metrics',
-        );
+        expect(uncommittedProjectWrites.mark).toHaveBeenCalledWith(destination.rootPath, [filePath]);
     });
 
     it('maps provider windows and calculates first, same-window, reset, and negative deltas', async () => {

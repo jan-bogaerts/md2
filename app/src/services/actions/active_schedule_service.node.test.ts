@@ -1,10 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ActionService } from './action_service'
-import type { ActionSchedule, AnySchedule } from '../../data/action_schedule_types'
+import type { ActionSchedule, AnySchedule, SequenceSchedule } from '../../data/action_schedule_types'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import type { DataService } from '../data/data_service'
-import type { Card, ProjectSnapshot } from '../../data/data_types'
+import { DEFAULT_PROJECT_CONFIG, type Card, type ProjectSnapshot } from '../../data/data_types'
 import type { ClaudeRateLimitService } from '../agents/claude_rate_limit_service'
 import type { CodexRateLimitService } from '../agents/codex_rate_limit_service'
+import { configService } from '../config/config_service'
+import { dataService } from '../data/data_service'
+import { worktreeService } from '../project/worktree_service'
 import { ActiveScheduleService } from './active_schedule_service'
 
 function schedule(): ActionSchedule {
@@ -16,6 +20,29 @@ function schedule(): ActionSchedule {
         kind: 'action',
         status: 'pending',
         trigger: { timestamp: '2026-09-19T10:00:00.000Z', type: 'at' },
+    }
+}
+
+function sequenceSchedule(): SequenceSchedule {
+    return {
+        actionCompleted: false, actionId: 'implement', cardInternalIds: ['card-1', 'card-2'],
+        currentIndex: 0, currentRunId: 'run-1', failure: null, id: 'sequence-1', kind: 'sequence',
+        readyState: 'ready', readyStateMet: false, status: 'running', worktreeBranch: 'parking',
+        createdAt: '2026-09-18T10:00:00.000Z', trigger: { type: 'now' },
+        branchProgress: {
+            baseCommit: 'base', checkoutPath: 'C:/checkout', childBranch: 'child-1', childBranches: ['child-1'],
+            childCommits: {}, expectedBranch: 'child-1', integrationCommit: null, phase: 'running',
+            runId: 'run-1', sequenceBranch: 'sequence', sourceCommit: null, sourceTree: null, targetCommit: 'base',
+        },
+    }
+}
+
+function pendingSequenceSchedule(id: string): SequenceSchedule {
+    return {
+        actionCompleted: false, actionId: 'implement', cardInternalIds: ['card-1'],
+        currentIndex: 0, currentRunId: null, failure: null, id, kind: 'sequence',
+        readyState: 'ready', readyStateMet: false, status: 'pending',
+        createdAt: '2026-09-18T10:00:00.000Z', trigger: { type: 'now' },
     }
 }
 
@@ -64,6 +91,58 @@ function createHarness() {
 }
 
 describe('ActiveScheduleService', () => {
+    it('reports only the current running sequence card and clears it when the sequence ends', async () => {
+        const { bridge, service } = createHarness()
+        const firstCardChanged = vi.fn()
+        const secondCardChanged = vi.fn()
+        service.subscribeSequenceCard('card-1', firstCardChanged)
+        service.subscribeSequenceCard('card-2', secondCardChanged)
+        bridge.listActiveSchedules.mockResolvedValueOnce([sequenceSchedule()])
+        service.start()
+        await vi.waitFor(() => expect(service.getSequenceWorktreeForCard('card-1')).toEqual({ checkoutPath: 'C:/checkout', expectedBranch: 'child-1' }))
+        expect(service.getSequenceWorktreeForCard('card-2')).toBeNull()
+        expect(firstCardChanged).toHaveBeenCalledTimes(1)
+
+        bridge.listActiveSchedules.mockResolvedValueOnce([sequenceSchedule()])
+        await service.refresh()
+        expect(firstCardChanged).toHaveBeenCalledTimes(1)
+
+        const next = sequenceSchedule()
+        const nextCard = { ...next, currentIndex: 1, branchProgress: { ...next.branchProgress!, expectedBranch: 'child-2' } }
+        bridge.listActiveSchedules.mockResolvedValueOnce([nextCard])
+        await service.refresh()
+        expect(service.getSequenceWorktreeForCard('card-1')).toBeNull()
+        expect(service.getSequenceWorktreeForCard('card-2')).toEqual({ checkoutPath: 'C:/checkout', expectedBranch: 'child-2' })
+        expect(firstCardChanged).toHaveBeenCalledTimes(2)
+        expect(secondCardChanged).toHaveBeenCalledTimes(1)
+
+        bridge.listActiveSchedules.mockResolvedValueOnce([])
+        await service.refresh()
+        expect(service.getSequenceWorktreeForCard('card-2')).toBeNull()
+        expect(secondCardChanged).toHaveBeenCalledTimes(2)
+        service.stop()
+    })
+
+    it('reserves worktrees for pending and running sequences only and clears them on stop', async () => {
+        const { bridge, service } = createHarness()
+        const setSequenceReservations = vi.spyOn(worktreeService, 'setSequenceReservations')
+        const running = sequenceSchedule()
+        const pending: SequenceSchedule = { ...pendingSequenceSchedule('sequence-2'), worktreeBranch: 'pending-branch' }
+        const completed: SequenceSchedule = { ...sequenceSchedule(), id: 'sequence-3', status: 'completed', worktreeBranch: 'done' }
+        const unassigned = pendingSequenceSchedule('sequence-4')
+        bridge.listActiveSchedules.mockResolvedValueOnce([running, pending, completed, unassigned])
+        service.start()
+
+        await vi.waitFor(() => expect(setSequenceReservations).toHaveBeenLastCalledWith([
+            { checkoutPath: 'C:/checkout', worktreeBranch: 'parking' },
+            { checkoutPath: null, worktreeBranch: 'pending-branch' },
+        ]))
+        service.stop()
+
+        expect(setSequenceReservations).toHaveBeenLastCalledWith([])
+        setSequenceReservations.mockRestore()
+    })
+
     it('loads backend-filtered schedules when project becomes active', async () => {
         const { bridge, service } = createHarness()
         service.start()
@@ -84,6 +163,54 @@ describe('ActiveScheduleService', () => {
         await vi.waitFor(() => expect(bridge.listActiveSchedules).toHaveBeenCalledTimes(2))
 
         service.stop()
+    })
+
+    it('reloads sequence progress when the resolved schedule file changes', async () => {
+        const firstCard = sequenceSchedule()
+        const secondCard = {
+            ...firstCard,
+            branchProgress: { ...firstCard.branchProgress!, expectedBranch: 'child-2' },
+            currentIndex: 1,
+        }
+        const bridge = {
+            deleteSchedule: vi.fn(async () => []),
+            listActiveSchedules: vi.fn()
+                .mockResolvedValueOnce([firstCard])
+                .mockResolvedValueOnce([secondCard]),
+        }
+        const project = { branch: 'main', id: 'project', rootPath: 'C:/project' }
+        const cards = [
+            { header: { id: 'F-1', internalId: 'card-1', title: 'First' }, path: 'design/F-1.md' } as Card,
+            { header: { id: 'F-2', internalId: 'card-2', title: 'Second' }, path: 'design/F-2.md' } as Card,
+        ]
+        vi.spyOn(configService, 'getProjectConfig').mockReturnValue({
+            ...DEFAULT_PROJECT_CONFIG,
+            actionsFolder: 'actions',
+            projectFolder: 'design',
+        })
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project,
+            runningAgents: [],
+            snapshot: { activeCards: cards, backgroundCards: [] } as unknown as ProjectSnapshot,
+        })
+        setActionBridgeOverride(bridge as unknown as ElectronActionBridge)
+        const service = new ActiveScheduleService()
+
+        try {
+            service.start()
+            await vi.waitFor(() => expect(service.getSequenceWorktreeForCard('card-1')).toEqual({ checkoutPath: 'C:/checkout', expectedBranch: 'child-1' }))
+
+            dataService.dispatchEvent(new CustomEvent('repositoryChanged', {detail: { changeKind: 'changed', path: 'design/actions/.md2-schedules.json' }}))
+
+            await vi.waitFor(() => expect(bridge.listActiveSchedules).toHaveBeenCalledTimes(2))
+            expect(service.getSequenceWorktreeForCard('card-1')).toBeNull()
+            expect(service.getSequenceWorktreeForCard('card-2')).toEqual({ checkoutPath: 'C:/checkout', expectedBranch: 'child-2' })
+            expect(service.getSnapshot().items[0].schedule).toMatchObject({ currentIndex: 1 })
+        } finally {
+            service.stop()
+            setActionBridgeOverride(null)
+            vi.restoreAllMocks()
+        }
     })
 
     it('asks backend to delete once and reloads canonical active list', async () => {
@@ -183,6 +310,26 @@ describe('ActiveScheduleService', () => {
         expect(changedAction).toHaveBeenCalledTimes(2)
         expect(unrelatedAction).not.toHaveBeenCalled()
         expect(service.hasPendingActionForCard('card-1')).toBe(false)
+        service.stop()
+    })
+
+    it('applies a registered schedule without reloading and replaces it on later updates', async () => {
+        const { bridge, service } = createHarness()
+        service.start()
+        await vi.waitFor(() => expect(service.getSnapshot().loading).toBe(false))
+        bridge.listActiveSchedules.mockClear()
+        const pending: SequenceSchedule = { ...pendingSequenceSchedule('sequence-1'), worktreeBranch: 'parking' }
+
+        service.applySchedule(pending)
+
+        expect(bridge.listActiveSchedules).not.toHaveBeenCalled()
+        expect(service.getSnapshot().items.map(({ schedule: item }) => item.id)).toEqual(['schedule-1', 'sequence-1'])
+        expect(service.getSequenceWorktreeForCard('card-1')).toBeNull()
+
+        service.applySchedule(sequenceSchedule())
+
+        expect(service.getSnapshot().items.map(({ schedule: item }) => item.id)).toEqual(['schedule-1', 'sequence-1'])
+        expect(service.getSequenceWorktreeForCard('card-1')).toEqual({ checkoutPath: 'C:/checkout', expectedBranch: 'child-1' })
         service.stop()
     })
 

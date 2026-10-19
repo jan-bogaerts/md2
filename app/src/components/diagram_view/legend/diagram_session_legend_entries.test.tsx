@@ -65,22 +65,22 @@ describe('DiagramSessionLegendEntries', () => {
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
         await user.click(screen.getByRole('button', { name: 'Select Service' }))
-        expect(session.getSelectedLegendEntryKeySnapshot()).toBe('node:focal')
+        expect(session.read.getSelectedLegendEntryKeySnapshot()).toBe('node:focal')
         expect(screen.getByRole('button', { name: 'Select Service' })).toHaveAttribute('aria-pressed', 'true')
         act(() => { session.setActiveTool('pan') })
-        expect(session.getSelectedLegendEntryKeySnapshot()).toBe('node:focal')
+        expect(session.read.getSelectedLegendEntryKeySnapshot()).toBe('node:focal')
 
         const connection = screen.getByRole('button', { name: 'Select Calls' })
         connection.focus()
         await user.keyboard('{Enter}')
-        expect(session.getSelectedLegendEntryKeySnapshot()).toBe('connection:connection')
+        expect(session.read.getSelectedLegendEntryKeySnapshot()).toBe('connection:connection')
         expect(connection).toHaveAttribute('aria-pressed', 'true')
 
         await user.click(screen.getByRole('button', { name: 'Remove Calls' }))
-        expect(session.getSelectedLegendEntryKeySnapshot()).toBeNull()
+        expect(session.read.getSelectedLegendEntryKeySnapshot()).toBeNull()
         await user.click(screen.getByRole('button', { name: 'Select Service' }))
         act(() => { session.discard() })
-        expect(session.getSelectedLegendEntryKeySnapshot()).toBeNull()
+        expect(session.read.getSelectedLegendEntryKeySnapshot()).toBeNull()
     })
 
     it('renames a derived row inline, rejects blank text, and removes it without reappearing', async () => {
@@ -92,14 +92,14 @@ describe('DiagramSessionLegendEntries', () => {
         await user.clear(label)
         await user.tab()
         expect(screen.getByText('Label is required.')).toBeInTheDocument()
-        expect(session.getHasExplicitLegendSnapshot()).toBe(false)
+        expect(session.read.getHasExplicitLegendSnapshot()).toBe(false)
 
         await user.clear(label)
         await user.type(label, 'Service')
         await user.tab()
-        expect(session.getLegendEntryFieldSnapshot('nodeKind:component', 'label')).toBe('Service')
+        expect(session.read.getLegendEntryFieldSnapshot('nodeKind:component', 'label')).toBe('Service')
         await user.click(screen.getByRole('button', { name: 'Remove Service' }))
-        expect(session.getLegendEntryKeysSnapshot()).not.toContain('nodeKind:component')
+        expect(session.read.getLegendEntryKeysSnapshot()).not.toContain('nodeKind:component')
         expect(screen.queryByRole('textbox', { name: 'Legend label for nodeKind:component' })).not.toBeInTheDocument()
     })
 
@@ -129,7 +129,7 @@ describe('DiagramSessionLegendEntries', () => {
         await user.click(screen.getByRole('switch', { name: 'Bold' }))
         await user.click(screen.getByRole('button', { name: 'Apply' }))
 
-        expect(session.getNodeRoleFormattingSnapshot('focal')).toMatchObject({
+        expect(session.read.getNodeRoleFormattingSnapshot('focal')).toMatchObject({
             box: { contentPosition: 'center', fillColor: '#1976d2' },
             font: { bold: true, family: MARKDOWN_STYLE_PRESETS.modern.body.fontFamily },
         })
@@ -149,8 +149,8 @@ describe('DiagramSessionLegendEntries', () => {
         await user.keyboard('{Escape}')
         await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
-        expect(session.getConnectionKindFormattingSnapshot('connection')).toBeUndefined()
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getConnectionKindFormattingSnapshot('connection')).toBeUndefined()
+        expect(session.read.getDirtySnapshot()).toBe(false)
     })
 
     it('renders explicit session entries in stored order', () => {
@@ -185,7 +185,7 @@ describe('DiagramSessionLegendEntries', () => {
 
         expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:start' })).toHaveValue('Start')
         expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:step' })).toHaveValue('Step')
-        act(() => { session.setNodeField('second', 'kind', 'end') })
+        act(() => { session.objects.setNodeField('second', 'kind', 'end') })
         expect(screen.queryByRole('textbox', { name: 'Legend label for nodeKind:step' })).not.toBeInTheDocument()
         expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:end' })).toHaveValue('End')
         expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:start' })).toHaveValue('Start')
@@ -195,7 +195,7 @@ describe('DiagramSessionLegendEntries', () => {
         const session = startSession(diagram)
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
-        act(() => { session.setEdgeField('orders-store', 'kind', 'data') })
+        act(() => { session.objects.setEdgeField('orders-store', 'kind', 'data') })
         expect(screen.queryByRole('textbox', { name: 'Legend label for connection:connection' })).not.toBeInTheDocument()
         expect(screen.getByRole('textbox', { name: 'Legend label for connection:data' })).toHaveValue('Data')
         act(() => { session.createEdge({ from: 'orders', kind: 'async', to: 'store' }) })
@@ -227,17 +227,17 @@ describe('DiagramSessionLegendEntries', () => {
         await user.click(screen.getByRole('switch', { name: 'Bold' }))
         await user.click(screen.getByRole('button', { name: 'Apply' }))
 
-        expect(session.getNodeRoleFormattingSnapshot('store')?.font?.bold).toBe(true)
-        expect(session.getNodeRoleFormattingSnapshot('focal')).toBeUndefined()
+        expect(session.read.getNodeRoleFormattingSnapshot('store')?.font?.bold).toBe(true)
+        expect(session.read.getNodeRoleFormattingSnapshot('focal')).toBeUndefined()
     })
 
     it('reflects a renamed entry without re-reading the diagram', () => {
         const session = startSession(legendDiagram)
-        const getEditableDiagram = vi.spyOn(session, 'getEditableDiagram')
+        const getEditableDiagram = vi.spyOn(session.read, 'getEditableDiagram')
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
         act(() => {
-            session.setLegendEntryLabel('node:focal', 'Order service')
+            session.legend.setLegendEntryLabel('node:focal', 'Order service')
         })
 
         expect(screen.getByRole('textbox', { name: 'Legend label for node:focal' })).toHaveValue('Order service')
@@ -250,17 +250,17 @@ describe('DiagramSessionLegendEntries', () => {
         const entryList = screen.getByLabelText('New diagram legend entries')
 
         act(() => {
-            session.addLegendEntry({ label: 'Database', role: 'store' })
+            session.legend.addLegendEntry({ label: 'Database', role: 'store' })
         })
         expect(within(entryList).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)).toEqual(['Service', 'Calls', 'Database'])
 
         act(() => {
-            session.moveLegendEntry('node:store', 0)
+            session.legend.moveLegendEntry('node:store', 0)
         })
         expect(within(entryList).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)).toEqual(['Database', 'Service', 'Calls'])
 
         act(() => {
-            session.removeLegendEntry('node:focal')
+            session.legend.removeLegendEntry('node:focal')
         })
         expect(within(entryList).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)).toEqual(['Database', 'Calls'])
     })
@@ -270,7 +270,7 @@ describe('DiagramSessionLegendEntries', () => {
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
         act(() => {
-            for (const entryKey of [...session.getLegendEntryKeysSnapshot()]) session.removeLegendEntry(entryKey)
+            for (const entryKey of [...session.read.getLegendEntryKeysSnapshot()]) session.legend.removeLegendEntry(entryKey)
         })
 
         expect(within(screen.getByLabelText('New diagram legend entries')).queryAllByRole('textbox')).toHaveLength(0)
@@ -327,7 +327,7 @@ describe('DiagramLegend session tabs', () => {
             </ThemeProvider>,
         )
 
-        act(() => { session.setNodeField('first', 'kind', 'end') })
+        act(() => { session.objects.setNodeField('first', 'kind', 'end') })
         expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:end' })).toHaveValue('End')
         await userEvent.click(screen.getByRole('tab', { name: 'Current' }))
         expect(screen.getByLabelText('Current diagram legend entries')).toHaveTextContent('Start')
@@ -337,7 +337,7 @@ describe('DiagramLegend session tabs', () => {
         const session = startSession(legendDiagram)
         const service = new DiagramViewService()
         const setCurrentFormatting = vi.spyOn(service, 'setNodeRoleFormatting').mockImplementation(() => undefined)
-        const setNewFormatting = vi.spyOn(session, 'setNodeRoleFormatting')
+        const setNewFormatting = vi.spyOn(session.formatting, 'setNodeRoleFormatting')
         const user = userEvent.setup()
         render(
             <ThemeProvider theme={theme}>

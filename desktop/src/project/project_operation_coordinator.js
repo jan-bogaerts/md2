@@ -30,4 +30,4 @@ class ProjectOperationCoordinator {
 
 const projectOperationCoordinator = new ProjectOperationCoordinator();
 
-module.exports = { ProjectOperationCoordinator, projectOperationCoordinator };
+module.exports = { ProjectOperationCoordinator, projectKey, projectOperationCoordinator };

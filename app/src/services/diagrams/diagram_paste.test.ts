@@ -21,7 +21,7 @@ function pasteHarness(options: {
     clipboardReader?: () => Promise<string>
 } = {}) {
     const pasteFragment = vi.fn().mockReturnValue(pastedResult)
-    const session = { getSessionSnapshot: () => sessionSnapshot, pasteFragment }
+    const session = { read: { getSessionSnapshot: () => sessionSnapshot }, pasteFragment }
     const selection = { replace: vi.fn() }
     const clipboardReader = options.clipboardReader ?? vi.fn().mockResolvedValue(payload)
     const errorReporter = vi.fn()

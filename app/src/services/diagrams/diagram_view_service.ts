@@ -916,14 +916,14 @@ export class DiagramViewService extends EventTarget {
         const index = { ...this.snapshot.index, activePath }
         const targetRecord = index.diagrams[activePath.at(-1) ?? '']
         const session = this.dependencies.getEditSession()
-        if (session.getDirtySnapshot() && session.getSessionSnapshot()?.sourceDiagramId !== targetRecord?.id) {
+        if (session.read.getDirtySnapshot() && session.read.getSessionSnapshot()?.sourceDiagramId !== targetRecord?.id) {
             throw new Error('Save or discard current diagram changes before opening another diagram')
         }
         this.navigationToken += 1
         const token = this.navigationToken
         const { sourceSnapshot, ...activeDiagram } = await loadActiveDiagram(binding, index)
         if (token !== this.navigationToken) return
-        if (session.getDirtySnapshot() && session.getSessionSnapshot()?.sourceDiagramId !== targetRecord?.id) {
+        if (session.read.getDirtySnapshot() && session.read.getSessionSnapshot()?.sourceDiagramId !== targetRecord?.id) {
             throw new Error('Save or discard current diagram changes before opening another diagram')
         }
 
@@ -942,7 +942,7 @@ export class DiagramViewService extends EventTarget {
         const { record: sourceRecord } = sourceSnapshot
         if (!sourceRecord.pendingImplementation || sourceRecord.parent || this.dependencies.isReadOnly()) return
         const session = this.dependencies.getEditSession()
-        if (session.getSessionSnapshot()?.sourceDiagramId === sourceRecord.id) return
+        if (session.read.getSessionSnapshot()?.sourceDiagramId === sourceRecord.id) return
         const savedRecord = (index.roots[sourceRecord.actionId] ?? [])
             .map((id) => index.diagrams[id])
             .filter(({ sourceDiagramId }) => sourceDiagramId === sourceRecord.id)

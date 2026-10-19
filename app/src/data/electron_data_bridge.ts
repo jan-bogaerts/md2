@@ -22,6 +22,7 @@ import type {
     WorktreeOperationRequest,
     WorktreeRemovalMode,
     WorktreeState,
+    WriteFilesRequest,
 } from './data_types'
 import type {
     MergeConflictPathRequest,
@@ -53,6 +54,7 @@ export interface ElectronDataBridge {
     hasPendingPush(project: ProjectReference): Promise<boolean>
     continueMergeConflict?(request: MergeConflictSessionRequest): Promise<WorktreeOperationOutcome>
     getMergeConflictSession?(): Promise<MergeConflictSession | null>
+    getStartupProjectPath?(): string | null
     integrateWorktree?(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome>
     launchMergeConflictResolver?(request: MergeConflictPathRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
@@ -99,6 +101,7 @@ export interface ElectronDataBridge {
     stopAgent?(runId: string): Promise<void>
     watchProject(project: ProjectReference, callback: (notification: ProjectWatchNotification) => void): () => void
     loadFile(project: ProjectReference, path: string): Promise<MarkdownFile>
+    writeFiles(request: WriteFilesRequest): Promise<void>
 }
 
 declare global {

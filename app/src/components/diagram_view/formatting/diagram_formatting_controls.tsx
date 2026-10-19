@@ -1,7 +1,7 @@
 import AspectRatioOutlined from '@mui/icons-material/AspectRatioOutlined'
 import FormatLineSpacingOutlined from '@mui/icons-material/FormatLineSpacingOutlined'
 import FormatSizeOutlined from '@mui/icons-material/FormatSizeOutlined'
-import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
+import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import type { DiagramViewService } from '../../../services/diagrams/diagram_view_service'
 import { DiagramFormattingScaleControl } from './diagram_formatting_scale_control'
 
@@ -13,27 +13,33 @@ export function DiagramFormattingControls({
     store: DiagramEditSessionService | DiagramViewService
     surface: 'Current' | 'New'
 }) {
+    const reader = store instanceof DiagramEditSessionService ? store.read : store
+    const formatting = store instanceof DiagramEditSessionService ? store.formatting : store
+
     return (
         <>
             <DiagramFormattingScaleControl
                 field="fontScalePercent"
                 icon={<FormatSizeOutlined fontSize="small" />}
                 label="font size"
-                store={store}
+                reader={reader}
+                store={formatting}
                 surface={surface}
             />
             <DiagramFormattingScaleControl
                 field="boxScalePercent"
                 icon={<AspectRatioOutlined fontSize="small" />}
                 label="box size"
-                store={store}
+                reader={reader}
+                store={formatting}
                 surface={surface}
             />
             <DiagramFormattingScaleControl
                 field="spacingScalePercent"
                 icon={<FormatLineSpacingOutlined fontSize="small" />}
                 label="spacing"
-                store={store}
+                reader={reader}
+                store={formatting}
                 surface={surface}
             />
         </>

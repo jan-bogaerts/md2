@@ -1,4 +1,4 @@
-import { AUTO_COMMIT_DELAY_MS, type CommitRequest, type MarkdownFile } from './data_types'
+import { AUTO_COMMIT_DELAY_MS, type CommitRequest, type MarkdownFile, type MoveFile, type WriteFilesRequest } from './data_types'
 
 import { markdownParsingService } from '../services/data/markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../services/open_files_service'
@@ -10,6 +10,7 @@ interface CommitBatcherOperations {
     commitFiles(request: CommitRequest): Promise<unknown>
     pushCommittedFiles(request: CommitRequest): Promise<unknown>
     requireCardByInternalId(internalId: string): Card
+    writeFiles(request: WriteFilesRequest): Promise<unknown>
 }
 
 export const COMMIT_BATCHER_FLUSH_FAILED_EVENT = 'flushFailed'
@@ -44,7 +45,14 @@ export interface CommitDiagramChange extends MarkdownFile, CommitChangeBase {
     sourcePath: string
 }
 
-export type CommitChange = CommitActionChange | CommitCardChange | CommitDiagramChange | CommitFileChange
+/** Repository path committed as it exists on disk at flush time; the renderer writes no content. */
+export interface CommitPathChange extends CommitChangeBase {
+    kind: 'path'
+    path: string
+}
+
+export type CommitChange = CommitActionChange | CommitCardChange | CommitDiagramChange | CommitFileChange | CommitPathChange
+type ContentChange = Exclude<CommitChange, CommitPathChange>
 
 interface PendingChange {
     change: CommitChange
@@ -62,6 +70,7 @@ function changeKey(change: CommitChange) {
     if (change.kind === 'card') return `card:${change.cardInternalId}`
     if (change.kind === 'action') return `action:${change.actionId}`
     if (change.kind === 'diagram') return `diagram:${change.diagramId}`
+    if (change.kind === 'path') return `path:${change.path}`
 
     return `file:${change.path}`
 }
@@ -76,7 +85,7 @@ function changeTargetPath(change: CommitChange) {
     return change.kind === 'card' ? change.targetPath ?? change.path : change.path
 }
 
-function serializeChange(change: CommitChange, cardOperations: CommitBatcherOperations): SerializedChange {
+function serializeChange(change: ContentChange, cardOperations: CommitBatcherOperations): SerializedChange {
     const sourcePath = changeSourcePath(change)
     if (change.kind !== 'card') {
         const file = {
@@ -102,6 +111,33 @@ function rebaseChangeSource(change: CommitChange, sourcePath: string): CommitCha
     return change
 }
 
+/** Serializes a batch and splits it into in-place files and moves for one storage request. */
+function buildBatchRequest(branch: string, batch: Map<string, PendingChange>, cardOperations: CommitBatcherOperations) {
+    const serializedChanges = new Map<string, SerializedChange>()
+    const paths: string[] = []
+    for (const [key, { change }] of batch) {
+        if (change.kind === 'path') paths.push(change.path)
+        else serializedChanges.set(key, serializeChange(change, cardOperations))
+    }
+    const files: MarkdownFile[] = []
+    const moves: MoveFile[] = []
+    for (const { file, sourcePath } of serializedChanges.values()) {
+        if (sourcePath === file.path) files.push(file)
+        else {
+            moves.push({
+                content: file.content,
+                ...(file.encoding ? { encoding: file.encoding } : {}),
+                fromPath: sourcePath,
+                ...(file.sha ? { sha: file.sha } : {}),
+                toPath: file.path,
+            })
+        }
+    }
+    const request: WriteFilesRequest = { branch, files, ...(moves.length > 0 ? { moves } : {}), ...(paths.length > 0 ? { paths } : {}) }
+
+    return { request, serializedChanges }
+}
+
 function createCommitMessage(changes: Map<string, PendingChange>) {
     const messages = [...changes.values()].flatMap(({ messages: entryMessages }) => entryMessages)
     const distinctMessages = [...new Set(messages)]
@@ -114,6 +150,7 @@ function createCommitMessage(changes: Map<string, PendingChange>) {
 
 export class CommitBatcher extends EventTarget {
     private activeFlush: Promise<void> | null
+    private activeWrite: Promise<unknown> | null
     private automaticFlushDeferrals: number
     private readonly cardOperations: CommitBatcherOperations
     private readonly delayMsProvider: () => number
@@ -124,6 +161,7 @@ export class CommitBatcher extends EventTarget {
     constructor(cardOperations: CommitBatcherOperations, delayMsProvider: () => number = () => AUTO_COMMIT_DELAY_MS) {
         super()
         this.activeFlush = null
+        this.activeWrite = null
         this.automaticFlushDeferrals = 0
         this.cardOperations = cardOperations
         this.delayMsProvider = delayMsProvider
@@ -195,6 +233,10 @@ export class CommitBatcher extends EventTarget {
         ))
     }
 
+    hasPendingRepositoryPath(path: string) {
+        return this.pendingChanges.has(`path:${path}`)
+    }
+
     discardPendingFile(path: string) {
         const entry = [...this.pendingChanges.entries()].find(([, { change }]) => (
             changeSourcePath(change) === path || changeTargetPath(change) === path
@@ -238,7 +280,31 @@ export class CommitBatcher extends EventTarget {
         }
     }
 
+    /** Writes all pending changes to disk without committing; they stay pending for the timed commit. */
+    async writePending() {
+        await this.settleActiveFlush()
+        if (!this.hasPending()) return
+
+        const { request } = buildBatchRequest(this.pendingBranch as string, this.pendingChanges, this.cardOperations)
+        const write = this.cardOperations.writeFiles(request)
+        this.activeWrite = write
+        try {
+            await write
+        } finally {
+            if (this.activeWrite === write) this.activeWrite = null
+        }
+    }
+
+    private async settleActiveWrite() {
+        try {
+            if (this.activeWrite) await this.activeWrite
+        } catch {
+            // The caller of writePending reports the failure; the batch is still pending and gets committed here.
+        }
+    }
+
     async flush() {
+        if (this.activeWrite) await this.settleActiveWrite()
         const currentFlush = this.activeFlush
         if (currentFlush) await currentFlush
         if (!this.hasPending()) return
@@ -262,30 +328,8 @@ export class CommitBatcher extends EventTarget {
     }
 
     private async commitActiveBatch(branch: string, activeBatch: Map<string, PendingChange>) {
-        const serializedChanges = new Map(
-            [...activeBatch.entries()].map(([key, { change }]) => [key, serializeChange(change, this.cardOperations)]),
-        )
-        const files: MarkdownFile[] = []
-        const moves = []
-        for (const [key] of activeBatch) {
-            const { file, sourcePath } = serializedChanges.get(key) as SerializedChange
-            if (sourcePath === file.path) files.push(file)
-            else {
-                moves.push({
-                    content: file.content,
-                    ...(file.encoding ? { encoding: file.encoding } : {}),
-                    fromPath: sourcePath,
-                    ...(file.sha ? { sha: file.sha } : {}),
-                    toPath: file.path,
-                })
-            }
-        }
-        const request = {
-            branch,
-            files,
-            message: createCommitMessage(activeBatch),
-            ...(moves.length > 0 ? { moves } : {}),
-        }
+        const { request: writeRequest, serializedChanges } = buildBatchRequest(branch, activeBatch, this.cardOperations)
+        const request: CommitRequest = { ...writeRequest, message: createCommitMessage(activeBatch) }
 
         try {
             await this.cardOperations.commitFiles(request)
@@ -295,7 +339,10 @@ export class CommitBatcher extends EventTarget {
         }
 
         for (const [key, { change, onPathCommitted }] of activeBatch) {
-            const { card, file, sourcePath } = serializedChanges.get(key) as SerializedChange
+            const serializedChange = serializedChanges.get(key)
+            if (!serializedChange) continue
+
+            const { card, file, sourcePath } = serializedChange
             const newerPendingChange = this.pendingChanges.get(key)
             if (newerPendingChange && sourcePath !== file.path) {
                 this.pendingChanges.set(key, {

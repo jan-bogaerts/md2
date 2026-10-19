@@ -11,7 +11,7 @@ describe('external card imports', () => {
             { content: '# First note\n\nBody', path: 'design/notes.md', sha: 'sha-notes' },
             { content: '---\nowner: JB\n---\n\n# Second note', path: 'design/second.md', sha: 'sha-second' },
         ]
-        const plan = planExternalCardImports(importFiles, 'design', '_', DEFAULT_CARD_TYPES, 'new')
+        const plan = planExternalCardImports(importFiles, 'design', '_', DEFAULT_CARD_TYPES, 'new', new Map())
 
         expect(plan.moves.map((move) => move.toPath)).toEqual(['design/F_4_first_note.md', 'design/F_5_second_note.md'])
         expect(plan.moves[0]).toMatchObject({ fromPath: 'design/notes.md', sha: 'sha-notes' })
@@ -29,8 +29,24 @@ describe('external card imports', () => {
                 content: '---\nid: F-4\ninternalId: uuid-4\ntitle: Done\nstatus: ready\n---\n\n# Done',
                 path: 'design/F-4-done.md',
             },
-        ], 'design', '_', DEFAULT_CARD_TYPES, 'new')
+        ], 'design', '_', DEFAULT_CARD_TYPES, 'new', new Map())
 
         expect(plan.moves).toEqual([])
+    })
+
+    it('reuses identity already assigned in application state', () => {
+        const sourceFile = { content: '# Imported', path: 'design/imported.md' }
+        const internalIdsByPath = new Map([[sourceFile.path, 'assigned-in-state']])
+
+        const plan = planExternalCardImports(
+            [sourceFile],
+            'design',
+            '_',
+            DEFAULT_CARD_TYPES,
+            'new',
+            internalIdsByPath,
+        )
+
+        expect(plan.importedFiles[0].content).toContain('internalId: assigned-in-state')
     })
 })

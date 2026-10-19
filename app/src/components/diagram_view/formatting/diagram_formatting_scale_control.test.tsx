@@ -60,7 +60,7 @@ function renderControl(store: FormattingStoreStub, surface: 'Current' | 'New' = 
             field="fontScalePercent"
             icon={<FormatSizeOutlined fontSize="small" />}
             label="font size"
-            store={store}
+            reader={store} store={store}
             surface={surface}
         />,
     )
@@ -127,14 +127,14 @@ describe('DiagramFormattingScaleControl', () => {
                     field="fontScalePercent"
                     icon={<FormatSizeOutlined fontSize="small" />}
                     label="font size"
-                    store={currentStore}
+                    reader={currentStore} store={currentStore}
                     surface="Current"
                 />
                 <DiagramFormattingScaleControl
                     field="fontScalePercent"
                     icon={<FormatSizeOutlined fontSize="small" />}
                     label="font size"
-                    store={newStore}
+                    reader={newStore} store={newStore}
                     surface="New"
                 />
             </>,

@@ -140,7 +140,7 @@ describe('diagram edge drawing geometry', () => {
         expect(drawing.getPreviewSnapshot()).toMatchObject({ curved: true, targetAttachment: { nodeId: 'target' } })
         expect(drawing.getPreviewSnapshot()?.controlPoint).toBeDefined()
         expect(drawing.completeTarget('target', { x: 280, y: 68 }, true)).toBe('drawn-edge')
-        expect(session.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind: 'connection', to: 'target'})
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind: 'connection', to: 'target'})
     })
 
     it('resolves the nearest node boundary and relative offset', () => {
@@ -175,19 +175,21 @@ describe('DiagramEdgeDrawingService', () => {
         expect(drawing.getPreviewSnapshot()?.kind).toBe('data')
         drawing.completeTarget('target', { x: 240, y: 40 }, true)
 
-        expect(session.getEdgeSnapshot('drawn-edge')?.kind).toBe('data')
-        expect(session.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(session.read.getEdgeSnapshot('drawn-edge')?.kind).toBe('data')
+        expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
     })
 
     it('keeps edge default when selected legend entry is a node role', () => {
-        const { drawing, session } = createHarness()
+        const source = architectureDiagram()
+        source.meta.legend = [{ label: 'Store', role: 'store' }]
+        const { drawing, session } = createHarness(source)
         drawing.activate({ kind: 'data' })
         expect(session.selectLegendEntry('node:store')).toBe(true)
 
         drawing.beginSource('source', { x: 120, y: 40 })
         expect(drawing.getPreviewSnapshot()?.kind).toBe('data')
         drawing.completeTarget('target', { x: 240, y: 40 }, true)
-        expect(session.getEdgeSnapshot('drawn-edge')?.kind).toBe('data')
+        expect(session.read.getEdgeSnapshot('drawn-edge')?.kind).toBe('data')
     })
 
     it('draws two connections without reselecting the edge tool', () => {
@@ -200,7 +202,7 @@ describe('DiagramEdgeDrawingService', () => {
         drawing.beginSource('source', { x: 120, y: 40 })
         expect(drawing.completeTarget('target', { x: 240, y: 40 }, true)).toBe('second-edge')
 
-        expect(session.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
 
@@ -211,7 +213,7 @@ describe('DiagramEdgeDrawingService', () => {
         drawing.beginSource('source', { x: 120, y: 20 })
         expect(drawing.completeTarget('target', { x: 240, y: 60 }, true)).toBe('drawn-edge')
 
-        expect(session.getEdgeSnapshot('drawn-edge')).toMatchObject({
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
             from: 'source',
             kind: 'relationship',
             sourceAttachment: { nodeId: 'source', offset: 0.25, side: 'right' },
@@ -225,12 +227,12 @@ describe('DiagramEdgeDrawingService', () => {
 
     it('rejects relationship drawing outside an entity diagram before mutation', () => {
         const { drawing, session } = createHarness()
-        const edgeIds = session.getEdgeIdsSnapshot()
+        const edgeIds = session.read.getEdgeIdsSnapshot()
 
         expect(drawing.activate({ kind: 'relationship' })).toBe(false)
 
-        expect(session.getEdgeIdsSnapshot()).toBe(edgeIds)
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.read.getEdgeIdsSnapshot()).toBe(edgeIds)
+        expect(session.read.getActiveToolSnapshot()).toBe('select')
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
 
@@ -241,7 +243,7 @@ describe('DiagramEdgeDrawingService', () => {
         drawing.beginSource('source', { x: 120, y: 40 })
         expect(drawing.completeTarget('target', { x: 240, y: 40 }, true)).toBe('drawn-edge')
 
-        expect(session.getEdgeFieldSnapshot('drawn-edge', 'kind')).toBe(kind)
+        expect(session.read.getEdgeFieldSnapshot('drawn-edge', 'kind')).toBe(kind)
     })
 
     it.each(['dependency', 'cycle'] as const)('creates selected dependency %s kind with persisted direction and route', (kind) => {
@@ -251,7 +253,7 @@ describe('DiagramEdgeDrawingService', () => {
         drawing.beginSource('source', { x: 120, y: 20 })
         expect(drawing.completeTarget('target', { x: 240, y: 60 }, true)).toBe('drawn-edge')
 
-        expect(session.getEdgeSnapshot('drawn-edge')).toMatchObject({
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
             from: 'source',
             kind,
             sourceAttachment: { nodeId: 'source', offset: 0.25, side: 'right' },
@@ -272,18 +274,18 @@ describe('DiagramEdgeDrawingService', () => {
             expect(drawing.getPreviewSnapshot()?.points).toEqual([{ x: 60, y: 200 }])
             expect(drawing.completeTarget('target', { x: 300, y: 200 }, true)).toBe('drawn-edge')
 
-            expect(session.getEdgeIdsSnapshot()).toEqual(['call', 'drawn-edge', 'return'])
-            expect(session.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind, to: 'target'})
+            expect(session.read.getEdgeIdsSnapshot()).toEqual(['call', 'drawn-edge', 'return'])
+            expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind, to: 'target'})
         },
     )
 
     it('creates and selects one attached edge without replacing existing objects', () => {
         const { drawing, geometry, selection, session } = createHarness()
-        const existingEdge = session.getEdgeSnapshot('existing')
-        const sourceNode = session.getNodeSnapshot('source')
+        const existingEdge = session.read.getEdgeSnapshot('existing')
+        const sourceNode = session.read.getNodeSnapshot('source')
         const edgeMembershipChanged = vi.fn()
         const targetFanInChanged = vi.fn()
-        session.subscribeCollectionMembership('edge', edgeMembershipChanged)
+        session.read.subscribeCollectionMembership('edge', edgeMembershipChanged)
         geometry.subscribeNodeGeometryField('target', 'fanIn', targetFanInChanged)
 
         expect(drawing.activate({ kind: 'data', label: 'payload' })).toBe(true)
@@ -291,7 +293,7 @@ describe('DiagramEdgeDrawingService', () => {
         drawing.updatePreview({ x: 240, y: 60 }, 'target')
         expect(drawing.completeTarget('target', { x: 240, y: 60 }, true)).toBe('drawn-edge')
 
-        expect(session.getEdgeSnapshot('drawn-edge')).toMatchObject({
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
             from: 'source',
             kind: 'data',
             label: 'payload',
@@ -299,14 +301,14 @@ describe('DiagramEdgeDrawingService', () => {
             targetAttachment: { nodeId: 'target', offset: 0.75, side: 'left' },
             to: 'target',
         })
-        expect(session.getEdgeSnapshot('existing')).toBe(existingEdge)
-        expect(session.getNodeSnapshot('source')).toBe(sourceNode)
-        expect(session.getEdgeIdsSnapshot()).toEqual(['existing', 'drawn-edge'])
+        expect(session.read.getEdgeSnapshot('existing')).toBe(existingEdge)
+        expect(session.read.getNodeSnapshot('source')).toBe(sourceNode)
+        expect(session.read.getEdgeIdsSnapshot()).toEqual(['existing', 'drawn-edge'])
         expect(edgeMembershipChanged).toHaveBeenCalledTimes(1)
         expect(targetFanInChanged).toHaveBeenCalledTimes(1)
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'drawn-edge', objectKind: 'edge' }])
-        expect(session.getActiveToolSnapshot()).toBe('edge:data')
-        expect(session.getTransientGestureSnapshot()).toBeNull()
+        expect(session.read.getActiveToolSnapshot()).toBe('edge:data')
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
 
@@ -317,8 +319,8 @@ describe('DiagramEdgeDrawingService', () => {
 
         expect(drawing.completeTarget('target', { x: 240, y: 40 }, false)).toBe('drawn-edge')
 
-        expect(session.getActiveToolSnapshot()).toBe('select')
-        expect(session.getLastSelectedCreationToolSnapshot()).toBe('edge:connection')
+        expect(session.read.getActiveToolSnapshot()).toBe('select')
+        expect(session.read.getLastSelectedCreationToolSnapshot()).toBe('edge:connection')
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'drawn-edge', objectKind: 'edge' }])
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
@@ -331,20 +333,20 @@ describe('DiagramEdgeDrawingService', () => {
 
         expect(drawing.completeTarget('target', { x: 240, y: 40 }, false)).toBeNull()
 
-        expect(session.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
     })
 
     it('keeps an invalid target recoverable and creates nothing', () => {
         const { drawing, session } = createHarness()
         drawing.activate({ kind: 'connection' })
         drawing.beginSource('source', { x: 120, y: 40 })
-        const edgeIds = session.getEdgeIdsSnapshot()
+        const edgeIds = session.read.getEdgeIdsSnapshot()
 
         expect(drawing.completeTarget(null, { x: 180, y: 120 }, false)).toBeNull()
 
-        expect(session.getEdgeIdsSnapshot()).toBe(edgeIds)
-        expect(session.getActiveToolSnapshot()).toBe('edge:connection')
-        expect(session.getTransientGestureSnapshot()).toBe('edge')
+        expect(session.read.getEdgeIdsSnapshot()).toBe(edgeIds)
+        expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(session.read.getTransientGestureSnapshot()).toBe('edge')
         expect(drawing.getPreviewSnapshot()?.targetAttachment).toBeNull()
         expect(drawing.completeTarget('target', { x: 240, y: 40 }, true)).toBe('drawn-edge')
     })
@@ -355,7 +357,7 @@ describe('DiagramEdgeDrawingService', () => {
         drawing.beginSource('source', { x: 120, y: 20 })
 
         expect(drawing.completeTarget('source', { x: 60, y: 80 }, true)).toBe('drawn-edge')
-        expect(session.getEdgeSnapshot('drawn-edge')).toMatchObject({
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
             from: 'source',
             sourceAttachment: { nodeId: 'source', offset: 0.25, side: 'right' },
             targetAttachment: { nodeId: 'source', offset: 0.5, side: 'bottom' },
@@ -370,7 +372,7 @@ describe('DiagramEdgeDrawingService', () => {
         drawing.beginSource('check', { x: 336, y: 48 })
         expect(drawing.completeTarget('done', { x: 480, y: 36 }, true)).toBe('drawn-edge')
 
-        expect(session.getEdgeSnapshot('drawn-edge')).toMatchObject({
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
             from: 'check',
             kind: 'flow',
             label: 'New branch',
@@ -385,7 +387,7 @@ describe('DiagramEdgeDrawingService', () => {
         drawing.beginSource('step', { x: 160, y: 36 })
         expect(drawing.completeTarget('done', { x: 480, y: 36 }, true)).toBe('drawn-edge')
 
-        expect(session.getEdgeFieldSnapshot('drawn-edge', 'label')).toBeUndefined()
+        expect(session.read.getEdgeFieldSnapshot('drawn-edge', 'label')).toBeUndefined()
     })
 
     it('keeps a tool supplied flow label instead of the placeholder', () => {
@@ -395,19 +397,19 @@ describe('DiagramEdgeDrawingService', () => {
         drawing.beginSource('check', { x: 336, y: 48 })
         expect(drawing.completeTarget('done', { x: 480, y: 36 }, true)).toBe('drawn-edge')
 
-        expect(session.getEdgeFieldSnapshot('drawn-edge', 'label')).toBe('no')
+        expect(session.read.getEdgeFieldSnapshot('drawn-edge', 'label')).toBe('no')
     })
 
     it('labels every drawn state transition and keeps shared attachments and routing', () => {
         const { drawing, geometry, selection, session } = createHarness(stateDiagram())
-        const existingEdge = session.getEdgeSnapshot('existing')
+        const existingEdge = session.read.getEdgeSnapshot('existing')
 
         expect(drawing.activate({ kind: 'transition' })).toBe(true)
         drawing.beginSource('working', { x: 400, y: 18 })
         drawing.updatePreview({ x: 0, y: 54 }, 'idle')
         expect(drawing.completeTarget('idle', { x: 0, y: 54 }, true)).toBe('drawn-edge')
 
-        expect(session.getEdgeSnapshot('drawn-edge')).toMatchObject({
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
             from: 'working',
             kind: 'transition',
             label: 'New transition',
@@ -415,8 +417,8 @@ describe('DiagramEdgeDrawingService', () => {
             targetAttachment: { nodeId: 'idle', offset: 0.75, side: 'left' },
             to: 'idle',
         })
-        expect(session.getEdgeSnapshot('existing')).toBe(existingEdge)
-        expect(session.getEdgeIdsSnapshot()).toEqual(['existing', 'drawn-edge'])
+        expect(session.read.getEdgeSnapshot('existing')).toBe(existingEdge)
+        expect(session.read.getEdgeIdsSnapshot()).toEqual(['existing', 'drawn-edge'])
         expect(geometry.getEdgeRouteSnapshot('drawn-edge')[0]).toEqual({ x: 400, y: 18 })
         expect(geometry.getEdgeRouteSnapshot('drawn-edge').at(-1)).toEqual({ x: 0, y: 54 })
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'drawn-edge', objectKind: 'edge' }])
@@ -429,13 +431,13 @@ describe('DiagramEdgeDrawingService', () => {
         const { drawing, session } = createHarness(source())
         drawing.activate({ kind })
         drawing.beginSource(sourceNodeId, { x: 0, y: 36 })
-        const edgeIds = session.getEdgeIdsSnapshot()
+        const edgeIds = session.read.getEdgeIdsSnapshot()
 
         expect(drawing.completeTarget(null, { x: 900, y: 400 }, true)).toBeNull()
 
-        expect(session.getEdgeIdsSnapshot()).toBe(edgeIds)
-        expect(session.getActiveToolSnapshot()).toBe(`edge:${kind}`)
-        expect(session.getTransientGestureSnapshot()).toBe('edge')
+        expect(session.read.getEdgeIdsSnapshot()).toBe(edgeIds)
+        expect(session.read.getActiveToolSnapshot()).toBe(`edge:${kind}`)
+        expect(session.read.getTransientGestureSnapshot()).toBe('edge')
     })
 
     it('clears incomplete drawing on cancellation or tool change', () => {
@@ -447,7 +449,7 @@ describe('DiagramEdgeDrawingService', () => {
 
         expect(drawing.cancelDrawing()).toBe(true)
         expect(drawing.getPreviewSnapshot()).toBeNull()
-        expect(session.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
 
         drawing.activate({ kind: 'connection' })
         drawing.beginSource('source', { x: 120, y: 40 })

@@ -55,7 +55,7 @@ function EditableDiagramNodeLeaf({
     if (!diagramType || label === null || role === null || width === null || height === null) return null
 
     const handleSelect = (_selection: unknown, ctrlKey: boolean) => {
-        if (session.getActiveToolSnapshot() !== 'select') return
+        if (session.read.getActiveToolSnapshot() !== 'select') return
 
         const identity = { objectId: nodeId, objectKind: 'node' } as const
         if (ctrlKey) {
@@ -63,7 +63,7 @@ function EditableDiagramNodeLeaf({
         } else {
             selection.replace([identity])
         }
-        const sessionSnapshot = session.getSessionSnapshot()
+        const sessionSnapshot = session.read.getSessionSnapshot()
         if (sessionSnapshot) emphasis.moveTargetIfActive({diagramId: sessionSnapshot.sourceDiagramId, objectId: nodeId, objectKind: 'node', surface: 'new'})
     }
     const handleOpenDetails = () => details.open({ objectId: nodeId, objectKind: 'node' })
@@ -90,7 +90,7 @@ function EditableDiagramNodeLeaf({
             editableLabel={{ session }}
             entityFieldSource={diagramType === 'entity' ? { nodeId, session } : undefined}
             flowPreset={preset ?? undefined}
-            formattingStore={session}
+            formattingStore={session.read}
             node={node}
             onOpenDetails={handleOpenDetails}
             onSelect={handleSelect}

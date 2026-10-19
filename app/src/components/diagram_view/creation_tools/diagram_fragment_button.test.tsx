@@ -6,6 +6,7 @@ import { DiagramFragmentButton } from './diagram_fragment_button'
 afterEach(cleanup)
 
 class FragmentButtonSessionStub extends EventTarget {
+    readonly read = this;
     private readonly diagramType: DiagramType
 
     constructor(diagramType: DiagramType) {

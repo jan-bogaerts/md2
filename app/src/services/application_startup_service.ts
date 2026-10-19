@@ -15,7 +15,9 @@ import { claudeRateLimitService } from './agents/claude_rate_limit_service'
 import { dataService } from './data/data_service'
 import { githubAuthService, initDefaultGithubAuthService } from './github/github_auth_service'
 import { openFilesService } from './open_files_service'
+import { getElectronDataBridge } from '../data/electron_data_bridge'
 import { isProjectLoadErrorReported } from './project/project_loading'
+import { projectOpenFlowService } from './project/project_open_flow_service'
 import { projectPersistenceService } from './project/project_persistence_service'
 import { projectSessionService, type ProjectOpenResolution } from './project/project_session_service'
 import { register } from './service_injector'
@@ -36,6 +38,8 @@ export interface ApplicationStartupDependencies {
     initializeAgentCapabilities(): Promise<void>
     refreshStartupModelCatalogs(): Promise<void>
     initializeServices(): void
+    openStartupProject(rootPath: string): Promise<void>
+    readStartupProjectPath(): string | null
     restoreGithubSession(): Promise<void>
     restoreLastProject(accessToken: string | null): Promise<ProjectOpenResolution | null>
 }
@@ -68,6 +72,8 @@ const DEFAULT_DEPENDENCIES: ApplicationStartupDependencies = {
         mergeAgentProfiles(configService.get('desktop.agentProfiles')),
     ),
     initializeServices,
+    openStartupProject: (rootPath) => projectOpenFlowService.openStartupProject(rootPath),
+    readStartupProjectPath: () => getElectronDataBridge()?.getStartupProjectPath?.() ?? null,
     restoreGithubSession: () => githubAuthService.restoreSession(),
     restoreLastProject: (accessToken) => projectSessionService.restoreLastProject(accessToken),
 }
@@ -101,7 +107,7 @@ export class ApplicationStartupService extends EventTarget {
                 this.dependencies.restoreGithubSession(),
                 this.dependencies.initializeAgentCapabilities(),
             ])
-            const resolution = await this.dependencies.restoreLastProject(this.dependencies.getGithubAccessToken())
+            const resolution = await this.openInitialProject()
             await this.dependencies.refreshStartupModelCatalogs()
             this.setSnapshot({ error: null, phase: 'ready', projectOpenResolution: resolution })
         } catch (error) {
@@ -110,6 +116,16 @@ export class ApplicationStartupService extends EventTarget {
                 : error instanceof Error ? error.message : 'Startup failed'
             this.setSnapshot({ error: message, phase: 'ready', projectOpenResolution: null })
         }
+    }
+
+    /** The command-line folder wins over the last project; the open flow service shows its own dialogs. */
+    private async openInitialProject() {
+        const startupProjectPath = this.dependencies.readStartupProjectPath()
+        if (!startupProjectPath) return this.dependencies.restoreLastProject(this.dependencies.getGithubAccessToken())
+
+        await this.dependencies.openStartupProject(startupProjectPath)
+
+        return null
     }
 
     private setSnapshot(snapshot: ApplicationStartupSnapshot) {

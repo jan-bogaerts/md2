@@ -43,7 +43,7 @@ function EditableDiagramGroupLeaf({
     if (label === null || height === null || width === null) return null
 
     const handleSelect = (ctrlKey: boolean) => {
-        if (session.getActiveToolSnapshot() !== 'select') return
+        if (session.read.getActiveToolSnapshot() !== 'select') return
 
         const identity = { objectId: groupId, objectKind: 'group' } as const
         if (ctrlKey) {
@@ -61,7 +61,7 @@ function EditableDiagramGroupLeaf({
         <DiagramGroup
             emphasis={emphasis}
             emphasisSurface="new"
-            formattingStore={session}
+            formattingStore={session.read}
             group={group}
             onOpenDetails={handleOpenDetails}
             onSelect={handleSelect}

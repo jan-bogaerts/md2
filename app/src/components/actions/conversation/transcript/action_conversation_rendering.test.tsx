@@ -317,8 +317,11 @@ describe('ActionConversationChat rendering', () => {
             </AppThemeProvider>,
         );
         expect(screen.getByLabelText('Pending prompt')).toBe(row);
-        expect(row).toHaveTextContent('Failed to send');
-        expect(row).toHaveTextContent('Backend rejected the prompt');
+        const failedLabel = within(row).getByText('Failed to send');
+        const failure = within(row).getByText('Backend rejected the prompt');
+        expect(failedLabel.tagName).toBe('DIV');
+        expect(failure.tagName).toBe('DIV');
+        expect(failedLabel.nextElementSibling).toBe(failure);
     });
 
     it('shows compact progress inside the chat without repainting transcript messages', () => {

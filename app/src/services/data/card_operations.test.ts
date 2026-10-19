@@ -211,6 +211,37 @@ describe('CardOperations', () => {
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
     })
 
+    it('writes a created card to disk before the timed commit and keeps it pending', async () => {
+        configService.init()
+        const writeFiles = vi.fn<NonNullable<StorageService['writeFiles']>>(async () => undefined)
+        const storage = createStorage({ writeFiles })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
+        await service.writePendingFiles()
+
+        expect(writeFiles).toHaveBeenCalledOnce()
+        expect(writeFiles.mock.calls[0][0]).toMatchObject({ branch: 'main', files: [{ path: file.path }] })
+        expect(writeFiles.mock.calls[0][0].files[0].content).toContain('Body')
+        expect(storage.commit).not.toHaveBeenCalled()
+        expect(service.hasPendingFile(file.path)).toBe(true)
+    })
+
+    it('rejects a pending file write when storage cannot write without committing', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
+
+        await expect(service.writePendingFiles()).rejects.toThrow('Current storage cannot write files without committing')
+        expect(service.hasPendingFile(file.path)).toBe(true)
+    })
+
     it('includes edits made before the first flush in the created card commit', async () => {
         configService.init()
         const storage = createStorage()

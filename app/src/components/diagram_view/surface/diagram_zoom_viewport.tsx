@@ -126,9 +126,9 @@ export function DiagramZoomViewport({
     const completingGestureRef = useRef(false)
     const suppressClickRef = useRef(false)
     const scale = useSyncExternalStore(
-        session.subscribeViewportScale,
-        session.getViewportScaleSnapshot,
-        session.getViewportScaleSnapshot,
+        session.read.subscribeViewportScale,
+        session.read.getViewportScaleSnapshot,
+        session.read.getViewportScaleSnapshot,
     )
     const originX = useDiagramSurfaceField('originX', geometry)
     const originY = useDiagramSurfaceField('originY', geometry)
@@ -142,9 +142,9 @@ export function DiagramZoomViewport({
         }
         previousOriginRef.current = { x: originX, y: originY }
     }, [originX, originY, scale])
-    useDiagramCtrlWheelZoom(scrollerRef, session)
+    useDiagramCtrlWheelZoom(scrollerRef, session, session.read.getViewportScaleSnapshot)
     const panToolActive = useActiveDiagramTool(session, 'pan')
-    const canStartPan = useCallback(() => session.getActiveToolSnapshot() === 'pan', [session])
+    const canStartPan = useCallback(() => session.read.getActiveToolSnapshot() === 'pan', [session])
     const beginPanGesture = useCallback(() => session.beginTransientGesture('pan'), [session])
     const completePanGesture = useCallback(() => session.completeTransientGesture(), [session])
     const pan = useDiagramSurfacePan(scrollerRef, {
@@ -175,7 +175,7 @@ export function DiagramZoomViewport({
                 scrollLeft: 0,
                 scrollTop: 0,
             },
-            session.getViewportScaleSnapshot(),
+            session.read.getViewportScaleSnapshot(),
         ).diagramPoint
     }, [geometry, session])
 
@@ -201,7 +201,7 @@ export function DiagramZoomViewport({
         releaseActivePointer()
         suppressClickRef.current = true
     }, [drawing, groupDrawing, movement, pan, placement, releaseActivePointer, resize, selection])
-    const pinch = useDiagramPinchZoom(scrollerRef, session, cancelActiveGestureForPinch)
+    const pinch = useDiagramPinchZoom(scrollerRef, session, session.read.getViewportScaleSnapshot, cancelActiveGestureForPinch)
     const handlePinchPointerDownCapture = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (event.currentTarget.contains(event.target as Node)) pinch.handlePointerDownCapture(event)
     }, [pinch])
@@ -252,7 +252,7 @@ export function DiagramZoomViewport({
     const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (!event.currentTarget.contains(event.target as Node)) return
         if (activePointerIdRef.current !== null || event.button !== 0 || event.isPrimary === false) return
-        if (session.getActiveToolSnapshot() === 'pan') {
+        if (session.read.getActiveToolSnapshot() === 'pan') {
             if (!pan.beginPan(event)) return
 
             activePointerIdRef.current = event.pointerId
@@ -489,7 +489,7 @@ export function DiagramZoomViewport({
         if (
             completingGestureRef.current
             || activePointerIdRef.current === null
-            || session.getTransientGestureSnapshot() === activePointerGestureRef.current
+            || session.read.getTransientGestureSnapshot() === activePointerGestureRef.current
         ) return
         if (activePointerGestureRef.current === 'pan') {
             endPanGesture()
@@ -510,7 +510,7 @@ export function DiagramZoomViewport({
     }, [handleWindowKeyDown])
 
     useEffect(
-        () => session.subscribeTransientGesture(handleTransientGestureChanged),
+        () => session.read.subscribeTransientGesture(handleTransientGestureChanged),
         [handleTransientGestureChanged, session],
     )
 

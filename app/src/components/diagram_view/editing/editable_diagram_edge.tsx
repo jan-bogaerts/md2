@@ -55,7 +55,7 @@ function EditableDiagramEdgeLeaf({
     if (from === null || to === null || kind === null || points.length === 0) return null
 
     const handleSelect = (_selection: unknown, ctrlKey: boolean) => {
-        if (session.getActiveToolSnapshot() !== 'select') return
+        if (session.read.getActiveToolSnapshot() !== 'select') return
 
         const identity = { objectId: edgeId, objectKind: 'edge' } as const
         if (ctrlKey) {
@@ -63,7 +63,7 @@ function EditableDiagramEdgeLeaf({
         } else {
             selection.replace([identity])
         }
-        const sessionSnapshot = session.getSessionSnapshot()
+        const sessionSnapshot = session.read.getSessionSnapshot()
         if (sessionSnapshot) emphasis.moveTargetIfActive({diagramId: sessionSnapshot.sourceDiagramId, objectId: edgeId, objectKind: 'edge', surface: 'new'})
     }
     const handleOpenDetails = () => details.open({ objectId: edgeId, objectKind: 'edge' })
@@ -86,7 +86,7 @@ function EditableDiagramEdgeLeaf({
             curved={diagramType === 'mindmap'}
             dimmed={dimmed}
             edge={edge}
-            formattingStore={session}
+            formattingStore={session.read}
             nodeLabels={EMPTY_NODE_LABELS}
             onOpenDetails={handleOpenDetails}
             onSelect={handleSelect}

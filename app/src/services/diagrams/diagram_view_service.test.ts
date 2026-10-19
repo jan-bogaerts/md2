@@ -170,12 +170,12 @@ describe('DiagramViewService', () => {
 
         await harness.service.open()
 
-        expect(harness.editSession.getSessionSnapshot()?.creationSourceDiagramId).toBe('root-1')
-        expect(harness.editSession.getEditableDiagram()?.meta.description).toBe('Latest saved')
-        expect(harness.editSession.getSavedRecordSnapshot()?.id).toBe('copy-2')
-        expect(harness.editSession.getDirtySnapshot()).toBe(false)
+        expect(harness.editSession.read.getSessionSnapshot()?.creationSourceDiagramId).toBe('root-1')
+        expect(harness.editSession.read.getEditableDiagram()?.meta.description).toBe('Latest saved')
+        expect(harness.editSession.read.getSavedRecordSnapshot()?.id).toBe('copy-2')
+        expect(harness.editSession.read.getDirtySnapshot()).toBe(false)
 
-        harness.editSession.setMetadataField('title', 'Updated after restart')
+        harness.editSession.objects.setMetadataField('title', 'Updated after restart')
         const save = new DiagramSaveService(harness.editSession, harness.service)
         await save.save()
 
@@ -197,9 +197,9 @@ describe('DiagramViewService', () => {
         await harness.service.open()
 
         await harness.service.navigateToSavedDiagram('agent')
-        expect(harness.editSession.getSessionSnapshot()).toBeNull()
+        expect(harness.editSession.read.getSessionSnapshot()).toBeNull()
         await harness.service.navigateToSavedDiagram('root-1')
-        expect(harness.editSession.getSessionSnapshot()?.creationSourceDiagramId).toBe('root-1')
+        expect(harness.editSession.read.getSessionSnapshot()?.creationSourceDiagramId).toBe('root-1')
     })
 
     it('keeps pending roots read-only when project access is read-only', async () => {
@@ -209,7 +209,7 @@ describe('DiagramViewService', () => {
 
         await harness.service.open()
 
-        expect(harness.editSession.getSessionSnapshot()).toBeNull()
+        expect(harness.editSession.read.getSessionSnapshot()).toBeNull()
         expect(harness.service.getCurrentDiagramSnapshot()).not.toBeNull()
     })
 
@@ -227,7 +227,7 @@ describe('DiagramViewService', () => {
 
         expect(harness.reportError).toHaveBeenCalledWith(expect.any(Error), 'Diagram edit could not be restored')
         expect(harness.service.getCurrentDiagramErrorSnapshot()).toContain('copy missing')
-        expect(harness.editSession.getSessionSnapshot()).toBeNull()
+        expect(harness.editSession.read.getSessionSnapshot()).toBeNull()
         expect(harness.service.getCurrentDiagramSnapshot()).toBeNull()
     })
 
@@ -242,7 +242,7 @@ describe('DiagramViewService', () => {
 
         expect(harness.reportError).toHaveBeenCalledWith(expect.any(Error), 'Diagram edit could not be restored')
         expect(harness.service.getCurrentDiagramErrorSnapshot()).not.toBeNull()
-        expect(harness.editSession.getSessionSnapshot()).toBeNull()
+        expect(harness.editSession.read.getSessionSnapshot()).toBeNull()
     })
 
     it('does not replace dirty pending creation when navigating to another pending root', async () => {
@@ -255,13 +255,13 @@ describe('DiagramViewService', () => {
         index.roots['user-created'].push('root-2')
         loadPendingIndex(harness, index)
         await harness.service.open()
-        harness.editSession.setMetadataField('title', 'Unsaved')
+        harness.editSession.objects.setMetadataField('title', 'Unsaved')
 
         await expect(harness.service.navigateToSavedDiagram('root-2')).rejects.toThrow('Save or discard')
 
         expect(harness.service.getIndexSnapshot().activePath).toEqual(['root-1'])
-        expect(harness.editSession.getEditableDiagram()?.meta.title).toBe('Unsaved')
-        expect(harness.editSession.getDirtySnapshot()).toBe(true)
+        expect(harness.editSession.read.getEditableDiagram()?.meta.title).toBe('Unsaved')
+        expect(harness.editSession.read.getDirtySnapshot()).toBe(true)
     })
 
     it('persists an empty diagram and its active user-created root in one flush before publishing', async () => {

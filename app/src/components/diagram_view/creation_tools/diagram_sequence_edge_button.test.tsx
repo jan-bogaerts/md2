@@ -8,6 +8,7 @@ import {
 } from './diagram_sequence_edge_button';
 
 class SequenceEdgeSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool = 'select';
     private readonly diagramType: DiagramType;
 

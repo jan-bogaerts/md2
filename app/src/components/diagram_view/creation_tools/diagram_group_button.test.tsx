@@ -4,6 +4,7 @@ import type { DiagramPersistentTool } from '../../../services/diagrams/diagram_e
 import { DiagramGroupButton } from './diagram_group_button'
 
 class GroupButtonSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool = 'select'
 
     getActiveToolSnapshot = () => this.activeTool

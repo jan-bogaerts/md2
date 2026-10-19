@@ -89,6 +89,8 @@ export type ActionConversationChange = {
     kind: 'entry'
 } | {
     kind: 'replace'
+} | {
+    kind: 'taskList'
 }
 
 export interface LiveAgentApproval extends AgentApproval {
@@ -1103,6 +1105,13 @@ export class ActionRunRegistry extends EventTarget {
                 else delete conversation.contextWindowUsage
             }
             next = { ...next, conversation }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentTaskList' && next.conversation) {
+            next = {
+                ...next,
+                conversation: { ...next.conversation, taskList: event.update.taskList },
+                conversationChange: { kind: 'taskList' },
+            }
         }
         if (event.type === 'update' && event.update.kind === 'agentPromptQueued') {
             const { entry } = event.update

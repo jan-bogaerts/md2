@@ -1,7 +1,10 @@
+import { createRequire } from 'node:module';
 import { describe, expect, it, vi } from 'vitest';
 import runModule from './action_worktree_run_service.js';
 
+const require = createRequire(import.meta.url);
 const { ActionWorktreeRunService } = runModule;
+const { checkoutOwnershipService } = require('../../git/checkout_ownership_service');
 const primaryProject = { branch: 'main', id: 'C:/repo', rootPath: 'C:/repo' };
 const cardProject = { branch: 'card', error: null, path: 'C:/worktrees/card', valid: true };
 
@@ -147,6 +150,57 @@ describe('ActionWorktreeRunService', () => {
         await expect(runService.execute(primaryProject, action(true), { kind: 'card', worktree: '2', worktreeBranch: 'card' }, runner))
             .rejects.toThrow('Configured worktree 2 is invalid: gone');
         expect(runner).not.toHaveBeenCalled();
+    });
+
+    describe('sequence checkout', () => {
+        const sequenceCheckout = 'C:/worktrees/sequence';
+        const sequenceContext = {
+            cardInternalId: 'card-1', kind: 'card', sequenceCheckoutPath: sequenceCheckout, sequenceId: 'sequence-1',
+            worktree: '2', worktreeBranch: 'md2/sequence/child',
+        };
+
+        function sequenceService(currentBranch = 'md2/sequence/child') {
+            const worktreeService = { resolveBranch: vi.fn(), runGit: vi.fn(async () => `${currentBranch}\n`) };
+
+            return new ActionWorktreeRunService({ worktreeService });
+        }
+
+        it('runs in the leased checkout without resolving the worktree branch again', async () => {
+            const runService = sequenceService();
+            const runner = vi.fn(async () => result());
+            const release = checkoutOwnershipService.acquire(sequenceCheckout, 'sequence-1', true);
+            try {
+                const run = await runService.execute(primaryProject, action(), sequenceContext, runner);
+                await runWithCardLock(runService, sequenceContext, async () => result());
+
+                expect(runner).toHaveBeenCalledWith({ branch: 'md2/sequence/child', id: sequenceCheckout, rootPath: sequenceCheckout });
+                expect(run).toMatchObject({ repositoryRoot: sequenceCheckout, runWorktree: 2 });
+                expect(runService.worktreeService.resolveBranch).not.toHaveBeenCalled();
+                expect(runService.worktreeService.runGit).toHaveBeenCalledWith(sequenceCheckout, ['branch', '--show-current']);
+            } finally {
+                release();
+            }
+        });
+
+        it('rejects a leased checkout that is on another branch', async () => {
+            const runner = vi.fn(async () => result());
+
+            await expect(sequenceService('external').execute(primaryProject, action(), sequenceContext, runner))
+                .rejects.toThrow(`Sequence checkout is on external, expected md2/sequence/child: ${sequenceCheckout}`);
+            expect(runner).not.toHaveBeenCalled();
+        });
+
+        it('rejects a checkout leased by another sequence', async () => {
+            const runner = vi.fn(async () => result());
+            const release = checkoutOwnershipService.acquire(sequenceCheckout, 'other-sequence', true);
+            try {
+                await expect(sequenceService().execute(primaryProject, action(), sequenceContext, runner))
+                    .rejects.toThrow('Checkout is owned by a sequence');
+                expect(runner).not.toHaveBeenCalled();
+            } finally {
+                release();
+            }
+        });
     });
 
     it('releases the card claim when the runner fails', async () => {

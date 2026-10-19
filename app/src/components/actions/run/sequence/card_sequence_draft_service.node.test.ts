@@ -1,4 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { WorktreeRecord } from '../../../../data/data_types'
+import { DEFAULT_AGENT_SELECTION } from '../../../../data/agent_selection';
+import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles';
+import type { ActionDefinition } from '../../../../data/action_types';
+import { worktreeService } from '../../../../services/project/worktree_service'
 import type { ActionScheduleTriggerSources } from '../schedule/action_schedule_trigger'
 import { CardSequenceDraftService } from './card_sequence_draft_service'
 
@@ -31,6 +36,45 @@ function readyService() {
 }
 
 describe('CardSequenceDraftService', () => {
+    it('captures agent action settings separately from account-reset provider', () => {
+        const service = readyService();
+        const actions = [
+            { id: 'build', label: 'Build', type: 'agent', agent: 'codex', model: 'gpt-5.5', thinkingLevel: 'high' },
+            { id: 'check', label: 'Check', type: 'command' },
+        ] as ActionDefinition[];
+        const sources = {
+            actionIds: ['build', 'check'], actions, agentProfiles: BUILTIN_AGENT_PROFILES,
+            agentAvailability: { codex: { available: true } }, cardsAvailable: true,
+            desktopSelection: DEFAULT_AGENT_SELECTION, modelIds: ['gpt-5.5', 'gpt-6-sol'], readyStates: ['ready'], triggerSources,
+        };
+        service.updateSources(sources);
+        service.setActionId('build');
+        expect(service.createRegistrationRequest().agentSelection).toEqual({agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', speedMode: 'default', thinkingLevel: 'high'});
+        service.setExecutionModel('gpt-6-sol');
+        service.setTriggerType('account-reset');
+        service.setAgent('codex');
+        service.setAccountTracker('credits', 'primary');
+        expect(service.createRegistrationRequest()).toMatchObject({agentSelection: { model: 'gpt-6-sol' }, trigger: { agent: 'codex', type: 'account-reset' }});
+        service.setActionId('check');
+        expect(service.createRegistrationRequest()).not.toHaveProperty('agentSelection');
+    });
+
+    it('blocks unavailable agents and unsupported models with specific reasons', () => {
+        const service = readyService();
+        const actions = [{ id: 'build', label: 'Build', type: 'agent' }] as ActionDefinition[];
+        const sources = {
+            actionIds: ['build'], actions, agentProfiles: BUILTIN_AGENT_PROFILES,
+            agentAvailability: { codex: { available: false, error: 'Codex missing' } }, cardsAvailable: true,
+            desktopSelection: DEFAULT_AGENT_SELECTION, modelIds: ['gpt-6-sol'], readyStates: ['ready'], triggerSources,
+        };
+        service.updateSources(sources);
+        service.setActionId('build');
+        expect(service.getSnapshot()).toMatchObject({ canSubmit: false, validationMessage: 'Codex missing' });
+        service.updateSources({ ...sources, agentAvailability: { codex: { available: true } } });
+        service.setExecutionModel('missing-model');
+        expect(service.getSnapshot()).toMatchObject({ canSubmit: false, validationMessage: 'Unsupported sequence model: missing-model' });
+        expect(() => service.createRegistrationRequest()).toThrow('Unsupported sequence model: missing-model');
+    });
     it('stores unique canonical ids and reorders without paths', () => {
         const service = readyService()
         service.addCard('card-2')
@@ -104,13 +148,35 @@ describe('CardSequenceDraftService', () => {
     })
 })
 
+const selectedWorktree: WorktreeRecord = {
+    branch: 'selected', error: null, parkingBranch: 'md2/parking/selected', path: 'C:\\selected',
+    status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+};
+
 describe('sequence worktree draft', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('includes optional assignment in registration without replacing card identities', () => {
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([selectedWorktree]);
         const service = readyService();
         service.setWorktreeBranch('selected');
         expect(service.createRegistrationRequest()).toMatchObject({ cardInternalIds: ['card-1'], worktreeBranch: 'selected' });
         service.setWorktreeBranch('');
         expect(service.createRegistrationRequest()).not.toHaveProperty('worktreeBranch');
+        service.close();
+    });
+
+    it('blocks registration when the selected worktree becomes used', () => {
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([selectedWorktree]);
+        const service = readyService();
+        service.setWorktreeBranch('selected');
+        expect(service.getSnapshot().canSubmit).toBe(true);
+
+        vi.spyOn(worktreeService, 'isWorktreeAvailableForSequence').mockReturnValue(false);
+
+        expect(() => service.createRegistrationRequest()).toThrow('Selected worktree is already in use');
         service.close();
     });
 });

@@ -1,6 +1,6 @@
 import { ACTION_SCHEDULES_FILE, type AnySchedule } from '../../data/action_schedule_types'
 import { getElectronActionBridge, type ElectronActionBridge } from '../../data/electron_action_bridge'
-import type { ProjectReference, ProjectWatchEvent } from '../../data/data_types'
+import { resolveProjectConfigPaths, type ProjectReference, type ProjectWatchEvent } from '../../data/data_types'
 import { normalizePath } from '../../../../shared/path_utils.mjs'
 import { actionService, ACTIONS_CHANGED_EVENT, type ActionService } from './action_service'
 import { claudeRateLimitService, type ClaudeRateLimitService } from '../agents/claude_rate_limit_service'
@@ -8,6 +8,7 @@ import { codexRateLimitService, type CodexRateLimitService } from '../agents/cod
 import { configService } from '../config/config_service'
 import { dataService, type DataService } from '../data/data_service'
 import { projectAccessService } from '../project/project_access_service'
+import { worktreeService, type SequenceWorktreeReservation } from '../project/worktree_service'
 import { register } from '../service_injector'
 import { projectActiveSchedules, type ActiveScheduleItem } from './active_schedule_projection'
 
@@ -18,6 +19,11 @@ export interface ActiveScheduleSnapshot {
     items: readonly ActiveScheduleItem[]
     loading: boolean
     selectedScheduleId: string | null
+}
+
+export interface SequenceCardWorktree {
+    checkoutPath: string
+    expectedBranch: string
 }
 
 interface ActiveScheduleServiceDependencies {
@@ -54,7 +60,7 @@ function defaultDependencies(): ActiveScheduleServiceDependencies {
         claudeRateLimitService,
         codexRateLimitService,
         dataService,
-        getActionsFolder: () => configService.getProjectConfig().actionsFolder,
+        getActionsFolder: () => resolveProjectConfigPaths(configService.getProjectConfig()).actionsFolder,
         getBridge: getElectronActionBridge,
         getProject: () => dataService.getState().project,
     }
@@ -68,6 +74,7 @@ export class ActiveScheduleService extends EventTarget {
     private schedules: readonly AnySchedule[] = []
     private pendingCardIds = new Set<string>()
     private pendingCardActions = new Set<string>()
+    private sequenceCardWorktrees = new Map<string, SequenceCardWorktree>()
     private snapshot = INITIAL_SNAPSHOT
     private started = false
 
@@ -89,6 +96,15 @@ export class ActiveScheduleService extends EventTarget {
 
     hasPendingActionForCardAndAction = (cardInternalId: string, actionId: string) =>
         this.pendingCardActions.has(JSON.stringify([cardInternalId, actionId]))
+
+    getSequenceWorktreeForCard = (cardInternalId: string) => this.sequenceCardWorktrees.get(cardInternalId) ?? null
+
+    subscribeSequenceCard = (cardInternalId: string, onStoreChange: () => void) => {
+        const eventName = `sequence-card:${cardInternalId}`
+        this.addEventListener(eventName, onStoreChange)
+
+        return () => this.removeEventListener(eventName, onStoreChange)
+    }
 
     subscribeCard = (cardInternalId: string, onStoreChange: () => void) => {
         const eventName = `pending-card:${cardInternalId}`
@@ -161,6 +177,16 @@ export class ActiveScheduleService extends EventTarget {
         }
     }
 
+    /** Applies a schedule returned by Electron so its view updates without waiting for a schedule reload. */
+    applySchedule(schedule: AnySchedule) {
+        const known = this.schedules.some(({ id }) => id === schedule.id)
+        const schedules = known
+            ? this.schedules.map((current) => current.id === schedule.id ? schedule : current)
+            : [...this.schedules, schedule]
+        this.setSchedules(schedules)
+        this.publishProjection()
+    }
+
     async deleteSchedule(scheduleId: string) {
         if (this.snapshot.deletingScheduleIds.includes(scheduleId)) return
         projectAccessService.requireWritable()
@@ -226,8 +252,24 @@ export class ActiveScheduleService extends EventTarget {
     private setSchedules(schedules: readonly AnySchedule[]) {
         const pendingCardIds = new Set<string>()
         const pendingCardActions = new Set<string>()
+        const sequenceCardWorktrees = new Map<string, SequenceCardWorktree>()
+        const sequenceReservations: SequenceWorktreeReservation[] = []
         for (const schedule of schedules) {
-            if (schedule.kind !== 'action' || schedule.status !== 'pending' || !schedule.context.cardInternalId) continue
+            if (schedule.kind === 'sequence') {
+                const { worktreeBranch } = schedule
+                if (worktreeBranch && (schedule.status === 'pending' || schedule.status === 'running')) {
+                    sequenceReservations.push({ checkoutPath: schedule.branchProgress?.checkoutPath ?? null, worktreeBranch })
+                }
+                if (schedule.status !== 'running' || !schedule.branchProgress) continue
+                const cardInternalId = schedule.cardInternalIds[schedule.currentIndex]
+                const { checkoutPath, expectedBranch } = schedule.branchProgress
+                const previous = this.sequenceCardWorktrees.get(cardInternalId)
+                const worktree = previous?.checkoutPath === checkoutPath && previous.expectedBranch === expectedBranch
+                    ? previous : { checkoutPath, expectedBranch }
+                sequenceCardWorktrees.set(cardInternalId, worktree)
+                continue
+            }
+            if (schedule.status !== 'pending' || !schedule.context.cardInternalId) continue
             const { actionId } = schedule
             const cardInternalId = schedule.context.cardInternalId
             pendingCardIds.add(cardInternalId)
@@ -236,11 +278,14 @@ export class ActiveScheduleService extends EventTarget {
 
         const previousCardIds = this.pendingCardIds
         const previousCardActions = this.pendingCardActions
+        const previousSequenceCardWorktrees = this.sequenceCardWorktrees
         const changedCardIds = new Set([...previousCardIds, ...pendingCardIds])
         const changedCardActions = new Set([...previousCardActions, ...pendingCardActions])
         this.schedules = schedules
         this.pendingCardIds = pendingCardIds
         this.pendingCardActions = pendingCardActions
+        this.sequenceCardWorktrees = sequenceCardWorktrees
+        worktreeService.setSequenceReservations(sequenceReservations)
         for (const cardInternalId of changedCardIds) {
             if (previousCardIds.has(cardInternalId) !== pendingCardIds.has(cardInternalId)) {
                 this.dispatchEvent(new Event(`pending-card:${cardInternalId}`))
@@ -249,6 +294,11 @@ export class ActiveScheduleService extends EventTarget {
         for (const key of changedCardActions) {
             if (previousCardActions.has(key) !== pendingCardActions.has(key)) {
                 this.dispatchEvent(new Event(`pending-card-action:${key}`))
+            }
+        }
+        for (const cardInternalId of new Set([...previousSequenceCardWorktrees.keys(), ...sequenceCardWorktrees.keys()])) {
+            if (previousSequenceCardWorktrees.get(cardInternalId) !== sequenceCardWorktrees.get(cardInternalId)) {
+                this.dispatchEvent(new Event(`sequence-card:${cardInternalId}`))
             }
         }
     }

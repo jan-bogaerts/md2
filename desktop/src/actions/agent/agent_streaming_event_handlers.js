@@ -137,25 +137,29 @@ function handleSessionFailed(service, run, event) {
  * is the last one exactly while the question is unresolved, because answering and dismissing both append after it.
  */
 function appendQuestionEntry(run, questions, timestamp) {
-    run.conversation.entries.push({
+    const entryIndex = run.conversation.entries.length;
+    const event = {
         ...createEventEntry(
-            `${run.id}-question-${run.conversation.entries.length}`,
+            `${run.id}-question-${entryIndex}`,
             'agentQuestion',
             '',
             timestamp,
             nextRunSequence(run),
         ),
         questions,
-    });
+    };
+    run.conversation.entries.push(event);
+    return { entryIndex, event };
 }
 
 async function handleQuestion(service, run, event, timestamp) {
-    appendQuestionEntry(run, event.questions, timestamp);
+    const questionEntry = appendQuestionEntry(run, event.questions, timestamp);
     transitionConversationStatus(run.conversation, 'waitingForInput', timestamp, run.phases);
     run.waitingForQuestion = true;
     run.pendingQuestionRequestId = event.requestId;
     run.pendingQuestions = event.questions;
     await service.persistCheckpoint(run);
+    emitRunEvent(run, { ...questionEntry, type: 'agentEvent' });
     emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
     emitRunEvent(run, { questions: event.questions, requestId: event.requestId, state: 'waitingForInput', type: 'question' });
 }

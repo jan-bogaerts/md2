@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from './electron_data_bridge'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from './electron_action_bridge'
+import { rehydratedPreloadBridge } from './bridge_error_rehydration'
 import { createStorageService, LAST_PROJECT_STORAGE_KEY, readLastProject } from './project_session'
 import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY } from './remote_control_connection'
 
@@ -40,6 +41,7 @@ function createDataBridge(): ElectronDataBridge {
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
         watchProject: vi.fn(() => vi.fn()),
+        writeFiles: vi.fn(async () => undefined),
     }
 }
 
@@ -58,7 +60,7 @@ describe('createStorageService', () => {
 
         createStorageService('remote', null)
 
-        expect(getElectronActionBridge()).toBe(preloadBridge)
+        expect(getElectronActionBridge()).toBe(rehydratedPreloadBridge(preloadBridge))
         expect(window.md2Actions).toBe(preloadBridge)
     })
 

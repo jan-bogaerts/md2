@@ -75,8 +75,8 @@ function createLocalBridgeDispatch(dependencies) {
         readDesktopConfig,
         saveDesktopConfig,
         showItemInFolder,
+        uncommittedProjectWrites,
         updateCodexCli,
-        usageMetricsService,
         worktreeService,
     } = dependencies;
     let currentLocalProject = null;
@@ -309,34 +309,30 @@ function createLocalBridgeDispatch(dependencies) {
         integrateWorktree: async (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree integration request');
             const metadata = worktreeIntegrationMetadata(request);
-            const result = await projectOperationCoordinator.run(request.project.rootPath, async () => {
-                await usageMetricsService.flushPendingChanges();
+            // Inside the project lock nothing else writes into the primary worktree until branch cleanup and history are done.
+            return projectOperationCoordinator.run(request.project.rootPath, async () => {
+                await uncommittedProjectWrites.commit(request.project.rootPath);
                 const integration = await worktreeService.integrate(request.project, request.worktreeBranch, metadata);
-                if (integration.status === 'conflict') return { integration, progress: metadata };
+                if (integration.status === 'conflict') return integration;
                 const progress = await finalizeIntegrationRepository(
                     request.project,
                     request.worktreeBranch,
                     metadata,
                     false,
                 );
+                const activityPath = await recordIntegrationActivity(request.project, integration, progress, false);
 
-                return { integration, progress };
+                return { ...(activityPath ? { activityPath } : {}), status: 'completed' };
             });
-            const { integration, progress } = result;
-            if (integration.status === 'conflict') return integration;
-
-            const activityPath = await recordIntegrationActivity(request.project, integration, progress, false);
-
-            return { ...(activityPath ? { activityPath } : {}), status: 'completed' };
         },
         abortMergeConflict: (request) => worktreeService.abortConflict(request),
         continueMergeConflict: async (request) => {
             const session = mergeConflictService.getInternalSession();
             if (!session) throw new Error('No active merge conflict session');
             const result = await projectOperationCoordinator.run(session.projectRoot, async () => {
-                await usageMetricsService.flushPendingChanges();
+                await uncommittedProjectWrites.commit(session.projectRoot);
                 const outcome = await worktreeService.continueConflict(request);
-                if (outcome.status === 'conflict') return { outcome, progress: session.metadata };
+                if (outcome.status === 'conflict') return { activityPath: null, outcome };
                 const progress = await finalizeIntegrationRepository(
                     { branch: session.projectBranch, id: session.projectId, rootPath: session.projectRoot },
                     session.worktreeBranch,
@@ -344,19 +340,20 @@ function createLocalBridgeDispatch(dependencies) {
                     true,
                     request,
                 );
+                const completedSession = outcome.session;
+                const activityPath = await recordIntegrationActivity(
+                    { branch: completedSession.projectBranch, id: completedSession.projectId, rootPath: completedSession.projectRoot },
+                    outcome,
+                    progress,
+                    true,
+                    request,
+                );
 
-                return { outcome, progress };
+                return { activityPath, outcome };
             });
-            const { outcome, progress } = result;
+            const { activityPath, outcome } = result;
             if (outcome.status === 'conflict') return outcome;
             const completedSession = outcome.session;
-            const activityPath = await recordIntegrationActivity(
-                { branch: completedSession.projectBranch, id: completedSession.projectId, rootPath: completedSession.projectRoot },
-                outcome,
-                progress,
-                true,
-                request,
-            );
             worktreeService.completeConflict(request);
 
             return {
@@ -440,6 +437,7 @@ function createLocalBridgeDispatch(dependencies) {
             },
             (error) => callback({ error: watchErrorMessage(error) }),
         ),
+        writeFiles: (request) => localGitService.writeFiles(request, currentLocalProject),
     };
 
     async function finalizeIntegrationRepository(project, worktreeBranch, metadata, activeConflict, conflictRequest = null) {
@@ -489,7 +487,7 @@ function createLocalBridgeDispatch(dependencies) {
                 origin,
                 type: 'system',
             };
-            const result = await localGitService.appendSystemActivity(project, tracking.projectFolder, origin, record);
+            const result = await localGitService.appendSystemActivityNow(project, tracking.projectFolder, origin, record);
             if (activeConflict) mergeConflictService.updateMetadata(conflictRequest, { activityTracked: true });
 
             return result.relativePath;
@@ -604,7 +602,10 @@ function createLocalBridgeDispatch(dependencies) {
                 const conversation = await localGitService.loadAgentConversation(currentLocalProject, reference);
                 await actionRunnerService.cancelCompactsForConversation(conversation.id);
             }
-            return localGitService.closeWaitingActivityConversation(currentLocalProject, reference, status);
+            const closedConversation = await localGitService.closeWaitingActivityConversation(currentLocalProject, reference, status);
+            if (actionSchedulerService) await actionSchedulerService.handleConversationClosed(closedConversation.id, status);
+
+            return closedConversation;
         },
         dismissWaitingActionConversationQuestions: (reference) => (
             localGitService.dismissWaitingActivityConversationQuestions(currentLocalProject, reference)
@@ -689,6 +690,7 @@ function createLocalBridgeDispatch(dependencies) {
                 : configuredReleasesFolder;
             const request = {
                 agent: resolved.agent,
+                agentTaskTrackingEnabled: resolved.agentTaskTrackingEnabled,
                 activityOrigin: { kind: 'project' },
                 activityProject: currentLocalProject,
                 command: resolved.command,

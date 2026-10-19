@@ -361,7 +361,13 @@ function buildSpeedCommand(command, profile, settings) {
     ];
 }
 
-export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined, speedSettings = {}) {
+function buildAgentTaskTrackingCommand(command, profile, agentTaskTrackingEnabled) {
+    if (profile.name !== 'codex' || agentTaskTrackingEnabled) return command;
+
+    return [...command, '-c', 'tools.update_plan.enabled=false'];
+}
+
+export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined, speedSettings = {}, agentTaskTrackingEnabled = true) {
     const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)
     let command = buildAgentCommand(profile, model)
 
@@ -372,6 +378,7 @@ export function buildAgentExecutionCommand(profile, model, thinkingLevel, search
     }
     command = buildPermissionModeCommand(command, profile, permissionMode)
     command = buildSpeedCommand(command, profile, speedSettings);
+    command = buildAgentTaskTrackingCommand(command, profile, agentTaskTrackingEnabled);
 
     const outputAdapter = OUTPUT_COMMAND_ADAPTERS.get(profile.name)
 
@@ -382,7 +389,7 @@ export function supportsAgentStreaming(profile) {
     return STREAMING_COMMAND_ADAPTERS.has(profile.name)
 }
 
-export function buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode = undefined, speedSettings = {}) {
+export function buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode = undefined, speedSettings = {}, agentTaskTrackingEnabled = true) {
     if (!supportsAgentStreaming(profile)) throw new Error(`Agent profile does not support streaming: ${profile.name}`)
     const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)
     let command = buildAgentCommand(profile, model)
@@ -394,6 +401,7 @@ export function buildAgentStreamingCommand(profile, model, thinkingLevel, permis
     }
     command = buildPermissionModeCommand(command, profile, permissionMode)
     command = buildSpeedCommand(command, profile, speedSettings);
+    command = buildAgentTaskTrackingCommand(command, profile, agentTaskTrackingEnabled);
 
     return STREAMING_COMMAND_ADAPTERS.get(profile.name)(command)
 }

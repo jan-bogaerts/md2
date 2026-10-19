@@ -3,6 +3,7 @@ import { Popover } from '@mui/material'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ProjectSnapshot } from '../../../../data/data_types'
 import type { ActionDefinition } from '../../../../data/action_types'
+import type { ActionPromptDraft } from '../../../../services/actions/action_prompt_draft_service'
 import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
@@ -31,11 +32,12 @@ function getActiveCards() {
 interface ActionScheduleOwnerProps {
     action: ActionDefinition
     context: ActionContext
+    promptDraft: ActionPromptDraft
     store: ActionScheduleStore
 }
 
 /** Binds service-owned schedule form state to loaded runtime and project data. */
-export function ActionScheduleOwner({ action, context, store }: ActionScheduleOwnerProps) {
+export function ActionScheduleOwner({ action, context, promptDraft, store }: ActionScheduleOwnerProps) {
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const activeCards = useSyncExternalStore(subscribeActiveCards, getActiveCards, getActiveCards)
     const claudeState = useClaudeRateLimits()
@@ -59,8 +61,10 @@ export function ActionScheduleOwner({ action, context, store }: ActionScheduleOw
     const handleRegister = async () => {
         store.setMessage(null)
         try {
+            promptDraft.requestFlush()
+            const prompt = promptDraft.getSnapshot()
             const trigger = createScheduleTrigger(store.getSnapshot(), sources)
-            await defaultScheduleAction(action, context, trigger)
+            await defaultScheduleAction(action, context, trigger, prompt)
             store.close()
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not register schedule' })

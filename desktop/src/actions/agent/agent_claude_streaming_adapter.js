@@ -7,6 +7,7 @@ const {
 } = require('./agent_claude_events');
 const { isMissingSession } = require('./agent_provider_protocol');
 const { ClaudeUsageTracker } = require('./claude_usage_tracker');
+const { ClaudeTaskListDecoder, isClaudeTaskToolName } = require('./claude_task_list_decoder');
 
 const CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
 const CLAUDE_CONTEXT_USAGE_TIMEOUT_MS = 1_000;
@@ -246,6 +247,7 @@ class ClaudeStreamingAdapter {
         this.pendingContextUsage = null;
         this.pendingLiveContextUsage = null;
         this.fileResultDecoder = new ClaudeFileResultDecoder(rootPath);
+        this.taskListDecoder = new ClaudeTaskListDecoder();
         this.messageUsages = new Map();
         this.claudeUsageTracker = claudeUsageTracker ?? new ClaudeUsageTracker(providerConversationId);
         this.turnStarted = false;
@@ -524,6 +526,7 @@ class ClaudeStreamingAdapter {
         }
         if (block.type === 'tool_use') {
             this.rememberSubAgent(block);
+            if (isClaudeTaskToolName(block.name)) return;
             this.toolBlocks.set(providerItemId, trackedBlock);
             await this.onEvent({ event: ownedEvent(claudeToolEvent(block, 'inProgress', providerItemId), streamKey), type: 'event' });
         }
@@ -571,6 +574,7 @@ class ClaudeStreamingAdapter {
         }
         if (delta.type === 'input_json_delta' && typeof delta.partial_json === 'string' && trackedBlock.block.type === 'tool_use') {
             trackedBlock.inputJson += delta.partial_json;
+            if (isClaudeTaskToolName(trackedBlock.block.name)) return;
             const updatedBlock = { ...trackedBlock.block, input: trackedBlock.inputJson };
             await this.onEvent({
                 event: ownedEvent(claudeToolEvent(updatedBlock, 'inProgress', trackedBlock.providerItemId), streamKey),
@@ -596,6 +600,8 @@ class ClaudeStreamingAdapter {
             await this.emitProtocolError('missing Claude assistant message id', streamKey);
             return;
         }
+        const taskListEvents = this.taskListDecoder.decode(event);
+        for (const taskListEvent of taskListEvents) await this.onEvent(taskListEvent);
         const fileEvents = new Map(this.fileResultDecoder.decode(event).map((fileEvent) => [fileEvent.providerItemId, fileEvent]));
         let textOrdinal = 0;
         for (const [index, block] of event.message.content.entries()) {
@@ -637,6 +643,7 @@ class ClaudeStreamingAdapter {
             }
             if (block.type === 'tool_use') {
                 this.rememberSubAgent(block);
+                if (isClaudeTaskToolName(block.name)) continue;
                 this.toolBlocks.set(providerItemId, { block, providerItemId, streamKey });
                 const toolEvent = fileEvents.get(providerItemId) ?? claudeToolEvent(block, 'inProgress', providerItemId);
                 await this.onEvent({ event: ownedEvent(toolEvent, streamKey), type: 'event' });
@@ -646,9 +653,12 @@ class ClaudeStreamingAdapter {
 
     async handleToolResults(event) {
         if (!Array.isArray(event.message?.content)) return;
+        const taskListEvents = this.taskListDecoder.decode(event);
+        for (const taskListEvent of taskListEvents) await this.onEvent(taskListEvent);
         const fileEvents = new Map(this.fileResultDecoder.decode(event).map((fileEvent) => [fileEvent.providerItemId, fileEvent]));
         for (const block of event.message.content) {
             if (block?.type !== 'tool_result' || typeof block.tool_use_id !== 'string') continue;
+            if (this.taskListDecoder.isTaskToolResult(event, block)) continue;
             // Looked up across every stream and every message of the turn, so a result still completes
             // its own row after the next message started or after a sub agent interleaved its frames.
             const trackedTool = this.toolBlocks.get(block.tool_use_id);
@@ -678,6 +688,7 @@ class ClaudeStreamingAdapter {
         this.subAgentLabels.clear();
         this.toolBlocks.clear();
         this.fileResultDecoder.reset();
+        this.taskListDecoder.reset();
         this.streamedTextItems.clear();
         this.pendingQuestions.clear();
         this.clearLiveContextUsageRequest();

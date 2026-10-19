@@ -3,6 +3,7 @@ import type { AgentConversation } from '../../../../data/data_types'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { dialogService } from '../../../../services/dialog_service'
 import { dataService } from '../../../../services/data/data_service'
+import { parseConversationActivityReference } from '../../../../../../shared/activity_paths.mjs'
 import type { ConversationPickerConversation } from '../picker/action_conversation_picker_data'
 import { defaultLoadConversation, defaultLoadConversations } from '../../run/popup/action_popup_defaults'
 import type { ActionRunBindingStore } from '../../run/state/action_run_binding_store'
@@ -215,6 +216,9 @@ export class ActionConversationStore {
         try {
             const pinned = dataService.conversationPins.isPinned(conversation.id)
             const locator = {
+                ...(this.context.kind === 'project'
+                    ? { activityPath: parseConversationActivityReference(conversation.path).activityPath }
+                    : {}),
                 ...(this.context.cardInternalId ? { cardInternalId: this.context.cardInternalId } : {}),
                 contextKind: this.context.kind,
                 conversationId: conversation.id,

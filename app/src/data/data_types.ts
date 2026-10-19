@@ -73,8 +73,9 @@ export interface ProjectConfig {
     workingFolder: string
 }
 
-/** Stable identity and activity ownership needed to resolve one pinned conversation without storing a path. */
+/** Conversation identity and activity location for one pinned conversation. */
 export interface PinnedConversationLocator {
+    activityPath?: string
     cardInternalId?: string
     contextKind: ActionContextKind
     conversationId: string
@@ -267,9 +268,14 @@ export interface CommitRequest {
     files: MarkdownFile[]
     message: string
     moves?: MoveFile[]
+    /** Repository paths staged and committed as they exist on disk at commit time. */
+    paths?: string[]
 }
 
 export type CommitResult = MarkdownFile[]
+
+/** Files and moves to write to the working tree without a commit. */
+export type WriteFilesRequest = Omit<CommitRequest, 'message'>
 
 export interface MoveFile {
     content: string
@@ -403,6 +409,20 @@ export interface AgentContextWindowUsage {
     usedTokens: number
 }
 
+export type AgentTaskStatus = 'pending' | 'inProgress' | 'completed'
+
+export interface AgentTask {
+    activeForm?: string
+    id: string
+    status: AgentTaskStatus
+    subject: string
+}
+
+export interface AgentTaskList {
+    tasks: AgentTask[]
+    updatedAt: string
+}
+
 /** Duration components of the measured total; absent on a conversation recorded before they existed. */
 export interface AgentConversationTimerBreakdown {
     reasoningMs: number
@@ -428,6 +448,7 @@ export interface AgentConversation {
     providerSessions: AgentProviderSession[]
     startedAt: string
     status: AgentConversationStatus
+    taskList?: AgentTaskList
     timer?: AgentConversationTimer
     title: string
     usage?: AgentTokenUsage
@@ -536,6 +557,7 @@ export interface StorageService {
         onRestored: () => void,
         onError: (error: Error) => void,
     ): () => void
+    writeFiles?(request: WriteFilesRequest): Promise<void>
 }
 
 const BUG_CARD_COLOR = '#d32f2f'

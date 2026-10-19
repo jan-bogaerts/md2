@@ -1,13 +1,14 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { StatsChartRow } from '../../services/stats/project_stats_types';
-import { assignSeriesColors, seriesColorKey, type StatsSeriesPalettes } from './stats_series_colors';
+import { registerSeriesLabels, type StatsSeriesSlots } from '../../services/stats/stats_series_slots';
+import { resolveSeriesColors, type StatsSeriesPalettes } from './stats_series_colors';
 
 const PALETTES: StatsSeriesPalettes = {
     groups: {
         claude: ['#c1', '#c2'],
         codex: ['#x1', '#x2'],
     },
-    neutral: ['#n1', '#n2', '#c1'],
+    neutral: ['#n1', '#c1', '#n2'],
 };
 
 function row(overrides: Partial<StatsChartRow> = {}): StatsChartRow {
@@ -45,131 +46,84 @@ function row(overrides: Partial<StatsChartRow> = {}): StatsChartRow {
     };
 }
 
-function seriesRow(identity: string, provider: string | null) {
-    return row({ identity, provider, seriesIdentity: identity, seriesLabel: identity });
+function seriesRow(label: string, provider: string | null) {
+    return row({ identity: label, provider, seriesIdentity: label, seriesLabel: label });
 }
 
-function assignedColor(colors: Map<string, string>, targetRow: StatsChartRow) {
-    return colors.get(seriesColorKey(targetRow, Object.keys(PALETTES.groups)));
+function colorsFor(batches: StatsChartRow[][], palettes = PALETTES) {
+    const emptySlots: StatsSeriesSlots = new Map();
+    const slots = batches.reduce((current, rows) => registerSeriesLabels(current, rows), emptySlots);
+
+    return resolveSeriesColors(slots, palettes);
 }
 
-describe('assignSeriesColors', () => {
-    afterEach(() => vi.restoreAllMocks());
-
+describe('resolveSeriesColors', () => {
     it('draws each agent family from its own palette', () => {
-        const claudeSonnet = seriesRow('claude-sonnet', 'claude');
-        const claudeOpus = seriesRow('claude-opus', 'claude');
-        const codexHigh = seriesRow('codex-high', 'codex');
-        const colors = assignSeriesColors([claudeSonnet, claudeOpus, codexHigh], PALETTES);
+        const colors = colorsFor([[seriesRow('claude-sonnet', 'claude'), seriesRow('claude-opus', 'claude'), seriesRow('codex-high', 'codex')]]);
 
-        expect(assignedColor(colors, claudeOpus)).toBe('#c1');
-        expect(assignedColor(colors, claudeSonnet)).toBe('#c2');
-        expect(assignedColor(colors, codexHigh)).toBe('#x1');
+        expect(colors.get('claude-opus')).toBe('#c1');
+        expect(colors.get('claude-sonnet')).toBe('#c2');
+        expect(colors.get('codex-high')).toBe('#x1');
     });
 
-    it('matches the family case-insensitively and falls back to the agent when no provider is set', () => {
-        const claudeRow = seriesRow('first', 'Claude');
-        const codexRow = row({ agent: 'CODEX', identity: 'second', seriesIdentity: 'second' });
-        const colors = assignSeriesColors([claudeRow, codexRow], PALETTES);
+    it('matches the family case-insensitively, prefers colorGroup, and falls back to the agent', () => {
+        const colors = colorsFor([[
+            seriesRow('first', 'Claude'),
+            row({ agent: 'CODEX', seriesLabel: 'second' }),
+            row({ agent: 'claude', colorGroup: 'codex', seriesLabel: 'third' }),
+        ]]);
 
-        expect(assignedColor(colors, claudeRow)).toBe('#c1');
-        expect(assignedColor(colors, codexRow)).toBe('#x1');
+        expect(colors.get('first')).toBe('#c1');
+        expect(colors.get('second')).toBe('#x1');
+        expect(colors.get('third')).toBe('#x2');
     });
 
-    it('assigns the same colors whatever order the rows arrive in', () => {
-        const rows = [seriesRow('b', 'claude'), seriesRow('a', 'claude'), seriesRow('c', 'codex'), seriesRow('d', null)];
+    it('keeps earlier colors when later batches add or reorder labels', () => {
+        const colors = colorsFor([
+            [seriesRow('b', 'claude'), seriesRow('n-b', null)],
+            [seriesRow('a', 'claude'), seriesRow('n-a', null), seriesRow('b', 'claude')],
+        ]);
 
-        expect([...assignSeriesColors(rows, PALETTES)]).toEqual([...assignSeriesColors([...rows].reverse(), PALETTES)]);
+        expect(colors.get('b')).toBe('#c1');
+        expect(colors.get('a')).toBe('#c2');
+        expect(colors.get('n-b')).toBe('#n1');
+        expect(colors.get('n-a')).toBe('#n2');
     });
 
-    it('gives ungrouped series neutral colors that never collide with a family color', () => {
-        const neutralOne = seriesRow('neutral-one', null);
-        const neutralTwo = seriesRow('neutral-two', null);
-        const neutralThree = seriesRow('neutral-three', null);
-        const claudeOne = seriesRow('claude-one', 'claude');
-        const colors = assignSeriesColors([neutralOne, neutralTwo, neutralThree, claudeOne], PALETTES);
+    it('gives one label one color even when it appears under another family', () => {
+        const colors = colorsFor([[seriesRow('review', 'claude'), seriesRow('review', 'codex')]]);
 
-        expect(assignedColor(colors, claudeOne)).toBe('#c1');
-        expect(assignedColor(colors, neutralOne)).toBe('#n1');
-        expect(assignedColor(colors, neutralThree)).toBe('#n2');
-        // '#c1' is in the neutral list too, and is skipped because the claude family already took it.
-        expect(assignedColor(colors, neutralTwo)).not.toBe('#c1');
+        expect([...colors]).toEqual([['review', '#c1']]);
+    });
+
+    it('never gives a neutral label a family palette color', () => {
+        const colors = colorsFor([[seriesRow('neutral-one', null), seriesRow('neutral-two', null)], [seriesRow('claude-one', 'claude')]]);
+
+        expect(colors.get('neutral-one')).toBe('#n1');
+        expect(colors.get('neutral-two')).toBe('#n2');
+        expect(colors.get('claude-one')).toBe('#c1');
+    });
+
+    it('gives labels past the palette end distinct colors that are the same on every resolve', () => {
+        const batches = [[seriesRow('claude-1', 'claude'), seriesRow('claude-2', 'claude'), seriesRow('claude-3', 'claude'), seriesRow('claude-4', 'claude')]];
+        const colors = colorsFor(batches);
+
         expect(new Set(colors.values()).size).toBe(4);
-    });
-
-    it('generates unique overflow colors once a family list runs out', () => {
-        const random = vi.spyOn(Math, 'random').mockReturnValueOnce(0.01).mockReturnValueOnce(0.02);
-        const colors = assignSeriesColors([
-            seriesRow('claude-1', 'claude'),
-            seriesRow('claude-2', 'claude'),
-            seriesRow('claude-3', 'claude'),
-        ], PALETTES);
-
-        expect(new Set(colors.values()).size).toBe(3);
-        expect(random).toHaveBeenCalledTimes(1);
-    });
-
-    it('retries when a generated overflow color collides with an assigned color', () => {
-        const palettes: StatsSeriesPalettes = { groups: { claude: ['#000001'] }, neutral: [] };
-        const random = vi.spyOn(Math, 'random')
-            .mockReturnValueOnce(1 / 0x1000000)
-            .mockReturnValueOnce(0.5);
-        const claudeOne = seriesRow('claude-1', 'claude');
-        const claudeTwo = seriesRow('claude-2', 'claude');
-        const colors = assignSeriesColors([claudeOne, claudeTwo], palettes);
-
-        expect(colors.get(seriesColorKey(claudeOne, ['claude']))).toBe('#000001');
-        expect(colors.get(seriesColorKey(claudeTwo, ['claude']))).not.toBe('#000001');
-        expect(random).toHaveBeenCalledTimes(2);
+        expect(colors.get('claude-3')).toMatch(/^#[0-9a-f]{6}$/u);
+        expect([...colorsFor(batches)]).toEqual([...colors]);
     });
 
     it('gives each duration component one hue and each agent one shade inside it', () => {
         const palettes: StatsSeriesPalettes = {
-            groups: {
-                claude: ['#c1'],
-                codex: ['#x1'],
-                'duration:reasoning': ['#r1', '#r2'],
-                'duration:tool': ['#t1', '#t2'],
-            },
+            groups: { 'duration:reasoning': ['#r1', '#r2'], 'duration:tool': ['#t1', '#t2'] },
             neutral: ['#n1'],
         };
-        const groupNames = Object.keys(palettes.groups);
-        const segment = (agent: string, component: string) => row({
-            agent,
-            colorGroup: `duration:${component}`,
-            identity: agent,
-            seriesIdentity: `${agent} ${component}`,
-            seriesLabel: `${agent} - ${component}`,
-        });
-        const rows = [
-            segment('codex', 'tool'), segment('claude', 'tool'),
-            segment('codex', 'reasoning'), segment('claude', 'reasoning'),
-        ];
-        const colors = assignSeriesColors(rows, palettes);
-        const colorOf = (targetRow: StatsChartRow) => colors.get(seriesColorKey(targetRow, groupNames));
+        const segment = (agent: string, component: string) => row({ agent, colorGroup: `duration:${component}`, seriesLabel: `${agent} - ${component}` });
+        const colors = colorsFor([[segment('codex', 'tool'), segment('claude', 'tool'), segment('codex', 'reasoning'), segment('claude', 'reasoning')]], palettes);
 
-        // One hue per component, one lightness per agent: claude is shade 0 of both hues, codex shade 1.
-        expect(colorOf(segment('claude', 'tool'))).toBe('#t1');
-        expect(colorOf(segment('codex', 'tool'))).toBe('#t2');
-        expect(colorOf(segment('claude', 'reasoning'))).toBe('#r1');
-        expect(colorOf(segment('codex', 'reasoning'))).toBe('#r2');
-        expect([...assignSeriesColors([...rows].reverse(), palettes)]).toEqual([...colors]);
-    });
-
-    it('prefers the explicit colorGroup over the agent that produced the row', () => {
-        const palettes: StatsSeriesPalettes = { groups: { claude: ['#c1'], 'duration:tool': ['#t1'] }, neutral: ['#n1'] };
-        const forced = row({ agent: 'claude', colorGroup: 'duration:tool', seriesIdentity: 'claude tool' });
-        const colors = assignSeriesColors([forced], palettes);
-
-        expect(colors.get(seriesColorKey(forced, Object.keys(palettes.groups)))).toBe('#t1');
-    });
-
-    it('keeps a shared series identity inside each row agent family', () => {
-        const claudeRow = seriesRow('review', 'claude');
-        const codexRow = seriesRow('review', 'codex');
-        const colors = assignSeriesColors([claudeRow, codexRow], PALETTES);
-
-        expect(assignedColor(colors, claudeRow)).toBe('#c1');
-        expect(assignedColor(colors, codexRow)).toBe('#x1');
+        expect(colors.get('claude - tool')).toBe('#t1');
+        expect(colors.get('codex - tool')).toBe('#t2');
+        expect(colors.get('claude - reasoning')).toBe('#r1');
+        expect(colors.get('codex - reasoning')).toBe('#r2');
     });
 });

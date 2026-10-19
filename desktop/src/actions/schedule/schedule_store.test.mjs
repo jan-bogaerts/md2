@@ -9,7 +9,9 @@ const {
     cancelPendingActionSchedule,
     createActionScheduleFile,
     deleteScheduleRecord,
+    failActionSchedule,
     findPendingSchedule,
+    findRunningScheduleForConversation,
     parseActionScheduleFile,
     pendingScheduleIds,
     updateActionScheduleStatus,
@@ -66,6 +68,17 @@ describe('schedule store', () => {
         expect(cancelPendingActionSchedule([schedule], 'schedule-1')).toEqual([{ ...schedule, status: 'cancelled' }]);
     });
 
+    it('persists an action schedule failure reason', () => {
+        const schedule = createSchedule();
+
+        expect(failActionSchedule([schedule], schedule.id, 'Action could not start')).toEqual([{
+            ...schedule,
+            failure: 'Action could not start',
+            status: 'failed',
+        }]);
+        expect(schedule).not.toHaveProperty('failure');
+    });
+
     it('finds pending schedules', () => {
         const pendingSchedule = createSchedule('schedule-1');
         const completedSchedule = { ...createSchedule('schedule-2'), status: 'completed' };
@@ -77,14 +90,33 @@ describe('schedule store', () => {
     it('filters active schedules and permanently removes one record', () => {
         const pendingSchedule = createSchedule('schedule-1');
         const runningSchedule = { ...createSchedule('schedule-2'), status: 'running' };
-        const completedSchedule = { ...createSchedule('schedule-3'), status: 'completed' };
+        const failedSchedule = { ...createSchedule('schedule-3'), failure: 'Action could not start', status: 'failed' };
+        const completedSchedule = { ...createSchedule('schedule-4'), status: 'completed' };
+        const cancelledSchedule = { ...createSchedule('schedule-5'), status: 'cancelled' };
 
-        expect(activeSchedules([pendingSchedule, runningSchedule, completedSchedule])).toEqual([
+        expect(activeSchedules([pendingSchedule, runningSchedule, failedSchedule, completedSchedule, cancelledSchedule])).toEqual([
             pendingSchedule,
             runningSchedule,
+            failedSchedule,
         ]);
         expect(deleteScheduleRecord([pendingSchedule, completedSchedule], pendingSchedule.id)).toEqual([completedSchedule]);
         expect(() => deleteScheduleRecord([pendingSchedule], 'missing')).toThrow('Schedule not found: missing');
+    });
+
+    it('finds the running schedule waiting on a conversation', () => {
+        const waitingSchedule = { ...createSchedule('schedule-1'), conversationId: 'agent-1', status: 'running' };
+        const finishedSchedule = { ...createSchedule('schedule-2'), conversationId: 'agent-2', status: 'completed' };
+
+        expect(findRunningScheduleForConversation([finishedSchedule, waitingSchedule], 'agent-1')).toEqual(waitingSchedule);
+        expect(findRunningScheduleForConversation([finishedSchedule, waitingSchedule], 'agent-2')).toBeNull();
+    });
+
+    it('keeps an optional conversation id on persisted schedules', () => {
+        const schedule = { ...createSchedule(), conversationId: 'agent-1' };
+
+        expect(createActionScheduleFile([schedule]).schedules).toEqual([schedule]);
+        expect(createActionScheduleFile([createSchedule()]).schedules[0]).not.toHaveProperty('conversationId');
+        expect(() => createActionScheduleFile([{ ...schedule, conversationId: 7 }])).toThrow('conversationId');
     });
 
     it('rejects unsupported trigger types', () => {

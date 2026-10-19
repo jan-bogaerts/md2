@@ -1,7 +1,7 @@
 import { register } from '../service_injector'
 import {
     diagramEditSessionService,
-    type DiagramEditSessionService,
+    type DiagramEditSessionAccess,
 } from './diagram_edit_session_service'
 import type {
     DiagramCollectionKind,
@@ -29,22 +29,7 @@ export interface DiagramSelectionIdentity {
     objectKind: DiagramSelectableObjectKind
 }
 
-type DiagramSelectionSession = Pick<
-    DiagramEditSessionService,
-    | 'getEdgeSnapshot'
-    | 'getEdgeIdsSnapshot'
-    | 'getGroupSnapshot'
-    | 'getGroupIdsSnapshot'
-    | 'getNodeSnapshot'
-    | 'getNodeIdsSnapshot'
-    | 'getSessionSnapshot'
-    | 'getMetadataFieldSnapshot'
-    | 'getActiveToolSnapshot'
-    | 'removeObjects'
-    | 'subscribeActiveTool'
-    | 'subscribeCollectionMembershipWillChange'
-    | 'subscribeSession'
->
+type DiagramSelectionSession = DiagramEditSessionAccess<'getEdgeSnapshot' | 'getEdgeIdsSnapshot' | 'getGroupSnapshot' | 'getGroupIdsSnapshot' | 'getNodeSnapshot' | 'getNodeIdsSnapshot' | 'getSessionSnapshot' | 'getMetadataFieldSnapshot' | 'getActiveToolSnapshot' | 'subscribeActiveTool' | 'subscribeCollectionMembershipWillChange' | 'subscribeSession', 'removeObjects'>
 
 type DiagramSelectionGeometry = Pick<
     DiagramGeometryService,
@@ -88,11 +73,11 @@ export class DiagramSelectionService extends EventTarget {
         super()
         this.geometry = geometry
         this.session = session
-        this.session.subscribeActiveTool(this.handleActiveToolChange)
-        this.session.subscribeSession(this.handleSessionChange)
-        this.session.subscribeCollectionMembershipWillChange('edge', this.handleCollectionMembershipWillChange)
-        this.session.subscribeCollectionMembershipWillChange('group', this.handleCollectionMembershipWillChange)
-        this.session.subscribeCollectionMembershipWillChange('node', this.handleCollectionMembershipWillChange)
+        this.session.read.subscribeActiveTool(this.handleActiveToolChange)
+        this.session.read.subscribeSession(this.handleSessionChange)
+        this.session.read.subscribeCollectionMembershipWillChange('edge', this.handleCollectionMembershipWillChange)
+        this.session.read.subscribeCollectionMembershipWillChange('group', this.handleCollectionMembershipWillChange)
+        this.session.read.subscribeCollectionMembershipWillChange('node', this.handleCollectionMembershipWillChange)
         this.geometry.subscribeGeometrySession(this.updateBoundary)
     }
 
@@ -225,7 +210,7 @@ export class DiagramSelectionService extends EventTarget {
     }
 
     private handleActiveToolChange = () => {
-        if (this.session.getActiveToolSnapshot() !== 'select') this.clearRectangle()
+        if (this.session.read.getActiveToolSnapshot() !== 'select') this.clearRectangle()
     }
 
     private handleSessionChange = () => {
@@ -255,14 +240,14 @@ export class DiagramSelectionService extends EventTarget {
 
     private identitiesIntersecting(rectangle: DiagramRectangle) {
         const identities: DiagramSelectionIdentity[] = []
-        for (const nodeId of this.session.getNodeIdsSnapshot()) {
+        for (const nodeId of this.session.read.getNodeIdsSnapshot()) {
             const box = this.readBox('node', nodeId)
             if (box && diagramRectangleIntersectsBox(rectangle, box)) {
                 identities.push({ objectId: nodeId, objectKind: 'node' })
             }
         }
-        const isMindmap = this.session.getMetadataFieldSnapshot('type') === 'mindmap'
-        for (const edgeId of this.session.getEdgeIdsSnapshot()) {
+        const isMindmap = this.session.read.getMetadataFieldSnapshot('type') === 'mindmap'
+        for (const edgeId of this.session.read.getEdgeIdsSnapshot()) {
             const route = this.geometry.getEdgeRouteSnapshot(edgeId)
             const controlPoint = isMindmap ? this.geometry.getEdgeControlPointSnapshot(edgeId) : null
             const intersects = isMindmap
@@ -273,7 +258,7 @@ export class DiagramSelectionService extends EventTarget {
                 identities.push({ objectId: edgeId, objectKind: 'edge' })
             }
         }
-        for (const groupId of this.session.getGroupIdsSnapshot()) {
+        for (const groupId of this.session.read.getGroupIdsSnapshot()) {
             const box = this.readBox('group', groupId)
             if (box && diagramRectangleIntersectsBox(rectangle, box)) {
                 identities.push({ objectId: groupId, objectKind: 'group' })
@@ -297,10 +282,10 @@ export class DiagramSelectionService extends EventTarget {
     }
 
     private requireSelectableIdentity(identity: DiagramSelectionIdentity) {
-        if (!this.session.getSessionSnapshot()) throw new Error('Cannot select a diagram object without an active edit session')
-        if (identity.objectKind === 'edge' && this.session.getEdgeSnapshot(identity.objectId)) return
-        if (identity.objectKind === 'group' && this.session.getGroupSnapshot(identity.objectId)) return
-        if (identity.objectKind === 'node' && this.session.getNodeSnapshot(identity.objectId)) return
+        if (!this.session.read.getSessionSnapshot()) throw new Error('Cannot select a diagram object without an active edit session')
+        if (identity.objectKind === 'edge' && this.session.read.getEdgeSnapshot(identity.objectId)) return
+        if (identity.objectKind === 'group' && this.session.read.getGroupSnapshot(identity.objectId)) return
+        if (identity.objectKind === 'node' && this.session.read.getNodeSnapshot(identity.objectId)) return
 
         throw new Error(`Diagram ${identity.objectKind} ${identity.objectId} does not exist`)
     }

@@ -11,7 +11,7 @@ import {
     type DiagramFormattingStore, useDiagramFormattingScale,
 } from './use_diagram_formatting'
 
-interface DiagramFormattingScaleStore extends DiagramFormattingStore {
+interface DiagramFormattingScaleStore {
     setFormattingScale(field: DiagramScaleField, value: number): void
 }
 
@@ -28,17 +28,19 @@ export function DiagramFormattingScaleControl({
     field,
     icon,
     label,
+    reader,
     store,
     surface,
 }: {
     field: DiagramScaleField
     icon: ReactNode
     label: string
+    reader: DiagramFormattingStore
     store: DiagramFormattingScaleStore
     surface: 'Current' | 'New'
 }) {
     const [anchorElement, setAnchorElement] = useState<HTMLButtonElement | null>(null)
-    const value = useDiagramFormattingScale(field, store)
+    const value = useDiagramFormattingScale(field, reader)
     const controlLabel = `${surface} ${label}`
     const adjustLabel = `Adjust ${controlLabel}`
     const headingId = `${surface.toLowerCase()}-${field}-heading`

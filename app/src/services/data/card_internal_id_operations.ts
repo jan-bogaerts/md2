@@ -29,10 +29,11 @@ export class CardInternalIdOperations {
     }
 
     /** Returns how many files were queued for persistence. */
-    ensureCardInternalIds() {
+    ensureCardInternalIds(deferredPersistencePaths: string[] = []) {
         const { dependencies } = this.context
         const { commitBatcher, config, project } = this.context.requireProject('add card identities')
         const snapshot = dependencies.snapshot()
+        const deferredPersistencePathSet = new Set(deferredPersistencePaths)
         const cards = snapshot ? [...snapshot.activeCards, ...snapshot.backgroundCards].filter((card) => (
             requiresInternalId(card, config.workingFolder, config.releasesFolder, config.archivedFolder)
         )) : []
@@ -48,7 +49,7 @@ export class CardInternalIdOperations {
                 (currentCard) => setCardHeaderFields(currentCard, { internalId }),
                 config.workingFolder,
             )
-            cardsToPersist.push(updatedCard)
+            if (!deferredPersistencePathSet.has(card.path)) cardsToPersist.push(updatedCard)
         }
         if (cardsToPersist.length > 0) {
             const changes = cardsToPersist.map((card) => {

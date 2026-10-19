@@ -1,9 +1,11 @@
 import type { ActionRunEvent, ActionRunStatus } from '../../data/action_run_types'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { AgentConversation } from '../../data/data_types'
+import { parseConversationActivityReference } from '../../../../shared/activity_paths.mjs'
 import { actionRunRegistry } from '../actions/action_run_registry'
+import type { DataService } from '../data/data_service'
 import { dialogService } from '../dialog_service'
-import { register } from '../service_injector'
+import { getService, register } from '../service_injector'
 
 const UNSEEN_STATUSES = new Set<ActionRunStatus>(['completed', 'failed', 'waitingForInput'])
 const PROJECT_SCOPE_KEY = 'project'
@@ -34,6 +36,19 @@ function requireConversationViewedWriter() {
     if (!bridge?.updateActionConversationViewed) throw new Error('Updating conversation view state requires Electron')
 
     return (reference: string, viewed: boolean) => bridge.updateActionConversationViewed!(reference, viewed)
+}
+
+/**
+ * Queues the desktop-written activity file for the shared commit batch. Scheduling failure keeps the
+ * persisted view state; the path stays marked uncommitted on the desktop until the next integration.
+ */
+function scheduleViewStateCommit(reference: string) {
+    try {
+        const { activityPath } = parseConversationActivityReference(reference)
+        getService<DataService>('dataService').scheduleRepositoryPathCommit(activityPath, 'Update conversation view state')
+    } catch (error) {
+        dialogService.error(error, { fallbackMessage: 'Conversation view state could not be scheduled for commit' })
+    }
 }
 
 /**
@@ -130,6 +145,7 @@ export class AgentAcknowledgementService extends EventTarget {
             dialogService.error(error, { fallbackMessage })
             throw error
         }
+        scheduleViewStateCommit(conversation.path)
 
         return current
     }

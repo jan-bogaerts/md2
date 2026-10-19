@@ -1,7 +1,7 @@
 import { register } from '../service_injector'
 import {
     diagramEditSessionService,
-    type DiagramEditSessionService,
+    type DiagramEditSessionAccess,
 } from './diagram_edit_session_service'
 import type {
     ReadonlyDiagramData,
@@ -18,15 +18,7 @@ const SAVE_STATUS_CHANGED_EVENT = 'diagramSaveStatusChanged'
 
 export type DiagramSaveStatus = 'idle' | 'saving'
 
-type DiagramSaveSession = Pick<DiagramEditSessionService,
-    | 'acknowledgeSavedCopy'
-    | 'getDirtySnapshot'
-    | 'getEditableDiagram'
-    | 'getOriginalDiagramSnapshot'
-    | 'getSavedRecordSnapshot'
-    | 'getSessionSnapshot'
-    | 'subscribeModelMutation'
->
+type DiagramSaveSession = DiagramEditSessionAccess<'getDirtySnapshot' | 'getEditableDiagram' | 'getOriginalDiagramSnapshot' | 'getSavedRecordSnapshot' | 'getSessionSnapshot' | 'subscribeModelMutation', 'acknowledgeSavedCopy'>
 
 type DiagramCopyPersistence = Pick<DiagramViewService, 'flushQueuedDiagrams' | 'queueEditedDiagramCopy'>
 type DiagramSerializer = (diagram: ReadonlyDiagramData) => string
@@ -42,7 +34,7 @@ export class DiagramSaveService extends EventTarget {
     private readonly session: DiagramSaveSession
     private status: DiagramSaveStatus = 'idle'
     private queuePromise: Promise<void> = Promise.resolve()
-    private queuedSession: ReturnType<DiagramSaveSession['getSessionSnapshot']> = null
+    private queuedSession: ReturnType<DiagramSaveSession['read']['getSessionSnapshot']> = null
 
     constructor(
         session: DiagramSaveSession = diagramEditSessionService,
@@ -53,7 +45,7 @@ export class DiagramSaveService extends EventTarget {
         this.persistence = persistence
         this.serialize = serialize
         this.session = session
-        this.session.subscribeModelMutation(this.handleModelMutation)
+        this.session.read.subscribeModelMutation(this.handleModelMutation)
     }
 
     getStatusSnapshot = () => this.status
@@ -66,13 +58,13 @@ export class DiagramSaveService extends EventTarget {
 
     async save() {
         if (this.status === 'saving') throw new Error('Diagram save is already in progress')
-        if (!this.session.getDirtySnapshot()) throw new Error('Cannot save a diagram without changes')
+        if (!this.session.read.getDirtySnapshot()) throw new Error('Cannot save a diagram without changes')
         this.setStatus('saving')
         try {
             await this.enqueue()
             await this.persistence.flushQueuedDiagrams()
 
-            return this.session.getSavedRecordSnapshot()
+            return this.session.read.getSavedRecordSnapshot()
         } finally {
             this.setStatus('idle')
         }
@@ -102,22 +94,22 @@ export class DiagramSaveService extends EventTarget {
     }
 
     private async queueCurrent() {
-        const editSession = this.session.getSessionSnapshot()
+        const editSession = this.session.read.getSessionSnapshot()
         if (!editSession) throw new Error('Cannot save without an active diagram edit session')
-        if (!this.session.getDirtySnapshot() && this.queuedSession !== editSession) return
-        const editableDiagram = this.session.getEditableDiagram()
-        const originalDiagram = this.session.getOriginalDiagramSnapshot()
+        if (!this.session.read.getDirtySnapshot() && this.queuedSession !== editSession) return
+        const editableDiagram = this.session.read.getEditableDiagram()
+        const originalDiagram = this.session.read.getOriginalDiagramSnapshot()
         if (!editableDiagram || !originalDiagram) throw new Error('Cannot save without an active diagram edit session')
         const content = this.serialize(editableDiagram)
         const savedDiagram = parseDiagramData(content)
         const request: SaveEditedDiagramCopyRequest = {
             content,
-            savedRecord: this.session.getSavedRecordSnapshot(),
+            savedRecord: this.session.read.getSavedRecordSnapshot(),
             sourceRecord: originalDiagram.record,
         }
         await this.persistence.queueEditedDiagramCopy(request, (record) => {
-            if (this.session.getSessionSnapshot() !== editSession) return
-            const currentDiagram = this.session.getEditableDiagram()
+            if (this.session.read.getSessionSnapshot() !== editSession) return
+            const currentDiagram = this.session.read.getEditableDiagram()
             const savedDataIsCurrent = !!currentDiagram && this.serialize(currentDiagram) === content
             this.session.acknowledgeSavedCopy(record, savedDiagram, savedDataIsCurrent)
         })

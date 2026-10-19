@@ -105,6 +105,7 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
                 attachmentHandler={handleAttachments}
                 binding="board-card"
                 dataSource={dataSource}
+                flushOnBlur
                 historyStore={historyStore}
                 imagePasteHandler={handleImagePaste}
                 imagePreviewHandler={handleImagePreview}

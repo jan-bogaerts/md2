@@ -17,6 +17,7 @@ import { resolveCardDragEvent } from './card_drag'
 import { useCardViewColumns } from './use_card_view_columns'
 import { cardSequenceCollision } from '../actions/run/sequence/card_sequence_collision';
 import { CardSequenceDialog } from '../actions/run/sequence/card_sequence_dialog'
+import { CardSequenceDragOverlay } from '../actions/run/sequence/card_sequence_drag_overlay'
 import { cardSequenceDraftService } from '../actions/run/sequence/card_sequence_draft_service'
 import {
     CARD_SEQUENCE_DROP_ID,
@@ -266,6 +267,7 @@ export function CardView(props: CardViewProps) {
                 </Box>
                 <DragOverlay zIndex={DRAG_OVERLAY_Z_INDEX}>
                     <CardDragOverlay cardTypes={cardTypes} />
+                    <CardSequenceDragOverlay />
                 </DragOverlay>
                 <CardSequenceDialog />
                 <CardBodyPopover

@@ -2,7 +2,6 @@ import { Box, Stack, Typography } from '@mui/material'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
-import { ActionScheduleOwner } from '../schedule/action_schedule_owner'
 import { ActionRunHistoryOwner } from '../state/action_run_history_owner'
 import { ActionRunStatusOwner } from '../state/action_run_status_owner'
 import { ActionPromptOwner } from '../../agent/action_prompt_owner'
@@ -26,7 +25,7 @@ interface CommandActionProps {
 export function CommandAction(props: CommandActionProps) {
     const { action, assignmentContext, baseContext, readOnlyMessage, runtime, showHistoricalHistory } = props
     const {
-        bindingStore, conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
+        bindingStore, conversationStore, focusRequest, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
         settingsStore, commandLayoutStore,
     } = runtime
     const boundRunId = useBoundRunId(bindingStore)
@@ -52,7 +51,6 @@ export function CommandAction(props: CommandActionProps) {
     return (
         <>
             <Stack data-testid="action-popup-scroll-body" spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
-                <ActionScheduleOwner action={action} context={baseContext} store={scheduleStore} />
                 <ActionRunStatusOwner bindingStore={bindingStore} resultStore={resultStore} />
                 <ActionRunDisabledMessage action={action} settingsStore={settingsStore} />
                 {runValidationError ? (
@@ -67,12 +65,14 @@ export function CommandAction(props: CommandActionProps) {
                             bindingStore={bindingStore}
                             context={assignmentContext}
                             conversationStore={conversationStore}
+                            focusRequest={focusRequest}
                             historyStore={historyStore}
                             inputStore={inputStore}
                             layoutStore={commandLayoutStore}
                             questionsEnabled={false}
                             resultStore={resultStore}
                             runValidationError={runValidationError}
+                            scheduleContext={baseContext}
                             scheduleStore={scheduleStore}
                             settingsStore={settingsStore}
                         />
@@ -89,6 +89,7 @@ export function CommandAction(props: CommandActionProps) {
                     assignmentContext={assignmentContext}
                     bindingStore={bindingStore}
                     conversationStore={conversationStore}
+                    focusRequest={focusRequest}
                     historyStore={historyStore}
                     inputStore={inputStore}
                     settingsStore={settingsStore}

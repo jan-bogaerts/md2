@@ -1,11 +1,9 @@
+import type { DiagramEditSessionReadAdapter } from '../../../services/diagrams/diagram_edit_session_read_adapter';
 import { useCallback, useSyncExternalStore } from 'react';
 import type { DiagramFlowPreset, DiagramType } from '../../../services/diagrams/diagram_data';
 import {
     diagramEditSessionService,
 } from '../../../services/diagrams/diagram_edit_session_service';
-import type {
-    DiagramPersistentTool,
-} from '../../../services/diagrams/diagram_edit_types';
 import {
     diagramNodePlacementService,
     type DiagramNodePlacementDefinition,
@@ -20,11 +18,7 @@ const COMPONENT_NODE_DEFINITION: DiagramNodePlacementDefinition = {
 };
 
 export interface DiagramComponentNodeSession {
-    getActiveToolSnapshot: () => DiagramPersistentTool;
-    getMetadataFieldSnapshot: (field: 'preset' | 'type') => DiagramFlowPreset | DiagramType | null | undefined;
-    subscribeActiveTool: (listener: () => void) => () => void;
-    subscribeMetadataField: (field: 'preset' | 'type', listener: () => void) => () => void;
-    subscribeSession: (listener: () => void) => () => void;
+    read: Pick<DiagramEditSessionReadAdapter, 'getActiveToolSnapshot' | 'subscribeActiveTool' | 'subscribeSession'> & { getMetadataFieldSnapshot: (field: 'preset' | 'type') => DiagramFlowPreset | DiagramType | null | undefined; subscribeMetadataField: (field: 'preset' | 'type', listener: () => void) => () => void };
 }
 
 export type DiagramComponentNodePlacement = Pick<DiagramNodePlacementService, 'activate'>;
@@ -36,8 +30,8 @@ interface DiagramComponentNodeButtonProps {
 
 function useDiagramType(session: DiagramComponentNodeSession) {
     const subscribe = useCallback((listener: () => void) => {
-        const unsubscribeType = session.subscribeMetadataField('type', listener);
-        const unsubscribeSession = session.subscribeSession(listener);
+        const unsubscribeType = session.read.subscribeMetadataField('type', listener);
+        const unsubscribeSession = session.read.subscribeSession(listener);
 
         return () => {
             unsubscribeType();
@@ -45,7 +39,7 @@ function useDiagramType(session: DiagramComponentNodeSession) {
         };
     }, [session]);
     const getSnapshot = useCallback(
-        () => session.getMetadataFieldSnapshot('type'),
+        () => session.read.getMetadataFieldSnapshot('type'),
         [session],
     );
 

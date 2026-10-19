@@ -23,7 +23,7 @@ import { attachmentChoiceService } from '../../services/attachments/attachment_c
 import { projectAccessService } from '../../services/project/project_access_service'
 import { cardPopupService } from '../../services/card_popup_service'
 import { cardSequenceDraftService } from '../actions/run/sequence/card_sequence_draft_service'
-import { CARD_SEQUENCE_DROP_ID } from '../actions/run/sequence/card_sequence_dnd'
+import { CARD_SEQUENCE_DROP_ID, cardSequenceItemId } from '../actions/run/sequence/card_sequence_dnd'
 import { CardActionPopupHost } from '../actions/run/popup/card_action_popup_host'
 
 const dragContextHandlers = vi.hoisted(() => ({
@@ -399,6 +399,27 @@ describe('CardView', () => {
         expect(cardSequenceDraftService.getSnapshot().cardInternalIds).toEqual(['f-1'])
         expect(dataService.cards.moveCard).not.toHaveBeenCalled()
     })
+
+    it('inserts board card before target row and reorders sequence rows', () => {
+        cardSequenceDraftService.open();
+        cardSequenceDraftService.addCard('f-2');
+        renderCardView();
+        act(() => dragContextHandlers.onDragEnd?.({ active: { id: 'design/F-1.md' }, over: { id: cardSequenceItemId('f-2') } } as Parameters<NonNullable<DndContextProps['onDragEnd']>>[0]));
+        expect(cardSequenceDraftService.getSnapshot().cardInternalIds).toEqual(['f-1', 'f-2']);
+
+        act(() => dragContextHandlers.onDragEnd?.({ active: { id: cardSequenceItemId('f-1') }, over: { id: CARD_SEQUENCE_DROP_ID } } as Parameters<NonNullable<DndContextProps['onDragEnd']>>[0]));
+        expect(cardSequenceDraftService.getSnapshot().cardInternalIds).toEqual(['f-2', 'f-1']);
+        expect(dataService.cards.moveCard).not.toHaveBeenCalled();
+    });
+
+    it('keeps sequence order on drag cancel', () => {
+        cardSequenceDraftService.open();
+        cardSequenceDraftService.addCard('f-1');
+        cardSequenceDraftService.addCard('f-2');
+        renderCardView();
+        act(() => dragContextHandlers.onDragCancel?.({ active: { id: cardSequenceItemId('f-1') }, over: { id: CARD_SEQUENCE_DROP_ID } } as Parameters<NonNullable<DndContextProps['onDragCancel']>>[0]));
+        expect(cardSequenceDraftService.getSnapshot().cardInternalIds).toEqual(['f-1', 'f-2']);
+    });
 
     it('rejects assigned board-card drops while another popup is open', () => {
         const assigned = { ...cards[0], header: { ...cards[0].header, worktreeValue: 'invalid', worktreeError: 'Missing checkout' } };

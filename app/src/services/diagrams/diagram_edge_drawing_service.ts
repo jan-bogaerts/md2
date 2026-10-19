@@ -131,8 +131,8 @@ export class DiagramEdgeDrawingService extends EventTarget {
         this.geometry = geometry
         this.selection = selection
         this.session = session
-        this.session.subscribeActiveTool(this.handleActiveToolChanged)
-        this.session.subscribeSession(this.handleSessionChanged)
+        this.session.read.subscribeActiveTool(this.handleActiveToolChanged)
+        this.session.read.subscribeSession(this.handleSessionChanged)
     }
 
     getPreviewSnapshot = () => this.preview
@@ -144,7 +144,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
     }
 
     isDrawingActive() {
-        return !!this.defaults && this.session.getActiveToolSnapshot() === `edge:${this.defaults.kind}`
+        return !!this.defaults && this.session.read.getActiveToolSnapshot() === `edge:${this.defaults.kind}`
     }
 
     hasSource() {
@@ -152,7 +152,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
     }
 
     isEdgeKindAvailable(kind: DiagramEdgeKind) {
-        const diagramType = this.session.getMetadataFieldSnapshot('type')
+        const diagramType = this.session.read.getMetadataFieldSnapshot('type')
         if (!diagramType) return false
 
         try {
@@ -165,7 +165,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
     }
 
     activate(defaults: DiagramEdgeDrawingDefaults) {
-        if (!this.session.getSessionSnapshot()) throw new Error('Cannot activate edge drawing without an active edit session')
+        if (!this.session.read.getSessionSnapshot()) throw new Error('Cannot activate edge drawing without an active edit session')
         if (!this.isEdgeKindAvailable(defaults.kind)) return false
 
         this.defaults = { ...defaults }
@@ -178,15 +178,15 @@ export class DiagramEdgeDrawingService extends EventTarget {
 
     beginSource(nodeId: string, point: DiagramEdgeDrawingPoint) {
         const defaults = this.requireActiveDefaults()
-        const selectedKey = this.session.getSelectedLegendEntryKeySnapshot()
+        const selectedKey = this.session.read.getSelectedLegendEntryKeySnapshot()
         const selectedKind = selectedKey?.startsWith('connection:')
             ? selectedKey.slice('connection:'.length) as DiagramEdgeKind : null
         const kind = selectedKind && this.isEdgeKindAvailable(selectedKind) ? selectedKind : defaults.kind
         const node = this.requirePositionedNode(nodeId)
-        if (this.session.getMetadataFieldSnapshot('type') === 'sequence') {
-            const spacingScalePercent = this.session.getFormattingScaleSnapshot('spacingScalePercent')
+        if (this.session.read.getMetadataFieldSnapshot('type') === 'sequence') {
+            const spacingScalePercent = this.session.read.getFormattingScaleSnapshot('spacingScalePercent')
             const rowIndex = sequenceMessageInsertionIndexAt(
-                point.y, this.session.getEdgeIdsSnapshot().length, spacingScalePercent,
+                point.y, this.session.read.getEdgeIdsSnapshot().length, spacingScalePercent,
             )
             const sourceAttachment = { nodeId, offset: 0.5, side: 'bottom' } as const
             const source = Object.freeze({ x: node.x + node.width / 2, y: sequenceMessageRowY(rowIndex, spacingScalePercent) })
@@ -208,10 +208,10 @@ export class DiagramEdgeDrawingService extends EventTarget {
     updatePreview(point: DiagramEdgeDrawingPoint, targetNodeId: string | null = null) {
         requireFinitePoint(point)
         const preview = this.requirePreview()
-        if (this.session.getMetadataFieldSnapshot('type') === 'sequence') {
+        if (this.session.read.getMetadataFieldSnapshot('type') === 'sequence') {
             return this.updateSequencePreview(point, targetNodeId, preview)
         }
-        if (this.session.getMetadataFieldSnapshot('type') === 'mindmap') {
+        if (this.session.read.getMetadataFieldSnapshot('type') === 'mindmap') {
             return this.updateMindmapPreview(point, targetNodeId, preview)
         }
         const sourceNode = this.requirePositionedNode(preview.sourceAttachment.nodeId)
@@ -241,7 +241,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
         const targetAttachment = completedPreview.targetAttachment
         if (!targetAttachment) return null
 
-        const diagramType = this.session.getMetadataFieldSnapshot('type')
+        const diagramType = this.session.read.getMetadataFieldSnapshot('type')
         const sequenceDiagram = diagramType === 'sequence'
         const mindmapDiagram = diagramType === 'mindmap'
         const from = completedPreview.sourceAttachment.nodeId
@@ -293,9 +293,9 @@ export class DiagramEdgeDrawingService extends EventTarget {
     ) {
         const sourceNode = this.requirePositionedNode(preview.sourceAttachment.nodeId)
         const targetNode = targetNodeId ? this.findPositionedNode(targetNodeId) : null
-        const spacingScalePercent = this.session.getFormattingScaleSnapshot('spacingScalePercent')
+        const spacingScalePercent = this.session.read.getFormattingScaleSnapshot('spacingScalePercent')
         const rowIndex = sequenceMessageInsertionIndexAt(
-            point.y, this.session.getEdgeIdsSnapshot().length, spacingScalePercent,
+            point.y, this.session.read.getEdgeIdsSnapshot().length, spacingScalePercent,
         )
         const y = sequenceMessageRowY(rowIndex, spacingScalePercent)
         const source = Object.freeze({ x: sourceNode.x + sourceNode.width / 2, y })
@@ -346,11 +346,11 @@ export class DiagramEdgeDrawingService extends EventTarget {
     private requiredLabel(defaults: DiagramEdgeDrawingDefaults, sourceNodeId: string) {
         if (defaults.label) return {}
 
-        const diagramType = this.session.getMetadataFieldSnapshot('type')
+        const diagramType = this.session.read.getMetadataFieldSnapshot('type')
         if (!diagramType) return {}
 
-        const preset = this.session.getMetadataFieldSnapshot('preset')
-        const sourceKind = this.session.getNodeSnapshot(sourceNodeId)?.kind
+        const preset = this.session.read.getMetadataFieldSnapshot('preset')
+        const sourceKind = this.session.read.getNodeSnapshot(sourceNodeId)?.kind
         try {
             requireDiagramEdgeLabel(defaults.label, diagramType, preset ?? undefined, sourceKind, 'edges.new.label')
 
@@ -373,7 +373,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
     }
 
     private findPositionedNode(nodeId: string) {
-        const node = this.session.getNodeSnapshot(nodeId)
+        const node = this.session.read.getNodeSnapshot(nodeId)
         const height = this.geometry.getNodeGeometryFieldSnapshot(nodeId, 'height')
         const width = this.geometry.getNodeGeometryFieldSnapshot(nodeId, 'width')
         const x = this.geometry.getNodeGeometryFieldSnapshot(nodeId, 'x')

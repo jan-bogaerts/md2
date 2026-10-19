@@ -37,18 +37,6 @@ export function useCardAgentState(cardInternalId: string | null | undefined) {
     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }
 
-/** Project agent state backed by project-origin conversations in AgentIntegration. */
-export function useProjectAgentState() {
-    const subscribe = useCallback((onStoreChange: () => void) => (
-        subscribeToAcknowledgements([PROJECT_ACKNOWLEDGEMENT_EVENT], onStoreChange)
-    ), [])
-    const getSnapshot = useCallback(() => (
-        cardAgentState(dataService.agents.getProjectAgentConversationsSnapshot())
-    ), [])
-
-    return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-}
-
 /** Project-origin agent state restricted to configured action IDs. */
 export function useProjectActionsAgentState(actionIds: string[]) {
     const actionIdsKey = [...new Set(actionIds)].sort().join('\u0000')

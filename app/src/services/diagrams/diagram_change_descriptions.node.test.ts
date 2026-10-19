@@ -34,16 +34,18 @@ function reader(data: ReaderData = {}) {
     const groups = new Map((data.groups ?? []).map((group) => [group.id, group]));
     const nodes = new Map((data.nodes ?? []).map((node) => [node.id, node]));
     const value = {
-        getChange: vi.fn((changeId: string) => changes.get(changeId) ?? null),
-        getChangeIdsSnapshot: vi.fn(() => [...changes.keys()]),
-        getEdgeIdsSnapshot: vi.fn(() => [...edges.keys()]),
-        getEdgeSnapshot: vi.fn((edgeId: string) => edges.get(edgeId) ?? null),
-        getGroupIdsSnapshot: vi.fn(() => [...groups.keys()]),
-        getGroupSnapshot: vi.fn((groupId: string) => groups.get(groupId) ?? null),
-        getLegendEntryFieldSnapshot: vi.fn((entryKey: string) => data.legend?.[entryKey] ?? null),
-        getNodeIdsSnapshot: vi.fn(() => [...nodes.keys()]),
-        getNodeSnapshot: vi.fn((nodeId: string) => nodes.get(nodeId) ?? null),
-        getOriginalLegendEntryFieldSnapshot: vi.fn((entryKey: string) => data.originalLegend?.[entryKey] ?? null),
+        read: {
+            getChange: vi.fn((changeId: string) => changes.get(changeId) ?? null),
+            getChangeIdsSnapshot: vi.fn(() => [...changes.keys()]),
+            getEdgeIdsSnapshot: vi.fn(() => [...edges.keys()]),
+            getEdgeSnapshot: vi.fn((edgeId: string) => edges.get(edgeId) ?? null),
+            getGroupIdsSnapshot: vi.fn(() => [...groups.keys()]),
+            getGroupSnapshot: vi.fn((groupId: string) => groups.get(groupId) ?? null),
+            getLegendEntryFieldSnapshot: vi.fn((entryKey: string) => data.legend?.[entryKey] ?? null),
+            getNodeIdsSnapshot: vi.fn(() => [...nodes.keys()]),
+            getNodeSnapshot: vi.fn((nodeId: string) => nodes.get(nodeId) ?? null),
+            getOriginalLegendEntryFieldSnapshot: vi.fn((entryKey: string) => data.originalLegend?.[entryKey] ?? null),
+        },
     } as unknown as DiagramChangeDescriptionReader;
 
     return value;
@@ -79,7 +81,7 @@ describe('diagram change descriptions', () => {
         const source = reader();
 
         expect(generateDiagramChangeDescriptions(source)).toBe('');
-        expect(source.getChange).not.toHaveBeenCalled();
+        expect(source.read.getChange).not.toHaveBeenCalled();
     });
 
     it('sorts output by stable change ID and reports latest net values', () => {

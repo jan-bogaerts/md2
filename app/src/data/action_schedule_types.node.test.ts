@@ -34,6 +34,16 @@ describe('action schedule types', () => {
         expect(createActionScheduleFile([schedule])).toEqual({ schedules: [schedule] })
     })
 
+    it('persists optional action prompt and failure fields without adding them to existing schedules', () => {
+        const existingSchedule = createActionSchedule({ timestamp: '2026-07-06T11:00:00.000Z', type: 'at' })
+        const schedule = { ...existingSchedule, failure: 'Action could not start', prompt: 'Edited prompt' }
+
+        expect(parseActionScheduleFile({ schedules: [schedule] })).toEqual({ schedules: [schedule] })
+        expect(createActionScheduleFile([existingSchedule])).toEqual({ schedules: [existingSchedule] })
+        expect(() => parseActionScheduleFile({ schedules: [{ ...schedule, prompt: 7 }] })).toThrow('prompt must be a string')
+        expect(() => parseActionScheduleFile({ schedules: [{ ...schedule, failure: 7 }] })).toThrow('failure')
+    })
+
     it('rejects schedules with missing required fields', () => {
         expect(() => parseActionScheduleFile({ schedules: [{ id: 'schedule-1' }] })).toThrow('missing kind')
     })

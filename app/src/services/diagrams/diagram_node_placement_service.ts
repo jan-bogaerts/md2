@@ -97,8 +97,8 @@ export class DiagramNodePlacementService extends EventTarget {
         super()
         this.selection = selection
         this.session = session
-        this.session.subscribeActiveTool(this.handleActiveToolChanged)
-        this.session.subscribeSession(this.handleSessionChanged)
+        this.session.read.subscribeActiveTool(this.handleActiveToolChanged)
+        this.session.read.subscribeSession(this.handleSessionChanged)
     }
 
     getPreviewSnapshot = () => this.preview
@@ -110,13 +110,13 @@ export class DiagramNodePlacementService extends EventTarget {
     }
 
     isNodeKindAvailable(kind: DiagramNodeKind) {
-        if (!this.session.getSessionSnapshot()) return false
-        if (kind === 'root' && this.session.getNodeIdsSnapshot().some((nodeId) => (
-            this.session.getNodeFieldSnapshot(nodeId, 'kind') === 'root'
+        if (!this.session.read.getSessionSnapshot()) return false
+        if (kind === 'root' && this.session.read.getNodeIdsSnapshot().some((nodeId) => (
+            this.session.read.getNodeFieldSnapshot(nodeId, 'kind') === 'root'
         ))) return false
 
-        const diagramType = this.session.getMetadataFieldSnapshot('type')
-        const flowPreset = this.session.getMetadataFieldSnapshot('preset')
+        const diagramType = this.session.read.getMetadataFieldSnapshot('type')
+        const flowPreset = this.session.read.getMetadataFieldSnapshot('preset')
         if (!diagramType) return false
 
         try {
@@ -129,11 +129,11 @@ export class DiagramNodePlacementService extends EventTarget {
     }
 
     isPlacementActive() {
-        return !!this.definition && this.session.getActiveToolSnapshot() === `node:${this.definition.kind}`
+        return !!this.definition && this.session.read.getActiveToolSnapshot() === `node:${this.definition.kind}`
     }
 
     activate(definition: DiagramNodePlacementDefinition) {
-        if (!this.session.getSessionSnapshot()) throw new Error('Cannot activate node placement without an active edit session')
+        if (!this.session.read.getSessionSnapshot()) throw new Error('Cannot activate node placement without an active edit session')
         if (!this.isNodeKindAvailable(definition.kind)) return false
 
         this.definition = {
@@ -150,13 +150,13 @@ export class DiagramNodePlacementService extends EventTarget {
     updatePreview(point: DiagramNodePlacementPoint) {
         requireFinitePoint(point)
         const definition = this.requireActiveDefinition()
-        const diagramType = this.session.getMetadataFieldSnapshot('type')
-        const flowPreset = this.session.getMetadataFieldSnapshot('preset')
+        const diagramType = this.session.read.getMetadataFieldSnapshot('type')
+        const flowPreset = this.session.read.getMetadataFieldSnapshot('preset')
         if (!diagramType) throw new Error('Cannot preview node placement without diagram metadata')
 
         const x = snapCoordinate(point.x)
         const y = snapCoordinate(point.y)
-        const selectedKey = this.session.getSelectedLegendEntryKeySnapshot()
+        const selectedKey = this.session.read.getSelectedLegendEntryKeySnapshot()
         const role = selectedKey?.startsWith('node:')
             ? selectedKey.slice('node:'.length) as DiagramRole : definition.defaults.role
         if (samePreviewPoint(this.preview, x, y, role)) return false

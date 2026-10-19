@@ -76,9 +76,9 @@ function ScheduleDetails({ item }: { item: ActiveScheduleItem }) {
                     <Typography color="text.secondary" variant="body2">
                         Current action completed: {schedule.actionCompleted ? 'Yes' : 'No'}; ready state met: {schedule.readyStateMet ? 'Yes' : 'No'}
                     </Typography>
-                    {schedule.failure ? <Typography color="error.main" variant="body2">Failure: {schedule.failure}</Typography> : null}
                 </>
             ) : null}
+            {schedule.failure ? <Typography color="error.main" variant="body2">Failure: {schedule.failure}</Typography> : null}
             {item.unavailableReasons.map((reason) => (
                 <Alert key={reason} severity="warning">{reason}</Alert>
             ))}

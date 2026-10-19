@@ -65,6 +65,7 @@ import type {
     WorktreeOperationRequest,
     WorktreeRemovalMode,
     WorktreeState,
+    WriteFilesRequest,
 } from '../../data/data_types'
 import { MissingWorkingFolderError } from '../../data/data_types'
 import type { BridgeErrorPayload } from '../../../../shared/bridge_errors.mjs'
@@ -344,6 +345,10 @@ export class RemoteControlStorageService implements
 
     async createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference> {
         return this.request<ProjectReference>('createProject', [project, folders])
+    }
+
+    async writeFiles(request: WriteFilesRequest): Promise<void> {
+        await this.request('writeFiles', [request])
     }
 
     async deleteFile(request: DeleteFileRequest): Promise<void> {

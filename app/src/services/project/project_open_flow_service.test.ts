@@ -144,4 +144,63 @@ describe('ProjectOpenFlowService', () => {
         expect(openProject).toHaveBeenCalledWith('github', { ...repository, branch: 'develop' }, 'token')
         expect(service.getPhase()).toBe('closed')
     })
+
+    describe('openStartupProject', () => {
+        it('opens the startup folder and records it as the newest recent folder', async () => {
+            const openProject = vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(null)
+            const service = new ProjectOpenFlowService()
+
+            await service.openStartupProject('C:/repo')
+
+            expect(window.md2Data?.resolveProject).toHaveBeenCalledWith({ branch: '', id: 'C:/repo', rootPath: 'C:/repo' })
+            expect(openProject).toHaveBeenCalledWith('local', LOCAL_PROJECT, null)
+            expect(JSON.parse(window.localStorage.getItem(RECENT_LOCAL_REPOSITORIES_STORAGE_KEY) ?? '[]')[0]).toBe('C:/repo')
+            expect(service.getPhase()).toBe('closed')
+        })
+
+        it('records a startup folder needing setup only after the folders are confirmed', async () => {
+            const resolution = folderSetupResolution()
+            vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(resolution)
+            vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(undefined)
+            const service = new ProjectOpenFlowService()
+
+            await service.openStartupProject('C:/repo')
+
+            expect(service.getPhase()).toBe('folder-setup')
+            expect(window.localStorage.getItem(RECENT_LOCAL_REPOSITORIES_STORAGE_KEY)).toBeNull()
+
+            await service.confirmFolders(resolution.values)
+
+            expect(window.localStorage.getItem(RECENT_LOCAL_REPOSITORIES_STORAGE_KEY)).toContain('C:/repo')
+        })
+
+        it('reports a folder that cannot be resolved and shows the local open dialog', async () => {
+            window.md2Data = {resolveProject: vi.fn(async () => serializeBridgeError(new Error('Folder is not inside a Git work tree')))} as unknown as ElectronDataBridge
+            const openProject = vi.spyOn(projectSessionService, 'openProject')
+            const reportError = vi.spyOn(dialogService, 'error')
+            const service = new ProjectOpenFlowService()
+
+            await service.openStartupProject('C:/missing')
+
+            expect(reportError).toHaveBeenCalledWith(
+                expect.objectContaining({ message: 'Folder is not inside a Git work tree' }),
+                { fallbackMessage: 'Could not open project folder' },
+            )
+            expect(openProject).not.toHaveBeenCalled()
+            expect(service.getPhase()).toBe('selecting')
+            expect(service.getValue('source')).toBe('local')
+        })
+
+        it('shows the local open dialog without reporting twice when loading fails', async () => {
+            vi.spyOn(projectSessionService, 'openProject').mockRejectedValue(new Error('Project load failed'))
+            const reportError = vi.spyOn(dialogService, 'error')
+            const service = new ProjectOpenFlowService()
+
+            await service.openStartupProject('C:/repo')
+
+            expect(reportError).not.toHaveBeenCalled()
+            expect(service.getPhase()).toBe('selecting')
+            expect(service.getValue('source')).toBe('local')
+        })
+    })
 })

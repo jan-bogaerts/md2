@@ -10,7 +10,7 @@ interface DiagramGroupDetailsEditorProps {
 }
 
 export function DiagramGroupDetailsEditor({ groupId, onClose, session }: DiagramGroupDetailsEditorProps) {
-    const [label, setLabel] = useState(() => session.getGroupFieldSnapshot(groupId, 'label') ?? '')
+    const [label, setLabel] = useState(() => session.read.getGroupFieldSnapshot(groupId, 'label') ?? '')
     const [validationError, setValidationError] = useState<string | null>(null)
     const handleLabelChange = (event: ChangeEvent<HTMLInputElement>) => setLabel(event.target.value)
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -20,9 +20,9 @@ export function DiagramGroupDetailsEditor({ groupId, onClose, session }: Diagram
             return
         }
 
-        const currentLabel = session.getGroupFieldSnapshot(groupId, 'label')
+        const currentLabel = session.read.getGroupFieldSnapshot(groupId, 'label')
         if (currentLabel === null) return
-        if (currentLabel === label || session.setGroupField(groupId, 'label', label)) onClose()
+        if (currentLabel === label || session.objects.setGroupField(groupId, 'label', label)) onClose()
     }
 
     return (

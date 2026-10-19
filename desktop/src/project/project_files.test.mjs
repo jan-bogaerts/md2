@@ -6,7 +6,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { GitProcess } = require('../git/git_process');
+const { checkoutOwnershipService } = require('../git/checkout_ownership_service');
+const { projectOperationCoordinator } = require('./project_operation_coordinator');
 const {
+    commit,
     commitNow,
     isWatchedProjectPath,
     listRepositoryFiles,
@@ -15,7 +18,15 @@ const {
     loadProjectRoot,
     loadTextFile,
     resolveExistingProjectEntry,
+    writeFilesNow,
 } = require('./project_files');
+
+function deferred() {
+    let resolve;
+    const promise = new Promise((complete) => { resolve = complete; });
+
+    return { promise, resolve };
+}
 
 describe('project-files', () => {
     it('watches Markdown, JSON, and text files case-insensitively', () => {
@@ -53,6 +64,79 @@ describe('project-files', () => {
                 'add', '-u', '--', 'actions/new-action.json',
             ]);
             expect(runGitProcess.mock.instances.map(({ args }) => args)).toContainEqual(['add', 'actions/review.json']);
+        } finally {
+            vi.restoreAllMocks();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('stages existing commit-only paths as they are on disk and skips missing ones', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await mkdir(join(rootPath, 'design', 'activity'), { recursive: true });
+            await writeFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), '{"version":3}');
+            const stagedChanges = Object.assign(new Error('staged changes'), { code: 1 });
+            const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockImplementation(async function run() {
+                if (this.args[0] === 'diff') throw stagedChanges;
+
+                return { stderr: '', stdout: '' };
+            });
+
+            await commitNow({
+                branch: 'main',
+                files: [],
+                message: 'Update conversation view state',
+                paths: ['design/activity/card__card-1.json', 'design/activity/card__deleted.json'],
+            }, { branch: 'main', id: 'local', rootPath });
+
+            const gitCommands = runGitProcess.mock.instances.map(({ args }) => args);
+            await expect(readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8')).resolves.toBe('{"version":3}');
+            expect(gitCommands).toContainEqual(['add', '--', 'design/activity/card__card-1.json']);
+            expect(gitCommands.some((args) => args.includes('design/activity/card__deleted.json'))).toBe(false);
+            expect(gitCommands).toContainEqual(['commit', '-m', 'Update conversation view state']);
+        } finally {
+            vi.restoreAllMocks();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('writes files and moves without git, and a following commit stages and commits them', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await mkdir(join(rootPath, 'actions'));
+            await writeFile(join(rootPath, 'actions', 'new-action.json'), '{"id":"old"}');
+            const stagedChanges = Object.assign(new Error('staged changes'), { code: 1 });
+            const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockImplementation(async function run() {
+                if (this.args[0] === 'diff') throw stagedChanges;
+
+                return { stderr: '', stdout: '' };
+            });
+            const project = { branch: 'main', id: 'local', rootPath };
+            const writeRequest = {
+                branch: 'main',
+                files: [{ content: '# New card', path: 'design/F-001.md' }],
+                moves: [{ content: '{"id":"review"}', fromPath: 'actions/new-action.json', toPath: 'actions/review.json' }],
+            };
+
+            await writeFilesNow(writeRequest, project);
+
+            await expect(readFile(join(rootPath, 'design', 'F-001.md'), 'utf8')).resolves.toBe('# New card');
+            await expect(readFile(join(rootPath, 'actions', 'review.json'), 'utf8')).resolves.toBe('{"id":"review"}');
+            await expect(readFile(join(rootPath, 'actions', 'new-action.json'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+            expect(runGitProcess).not.toHaveBeenCalled();
+
+            const commitRequest = { ...writeRequest, message: 'Save' };
+            await commitNow(commitRequest, project);
+
+            const gitArguments = runGitProcess.mock.instances.map(({ args }) => args);
+            expect(gitArguments).toContainEqual(['add', '-u', '--', 'actions/new-action.json']);
+            expect(gitArguments).toContainEqual(['add', 'actions/review.json']);
+            expect(gitArguments).toContainEqual(['add', 'design/F-001.md']);
+            expect(gitArguments.some(([command]) => command === 'commit')).toBe(true);
         } finally {
             vi.restoreAllMocks();
             await rm(rootPath, { force: true, recursive: true });
@@ -203,5 +287,32 @@ describe('project-files', () => {
             await expect(loadImageFile('images/photo.png')).rejects.toThrow('Image file path must be absolute');
             await expect(loadImageFile(join(tmpdir(), 'notes.txt'))).rejects.toThrow('Unsupported image file type: .txt');
         });
+    });
+
+    it('holds a commit requested during a project-lock operation until that operation resolves', async () => {
+        const calls = [];
+        const releaseHeld = deferred();
+        const acquire = vi.spyOn(checkoutOwnershipService, 'acquire').mockImplementation(() => {
+            calls.push('commit-index');
+            throw new Error('Index mutation reached');
+        });
+
+        try {
+            const held = projectOperationCoordinator.run('C:/held-repo', async () => {
+                calls.push('held-start');
+                await releaseHeld.promise;
+                calls.push('held-end');
+            });
+            const committing = commit({ files: [], message: 'Save' }, { branch: 'main', id: 'local', rootPath: 'C:/held-repo' });
+            await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+            expect(calls).toEqual(['held-start']);
+            releaseHeld.resolve();
+            await held;
+            await expect(committing).rejects.toThrow('Index mutation reached');
+            expect(calls).toEqual(['held-start', 'held-end', 'commit-index']);
+        } finally {
+            acquire.mockRestore();
+        }
     });
 });

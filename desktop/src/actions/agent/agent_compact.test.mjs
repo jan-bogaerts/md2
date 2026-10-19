@@ -155,14 +155,24 @@ describe('AgentRunnerService compact dispatch', () => {
         expect(events.some(({ type }) => type === 'compactSettled')).toBe(false);
     });
 
-    it('restores saved unanswered questions instead of allowing compact to bypass them', async () => {
-        const { service, run } = compactRun();
+    it('restores saved unanswered questions without duplicating the transcript entry', async () => {
+        const { events, service, run } = compactRun();
+        const questionEntry = {
+            content: '', id: 'question-1', kind: 'event',
+            questions: [{ id: 'question-1', question: 'Continue?' }], timestamp: 'now', type: 'agentQuestion',
+        };
+        run.conversation.entries.push(questionEntry);
         run.restoredQuestions = true;
         run.waitingForQuestion = true;
         run.pendingQuestionRequestId = 'restored:conversation-1';
-        run.pendingQuestions = [{ id: 'question-1', question: 'Continue?' }];
+        run.pendingQuestions = questionEntry.questions;
         run.streamingAdapter.dismissQuestion = vi.fn();
         await service.handleStreamingEvent(run.id, { type: 'sessionReady' });
+        expect(run.conversation.entries.filter(({ type }) => type === 'agentQuestion')).toEqual([questionEntry]);
+        expect(events.filter(({ type }) => type === 'agentEvent')).toEqual([]);
+        expect(events.filter(({ type }) => type === 'question')).toEqual([
+            expect.objectContaining({ questions: questionEntry.questions, requestId: 'restored:conversation-1' }),
+        ]);
         expect(service.canCompact(run.id)).toBe(false);
         await service.dismissQuestions(run.id, 'restored:conversation-1');
         expect(run.streamingAdapter.dismissQuestion).not.toHaveBeenCalled();

@@ -70,8 +70,8 @@ export const ActionConversationMessage = memo(function ActionConversationMessage
 
                     }}
                 >
-                    {!sent ? <Typography color="text.secondary" variant="caption">{label}</Typography> : null}
-                    {delivery?.error ? <Typography color="error" variant="caption">{delivery.error}</Typography> : null}
+                    {!sent ? <Typography color="text.secondary" component="div" variant="caption">{label}</Typography> : null}
+                    {delivery?.error ? <Typography color="error" component="div" variant="caption">{delivery.error}</Typography> : null}
                     <ActionConversationLinkContext value={conversation?.cardInternalId ?? null}>
                         <Box className="mdxeditor-content">
                             <ReactMarkdown

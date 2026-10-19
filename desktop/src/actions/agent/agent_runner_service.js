@@ -55,6 +55,11 @@ const AGENT_FINISH_GRACE_MS = 5_000;
 const AGENT_USAGE_POLL_TICK_MS = 120_000;
 const TERMINAL_PERSIST_ATTEMPTS = 3;
 
+function recordTaskList(run, taskList) {
+    run.conversation.taskList = taskList;
+    emitRunEvent(run, { taskList, type: 'taskList' });
+}
+
 class AgentRunnerService {
     constructor(dependencies = {}) {
         this.claudeRuntimeService = dependencies.claudeRuntimeService ?? null;
@@ -150,7 +155,7 @@ class AgentRunnerService {
         await this.persistConversationCheckpoint({ conversation: initialConversation, request });
         onConversationSaved?.();
         const [configuredExecutable, ...configuredArguments] = command;
-        const environment = createAgentEnvironment(process.env, agent);
+        const environment = createAgentEnvironment(process.env, agent, request.agentTaskTrackingEnabled === true);
         const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
         if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);
         const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
@@ -644,6 +649,10 @@ class AgentRunnerService {
     handleProviderEvent(runId, providerEvent) {
         const run = this.processes.get(runId);
         if (!run) return;
+        if (providerEvent.type === 'taskList') {
+            recordTaskList(run, providerEvent.taskList);
+            return;
+        }
 
         const timestamp = new Date().toISOString();
         run.turnStarted = run.turnStarted || providerEvent.turnStarted;
@@ -689,6 +698,10 @@ class AgentRunnerService {
     async handleStreamingEvent(runId, event) {
         const run = this.processes.get(runId);
         if (!run) return;
+        if (event.type === 'taskList') {
+            recordTaskList(run, event.taskList);
+            return;
+        }
 
         const handler = STREAMING_EVENT_HANDLERS[event.type];
         if (!handler) return;

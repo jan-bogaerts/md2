@@ -123,11 +123,11 @@ describe('EditableDiagram direct selection', () => {
     it('changes only selection membership during Ctrl-click', async () => {
         const { geometry, selection, session } = renderHarness()
         const user = userEvent.setup()
-        const editableDiagram = session.getEditableDiagram()
-        const ordersNode = session.getNodeSnapshot('orders')
+        const editableDiagram = session.read.getEditableDiagram()
+        const ordersNode = session.read.getNodeSnapshot('orders')
         const edgeRoute = geometry.getEdgeRouteSnapshot('orders-store')
-        const transientGesture = session.getTransientGestureSnapshot()
-        const viewportScale = session.getViewportScaleSnapshot()
+        const transientGesture = session.read.getTransientGestureSnapshot()
+        const viewportScale = session.read.getViewportScaleSnapshot()
 
         await user.keyboard('{Control>}')
         await user.click(screen.getByRole('button', { name: 'Orders' }))
@@ -138,13 +138,13 @@ describe('EditableDiagram direct selection', () => {
             { objectId: 'orders', objectKind: 'node' },
             { objectId: 'orders-store', objectKind: 'edge' },
         ])
-        expect(session.getEditableDiagram()).toBe(editableDiagram)
-        expect(session.getNodeSnapshot('orders')).toBe(ordersNode)
+        expect(session.read.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.read.getNodeSnapshot('orders')).toBe(ordersNode)
         expect(geometry.getEdgeRouteSnapshot('orders-store')).toBe(edgeRoute)
-        expect(session.getTransientGestureSnapshot()).toBe(transientGesture)
-        expect(session.getViewportScaleSnapshot()).toBe(viewportScale)
-        expect(session.getChangeIdsSnapshot()).toEqual([])
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getTransientGestureSnapshot()).toBe(transientGesture)
+        expect(session.read.getViewportScaleSnapshot()).toBe(viewportScale)
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(session.read.getDirtySnapshot()).toBe(false)
     })
 
     it('clears selection when empty New surface is clicked', () => {
@@ -311,6 +311,6 @@ describe('EditableDiagram direct selection', () => {
         fireEvent.pointerUp(surface, { clientX: 800, clientY: 400, pointerId: 1, pointerType: 'touch' })
 
         expect(selection.getSelectionSnapshot()).toHaveLength(4)
-        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.read.getDirtySnapshot()).toBe(false)
     })
 })

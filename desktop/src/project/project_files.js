@@ -12,6 +12,7 @@ const {
     runGit,
 } = require('../git/git_commands');
 const { withGitIndexMutation } = require('../git/git_index_coordinator');
+const { projectOperationCoordinator } = require('./project_operation_coordinator');
 const { normalizePath } = require('../../../shared/path_utils.mjs');
 const { createMissingProjectFolders, PROJECT_README_TEMPLATE } = require('./project_folder_creation');
 
@@ -86,6 +87,11 @@ async function readTopLevelFolders(rootPath) {
         .sort((left, right) => left.path.localeCompare(right.path));
 }
 
+/** Runs a renderer save under the project lock (outer) and the Git index lock (inner). */
+function holdProjectMutation(rootPath, operation) {
+    return projectOperationCoordinator.run(rootPath, () => withGitIndexMutation(rootPath, operation));
+}
+
 async function isTrackedFile(rootPath, repositoryPath) {
     try {
         await runGit(rootPath, ['ls-files', '--error-unmatch', '--', repositoryPath]);
@@ -131,7 +137,7 @@ function createProject(project, folders) {
 
     const rootPath = requireRootPath(project);
 
-    return withGitIndexMutation(rootPath, () => createProjectNow(project, folders));
+    return holdProjectMutation(rootPath, () => createProjectNow(project, folders));
 }
 
 async function loadProject(project, workingFolder, excludedRootFolder) {
@@ -310,13 +316,53 @@ async function commitNow(request, project) {
         await runGit(rootPath, ['add', file.path]);
     }
 
+    for (const repositoryPath of request.paths ?? []) {
+        if (typeof repositoryPath !== 'string' || repositoryPath.length === 0) throw new Error('Missing commit path');
+
+        const fullPath = ensureInsideRoot(rootPath, path.join(rootPath, repositoryPath));
+        if (!(await pathExists(fullPath))) continue;
+
+        await runGit(rootPath, ['add', '--', normalizePath(path.relative(rootPath, fullPath))]);
+    }
+
     await commitStagedChanges(rootPath, request.message);
 }
 
 function commit(request, project) {
     const rootPath = requireRootPath(project);
 
-    return withGitIndexMutation(rootPath, () => commitNow(request, project));
+    return holdProjectMutation(rootPath, () => commitNow(request, project));
+}
+
+async function writeFilesNow(request, project) {
+    const rootPath = requireRootPath(project);
+
+    for (const move of request.moves ?? []) {
+        if (!move || typeof move.fromPath !== 'string' || move.fromPath.length === 0) throw new Error('Missing write move source path');
+        if (typeof move.toPath !== 'string' || move.toPath.length === 0) throw new Error('Missing write move target path');
+        if (typeof move.content !== 'string') throw new Error('Missing write move content');
+
+        const sourcePath = ensureInsideRoot(rootPath, path.join(rootPath, move.fromPath));
+        const targetPath = ensureInsideRoot(rootPath, path.join(rootPath, move.toPath));
+        const data = move.encoding === 'base64' ? Buffer.from(move.content, 'base64') : move.content;
+        await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+        if (await pathExists(sourcePath)) await fs.promises.rename(sourcePath, targetPath);
+        await fs.promises.writeFile(targetPath, data);
+    }
+
+    for (const file of request.files) {
+        const filePath = ensureInsideRoot(rootPath, path.join(rootPath, file.path));
+        const data = file.encoding === 'base64' ? Buffer.from(file.content, 'base64') : file.content;
+        await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+        await fs.promises.writeFile(filePath, data);
+    }
+}
+
+/** Writes pending files and moves to the working tree without staging or committing them. */
+function writeFiles(request, project) {
+    const rootPath = requireRootPath(project);
+
+    return holdProjectMutation(rootPath, () => writeFilesNow(request, project));
 }
 
 async function deleteFileNow(request, project) {
@@ -334,7 +380,7 @@ async function deleteFileNow(request, project) {
 function deleteFile(request, project) {
     const rootPath = requireRootPath(project);
 
-    return withGitIndexMutation(rootPath, () => deleteFileNow(request, project));
+    return holdProjectMutation(rootPath, () => deleteFileNow(request, project));
 }
 
 async function deleteFolderNow(request, project) {
@@ -352,7 +398,7 @@ async function deleteFolderNow(request, project) {
 function deleteFolder(request, project) {
     const rootPath = requireRootPath(project);
 
-    return withGitIndexMutation(rootPath, () => deleteFolderNow(request, project));
+    return holdProjectMutation(rootPath, () => deleteFolderNow(request, project));
 }
 
 async function moveFilesNow(request, project) {
@@ -391,7 +437,7 @@ async function moveFilesNow(request, project) {
 function moveFiles(request, project) {
     const rootPath = requireRootPath(project);
 
-    return withGitIndexMutation(rootPath, () => moveFilesNow(request, project));
+    return holdProjectMutation(rootPath, () => moveFilesNow(request, project));
 }
 
 async function saveProjectConfigNow(project, config) {
@@ -406,7 +452,7 @@ async function saveProjectConfigNow(project, config) {
 function saveProjectConfig(project, config) {
     const rootPath = requireRootPath(project);
 
-    return withGitIndexMutation(rootPath, () => saveProjectConfigNow(project, config));
+    return holdProjectMutation(rootPath, () => saveProjectConfigNow(project, config));
 }
 
 async function closeProjectWatcher(subscription) {
@@ -519,4 +565,6 @@ module.exports = {
     resolveExistingProjectEntry,
     saveProjectConfig,
     watchProject,
+    writeFiles,
+    writeFilesNow,
 };

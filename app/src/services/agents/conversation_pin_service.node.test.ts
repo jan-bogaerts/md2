@@ -82,4 +82,17 @@ describe('ConversationPinService', () => {
 
         expect(service.getSnapshot()).toEqual([locator])
     })
+
+    it('publishes a changed activity path without changing pin identity', () => {
+        const locator = { activityPath: 'design/activity/project.json', contextKind: 'project' as const, conversationId: 'conversation-2' }
+        const { announceConfigChanged, service } = createService([locator])
+        service.start()
+        const listener = vi.fn()
+        service.subscribe(listener)
+
+        announceConfigChanged([{ ...locator, activityPath: 'design/releases/v1/project.json' }])
+
+        expect(service.getSnapshot()[0].activityPath).toBe('design/releases/v1/project.json')
+        expect(listener).toHaveBeenCalledOnce()
+    })
 })

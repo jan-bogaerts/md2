@@ -39,11 +39,12 @@ function harness(initial = schedule()) {
         getRecords: vi.fn(() => [{ branch: state.branch, path: CHECKOUT, valid: true }]),
         refreshLocal: vi.fn(async () => undefined),
         requireRepositoryMatch: vi.fn(async () => undefined),
-        resolveBranch: vi.fn(async () => ({ index: 1, record: { branch: state.branch, path: CHECKOUT, valid: true } })),
+        requireSelectedRecord: vi.fn(async () => ({ branch: state.branch, path: CHECKOUT, valid: true })),
         runGit: vi.fn(async (root, argumentsValue) => {
             const [command, ...argumentsRest] = argumentsValue;
             const head = state.branches.get(root === PROJECT.rootPath ? 'main' : state.branch);
             if (command === 'status') return state.dirty ? 'M file' : '';
+            if (command === 'add') { state.indexTree = 'working-tree'; return ''; }
             if (command === 'check-ref-format' || command === 'merge-base') return '';
             if (command === 'branch' && argumentsRest[0] === '--show-current') return root === PROJECT.rootPath ? PROJECT.branch : state.branch;
             if (command === 'branch' && argumentsRest[0] === '-D') { state.branches.delete(argumentsRest[1]); return ''; }
@@ -69,8 +70,9 @@ function harness(initial = schedule()) {
             if (command === 'diff' || command === 'ls-files') return '';
             if (command === 'write-tree') return state.indexTree;
             if (command === 'commit') {
-                state.commits.set('integrated', { message: argumentsRest[1], parent: head, tree: state.indexTree });
-                state.branches.set(state.branch, 'integrated');
+                const commit = state.branch === 'sequence-card-1' ? 'step-commit' : 'integrated';
+                state.commits.set(commit, { message: argumentsRest[1], parent: head, tree: state.indexTree });
+                state.branches.set(state.branch, commit);
                 state.indexTree = null;
                 state.dirty = false;
                 return '';
@@ -117,6 +119,34 @@ describe('SequenceWorktreeExecution', () => {
         expect(() => checkoutOwnershipService.assertAvailable(CHECKOUT)).toThrow('owned by a sequence');
     });
 
+    it('prepares from the selected record without refreshing unrelated worktrees', async () => {
+        const test = harness();
+        const prepared = await test.execution.prepare(test.state.persisted);
+        expect(test.worktreeService.requireSelectedRecord).toHaveBeenCalledWith(PROJECT, 'parking');
+        expect(test.worktreeService.refreshLocal).not.toHaveBeenCalled();
+        expect(test.worktreeService.runGit.mock.calls.some(([, argumentsValue]) => argumentsValue[0] === 'worktree')).toBe(false);
+        expect(prepared.branchProgress).toMatchObject({ checkoutPath: CHECKOUT, phase: 'child-ready' });
+    });
+
+    it.each([
+        'Assigned worktree belongs to another repository: C:/sequence-test-checkout',
+        'Assigned worktree branch changed to other, expected parking: C:/sequence-test-checkout',
+        'Checkout is owned by a sequence',
+    ])('stops before branch creation when the selected checkout fails validation: %s', async (failure) => {
+        const test = harness();
+        test.worktreeService.requireSelectedRecord.mockRejectedValueOnce(new Error(failure));
+        await expect(test.execution.prepare(test.state.persisted)).rejects.toThrow(failure);
+        expect(test.saveSequence).not.toHaveBeenCalled();
+        expect(test.worktreeService.runGit.mock.calls.some(([, argumentsValue]) => argumentsValue[0] === 'switch')).toBe(false);
+    });
+
+    it('stops before branch creation when the selected checkout is dirty', async () => {
+        const test = harness();
+        test.state.dirty = true;
+        await expect(test.execution.prepare(test.state.persisted)).rejects.toThrow('uncommitted changes');
+        expect(test.saveSequence).not.toHaveBeenCalled();
+    });
+
     it('integrates a clean child once and records sequence branch in existing activity format', async () => {
         const test = harness(schedule(progress()));
         const integrated = await test.execution.integrate(test.state.persisted);
@@ -128,12 +158,14 @@ describe('SequenceWorktreeExecution', () => {
         expect(test.state.branches.has('sequence-card-1')).toBe(true);
     });
 
-    it('stops dirty integration without committing, switching, or discarding files', async () => {
+    it('commits all child checkout changes before integration', async () => {
         const test = harness(schedule(progress()));
         test.state.dirty = true;
-        await expect(test.execution.integrate(test.state.persisted)).rejects.toThrow('uncommitted changes');
-        expect(test.state.branch).toBe('sequence-card-1');
-        expect(test.worktreeService.runGit.mock.calls.some(([, argumentsValue]) => ['commit', 'switch', 'reset'].includes(argumentsValue[0]))).toBe(false);
+        const integrated = await test.execution.integrate(test.state.persisted);
+        expect(integrated.branchProgress.phase).toBe('recorded');
+        expect(test.worktreeService.runGit).toHaveBeenCalledWith(CHECKOUT, ['add', '-A']);
+        expect(test.worktreeService.runGit).toHaveBeenCalledWith(CHECKOUT, ['commit', '-m', 'Complete sequence card']);
+        expect(test.state.commits.get('step-commit')).toMatchObject({ parent: 'change', tree: 'working-tree' });
     });
 
     it('advances unchanged children without empty commit or activity record', async () => {
@@ -276,23 +308,23 @@ describe('SequenceWorktreeExecution', () => {
         expect(() => checkoutOwnershipService.acquire(CHECKOUT, 'other-sequence', true)).toThrow('owned by another run');
     });
 
-    it('integrates before starting next card and ignores primary-checkout ready events', async () => {
+    it('integrates before starting next card', async () => {
         const test = harness(schedule(progress('child-ready')));
         const completions = new Map();
         let runNumber = 0;
         const actionRunnerService = {
+            loadRootAction: vi.fn(async () => ({ type: 'command' })),
             start: vi.fn(async (_request, { runId }) => runId),
             wait: vi.fn((runId) => new Promise((resolve) => completions.set(runId, resolve))),
         };
         const engine = new ScheduledCardSequenceEngine({
-            actionRunnerService, allocateRunId: () => `run-${++runNumber}`, isCurrent: () => true,
+            actionRunnerService, allocateConversationId: () => `agent-${runNumber}`, allocateRunId: () => `run-${++runNumber}`, isCurrent: () => true,
             loadSchedules: async () => [test.state.persisted],
             resolveCardContext: async (cardInternalId) => ({ cardInternalId, kind: 'card', state: 'todo' }),
+            resolvePrimaryCardContext: async (cardInternalId) => ({ cardInternalId, kind: 'card', state: 'todo' }),
             reportError: vi.fn(), saveSequence: test.saveSequence, states: ['todo', 'ready'], worktreeExecution: test.execution,
         });
         await engine.activate('sequence-test');
-        await engine.handleCardStateChange('card-1', 'ready');
-        expect(test.state.persisted.readyStateMet).toBe(false);
         completions.get('run-1')({ status: 'completed' });
         await vi.waitFor(() => expect(test.state.persisted.actionCompleted).toBe(true));
         expect(actionRunnerService.start).toHaveBeenCalledOnce();

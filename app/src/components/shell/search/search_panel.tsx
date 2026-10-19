@@ -16,7 +16,7 @@ import { useProjectState } from '../../hooks/use_project_state'
 import { dialogService } from '../../../services/dialog_service'
 import { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from '../../../services/search/search_project'
 import { GLOBAL_SEARCH_SHORTCUT_BINDING } from '../../../services/search/search_open_service'
-import type { SearchMatch, SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'
+import type { SearchMatch, SearchMode, SearchOptions, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'
 import { formatShortcut } from '../../../services/shortcuts/keyboard_platform'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
@@ -42,26 +42,32 @@ function isPathInFolder(path: string, folder: string) {
 }
 
 interface SearchPanelProps {
+    /** Options restored when the panel remounts, e.g. after a presentation change. */
+    initialOptions: SearchOptions
     initialQuery: string
+    /** Results restored when the panel remounts, e.g. after a presentation change. */
+    initialResults: SearchResultsData
     placeholder?: string;
     onClose: () => void
+    onOptionsChange: (options: SearchOptions) => void
     onQueryChange: (query: string) => void
+    onResultsChange: (results: SearchResultsData) => void
     /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */
     regexpAgent?: SearchRegexpAgent
 }
 
 /** Top-shell search: plain/RegExp text search over the loaded project with grouped, navigable results. */
 export function SearchPanel(props: SearchPanelProps) {
-    const { initialQuery, onClose, onQueryChange, placeholder = 'Search cards…', regexpAgent = defaultSearchRegexpAgent } = props;
+    const { initialOptions, initialQuery, initialResults, onClose, onOptionsChange, onQueryChange, onResultsChange, placeholder = 'Search cards…', regexpAgent = defaultSearchRegexpAgent } = props;
     const { snapshot } = useProjectState()
     const projectConfig = useProjectConfig()
     const { actions } = useActions()
     const { viewMode } = useWorkspaceView()
     const [query, setQuery] = useState(initialQuery)
-    const [mode, setMode] = useState<SearchMode>('text')
-    const [includeBackgroundBody, setIncludeBackgroundBody] = useState(false)
-    const [includeActions, setIncludeActions] = useState(false)
-    const [results, setResults] = useState<SearchResultsData>(EMPTY_RESULTS)
+    const [mode, setMode] = useState<SearchMode>(initialOptions.mode)
+    const [includeBackgroundBody, setIncludeBackgroundBody] = useState(initialOptions.includeBackgroundBody)
+    const [includeActions, setIncludeActions] = useState(initialOptions.includeActions)
+    const [results, setResults] = useState<SearchResultsData>(initialResults)
     const [isDismissed, setIsDismissed] = useState(false)
     const [isAgentBusy, setIsAgentBusy] = useState(false)
     const [actionPopupOpen, setActionPopupOpen] = useState(false)
@@ -78,10 +84,15 @@ export function SearchPanel(props: SearchPanelProps) {
         controlElement?.querySelector<HTMLInputElement>('input')?.focus()
     }, [controlElement])
 
+    const updateResults = (nextResults: SearchResultsData) => {
+        setResults(nextResults)
+        onResultsChange(nextResults)
+    }
+
     // Runs the search and, on an invalid expression, keeps the previous results while surfacing the error.
     const applySearch = (nextQuery: string, nextMode: SearchMode, nextIncludeBackgroundBody: boolean, nextIncludeActions: boolean) => {
         if (nextQuery.trim().length === 0 || !snapshot) {
-            setResults(EMPTY_RESULTS)
+            updateResults(EMPTY_RESULTS)
 
             return
         }
@@ -93,7 +104,8 @@ export function SearchPanel(props: SearchPanelProps) {
                 : []
             const cardResults = searchProject(snapshot, nextQuery, options, specialFolderPaths)
             const actionResults = searchActions(actions, nextQuery, options)
-            setResults({ ...cardResults, actions: actionResults })
+            const nextResults: SearchResultsData = { ...cardResults, actions: actionResults }
+            updateResults(nextResults)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: error instanceof InvalidSearchPatternError ? error.message : 'Search failed' })
         }
@@ -123,7 +135,7 @@ export function SearchPanel(props: SearchPanelProps) {
     const handleClearSearch = () => {
         setQuery('')
         onQueryChange('')
-        setResults(EMPTY_RESULTS)
+        updateResults(EMPTY_RESULTS)
         setIsDismissed(false)
         controlElement?.querySelector<HTMLInputElement>('input')?.focus()
     }
@@ -131,6 +143,8 @@ export function SearchPanel(props: SearchPanelProps) {
     const handleToggleRegexp = () => {
         const nextMode: SearchMode = mode === 'regexp' ? 'text' : 'regexp'
         setMode(nextMode)
+        const nextOptions: SearchOptions = { includeActions, includeBackgroundBody, mode: nextMode }
+        onOptionsChange(nextOptions)
         setIsDismissed(false)
         applySearch(query, nextMode, includeBackgroundBody, includeActions)
     }
@@ -138,6 +152,8 @@ export function SearchPanel(props: SearchPanelProps) {
     const handleToggleBackgroundBody = () => {
         const nextIncludeBackgroundBody = !includeBackgroundBody
         setIncludeBackgroundBody(nextIncludeBackgroundBody)
+        const nextOptions: SearchOptions = { includeActions, includeBackgroundBody: nextIncludeBackgroundBody, mode }
+        onOptionsChange(nextOptions)
         setIsDismissed(false)
         applySearch(query, mode, nextIncludeBackgroundBody, includeActions)
     }
@@ -145,6 +161,8 @@ export function SearchPanel(props: SearchPanelProps) {
     const handleToggleActions = () => {
         const nextIncludeActions = !includeActions
         setIncludeActions(nextIncludeActions)
+        const nextOptions: SearchOptions = { includeActions: nextIncludeActions, includeBackgroundBody, mode }
+        onOptionsChange(nextOptions)
         setIsDismissed(false)
         applySearch(query, mode, includeBackgroundBody, nextIncludeActions)
     }
@@ -156,6 +174,8 @@ export function SearchPanel(props: SearchPanelProps) {
         try {
             const expression = await regexpAgent(query)
             setMode('regexp')
+            const nextOptions: SearchOptions = { includeActions, includeBackgroundBody, mode: 'regexp' }
+            onOptionsChange(nextOptions)
             setQuery(expression)
             onQueryChange(expression)
             setIsDismissed(false)

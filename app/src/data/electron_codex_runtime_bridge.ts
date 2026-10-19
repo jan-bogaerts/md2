@@ -1,3 +1,5 @@
+import { rehydratedPreloadBridge } from './bridge_error_rehydration'
+
 export interface CodexRateLimitWindow {
     resetsAt: number | null
     usedPercent: number
@@ -78,5 +80,5 @@ export function setCodexRuntimeBridgeOverride(bridge: ElectronCodexRuntimeBridge
 export function getElectronCodexRuntimeBridge() {
     if (codexRuntimeBridgeOverride) return codexRuntimeBridgeOverride
 
-    return window.md2CodexRuntime ?? null
+    return window.md2CodexRuntime ? rehydratedPreloadBridge(window.md2CodexRuntime) : null
 }

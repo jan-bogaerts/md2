@@ -59,8 +59,8 @@ function drilldownValue(value: DrilldownDraft) {
 }
 
 function nodeKindOptions(session: DiagramEditSessionService) {
-    const diagramType = session.getMetadataFieldSnapshot('type')
-    const preset = session.getMetadataFieldSnapshot('preset') ?? undefined
+    const diagramType = session.read.getMetadataFieldSnapshot('type')
+    const preset = session.read.getMetadataFieldSnapshot('preset') ?? undefined
 
     return DIAGRAM_NODE_KINDS.filter((kind) => {
         try {
@@ -73,7 +73,7 @@ function nodeKindOptions(session: DiagramEditSessionService) {
 }
 
 function initialDraft(nodeId: string, session: DiagramEditSessionService): NodeDraft {
-    const node = session.getNodeSnapshot(nodeId)
+    const node = session.read.getNodeSnapshot(nodeId)
 
     return {
         drilldown: drilldownDraft(node?.drilldown),
@@ -100,7 +100,7 @@ function synchronizeEntityFields(
     drafts: readonly EntityFieldDraft[],
     session: DiagramEditSessionService,
 ) {
-    const node = session.getNodeSnapshot(nodeId)
+    const node = session.read.getNodeSnapshot(nodeId)
     if (!node) return false
 
     const currentIds = (node.fields ?? []).map((_field, fieldIndex) => `existing:${fieldIndex}`)
@@ -108,31 +108,31 @@ function synchronizeEntityFields(
     let saved = true
     for (let fieldIndex = currentIds.length - 1; fieldIndex >= 0; fieldIndex -= 1) {
         if (targetIds.includes(currentIds[fieldIndex])) continue
-        saved = session.removeEntityField(nodeId, fieldIndex) && saved
+        saved = session.entityFields.removeEntityField(nodeId, fieldIndex) && saved
         currentIds.splice(fieldIndex, 1)
     }
     for (const [targetIndex, draft] of drafts.entries()) {
         const currentIndex = currentIds.indexOf(draft.draftId)
         if (currentIndex < 0) {
-            saved = session.addEntityField(nodeId, entityFieldValue(draft), targetIndex) && saved
+            saved = session.entityFields.addEntityField(nodeId, entityFieldValue(draft), targetIndex) && saved
             currentIds.splice(targetIndex, 0, draft.draftId)
         } else if (currentIndex !== targetIndex) {
-            saved = session.moveEntityField(nodeId, currentIndex, targetIndex) && saved
+            saved = session.entityFields.moveEntityField(nodeId, currentIndex, targetIndex) && saved
             currentIds.splice(targetIndex, 0, currentIds.splice(currentIndex, 1)[0])
         }
     }
     for (const [fieldIndex, draft] of drafts.entries()) {
-        const entityField = session.getEntityFieldSnapshot(nodeId, fieldIndex)
+        const entityField = session.read.getEntityFieldSnapshot(nodeId, fieldIndex)
         if (!entityField) continue
         const nextEntityField = entityFieldValue(draft)
         if (entityField.name !== nextEntityField.name) {
-            saved = session.setEntityField(nodeId, fieldIndex, 'name', nextEntityField.name) && saved
+            saved = session.entityFields.setEntityField(nodeId, fieldIndex, 'name', nextEntityField.name) && saved
         }
         if (entityField.type !== nextEntityField.type) {
-            saved = session.setEntityField(nodeId, fieldIndex, 'type', nextEntityField.type) && saved
+            saved = session.entityFields.setEntityField(nodeId, fieldIndex, 'type', nextEntityField.type) && saved
         }
         if (entityField.key !== nextEntityField.key) {
-            saved = session.setEntityField(nodeId, fieldIndex, 'key', nextEntityField.key) && saved
+            saved = session.entityFields.setEntityField(nodeId, fieldIndex, 'key', nextEntityField.key) && saved
         }
     }
 
@@ -142,8 +142,8 @@ function synchronizeEntityFields(
 export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNodeDetailsEditorProps) {
     const [draft, setDraft] = useState(() => initialDraft(nodeId, session))
     const [validationError, setValidationError] = useState<string | null>(null)
-    const diagramType = session.getMetadataFieldSnapshot('type')
-    const preset = session.getMetadataFieldSnapshot('preset')
+    const diagramType = session.read.getMetadataFieldSnapshot('type')
+    const preset = session.read.getMetadataFieldSnapshot('preset')
     const kindOptions = nodeKindOptions(session)
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target
@@ -188,9 +188,9 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
         const invalidEntityIndex = draft.entityFields.findIndex(({ name }) => name.trim().length === 0)
         if (invalidEntityIndex >= 0) return `Entity field ${invalidEntityIndex + 1} requires a name.`
         if (diagramType === 'flow' && preset === 'flowchart' && draft.kind === 'decision') {
-            const unlabeledEdge = session.getEdgeIdsSnapshot().find((edgeId) => (
-                session.getEdgeFieldSnapshot(edgeId, 'from') === nodeId
-                && session.getEdgeFieldSnapshot(edgeId, 'label') === undefined
+            const unlabeledEdge = session.read.getEdgeIdsSnapshot().find((edgeId) => (
+                session.read.getEdgeFieldSnapshot(edgeId, 'from') === nodeId
+                && session.read.getEdgeFieldSnapshot(edgeId, 'label') === undefined
             ))
             if (unlabeledEdge) return 'Decision nodes require labels on every outgoing edge.'
         }
@@ -205,19 +205,19 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
             return
         }
 
-        const node = session.getNodeSnapshot(nodeId)
+        const node = session.read.getNodeSnapshot(nodeId)
         if (!node) return
         let saved = true
         const nextDrilldown = drilldownValue(draft.drilldown)
         const nextSublabel = optionalText(draft.sublabel)
         const nextTag = optionalText(draft.tag)
-        if (node.label !== draft.label) saved = session.setNodeField(nodeId, 'label', draft.label) && saved
-        if (node.role !== draft.role) saved = session.setNodeField(nodeId, 'role', draft.role) && saved
-        if (node.sublabel !== nextSublabel) saved = session.setNodeField(nodeId, 'sublabel', nextSublabel) && saved
-        if (node.tag !== nextTag) saved = session.setNodeField(nodeId, 'tag', nextTag) && saved
-        if (node.drilldown !== nextDrilldown) saved = session.setNodeField(nodeId, 'drilldown', nextDrilldown) && saved
+        if (node.label !== draft.label) saved = session.objects.setNodeField(nodeId, 'label', draft.label) && saved
+        if (node.role !== draft.role) saved = session.objects.setNodeField(nodeId, 'role', draft.role) && saved
+        if (node.sublabel !== nextSublabel) saved = session.objects.setNodeField(nodeId, 'sublabel', nextSublabel) && saved
+        if (node.tag !== nextTag) saved = session.objects.setNodeField(nodeId, 'tag', nextTag) && saved
+        if (node.drilldown !== nextDrilldown) saved = session.objects.setNodeField(nodeId, 'drilldown', nextDrilldown) && saved
         if (diagramType === 'flow' && node.kind !== draft.kind) {
-            saved = session.setNodeField(nodeId, 'kind', draft.kind as DiagramNodeKind) && saved
+            saved = session.objects.setNodeField(nodeId, 'kind', draft.kind as DiagramNodeKind) && saved
         }
         if (diagramType === 'entity') {
             saved = synchronizeEntityFields(nodeId, draft.entityFields, session) && saved

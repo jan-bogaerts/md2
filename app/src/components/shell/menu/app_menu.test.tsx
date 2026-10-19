@@ -93,6 +93,7 @@ function createBridge(): ElectronDataBridge {
         addWorktree: vi.fn(async () => undefined),
         removeWorktree: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
+        writeFiles: vi.fn(async () => undefined),
     }
 }
 
@@ -291,9 +292,9 @@ describe('AppMenu', () => {
         renderMenu()
 
         fireEvent.click(screen.getByRole('tab', { name: 'Home' }))
-        fireEvent.click(screen.getByRole('button', { name: 'Add sequence' }))
+        fireEvent.click(screen.getByRole('button', { name: 'New sequence' }))
         fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
-        expect(screen.queryByRole('button', { name: 'Add sequence' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'New sequence' })).not.toBeInTheDocument();
 
         expect(cardSequenceDraftService.getSnapshot()).toMatchObject({ cardInternalIds: [], open: true })
     })
@@ -587,7 +588,7 @@ describe('AppMenu', () => {
         const open = vi.spyOn(diagramViewService, 'open').mockResolvedValue()
         const record = { actionId: 'user-created', createdAt: '2026-09-21T12:00:00.000Z', id: 'second', label: 'Entity', pendingImplementation: true, path: 'design/diagrams/entity.json' }
         const createDiagram = vi.spyOn(diagramViewService, 'createEmptyDiagram').mockResolvedValue(record)
-        vi.spyOn(diagramEditSessionService, 'getDirtySnapshot').mockReturnValueOnce(true).mockReturnValue(false)
+        vi.spyOn(diagramEditSessionService.read, 'getDirtySnapshot').mockReturnValueOnce(true).mockReturnValue(false)
         const save = vi.spyOn(diagramSaveService, 'save').mockResolvedValue(record)
         const startEditing = vi.spyOn(diagramEditSessionService, 'startCreation').mockImplementation(() => undefined)
         renderMenu()
@@ -605,7 +606,7 @@ describe('AppMenu', () => {
         await activateLocalProject(createBridge())
         const open = vi.spyOn(diagramViewService, 'open').mockResolvedValue()
         const createDiagram = vi.spyOn(diagramViewService, 'createEmptyDiagram')
-        vi.spyOn(diagramEditSessionService, 'getDirtySnapshot').mockReturnValue(true)
+        vi.spyOn(diagramEditSessionService.read, 'getDirtySnapshot').mockReturnValue(true)
         vi.spyOn(diagramSaveService, 'save').mockRejectedValue(new Error('save failed'))
         const reportError = vi.spyOn(dialogService, 'error')
         renderMenu()

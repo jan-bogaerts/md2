@@ -11,6 +11,7 @@ import type { ActionRunInputStore } from '../state/action_run_input_store'
 import type { ActionRunResultStore } from '../state/action_run_result_store'
 import type { ActionUsageValuesService } from './action_usage_values_service'
 import type { ActionInputLayoutStore } from './action_input_layout_store';
+import type { ActionPopupFocusRequest } from './action_popup_focus_request';
 
 export interface ActionPopupContentProps {
     action: ActionDefinition
@@ -44,6 +45,7 @@ export interface ActionPopupRuntime {
     bindingStore: ActionRunBindingStore
     conversationSearchService: ActionConversationSearchService
     conversationStore: ActionConversationStore
+    focusRequest: ActionPopupFocusRequest
     historyStore: ActionHistoryStore
     inputStore: ActionRunInputStore
     resultStore: ActionRunResultStore

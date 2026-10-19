@@ -8,25 +8,13 @@ import type {
 } from './diagram_data';
 import {
     diagramEditSessionService,
-    type DiagramEditSessionService,
+    type DiagramEditSessionAccess,
 } from './diagram_edit_session_service';
 import type {
     DiagramChange,
 } from './diagram_edit_types';
 
-export type DiagramChangeDescriptionReader = Pick<
-    DiagramEditSessionService,
-    | 'getChange'
-    | 'getChangeIdsSnapshot'
-    | 'getEdgeIdsSnapshot'
-    | 'getEdgeSnapshot'
-    | 'getGroupIdsSnapshot'
-    | 'getGroupSnapshot'
-    | 'getLegendEntryFieldSnapshot'
-    | 'getNodeIdsSnapshot'
-    | 'getNodeSnapshot'
-    | 'getOriginalLegendEntryFieldSnapshot'
->;
+export type DiagramChangeDescriptionReader = DiagramEditSessionAccess<'getChange' | 'getChangeIdsSnapshot' | 'getEdgeIdsSnapshot' | 'getEdgeSnapshot' | 'getGroupIdsSnapshot' | 'getGroupSnapshot' | 'getLegendEntryFieldSnapshot' | 'getNodeIdsSnapshot' | 'getNodeSnapshot' | 'getOriginalLegendEntryFieldSnapshot', never>;
 
 interface DiagramDescriptionContext {
     edgeSignatureCounts: ReadonlyMap<string, number>;
@@ -94,20 +82,20 @@ function buildDescriptionContext(reader: DiagramChangeDescriptionReader): Diagra
     const edgesById = new Map<string, DiagramEdge>();
     const groupsById = new Map<string, DiagramGroup>();
 
-    for (const nodeId of reader.getNodeIdsSnapshot()) {
-        const node = reader.getNodeSnapshot(nodeId);
+    for (const nodeId of reader.read.getNodeIdsSnapshot()) {
+        const node = reader.read.getNodeSnapshot(nodeId);
         if (node) nodesById.set(nodeId, node as DiagramNode);
     }
-    for (const edgeId of reader.getEdgeIdsSnapshot()) {
-        const edge = reader.getEdgeSnapshot(edgeId);
+    for (const edgeId of reader.read.getEdgeIdsSnapshot()) {
+        const edge = reader.read.getEdgeSnapshot(edgeId);
         if (edge) edgesById.set(edgeId, edge as DiagramEdge);
     }
-    for (const groupId of reader.getGroupIdsSnapshot()) {
-        const group = reader.getGroupSnapshot(groupId);
+    for (const groupId of reader.read.getGroupIdsSnapshot()) {
+        const group = reader.read.getGroupSnapshot(groupId);
         if (group) groupsById.set(groupId, group as DiagramGroup);
     }
-    for (const changeId of reader.getChangeIdsSnapshot()) {
-        const change = reader.getChange(changeId);
+    for (const changeId of reader.read.getChangeIdsSnapshot()) {
+        const change = reader.read.getChange(changeId);
         if (!change || change.category !== 'collection') continue;
 
         if (change.objectKind === 'node') {
@@ -373,8 +361,8 @@ function legendSemantic(entryKey: string) {
 
 function legendEntryReference(entryKey: string, context: DiagramDescriptionContext, original: boolean) {
     const getter = original
-        ? context.reader.getOriginalLegendEntryFieldSnapshot
-        : context.reader.getLegendEntryFieldSnapshot;
+        ? context.reader.read.getOriginalLegendEntryFieldSnapshot
+        : context.reader.read.getLegendEntryFieldSnapshot;
     const label = getter(entryKey, 'label');
     const labelled = label ? ` ${quote(label)}` : '';
 
@@ -472,7 +460,7 @@ export function generateDiagramChangeDescription(
     changeId: string,
     reader: DiagramChangeDescriptionReader = diagramEditSessionService,
 ) {
-    const change = reader.getChange(changeId);
+    const change = reader.read.getChange(changeId);
     if (!change) throw new Error(`Diagram change ${changeId} does not exist`);
 
     return describeChange(change as DiagramChange, buildDescriptionContext(reader));
@@ -483,10 +471,10 @@ export function generateDiagramChangeDescriptions(
     reader: DiagramChangeDescriptionReader = diagramEditSessionService,
 ) {
     const context = buildDescriptionContext(reader);
-    const changeIds = [...reader.getChangeIdsSnapshot()].sort();
+    const changeIds = [...reader.read.getChangeIdsSnapshot()].sort();
 
     return changeIds.map((changeId) => {
-        const change = reader.getChange(changeId);
+        const change = reader.read.getChange(changeId);
         if (!change) throw new Error(`Diagram change ${changeId} does not exist`);
 
         return `- ${describeChange(change as DiagramChange, context)}`;

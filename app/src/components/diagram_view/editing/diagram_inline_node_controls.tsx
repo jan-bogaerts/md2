@@ -26,7 +26,7 @@ export function DiagramInlineNodeControls({ autoWrap, contentInset, node, onOpen
 
             return
         }
-        if (!session.setNodeField(node.id, 'label', draft.trim())) setError('Label could not be saved.')
+        if (!session.objects.setNodeField(node.id, 'label', draft.trim())) setError('Label could not be saved.')
     }
     const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Escape') {
@@ -41,7 +41,7 @@ export function DiagramInlineNodeControls({ autoWrap, contentInset, node, onOpen
         commit()
     }
     const stopPointer = (event: PointerEvent<HTMLElement>) => {
-        if (session.getActiveToolSnapshot().startsWith('edge:')) return
+        if (session.read.getActiveToolSnapshot().startsWith('edge:')) return
         event.stopPropagation()
     }
     const stopClick = (event: MouseEvent<HTMLElement>) => event.stopPropagation()

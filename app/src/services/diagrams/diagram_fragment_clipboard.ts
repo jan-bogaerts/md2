@@ -5,7 +5,7 @@ import type {
 } from './diagram_data'
 import { parseDiagramData } from './diagram_data'
 import {
-    DiagramEditSessionService,
+    type DiagramEditSessionAccess,
 } from './diagram_edit_session_service'
 import type {
     ReadonlyDiagramData,
@@ -20,16 +20,7 @@ type ReadonlyDiagramEdge = ReadonlyDiagramData['edges'][number]
 type ReadonlyDiagramGroup = ReadonlyDiagramData['groups'][number]
 type ReadonlyDiagramFragment = NonNullable<ReadonlyDiagramData['fragments']>[number]
 
-export type DiagramFragmentReader = Pick<
-    DiagramEditSessionService,
-    | 'getEdgeIdsSnapshot'
-    | 'getEdgeSnapshot'
-    | 'getFragmentIdsSnapshot'
-    | 'getFragmentSnapshot'
-    | 'getGroupSnapshot'
-    | 'getNodeIdsSnapshot'
-    | 'getNodeSnapshot'
->
+export type DiagramFragmentReader = DiagramEditSessionAccess<'getEdgeIdsSnapshot' | 'getEdgeSnapshot' | 'getFragmentIdsSnapshot' | 'getFragmentSnapshot' | 'getGroupSnapshot' | 'getNodeIdsSnapshot' | 'getNodeSnapshot', never>
 
 export interface DiagramFragmentClipboardPayload {
     edges: readonly ReadonlyDiagramEdge[]
@@ -122,7 +113,7 @@ function selectedIdsByKind(identities: readonly DiagramSelectionIdentity[]) {
 function selectedNodes(nodeIds: ReadonlySet<string>, reader: DiagramFragmentReader) {
     const nodes: ReadonlyDiagramNode[] = []
     for (const nodeId of nodeIds) {
-        const node = reader.getNodeSnapshot(nodeId)
+        const node = reader.read.getNodeSnapshot(nodeId)
         if (!node) return null
 
         nodes.push(node)
@@ -133,8 +124,8 @@ function selectedNodes(nodeIds: ReadonlySet<string>, reader: DiagramFragmentRead
 
 function includedEdges(nodeIds: ReadonlySet<string>, reader: DiagramFragmentReader) {
     const edges: ReadonlyDiagramEdge[] = []
-    for (const edgeId of reader.getEdgeIdsSnapshot()) {
-        const edge = reader.getEdgeSnapshot(edgeId)
+    for (const edgeId of reader.read.getEdgeIdsSnapshot()) {
+        const edge = reader.read.getEdgeSnapshot(edgeId)
         if (!edge) continue
         if (nodeIds.has(edge.from) && nodeIds.has(edge.to)) edges.push(edge)
     }
@@ -156,7 +147,7 @@ function selectedGroups(
 ) {
     const groups: ReadonlyDiagramGroup[] = []
     for (const groupId of groupIds) {
-        const group = reader.getGroupSnapshot(groupId)
+        const group = reader.read.getGroupSnapshot(groupId)
         if (!group || !group.nodeIds.every((nodeId) => nodeIds.has(nodeId))) return null
 
         groups.push(group)
@@ -167,8 +158,8 @@ function selectedGroups(
 
 function relevantFragments(includedEdgeIds: ReadonlySet<string>, reader: DiagramFragmentReader) {
     const fragments: ReadonlyDiagramFragment[] = []
-    for (const fragmentId of reader.getFragmentIdsSnapshot()) {
-        const fragment = reader.getFragmentSnapshot(fragmentId)
+    for (const fragmentId of reader.read.getFragmentIdsSnapshot()) {
+        const fragment = reader.read.getFragmentSnapshot(fragmentId)
         if (!fragment) continue
         const regions = fragment.regions.map((region) => ({
             edgeIds: region.edgeIds.filter((edgeId) => includedEdgeIds.has(edgeId)),
@@ -189,7 +180,7 @@ export function buildDiagramFragmentClipboardPayload(
 ): DiagramFragmentClipboardPayload | null {
     const { edgeIds: selectedEdgeIds, groupIds, nodeIds } = selectedIdsByKind(identities)
     if (nodeIds.size === 0) return null
-    if (nodeIds.size === reader.getNodeIdsSnapshot().length) return null
+    if (nodeIds.size === reader.read.getNodeIdsSnapshot().length) return null
 
     const nodes = selectedNodes(nodeIds, reader)
     if (!nodes) return null

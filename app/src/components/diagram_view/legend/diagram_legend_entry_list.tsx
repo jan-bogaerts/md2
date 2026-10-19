@@ -2,22 +2,24 @@ import { Box } from '@mui/material'
 import type { DiagramLegendEntry } from './diagram_legend_entries'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramLegendEntryRow, type DiagramFormattingMutationStore } from './diagram_legend_entry_row'
+import type { DiagramFormattingStore } from '../formatting/use_diagram_formatting'
 
 interface DiagramLegendEntryListProps {
     entries: readonly DiagramLegendEntry[]
     label: string
+    reader: DiagramFormattingStore
     session?: DiagramEditSessionService
     store: DiagramFormattingMutationStore
 }
 
 /** Renders legend entries without knowing whether they were stored or derived. */
-export function DiagramLegendEntryList({ entries, label, session, store }: DiagramLegendEntryListProps) {
+export function DiagramLegendEntryList({ entries, label, reader, session, store }: DiagramLegendEntryListProps) {
     return (
         <Box
             aria-label={label}
             sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, minHeight: 0, overflowY: 'auto', p: 1.5 }}
         >
-            {entries.map((entry) => <DiagramLegendEntryRow entry={entry} key={entry.entryType === 'node' ? `node:${entry.role}` : entry.entryType === 'nodeKind' ? `nodeKind:${entry.nodeKind}` : `connection:${entry.kind}`} session={session} store={store} />)}
+            {entries.map((entry) => <DiagramLegendEntryRow entry={entry} key={entry.entryType === 'node' ? `node:${entry.role}` : entry.entryType === 'nodeKind' ? `nodeKind:${entry.nodeKind}` : `connection:${entry.kind}`} reader={reader} session={session} store={store} />)}
         </Box>
     )
 }

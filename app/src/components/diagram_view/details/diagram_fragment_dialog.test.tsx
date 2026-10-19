@@ -7,16 +7,19 @@ import { DiagramFragmentDialogService } from './diagram_fragment_dialog_service'
 afterEach(cleanup)
 
 class FragmentDialogSessionStub extends EventTarget {
-    readonly createFragment = vi.fn(() => 'fragment-new')
-    readonly removeFragment = vi.fn(() => true)
-    readonly updateFragment = vi.fn(() => true)
+    readonly read = this
+    readonly fragments = {
+        createFragment: vi.fn(() => 'fragment-new'),
+        removeFragment: vi.fn(() => true),
+        updateFragment: vi.fn(() => true),
+    }
     readonly edges = [
         { id: 'edge-1', label: 'Request' },
         { id: 'edge-2', label: 'Retry' },
         { id: 'edge-3', label: 'Response' },
     ]
     readonly edgeIds = this.edges.map(({ id }) => id)
-    readonly fragments = new Map<string, DiagramSequenceFragment>([[
+    readonly fragmentsById = new Map<string, DiagramSequenceFragment>([[
         'fragment-1',
         {
             id: 'fragment-1', operator: 'alt', regions: [
@@ -28,7 +31,7 @@ class FragmentDialogSessionStub extends EventTarget {
 
     getEdgeIdsSnapshot = () => this.edgeIds
     getEdgeSnapshot = (edgeId: string) => this.edges.find(({ id }) => id === edgeId) ?? null
-    getFragmentSnapshot = (fragmentId: string) => this.fragments.get(fragmentId) ?? null
+    getFragmentSnapshot = (fragmentId: string) => this.fragmentsById.get(fragmentId) ?? null
     subscribeCollectionMembership = (objectKind: 'edge' | 'fragment', listener: () => void) => {
         this.addEventListener(`${objectKind}Changed`, listener)
 
@@ -59,7 +62,7 @@ describe('DiagramFragmentDialog', () => {
         fireEvent.click(within(secondRegion).getByRole('checkbox', { name: '2. Retry' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(session.createFragment).toHaveBeenCalledWith({
+        expect(session.fragments.createFragment).toHaveBeenCalledWith({
             operator: 'alt',
             regions: [
                 { edgeIds: ['edge-1', 'edge-3'], guard: 'success' },
@@ -77,7 +80,7 @@ describe('DiagramFragmentDialog', () => {
 
         fireEvent.change(screen.getByRole('textbox', { name: 'Region 1 guard' }), { target: { value: 'approved' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-        expect(session.updateFragment).toHaveBeenCalledWith('fragment-1', {
+        expect(session.fragments.updateFragment).toHaveBeenCalledWith('fragment-1', {
             operator: 'alt',
             regions: [
                 { edgeIds: ['edge-1'], guard: 'approved' },
@@ -88,7 +91,7 @@ describe('DiagramFragmentDialog', () => {
         dialog.openEdit('fragment-1')
         rerender(<DiagramFragmentDialog dialog={dialog} session={session} />)
         fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-        expect(session.removeFragment).toHaveBeenCalledWith('fragment-1')
+        expect(session.fragments.removeFragment).toHaveBeenCalledWith('fragment-1')
         expect(dialog.getTargetSnapshot()).toBeNull()
     })
 })

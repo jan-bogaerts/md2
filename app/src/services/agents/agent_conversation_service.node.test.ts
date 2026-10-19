@@ -101,6 +101,39 @@ describe('parseAgentConversationLog', () => {
             .toEqual(parseAgentConversation(JSON.stringify(source), 'design/logs/one.json'))
     })
 
+    it('keeps a valid task list across reloads', () => {
+        const taskList = {
+            tasks: [
+                { id: 'task-1', status: 'pending', subject: 'Inspect state' },
+                { activeForm: 'Writing tests', id: 'task-2', status: 'inProgress', subject: 'Write tests' },
+                { id: 'task-3', status: 'completed', subject: 'Map event flow' },
+            ],
+            updatedAt: '2026-10-16T10:00:00.000Z',
+        }
+        const source = {entries: [], id: 'agent-1', startedAt: '2026-10-16T09:00:00.000Z', status: 'running', taskList}
+
+        expect(parseAgentConversationValue(source, 'design/logs/one.json').taskList).toEqual(taskList)
+    })
+
+    it.each([
+        null,
+        { tasks: [], updatedAt: '' },
+        { tasks: null, updatedAt: '2026-10-16T10:00:00.000Z' },
+        { tasks: [{ id: 'task-1', status: 'blocked', subject: 'Inspect state' }], updatedAt: '2026-10-16T10:00:00.000Z' },
+        { tasks: [{ id: '', status: 'pending', subject: 'Inspect state' }], updatedAt: '2026-10-16T10:00:00.000Z' },
+        { tasks: [{ activeForm: 2, id: 'task-1', status: 'pending', subject: 'Inspect state' }], updatedAt: '2026-10-16T10:00:00.000Z' },
+    ])('rejects malformed task list %j', (taskList) => {
+        const source = {entries: [], id: 'agent-1', startedAt: '2026-10-16T09:00:00.000Z', status: 'running', taskList}
+
+        expect(() => parseAgentConversationValue(source, 'design/logs/one.json')).toThrow(/taskList/u)
+    })
+
+    it('keeps taskList absent when persisted conversation has no task list', () => {
+        const source = {entries: [], id: 'agent-1', startedAt: '2026-10-16T09:00:00.000Z', status: 'running'}
+
+        expect(parseAgentConversationValue(source, 'design/logs/one.json')).not.toHaveProperty('taskList')
+    })
+
     it('round trips a timer with and without a duration breakdown', () => {
         const base = {
             completedAt: null,

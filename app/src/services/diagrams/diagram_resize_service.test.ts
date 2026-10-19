@@ -77,7 +77,7 @@ describe('DiagramResizeService', () => {
 
         expect(resize.beginResize(mindmapRoot, 'south-east', { x: 168, y: 168 })).toBe(true)
         expect(resize.updateResize({ x: 208, y: 188 })).toBe(true)
-        expect(session.getNodeSnapshot('root')).toMatchObject({ height: 148, width: 168, x: 40, y: 40 })
+        expect(session.read.getNodeSnapshot('root')).toMatchObject({ height: 148, width: 168, x: 40, y: 40 })
     })
 
     it('snaps node size to grid, writes explicit dimensions, and reroutes an attached endpoint', () => {
@@ -86,33 +86,33 @@ describe('DiagramResizeService', () => {
         const startingWidth = geometry.getNodeGeometryFieldSnapshot('orders', 'width') as number
 
         expect(resize.beginResize(orders, 'east', { x: 200, y: 100 })).toBe(true)
-        expect(session.getTransientGestureSnapshot()).toBe('resize')
+        expect(session.read.getTransientGestureSnapshot()).toBe('resize')
         expect(resize.updateResize({ x: 205, y: 177 })).toBe(true)
 
-        expect(session.getNodeFieldSnapshot('orders', 'width')).toBe(startingWidth + 4)
-        expect(session.getNodeFieldSnapshot('orders', 'height')).toBe(72)
-        expect(session.getNodeFieldSnapshot('orders', 'x')).toBe(40)
-        expect(session.getNodeFieldSnapshot('orders', 'y')).toBe(40)
+        expect(session.read.getNodeFieldSnapshot('orders', 'width')).toBe(startingWidth + 4)
+        expect(session.read.getNodeFieldSnapshot('orders', 'height')).toBe(72)
+        expect(session.read.getNodeFieldSnapshot('orders', 'x')).toBe(40)
+        expect(session.read.getNodeFieldSnapshot('orders', 'y')).toBe(40)
         expect(geometry.getEdgeRouteSnapshot('orders-store')[0]).toEqual({ x: 40 + startingWidth + 4, y: 76 })
         expect(resize.completeResize()).toBe(true)
-        expect(session.getTransientGestureSnapshot()).toBeNull()
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
     })
 
     it('clamps north-west group resize to named minima while preserving opposite edges and membership', () => {
         const { resize, selection, session } = createHarness()
         selection.replace([group])
-        const membership = session.getGroupNodeIdsSnapshot('backend')
+        const membership = session.read.getGroupNodeIdsSnapshot('backend')
 
         resize.beginResize(group, 'north-west', { x: 20, y: 20 })
         resize.updateResize({ x: 500, y: 500 })
 
-        expect(session.getGroupSnapshot('backend')).toMatchObject({
+        expect(session.read.getGroupSnapshot('backend')).toMatchObject({
             height: MINIMUM_DIAGRAM_GROUP_HEIGHT,
             width: MINIMUM_DIAGRAM_GROUP_WIDTH,
             x: 20 + 240 - MINIMUM_DIAGRAM_GROUP_WIDTH,
             y: 20 + 120 - MINIMUM_DIAGRAM_GROUP_HEIGHT,
         })
-        expect(session.getGroupNodeIdsSnapshot('backend')).toBe(membership)
+        expect(session.read.getGroupNodeIdsSnapshot('backend')).toBe(membership)
     })
 
     it('allows only one selected node or group while Select is active', () => {
@@ -125,7 +125,7 @@ describe('DiagramResizeService', () => {
         selection.replace([orders])
         session.setActiveTool('group')
         expect(resize.beginResize(orders, 'east', { x: 0, y: 0 })).toBe(false)
-        expect(session.getTransientGestureSnapshot()).toBeNull()
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
     })
 
     it('restores omitted geometry and removes changes when cancelled', () => {
@@ -147,18 +147,18 @@ describe('DiagramResizeService', () => {
 
         expect(resize.cancelResize()).toBe(true)
 
-        expect(session.getNodeFieldSnapshot('orders', 'height')).toBeUndefined()
-        expect(session.getNodeFieldSnapshot('orders', 'width')).toBeUndefined()
-        expect(session.getNodeFieldSnapshot('orders', 'x')).toBeUndefined()
-        expect(session.getNodeFieldSnapshot('orders', 'y')).toBeUndefined()
+        expect(session.read.getNodeFieldSnapshot('orders', 'height')).toBeUndefined()
+        expect(session.read.getNodeFieldSnapshot('orders', 'width')).toBeUndefined()
+        expect(session.read.getNodeFieldSnapshot('orders', 'x')).toBeUndefined()
+        expect(session.read.getNodeFieldSnapshot('orders', 'y')).toBeUndefined()
         expect({
             height: geometry.getNodeGeometryFieldSnapshot('orders', 'height'),
             width: geometry.getNodeGeometryFieldSnapshot('orders', 'width'),
             x: geometry.getNodeGeometryFieldSnapshot('orders', 'x'),
             y: geometry.getNodeGeometryFieldSnapshot('orders', 'y'),
         }).toEqual(startingBox)
-        expect(session.getChangeIdsSnapshot()).toEqual([])
-        expect(session.getTransientGestureSnapshot()).toBeNull()
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
     })
 
     it('persists the complete derived box on the first resize of an implicit group', () => {
@@ -176,14 +176,14 @@ describe('DiagramResizeService', () => {
         resize.updateResize({ x: 12, y: 8 })
         resize.completeResize()
 
-        expect(session.getGroupSnapshot('backend')).toMatchObject({
+        expect(session.read.getGroupSnapshot('backend')).toMatchObject({
             height: (geometry.getGroupGeometryFieldSnapshot('backend', 'height') as number),
             width: (geometry.getGroupGeometryFieldSnapshot('backend', 'width') as number),
             x: derivedX,
             y: derivedY,
         })
-        expect(session.getGroupFieldSnapshot('backend', 'x')).toBe(derivedX)
-        expect(session.getGroupFieldSnapshot('backend', 'y')).toBe(derivedY)
+        expect(session.read.getGroupFieldSnapshot('backend', 'x')).toBe(derivedX)
+        expect(session.read.getGroupFieldSnapshot('backend', 'y')).toBe(derivedY)
     })
 
     it('rolls back when Escape cancellation or another gesture replaces resize', () => {
@@ -193,13 +193,13 @@ describe('DiagramResizeService', () => {
         resize.updateResize({ x: 12, y: 8 })
 
         expect(session.cancelActiveInteraction()).toBe(true)
-        expect(session.getNodeFieldSnapshot('orders', 'width')).toBeUndefined()
+        expect(session.read.getNodeFieldSnapshot('orders', 'width')).toBeUndefined()
         expect(resize.getResizeActiveSnapshot()).toBe(false)
 
         resize.beginResize(orders, 'south-east', { x: 0, y: 0 })
         resize.updateResize({ x: 8, y: 4 })
         session.beginTransientGesture('move')
-        expect(session.getNodeFieldSnapshot('orders', 'width')).toBeUndefined()
+        expect(session.read.getNodeFieldSnapshot('orders', 'width')).toBeUndefined()
         expect(resize.getResizeActiveSnapshot()).toBe(false)
     })
 

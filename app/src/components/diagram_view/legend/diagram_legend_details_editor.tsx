@@ -22,9 +22,9 @@ function useUsedLegendEntryKeys(session: DiagramEditSessionService) {
     const edgeIds = useEditableDiagramEdgeIds(session) ?? EMPTY_ENTRY_KEYS
     const subscribe = useCallback((listener: () => void) => {
         const unsubscribes = [
-            ...nodeIds.map((nodeId) => session.subscribeNodeField(nodeId, 'kind', listener)),
-            ...nodeIds.map((nodeId) => session.subscribeNodeField(nodeId, 'role', listener)),
-            ...edgeIds.map((edgeId) => session.subscribeEdgeField(edgeId, 'kind', listener)),
+            ...nodeIds.map((nodeId) => session.read.subscribeNodeField(nodeId, 'kind', listener)),
+            ...nodeIds.map((nodeId) => session.read.subscribeNodeField(nodeId, 'role', listener)),
+            ...edgeIds.map((edgeId) => session.read.subscribeEdgeField(edgeId, 'kind', listener)),
         ]
 
         return () => {
@@ -32,14 +32,14 @@ function useUsedLegendEntryKeys(session: DiagramEditSessionService) {
         }
     }, [edgeIds, nodeIds, session])
     const getSnapshot = useCallback(() => {
-        const diagramType = session.getMetadataFieldSnapshot('type')
+        const diagramType = session.read.getMetadataFieldSnapshot('type')
         if (!diagramType) return ''
         const keys = [
-            ...nodeIds.map((nodeId) => `node:${session.getNodeFieldSnapshot(nodeId, 'role')}`),
+            ...nodeIds.map((nodeId) => `node:${session.read.getNodeFieldSnapshot(nodeId, 'role')}`),
             ...nodeIds.map((nodeId) => `nodeKind:${effectiveDiagramNodeKind(
-                session.getNodeFieldSnapshot(nodeId, 'kind') ?? undefined, diagramType,
+                session.read.getNodeFieldSnapshot(nodeId, 'kind') ?? undefined, diagramType,
             )}`),
-            ...edgeIds.map((edgeId) => `connection:${session.getEdgeFieldSnapshot(edgeId, 'kind')}`),
+            ...edgeIds.map((edgeId) => `connection:${session.read.getEdgeFieldSnapshot(edgeId, 'kind')}`),
         ]
 
         return [...new Set(keys)].join('|')
@@ -71,8 +71,8 @@ export function DiagramLegendDetailsEditor({ onClose, session }: DiagramLegendDe
     const [addedSemantic, setAddedSemantic] = useState('')
     const [addedLabel, setAddedLabel] = useState('')
     const [includeUsedTypes, setIncludeUsedTypes] = useState(false)
-    const diagramType = session.getMetadataFieldSnapshot('type')
-    const preset = session.getMetadataFieldSnapshot('preset') ?? undefined
+    const diagramType = session.read.getMetadataFieldSnapshot('type')
+    const preset = session.read.getMetadataFieldSnapshot('preset') ?? undefined
     const semanticOptions = useMemo(() => diagramType ? [
         ...DIAGRAM_ROLES.map((role) => ({ entryKey: `node:${role}`, label: `${role} node` })),
         ...DIAGRAM_NODE_KINDS.filter((kind) => {
@@ -111,7 +111,7 @@ export function DiagramLegendDetailsEditor({ onClose, session }: DiagramLegendDe
 
             return
         }
-        if (session.addLegendEntry(newEntryFor(selectedSemantic, addedLabel)) === null) {
+        if (session.legend.addLegendEntry(newEntryFor(selectedSemantic, addedLabel)) === null) {
             setValidationMessage('That node kind, node role, or connection kind already has a legend entry.')
 
             return
@@ -126,7 +126,7 @@ export function DiagramLegendDetailsEditor({ onClose, session }: DiagramLegendDe
             <DialogContent dividers>
                 <Stack spacing={2} sx={{ pt: 0.5 }}>
                     {validationMessage ? <Alert severity="error">{validationMessage}</Alert> : null}
-                    {!session.getHasExplicitLegendSnapshot() ? (
+                    {!session.read.getHasExplicitLegendSnapshot() ? (
                         <Typography color="text.secondary" variant="body2">
                             This diagram has no explicit legend entries, so its legend is derived from the node kinds and
                             connection kinds it uses. Adding an entry keeps those derived entries.

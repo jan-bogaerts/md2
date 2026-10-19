@@ -8,6 +8,7 @@ import { ProjectSyncStatus } from './project_sync_status'
 import { CodexRateLimitStatus } from './codex_rate_limit_status'
 import { ClaudeRateLimitStatus } from './claude_rate_limit_status'
 import { PinnedConversationsIndicator } from './pinned_conversations_indicator'
+import { ActiveSchedulesIndicator } from './active_schedules_indicator'
 
 /** Compact desktop status bar for board totals, synchronization and agents. */
 export function StatusBar() {
@@ -37,6 +38,7 @@ export function StatusBar() {
             <RemoteControlStatusIndicator />
             <KeyboardStatus />
             <PinnedConversationsIndicator />
+            <ActiveSchedulesIndicator />
             <RunningAgentsIndicator />
         </Box>
     )

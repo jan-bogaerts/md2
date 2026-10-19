@@ -1049,7 +1049,7 @@ describe('ProjectLoading', () => {
         }
     })
 
-    it('imports external root markdown files after the full project load', async () => {
+    it('queues external root markdown files detected during project load', async () => {
         configService.init()
         const externalFile = { content: '# Notes\n\nBody', path: 'design/notes.md', sha: 'sha-notes' }
         const rootFiles = [files[0], externalFile]
@@ -1067,15 +1067,9 @@ describe('ProjectLoading', () => {
             await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
             await vi.waitFor(() => {
-                expect(storage.moveFiles).toHaveBeenCalledWith({
-                    branch: 'main',
-                    message: 'Import 1 external file',
-                    moves: [expect.objectContaining({
-                        fromPath: 'design/notes.md',
-                        sha: 'sha-notes',
-                        toPath: 'design/F-4-notes.md',
-                    })],
-                })
+                expect(service.describePendingFileCommits()).toEqual([
+                    'card design/F-4-notes.md (Import 1 external file)',
+                ])
             })
 
             const importedCard = service.getState().snapshot?.activeCards.find((card) => card.path === 'design/F-4-notes.md')
@@ -1084,6 +1078,19 @@ describe('ProjectLoading', () => {
             expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/notes.md')).toBe(false)
             expect(notices.messages).toContain('Imported 1 external file as new cards.')
             expect(trackEvent).toHaveBeenCalledWith('external_file_import')
+            expect(storage.moveFiles).not.toHaveBeenCalled()
+
+            await service.cards.flushPendingCommits()
+
+            expect(storage.commit).toHaveBeenCalledWith({
+                branch: 'main',
+                files: [],
+                message: 'Import 1 external file',
+                moves: [expect.objectContaining({
+                    fromPath: 'design/notes.md',
+                    toPath: 'design/F-4-notes.md',
+                })],
+            })
         } finally {
             notices.stop()
             trackEvent.mockRestore()
@@ -1109,14 +1116,14 @@ describe('ProjectLoading', () => {
         expect(storage.moveFiles).not.toHaveBeenCalled()
     })
 
-    it('reports import failures and keeps source files loaded unchanged', async () => {
+    it('retains a project-load import when its batch commit fails', async () => {
         configService.init()
         const externalFile = { content: '# Notes\n\nBody', path: 'design/notes.md', sha: 'sha-notes' }
         const errors = recordDialogMessages('error')
         const storage = createStorage({
             loadProject: vi.fn(async () => ({ files: [...storageFiles, externalFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [files[0], externalFile], workingFolder: 'design' })),
-            moveFiles: vi.fn(async () => {
+            commit: vi.fn(async () => {
                 throw new Error('commit failed')
             }),
         })
@@ -1125,14 +1132,17 @@ describe('ProjectLoading', () => {
         try {
             service.init({ storage })
             await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-
             await vi.waitFor(() => {
-                expect(errors.messages).toContain('commit failed')
+                expect(service.hasPendingFile('design/notes.md')).toBe(true)
             })
 
-            expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/notes.md')).toBe(true)
-            expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/F-4-notes.md')).toBe(false)
-            expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+            await expect(service.cards.flushPendingCommits()).rejects.toThrow('commit failed')
+
+            expect(errors.messages).toContain('commit failed')
+            expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/notes.md')).toBe(false)
+            expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/F-4-notes.md')).toBe(true)
+            expect(service.hasPendingFile('design/notes.md')).toBe(true)
+            expect(storage.push).not.toHaveBeenCalled()
         } finally {
             errors.stop()
         }
@@ -1345,7 +1355,7 @@ describe('ProjectLoading', () => {
         expect(actionService.getState().error).toContain('Invalid action type')
     })
 
-    it('imports a new external markdown file when the watcher reports it', async () => {
+    it('queues a watcher-detected non-conforming card as a batched path change', async () => {
         vi.useFakeTimers()
         configService.init()
         let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
@@ -1362,24 +1372,33 @@ describe('ProjectLoading', () => {
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        configService.set('project.autoCommitDelayMs', 1000)
 
         watchChange({ changeKind: 'added', path: 'design/free-note.md' })
         await vi.advanceTimersByTimeAsync(150)
 
-        expect(storage.moveFiles).toHaveBeenCalledWith({
+        const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-4-new-external-note.md')
+        expect(card?.header.status).toBe('active')
+        expect(card?.header.internalId).toBeTruthy()
+        expect(storage.moveFiles).not.toHaveBeenCalled()
+        expect(service.describePendingFileCommits()).toEqual([
+            'card design/F-4-new-external-note.md (Import 1 external file)',
+        ])
+
+        await vi.advanceTimersByTimeAsync(1000)
+
+        expect(storage.commit).toHaveBeenCalledWith({
             branch: 'main',
+            files: [],
             message: 'Import 1 external file',
             moves: [expect.objectContaining({
                 fromPath: 'design/free-note.md',
                 toPath: 'design/F-4-new-external-note.md',
             })],
         })
-        const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-4-new-external-note.md')
-        expect(card?.header.status).toBe('active')
-        expect(card?.header.internalId).toBeTruthy()
     })
 
-    it('imports an external markdown file once when watcher reloads overlap', async () => {
+    it('normalizes a watcher-detected card once when reloads overlap', async () => {
         vi.useFakeTimers()
         configService.init()
         let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
@@ -1387,13 +1406,11 @@ describe('ProjectLoading', () => {
         }
         const externalFile = { content: '# New external note', path: 'design/free-note.md' }
         const firstLoad = createDeferred<typeof externalFile>()
-        const move = createDeferred<void>()
         const loadFile = vi.fn()
             .mockImplementationOnce(async () => firstLoad.promise)
             .mockImplementationOnce(async () => externalFile)
         const storage = createStorage({
             loadFile,
-            moveFiles: vi.fn(async () => move.promise),
             watchProject: vi.fn((_project, onChange) => {
                 watchChange = onChange
 
@@ -1403,6 +1420,7 @@ describe('ProjectLoading', () => {
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        configService.set('project.autoCommitDelayMs', 1000)
 
         watchChange({ changeKind: 'added', path: externalFile.path })
         await vi.advanceTimersByTimeAsync(50)
@@ -1411,11 +1429,184 @@ describe('ProjectLoading', () => {
         firstLoad.resolve(externalFile)
         await vi.advanceTimersByTimeAsync(0)
 
-        expect(storage.moveFiles).toHaveBeenCalledTimes(1)
-        move.resolve()
-        await vi.advanceTimersByTimeAsync(0)
+        const importedCards = service.getState().snapshot?.activeCards.filter(({ path }) => path === 'design/F-4-new-external-note.md')
+        expect(importedCards).toHaveLength(1)
+        expect(service.describePendingFileCommits()).toHaveLength(1)
 
-        expect(storage.moveFiles).toHaveBeenCalledTimes(1)
+        await vi.advanceTimersByTimeAsync(1000)
+
+        expect(storage.commit).toHaveBeenCalledOnce()
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({
+            moves: [expect.objectContaining({
+                fromPath: externalFile.path,
+                toPath: 'design/F-4-new-external-note.md',
+            })],
+        }))
+    })
+
+    it('queues a complete conforming watcher card without changing its bytes', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        const content = '---\nid: F-4\ninternalId: external-card\ntitle: External\nstatus: active\n---\n\nExact bytes'
+        const externalFile = { content, path: 'design/F-4-external.md' }
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(async () => externalFile),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        configService.set('project.autoCommitDelayMs', 1000)
+
+        watchChange({ changeKind: 'added', path: externalFile.path })
+        await vi.advanceTimersByTimeAsync(150)
+
+        expect(service.getState().snapshot?.activeCards.find(({ path }) => path === externalFile.path)?.content).toBe('\nExact bytes')
+        expect(service.describePendingFileCommits()).toEqual([
+            'path design/F-4-external.md (Import 1 external file)',
+        ])
+
+        await vi.advanceTimersByTimeAsync(1000)
+
+        expect(storage.commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [],
+            message: 'Import 1 external file',
+            paths: [externalFile.path],
+        })
+    })
+
+    it('reloads a pending conforming watcher card and commits latest disk content', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        const path = 'design/F-4-external.md'
+        const initialContent = '---\nid: F-4\ninternalId: external-card\ntitle: External\nstatus: active\n---\n\nFirst'
+        const latestContent = initialContent.replace('First', 'Latest')
+        const loadFile = vi.fn()
+            .mockResolvedValueOnce({ content: initialContent, path })
+            .mockResolvedValueOnce({ content: latestContent, path })
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        const conflicts = recordDialogMessages('error')
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        configService.set('project.autoCommitDelayMs', 1000)
+
+        try {
+            watchChange({ changeKind: 'added', path })
+            await vi.advanceTimersByTimeAsync(150)
+            watchChange({ changeKind: 'changed', path })
+            await vi.advanceTimersByTimeAsync(150)
+
+            expect(service.getState().snapshot?.activeCards.find((card) => card.path === path)?.content).toBe('\nLatest')
+            expect(conflicts.messages).toEqual([])
+            expect(service.describePendingFileCommits()).toHaveLength(1)
+
+            await vi.advanceTimersByTimeAsync(1000)
+
+            expect(storage.commit).toHaveBeenCalledWith({
+                branch: 'main',
+                files: [],
+                message: 'Import 1 external file',
+                paths: [path],
+            })
+        } finally {
+            conflicts.stop()
+        }
+    })
+
+    it('batches conforming and non-conforming watcher cards in one commit', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        const conformingFile = {
+            content: '---\nid: F-4\ninternalId: external-card\ntitle: External\nstatus: active\n---\n\nExternal',
+            path: 'design/F-4-external.md',
+        }
+        const sourceFile = { content: '# Free note', path: 'design/free-note.md' }
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(async (_project, path) => path === conformingFile.path ? conformingFile : sourceFile),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        configService.set('project.autoCommitDelayMs', 1000)
+
+        watchChange({ changeKind: 'added', path: conformingFile.path })
+        watchChange({ changeKind: 'added', path: sourceFile.path })
+        await vi.advanceTimersByTimeAsync(150)
+        await vi.advanceTimersByTimeAsync(1000)
+
+        expect(storage.commit).toHaveBeenCalledOnce()
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({
+            moves: [expect.objectContaining({ fromPath: sourceFile.path, toPath: 'design/F-5-free-note.md' })],
+            paths: [conformingFile.path],
+        }))
+    })
+
+    it('retains a watcher import after a failed batch flush for retry', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        const path = 'design/F-4-external.md'
+        const externalFile = {
+            content: '---\nid: F-4\ninternalId: external-card\ntitle: External\nstatus: active\n---\n\nExternal',
+            path,
+        }
+        const commit = vi.fn<StorageService['commit']>()
+            .mockRejectedValueOnce(new Error('commit failed'))
+            .mockResolvedValue([])
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            commit,
+            loadFile: vi.fn(async () => externalFile),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        configService.set('project.autoCommitDelayMs', 1000)
+
+        watchChange({ changeKind: 'added', path })
+        await vi.advanceTimersByTimeAsync(150)
+        await vi.advanceTimersByTimeAsync(1000)
+
+        expect(service.hasPendingFile(path)).toBe(true)
+        expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(true)
+
+        await service.cards.flushPendingCommits()
+
+        expect(commit).toHaveBeenCalledTimes(2)
+        expect(service.hasPendingFile(path)).toBe(false)
     })
 
     it('updates markdown content when the watcher reports an external edit', async () => {

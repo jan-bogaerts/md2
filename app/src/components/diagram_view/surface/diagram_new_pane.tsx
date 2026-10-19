@@ -75,7 +75,7 @@ export function DiagramNewPane({
                 session={session}
                 viewService={viewService}
             />
-            <DiagramZoomSlider diagramIdentity="New" store={session} />
+            <DiagramZoomSlider diagramIdentity="New" reader={session.read} store={session} />
             <DiagramEmphasisExitButton emphasis={emphasis} surface="new" />
         </Box>
     )

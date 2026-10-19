@@ -239,6 +239,25 @@ describe('Markdown reliability with installed MDXEditor', () => {
         expect(handle.current?.getMarkdown()).toBe(changed);
     });
 
+    it('imports Source indentation as a code block through rich edits and reopening', async () => {
+        const { handle, onChange } = renderEditor('code');
+        await selectMode('Source');
+        replaceSource('    code');
+        await selectMode('Rich text');
+        expect(richEditor().getEditorState().read(() => $getRoot().getFirstChild()?.getType())).toBe('codeblock');
+        act(() => richEditor().dispatchCommand(UNDO_COMMAND, undefined));
+        expect(richEditor().getEditorState().read(() => $getRoot().getFirstChild()?.getType())).toBe('codeblock');
+
+        appendRichParagraph();
+        act(() => handle.current?.flush());
+        const saved = handle.current?.getMarkdown() ?? '';
+        expect(onChange).toHaveBeenCalledWith(saved);
+        cleanup();
+        renderEditor(saved);
+        expect(richEditor().getEditorState().read(() => $getRoot().getFirstChild()?.getType())).toBe('codeblock');
+        expect(richText()).toContain('Unrelated edit');
+    });
+
     it.each(['Initial Source', '<div>Initial HTML</div>'])('honors an explicitly requested initial Source view: %s', (markdown) => {
         const draft = new MarkdownDraft(markdown);
         render(<AppThemeProvider><MarkdownEditor draft={draft} viewMode="source" /></AppThemeProvider>);

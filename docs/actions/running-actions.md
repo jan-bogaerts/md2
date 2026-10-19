@@ -80,7 +80,7 @@ The schedule is stored as JSON in the repository, and the desktop app registers 
 
 ## Card sequences
 
-A sequence runs one action on several cards, one card at a time. Open it with **Add sequence** on the **Run** tab of the menu.
+A sequence runs one action on several cards, one card at a time. Open it with **New sequence** on the **Run** tab of the menu.
 
 | Field | Meaning |
 | --- | --- |

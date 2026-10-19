@@ -59,14 +59,14 @@ export class DiagramMoveService {
         this.geometry = geometry
         this.selection = selection
         this.session = session
-        this.session.subscribeTransientGesture(this.handleTransientGestureChanged)
+        this.session.read.subscribeTransientGesture(this.handleTransientGestureChanged)
     }
 
     getMoveActiveSnapshot = () => this.move !== null
 
     beginMove(target: DiagramSelectionIdentity, point: DiagramMovePoint) {
         requireFinitePoint(point)
-        if (this.session.getActiveToolSnapshot() !== 'select') return false
+        if (this.session.read.getActiveToolSnapshot() !== 'select') return false
         if (this.move) throw new Error('Cannot begin a diagram move while another move is active')
 
         if (!this.selection.isSelected(target)) this.selection.replace([target])
@@ -117,7 +117,7 @@ export class DiagramMoveService {
     }
 
     private readonly handleTransientGestureChanged = () => {
-        if (!this.move || this.session.getTransientGestureSnapshot() === 'move') return
+        if (!this.move || this.session.read.getTransientGestureSnapshot() === 'move') return
 
         this.restoreMove()
         this.move = null
@@ -134,14 +134,14 @@ export class DiagramMoveService {
         if (startX === null || startY === null) throw new Error(`Diagram ${objectKind} ${objectId} has no move geometry`)
 
         const originalX = objectKind === 'node'
-            ? this.session.getNodeFieldSnapshot(objectId, 'x')
-            : this.session.getGroupFieldSnapshot(objectId, 'x')
+            ? this.session.read.getNodeFieldSnapshot(objectId, 'x')
+            : this.session.read.getGroupFieldSnapshot(objectId, 'x')
         const originalY = objectKind === 'node'
-            ? this.session.getNodeFieldSnapshot(objectId, 'y')
-            : this.session.getGroupFieldSnapshot(objectId, 'y')
+            ? this.session.read.getNodeFieldSnapshot(objectId, 'y')
+            : this.session.read.getGroupFieldSnapshot(objectId, 'y')
         if (originalX === null || originalY === null) throw new Error(`Diagram ${objectKind} ${objectId} does not exist`)
-        const originalHeight = objectKind === 'group' ? this.session.getGroupFieldSnapshot(objectId, 'height') : undefined
-        const originalWidth = objectKind === 'group' ? this.session.getGroupFieldSnapshot(objectId, 'width') : undefined
+        const originalHeight = objectKind === 'group' ? this.session.read.getGroupFieldSnapshot(objectId, 'height') : undefined
+        const originalWidth = objectKind === 'group' ? this.session.read.getGroupFieldSnapshot(objectId, 'width') : undefined
         const startHeight = objectKind === 'group' ? this.geometry.getGroupGeometryFieldSnapshot(objectId, 'height') : undefined
         const startWidth = objectKind === 'group' ? this.geometry.getGroupGeometryFieldSnapshot(objectId, 'width') : undefined
         if (originalHeight === null || originalWidth === null || startHeight === null || startWidth === null) {
@@ -153,16 +153,16 @@ export class DiagramMoveService {
 
     private applyPosition(object: MovingDiagramObject, x: number | undefined, y: number | undefined) {
         if (object.objectKind === 'node') {
-            this.session.setNodeField(object.objectId, 'x', x)
-            this.session.setNodeField(object.objectId, 'y', y)
+            this.session.objects.setNodeField(object.objectId, 'x', x)
+            this.session.objects.setNodeField(object.objectId, 'y', y)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'height', object.startHeight)
-        this.session.setGroupField(object.objectId, 'width', object.startWidth)
-        this.session.setGroupField(object.objectId, 'x', x)
-        this.session.setGroupField(object.objectId, 'y', y)
+        this.session.objects.setGroupField(object.objectId, 'height', object.startHeight)
+        this.session.objects.setGroupField(object.objectId, 'width', object.startWidth)
+        this.session.objects.setGroupField(object.objectId, 'x', x)
+        this.session.objects.setGroupField(object.objectId, 'y', y)
     }
 
     private restoreMove() {
@@ -173,18 +173,18 @@ export class DiagramMoveService {
 
     private restorePosition(object: MovingDiagramObject) {
         if (object.objectKind === 'node') {
-            if (object.originalX === undefined) this.session.setNodeField(object.objectId, 'x', object.startX)
-            if (object.originalY === undefined) this.session.setNodeField(object.objectId, 'y', object.startY)
+            if (object.originalX === undefined) this.session.objects.setNodeField(object.objectId, 'x', object.startX)
+            if (object.originalY === undefined) this.session.objects.setNodeField(object.objectId, 'y', object.startY)
 
             this.applyPosition(object, object.originalX, object.originalY)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'height', object.originalHeight)
-        this.session.setGroupField(object.objectId, 'width', object.originalWidth)
-        this.session.setGroupField(object.objectId, 'x', object.originalX)
-        this.session.setGroupField(object.objectId, 'y', object.originalY)
+        this.session.objects.setGroupField(object.objectId, 'height', object.originalHeight)
+        this.session.objects.setGroupField(object.objectId, 'width', object.originalWidth)
+        this.session.objects.setGroupField(object.objectId, 'x', object.originalX)
+        this.session.objects.setGroupField(object.objectId, 'y', object.originalY)
     }
 
     private requireMove() {

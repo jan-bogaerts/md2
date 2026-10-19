@@ -132,7 +132,7 @@ describe('TabbedDiagramComparison', () => {
         newScroller.scrollTop = 47
         act(() => {
             session.setActiveTool('node:component')
-            session.setNodeField('orders', 'label', 'Order intake')
+            session.objects.setNodeField('orders', 'label', 'Order intake')
         })
 
         await user.click(currentTab)
@@ -145,10 +145,10 @@ describe('TabbedDiagramComparison', () => {
         expect(panelForTab(newTab)).toBe(newPanel)
         expect(newScroller.scrollTop).toBe(47)
         expect(within(newPanel).getByRole('button', { name: 'Order intake' })).toBe(newNode)
-        expect(session.getLastSelectedCreationToolSnapshot()).toBe('node:component')
-        expect(session.getDirtySnapshot()).toBe(true)
+        expect(session.read.getLastSelectedCreationToolSnapshot()).toBe('node:component')
+        expect(session.read.getDirtySnapshot()).toBe(true)
         expect(viewService.getViewportScaleSnapshot()).toBe(0.5)
-        expect(session.getViewportScaleSnapshot()).toBe(1.5)
+        expect(session.read.getViewportScaleSnapshot()).toBe(1.5)
     })
 
     it('keeps tab layout and Current unchanged when a visible New leaf updates', () => {
@@ -174,7 +174,7 @@ describe('TabbedDiagramComparison', () => {
         const currentPanel = panelForTab(screen.getByRole('tab', { name: 'Current' }))
         const currentMarkup = currentPanel.innerHTML
 
-        act(() => { session.setNodeField('orders', 'label', 'Order intake') })
+        act(() => { session.objects.setNodeField('orders', 'label', 'Order intake') })
 
         expect(screen.getByRole('tablist', { name: 'Diagram comparison' })).toBe(tabList)
         expect(currentPanel.innerHTML).toBe(currentMarkup)

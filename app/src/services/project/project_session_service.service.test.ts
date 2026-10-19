@@ -3,6 +3,7 @@ import type { ElectronDataBridge } from '../../data/electron_data_bridge'
 import { DEFAULT_PROJECT_CONFIG, MissingWorkingFolderError } from '../../data/data_types'
 import { beforeEach } from 'vitest'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
+import { rehydratedPreloadBridge } from '../../data/bridge_error_rehydration'
 import { getElectronClaudeRuntimeBridge, setClaudeRuntimeBridgeOverride } from '../../data/electron_claude_runtime_bridge'
 import { LAST_PROJECT_STORAGE_KEY } from '../../data/project_session'
 import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY } from '../../data/remote_control_connection'
@@ -18,6 +19,9 @@ import { createDeferred } from '../test_support/data_service_test_support'
 import { agentCapabilitiesService } from '../agents/agent_capabilities_service'
 import { claudeRateLimitService } from '../agents/claude_rate_limit_service'
 import { projectAccessService, READ_ONLY_PROJECT_ERROR } from './project_access_service'
+import { DIALOG_SERVICE_EVENT, dialogService } from '../dialog_service'
+import { ReleaseBlockedByRunningActionsError } from '../release_blocked_by_running_actions_error'
+import { telemetryService } from '../telemetry/telemetry_service'
 
 const DEFAULT_FOLDER_VALUES = {
     actionsFolder: 'actions',
@@ -73,6 +77,7 @@ function createDataBridge(): ElectronDataBridge {
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
         watchProject: vi.fn(() => vi.fn()),
+        writeFiles: vi.fn(async () => undefined),
     }
 }
 
@@ -224,7 +229,7 @@ describe('ProjectSessionService storage activation', () => {
 
         await service.openProject('local', { branch: 'main', id: 'local', rootPath: 'C:/repo' }, null)
 
-        expect(getElectronActionBridge()).toBe(preloadBridge)
+        expect(getElectronActionBridge()).toBe(rehydratedPreloadBridge(preloadBridge))
     })
 
     it('restores the last local project once after resolving its current reference', async () => {
@@ -232,6 +237,7 @@ describe('ProjectSessionService storage activation', () => {
         const desktopConfig = {
             agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval' as const, settingsByAgent: { codex: { model: 'gpt-5', thinkingLevel: 'high' as const } } },
             agentProfiles: [{ command: ['codex'], defaultThinkingLevel: 'none' as const, models: ['gpt-5'], name: 'codex' }],
+            agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
@@ -386,6 +392,35 @@ describe('ProjectSessionService storage activation', () => {
         await expect(service.completeRelease('v1', [])).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
     })
 
+    it('shows running agent actions as a release block without reporting to Sentry', async () => {
+        const error = new ReleaseBlockedByRunningActionsError(['build'])
+        const listener = vi.fn()
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+        vi.spyOn(dataService.releases, 'completeRelease').mockRejectedValueOnce(error)
+        dialogService.addEventListener(DIALOG_SERVICE_EVENT, listener)
+        const service = new ProjectSessionService()
+
+        await expect(service.completeRelease('v1', [])).rejects.toBe(error)
+
+        expect(service.getSnapshot().errorMessage).toBe(error.message)
+        expect(listener).toHaveBeenCalledWith(expect.objectContaining({ detail: expect.objectContaining({ message: error.message, severity: 'error' }) }))
+        expect(captureError).not.toHaveBeenCalled()
+        dialogService.removeEventListener(DIALOG_SERVICE_EVENT, listener)
+    })
+
+    it('reports unexpected release failures to Sentry', async () => {
+        const error = new Error('Storage failed')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+        const showError = vi.spyOn(dialogService, 'error')
+        vi.spyOn(dataService.releases, 'completeRelease').mockRejectedValueOnce(error)
+        const service = new ProjectSessionService()
+
+        await expect(service.completeRelease('v1', [])).rejects.toBe(error)
+
+        expect(showError).toHaveBeenCalledWith(error, { fallbackMessage: 'Release completion failed' })
+        expect(captureError).toHaveBeenCalledWith(error)
+    })
+
     it('restores the preload action bridge when opening a GitHub project after remote storage', async () => {
         mockProjectOpen()
         const preloadBridge = createActionBridge()
@@ -403,7 +438,7 @@ describe('ProjectSessionService storage activation', () => {
 
         await service.openProject('github', { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'token-1')
 
-        expect(getElectronActionBridge()).toBe(preloadBridge)
+        expect(getElectronActionBridge()).toBe(rehydratedPreloadBridge(preloadBridge))
     })
 
     it('does not change the active bridge when listing branches for a secondary local storage', async () => {

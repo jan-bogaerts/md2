@@ -25,8 +25,8 @@ interface DiagramDecisionNodeButtonProps {
 
 function useDiagramType(session: DiagramDecisionNodeSession) {
     const subscribe = useCallback((listener: () => void) => {
-        const unsubscribeField = session.subscribeMetadataField('type', listener);
-        const unsubscribeSession = session.subscribeSession(listener);
+        const unsubscribeField = session.read.subscribeMetadataField('type', listener);
+        const unsubscribeSession = session.read.subscribeSession(listener);
 
         return () => {
             unsubscribeField();
@@ -34,7 +34,7 @@ function useDiagramType(session: DiagramDecisionNodeSession) {
         };
     }, [session]);
     const getSnapshot = useCallback(
-        () => session.getMetadataFieldSnapshot('type'),
+        () => session.read.getMetadataFieldSnapshot('type'),
         [session],
     );
 
@@ -43,8 +43,8 @@ function useDiagramType(session: DiagramDecisionNodeSession) {
 
 function useFlowPreset(session: DiagramDecisionNodeSession) {
     const subscribe = useCallback((listener: () => void) => {
-        const unsubscribeField = session.subscribeMetadataField('preset', listener);
-        const unsubscribeSession = session.subscribeSession(listener);
+        const unsubscribeField = session.read.subscribeMetadataField('preset', listener);
+        const unsubscribeSession = session.read.subscribeSession(listener);
 
         return () => {
             unsubscribeField();
@@ -52,7 +52,7 @@ function useFlowPreset(session: DiagramDecisionNodeSession) {
         };
     }, [session]);
     const getSnapshot = useCallback(
-        () => session.getMetadataFieldSnapshot('preset'),
+        () => session.read.getMetadataFieldSnapshot('preset'),
         [session],
     );
 

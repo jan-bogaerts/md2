@@ -13,7 +13,7 @@ import { useDiagramFormattingScale } from '../formatting/use_diagram_formatting'
 /** Edits one New diagram metadata field without opening its details dialog. */
 export function DiagramInlineMetadataField({ field, session }: { field: MutableDiagramMetaField, session: DiagramEditSessionService }) {
     const value = useEditableDiagramMetadataField(field, session) ?? ''
-    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', session)
+    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', session.read)
     const [draftState, setDraftState] = useState({ base: value, value })
     const draft = draftState.base === value ? draftState.value : value
     const [error, setError] = useState<string | null>(null)
@@ -29,7 +29,7 @@ export function DiagramInlineMetadataField({ field, session }: { field: MutableD
 
             return
         }
-        if (!session.setMetadataField(field, trimmed)) setError(`${field} could not be saved.`)
+        if (!session.objects.setMetadataField(field, trimmed)) setError(`${field} could not be saved.`)
     }
     const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Escape') {

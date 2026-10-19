@@ -175,7 +175,7 @@ describe('DiagramGeometryService surface growth', () => {
         const meta: DiagramData['meta'] = { description: '', title: 'Empty', type: 'architecture', version: 1 }
         const emptyDiagram: DiagramData = { edges: [], groups: [], meta, nodes: [] }
         const { geometry, session } = createHarness(emptyDiagram)
-        const originalJson = JSON.stringify(session.getEditableDiagram())
+        const originalJson = JSON.stringify(session.read.getEditableDiagram())
         const originalWidth = geometry.getSurfaceFieldSnapshot('width')
         const originalHeight = geometry.getSurfaceFieldSnapshot('height')
 
@@ -185,20 +185,20 @@ describe('DiagramGeometryService surface growth', () => {
         geometry.setViewportMinimum(180, 120)
         expect(geometry.getSurfaceFieldSnapshot('width')).toBe(Math.max(originalWidth, 180))
         expect(geometry.getSurfaceFieldSnapshot('height')).toBe(Math.max(originalHeight, 120))
-        expect(session.getDirtySnapshot()).toBe(false)
-        expect(session.getChangeIdsSnapshot()).toEqual([])
-        expect(JSON.stringify(session.getEditableDiagram())).toBe(originalJson)
+        expect(session.read.getDirtySnapshot()).toBe(false)
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(JSON.stringify(session.read.getEditableDiagram())).toBe(originalJson)
     })
 
     it('extends beyond minimum for node and group moves, then shrinks when moved back', () => {
         const { geometry, session } = createHarness(edgeGrowthDiagram())
         geometry.setViewportMinimum(500, 400)
-        session.setNodeField('moving', 'x', 600)
-        session.setNodeField('moving', 'y', 520)
+        session.objects.setNodeField('moving', 'x', 600)
+        session.objects.setNodeField('moving', 'y', 520)
         expect(geometry.getSurfaceFieldSnapshot('width')).toBeGreaterThan(500)
         expect(geometry.getSurfaceFieldSnapshot('height')).toBeGreaterThan(400)
-        session.setNodeField('moving', 'x', 80)
-        session.setNodeField('moving', 'y', 80)
+        session.objects.setNodeField('moving', 'x', 80)
+        session.objects.setNodeField('moving', 'y', 80)
         expect(geometry.getSurfaceFieldSnapshot('width')).toBe(500)
         expect(geometry.getSurfaceFieldSnapshot('height')).toBe(400)
 
@@ -206,12 +206,12 @@ describe('DiagramGeometryService surface growth', () => {
         groupDiagram.groups.push({ height: 80, id: 'moving-group', label: 'Moving group', nodeIds: ['moving'], width: 120, x: 80, y: 80 })
         const groupHarness = createHarness(groupDiagram)
         groupHarness.geometry.setViewportMinimum(500, 400)
-        groupHarness.session.setGroupField('moving-group', 'x', 652)
-        groupHarness.session.setGroupField('moving-group', 'y', 540)
+        groupHarness.session.objects.setGroupField('moving-group', 'x', 652)
+        groupHarness.session.objects.setGroupField('moving-group', 'y', 540)
         expect(groupHarness.geometry.getSurfaceFieldSnapshot('width')).toBeGreaterThan(500)
         expect(groupHarness.geometry.getSurfaceFieldSnapshot('height')).toBeGreaterThan(400)
-        groupHarness.session.setGroupField('moving-group', 'x', 80)
-        groupHarness.session.setGroupField('moving-group', 'y', 80)
+        groupHarness.session.objects.setGroupField('moving-group', 'x', 80)
+        groupHarness.session.objects.setGroupField('moving-group', 'y', 80)
         expect(groupHarness.geometry.getSurfaceFieldSnapshot('width')).toBe(500)
         expect(groupHarness.geometry.getSurfaceFieldSnapshot('height')).toBe(400)
     })
@@ -219,8 +219,8 @@ describe('DiagramGeometryService surface growth', () => {
     it('extends minimum by origin growth so left and top drag compensation keeps its scroll range', () => {
         const { geometry, session } = createHarness(edgeGrowthDiagram())
         geometry.setViewportMinimum(500, 400)
-        session.setNodeField('moving', 'x', 20)
-        session.setNodeField('moving', 'y', 20)
+        session.objects.setNodeField('moving', 'x', 20)
+        session.objects.setNodeField('moving', 'y', 20)
 
         expect(geometry.getSurfaceFieldSnapshot('originX')).toBe(20)
         expect(geometry.getSurfaceFieldSnapshot('originY')).toBe(20)
@@ -238,7 +238,7 @@ describe('DiagramGeometryService surface growth', () => {
         const initialWidth = geometry.getSurfaceFieldSnapshot('width')
         const initialHeight = geometry.getSurfaceFieldSnapshot('height')
         session.setViewportScale(1.5)
-        session.setNodeField('moving', field, value)
+        session.objects.setNodeField('moving', field, value)
 
         expect(geometry.getSurfaceFieldSnapshot('originX')).toBe(expectedOriginX)
         expect(geometry.getSurfaceFieldSnapshot('originY')).toBe(expectedOriginY)
@@ -251,17 +251,17 @@ describe('DiagramGeometryService surface growth', () => {
         const { geometry, session } = createHarness(edgeGrowthDiagram())
         const initialWidth = geometry.getSurfaceFieldSnapshot('width')
         const initialHeight = geometry.getSurfaceFieldSnapshot('height')
-        session.setNodeField('moving', 'x', 200)
+        session.objects.setNodeField('moving', 'x', 200)
         expect(geometry.getSurfaceFieldSnapshot('width')).toBeGreaterThan(initialWidth)
         expect(geometry.getSurfaceFieldSnapshot('height')).toBe(initialHeight)
-        session.setNodeField('moving', 'y', 200)
+        session.objects.setNodeField('moving', 'y', 200)
         expect(geometry.getSurfaceFieldSnapshot('height')).toBeGreaterThan(initialHeight)
 
-        session.setNodeField('moving', 'x', -20)
-        session.setNodeField('moving', 'y', -20)
+        session.objects.setNodeField('moving', 'x', -20)
+        session.objects.setNodeField('moving', 'y', -20)
         expect(geometry.getSurfaceFieldSnapshot('originX')).toBe(60)
         expect(geometry.getSurfaceFieldSnapshot('originY')).toBe(60)
-        expect(session.setNodeField('moving', 'x', -20)).toBe(false)
+        expect(session.objects.setNodeField('moving', 'x', -20)).toBe(false)
     })
 })
 
@@ -319,7 +319,7 @@ describe('DiagramGeometryService', () => {
         const routeBefore = geometry.getEdgeRouteSnapshot('a-child')
         const labelBefore = geometry.getEdgeLabelPlacementSnapshot('a-child')
 
-        expect(session.setNodeSize('a', 120, 80)).toBe(true)
+        expect(session.objects.setNodeSize('a', 120, 80)).toBe(true)
         expect(nodeBox(geometry, 'a')).toMatchObject({ width: 120, height: 80 })
         expect(geometry.getEdgeRouteSnapshot('a-child')).not.toEqual(routeBefore)
         expect(geometry.getEdgeLabelPlacementSnapshot('a-child')).not.toEqual(labelBefore)
@@ -339,7 +339,7 @@ describe('DiagramGeometryService', () => {
         const incidentBefore = geometry.getEdgeRouteSnapshot('orders-store')
         const otherIncidentBefore = geometry.getEdgeRouteSnapshot('orders-mail')
 
-        session.setNodeField('store', 'x', 600)
+        session.objects.setNodeField('store', 'x', 600)
 
         expect(nodeBox(geometry, 'store').x).toBe(600)
         expect(nodeBox(geometry, 'mail')).toEqual(unrelatedBefore)
@@ -353,7 +353,7 @@ describe('DiagramGeometryService', () => {
         const unrelatedRoute = geometry.getEdgeRouteSnapshot('orders-mail')
         const dispatched = recordGeometryEvents(geometry)
 
-        expect(session.reconnectEdgeEndpoint('orders-store', 'targetAttachment', 'mail')).toBe(true)
+        expect(session.objects.reconnectEdgeEndpoint('orders-store', 'targetAttachment', 'mail')).toBe(true)
 
         expect(geometry.getEdgeRouteSnapshot('orders-store')).not.toBe(routeBefore)
         expect(geometry.getEdgeRouteSnapshot('orders-mail')).toBe(unrelatedRoute)
@@ -370,18 +370,18 @@ describe('DiagramGeometryService', () => {
         ['core-app', 'app', 'app-core', 0],
     ] as const)('reconnects dependency edge %s without rerouting other edges', (edgeId, oldTargetId, otherEdgeId, fanInChange) => {
         const { geometry, session } = createHarness(editableDependencyDiagram())
-        const edge = session.getEdgeSnapshot(edgeId)
-        const targetAttachment = session.getEdgeSnapshot(edgeId)?.targetAttachment
+        const edge = session.read.getEdgeSnapshot(edgeId)
+        const targetAttachment = session.read.getEdgeSnapshot(edgeId)?.targetAttachment
         const otherRoute = geometry.getEdgeRouteSnapshot(otherEdgeId)
         const unrelatedRoute = geometry.getEdgeRouteSnapshot('auxiliary-sink')
         const oldTargetFanIn = geometry.getNodeGeometryFieldSnapshot(oldTargetId, 'fanIn') as number
         const sinkFanIn = geometry.getNodeGeometryFieldSnapshot('sink', 'fanIn') as number
         const dispatched = recordGeometryEvents(geometry)
 
-        expect(session.reconnectEdgeEndpoint(edgeId, 'targetAttachment', 'sink')).toBe(true)
+        expect(session.objects.reconnectEdgeEndpoint(edgeId, 'targetAttachment', 'sink')).toBe(true)
 
-        expect(session.getEdgeSnapshot(edgeId)).toBe(edge)
-        expect(session.getEdgeSnapshot(edgeId)?.targetAttachment).toBe(targetAttachment)
+        expect(session.read.getEdgeSnapshot(edgeId)).toBe(edge)
+        expect(session.read.getEdgeSnapshot(edgeId)?.targetAttachment).toBe(targetAttachment)
         expect(geometry.getNodeGeometryFieldSnapshot(oldTargetId, 'fanIn')).toBe(oldTargetFanIn - fanInChange)
         expect(geometry.getNodeGeometryFieldSnapshot('sink', 'fanIn')).toBe(sinkFanIn + fanInChange)
         expect(geometry.getEdgeRouteSnapshot(otherEdgeId)).toBe(otherRoute)
@@ -420,7 +420,7 @@ describe('DiagramGeometryService', () => {
         const { geometry, session } = createHarness()
         const dispatched = recordGeometryEvents(geometry)
 
-        session.setNodeField('store', 'x', 600)
+        session.objects.setNodeField('store', 'x', 600)
 
         expect(dispatched).toContain('geometry:node:store:x')
         expect(dispatched).toContain('geometry:edge:orders-store:points')
@@ -433,11 +433,11 @@ describe('DiagramGeometryService', () => {
 
     it('dispatches no surface event when a move stays inside the current bounds', () => {
         const { geometry, session } = createHarness()
-        session.setNodeField('store', 'x', 1200)
+        session.objects.setNodeField('store', 'x', 1200)
         const width = geometry.getSurfaceFieldSnapshot('width')
         const dispatched = recordGeometryEvents(geometry)
 
-        session.setNodeField('mail', 'x', 120)
+        session.objects.setNodeField('mail', 'x', 120)
 
         expect(geometry.getSurfaceFieldSnapshot('width')).toBe(width)
         expect(dispatched).not.toContain('geometry:surface:surface:width')
@@ -448,9 +448,9 @@ describe('DiagramGeometryService', () => {
         const { geometry, session } = createHarness()
         const originalWidth = geometry.getSurfaceFieldSnapshot('width')
 
-        session.setNodeField('store', 'x', 1200)
+        session.objects.setNodeField('store', 'x', 1200)
         const widened = geometry.getSurfaceFieldSnapshot('width')
-        session.setNodeField('store', 'x', 240)
+        session.objects.setNodeField('store', 'x', 240)
 
         expect(widened).toBeGreaterThan(originalWidth)
         expect(geometry.getSurfaceFieldSnapshot('width')).toBe(originalWidth)
@@ -461,11 +461,11 @@ describe('DiagramGeometryService', () => {
         const routeBefore = geometry.getEdgeRouteSnapshot('orders-store')
         const dispatched = recordGeometryEvents(geometry)
 
-        session.setNodeField('orders', 'label', 'Order service')
-        session.setNodeField('orders', 'role', 'backend')
-        session.setNodeField('orders', 'sublabel', 'service')
-        session.setNodeField('orders', 'tag', 'core')
-        session.setMetadataField('title', 'Renamed')
+        session.objects.setNodeField('orders', 'label', 'Order service')
+        session.objects.setNodeField('orders', 'role', 'backend')
+        session.objects.setNodeField('orders', 'sublabel', 'service')
+        session.objects.setNodeField('orders', 'tag', 'core')
+        session.objects.setMetadataField('title', 'Renamed')
 
         expect(dispatched).toEqual([])
         expect(geometry.getEdgeRouteSnapshot('orders-store')).toBe(routeBefore)
@@ -476,7 +476,7 @@ describe('DiagramGeometryService', () => {
         const routeBefore = geometry.getEdgeRouteSnapshot('order-line')
         const dispatched = recordGeometryEvents(geometry)
 
-        session.setEntityField('order', 0, 'name', 'identifier')
+        session.entityFields.setEntityField('order', 0, 'name', 'identifier')
 
         expect(dispatched).toEqual([])
         expect(geometry.getEdgeRouteSnapshot('order-line')).toBe(routeBefore)
@@ -489,13 +489,13 @@ describe('DiagramGeometryService', () => {
         const implicitHeight = geometry.getNodeGeometryFieldSnapshot('order', 'height') as number
         const explicitHeight = geometry.getNodeGeometryFieldSnapshot('line', 'height')
 
-        session.addEntityField('order', { name: 'customerId', type: 'uuid' })
-        session.addEntityField('line', { name: 'sku' })
+        session.entityFields.addEntityField('order', { name: 'customerId', type: 'uuid' })
+        session.entityFields.addEntityField('line', { name: 'sku' })
 
         expect(geometry.getNodeGeometryFieldSnapshot('order', 'height')).toBeGreaterThan(implicitHeight)
         expect(geometry.getNodeGeometryFieldSnapshot('line', 'height')).toBe(explicitHeight)
-        expect(session.getNodeFieldSnapshot('order', 'height')).toBeUndefined()
-        expect(session.getNodeFieldSnapshot('line', 'height')).toBe(120)
+        expect(session.read.getNodeFieldSnapshot('order', 'height')).toBeUndefined()
+        expect(session.read.getNodeFieldSnapshot('line', 'height')).toBe(120)
     })
 
     it('cascades nothing when a model edit leaves the derived value unchanged', () => {
@@ -504,7 +504,7 @@ describe('DiagramGeometryService', () => {
         const routeBefore = geometry.getEdgeRouteSnapshot('orders-mail')
         const dispatched = recordGeometryEvents(geometry)
 
-        session.setNodeField('mail', 'x', derivedX as number)
+        session.objects.setNodeField('mail', 'x', derivedX as number)
 
         expect(dispatched).toEqual([])
         expect(geometry.getEdgeRouteSnapshot('orders-mail')).toBe(routeBefore)
@@ -514,8 +514,8 @@ describe('DiagramGeometryService', () => {
         const { geometry, session } = createHarness()
         const explicit = nodeBox(geometry, 'store')
 
-        session.setNodeField('mail', 'x', 800)
-        session.setNodeField('mail', 'y', 800)
+        session.objects.setNodeField('mail', 'x', 800)
+        session.objects.setNodeField('mail', 'y', 800)
 
         expect(nodeBox(geometry, 'store')).toEqual(explicit)
     })
@@ -524,11 +524,11 @@ describe('DiagramGeometryService', () => {
         const { geometry, session } = createHarness()
         const before = groupBoxSnapshot(geometry, 'backend')
 
-        session.setNodeField('store', 'x', 900)
+        session.objects.setNodeField('store', 'x', 900)
 
         expect(groupBoxSnapshot(geometry, 'backend')).toEqual(before)
 
-        session.setGroupField('backend', 'x', 40)
+        session.objects.setGroupField('backend', 'x', 40)
 
         expect(geometry.getGroupGeometryFieldSnapshot('backend', 'x')).toBe(40)
     })
@@ -539,7 +539,7 @@ describe('DiagramGeometryService', () => {
 
         expect(geometry.getNodeGeometryFieldSnapshot('store', 'fanIn')).toBe(1)
 
-        session.setEdgeField('orders-store', 'to', 'mail')
+        session.objects.setEdgeField('orders-store', 'to', 'mail')
 
         expect(geometry.getNodeGeometryFieldSnapshot('store', 'fanIn')).toBe(0)
         expect(geometry.getNodeGeometryFieldSnapshot('mail', 'fanIn')).toBe(2)
@@ -622,7 +622,7 @@ describe('DiagramGeometryService', () => {
         expect(activationIds.length).toBeGreaterThan(0)
         expect(fragmentTop).not.toBeNull()
 
-        session.setNodeField('store', 'x', 700)
+        session.objects.setNodeField('store', 'x', 700)
 
         expect(geometry.getFragmentGeometryFieldSnapshot('transaction', 'width')).toBeGreaterThan(0)
         expect(geometry.getActivationIdsSnapshot()).toEqual(activationIds)
@@ -637,7 +637,7 @@ describe('DiagramGeometryService', () => {
         const responseHeight = geometry.getFragmentGeometryFieldSnapshot('response', 'height')
         const dispatched = recordGeometryEvents(geometry)
 
-        expect(session.updateFragment('transaction', { operator: 'opt', regions: [{ edgeIds: ['orders-store'], guard: 'approved' }] })).toBe(true)
+        expect(session.fragments.updateFragment('transaction', { operator: 'opt', regions: [{ edgeIds: ['orders-store'], guard: 'approved' }] })).toBe(true)
 
         expect(geometry.getFragmentGuardPositionsSnapshot('transaction')).toEqual([
             { guard: 'approved', y: expect.any(Number) },
@@ -647,7 +647,7 @@ describe('DiagramGeometryService', () => {
         expect(dispatched).toEqual(['geometry:fragment:transaction:guardPositions'])
 
         dispatched.length = 0
-        expect(session.updateFragment('transaction', { operator: 'opt', regions: [{ edgeIds: ['orders-store', 'store-orders'], guard: 'approved' }] })).toBe(true)
+        expect(session.fragments.updateFragment('transaction', { operator: 'opt', regions: [{ edgeIds: ['orders-store', 'store-orders'], guard: 'approved' }] })).toBe(true)
 
         expect(geometry.getFragmentGeometryFieldSnapshot('transaction', 'height')).toBeGreaterThan(56)
         expect(geometry.getFragmentGeometryFieldSnapshot('response', 'height')).toBe(responseHeight)
@@ -659,7 +659,7 @@ describe('DiagramGeometryService', () => {
     it('observes guard edits in a region added after initial fragment layout', () => {
         const { geometry, session } = createHarness(sequenceDiagram())
 
-        expect(session.updateFragment('transaction', {
+        expect(session.fragments.updateFragment('transaction', {
             operator: 'alt',
             regions: [
                 { edgeIds: ['orders-store'], guard: 'approved' },
@@ -669,7 +669,7 @@ describe('DiagramGeometryService', () => {
         expect(geometry.getFragmentGuardPositionsSnapshot('transaction')).toHaveLength(2)
         const dispatched = recordGeometryEvents(geometry)
 
-        expect(session.updateFragment('transaction', {
+        expect(session.fragments.updateFragment('transaction', {
             operator: 'alt',
             regions: [
                 { edgeIds: ['orders-store'], guard: 'approved' },
@@ -684,7 +684,7 @@ describe('DiagramGeometryService', () => {
 
     it('keeps prior fragment geometry when edge deletion empties a required region', () => {
         const { geometry, session } = createHarness(sequenceDiagram())
-        expect(session.updateFragment('transaction', {
+        expect(session.fragments.updateFragment('transaction', {
             operator: 'alt',
             regions: [
                 { edgeIds: ['orders-store'], guard: 'approved' },
@@ -740,11 +740,11 @@ describe('DiagramGeometryService', () => {
         const insertedId = session.createSequenceEdge({ from: 'user', kind: 'async', to: 'store' }, 1)
         if (!insertedId) throw new Error('Expected sequence message creation to succeed')
         const insertedRoute = geometry.getEdgeRouteSnapshot(insertedId)
-        const orderBeforeMove = session.getEdgeIdsSnapshot()
+        const orderBeforeMove = session.read.getEdgeIdsSnapshot()
 
-        expect(session.moveSequenceEdge('orders-user', 1)).toBe(true)
-        expect(session.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user', insertedId, 'orders-store', 'store-orders'])
-        expect(session.getEdgeIdsSnapshot()).not.toBe(orderBeforeMove)
+        expect(session.objects.moveSequenceEdge('orders-user', 1)).toBe(true)
+        expect(session.read.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user', insertedId, 'orders-store', 'store-orders'])
+        expect(session.read.getEdgeIdsSnapshot()).not.toBe(orderBeforeMove)
         expect(geometry.getEdgeRouteSnapshot('user-orders')).toBe(firstRoute)
         expect(geometry.getEdgeRouteSnapshot(insertedId)).not.toBe(insertedRoute)
 
@@ -752,7 +752,7 @@ describe('DiagramGeometryService', () => {
         expect(session.removeObjects([{ objectId: insertedId, objectKind: 'edge' }])).toBe(true)
         expect(geometry.getEdgeRouteSnapshot(insertedId)).toHaveLength(0)
         expect(geometry.getEdgeRouteSnapshot('orders-store')).not.toBe(routeBeforeDelete)
-        expect((session.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-store'])
+        expect((session.read.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-store'])
     })
 
     it('derives an activation bar from a newly matched call and success pair', () => {
@@ -791,8 +791,8 @@ describe('DiagramGeometryService', () => {
         for (const diagram of Object.values(diagrams)) {
             const { geometry, session } = createHarness(diagram)
             const movedNodeId = diagram.nodes[0].id
-            session.setNodeField(movedNodeId, 'x', 320)
-            session.setNodeField(movedNodeId, 'y', 160)
+            session.objects.setNodeField(movedNodeId, 'x', 320)
+            session.objects.setNodeField(movedNodeId, 'y', 160)
             const boxes = diagram.nodes.map(({ id }) => nodeBox(geometry, id))
             const routes = diagram.edges.map(({ id }) => geometry.getEdgeRouteSnapshot(id))
 

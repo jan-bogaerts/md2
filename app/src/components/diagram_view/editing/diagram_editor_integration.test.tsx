@@ -95,12 +95,12 @@ afterEach(cleanup)
 
 describe('diagram editor integration', () => {
     it.each([
-        ['architecture', (session: DiagramEditSessionService) => session.setNodeField('one', 'label', 'One edited'), 'One', 'One edited'],
-        ['dependency', (session: DiagramEditSessionService) => session.setEdgeField('one-two', 'label', 'depends on'), 'uses', 'depends on'],
-        ['sequence', (session: DiagramEditSessionService) => session.updateFragment('optional-call', { operator: 'loop', regions: session.getFragmentSnapshot('optional-call')?.regions.map(({ edgeIds, guard }) => ({ edgeIds: [...edgeIds], guard })) ?? [] }), 'opt', 'loop'],
-        ['flowchart', (session: DiagramEditSessionService) => session.setEdgeField('one-two', 'label', 'approved'), 'yes', 'approved'],
-        ['state', (session: DiagramEditSessionService) => session.setEdgeField('one-two', 'label', 'complete'), 'advance', 'complete'],
-        ['entity', (session: DiagramEditSessionService) => session.setEntityField('one', 0, 'name', 'entityId'), '# id: uuid', '# entityId: uuid'],
+        ['architecture', (session: DiagramEditSessionService) => session.objects.setNodeField('one', 'label', 'One edited'), 'One', 'One edited'],
+        ['dependency', (session: DiagramEditSessionService) => session.objects.setEdgeField('one-two', 'label', 'depends on'), 'uses', 'depends on'],
+        ['sequence', (session: DiagramEditSessionService) => session.fragments.updateFragment('optional-call', { operator: 'loop', regions: session.read.getFragmentSnapshot('optional-call')?.regions.map(({ edgeIds, guard }) => ({ edgeIds: [...edgeIds], guard })) ?? [] }), 'opt', 'loop'],
+        ['flowchart', (session: DiagramEditSessionService) => session.objects.setEdgeField('one-two', 'label', 'approved'), 'yes', 'approved'],
+        ['state', (session: DiagramEditSessionService) => session.objects.setEdgeField('one-two', 'label', 'complete'), 'advance', 'complete'],
+        ['entity', (session: DiagramEditSessionService) => session.entityFields.setEntityField('one', 0, 'name', 'entityId'), '# id: uuid', '# entityId: uuid'],
     ] as const)('keeps Current immutable and New valid through %s edits', (diagramName, mutate, currentText, newText) => {
         const diagram = diagrams[diagramName]
         const originalText = JSON.stringify(diagram)
@@ -123,7 +123,7 @@ describe('diagram editor integration', () => {
         if (diagramName === 'architecture') expect(within(next).getByRole('textbox', { name: 'Edit One edited label' })).toHaveValue(newText)
         else expect(within(next).getByText(newText)).toBeInTheDocument()
         expect(JSON.stringify(diagram)).toBe(originalText)
-        expect(parseDiagramData(JSON.stringify(session.getEditableDiagram()))).toEqual(session.getEditableDiagram())
+        expect(parseDiagramData(JSON.stringify(session.read.getEditableDiagram()))).toEqual(session.read.getEditableDiagram())
     })
 
     it('hands off exact reviewed text from current session and rejects later stale reuse', () => {
@@ -136,7 +136,7 @@ describe('diagram editor integration', () => {
             () => 'review-1',
             () => () => undefined,
         )
-        session.setNodeField('one', 'label', 'One edited')
+        session.objects.setNodeField('one', 'label', 'One edited')
         review.open()
         const reviewedText = review.getGeneratedTextSnapshot()
 
@@ -145,7 +145,7 @@ describe('diagram editor integration', () => {
         expect(context?.diagramChanges).toBe(reviewedText)
         expect(context?.diagramId).toBe(record.id)
 
-        session.setNodeField('two', 'label', 'Two edited')
+        session.objects.setNodeField('two', 'label', 'Two edited')
 
         expect(review.getAgentHandoffContextSnapshot()).toBe(context)
         expect(review.requestAgentHandoff()).toBe(false)

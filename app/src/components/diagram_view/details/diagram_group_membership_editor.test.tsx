@@ -44,10 +44,10 @@ function createService() {
 
 function groupGeometry(session: DiagramEditSessionService) {
     return {
-        height: session.getGroupFieldSnapshot('backend', 'height'),
-        width: session.getGroupFieldSnapshot('backend', 'width'),
-        x: session.getGroupFieldSnapshot('backend', 'x'),
-        y: session.getGroupFieldSnapshot('backend', 'y'),
+        height: session.read.getGroupFieldSnapshot('backend', 'height'),
+        width: session.read.getGroupFieldSnapshot('backend', 'width'),
+        x: session.read.getGroupFieldSnapshot('backend', 'x'),
+        y: session.read.getGroupFieldSnapshot('backend', 'y'),
     }
 }
 
@@ -67,54 +67,54 @@ describe('diagram group membership editor', () => {
     it('adds one requested node ID without touching group geometry', async () => {
         const session = createService()
         const user = userEvent.setup()
-        const addGroupMember = vi.spyOn(session, 'addGroupMember')
+        const addGroupMember = vi.spyOn(session.objects, 'addGroupMember')
         const geometry = groupGeometry(session)
         const labelChanged = vi.fn()
-        session.subscribeGroupField('backend', 'label', labelChanged)
+        session.read.subscribeGroupField('backend', 'label', labelChanged)
         render(<DiagramGroupMembershipEditor groupId="backend" session={session} />)
 
         await user.click(screen.getByRole('checkbox', { name: 'Store' }))
 
         expect(addGroupMember).toHaveBeenCalledExactlyOnceWith('backend', 'store')
-        expect(session.getGroupNodeIdsSnapshot('backend')).toEqual(['orders', 'store'])
+        expect(session.read.getGroupNodeIdsSnapshot('backend')).toEqual(['orders', 'store'])
         expect(screen.getByRole('checkbox', { name: 'Store' })).toBeChecked()
         expect(groupGeometry(session)).toEqual(geometry)
         expect(labelChanged).not.toHaveBeenCalled()
-        expect(session.getNodeSnapshot('store')).toEqual(expect.objectContaining({ id: 'store', label: 'Store' }))
+        expect(session.read.getNodeSnapshot('store')).toEqual(expect.objectContaining({ id: 'store', label: 'Store' }))
     })
 
     it('removes one requested node ID and leaves an empty group valid', async () => {
         const session = createService()
         const user = userEvent.setup()
-        const removeGroupMember = vi.spyOn(session, 'removeGroupMember')
+        const removeGroupMember = vi.spyOn(session.objects, 'removeGroupMember')
         render(<DiagramGroupMembershipEditor groupId="backend" session={session} />)
 
         await user.click(screen.getByRole('checkbox', { name: 'Orders' }))
 
         expect(removeGroupMember).toHaveBeenCalledExactlyOnceWith('backend', 'orders')
-        expect(session.getGroupNodeIdsSnapshot('backend')).toEqual([])
-        expect(session.getGroupSnapshot('backend')).not.toBeNull()
+        expect(session.read.getGroupNodeIdsSnapshot('backend')).toEqual([])
+        expect(session.read.getGroupSnapshot('backend')).not.toBeNull()
         expect(screen.getByRole('checkbox', { name: 'Orders' })).not.toBeChecked()
     })
 
     it('records a membership change that is distinct from the group move and resize changes', async () => {
         const session = createService()
         const user = userEvent.setup()
-        act(() => { session.setGroupField('backend', 'x', 12) })
-        act(() => { session.setGroupField('backend', 'width', 20) })
-        const geometryChangeIds = session.getChangeIdsSnapshot()
+        act(() => { session.objects.setGroupField('backend', 'x', 12) })
+        act(() => { session.objects.setGroupField('backend', 'width', 20) })
+        const geometryChangeIds = session.read.getChangeIdsSnapshot()
         render(<DiagramGroupMembershipEditor groupId="backend" session={session} />)
 
         await user.click(screen.getByRole('checkbox', { name: 'Store' }))
 
-        const membershipChangeIds = session.getChangeIdsSnapshot().filter((id) => !geometryChangeIds.includes(id))
+        const membershipChangeIds = session.read.getChangeIdsSnapshot().filter((id) => !geometryChangeIds.includes(id))
         expect(membershipChangeIds).toHaveLength(1)
-        expect(session.getChangeFieldSnapshot(membershipChangeIds[0], 'category')).toBe('membership')
-        expect(session.getChangeFieldSnapshot(membershipChangeIds[0], 'field')).toBe('nodeIds')
-        expect(session.getChangeFieldSnapshot(membershipChangeIds[0], 'ownerId')).toBe('backend')
-        expect(session.getChangeFieldSnapshot(membershipChangeIds[0], 'objectId')).toBe('store')
+        expect(session.read.getChangeFieldSnapshot(membershipChangeIds[0], 'category')).toBe('membership')
+        expect(session.read.getChangeFieldSnapshot(membershipChangeIds[0], 'field')).toBe('nodeIds')
+        expect(session.read.getChangeFieldSnapshot(membershipChangeIds[0], 'ownerId')).toBe('backend')
+        expect(session.read.getChangeFieldSnapshot(membershipChangeIds[0], 'objectId')).toBe('store')
         for (const changeId of geometryChangeIds) {
-            expect(session.getChangeFieldSnapshot(changeId, 'category')).toBe('field')
+            expect(session.read.getChangeFieldSnapshot(changeId, 'category')).toBe('field')
         }
     })
 
@@ -124,7 +124,7 @@ describe('diagram group membership editor', () => {
 
         act(() => { session.removeObjects([{ objectId: 'orders', objectKind: 'node' }]) })
 
-        expect(session.getGroupNodeIdsSnapshot('backend')).toEqual([])
+        expect(session.read.getGroupNodeIdsSnapshot('backend')).toEqual([])
         expect(screen.queryByRole('checkbox', { name: 'Orders' })).toBeNull()
         expect(screen.getByRole('checkbox', { name: 'Store' })).not.toBeChecked()
     })
@@ -133,7 +133,7 @@ describe('diagram group membership editor', () => {
         const session = createService()
         render(<DiagramGroupMembershipEditor groupId="backend" session={session} />)
 
-        act(() => { session.setNodeField('store', 'label', 'Storage') })
+        act(() => { session.objects.setNodeField('store', 'label', 'Storage') })
 
         expect(screen.getByRole('checkbox', { name: 'Storage' })).toBeInTheDocument()
         expect(screen.getByRole('checkbox', { name: 'Orders' })).toBeChecked()

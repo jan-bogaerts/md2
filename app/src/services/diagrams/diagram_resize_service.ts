@@ -106,14 +106,14 @@ export class DiagramResizeService {
         this.geometry = geometry
         this.selection = selection
         this.session = session
-        this.session.subscribeTransientGesture(this.handleTransientGestureChanged)
+        this.session.read.subscribeTransientGesture(this.handleTransientGestureChanged)
     }
 
     getResizeActiveSnapshot = () => this.resize !== null
 
     beginResize(target: DiagramSelectionIdentity, direction: DiagramResizeDirection, point: DiagramResizePoint) {
         requireFinitePoint(point)
-        if (this.session.getActiveToolSnapshot() !== 'select') return false
+        if (this.session.read.getActiveToolSnapshot() !== 'select') return false
         if (this.resize) throw new Error('Cannot begin a diagram resize while another resize is active')
 
         const selection = this.selection.getSelectionSnapshot()
@@ -173,7 +173,7 @@ export class DiagramResizeService {
     }
 
     private readonly handleTransientGestureChanged = () => {
-        if (!this.resize || this.session.getTransientGestureSnapshot() === 'resize') return
+        if (!this.resize || this.session.read.getTransientGestureSnapshot() === 'resize') return
 
         this.restoreResize()
         this.resize = null
@@ -195,17 +195,17 @@ export class DiagramResizeService {
         }
 
         const originalHeight = objectKind === 'node'
-            ? this.session.getNodeFieldSnapshot(objectId, 'height')
-            : this.session.getGroupFieldSnapshot(objectId, 'height')
+            ? this.session.read.getNodeFieldSnapshot(objectId, 'height')
+            : this.session.read.getGroupFieldSnapshot(objectId, 'height')
         const originalWidth = objectKind === 'node'
-            ? this.session.getNodeFieldSnapshot(objectId, 'width')
-            : this.session.getGroupFieldSnapshot(objectId, 'width')
+            ? this.session.read.getNodeFieldSnapshot(objectId, 'width')
+            : this.session.read.getGroupFieldSnapshot(objectId, 'width')
         const originalX = objectKind === 'node'
-            ? this.session.getNodeFieldSnapshot(objectId, 'x')
-            : this.session.getGroupFieldSnapshot(objectId, 'x')
+            ? this.session.read.getNodeFieldSnapshot(objectId, 'x')
+            : this.session.read.getGroupFieldSnapshot(objectId, 'x')
         const originalY = objectKind === 'node'
-            ? this.session.getNodeFieldSnapshot(objectId, 'y')
-            : this.session.getGroupFieldSnapshot(objectId, 'y')
+            ? this.session.read.getNodeFieldSnapshot(objectId, 'y')
+            : this.session.read.getGroupFieldSnapshot(objectId, 'y')
         if (originalHeight === null || originalWidth === null || originalX === null || originalY === null) {
             throw new Error(`Diagram ${objectKind} ${objectId} does not exist`)
         }
@@ -225,17 +225,17 @@ export class DiagramResizeService {
         const changesX = direction === 'west' || direction === 'north-west' || direction === 'south-west'
         const changesY = direction === 'north' || direction === 'north-east' || direction === 'north-west'
         if (object.objectKind === 'node') {
-            if (changesX) this.session.setNodeField(object.objectId, 'x', box.x)
-            if (changesY) this.session.setNodeField(object.objectId, 'y', box.y)
-            this.session.setNodeSize(object.objectId, box.width, box.height)
+            if (changesX) this.session.objects.setNodeField(object.objectId, 'x', box.x)
+            if (changesY) this.session.objects.setNodeField(object.objectId, 'y', box.y)
+            this.session.objects.setNodeSize(object.objectId, box.width, box.height)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'x', box.x)
-        this.session.setGroupField(object.objectId, 'y', box.y)
-        this.session.setGroupField(object.objectId, 'width', box.width)
-        this.session.setGroupField(object.objectId, 'height', box.height)
+        this.session.objects.setGroupField(object.objectId, 'x', box.x)
+        this.session.objects.setGroupField(object.objectId, 'y', box.y)
+        this.session.objects.setGroupField(object.objectId, 'width', box.width)
+        this.session.objects.setGroupField(object.objectId, 'height', box.height)
     }
 
     private restoreResize() {
@@ -263,33 +263,33 @@ export class DiagramResizeService {
 
     private applyX(object: ResizingDiagramObject, x: number | undefined) {
         if (object.objectKind === 'node') {
-            this.session.setNodeField(object.objectId, 'x', x)
+            this.session.objects.setNodeField(object.objectId, 'x', x)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'x', x)
+        this.session.objects.setGroupField(object.objectId, 'x', x)
     }
 
     private applyY(object: ResizingDiagramObject, y: number | undefined) {
         if (object.objectKind === 'node') {
-            this.session.setNodeField(object.objectId, 'y', y)
+            this.session.objects.setNodeField(object.objectId, 'y', y)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'y', y)
+        this.session.objects.setGroupField(object.objectId, 'y', y)
     }
 
     private applySize(object: ResizingDiagramObject, width: number | undefined, height: number | undefined) {
         if (object.objectKind === 'node') {
-            this.session.setNodeSize(object.objectId, width, height)
+            this.session.objects.setNodeSize(object.objectId, width, height)
 
             return
         }
 
-        this.session.setGroupField(object.objectId, 'width', width)
-        this.session.setGroupField(object.objectId, 'height', height)
+        this.session.objects.setGroupField(object.objectId, 'width', width)
+        this.session.objects.setGroupField(object.objectId, 'height', height)
     }
 
     private requireResize() {

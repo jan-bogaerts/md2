@@ -9,6 +9,7 @@ import { boundedAgentResult } from '../../../../shared/agent_conversations.mjs';
 const require = createRequire(import.meta.url);
 const {
     appendActionActivity,
+    appendSystemActivityNow,
     closeWaitingActivityConversation,
     compactActivityFiles,
     dismissWaitingActivityConversationQuestions,
@@ -16,14 +17,23 @@ const {
     listAgentConversationReferences,
     loadActivityConversation,
     loadActivityConversations,
+    queueActivityUpdate,
     readActivityFile,
     splitActivityConversation,
     upsertActivityConversation,
     updateCardActionSettings,
     updateActivityConversationViewed,
 } = require('./activity_files');
+const { projectOperationCoordinator } = require('../../project/project_operation_coordinator');
 
 const terminalTime = '2026-08-04T10:30:00.000Z';
+
+function deferred() {
+    let resolve;
+    const promise = new Promise((complete) => { resolve = complete; });
+
+    return { promise, resolve };
+}
 
 function selection(activeAgent, model, thinkingLevel, permissionMode = 'ask-for-approval') {
     return { activeAgent, permissionMode, settingsByAgent: { [activeAgent]: { model, thinkingLevel } } };
@@ -856,6 +866,48 @@ describe('project activity conversations', () => {
             expect(await readFile(join(rootPath, malformedPath), 'utf8')).toBe(malformedContent);
             expect(await readFile(join(rootPath, futurePath), 'utf8')).toBe(futureContent);
         } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+});
+
+describe('activity writes and the project lock', () => {
+    it('runs an activity write queued during a project-lock operation after that operation resolves', async () => {
+        const calls = [];
+        const releaseHeld = deferred();
+        const held = projectOperationCoordinator.run('C:/held-activity-repo', async () => {
+            calls.push('held-start');
+            await releaseHeld.promise;
+            calls.push('held-end');
+        });
+        const write = queueActivityUpdate('C:/held-activity-repo', 'C:/held-activity-repo/design/activity/project.json', async () => {
+            calls.push('write');
+        });
+        await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+        expect(calls).toEqual(['held-start']);
+        releaseHeld.resolve();
+        await Promise.all([held, write]);
+        expect(calls).toEqual(['held-start', 'held-end', 'write']);
+    });
+
+    it('appends system activity without waiting for the project lock', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-now-'));
+        const releaseHeld = deferred();
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        const record = { commits: [], completedAt: terminalTime, label: 'Integrated', origin, type: 'system' };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const held = projectOperationCoordinator.run(rootPath, () => releaseHeld.promise);
+
+            const result = await appendSystemActivityNow({ branch: 'main', rootPath }, 'design', origin, record);
+
+            expect(result.relativePath).toBe('design/activity/card__card-1.json');
+            expect(result.activity.records).toHaveLength(1);
+            releaseHeld.resolve();
+            await held;
+        } finally {
+            releaseHeld.resolve();
             await rm(rootPath, { force: true, recursive: true });
         }
     });

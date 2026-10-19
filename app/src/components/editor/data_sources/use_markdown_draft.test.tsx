@@ -16,7 +16,8 @@ describe('useMarkdownDraft', () => {
             return true;
         });
         const bindDraft = vi.fn((draft: MarkdownDraftBinding | undefined) => { activeDraft = draft; });
-        const hook = renderHook(({ draft }) => useMarkdownDraft(draft, insertMarkdown, replaceMarkdown, flush, bindDraft),
+        const focusEditor = vi.fn();
+        const hook = renderHook(({ draft }) => useMarkdownDraft(draft, insertMarkdown, replaceMarkdown, flush, bindDraft, focusEditor),
             { initialProps: { draft: first } });
         editorBuffer = 'First buffered edit';
 
@@ -39,5 +40,27 @@ describe('useMarkdownDraft', () => {
         act(() => second.requestFlush());
         expect(flush).toHaveBeenCalledTimes(flushCount);
         expect(activeDraft).toBeUndefined();
+    });
+
+    it('focuses the editor on focus requests from the bound draft only', () => {
+        const first = new MarkdownDraft('First');
+        const second = new MarkdownDraft('Second');
+        const focusEditor = vi.fn();
+        const flush = vi.fn(() => true);
+        const hook = renderHook(({ draft }) => useMarkdownDraft(draft, vi.fn(), vi.fn(), flush, vi.fn(), focusEditor),
+            { initialProps: { draft: first } });
+
+        act(() => first.requestFocus());
+        expect(focusEditor).toHaveBeenCalledOnce();
+
+        hook.rerender({ draft: second });
+        act(() => first.requestFocus());
+        expect(focusEditor).toHaveBeenCalledOnce();
+        act(() => second.requestFocus());
+        expect(focusEditor).toHaveBeenCalledTimes(2);
+
+        hook.unmount();
+        act(() => second.requestFocus());
+        expect(focusEditor).toHaveBeenCalledTimes(2);
     });
 });

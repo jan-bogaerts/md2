@@ -10,6 +10,7 @@ import {
 } from './diagram_end_node_button';
 
 class EndNodeSessionStub extends EventTarget {
+    readonly read = this;
     private activeTool: DiagramPersistentTool = 'select';
     private readonly diagramType: DiagramType;
     private readonly flowPreset: DiagramFlowPreset | null;
@@ -23,7 +24,7 @@ class EndNodeSessionStub extends EventTarget {
     readonly getActiveToolSnapshot = () => this.activeTool;
     readonly getMetadataFieldSnapshot = ((field: DiagramEndNodeMetadataField) => (
         field === 'preset' ? this.flowPreset : this.diagramType
-    )) as DiagramEndNodeSession['getMetadataFieldSnapshot'];
+    )) as DiagramEndNodeSession['read']['getMetadataFieldSnapshot'];
     readonly subscribeActiveTool = (listener: () => void) => {
         this.addEventListener('activeToolChanged', listener);
 
@@ -62,7 +63,7 @@ describe('DiagramEndNodeButton', () => {
             defaults: { height: 48, label: 'End', role: 'focal', width: 120 },
             kind: 'end',
         });
-        expect(session.subscribeMetadataField.mock.calls.every(
+        expect(session.read.subscribeMetadataField.mock.calls.every(
             ([field]) => field === 'preset' || field === 'type',
         )).toBe(true);
 

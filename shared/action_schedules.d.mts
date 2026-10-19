@@ -1,5 +1,6 @@
 import type { SequenceBranchProgress } from './sequence_branch_progress.mjs';
 import type { ActionContext } from '../app/src/data/action_context'
+import type { AgentSelection } from './agent_profiles.mjs'
 
 export const ACTION_SCHEDULES_FILE: '.md2-schedules.json'
 
@@ -42,16 +43,21 @@ interface ScheduleBase {
 export interface ActionSchedule extends ScheduleBase {
     actionId: string
     context: ActionContext
+    conversationId?: string | null
+    failure?: string | null
     kind: 'action'
+    prompt?: string
     trigger: ActionScheduleTrigger
 }
 
 export interface SequenceSchedule extends ScheduleBase {
+    agentSelection?: AgentSelection
     worktreeBranch?: string;
     branchProgress?: SequenceBranchProgress;
     actionCompleted: boolean
     actionId: string
     cardInternalIds: string[]
+    conversationId?: string | null
     currentIndex: number
     currentRunId: string | null
     failure: string | null
@@ -68,3 +74,4 @@ export interface ScheduleFile {
 
 export function parseScheduleFile(value: unknown): ScheduleFile
 export function createScheduleFile(schedules: Schedule[]): ScheduleFile
+export function parseSequenceAgentSelection(value: unknown): import('./agent_profiles.mjs').AgentSelection

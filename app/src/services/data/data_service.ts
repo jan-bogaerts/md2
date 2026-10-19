@@ -272,6 +272,12 @@ export class DataService extends EventTarget {
         await this.saveStateService.drain()
     }
 
+    /** Writes queued batch changes to disk so the desktop reads current files; the timed commit still persists them. */
+    async writePendingFiles() {
+        const { commitBatcher } = this.requireDependencies()
+        await commitBatcher.writePending()
+    }
+
     getConfig(): ProjectConfig | null {
         return getProjectConfigOrNull(this.storage)
     }
@@ -340,6 +346,15 @@ export class DataService extends EventTarget {
         if (!currentProject) throw new Error('Cannot save a file before a project is open')
 
         commitBatcher.schedule(currentProject.branch, [{ ...file, kind: 'file' as const, saveReference }], message)
+    }
+
+    /** Queues a desktop-written repository path; the batch commits its on-disk content at flush time. */
+    scheduleRepositoryPathCommit(path: string, message: string) {
+        const { commitBatcher } = this.requireDependencies()
+        const currentProject = this.projectState.project
+        if (!currentProject) throw new Error('Cannot commit a repository path before a project is open')
+
+        commitBatcher.schedule(currentProject.branch, [{ kind: 'path' as const, path }], message)
     }
 
     /** Registers desktop-written integration history with the normal project commit batch. */
@@ -455,6 +470,7 @@ export class DataService extends EventTarget {
             project: () => this.projectState.project,
             requireDependencies: () => this.requireDependencies(),
             snapshot: () => this.projectState.snapshot,
+            waitForPinnedLocations: () => this.projectLoading.waitForPinnedLocations(),
         }
     }
 
@@ -494,8 +510,8 @@ export class DataService extends EventTarget {
                 this.projectState.replaceProject(project)
                 if (projectChanged) this.cards.resetProjectTracking()
             },
-            ensureCardInternalIds: async () => {
-                if (this.cards.ensureCardInternalIds() > 0) await this.cards.flushPendingCommits()
+            ensureCardInternalIds: async (excludedPaths) => {
+                if (this.cards.ensureCardInternalIds(excludedPaths) > 0) await this.cards.flushPendingCommits()
             },
             replaceProjectFiles: (files, workingFolder, repositoryFiles) => (
                 this.projectState.replaceProjectFiles(files, workingFolder, repositoryFiles)

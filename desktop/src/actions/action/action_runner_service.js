@@ -19,6 +19,11 @@ function allocateActionRunId() {
     return createRunId();
 }
 
+/** Allocates an agent conversation ID up front, so a scheduler can persist it before the run starts. */
+function allocateConversationId() {
+    return `agent-${crypto.randomUUID()}`;
+}
+
 const TERMINAL_RECOVERY_RETENTION_MS = 5 * 60 * 1000;
 
 // Activity ownership follows the presence of cardInternalId, not the context kind.
@@ -533,7 +538,9 @@ class ActionRunnerService {
 
     handleCardStateChange(cardInternalId, state, checkoutPath = null) {
         for (const run of this.runs.values()) {
-            if ((run.context?.sequenceCheckoutPath ?? null) !== checkoutPath) continue;
+            const sequenceCheckoutPath = run.context?.sequenceCheckoutPath ?? null;
+            const isPrimarySequenceEvent = sequenceCheckoutPath !== null && checkoutPath === null;
+            if (!isPrimarySequenceEvent && sequenceCheckoutPath !== checkoutPath) continue;
             run.handleCardStateChange(cardInternalId, state);
         }
     }
@@ -647,4 +654,4 @@ class ActionRunnerService {
     }
 }
 
-module.exports = { ActionRunnerService, allocateActionRunId };
+module.exports = { ActionRunnerService, allocateActionRunId, allocateConversationId };

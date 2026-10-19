@@ -81,6 +81,11 @@ export class MarkdownSourceController {
         editor.focus();
     }
 
+    /** Moves keyboard focus into the mounted source editor, if any. */
+    focus() {
+        this.sourceEditor?.focus();
+    }
+
     /** Imports into an isolated editor using the live import configuration before touching document or selection. */
     validateRichInsertion(markdown: string) {
         const editor = createEditor({ nodes: this.realm.getValue(usedLexicalNodes$), onError: (error) => { throw error; } });
@@ -118,8 +123,34 @@ export class MarkdownSourceController {
         if (!sourceChanged && this.realm.getValue(markdownProcessingError$)) return;
         if (sourceChanged && !this.validateConversion(source)) return;
         this.transitioning = true;
+        const needsDirectImport = sourceChanged && source.trim() === this.realm.getValue(markdown$).trim();
+        if (needsDirectImport) this.realm.pub(muteChange$, true);
         this.realm.pub(viewMode$, mode);
+        if (needsDirectImport) this.importSourceIntoRichEditor(source);
         this.finishTransition(sourceChanged);
+    }
+
+    private importSourceIntoRichEditor(source: string) {
+        const editor = this.realm.getValue(rootEditor$);
+        if (!editor) throw new Error('Markdown Rich text editor is not mounted');
+        const mdastRoot = fromMarkdown(source, {
+            extensions: this.realm.getValue(syntaxExtensions$),
+            mdastExtensions: this.realm.getValue(mdastExtensions$),
+        });
+        if (mdastRoot.children.at(-1)?.type !== 'paragraph') mdastRoot.children.push({ type: 'paragraph', children: [] });
+        editor.update(() => {
+            $getRoot().clear();
+            importMdastTreeToLexical({
+                root: $getRoot(),
+                mdastRoot,
+                visitors: [...this.realm.getValue(importVisitors$)],
+                jsxComponentDescriptors: this.realm.getValue(jsxComponentDescriptors$),
+                directiveDescriptors: this.realm.getValue(directiveDescriptors$),
+                codeBlockEditorDescriptors: this.realm.getValue(codeBlockEditorDescriptors$),
+                defaultCodeBlockLanguage: this.realm.getValue(defaultCodeBlockLanguage$),
+            });
+            $setSelection(null);
+        });
     }
 
     replaceMarkdown(markdown: string) {

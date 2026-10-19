@@ -28,18 +28,22 @@ import { ActionPopupBottomRow } from '../run/popup/action_popup_bottom_row'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
 import { ActionPhraseButtonsOwner } from '../editor/action_phrase_buttons_owner'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
+import type { ActionPopupFocusRequest } from '../run/popup/action_popup_focus_request'
+import { ActionScheduleOwner } from '../run/schedule/action_schedule_owner'
 
 interface ActionPromptOwnerProps {
     action: ActionDefinition
     bindingStore: ActionRunBindingStore
     context: ActionContext
     conversationStore: ActionConversationStore
+    focusRequest: ActionPopupFocusRequest
     historyStore: ActionHistoryStore
     inputStore: ActionRunInputStore
     questionsEnabled: boolean
     layoutStore: ActionInputLayoutStore;
     resultStore: ActionRunResultStore
     runValidationError: string | null
+    scheduleContext: ActionContext
     scheduleStore: ActionScheduleStore
     settingsStore: ActionRunSettingsStore
 }
@@ -51,8 +55,8 @@ function selectSessionActive(run: ActionRun | null) {
 /** Owns shared action-input draft binding, agent preparation, and keyboard-run behavior. */
 export function ActionPromptOwner(props: ActionPromptOwnerProps) {
     const {
-        action, bindingStore, context, conversationStore, historyStore, inputStore, resultStore,
-        runValidationError, scheduleStore, settingsStore,
+        action, bindingStore, context, conversationStore, focusRequest, historyStore, inputStore, resultStore,
+        runValidationError, scheduleContext, scheduleStore, settingsStore,
     } = props
     const boundRunId = useBoundRunId(bindingStore)
     const sessionActive = useRunSelector(boundRunId, selectSessionActive)
@@ -152,45 +156,54 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
     }
 
     return (
-        <ActionAgentPrompt
-            attachmentHandler={attachmentHandler}
-            bindingStore={bindingStore}
-            bottomRow={(
-                <ActionPopupBottomRow
-                    action={action}
-                    assignmentContext={context}
-                    bindingStore={bindingStore}
-                    conversationStore={conversationStore}
-                    embedded
-                    historyStore={historyStore}
-                    inputStore={inputStore}
-                    resultStore={resultStore}
-                    runValidationError={runValidationError}
-                    scheduleStore={scheduleStore}
-                    settingsStore={settingsStore}
-                />
-            )}
-            layoutStore={props.layoutStore}
-            convertMessage={inputSnapshot.convertMessage}
-            monospace={action.type === 'command'}
-            onRunShortcut={handleRunShortcut}
-            plainText={action.type === 'command'}
-            promptDraft={promptDraft}
-            questionsEnabled={props.questionsEnabled}
-            restoredQuestions={restored}
-            responsePrompts={action.type === 'agent' ? (
-                <ActionPhraseButtonsOwner
-                    action={action}
-                    bindingStore={bindingStore}
-                    context={context}
-                    conversationStore={conversationStore}
-                    historyStore={historyStore}
-                    inputStore={inputStore}
-                    resultStore={resultStore}
-                    runValidationError={runValidationError}
-                    settingsStore={settingsStore}
-                />
-            ) : undefined}
-        />
+        <>
+            <ActionScheduleOwner
+                action={action}
+                context={scheduleContext}
+                promptDraft={promptDraft}
+                store={scheduleStore}
+            />
+            <ActionAgentPrompt
+                attachmentHandler={attachmentHandler}
+                bindingStore={bindingStore}
+                bottomRow={(
+                    <ActionPopupBottomRow
+                        action={action}
+                        assignmentContext={context}
+                        bindingStore={bindingStore}
+                        conversationStore={conversationStore}
+                        embedded
+                        focusRequest={focusRequest}
+                        historyStore={historyStore}
+                        inputStore={inputStore}
+                        resultStore={resultStore}
+                        runValidationError={runValidationError}
+                        scheduleStore={scheduleStore}
+                        settingsStore={settingsStore}
+                    />
+                )}
+                layoutStore={props.layoutStore}
+                convertMessage={inputSnapshot.convertMessage}
+                monospace={action.type === 'command'}
+                onRunShortcut={handleRunShortcut}
+                plainText={action.type === 'command'}
+                promptDraft={promptDraft}
+                questionsEnabled={props.questionsEnabled}
+                restoredQuestions={restored}
+                responsePrompts={action.type === 'agent' ? (
+                    <ActionPhraseButtonsOwner
+                        action={action}
+                        bindingStore={bindingStore}
+                        context={context}
+                        conversationStore={conversationStore}
+                        historyStore={historyStore}
+                        inputStore={inputStore}
+                        resultStore={resultStore}
+                        runValidationError={runValidationError}
+                        settingsStore={settingsStore}
+                    />
+                ) : undefined}
+            />
+        </>
     )
 }

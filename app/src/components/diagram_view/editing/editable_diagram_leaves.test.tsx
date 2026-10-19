@@ -155,7 +155,7 @@ describe('editable diagram leaves', () => {
         const { counts, session } = renderTree()
         const before = new Map(counts)
 
-        act(() => { session.setNodeField('orders', 'label', 'Order intake') })
+        act(() => { session.objects.setNodeField('orders', 'label', 'Order intake') })
 
         expect(counts.get('orders')).toBeGreaterThan(before.get('orders') ?? 0)
         expect(counts.get('store')).toBe(before.get('store'))
@@ -168,7 +168,7 @@ describe('editable diagram leaves', () => {
         const { counts, session } = renderTree()
         const beforeRole = new Map(counts)
 
-        act(() => { session.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 12 } }) })
+        act(() => { session.formatting.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 12 } }) })
 
         expect(counts.get('orders')).toBeGreaterThan(beforeRole.get('orders') ?? 0)
         expect(counts.get('store')).toBe(beforeRole.get('store'))
@@ -178,7 +178,7 @@ describe('editable diagram leaves', () => {
         expect(getComputedStyle(screen.getByRole('textbox', { name: 'Edit Store label' }).closest('.MuiFormControl-root') as HTMLElement).left).toBe('4px')
         const beforeConnection = new Map(counts)
 
-        act(() => { session.setConnectionKindFormatting('connection', { line: { thickness: 4 } }) })
+        act(() => { session.formatting.setConnectionKindFormatting('connection', { line: { thickness: 4 } }) })
 
         expect(counts.get('edge')).toBeGreaterThan(beforeConnection.get('edge') ?? 0)
         expect(counts.get('orders')).toBe(beforeConnection.get('orders'))
@@ -190,7 +190,7 @@ describe('editable diagram leaves', () => {
         const { counts, session } = renderTree(entityDiagram)
         const before = new Map(counts)
 
-        act(() => { session.setEntityField('orders', 0, 'name', 'orderId') })
+        act(() => { session.entityFields.setEntityField('orders', 0, 'name', 'orderId') })
 
         expect(counts.get('orders')).toBeGreaterThan(before.get('orders') ?? 0)
         expect(counts.get('store')).toBe(before.get('store'))
@@ -202,7 +202,7 @@ describe('editable diagram leaves', () => {
     it('applies node-role font formatting to entity fields', () => {
         const { session } = renderTree(entityDiagram)
 
-        act(() => { session.setNodeRoleFormatting('focal', { font: { color: '#112233', family: 'serif' } }) })
+        act(() => { session.formatting.setNodeRoleFormatting('focal', { font: { color: '#112233', family: 'serif' } }) })
 
         expect(screen.getByText('# id: uuid')).toHaveStyle({ color: '#112233', fontFamily: 'serif' })
     })
@@ -211,7 +211,7 @@ describe('editable diagram leaves', () => {
         const { counts, session } = renderTree()
         const before = new Map(counts)
 
-        act(() => { session.setEdgeField('orders-store', 'label', 'stores') })
+        act(() => { session.objects.setEdgeField('orders-store', 'label', 'stores') })
 
         expect(counts.get('edge')).toBeGreaterThan(before.get('edge') ?? 0)
         expect(counts.get('orders')).toBe(before.get('orders'))
@@ -221,12 +221,12 @@ describe('editable diagram leaves', () => {
 
     it('rerenders only the relationship leaf when one cardinality changes', () => {
         const { counts, session } = renderTree(entityDiagram)
-        const edge = session.getEdgeSnapshot('orders-store')
+        const edge = session.read.getEdgeSnapshot('orders-store')
         const before = new Map(counts)
 
-        act(() => { session.setEdgeField('orders-store', 'toCardinality', '1..*') })
+        act(() => { session.objects.setEdgeField('orders-store', 'toCardinality', '1..*') })
 
-        expect(session.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(session.read.getEdgeSnapshot('orders-store')).toBe(edge)
         expect(counts.get('edge')).toBeGreaterThan(before.get('edge') ?? 0)
         expect(counts.get('orders')).toBe(before.get('orders'))
         expect(counts.get('store')).toBe(before.get('store'))
@@ -239,10 +239,10 @@ describe('editable diagram leaves', () => {
         const targetCardinality = screen.getByText('N')
         expect(targetCardinality).toHaveAttribute('x', '232')
 
-        act(() => { session.setNodeField('store', 'x', 400) })
+        act(() => { session.objects.setNodeField('store', 'x', 400) })
         expect(targetCardinality).toHaveAttribute('x', '392')
 
-        act(() => { session.reconnectEdgeEndpoint('orders-store', 'targetAttachment', 'archive') })
+        act(() => { session.objects.reconnectEdgeEndpoint('orders-store', 'targetAttachment', 'archive') })
         expect(targetCardinality).toHaveAttribute('x', '592')
     })
 
@@ -250,7 +250,7 @@ describe('editable diagram leaves', () => {
         const { counts, session } = renderTree()
         const before = new Map(counts)
 
-        act(() => { session.setGroupField('backend', 'label', 'Services') })
+        act(() => { session.objects.setGroupField('backend', 'label', 'Services') })
 
         expect(counts.get('group')).toBeGreaterThan(before.get('group') ?? 0)
         expect(counts.get('orders')).toBe(before.get('orders'))
@@ -262,7 +262,7 @@ describe('editable diagram leaves', () => {
         const { counts, session } = renderTree()
         const before = new Map(counts)
 
-        act(() => { session.setGroupField('backend', 'x', 40) })
+        act(() => { session.objects.setGroupField('backend', 'x', 40) })
 
         expect(counts.get('group')).toBeGreaterThan(before.get('group') ?? 0)
         expect(counts.get('orders')).toBe(before.get('orders'))

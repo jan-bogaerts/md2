@@ -59,6 +59,7 @@ export interface AgentIntegrationDeps {
     project(): ProjectReference | null
     requireDependencies(): RequiredDataServiceDependencies
     snapshot(): ProjectSnapshot | null
+    waitForPinnedLocations(): Promise<void>
 }
 
 function isOnStateActionError(error: AgentConversationError) {
@@ -394,6 +395,8 @@ export class AgentIntegration {
     }
 
     private async loadPinnedConversations(project: ProjectReference, projectLoadToken: number, generation: number) {
+        await this.dependencies.waitForPinnedLocations()
+        if (!this.canApplyLoad(generation, project, projectLoadToken)) return
         const loadSequence = this.conversationWriteSequence
         const { config, storage } = this.dependencies.requireDependencies()
         const activityPaths = this.pinnedActivityPaths(config.projectFolder)
@@ -410,8 +413,8 @@ export class AgentIntegration {
     }
 
     private pinnedActivityPaths(projectFolder: string) {
-        const paths = this.dependencies.pins.getSnapshot().flatMap(({ cardInternalId }) => {
-            if (!cardInternalId) return [activityFilePath(projectFolder, { kind: 'project' })]
+        const paths = this.dependencies.pins.getSnapshot().flatMap(({ activityPath, cardInternalId }) => {
+            if (!cardInternalId) return [activityPath ?? activityFilePath(projectFolder, { kind: 'project' })]
             const card = this.dependencies.findCardByInternalId(cardInternalId)
 
             return card?.header.agentLogReferences ?? []
