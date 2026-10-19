@@ -881,7 +881,7 @@
       "actionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-10-19T08:36:15.657Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 81315
@@ -1489,7 +1489,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 46,
-          "timestamp": "2026-10-19T08:36:03.556Z"
+          "timestamp": "2026-10-19T08:36:15.657Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1499,19 +1499,19 @@
           "agent": "codex",
           "conversationId": "01a1534c-6316-7df1-bfbb-87c2086c2243",
           "createdAt": "2026-10-19T08:36:03.556Z",
-          "lastUsedAt": "2026-10-19T08:36:03.556Z",
+          "lastUsedAt": "2026-10-19T08:36:15.657Z",
           "synchronizedThroughMessageId": "agent-turn-a51b8c7d-8a1b-426f-8120-fa11921297fe-turn-1-assistant-4"
         }
       ],
       "startedAt": "2026-10-19T08:33:46.503Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 311,
           "toolMs": 2756
         },
-        "elapsedMs": 23206,
-        "runningStartedAt": "2026-10-19T08:34:37.304Z"
+        "elapsedMs": 109458,
+        "runningStartedAt": null
       },
       "title": "write release note",
       "usage": {
