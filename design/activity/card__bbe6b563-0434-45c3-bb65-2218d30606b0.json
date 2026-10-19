@@ -3838,6 +3838,43 @@
       "startedAt": "2026-10-17T12:41:09.331Z",
       "status": "completed",
       "rootConversationId": "agent-d7de18d0-95a4-446f-822e-f51dd040037e"
+    },
+    {
+      "commits": [
+        {
+          "commit": "83e0823b869141fe30ce24add8f8c48f6312c803",
+          "committedAt": "2026-10-19T10:29:32+02:00",
+          "deletions": 83,
+          "filePaths": [
+            "app/src/components/actions/run/sequence/card_sequence_registration.node.test.ts",
+            "app/src/components/actions/run/sequence/card_sequence_registration.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/services/actions/active_schedule_service.node.test.ts",
+            "app/src/services/actions/active_schedule_service.ts",
+            "desktop/main.js",
+            "desktop/src/actions/action/action_scheduler_service.js",
+            "desktop/src/actions/action/action_scheduler_service.test.mjs",
+            "desktop/src/actions/action/action_worktree_run_service.js",
+            "desktop/src/actions/action/action_worktree_run_service.test.mjs",
+            "desktop/src/actions/schedule/scheduled_card_sequence_engine.js",
+            "desktop/src/actions/schedule/scheduled_card_sequence_engine.test.mjs",
+            "desktop/src/actions/schedule/sequence_worktree_execution.js",
+            "desktop/src/actions/schedule/sequence_worktree_execution.test.mjs",
+            "desktop/src/git/worktree_service.js",
+            "desktop/src/git/worktree_service.test.mjs"
+          ],
+          "filesChanged": 16,
+          "insertions": 392,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-19T10:29:32+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "bbe6b563-0434-45c3-bb65-2218d30606b0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__bbe6b563-0434-45c3-bb65-2218d30606b0.json
 policy:
-branch: j_62_analyze_start_sequence_traces
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/sequence/card_sequence_registration.node.test.ts
   - app/src/components/actions/run/sequence/card_sequence_registration.ts
