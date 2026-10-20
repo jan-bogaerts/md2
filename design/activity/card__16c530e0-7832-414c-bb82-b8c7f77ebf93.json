@@ -1,0 +1,54 @@
+{
+  "actionSettings": {
+    "a82ceffa-4aa0-4d06-b6db-ac3edb008575": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "16c530e0-7832-414c-bb82-b8c7f77ebf93",
+      "cardPath": "design/feature_descriptions/B_316_new_tasks_on_second_prompt_no_longer_used.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_316_new_tasks_on_second_prompt_no_longer_used.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-3b511f97-ec5b-4d3c-b276-29caf8643cb5",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-20T14:07:53.276Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-16f7c618-227b-4de4-a57b-5401b7477211",
+      "providerSessions": [],
+      "startedAt": "2026-10-20T14:07:53.276Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-20T14:07:53.276Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "16c530e0-7832-414c-bb82-b8c7f77ebf93",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}

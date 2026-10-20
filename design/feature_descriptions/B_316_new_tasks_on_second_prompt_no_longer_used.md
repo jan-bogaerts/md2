@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__16c530e0-7832-414c-bb82-b8c7f77ebf93.json
 policy:
 ---
 we recently introduced tracking agent tasks. see [F\_434\_agent\_task\_list\_component.md](design/feature_descriptions/F_434_agent_task_list_component.md)
