@@ -1119,7 +1119,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 70580
+        "usedTokens": 79742
       },
       "entries": [
         {
@@ -1311,6 +1311,246 @@
           "role": "user",
           "sequence": 16,
           "timestamp": "2026-10-20T15:11:03.695Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/desktop; python - <<'EOF'\np='src/actions/agent/usage_metrics_service.js'\ns=open(p,encoding='utf8',newline='').read()\ns=s.replace(\"const { projectOperationCoordinator } = require('../../project/project_operation_coordinator');\",\"const { projectKey, projectOperationCoordinator } = require('../../project/project_operation_coordinator');\",1)\nold=\"\"\"    requireFilePath() {\"\"\"\nnew=\"\"\"    /** Returns the metrics file path relative to the repository root, or null when `rootPath` is not the bound project. */\n    repositoryPath(rootPath) {\n        if (!this.filePath || typeof rootPath !== 'string' || rootPath.length === 0) return null;\n        if (projectKey(rootPath) !== projectKey(this.rootPath)) return null;\n\n        return path.relative(this.rootPath, this.filePath).replaceAll('\\\\\\\\', '/');\n    }\n\n    requireFilePath() {\"\"\"\nassert old in s\ns=s.replace(old,new,1)\nopen(p,'w',encoding='utf8',newline='').write(s)\nEOF\ngrep -n \"repositoryPath\" -A6 src/actions/agent/usage_metrics_service.js; file src/actions/agent/usage_metrics_service.js src/shell/local_bridge_dispatch.js main.js",
+          "content": "355:    repositoryPath(rootPath) {\n356-        if (!this.filePath || typeof rootPath !== 'string' || rootPath.length === 0) return null;\n357-        if (projectKey(rootPath) !== projectKey(this.rootPath)) return null;\n358-\n359-        return path.relative(this.rootPath, this.filePath).replaceAll('\\', '/');\n360-    }\n361-\nsrc/actions/agent/usage_metrics_service.js: JavaScript source, ASCII text\nsrc/shell/local_bridge_dispatch.js:         JavaScript source, ASCII text\nmain.js:                                    JavaScript source, Unicode text, UTF-8 text",
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-17",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/desktop; python - <<'EOF'\np='src/actions/agent/usage_metrics_service.js'\ns=open(p,encoding='utf8',newline='').read()\ns=s.replace(\"const { projectOperationCoordinator } = require('../../project/project_operation_coordinator');\",\"const { projectKey, projectOperationCoordinator } = require('../../project/project_operation_coordinator');\",1)\nold=\"\"\"    requireFilePath() {\"\"\"\nnew=\"\"\"    /** Returns the metrics file path relative to the repository root, or null when `rootPath` is not the bound project. */\n    repositoryPath(rootPath) {\n        if (!this.filePath || typeof rootPath !== 'string' || rootPath.length === 0) return null;\n        if (projectKey(rootPath) !== projectKey(this.rootPath)) return null;\n\n        return path.relative(this.rootPath, this.filePath).replaceAll('\\\\\\\\', '/');\n    }\n\n    requireFilePath() {\"\"\"\nassert old in s\ns=s.replace(old,new,1)\nopen(p,'w',encoding='utf8',newline='').write(s)\nEOF\ngrep -n \"repositoryPath\" -A6 src/actions/agent/usage_metrics_service.js; file src/actions/agent/usage_metrics_service.js src/shell/local_bridge_dispatch.js main.js",
+          "providerItemId": "toolu_01HjeZjvtbmFDfTWkXKYpccb",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:15.175Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "Escape lost; fix with Edit.",
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 18,
+          "timestamp": "2026-10-20T15:11:16.761Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\usage_metrics_service.js",
+          "deletions": 1,
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-19",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\usage_metrics_service.js has been updated successfully. (note: the file had been modified on disk since you last read it — the edit applied cleanly, but the file contains other changes not in your context. Read it before edits that depend on surrounding content.)",
+          "providerItemId": "toolu_012maCBvUcn6g6pVpfrwsVFi",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:17.737Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDhkCR6QyxBkabKxMcG7:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T15:11:20.195Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\shell\\local_bridge_dispatch.js",
+          "deletions": 1,
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-21",
+          "insertions": 6,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\shell\\local_bridge_dispatch.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Xi72WkxPAQU8ya49KSskDd",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:22.224Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\shell\\local_bridge_dispatch.js",
+          "deletions": 0,
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-22",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\shell\\local_bridge_dispatch.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Xb6zQAvTq7MWj3rZysWKvZ",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:23.472Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/desktop; sed -n 175,182p main.js",
+          "content": "    updateCodexCli,\n    worktreeService,\n});\nconst remoteControlService = new RemoteControlService(localBridgeDispatch);\nconst electronTelemetryStarted = startElectronTelemetry({ isDevelopment: !app.isPackaged });\nconst subscriptionCleanups = new Map();\nlet isQuittingAfterTelemetry = false;\nconst closeCoordinator = new CloseCoordinator({",
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-23",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/desktop; sed -n 175,182p main.js",
+          "providerItemId": "toolu_01TSZJADdBqVda1bGBPmmKYE",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:24.042Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\main.js",
+          "deletions": 0,
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-24",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\main.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01MTH53FBNvCcHCfjwiWVdET",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:27.122Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\shell\\local_bridge_dispatch.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-25",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\shell\\local_bridge_dispatch.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_014iiHJqWTb6WSwM6yydWqCY",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:28.534Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\shell\\local_bridge_dispatch.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-26",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\shell\\local_bridge_dispatch.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_012tuo1kgWbyE96PByocGCJS",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:29.839Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\shell\\local_bridge_dispatch.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-27",
+          "insertions": 25,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\shell\\local_bridge_dispatch.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01BQPizbscN74Nuv9B5XxVYd",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:34.662Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\desktop\\\\src\\\\actions\\\\agent\\\\usage_metrics_service.test.mjs\",\"offset\":245,\"limit\":25}",
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-28",
+          "kind": "event",
+          "label": "Read",
+          "output": "245\t        const records = parsedObjects(await readFile(filePath, 'utf8'));\n246\t        expect(records).toHaveLength(2);\n247\t        expect(records.at(-1).used_percent_delta).toBe('5');\n248\t    });\n249\t\n250\t    it('requires one active project and rejects malformed usage and account snapshots', async () => {\n251\t        const { destination, filePath } = await createDestination();\n252\t        const service = new UsageMetricsService();\n253\t\n254\t        await expect(service.recordTokenUsage('codex', TOKEN_USAGE, Date.now()))\n255\t            .rejects.toThrow('Usage metrics project is not active');\n256\t        expect(() => service.startProject(destination, '..')).toThrow('Invalid usage metrics project');\n257\t        startProject(service, destination);\n258\t        expect(await service.recordTokenUsage('codex', { ...TOKEN_USAGE, inputTokens: -1 }, Date.now())).toBe(false);\n259\t        expect(await service.recordTokenUsage('codex', { ...TOKEN_USAGE, totalTokens: 12 }, Date.now())).toBe(false);\n260\t        expect(await service.recordAccountUsage('claude', { ...claudeSnapshot(10, 20), available: false })).toBe(false);\n261\t        expect(await service.recordAccountUsage('codex', codexSnapshot(Number.NaN))).toBe(false);\n262\t        await expect(readFile(filePath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });\n263\t    });\n264\t\n265\t    it('reports read and append failures without rejecting and allows later retry', async () => {\n266\t        const { destination } = await createDestination();\n267\t        const errorReporter = vi.fn();\n268\t        const appendFailure = new Error('disk full');\n269\t        const appendMetric = vi.fn()",
+          "providerItemId": "toolu_01JSDo8J7sxxsM52DB9aLtoS",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:35.506Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\usage_metrics_service.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-29",
+          "insertions": 11,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\usage_metrics_service.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_019gBg8owKAHj6LJcaWvZKZv",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:39.560Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"command\":\"npm run test -- src/actions/agent/usage_metrics_service.test.mjs src/shell/local_bridge_dispatch.test.mjs\",\"description\":\"Run the two affected test files\"}",
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-30",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> desktop@0.9.0 test\n> vitest run src/actions/agent/usage_metrics_service.test.mjs src/shell/local_bridge_dispatch.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/desktop\n\n\n Test Files  2 passed (2)\n      Tests  95 passed (95)\n   Start at  17:11:44\n   Duration  529ms (transform 89ms, setup 0ms, import 247ms, tests 407ms, environment 0ms)",
+          "providerItemId": "toolu_01UnQ2EuH1hLfiivtg3q4fUr",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:44.697Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "{\"command\":\"npm run lint\",\"description\":\"Lint desktop project\"}",
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-31",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> desktop@0.9.0 lint\n> eslint .",
+          "providerItemId": "toolu_01FoeP2awTKy1SrPwMgnNnP3",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:53.919Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nLint clean. Set status.",
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 32,
+          "timestamp": "2026-10-20T15:11:55.574Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_317_usage_metrics_not_committed.md",
+          "deletions": 1,
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-33",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_317_usage_metrics_not_committed.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01JQnCydToNGHZgYrn8mZ7D1",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:59.218Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"query\":\"select:TaskUpdate\",\"max_results\":1}",
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-event-34",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskUpdate\"}]",
+          "providerItemId": "toolu_01UbXeXZpffULJuTnt9ZtaLG",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-10-20T15:11:59.221Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nB_317 fixed. Each `CommitBatcher` commit for the active primary project now also stages `usage_metrics.csv`. Pending CSV rows join that commit with the batch's message, and the CSV never gets a commit of its own. Both test files pass (95 tests) and `npm run lint` in `desktop` is clean.\n\n**Changes:**\n- **`usage_metrics_service.js`:** new `repositoryPath(rootPath)` method. It returns the CSV path relative to the repository root, with forward slashes. It returns `null` before `startProject` runs, or when `rootPath` is not the bound project root (compared through `projectKey`).\n- **`local_bridge_dispatch.js`:** the `commit` handler adds that path to `request.paths` when it is not `null`; otherwise the request goes through unchanged. It reads `currentLocalProject?.rootPath`, so with no active project it still reaches the existing \"no project\" error instead of crashing first.\n- **`main.js`:** passes `usageMetricsService` into `createLocalBridgeDispatch`.\n- **Tests:**\n  - `usage_metrics_service.test.mjs`: one new test. It checks `null` before `startProject`, the relative path for the bound root, and `null` for another root.\n  - `local_bridge_dispatch.test.mjs`: two new tests. The CSV path is added after the existing paths, and the request is unchanged when `repositoryPath` returns `null`. The shared test setup now has a default stub that returns `null`, so the existing tests behave as before.\n- **Feature file:** `status: ready` in `md2\\design\\feature_descriptions\\B_317_usage_metrics_not_committed.md`.\n\nWorktree integration still commits the CSV if no batch commit happened before it.",
+          "id": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 35,
+          "timestamp": "2026-10-20T15:12:08.271Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1320,17 +1560,17 @@
           "agent": "claude",
           "conversationId": "e05b213e-84c1-49b5-be1e-cd0a000b857c",
           "createdAt": "2026-10-20T15:05:18.902Z",
-          "lastUsedAt": "2026-10-20T15:05:18.902Z",
-          "synchronizedThroughMessageId": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-turn-1-assistant-2",
+          "lastUsedAt": "2026-10-20T15:12:08.271Z",
+          "synchronizedThroughMessageId": "agent-turn-bfa0a709-9dd9-4ec9-8057-811dd27192a8-turn-2-assistant-3",
           "usageBaseline": {
-            "costUsd": 0.5740726,
-            "resultId": "485890c1-92f5-4684-8de1-2263145b064e",
+            "costUsd": 0.8710972,
+            "resultId": "b47110ba-3af3-4331-ba97-70c26f93115b",
             "tokens": {
-              "cachedInputTokens": 465133,
-              "inputTokens": 16,
-              "outputTokens": 2993,
+              "cachedInputTokens": 1146478,
+              "inputTokens": 34,
+              "outputTokens": 7454,
               "reasoningTokens": 0,
-              "totalTokens": 468142
+              "totalTokens": 1153966
             }
           }
         }
@@ -1342,37 +1582,37 @@
           {
             "id": "1",
             "subject": "Block 1: UsageMetricsService.repositoryPath",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 2: commit handler adds usage metrics path",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Block 3: lint, tests, set status ready",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-10-20T15:05:09.021Z"
+        "updatedAt": "2026-10-20T15:12:02.108Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 9356,
-          "toolMs": 8622
+          "reasoningMs": 9824,
+          "toolMs": 49570
         },
         "elapsedMs": 39242,
         "runningStartedAt": "2026-10-20T15:11:03.695Z"
       },
       "title": "fix bug",
       "usage": {
-        "cachedInputTokens": 465133,
-        "inputTokens": 16,
-        "outputTokens": 2993,
+        "cachedInputTokens": 1146478,
+        "inputTokens": 34,
+        "outputTokens": 7454,
         "reasoningTokens": 0,
-        "totalTokens": 468142,
-        "costUsd": 0.5740726
+        "totalTokens": 1153966,
+        "costUsd": 0.8710972
       },
       "usageSchemaVersion": 1,
       "viewed": true
