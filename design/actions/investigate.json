@@ -5,7 +5,7 @@
   "streaming": true,
   "phrases": [
     {
-      "text": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_321_codex_sub_agents_report_incorrect_file_changes.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+      "text": "Add `Current state`, `implementation details`, `acceptance criteria` for `{{this-card}}`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
       "title": "update card"
     }
   ],
