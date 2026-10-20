@@ -10,6 +10,8 @@ agents:
   - design/activity/card__8a987dbe-da9b-4029-bfc6-0de9dee46a41.json
 policy:
 after: 733d678c-49a7-4409-9fa2-5fb384821513
+branch: b_315_sequence_does_not_detect_that_action_is_ready
+worktree: 2
 ---
 
 The first card in a sequence is ready. The 'ready' state was correctly detected. the action is also done, but the sequence runner did not detect that the action was ready. this is a problem. Now the sequence is stuck. what caused this?
