@@ -77,6 +77,7 @@ function createLocalBridgeDispatch(dependencies) {
         showItemInFolder,
         uncommittedProjectWrites,
         updateCodexCli,
+        usageMetricsService,
         worktreeService,
     } = dependencies;
     let currentLocalProject = null;
@@ -218,7 +219,12 @@ function createLocalBridgeDispatch(dependencies) {
             return localGitService.cancelActionSchedule(project, actionsFolder, scheduleId);
         },
         commit: async (request) => {
-            await localGitService.commit(request, currentLocalProject);
+            // Usage metrics never get a commit of their own; pending rows join the batch commit.
+            const usageMetricsPath = usageMetricsService.repositoryPath(currentLocalProject?.rootPath);
+            const commitRequest = usageMetricsPath
+                ? { ...request, paths: [...(request.paths ?? []), usageMetricsPath] }
+                : request;
+            await localGitService.commit(commitRequest, currentLocalProject);
 
             return [];
         },

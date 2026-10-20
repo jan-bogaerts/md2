@@ -2,7 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { ensureInsideRoot } = require('../../git/git_commands');
-const { projectOperationCoordinator } = require('../../project/project_operation_coordinator');
+const { projectKey, projectOperationCoordinator } = require('../../project/project_operation_coordinator');
 const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 
 const CSV_COLUMNS = [
@@ -349,6 +349,14 @@ class UsageMetricsService {
         if (!filePath) throw new Error('Invalid usage metrics project');
         this.filePath = filePath;
         this.rootPath = project.rootPath;
+    }
+
+    /** Returns the metrics file path relative to the repository root, or null when `rootPath` is not the bound project. */
+    repositoryPath(rootPath) {
+        if (!this.filePath || typeof rootPath !== 'string' || rootPath.length === 0) return null;
+        if (projectKey(rootPath) !== projectKey(this.rootPath)) return null;
+
+        return path.relative(this.rootPath, this.filePath).replaceAll('\\', '/');
     }
 
     requireFilePath() {

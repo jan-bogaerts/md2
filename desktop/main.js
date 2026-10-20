@@ -173,6 +173,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     showItemInFolder: (fullPath) => shell.showItemInFolder(fullPath),
     uncommittedProjectWrites,
     updateCodexCli,
+    usageMetricsService,
     worktreeService,
 });
 const remoteControlService = new RemoteControlService(localBridgeDispatch);

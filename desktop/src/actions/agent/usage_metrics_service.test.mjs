@@ -262,6 +262,17 @@ describe('UsageMetricsService', () => {
         await expect(readFile(filePath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
     });
 
+    it('returns the repository-relative metrics path only for the bound project root', async () => {
+        const { destination } = await createDestination();
+        const service = new UsageMetricsService();
+
+        expect(service.repositoryPath(destination.rootPath)).toBeNull();
+        startProject(service, destination);
+
+        expect(service.repositoryPath(destination.rootPath)).toBe('design/usage_metrics.csv');
+        expect(service.repositoryPath(path.join(destination.rootPath, 'other'))).toBeNull();
+    });
+
     it('reports read and append failures without rejecting and allows later retry', async () => {
         const { destination } = await createDestination();
         const errorReporter = vi.fn();

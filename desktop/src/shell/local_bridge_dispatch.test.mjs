@@ -182,6 +182,7 @@ function createDispatch(options = {}) {
         ?? { run: vi.fn(async (_rootPath, operation) => operation()) };
     const uncommittedProjectWrites = options.uncommittedProjectWrites
         ?? { commit: vi.fn(async () => null) };
+    const usageMetricsService = options.usageMetricsService ?? { repositoryPath: vi.fn(() => null) };
     const dispatch = createLocalBridgeDispatch({
         agentModelCatalogService,
         actionRunnerService,
@@ -205,6 +206,7 @@ function createDispatch(options = {}) {
         showItemInFolder: options.showItemInFolder,
         uncommittedProjectWrites,
         updateCodexCli,
+        usageMetricsService,
         worktreeService,
     });
 
@@ -426,6 +428,31 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.createProject).toHaveBeenCalledWith(project, ['design/active', 'design/history']);
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), project);
         expect(result).toEqual([]);
+    });
+
+    it('adds pending usage metrics to a batch commit of the active project', async () => {
+        const usageMetricsService = { repositoryPath: vi.fn(() => 'design/usage_metrics.csv') };
+        const { dispatch, localGitService } = createDispatch({ usageMetricsService });
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        await dispatch.dataBridge.loadProject(project, 'design');
+        const request = { branch: 'main', files: [], message: 'Update', paths: ['design/view.json'] };
+
+        await dispatch.dataBridge.commit(request);
+
+        expect(usageMetricsService.repositoryPath).toHaveBeenCalledWith('C:/repo');
+        const expectedRequest = { ...request, paths: ['design/view.json', 'design/usage_metrics.csv'] };
+        expect(localGitService.commit).toHaveBeenCalledWith(expectedRequest, project);
+    });
+
+    it('commits the batch unchanged when there is no usage metrics path', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        await dispatch.dataBridge.loadProject(project, 'design');
+        const request = { branch: 'main', files: [], message: 'Update' };
+
+        await dispatch.dataBridge.commit(request);
+
+        expect(localGitService.commit).toHaveBeenCalledWith(request, project);
     });
 
     it('selects an unconfigured repository without changing the active project', async () => {
