@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__35e2668b-44b4-4be8-9a82-cc3c7f2b4003.json
 policy:
+branch: b_317_usage_metrics_not_committed
+worktree: 1
 ---
 
 we update [usage\_metrics.csv](design/usage_metrics.csv) on a regular basis in the project. but it does not seem to use the [commit\_batcher.ts](app/src/data/commit_batcher.ts) for committing the file?
