@@ -2104,6 +2104,34 @@
       "startedAt": "2026-10-20T14:50:37.913Z",
       "status": "completed",
       "rootConversationId": "agent-e8bfac6f-1444-4380-b5cf-15d468552829"
+    },
+    {
+      "commits": [
+        {
+          "commit": "ef74ddc70358284c66c8c446b56d3f7c3b3c84e3",
+          "committedAt": "2026-10-20T17:01:00+02:00",
+          "deletions": 14,
+          "filePaths": [
+            "desktop/src/actions/agent/agent_claude_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_provider_protocol.js",
+            "desktop/src/actions/agent/agent_run_state.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+            "desktop/src/actions/agent/claude_task_list_decoder.js",
+            "desktop/src/actions/agent/claude_task_list_decoder.test.mjs"
+          ],
+          "filesChanged": 7,
+          "insertions": 121,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-20T17:01:00+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "16c530e0-7832-414c-bb82-b8c7f77ebf93",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

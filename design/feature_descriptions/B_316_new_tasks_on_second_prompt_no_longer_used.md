@@ -10,8 +10,6 @@ agents:
   - design/activity/card__16c530e0-7832-414c-bb82-b8c7f77ebf93.json
 policy:
 after: 733d678c-49a7-4409-9fa2-5fb384821513
-branch: b_316_new_tasks_on_second_prompt_no_longer_used
-worktree: 3
 changedFiles:
   - desktop/src/actions/agent/agent_claude_streaming_adapter.js
   - desktop/src/actions/agent/agent_provider_protocol.js
