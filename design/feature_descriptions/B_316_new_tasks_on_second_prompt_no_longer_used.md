@@ -3,7 +3,7 @@ author:
 id: B_316
 internalId: 16c530e0-7832-414c-bb82-b8c7f77ebf93
 title: new tasks on second prompt no longer used
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,14 @@ policy:
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 branch: b_316_new_tasks_on_second_prompt_no_longer_used
 worktree: 3
+changedFiles:
+  - desktop/src/actions/agent/agent_claude_streaming_adapter.js
+  - desktop/src/actions/agent/agent_provider_protocol.js
+  - desktop/src/actions/agent/agent_run_state.js
+  - desktop/src/actions/agent/agent_streaming_adapter.js
+  - desktop/src/actions/agent/agent_streaming_adapter.test.mjs
+  - desktop/src/actions/agent/claude_task_list_decoder.js
+  - desktop/src/actions/agent/claude_task_list_decoder.test.mjs
 ---
 Follow-up on [F\_434\_agent\_task\_list\_component.md](design/releases/0.9.0/F_434_agent_task_list_component.md) and [F\_432\_claude\_task\_list\_decoder.md](design/releases/0.9.0/F_432_claude_task_list_decoder.md). The task list works across prompts in a live run. Investigation found two gaps in the Claude task list decoder.
 

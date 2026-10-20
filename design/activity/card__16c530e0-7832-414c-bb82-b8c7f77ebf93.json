@@ -2049,7 +2049,7 @@
         "costUsd": 1.0785255999999999
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -2088,11 +2088,11 @@
         "agent-e8bfac6f-1444-4380-b5cf-15d468552829"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-5f41049e-acba-46fd-beee-acc755e62dbb",
       "origin": {
@@ -2101,9 +2101,9 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-e8bfac6f-1444-4380-b5cf-15d468552829",
       "startedAt": "2026-10-20T14:50:37.913Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-e8bfac6f-1444-4380-b5cf-15d468552829"
     }
   ],
   "version": 5
