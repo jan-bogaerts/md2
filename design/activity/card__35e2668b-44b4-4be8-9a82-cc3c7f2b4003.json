@@ -1102,6 +1102,30 @@
       "startedAt": "2026-10-19T09:55:46.316Z",
       "status": "cancelled",
       "rootConversationId": "agent-3e3055b0-13c8-40bd-a697-d37d4f05bdfc"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-10-20T14:50:54.832Z",
+      "conversationIds": [
+        "agent-3e3055b0-13c8-40bd-a697-d37d4f05bdfc"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-1eb5007b-b840-4aa6-8736-49a152d87c2b",
+      "origin": {
+        "cardInternalId": "35e2668b-44b4-4be8-9a82-cc3c7f2b4003",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-3e3055b0-13c8-40bd-a697-d37d4f05bdfc",
+      "startedAt": "2026-10-20T14:16:09.823Z",
+      "status": "cancelled"
     }
   ],
   "version": 5
