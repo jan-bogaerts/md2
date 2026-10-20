@@ -1,5 +1,20 @@
 {
-  "actionSettings": {},
+  "actionSettings": {
+    "a82ceffa-4aa0-4d06-b6db-ac3edb008575": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
   "conversations": [
     {
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
@@ -60,6 +75,34 @@
       "title": "investigate",
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "8a987dbe-da9b-4029-bfc6-0de9dee46a41",
+      "cardPath": "design/feature_descriptions/B_315_sequence_does_not_detect_that_action_is_ready.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_315_sequence_does_not_detect_that_action_is_ready.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-f14a712d-4fee-43d5-8032-f915b4d99ca3",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-20T13:49:22.571Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-02c31871-9b2a-4df7-9963-952e17fb6422",
+      "providerSessions": [],
+      "startedAt": "2026-10-20T13:49:22.571Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-20T13:49:22.571Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -74,13 +117,13 @@
         "agent-e43d0ff3-99ad-43e5-b1c2-0685bd04f713"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-fe727aad-3510-48f6-b7d0-a3c69b7ca798",
       "origin": {
@@ -89,9 +132,9 @@
       },
       "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "rootActionLabel": "investigate",
-      "rootConversationId": "agent-e43d0ff3-99ad-43e5-b1c2-0685bd04f713",
       "startedAt": "2026-10-20T13:49:06.272Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-e43d0ff3-99ad-43e5-b1c2-0685bd04f713"
     }
   ],
   "version": 5
