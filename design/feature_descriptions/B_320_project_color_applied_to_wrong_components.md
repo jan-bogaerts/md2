@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__1deced87-bdc6-46cb-9360-356355f1675d.json
 policy:
-branch: b_320_project_color_applied_to_wrong_components
-worktree: 2
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 changedFiles:
   - app/src/theme/app_theme.node.test.ts
