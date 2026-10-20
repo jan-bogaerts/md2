@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "379541e5-0bb0-437e-a7c5-4d844ccdffc9",
+      "cardPath": "design/feature_descriptions/B_319_codex_not_using_tasks.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_319_codex_not_using_tasks.md. report your findings. be short and to the point",
+          "id": "submission-54ab20f5-c0cf-4e0d-a247-9b24c08ade9d",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-20T13:47:34.831Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-4dbe7617-29f0-46b3-a1e6-d1b50c07b6c2",
+      "providerSessions": [],
+      "startedAt": "2026-10-20T13:47:34.831Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-20T13:47:34.831Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "379541e5-0bb0-437e-a7c5-4d844ccdffc9",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
