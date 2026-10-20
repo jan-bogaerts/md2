@@ -10,6 +10,7 @@ agents:
   - design/activity/card__ab1ad841-86e6-43fb-a211-9ce1f1eaf246.json
 policy:
 branch: f_437_add_agent_account_lifecycle_service
+after: b09a5f55-9e4f-4329-b6a7-00cec60df2e9
 ---
 
 Add the desktop service and narrow bridge operations needed to create, inspect, authenticate, update, and remove configured Codex and Claude accounts. This task does not add the React account editor.
@@ -34,7 +35,7 @@ Add the desktop service and narrow bridge operations needed to create, inspect, 
 * After login finishes, use provider-supported status behavior to determine availability. Cancellation or failure leaves the configured account present and requiring login so it can be retried.
 * Support reauthentication, renaming, and directory reselection. Reselection updates only the persistence path; it does not change account identity or copy credentials.
 * Allow removal of directory accounts only. Removing an account removes its configuration record but never deletes its directory or credentials. The initial account cannot be removed or assigned a directory.
-* Expose narrow preload/local/remote bridge operations for account metadata, folder selection, status, login, rename, reselection, and removal. Credential-file contents, usernames, passwords, and tokens must never cross IPC.
+* Expose narrow preload and local desktop bridge operations for account metadata, folder selection, status, login, rename, reselection, and removal. Credential-file contents, usernames, passwords, and tokens must never cross IPC.
 * Validate every filesystem operation against the one resolved absolute directory selected for that account. Do not scan unrelated provider directories or copy credentials between accounts.
 * Add service and bridge tests covering command construction, environment isolation, folder validation, cancellation, failed login, status reporting, reselection, removal, and metadata-only responses.
 
@@ -47,4 +48,3 @@ Add the desktop service and narrow bridge operations needed to create, inspect, 
 * Missing or unreadable directories affect only their account and can be reselected without changing account ID.
 * Removing a directory account does not delete its folder or credentials; the initial account cannot be removed.
 * No credential contents or provider secrets are returned through any bridge operation.
-

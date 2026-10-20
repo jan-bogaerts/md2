@@ -10,6 +10,7 @@ agents:
   - design/activity/card__d2d5c693-62b3-4e7f-b957-728a5c468cb0.json
 policy:
 branch: f_443_scope_usage_metrics_and_reset_schedules_by_account
+after: ab1ad841-86e6-43fb-a211-9ce1f1eaf246
 ---
 
 Persist and project usage measurements and account-reset schedules separately for each agent account, using the account-scoped runtime snapshots from F_442.
@@ -24,7 +25,7 @@ Persist and project usage measurements and account-reset schedules separately fo
 ## Implementation details
 
 * Add `account_id` to account-usage and token-usage CSV records and to renderer projections. New records always write the resolved account ID that produced the measurement.
-* Accept the old CSV header when reading. A row without `account_id` belongs to that provider's initial account. Do not rewrite existing files solely to add the column; use the new header when a new file is created or when subsequent records require the expanded schema.
+* Accept the old CSV header when reading. A row without `account_id` belongs to that provider's initial account. Do not backfill old rows. New files use the expanded header; before the first account-aware append to an old file, extend its header while leaving its existing rows unchanged and continue treating their missing values as the initial account.
 * Include account ID in account-usage baseline keys so percentage deltas are never calculated across accounts. Token-usage records use the account captured on the run by F_440.
 * Add optional `accountId` to account-reset schedule triggers, draft state, validation, labels, persisted records, tracker observations, and tracker keys.
 * A missing schedule account ID means the trigger agent's initial account. Do not rewrite existing schedule files merely because the field is absent.
@@ -44,4 +45,3 @@ Persist and project usage measurements and account-reset schedules separately fo
 * Changing the desktop default after schedule registration does not change the scheduled run's account.
 * An explicit unavailable account blocks the affected schedule clearly and does not affect other accounts or schedules.
 * Focused app and desktop tests and lint pass.
-

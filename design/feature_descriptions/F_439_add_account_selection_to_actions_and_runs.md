@@ -10,6 +10,7 @@ agents:
   - design/activity/card__1c16443d-df56-4133-997a-9a4dd0f404a1.json
 policy:
 branch: f_439_add_account_selection_to_actions_and_runs
+after: 7ce53acc-5a73-4566-931c-96751c9dac9b
 ---
 
 Carry optional account selection through desktop defaults, action definitions, run-menu settings, schedules, and bridge contracts. This task selects and validates account IDs but does not change spawned process environments.

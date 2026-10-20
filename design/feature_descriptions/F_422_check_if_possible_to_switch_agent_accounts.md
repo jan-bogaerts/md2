@@ -10,7 +10,6 @@ agents:
   - design/activity/card__733d678c-49a7-4409-9fa2-5fb384821513.json
 policy:
 branch: f_422_check_if_possible_to_switch_agent_accounts
-after: 35e2668b-44b4-4be8-9a82-cc3c7f2b4003
 ---
 
 Allow separate Codex and Claude accounts to be configured, selected as defaults, assigned to actions and runs, and remembered by provider sessions in a conversation.
