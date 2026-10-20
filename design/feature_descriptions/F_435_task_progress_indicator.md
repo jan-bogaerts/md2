@@ -3,7 +3,7 @@ author:
 id: F_435
 internalId: 6636980d-0f8d-4f94-a4bb-b5a171ce8891
 title: task progress indicator
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
