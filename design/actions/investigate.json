@@ -14,5 +14,9 @@
   "appliesTo": {
     "kind": "card",
     "state": "design"
+  },
+  "autoFinish": {
+    "state": "ready for implementation",
+    "when": "card-state"
   }
 }
