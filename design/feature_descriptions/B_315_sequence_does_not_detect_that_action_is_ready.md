@@ -3,13 +3,13 @@ author:
 id: B_315
 internalId: 8a987dbe-da9b-4029-bfc6-0de9dee46a41
 title: sequence does not detect that action is ready
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__8a987dbe-da9b-4029-bfc6-0de9dee46a41.json
 policy:
-after: 2775052a-2e84-4466-a320-155c8ec05bac
+after: 379541e5-0bb0-437e-a7c5-4d844ccdffc9
 ---
 
 The first card in a sequence is ready. The 'ready' state was correctly detected. the action is also done, but the sequence runner did not detect that the action was ready. this is a problem. Now the sequence is stuck. what caused this?
