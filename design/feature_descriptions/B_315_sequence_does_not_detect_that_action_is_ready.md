@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__8a987dbe-da9b-4029-bfc6-0de9dee46a41.json
 policy:
-after: 379541e5-0bb0-437e-a7c5-4d844ccdffc9
+after: 733d678c-49a7-4409-9fa2-5fb384821513
 ---
 
 The first card in a sequence is ready. The 'ready' state was correctly detected. the action is also done, but the sequence runner did not detect that the action was ready. this is a problem. Now the sequence is stuck. what caused this?

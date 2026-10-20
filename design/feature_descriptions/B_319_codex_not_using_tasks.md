@@ -9,7 +9,9 @@ affects:
 agents:
   - design/activity/card__379541e5-0bb0-437e-a7c5-4d844ccdffc9.json
 policy:
-after: 1deced87-bdc6-46cb-9360-356355f1675d
+after: 8a987dbe-da9b-4029-bfc6-0de9dee46a41
+branch: b_319_codex_not_using_tasks
+worktree: 1
 ---
 
 We recently implemented support for task lists. this is working ok for claude, but not for codex. Investigate why this is.
