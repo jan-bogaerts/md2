@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 4684225b-0d21-4c57-8691-3f2844f76ca6
+after: e43f6e59-8ffb-4668-8c07-49858b1bfeaa
 ---
 
 it should be possible to delete conversations. Currently, we show a select box on the action popup where the user can select the active conversation.
