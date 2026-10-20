@@ -992,6 +992,14 @@
           "role": "assistant",
           "sequence": 71,
           "timestamp": "2026-10-20T15:27:02.997Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_321_codex_sub_agents_report_incorrect_file_changes.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-d7f794da-f5e3-423c-92b1-cfb5ddf927e5",
+          "kind": "message",
+          "role": "user",
+          "sequence": 72,
+          "timestamp": "2026-10-20T15:28:55.632Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1006,14 +1014,14 @@
         }
       ],
       "startedAt": "2026-10-20T15:23:34.998Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 486,
           "toolMs": 28130
         },
         "elapsedMs": 207999,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-20T15:28:55.632Z"
       },
       "title": "investigate",
       "usage": {
