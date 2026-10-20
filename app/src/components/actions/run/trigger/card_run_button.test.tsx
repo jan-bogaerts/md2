@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cardContext } from '../../../../data/action_context'
 import type { ActionRunEvent, ActionRunUpdate, AgentApproval } from '../../../../data/action_run_types'
 import type { ActionFile } from '../../../../data/action_types'
-import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent, type Card, type ProjectSnapshot } from '../../../../data/data_types'
+import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent, type AgentTaskList, type Card, type ProjectSnapshot } from '../../../../data/data_types'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { actionService } from '../../../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../../../services/agents/agent_acknowledgement_service'
@@ -56,6 +56,13 @@ function commandDefinition(id: string, overrides: Record<string, unknown> = {}) 
 
 function agentDefinition(id: string, overrides: Record<string, unknown> = {}) {
     return { description: id, id, label: id, prompt: 't', type: 'agent', ...overrides }
+}
+
+function taskList(statuses: AgentTaskList['tasks'][number]['status'][]): AgentTaskList {
+    return {
+        tasks: statuses.map((status, index) => ({ id: `task-${index}`, status, subject: `Task ${index}` })),
+        updatedAt: '2026-01-01T00:00:00.000Z',
+    }
 }
 
 const card: Card = {
@@ -219,6 +226,128 @@ describe('CardRunButton', () => {
         expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'false')
         expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Implement — Agent is running' }))
             .toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('shows task progress only while the live run is running', () => {
+        let listener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: (nextListener: (event: ActionRunEvent) => void) => {
+                listener = nextListener
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        if (!listener) throw new Error('Missing action run listener')
+        const context = cardContext(card, DEFAULT_CARD_TYPES)
+        renderCardRunButton()
+        const emit = listener as (event: ActionRunEvent) => void
+        const eventBase = { actionId: 'implement', context, runId: 'run-1', phase: 'main' as const, rootActionId: 'implement' }
+
+        act(() => {
+            emit({ ...eventBase, status: 'queued', type: 'run' })
+        })
+        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+
+        act(() => {
+            emit({ ...eventBase, status: 'running', type: 'run' })
+            emit({
+                ...eventBase,
+                status: 'running',
+                type: 'update',
+                update: { conversation: conversation('running', [], 'implement'), kind: 'agentStarted' },
+            })
+            emit({
+                ...eventBase,
+                status: 'running',
+                type: 'update',
+                update: { kind: 'agentTaskList', taskList: taskList(['completed', 'inProgress']) },
+            })
+        })
+        expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50')
+
+        act(() => emit({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
+        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+
+        act(() => emit({ ...eventBase, status: 'running', type: 'agentState' }))
+        expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50')
+
+        act(() => emit({ ...eventBase, status: 'completed', type: 'run' }))
+        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    })
+
+    it('keeps task progress scoped to each card run', () => {
+        let listener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: (nextListener: (event: ActionRunEvent) => void) => {
+                listener = nextListener
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        if (!listener) throw new Error('Missing action run listener')
+        const secondCard = {
+            ...card,
+            header: { ...card.header, id: 'F-011', internalId: 'f-011', title: 'Second feature' },
+            path: 'design/F-011.md',
+        }
+        const firstContext = cardContext(card, DEFAULT_CARD_TYPES)
+        const secondContext = cardContext(secondCard, DEFAULT_CARD_TYPES)
+        render(
+            <>
+                <CardRunButton card={card} context={firstContext} />
+                <CardRunButton card={secondCard} context={secondContext} />
+            </>,
+            { wrapper: AppThemeProvider },
+        )
+        const emit = listener as (event: ActionRunEvent) => void
+        const firstBase = { actionId: 'implement', context: firstContext, runId: 'run-1', phase: 'main' as const, rootActionId: 'implement' }
+        const secondBase = { actionId: 'implement', context: secondContext, runId: 'run-2', phase: 'main' as const, rootActionId: 'implement' }
+        const secondConversation = {
+            ...conversation('running', [], 'implement'),
+            cardInternalId: 'f-011',
+            cardPath: 'design/F-011.md',
+            id: 'agent-2',
+        }
+
+        act(() => {
+            emit({ ...firstBase, status: 'running', type: 'run' })
+            emit({
+                ...firstBase,
+                status: 'running',
+                type: 'update',
+                update: { conversation: conversation('running', [], 'implement'), kind: 'agentStarted' },
+            })
+            emit({
+                ...firstBase,
+                status: 'running',
+                type: 'update',
+                update: { kind: 'agentTaskList', taskList: taskList(['completed', 'pending']) },
+            })
+            emit({ ...secondBase, status: 'running', type: 'run' })
+            emit({
+                ...secondBase,
+                status: 'running',
+                type: 'update',
+                update: { conversation: secondConversation, kind: 'agentStarted' },
+            })
+            emit({
+                ...secondBase,
+                status: 'running',
+                type: 'update',
+                update: { kind: 'agentTaskList', taskList: taskList(['completed']) },
+            })
+        })
+        expect(screen.getAllByRole('progressbar').map((progress) => progress.getAttribute('aria-valuenow'))).toEqual(['50', '100'])
+
+        act(() => emit({
+            ...firstBase,
+            status: 'running',
+            type: 'update',
+            update: { kind: 'agentTaskList', taskList: taskList(['inProgress', 'pending']) },
+        }))
+        expect(screen.getAllByRole('progressbar').map((progress) => progress.getAttribute('aria-valuenow'))).toEqual(['0', '100'])
     })
 
     it('prefers live waiting and resumed states over persisted conversation state', () => {

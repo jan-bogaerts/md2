@@ -12,6 +12,7 @@ import { useCardAgentState } from '../../../hooks/use_agent_acknowledgements'
 import { useRunningActionForContext } from '../../../hooks/use_action_runs'
 import { useProjectReadOnly } from '../../../hooks/use_project_read_only'
 import { usePendingActionScheduleForCard } from '../../../hooks/use_pending_action_schedule'
+import { TaskProgressIndicator } from './task_progress_indicator'
 
 interface CardRunButtonProps {
     card: { header: Pick<CardHeader, 'internalId'> }
@@ -93,6 +94,9 @@ export function CardRunButton({ card, context }: CardRunButtonProps) {
     )
 
     return (
-        <Tooltip title={stateDescription ?? ''}>{button}</Tooltip>
+        <Box sx={{ display: 'inline-flex', flexDirection: 'column', gap: 0.25 }}>
+            <Tooltip title={stateDescription ?? ''}>{button}</Tooltip>
+            {runningRun?.status === 'running' ? <TaskProgressIndicator runId={runningRun.runId} /> : null}
+        </Box>
     )
 }
