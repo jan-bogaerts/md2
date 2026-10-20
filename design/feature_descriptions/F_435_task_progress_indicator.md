@@ -9,8 +9,9 @@ affects:
 agents:
   - design/activity/card__6636980d-0f8d-4f94-a4bb-b5a171ce8891.json
 policy:
+branch: f_435_task_progress_indicator
+worktree: 2
 ---
-
 We need to add a new component to the run button on the card popups when an action is running on the card that has a task list.
 
 With task lists, we can show a progress bar to show how far along the agent already is. A task list, is a list, it has multiple items, so we can turn that into a progress bar.
@@ -30,9 +31,11 @@ The component should be stand alone, so it monitors the changes, it is not provi
 ## Implementation details
 
 * Add a standalone `TaskProgressIndicator` component beside `CardRunButton`. It receives only `runId`, selects `run.conversation.taskList` with `useRunSelector`, and computes `completed / total` itself. Do not pass task data or a computed percentage from the parent.
-* Render a determinate MUI `LinearProgress` directly below the Run button. Give it an accessible label containing the completed and total counts, and style it only with theme values from `design/STYLE_GUIDE.md`.
+* Render a determinate MUI `LinearProgress` directly below the Run button. style it only with theme values from `design/STYLE_GUIDE.md`.
+* The completed and total counts are shown in a tooltip. the progress should not display any text directly, it should use the minimal amount of space possible.
 * Return `null` when the selected run has no task list or an empty task list. Task additions, removals, and status changes update the bar through the run-store subscription.
-* In `CardRunButton`, mount the indicator only when the live run status is exactly `running`, passing `runningRun.runId`. Do not show it for queued, waiting-for-input, idle, or terminal state. Keep current button state priority, tooltip, click behavior, and scheduled indicator unchanged.
+* In `CardRunButton`, mount the indicator only when the live run status is exactly `running`, passing `runningRun.runId`. Keep showing it for queued, waiting-for-input but do not show when idle, or terminal state.&#x20;
+* Keep current button state priority, tooltip, click behavior, and scheduled indicator unchanged.
 * Wrap the button and indicator in a compact vertical layout so the bar sits below the button without changing other footer controls. No task model, action protocol, persistence, registry, or desktop changes are needed.
 * Add focused React Testing Library coverage for the new component and its `CardRunButton` integration. Run affected tests and `npm run lint` in `app`.
 
