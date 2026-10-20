@@ -117,6 +117,28 @@ describe('diff-service', () => {
         );
     });
 
+    it('resolves the actions folder from the opened repository for diff commands', async () => {
+        const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
+        await generateDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            { actionsFolder: 'design/actions', branch: 'main', commit: 'abc1234', filePath: '', projectFolder: 'design', template: 'echo {{ actions-folder }}' },
+            runner,
+        );
+
+        expect(runner).toHaveBeenCalledWith(`echo ${path.resolve('C:/repo', 'design/actions')}`, expect.objectContaining({ cwd: 'C:/repo' }));
+    });
+
+    it('fails before diff process start when the actions folder is missing', async () => {
+        const runner = vi.fn();
+
+        await expect(generateDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: '', template: 'echo {{actions-folder}}' },
+            runner,
+        )).rejects.toThrow('Missing diff command value: actions-folder');
+        expect(runner).not.toHaveBeenCalled();
+    });
+
     it('makes repository and project folders equal for an empty configured project folder', async () => {
         const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
         await generateDiff(

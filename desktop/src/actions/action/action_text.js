@@ -3,7 +3,7 @@ const { requireRootPath } = require('../../git/git_commands');
 
 const PLACEHOLDER_NAMES = [
     'active-cards-folder', 'worktree-folder', 'repository-folder', 'project-folder',
-    'releases-folder', 'card-file', 'this-card', 'card-title', 'card-prompt',
+    'releases-folder', 'actions-folder', 'card-file', 'this-card', 'card-title', 'card-prompt',
     'conflict-file', 'conflict-files', 'diagram-changes', 'diagram-file', 'parent-node', 'version',
 ].join('|');
 const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
@@ -16,6 +16,7 @@ function resolvePlaceholders(
     primaryProject,
     projectFolder,
     releasesFolder,
+    actionsFolder,
     activeCardsFolder,
     extraPrompt,
     diagramFile,
@@ -51,6 +52,13 @@ function resolvePlaceholders(
             }
 
             return path.resolve(requireRootPath(primaryProject), releasesFolder);
+        }
+        if (name === 'actions-folder') {
+            if (typeof actionsFolder !== 'string' || actionsFolder.length === 0) {
+                throw new Error('Cannot resolve actions-folder placeholder without a configured actions folder');
+            }
+
+            return path.resolve(requireRootPath(primaryProject), actionsFolder);
         }
         if (name === 'card-prompt') return extraPrompt;
         if (name === 'diagram-changes') {
@@ -115,6 +123,7 @@ function resolveAgentPrompt(
     primaryProject,
     projectFolder,
     releasesFolder,
+    actionsFolder,
     activeCardsFolder,
     extraPrompt,
     diagramFooter,
@@ -129,6 +138,7 @@ function resolveAgentPrompt(
         primaryProject,
         projectFolder,
         releasesFolder,
+        actionsFolder,
         activeCardsFolder,
         extraPrompt,
         diagramFile,
@@ -141,7 +151,7 @@ function resolveAgentPrompt(
 
 /** Resolves recognized placeholders entered in the editable agent popup prompt. */
 function resolvePopupPrompt(
-    text, context, runProject, primaryProject, projectFolder, releasesFolder, activeCardsFolder, diagramFile, version,
+    text, context, runProject, primaryProject, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, diagramFile, version,
 ) {
     return resolvePlaceholders(
         text,
@@ -150,6 +160,7 @@ function resolvePopupPrompt(
         primaryProject,
         projectFolder,
         releasesFolder,
+        actionsFolder,
         activeCardsFolder,
         '',
         diagramFile,

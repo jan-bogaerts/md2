@@ -32,6 +32,7 @@ describe('generateDiff', () => {
         await generateDiff(commitReference)
 
         expect(generateDiffBridge).toHaveBeenCalledWith({
+            actionsFolder: 'design/actions',
             branch: 'topic', commit: 'abc123456789', filePath: 'app/a.ts',
             projectFolder: 'design',
             releasesFolder: 'design/delivery/releases',

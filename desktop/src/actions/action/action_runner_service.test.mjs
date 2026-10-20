@@ -444,7 +444,7 @@ describe('ActionRunnerService', () => {
         const files = [actionFile('main', {
             command: undefined,
             needsWorkTree: true,
-            prompt: 'Review {{card-file}} in {{worktree-folder}}; repository {{repository-folder}}; active {{active-cards-folder}}; project {{project-folder}}; releases {{releases-folder}}',
+            prompt: 'Review {{card-file}} in {{worktree-folder}}; repository {{repository-folder}}; active {{active-cards-folder}}; project {{project-folder}}; releases {{releases-folder}}; actions {{actions-folder}}',
             trackFileChanges: true,
             type: 'agent',
         })];
@@ -452,7 +452,7 @@ describe('ActionRunnerService', () => {
         const worktreeProject = { ...project, branch: 'feature', rootPath: 'C:/worktrees/2' };
         actionWorktreeRunService.resolve.mockResolvedValueOnce({ runProject: worktreeProject, runWorktree: 2 });
 
-        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; repository C:/repo; active ${path.resolve('C:/repo', 'design/feature_descriptions')}; project ${path.resolve('C:/repo', 'design')}; releases ${path.resolve('C:/repo', 'design/releases')}`});
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; repository C:/repo; active ${path.resolve('C:/repo', 'design/feature_descriptions')}; project ${path.resolve('C:/repo', 'design')}; releases ${path.resolve('C:/repo', 'design/releases')}; actions ${path.resolve('C:/repo', 'actions')}`});
         expect(actionWorktreeRunService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
         expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();

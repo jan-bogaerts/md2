@@ -57,6 +57,7 @@ function createExecutor(overrides = {}) {
 function executionInput(overrides = {}) {
     return {
         action,
+        actionsFolder: 'design/actions',
         activeCardsFolder: 'design/feature_descriptions',
         activityOrigin: { cardInternalId: 'card-1', kind: 'card' },
         context: cardContext,
@@ -269,12 +270,12 @@ describe('ActionAgentExecutor', () => {
             project: runProject,
             runInput: {
                 extraPrompt: 'focus',
-                prompt: 'Review {{card-file}} and {{this-card}} in {{worktree-folder}} for {{repository-folder}} active {{active-cards-folder}} project {{project-folder}} releases {{releases-folder}}: {{card-prompt}} {{unknown}}',
+                prompt: 'Review {{card-file}} and {{this-card}} in {{worktree-folder}} for {{repository-folder}} active {{active-cards-folder}} project {{project-folder}} releases {{releases-folder}} actions {{actions-folder}}: {{card-prompt}} {{unknown}}',
             },
         }));
 
         expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(
-            `Review design/card.md and design/card.md in C:/worktree for C:/repo active ${path.resolve('C:/repo', 'design/feature_descriptions')} project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')}:  {{unknown}}`,
+            `Review design/card.md and design/card.md in C:/worktree for C:/repo active ${path.resolve('C:/repo', 'design/feature_descriptions')} project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')} actions ${path.resolve('C:/repo', 'design/actions')}:  {{unknown}}`,
         );
     });
 

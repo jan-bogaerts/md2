@@ -1,6 +1,6 @@
 export interface ActionPlaceholder {
     description: string
-    name: 'active-cards-folder' | 'card-file' | 'card-prompt' | 'card-title' | 'diagram-changes' | 'diagram-file' | 'parent-node' | 'project-folder' | 'releases-folder' | 'repository-folder' | 'this-card' | 'version' | 'worktree-folder'
+    name: 'actions-folder' | 'active-cards-folder' | 'card-file' | 'card-prompt' | 'card-title' | 'diagram-changes' | 'diagram-file' | 'parent-node' | 'project-folder' | 'releases-folder' | 'repository-folder' | 'this-card' | 'version' | 'worktree-folder'
 }
 
 export const ACTION_PROMPT_PLACEHOLDERS: readonly ActionPlaceholder[] = [
@@ -14,6 +14,7 @@ export const ACTION_PROMPT_PLACEHOLDERS: readonly ActionPlaceholder[] = [
     { description: 'Label of the selected parent diagram item for a child diagram action.', name: 'parent-node' },
     { description: 'Absolute path to the configured project folder.', name: 'project-folder' },
     { description: 'Absolute path to the configured releases folder.', name: 'releases-folder' },
+    { description: 'Absolute path to the configured actions folder.', name: 'actions-folder' },
     { description: 'Absolute path to the opened repository.', name: 'repository-folder' },
     { description: 'Absolute path to the action run checkout.', name: 'worktree-folder' },
     { description: 'Free-form version confirmed for this action run.', name: 'version' },

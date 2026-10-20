@@ -118,6 +118,7 @@ export type ActionRunHistoryEntry = AgentActionRunHistoryEntry | CommandActionRu
 
 /** Request to render a commit's diff through the configured Electron command template. */
 export interface DiffRequest {
+    actionsFolder: string
     branch: string
     commit: string
     filePath: string

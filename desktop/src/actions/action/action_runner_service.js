@@ -291,6 +291,7 @@ class ActionRunnerService {
             project,
             this.projectFolder,
             this.releasesFolder,
+            this.actionsFolder,
             this.activeCardsFolder,
             '',
             this.diagramFooter,

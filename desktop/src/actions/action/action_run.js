@@ -709,6 +709,7 @@ class ActionRun {
 
         return executeCommandAction({
             action,
+            actionsFolder: this.actionsFolder,
             activeCardsFolder: this.activeCardsFolder,
             command: isRoot ? this.runInput.command ?? action.command : action.command,
             commandRunner: this.commandRunner,
@@ -887,6 +888,7 @@ class ActionRun {
         const input = {
             compactOnly: this.compactOnly,
             action,
+            actionsFolder: this.actionsFolder,
             activeCardsFolder: this.activeCardsFolder,
             activityOrigin: this.activityOrigin,
             context: this.context,
@@ -966,6 +968,7 @@ class ActionRun {
             this.project,
             this.projectFolder,
             this.releasesFolder,
+            this.actionsFolder,
             this.activeCardsFolder,
             this.diagramPath ? resolveDiagramFile(this.activeAgentProject, this.diagramsFolder, this.diagramPath) : null,
             this.version,
