@@ -3,7 +3,7 @@ author:
 id: B_319
 internalId: 379541e5-0bb0-437e-a7c5-4d844ccdffc9
 title: codex not using tasks
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
