@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "6636980d-0f8d-4f94-a4bb-b5a171ce8891",
       "cardPath": "design/feature_descriptions/F_435_task_progress_indicator.md",
-      "completedAt": null,
+      "completedAt": "2026-10-20T15:06:46.606Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 85208
@@ -475,7 +475,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 35,
-          "timestamp": "2026-10-20T15:06:46.141Z"
+          "timestamp": "2026-10-20T15:06:46.606Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -485,19 +485,19 @@
           "agent": "codex",
           "conversationId": "01a159d8-1635-7810-aadd-2487fe042e02",
           "createdAt": "2026-10-20T15:06:46.141Z",
-          "lastUsedAt": "2026-10-20T15:06:46.141Z",
+          "lastUsedAt": "2026-10-20T15:06:46.606Z",
           "synchronizedThroughMessageId": "agent-turn-366cf818-47e6-46ed-8664-c247b8faf728-turn-1-assistant-3"
         }
       ],
       "startedAt": "2026-10-20T15:04:55.613Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 207,
           "toolMs": 2175
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-20T15:04:55.613Z"
+        "elapsedMs": 110993,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
