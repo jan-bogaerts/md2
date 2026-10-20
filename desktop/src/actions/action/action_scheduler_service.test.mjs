@@ -1364,4 +1364,32 @@ describe('ActionSchedulerService conversation recovery', () => {
 
         expect(harness.localGitService.schedules()).toEqual([{ ...schedule, status }]);
     });
+
+    it('finishes a waiting sequence step with the result of an unadopted run on its conversation', async () => {
+        const schedule = {
+            actionCompleted: false, actionId: 'implement', cardInternalIds: ['card-022'], conversationId: 'agent-waiting',
+            createdAt: '2026-07-06T09:00:00.000Z', currentIndex: 0, currentRunId: 'original-run', failure: null, id: 'sequence-1',
+            kind: 'sequence', readyState: 'ready', readyStateMet: true, status: 'running', trigger: { type: 'now' },
+        };
+        const harness = createRecoveryHarness(schedule, 'running');
+        harness.actionRunnerService.listActiveRuns = vi.fn(() => []);
+        harness.actionRunnerService.loadRootAction = vi.fn(async () => ({ type: 'command' }));
+        let rejectWait = () => undefined;
+        const waitFailure = new Promise((_resolve, reject) => {
+            rejectWait = reject;
+        });
+        harness.actionRunnerService.wait.mockReturnValueOnce(waitFailure);
+        await startProject(harness.scheduler, harness.localGitService);
+        await vi.waitFor(() => expect(harness.actionRunnerService.wait).toHaveBeenCalledWith('original-run'));
+
+        harness.publishRunEvent(agentStartedEvent('agent-waiting', 'original-run'));
+        rejectWait(new Error('Unknown action run: original-run'));
+        await vi.waitFor(() => expect(harness.localGitService.schedules()[0].currentRunId).toBeNull());
+        harness.publishRunEvent({ message: null, runId: 'other-run', status: 'completed', type: 'run' });
+        expect(harness.localGitService.schedules()[0]).toMatchObject({ actionCompleted: false, status: 'running' });
+        harness.publishRunEvent({ message: null, runId: 'original-run', status: 'completed', type: 'run' });
+
+        await vi.waitFor(() => expect(harness.localGitService.schedules()[0]).toMatchObject({ actionCompleted: true, status: 'completed' }));
+        expect(harness.actionRunnerService.wait).toHaveBeenCalledOnce();
+    });
 });

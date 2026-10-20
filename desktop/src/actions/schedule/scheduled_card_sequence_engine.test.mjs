@@ -47,6 +47,7 @@ function createHarness(initialSchedule, statesByCard = { 'card-1': 'todo', 'card
         agentConfigProvider: () => ({ agentProfiles: [] }),
         allocateRunId: vi.fn(() => `run-${nextRunNumber++}`),
         cancel: vi.fn((runId) => runs.get(runId).resolve({ failure: null, status: 'cancelled' })),
+        listActiveRuns: vi.fn(() => []),
         loadRootAction: vi.fn(async () => ({ type: schedule.agentSelection ? 'agent' : 'command' })),
         start: vi.fn(async (_request, { runId }) => {
             if (!runs.has(runId)) runs.set(runId, createDeferred());
@@ -245,7 +246,7 @@ describe('ScheduledCardSequenceEngine', () => {
         const schedule = createSequence({ conversationId: 'agent-waiting', readyStateMet: true, status: 'running' });
         const harness = createHarness(schedule);
 
-        await harness.engine.closeConversation('sequence-1', 'agent-waiting', 'completed');
+        await harness.engine.finishConversationStep('sequence-1', 'agent-waiting', { failure: null, status: 'completed' });
 
         expect(harness.actionRunnerService.start).toHaveBeenCalledOnce();
         expect(harness.actionRunnerService.start.mock.calls[0][0].context.cardInternalId).toBe('card-2');
@@ -255,7 +256,7 @@ describe('ScheduledCardSequenceEngine', () => {
     it('cancels the sequence when its waiting conversation is closed as cancelled', async () => {
         const harness = createHarness(createSequence({ conversationId: 'agent-waiting', status: 'running' }));
 
-        await harness.engine.closeConversation('sequence-1', 'agent-waiting', 'cancelled');
+        await harness.engine.finishConversationStep('sequence-1', 'agent-waiting', { failure: null, status: 'cancelled' });
 
         expect(harness.schedule()).toMatchObject({
             conversationId: null,
@@ -263,6 +264,72 @@ describe('ScheduledCardSequenceEngine', () => {
             status: 'cancelled',
         });
         expect(harness.actionRunnerService.start).not.toHaveBeenCalled();
+    });
+
+    it('keeps observing its run when a wait fails while the run is still active', async () => {
+        const schedule = createSequence({ conversationId: 'agent-1', currentRunId: 'live-run', readyStateMet: true, status: 'running' });
+        const harness = createHarness(schedule);
+        const waitError = new Error('Unknown action run: live-run');
+        harness.actionRunnerService.wait.mockRejectedValueOnce(waitError);
+        harness.actionRunnerService.listActiveRuns.mockReturnValue([{ label: 'Implement', runId: 'live-run' }]);
+
+        await harness.engine.activate('sequence-1');
+        await vi.waitFor(() => expect(harness.actionRunnerService.wait).toHaveBeenCalledTimes(2));
+        expect(harness.schedule()).toMatchObject({ currentRunId: 'live-run', status: 'running' });
+        harness.runs.get('live-run').resolve({ failure: null, status: 'completed' });
+        await vi.waitFor(() => expect(harness.actionRunnerService.start).toHaveBeenCalledOnce());
+
+        expect(harness.actionRunnerService.start.mock.calls[0][0].context.cardInternalId).toBe('card-2');
+        expect(harness.engine.reportError).toHaveBeenCalledWith(waitError);
+    });
+
+    it('reports the run failure when it switches to waiting on its conversation', async () => {
+        const schedule = createSequence({ conversationId: 'agent-waiting', currentRunId: 'lost-run', status: 'running' });
+        const harness = createHarness(schedule);
+        harness.actionRunnerService.wait.mockRejectedValueOnce(new Error('Unknown action run: lost-run'));
+
+        await harness.engine.activate('sequence-1');
+        await vi.waitFor(() => expect(harness.schedule().currentRunId).toBeNull());
+
+        const message = 'Sequence sequence-1 waits on conversation agent-waiting: Cannot recover sequence action run lost-run: Unknown action run: lost-run';
+        expect(harness.engine.reportError).toHaveBeenCalledWith(expect.objectContaining({ message }));
+    });
+
+    it('fails the sequence when applying a finished run result fails', async () => {
+        const schedule = createSequence({ conversationId: 'agent-1', currentRunId: 'run-1', readyStateMet: true, status: 'running' });
+        const harness = createHarness(schedule);
+        const advanceError = new Error('Cannot integrate sequence branch');
+        vi.spyOn(harness.engine, 'applyStepResult').mockRejectedValueOnce(advanceError);
+
+        await harness.engine.activate('sequence-1');
+        harness.runs.get('run-1').resolve({ failure: null, status: 'completed' });
+        await vi.waitFor(() => expect(harness.schedule().status).toBe('failed'));
+
+        expect(harness.schedule()).toMatchObject({ conversationId: null, currentRunId: null, failure: 'Cannot integrate sequence branch' });
+        expect(harness.engine.conversationResumeFailure).not.toHaveBeenCalled();
+    });
+
+    it('finishes its waiting step with the result of an unobserved run on its conversation', async () => {
+        const schedule = createSequence({ conversationId: 'agent-waiting', readyStateMet: true, status: 'running' });
+        const harness = createHarness(schedule);
+        const result = { failure: null, status: 'completed' };
+
+        await harness.engine.finishConversationStep('sequence-1', 'agent-other', result);
+        expect(harness.schedule()).toMatchObject({ conversationId: 'agent-waiting', currentIndex: 0 });
+        await harness.engine.finishConversationStep('sequence-1', 'agent-waiting', result);
+
+        expect(harness.actionRunnerService.start).toHaveBeenCalledOnce();
+        expect(harness.actionRunnerService.start.mock.calls[0][0].context.cardInternalId).toBe('card-2');
+        expect(harness.schedule()).toMatchObject({ currentIndex: 1, status: 'running' });
+    });
+
+    it('ignores an unobserved run result while it observes its own run', async () => {
+        const schedule = createSequence({ conversationId: 'agent-1', currentRunId: 'run-1', readyStateMet: true, status: 'running' });
+        const harness = createHarness(schedule);
+
+        await harness.engine.finishConversationStep('sequence-1', 'agent-1', { failure: 'agent failed', status: 'failed' });
+
+        expect(harness.schedule()).toMatchObject({ currentRunId: 'run-1', status: 'running' });
     });
 
     it('fails clearly when ready state was removed', async () => {

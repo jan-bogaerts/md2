@@ -125,6 +125,7 @@ class ActionSchedulerService {
         this.accountResetObservations = new Map();
         this.cardObservationsByScheduleId = new Map();
         this.projectGeneration = 0;
+        this.conversationIdsByRunId = new Map();
         this.runIdsByScheduleId = new Map();
         this.scheduleCompletionsByScheduleId = new Map();
         this.scheduleExecutionControls = new Map();
@@ -206,6 +207,7 @@ class ActionSchedulerService {
         this.actionRunUnsubscriber?.();
         this.actionRunUnsubscriber = null;
         this.runningScheduleIds.clear();
+        this.conversationIdsByRunId.clear();
         this.runIdsByScheduleId.clear();
         this.scheduleCompletionsByScheduleId.clear();
         this.scheduleExecutionControls.clear();
@@ -240,12 +242,37 @@ class ActionSchedulerService {
         return this.actionRunnerService.subscribe((event) => this.handleActionRunEvent(event));
     }
 
-    /** A continued conversation starts a new action run; a schedule waiting on that conversation adopts it. */
     handleActionRunEvent(event) {
-        if (event.type !== 'update' || event.update.kind !== 'agentStarted') return;
+        if (event.type === 'update' && event.update.kind === 'agentStarted') this.handleAgentStarted(event.runId, event.update.conversation.id);
+        if (event.type === 'run' && event.status !== 'running') this.handleRunFinished(event);
+    }
+
+    /**
+     * Remembers the root conversation of each run. A continued conversation starts a new action run; a schedule
+     * waiting on that conversation adopts it.
+     */
+    handleAgentStarted(runId, conversationId) {
         if (this.actionsFolder === null) return;
-        const conversationId = event.update.conversation.id;
-        void this.adoptConversationRun(conversationId, event.runId).catch((error) => this.reportError(error));
+        if (!this.conversationIdsByRunId.has(runId)) this.conversationIdsByRunId.set(runId, conversationId);
+        void this.adoptConversationRun(conversationId, runId).catch((error) => this.reportError(error));
+    }
+
+    /** A run that finished on the conversation a sequence waits on without observing it ends that sequence step. */
+    handleRunFinished(event) {
+        const conversationId = this.conversationIdsByRunId.get(event.runId);
+        this.conversationIdsByRunId.delete(event.runId);
+        if (!conversationId || this.actionsFolder === null) return;
+        const result = { failure: event.message ?? null, status: event.status };
+        void this.finishWaitingSequenceStep(conversationId, result).catch((error) => this.reportError(error));
+    }
+
+    async finishWaitingSequenceStep(conversationId, result) {
+        const generation = this.projectGeneration;
+        const schedules = await this.loadSchedules();
+        if (generation !== this.projectGeneration) return;
+        const schedule = findRunningScheduleForConversation(schedules, conversationId);
+        if (schedule?.kind !== 'sequence') return;
+        await this.sequenceEngine.finishConversationStep(schedule.id, conversationId, result);
     }
 
     async adoptConversationRun(conversationId, runId) {
@@ -283,7 +310,8 @@ class ActionSchedulerService {
         const schedule = findRunningScheduleForConversation(schedules, conversationId);
         if (!schedule) return;
         if (schedule.kind === 'sequence') {
-            await this.sequenceEngine.closeConversation(schedule.id, conversationId, status);
+            const result = { failure: null, status };
+            await this.sequenceEngine.finishConversationStep(schedule.id, conversationId, result);
             return;
         }
         if (this.runIdsByScheduleId.has(this.scheduleKey(schedule.id, generation))) return;
