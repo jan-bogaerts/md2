@@ -1989,7 +1989,7 @@
         }
       ],
       "startedAt": "2026-10-20T14:18:26.559Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
@@ -2020,8 +2020,8 @@
           "reasoningMs": 67890,
           "toolMs": 19193
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-20T14:18:26.559Z"
+        "elapsedMs": 111578,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
