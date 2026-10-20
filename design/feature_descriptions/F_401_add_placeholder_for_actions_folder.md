@@ -3,7 +3,7 @@ author:
 id: F_401
 internalId: a5e97d32-66be-4cf7-9999-c125753f446d
 title: add placeholder for actions folder
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
