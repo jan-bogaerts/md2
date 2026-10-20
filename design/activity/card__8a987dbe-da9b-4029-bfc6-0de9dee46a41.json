@@ -1485,6 +1485,14 @@
           "role": "assistant",
           "sequence": 110,
           "timestamp": "2026-10-20T13:57:25.680Z"
+        },
+        {
+          "content": "ok, update design/feature_descriptions/B_315_sequence_does_not_detect_that_action_is_ready.md with your findings",
+          "id": "submission-9a97317e-3323-4583-aabb-fb3c5972c19a",
+          "kind": "message",
+          "role": "user",
+          "sequence": 111,
+          "timestamp": "2026-10-20T14:06:17.439Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1510,14 +1518,14 @@
         }
       ],
       "startedAt": "2026-10-20T13:49:22.571Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 219340,
           "toolMs": 151520
         },
         "elapsedMs": 483109,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-20T14:06:17.439Z"
       },
       "title": "investigate",
       "usage": {
