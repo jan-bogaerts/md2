@@ -225,7 +225,7 @@ describe('ActionAgentExecutor', () => {
         expect(result).toMatchObject({ permissionMode: 'full-access' });
         expect(agentRunnerService.start.mock.calls[0][1].command).toEqual([
             'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-access', '--ask-for-approval', 'never',
-            '--search', 'exec', '--json',
+            '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json',
         ]);
     });
 
@@ -398,7 +398,10 @@ describe('ActionAgentExecutor', () => {
 
         const request = agentRunnerService.start.mock.calls[0][1];
         expect(request).toMatchObject({
-            command: ['codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', 'app-server', '--stdio'],
+            command: [
+                'codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request',
+                '-c', 'tools.update_plan.enabled=true', 'app-server', '--stdio',
+            ],
             contextInput: expect.stringContaining('new'),
             providerConversationId: 'thread-1',
         });

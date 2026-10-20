@@ -5,8 +5,9 @@ import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.
 const require = createRequire(import.meta.url);
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
+const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');
 
-function harness(agent, providerConversationId = null, executionSettings = {}) {
+function harness(agent, providerConversationId = null, executionSettings = {}, taskTrackingEnabled = false) {
     const events = [];
     const runtimeEvents = [];
     const writes = [];
@@ -18,6 +19,8 @@ function harness(agent, providerConversationId = null, executionSettings = {}) {
         providerConversationId,
         (event) => runtimeEvents.push(event),
         executionSettings,
+        null,
+        taskTrackingEnabled,
     );
 
     return { adapter, events, runtimeEvents, writes };
@@ -1279,6 +1282,30 @@ describe('CodexStreamingAdapter', () => {
         expect(adapter.resolvedSettings).toEqual({ model: 'gpt-6.1-sol', serviceTier });
         await adapter.sendMessage('second prompt');
         expect(writes[5]).toMatchObject({ method: 'turn/start', params: settings });
+    });
+
+    it.each([
+        [null, 'thread/start'],
+        ['saved-thread', 'thread/resume'],
+    ])('adds task instructions to %s when task tracking is enabled', async (sessionId, method) => {
+        const { adapter, writes } = harness('codex', sessionId, {}, true);
+
+        await adapter.start('first prompt');
+        await adapter.handleMessage({ id: 1, result: {} });
+
+        expect(writes[3]).toMatchObject({
+            method,
+            params: { developerInstructions: CODEX_TASK_TRACKING_INSTRUCTIONS },
+        });
+    });
+
+    it('omits task instructions when task tracking is disabled', async () => {
+        const { adapter, writes } = harness('codex');
+
+        await adapter.start('first prompt');
+        await adapter.handleMessage({ id: 1, result: {} });
+
+        expect(writes[3].params).not.toHaveProperty('developerInstructions');
     });
 
     it.each(['default', undefined])('refuses to infer when the requested Fast tier is not acknowledged: %s', async (serviceTier) => {

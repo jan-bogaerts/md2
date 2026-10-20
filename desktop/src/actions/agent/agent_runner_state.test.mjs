@@ -11,6 +11,8 @@ const { CodexRuntimeService } = require('./codex_runtime_service');
 const { createRun } = require('./agent_run_state');
 const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
+const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
+const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');
 
 function diagnosticStreamingEvent(content, providerItemId) {
     return {
@@ -290,20 +292,58 @@ describe('AgentRunnerService published run status', () => {
 });
 
 describe('AgentRunnerService state handling', () => {
-    it.each([
-        ['one-shot', (service, runId, event) => service.handleProviderEvent(runId, event)],
-        ['streaming', (service, runId, event) => service.handleStreamingEvent(runId, event)],
-    ])('replaces and publishes a task list from the %s decoder path', async (_path, dispatch) => {
+    it('stores and publishes a streaming Codex plan update', async () => {
         const { onEvent, run, service } = streamingRunService();
-        const taskList = {
-            tasks: [{ id: 'task-1', status: 'inProgress', subject: 'Implement task list' }],
-            updatedAt: '2026-10-16T10:00:00.000Z',
-        };
+        const adapter = createAgentStreamingAdapter(
+            'codex',
+            vi.fn(),
+            (event) => service.handleStreamingEvent(run.id, event),
+            run.rootPath,
+        );
+        adapter.threadId = 'thread-root';
 
-        await dispatch(service, run.id, { taskList, type: 'taskList' });
+        await adapter.handleMessage({
+            method: 'turn/plan/updated',
+            params: {
+                plan: [{ status: 'inProgress', step: 'Implement task list' }],
+                threadId: 'thread-root',
+                turnId: 'turn-1',
+            },
+        });
 
-        expect(run.conversation.taskList).toBe(taskList);
-        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({status: 'running', taskList, type: 'taskList'}));
+        expect(run.conversation.taskList).toMatchObject({ tasks: [{ id: '0', status: 'inProgress', subject: 'Implement task list' }] });
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            status: 'running',
+            taskList: run.conversation.taskList,
+            type: 'taskList',
+        }));
+    });
+
+    it('stores and publishes a one-shot Codex todo list update', () => {
+        const { onEvent, run, service } = streamingRunService();
+        const parser = createAgentProviderProtocolParser(
+            'codex',
+            (event) => service.handleProviderEvent(run.id, event),
+            vi.fn(),
+            run.rootPath,
+        );
+
+        parser.push(`${JSON.stringify({
+            item: {
+                id: 'todo-1',
+                items: [{ completed: false, text: 'Inspect task path' }],
+                type: 'todo_list',
+            },
+            type: 'item.updated',
+        })}\n`);
+        parser.finish();
+
+        expect(run.conversation.taskList).toMatchObject({ tasks: [{ id: '0', status: 'pending', subject: 'Inspect task path' }] });
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            status: 'running',
+            taskList: run.conversation.taskList,
+            type: 'taskList',
+        }));
     });
 
     it('replaces a running codex exec command and persists turn usage once at close', async () => {
@@ -503,6 +543,52 @@ describe('AgentRunnerService state handling', () => {
 
         expect(spawn).not.toHaveBeenCalled();
         expect(onEvent).not.toHaveBeenCalled();
+    });
+
+    it('injects Codex task instructions only into one-shot provider input', async () => {
+        const child = new EventEmitter();
+        child.pid = 43;
+        child.stdin = new PassThrough();
+        child.stdout = new PassThrough();
+        child.stderr = new PassThrough();
+        const persistConversation = vi.fn(async () => undefined);
+        const persistConversationCheckpoint = vi.fn(async () => undefined);
+        const spawn = vi.fn(() => child);
+        const onEvent = vi.fn();
+        const service = new AgentRunnerService({
+            executableResolver: { find: vi.fn(async () => '/tools/codex') },
+            persistConversation,
+            persistConversationCheckpoint,
+            spawn,
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const request = {
+            agent: 'codex',
+            agentTaskTrackingEnabled: true,
+            command: ['codex', 'exec', '--json'],
+            projectFolder: 'design',
+            prompt: 'Start work',
+        };
+
+        await service.start(project, request, onEvent, vi.fn(), vi.fn());
+
+        expect(spawn).toHaveBeenCalledWith('/tools/codex', [
+            'exec',
+            '--json',
+            `${CODEX_TASK_TRACKING_INSTRUCTIONS}\n\nStart work`,
+        ], expect.any(Object));
+        expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expect.objectContaining({ entries: [expect.objectContaining({ content: 'Start work', role: 'user' })] }) }));
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({ entries: [] }),
+            type: 'started',
+        }));
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'userMessage',
+            userMessage: expect.objectContaining({ content: 'Start work' }),
+        }));
+
+        child.emit('close', 0);
+        await vi.waitFor(() => expect(persistConversation).toHaveBeenCalledOnce());
     });
 
     it('does not require an installed agent when the service is constructed', () => {

@@ -152,6 +152,7 @@ function attachRunProtocol(run, {
             onCodexRuntimeEvent,
             run.request.executionSettings,
             run.claudeUsageTracker,
+            run.request.agentTaskTrackingEnabled === true,
         )
         : null;
     run.protocolLines = run.streaming ? new JsonLineBuffer(run.id, onStreamingLine) : null;

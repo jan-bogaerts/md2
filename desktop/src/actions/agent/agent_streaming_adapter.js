@@ -3,6 +3,7 @@ const { appendBoundedAgentResult } = require('../../../../shared/agent_conversat
 const { ClaudeStreamingAdapter } = require('./agent_claude_streaming_adapter');
 const { diagnosticEvent, normalizeCodexEvent, systemEvent } = require('./agent_codex_event');
 const { isMissingSession } = require('./agent_provider_protocol');
+const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');
 
 const CODEX_CLIENT_NAME = 'md2';
 const CODEX_CLIENT_VERSION = '1';
@@ -164,13 +165,22 @@ function codexReceiverThreadIds(item) {
 }
 
 class CodexStreamingAdapter {
-    constructor(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent, executionSettings = {}) {
+    constructor(
+        writeLine,
+        onEvent,
+        rootPath,
+        providerConversationId,
+        onRuntimeEvent,
+        executionSettings = {},
+        taskTrackingEnabled = false,
+    ) {
         this.writeLine = writeLine;
         this.onEvent = onEvent;
         this.onRuntimeEvent = onRuntimeEvent;
         this.providerConversationId = providerConversationId;
         this.rootPath = rootPath;
         this.executionSettings = executionSettings;
+        this.taskTrackingEnabled = taskTrackingEnabled;
         this.resolvedSettings = null;
         // Child thread id to the collaboration item that started it. Entries live for the run, because a
         // child thread keeps reporting after that collaboration item has completed.
@@ -454,6 +464,7 @@ class CodexStreamingAdapter {
         const { model, effort, serviceTier } = this.executionSettings;
 
         return {
+            ...(this.taskTrackingEnabled ? { developerInstructions: CODEX_TASK_TRACKING_INSTRUCTIONS } : {}),
             ...(model !== undefined ? { model } : {}),
             ...(serviceTier !== undefined ? { serviceTier } : {}),
             ...(effort !== undefined ? { config: { model_reasoning_effort: effort } } : {}),
@@ -884,10 +895,19 @@ function createAgentStreamingAdapter(
     onRuntimeEvent = async () => undefined,
     executionSettings = {},
     claudeUsageTracker = null,
+    taskTrackingEnabled = false,
 ) {
     if (agent === 'claude') return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, claudeUsageTracker);
     if (agent === 'codex') {
-        return new CodexStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent, executionSettings);
+        return new CodexStreamingAdapter(
+            writeLine,
+            onEvent,
+            rootPath,
+            providerConversationId,
+            onRuntimeEvent,
+            executionSettings,
+            taskTrackingEnabled,
+        );
     }
 
     throw new Error(`Agent profile does not support streaming: ${agent}`);

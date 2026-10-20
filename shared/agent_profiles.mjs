@@ -362,9 +362,9 @@ function buildSpeedCommand(command, profile, settings) {
 }
 
 function buildAgentTaskTrackingCommand(command, profile, agentTaskTrackingEnabled) {
-    if (profile.name !== 'codex' || agentTaskTrackingEnabled) return command;
+    if (profile.name !== 'codex') return command;
 
-    return [...command, '-c', 'tools.update_plan.enabled=false'];
+    return [...command, '-c', `tools.update_plan.enabled=${agentTaskTrackingEnabled}`];
 }
 
 export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined, speedSettings = {}, agentTaskTrackingEnabled = true) {
