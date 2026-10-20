@@ -938,6 +938,10 @@
       "cardInternalId": "a5e97d32-66be-4cf7-9999-c125753f446d",
       "cardPath": "design/feature_descriptions/F_401_add_placeholder_for_actions_folder.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 49838
+      },
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_401_add_placeholder_for_actions_folder.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_401_add_placeholder_for_actions_folder.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -946,18 +950,169 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-20T13:42:42.578Z"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_401_add_placeholder_for_actions_folder.md\"}",
+          "id": "agent-turn-e1674fa0-322f-41bf-ac4e-574a0936f398-event-2",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_401\n4\tinternalId: a5e97d32-66be-4cf7-9999-c125753f446d\n5\ttitle: add placeholder for actions folder\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__a5e97d32-66be-4cf7-9999-c125753f446d.json\n11\tpolicy:\n12\tafter: 8a987dbe-da9b-4029-bfc6-0de9dee46a41\n13\tbranch: f_401_add_placeholder_for_actions_folder\n14\tworktree: 1\n15\t---\n16\t\n17\tadd a placeholder for the 'actions folder'. Similar like the `repository folder` or `this card` placeholders, but this is for the folder that contains all the actions. Behaves like other placeholders for folders, so full path.\n18\t\n19\t## Current state\n20\t\n21\t* Action placeholders are resolved only on the desktop side, in `desktop/src/actions/action/action_text.js`. `resolvePlaceholders` takes positional arguments (`text, context, runProject, primaryProject, projectFolder, releasesFolder, activeCardsFolder, extraPrompt, diagramFile, version`). `resolveAgentPrompt` and `resolvePopupPrompt` forward to it.\n22\t* Folder placeholders `{{active-cards-folder}}`, `{{project-folder}}` and `{{releases-folder}}` take a repository-relative folder and return `path.resolve(requireRootPath(primaryProject), folder)`. They always resolve under the opened repository (`primaryProject`), also during linked-worktree and sequence runs. Only `{{worktree-folder}}` follows the run checkout.\n23\t* The actions folder is already resolved: `resolveProjectPaths` in `desktop/src/project/project_paths.js` returns `actionsFolder` as a repository-relative path that includes `projectFolder` (default `actions`). `ActionRunnerService.startProject` stores it, and `ActionRunnerService.start` passes it into the `ActionRun` snapshot. `ActionRun` stores `this.actionsFolder` but never passes it to a resolver.\n24\t* Resolver call sites, all needing the new placeholder:\n25\t  * `executeCommandAction` in `action_command_executor.js`, fed by `ActionRun.executeCommandAction`.\n26\t  * `ActionAgentExecutor.execute` in `action_agent_executor.js`: three calls (diagram prompt override, popup prompt override, root prompt), fed by the `input` object built in `ActionRun.executeAgentAction`.\n27\t  * `ActionRunnerService.prepareActionPrompt` (prompt preview before the run starts).\n28\t  * `ActionRun.resolveActiveAgentPrompt` (follow-up prompts sent to a running agent).\n29\t* The diff command (`project.diffCommand`) has its own resolver: `generateDiff` in `desktop/src/git/diff_service.js` with `DIFF_PLACEHOLDER_NAMES`. The app builds the `DiffRequest` in `app/src/services/data/diff_service.ts` from `resolveProjectConfigPaths`, which already returns a project-folder-joined `actionsFolder`. `DiffRequest` (`app/src/data/electron_action_bridge.ts`) has no `actionsFolder`. The preload and `local_bridge_dispatch.js` pass the request through unchanged.\n30\t* The prompt editor typeahead and toolbar list placeholders from `ACTION_PROMPT_PLACEHOLDERS` in `app/src/data/action_placeholders.ts`.\n31\t* `app/src/services/actions/action_text.ts` is a stale copy of the desktop resolver. Only its own test `action_text.node.test.ts` imports it; no production code uses it.\n32\t* User docs list placeholders in `docs/actions/placeholders.md`, `docs/README.md`, `docs/guide/configuration.md` and `docs/guide/git-and-commits.md`. The `project.diffCommand` description in `app/src/services/config/config_entries.ts` lists the diff placeholders.\n33\t\n34\t## Implementation details\n35\t\n36\t### Placeholder\n37\t\n38\t* Name: `{{actions-folder}}`. Value: absolute path to the configured actions folder under the opened repository, `path.resolve(requireRootPath(primaryProject), actionsFolder)`. Same rule as `{{releases-folder}}`, so it does not follow the linked worktree.\n39\t* Missing or empty `actionsFolder` throws `Cannot resolve actions-folder placeholder without a configured actions folder`, before the process starts.\n40\t\n41\t### Desktop action resolver\n42\t\n43\t* `action_text.js`: add `actions-folder` to `PLACEHOLDER_NAMES`. Add an `actionsFolder` parameter directly after `releasesFolder` in `resolvePlaceholders`, `resolveAgent\n[318 characters omitted]\nr.execute` calls: pass `input.actionsFolder`.\n47\t  * `ActionRunnerService.prepareActionPrompt`: pass `this.actionsFolder`.\n48\t  * `ActionRun.resolveActiveAgentPrompt`: pass `this.actionsFolder`.\n49\t* No new config, path resolution or validation: `resolveProjectPaths` already validates `actionsFolder`.\n50\t\n51\t### Diff command\n52\t\n53\t* `diff_service.js`: add `actions-folder` to `DIFF_PLACEHOLDER_NAMES` and resolve it in `generateDiff` from `request.actionsFolder` like `releases-folder` (`path.resolve(rootPath, request.actionsFolder)`, `null` when missing, so `resolveDiffCommand` fails with `Missing diff command value: actions-folder` only when the template uses it).\n54\t* `DiffRequest`: add `actionsFolder: string`.\n55\t* `app/src/services/data/diff_service.ts`: take `actionsFolder` from `resolveProjectConfigPaths` and send it in the request.\n56\t\n57\t### App\n58\t\n59\t* `action_placeholders.ts`: add `'actions-folder'` to the `name` union and an entry `{ description: 'Absolute path to the configured actions folder.', name: 'actions-folder' }` next to the other folder placeholders.\n60\t* `config_entries.ts`: add `{{actions-folder}}` to the `project.diffCommand` description.\n61\t* Delete the dead code `app/src/services/actions/action_text.ts` and `app/src/services/actions/action_text.node.test.ts`.\n62\t\n63\t### Docs\n64\t\n65\t* `docs/actions/placeholders.md`: add the `{{actions-folder}}` row. Add it to the note that lists placeholders staying under the opened repository during linked-worktree actions. Change \"the same five folder placeholders\" to six.\n66\t* Add `{{actions-folder}}` to the placeholder lists in `docs/README.md`, `docs/guide/configuration.md` and `docs/guide/git-and-commits.md`.\n67\t\n68\t### Edge cases\n69\t\n70\t* `projectFolder` set: `actionsFolder` already contains it, so the result is `<repository>/<projectFolder>/<actionsFolder>`.\n71\t* Linked worktree or sequence checkout: resolves to the opened repository, not the checkout. Matches where action definitions are loaded from.\n72\t* Prompt preview (`prepareActionPrompt`) resolves the placeholder too, so the popup shows the absolute path.\n73\t* Unknown placeholders are left untouched today; that behavior does not change.\n74\t\n75\t### Tests\n76\t\n77\t* `desktop/src/actions/action/action_text.test.mjs`: update all calls for the new parameter; add resolution of `{{actions-folder}}` (with and without `projectFolder` in the path) and the missing-folder error.\n78\t* `action_command_executor.test.mjs`, `action_agent_executor.test.mjs`, `action_runner_service.test.mjs`: extend the existing all-placeholders cases with `{{actions-folder}}` and its expected absolute path.\n79\t* `desktop/src/git/diff_service.test.mjs`: resolve `{{actions-folder}}` and fail with `Missing diff command value: actions-folder` when the template uses it without a value.\n80\t* `app/src/components/editor/placeholders/markdown_placeholder_toolbar_control.grouped.test.tsx`: assert the `actions-folder` menu item is offered.\n81\t* `app/src/services/data/diff_service.node.test.ts`: assert `actionsFolder` is sent in the diff request.\n82\t* Run the affected test files directly and `npm run lint` in `app` and `desktop`.\n83\t\n84\t## Acceptance criteria\n85\t\n86\t* `{{actions-folder}}` in an agent prompt, command, popup prompt or follow-up prompt resolves to the absolute path of the configured actions folder under the opened repository.\n87\t* With `projectFolder` configured, the path includes the project folder.\n88\t* During linked-worktree and sequence runs, `{{actions-folder}}` still points to the opened repository's actions folder.\n89\t* `{{actions-folder}}` in `project.diffCommand` resolves to the same absolute path.\n90\t* The prompt editor typeahead and toolbar offer `actions-folder` with its description.\n91\t* A missing actions folder value fails with a clear error before any process starts.\n92\t* `app/src/services/actions/action_text.ts` and its test are removed; nothing else references them.\n93\t* User docs and the `project.diffCommand` description list `{{actions-folder}}`.\n94\t* Focused tests and lint pass in `app` and `desktop`.",
+          "providerItemId": "toolu_01CxwEa55cPZJFkT7mB35guP",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-10-20T13:42:47.109Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e1674fa0-322f-41bf-ac4e-574a0936f398-event-3",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDazhtx6gBmNSs6mecTi:thinking:0",
+          "sequence": 3,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T13:42:49.531Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1; grep -rn \"releasesFolder\\|releases-folder\" desktop/src app/src docs --include=*.js --include=*.mjs --include=*.ts --include=*.tsx --include=*.md | grep -v node_modules | head -80; grep -rln \"action_text\" app/src desktop/src",
+          "content": "desktop/src/actions/action/action_agent_executor.js:75:                    input.releasesFolder,\ndesktop/src/actions/action/action_agent_executor.js:88:                    input.releasesFolder,\ndesktop/src/actions/action/action_agent_executor.js:101:                    input.releasesFolder,\ndesktop/src/actions/action/action_agent_executor.js:140:            releasesFolder: input.releasesFolder,\ndesktop/src/actions/action/action_agent_executor.js:182:            reference: input.runInput.continueFrom, releasesFolder: input.releasesFolder, streaming: true, title: conversation.title,\ndesktop/src/actions/action/action_agent_executor.test.mjs:68:        releasesFolder: 'design/releases',\ndesktop/src/actions/action/action_agent_executor.test.mjs:272:                prompt: 'Review {{card-file}} and {{this-card}} in {{worktree-folder}} for {{repository-folder}} active {{active-cards-folder}} project {{project-folder}} releases {{releases-folder}}: {{card-prompt}} {{unknown}}',\ndesktop/src/actions/action/action_command_executor.js:88:        input.releasesFolder,\ndesktop/src/actions/action/action_command_executor.test.mjs:171:            command: 'run {{active-cards-folder}} {{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{this-card}} {{card-prompt}}',\ndesktop/src/actions/action/action_command_executor.test.mjs:178:            releasesFolder: 'design/releases',\ndesktop/src/actions/action/action_command_executor.test.mjs:200:            releasesFolder: 'design/releases',\ndesktop/src/actions/action/action_command_executor.test.mjs:222:            releasesFolder: 'design/releases',\ndesktop/src/actions/action/action_compact_queue.test.mjs:46:    runner.releasesFolder = 'design/releases';\ndesktop/src/actions/action/action_run.js:34:        this.releasesFolder = snapshot.releasesFolder;\ndesktop/src/actions/action/action_run.js:724:            releasesFolder: this.releasesFolder,\ndesktop/src/actions/action/action_run.js:903:            releasesFolder: this.releasesFolder,\ndesktop/src/actions/action/action_run.js:968:            this.releasesFolder,\ndesktop/src/actions/action/action_run.test.mjs:105:        releasesFolder: 'design/releases',\ndesktop/src/actions/action/action_runner_service.js:95:        this.releasesFolder = null;\ndesktop/src/actions/action/action_runner_service.js:108:        const { actionsFolder, activeCardsFolder, diagramFooter, diagramsFolder, projectFolder, releasesFolder } = paths ?? {};\ndesktop/src/actions/action/action_runner_service.js:118:        this.releasesFolder = releasesFolder;\ndesktop/src/actions/action/action_runner_service.js:161:        this.releasesFolder = null;\ndesktop/src/actions/action/action_runner_service.js:183:        assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);\ndesktop/src/actions/action/action_runner_service.js:217:            releasesFolder: this.releasesFolder,\ndesktop/src/actions/action/action_runner_service.js:243:        assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);\ndesktop/src/actions/action/action_runner_service.js:277:        assertReleasedCardActionAllowed(promptRequest.context, this.releasesFolder);\ndesktop/src/actions/action/action_runner_service.js:293:            this.releasesFolder,\ndesktop/src/actions/action/action_runner_service.js:322:        assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);\ndesktop/src/actions/action/action_runner_service.js:559:        if (this.releasesFolder === null) throw new Error('Action runner has no releasesFolder');\ndesktop/src/actions/action/action_runner_service.test.mjs:88:    runner.startProject(project, { actionsFolder: 'actions', activeCardsFolder: 'design/feature_descriptions', diagramFooter, diagramsFolder: 'design/diagrams', projectFolder: 'design', releasesFolder: 'design/releases' }, [{ state: 'design' }, { state: 'ready' }]);\ndesktop/src/actions/action/action_runner_service.test.mjs:364:        runner.startProject(project, { actionsFolder: 'actions', activeCardsFolder: 'design/feature_des\n[4439 characters omitted]\n{releases-folder}}', {}, project, project, projectFolder, '', activeCardsFolder, '')).toThrow('configured releases folder');\ndesktop/src/actions/action/action_text.test.mjs:54:        expect(() => resolvePlaceholders('{{active-cards-folder}}', {}, project, project, projectFolder, releasesFolder, '', '')).toThrow('configured working folder');\ndesktop/src/actions/action/action_text.test.mjs:55:        expect(() => resolvePlaceholders('{{active-cards-folder}}', {}, project, {}, projectFolder, releasesFolder, activeCardsFolder, '')).toThrow('Missing local Git project rootPath');\ndesktop/src/actions/action/action_text.test.mjs:59:        expect(() => resolvePlaceholders(`{{${placeholderName}}}`, { kind: 'project' }, project, project, projectFolder, releasesFolder, activeCardsFolder, ''))\ndesktop/src/actions/action/action_text.test.mjs:64:        expect(() => resolvePlaceholders('{{card-title}}', { kind: 'card' }, project, project, projectFolder, releasesFolder, activeCardsFolder, '')).toThrow('Cannot resolve card-title placeholder');\ndesktop/src/actions/action/action_text.test.mjs:76:            releasesFolder,\ndesktop/src/actions/action/action_text.test.mjs:91:            releasesFolder,\ndesktop/src/actions/action/action_text.test.mjs:102:            releasesFolder,\ndesktop/src/actions/action/action_text.test.mjs:114:            'Implement:\\n{{diagram-changes}}', context, project, project, projectFolder, releasesFolder, activeCardsFolder, '',\ndesktop/src/actions/action/action_text.test.mjs:117:            '{{diagram-changes}}', { kind: 'diagram', type: 'root' }, project, project, projectFolder, releasesFolder, activeCardsFolder, '',\ndesktop/src/actions/action/action_text.test.mjs:125:            releasesFolder,\ndesktop/src/actions/action/action_text.test.mjs:130:            '{{diagram-changes}}', { kind: 'project' }, project, project, projectFolder, releasesFolder, activeCardsFolder, '',\ndesktop/src/actions/action/action_text.test.mjs:138:            '{{parent-node}}', context, project, project, projectFolder, releasesFolder, activeCardsFolder, '',\ndesktop/src/actions/action/action_text.test.mjs:141:            '{{parent-node}}', { kind: 'diagram', type: 'root' }, project, project, projectFolder, releasesFolder, activeCardsFolder, '',\ndesktop/src/actions/action/action_text.test.mjs:144:            '{{parent-node}}', { kind: 'diagram', type: 'child' }, project, project, projectFolder, releasesFolder, activeCardsFolder, '',\ndesktop/src/actions/action/action_text.test.mjs:149:        expect(resolvePlaceholders('{{rootProjectFolder}} {{file}} {{prompt}}', { file: 'design/card.md' }, project, project, projectFolder, releasesFolder, activeCardsFolder, 'focus'))\ndesktop/src/actions/action/action_text.test.mjs:156:        expect(resolveAgentPrompt({ prompt: 'Review {{card-prompt}}' }, {}, project, project, projectFolder, releasesFolder, activeCardsFolder, 'this')).toBe('Review this');\ndesktop/src/actions/action/action_text.test.mjs:160:        expect(resolveAgentPrompt({ prompt: 'Review' }, {}, project, project, projectFolder, releasesFolder, activeCardsFolder, 'this')).toBe('Review\\n\\nthis');\ndesktop/src/actions/action/action_text.test.mjs:164:        expect(resolveAgentPrompt({ prompt: 'Review' }, {}, project, project, projectFolder, releasesFolder, activeCardsFolder, '  ')).toBe('Review');\ndesktop/src/actions/action/action_text.test.mjs:168:        expect(resolveAgentPrompt({ prompt: '{{card-prompt}}' }, {}, project, project, projectFolder, releasesFolder, activeCardsFolder, '')).toBe('');\ndesktop/src/actions/action/action_text.test.mjs:181:            releasesFolder,\ndesktop/src/actions/action/action_text.test.mjs:200:            releasesFolder,\ndesktop/src/actions/action/action_text.test.mjs:212:            releasesFolder,\napp/src/services/actions/action_text.node.test.ts\ndesktop/src/actions/action/action_agent_executor.js\ndesktop/src/actions/action/action_command_executor.js\ndesktop/src/actions/action/action_run.js\ndesktop/src/actions/action/action_runner_service.js\ndesktop/src/actions/action/action_text.test.mjs",
+          "id": "agent-turn-e1674fa0-322f-41bf-ac4e-574a0936f398-event-4",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1; grep -rn \"releasesFolder\\|releases-folder\" desktop/src app/src docs --include=*.js --include=*.mjs --include=*.ts --include=*.tsx --include=*.md | grep -v node_modules | head -80; grep -rln \"action_text\" app/src desktop/src",
+          "providerItemId": "toolu_01FFxb8zSXUfK7kqvnhvFJpc",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-10-20T13:42:52.413Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e1674fa0-322f-41bf-ac4e-574a0936f398-event-5",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDb168vDW997D1pL6b8B:thinking:0",
+          "sequence": 5,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T13:42:54.697Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"query\":\"select:TaskCreate,TaskUpdate\",\"max_results\":2}",
+          "id": "agent-turn-e1674fa0-322f-41bf-ac4e-574a0936f398-event-6",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskCreate\"},{\"type\":\"tool_reference\",\"tool_name\":\"TaskUpdate\"}]",
+          "providerItemId": "toolu_0192hdSb7fL37HFrDSUw8Kk6",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-10-20T13:42:54.910Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e1674fa0-322f-41bf-ac4e-574a0936f398-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDb1oKASDMaVFXwcrx4N:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T13:43:11.279Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "I checked the spec against the code: the resolver signatures, the call sites, and where `actionsFolder` is stored all match what it describes. I've made one task per block below. No files are edited yet.\n\n## Change plan\n\n**Block 1: desktop action resolver and its call sites**\n- In `desktop/src/actions/action/action_text.js`, add `actions-folder` to `PLACEHOLDER_NAMES`. Add an `actionsFolder` parameter right after `releasesFolder` in `resolvePlaceholders`, `resolveAgentPrompt` and `resolvePopupPrompt`.\n- The new branch returns `path.resolve(requireRootPath(primaryProject), actionsFolder)`. If the value is missing or empty, it throws `Cannot resolve actions-folder placeholder without a configured actions folder` before any process starts.\n- Pass the value in at every call site:\n  - `ActionRun`: add `actionsFolder: this.actionsFolder` to the command and agent input objects, and pass it in `resolveActiveAgentPrompt` (follow-up prompts).\n  - `action_command_executor.js`: pass `input.actionsFolder`.\n  - `action_agent_executor.js`: pass `input.actionsFolder` in all three calls (diagram prompt, popup prompt, root prompt).\n  - `ActionRunnerService.prepareActionPrompt` (prompt preview): pass `this.actionsFolder`.\n- Tests:\n  - `action_text.test.mjs`: update every call for the new parameter. Add cases for resolution with and without `projectFolder`, and for the missing-folder error.\n  - Command executor, agent executor and runner service tests: add `{{actions-folder}}` to the existing all-placeholders cases.\n\n**Block 2: diff command**\n- In `desktop/src/git/diff_service.js`, add the name to `DIFF_PLACEHOLDER_NAMES`. `generateDiff` resolves it as `path.resolve(rootPath, request.actionsFolder)`, or `null` when the value is missing. That way it only fails when the template actually uses it.\n- Add `actionsFolder: string` to `DiffRequest` in `electron_action_bridge.ts`.\n- `app/src/services/data/diff_service.ts` sends `actionsFolder`, taken from `resolveProjectConfigPaths`.\n- Tests: the desktop `diff_service.test.mjs` covers resolving the placeholder and the `Missing diff command value: actions-folder` error. The app `diff_service.node.test.ts` checks that the request includes `actionsFolder`.\n\n**Block 3: app**\n- `action_placeholders.ts`: add `'actions-folder'` to the name union and a new entry with its description, next to the other folder placeholders.\n- `config_entries.ts`: add `{{actions-folder}}` to the `project.diffCommand` description.\n- Delete the unused `app/src/services/actions/action_text.ts` and `action_text.node.test.ts`. Nothing else imports them.\n- Test: `markdown_placeholder_toolbar_control.grouped.test.tsx` checks that the `actions-folder` menu item is offered.\n\n**Block 4: docs**\n- `docs/actions/placeholders.md`: add a row for the placeholder, add it to the note about linked-worktree actions, and change \"five folder placeholders\" to six.\n- Add it to the placeholder lists in `docs/README.md`, `docs/guide/configuration.md` and `docs/guide/git-and-commits.md`.\n\n**Block 5: verify**\n- Run the affected test files directly, then `npm run lint` in `app` and in `desktop`.\n- Set `status: ready` in `md2/design/feature_descriptions/F_401_add_placeholder_for_actions_folder.md`.\n\nShould I go ahead?",
+          "id": "agent-turn-e1674fa0-322f-41bf-ac4e-574a0936f398-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 8,
+          "timestamp": "2026-10-20T13:43:14.818Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-75965489-77b5-481e-a18e-b1251afed3cb",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "6c765050-5b94-4c2e-ac8a-42d7b6bdf267",
+          "createdAt": "2026-10-20T13:43:14.818Z",
+          "lastUsedAt": "2026-10-20T13:43:14.818Z",
+          "synchronizedThroughMessageId": "agent-turn-e1674fa0-322f-41bf-ac4e-574a0936f398-turn-1-assistant-1",
+          "usageBaseline": {
+            "costUsd": 0.3551788,
+            "resultId": "b70917fd-3b4c-4e59-bfb8-666a4698b2bc",
+            "tokens": {
+              "cachedInputTokens": 220722,
+              "inputTokens": 10,
+              "outputTokens": 2583,
+              "reasoningTokens": 0,
+              "totalTokens": 223315
+            }
+          }
+        }
+      ],
       "startedAt": "2026-10-20T13:42:42.578Z",
       "status": "running",
+      "taskList": {
+        "tasks": [
+          {
+            "id": "1",
+            "subject": "Block 1: desktop action resolver + call sites",
+            "status": "pending"
+          },
+          {
+            "id": "2",
+            "subject": "Block 2: diff command placeholder",
+            "status": "pending"
+          },
+          {
+            "id": "3",
+            "subject": "Block 3: app placeholder list, config description, dead code removal",
+            "status": "pending"
+          },
+          {
+            "id": "4",
+            "subject": "Block 4: user docs",
+            "status": "pending"
+          },
+          {
+            "id": "5",
+            "subject": "Block 5: verify + status",
+            "status": "pending"
+          }
+        ],
+        "updatedAt": "2026-10-20T13:43:02.020Z"
+      },
       "timer": {
+        "breakdown": {
+          "reasoningMs": 7250,
+          "toolMs": 4097
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-10-20T13:42:42.578Z"
       },
       "title": "implement",
+      "usage": {
+        "cachedInputTokens": 220722,
+        "inputTokens": 10,
+        "outputTokens": 2583,
+        "reasoningTokens": 0,
+        "totalTokens": 223315,
+        "costUsd": 0.3551788
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
