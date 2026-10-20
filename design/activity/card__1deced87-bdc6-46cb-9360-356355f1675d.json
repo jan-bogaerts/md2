@@ -664,13 +664,50 @@
         "costUsd": 1.0809268
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "1deced87-bdc6-46cb-9360-356355f1675d",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "a1fcc7b7475469a7c53d132e5b22a93c7eccb4c6",
+          "committedAt": "2026-10-20T15:55:38+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_320_project_color_applied_to_wrong_components.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 77
+        }
+      ],
+      "completedAt": "2026-10-20T13:55:39.107Z",
+      "conversationIds": [
+        "agent-f30192f2-6560-49d8-9fd1-9628eb91587f"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-9dd14062-8687-4a69-9c88-e45eb15e94b7",
+      "origin": {
+        "cardInternalId": "1deced87-bdc6-46cb-9360-356355f1675d",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-f30192f2-6560-49d8-9fd1-9628eb91587f",
+      "startedAt": "2026-10-20T13:52:40.677Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
