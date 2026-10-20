@@ -5,7 +5,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "b4209b86-7a2f-497f-a268-13acc153c748",
       "cardPath": "design/feature_descriptions/B_321_codex_sub_agents_report_incorrect_file_changes.md",
-      "completedAt": null,
+      "completedAt": "2026-10-20T15:32:37.465Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 145049
@@ -1112,7 +1112,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 81,
-          "timestamp": "2026-10-20T15:29:23.565Z"
+          "timestamp": "2026-10-20T15:32:37.465Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1122,12 +1122,12 @@
           "agent": "codex",
           "conversationId": "01a159e9-2adb-7712-af89-30d100f77b60",
           "createdAt": "2026-10-20T15:27:02.997Z",
-          "lastUsedAt": "2026-10-20T15:29:23.565Z",
+          "lastUsedAt": "2026-10-20T15:32:37.465Z",
           "synchronizedThroughMessageId": "agent-turn-bbb55b9c-fe85-43d7-8c4c-a3743ba8fe6c-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-10-20T15:23:34.998Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 531,
@@ -1145,7 +1145,7 @@
         "totalTokens": 3276618
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
