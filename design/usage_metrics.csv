@@ -8655,3 +8655,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-20T14:07:53.736Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,4,0
 2026-10-20T14:09:27.961Z,token_usage,claude,,,,,22,675991,5282,0,681295,,
 2026-10-20T14:09:29.280Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,5,1
+2026-10-20T14:14:14.792Z,token_usage,claude,,,,,74,3066911,22939,0,3089924,,
