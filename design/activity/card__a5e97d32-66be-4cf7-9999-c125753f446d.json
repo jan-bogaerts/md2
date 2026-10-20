@@ -1935,6 +1935,50 @@
       "startedAt": "2026-10-20T13:42:41.446Z",
       "status": "completed",
       "rootConversationId": "agent-75965489-77b5-481e-a18e-b1251afed3cb"
+    },
+    {
+      "commits": [
+        {
+          "commit": "60eb919e1dbd061d0602c70fffe77284167bed21",
+          "committedAt": "2026-10-20T16:14:15+02:00",
+          "deletions": 323,
+          "filePaths": [
+            "app/src/components/editor/placeholders/markdown_placeholder_toolbar_control.grouped.test.tsx",
+            "app/src/data/action_placeholders.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/services/actions/action_text.node.test.ts",
+            "app/src/services/actions/action_text.ts",
+            "app/src/services/config/config_entries.ts",
+            "app/src/services/data/diff_service.node.test.ts",
+            "app/src/services/data/diff_service.ts",
+            "desktop/src/actions/action/action_agent_executor.js",
+            "desktop/src/actions/action/action_agent_executor.test.mjs",
+            "desktop/src/actions/action/action_command_executor.js",
+            "desktop/src/actions/action/action_command_executor.test.mjs",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/actions/action/action_runner_service.test.mjs",
+            "desktop/src/actions/action/action_text.js",
+            "desktop/src/actions/action/action_text.test.mjs",
+            "desktop/src/git/diff_service.js",
+            "desktop/src/git/diff_service.test.mjs",
+            "docs/README.md",
+            "docs/actions/placeholders.md",
+            "docs/guide/configuration.md",
+            "docs/guide/git-and-commits.md"
+          ],
+          "filesChanged": 23,
+          "insertions": 110,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-20T16:14:15+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "a5e97d32-66be-4cf7-9999-c125753f446d",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
