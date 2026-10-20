@@ -3022,6 +3022,38 @@
       "startedAt": "2026-10-20T14:17:17.972Z",
       "status": "completed",
       "rootConversationId": "agent-ec5f68e2-8354-4735-8cf9-7519b787c2a1"
+    },
+    {
+      "commits": [
+        {
+          "commit": "737131d4505566c2ee85dd0de144fea0e5ac0ea8",
+          "committedAt": "2026-10-20T16:38:45+02:00",
+          "deletions": 36,
+          "filePaths": [
+            "desktop/src/actions/action/action_agent_executor.test.mjs",
+            "desktop/src/actions/agent/agent_profiles.test.mjs",
+            "desktop/src/actions/agent/agent_profiles_parity.test.mjs",
+            "desktop/src/actions/agent/agent_run_state.js",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+            "desktop/src/actions/agent/agent_task_tracking.js",
+            "desktop/src/actions/agent/agent_task_tracking.test.mjs",
+            "shared/agent_profiles.mjs"
+          ],
+          "filesChanged": 11,
+          "insertions": 214,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-20T16:38:45+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "379541e5-0bb0-437e-a7c5-4d844ccdffc9",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
