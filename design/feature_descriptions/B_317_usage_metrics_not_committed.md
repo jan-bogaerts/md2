@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__35e2668b-44b4-4be8-9a82-cc3c7f2b4003.json
 policy:
-branch: b_317_usage_metrics_not_committed
-worktree: 1
 changedFiles:
   - desktop/main.js
   - desktop/src/actions/agent/usage_metrics_service.js
