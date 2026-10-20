@@ -11,6 +11,7 @@ agents:
 policy:
 branch: b_320_project_color_applied_to_wrong_components
 worktree: 2
+after: 733d678c-49a7-4409-9fa2-5fb384821513
 ---
 
 We have the option to assign a 'color' to a project (in the config dialog). this works, however, it is applied to the cards and the menu bar. It should actually be applied to the background of the  dashboard, stats, diagrams, list views
