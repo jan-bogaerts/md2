@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__6636980d-0f8d-4f94-a4bb-b5a171ce8891.json
 policy:
-branch: f_435_task_progress_indicator
-worktree: 2
 ---
 We need to add a new component to the run button on the card popups when an action is running on the card that has a task list.
 

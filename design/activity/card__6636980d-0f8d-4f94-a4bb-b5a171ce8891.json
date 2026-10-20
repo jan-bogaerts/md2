@@ -1609,6 +1609,31 @@
       "startedAt": "2026-10-20T15:10:53.388Z",
       "status": "completed",
       "rootConversationId": "agent-cd7ab2a2-59d1-4203-aae5-8ab7fbd11b89"
+    },
+    {
+      "commits": [
+        {
+          "commit": "5422bf2cbf061f1797f3585aa0f12984475ae68f",
+          "committedAt": "2026-10-20T17:19:49+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "app/src/components/actions/run/trigger/card_run_button.test.tsx",
+            "app/src/components/actions/run/trigger/card_run_button.tsx",
+            "app/src/components/actions/run/trigger/task_progress_indicator.test.tsx",
+            "app/src/components/actions/run/trigger/task_progress_indicator.tsx"
+          ],
+          "filesChanged": 4,
+          "insertions": 327,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-20T17:19:49+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "6636980d-0f8d-4f94-a4bb-b5a171ce8891",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
