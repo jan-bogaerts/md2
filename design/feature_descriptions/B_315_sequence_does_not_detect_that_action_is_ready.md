@@ -3,7 +3,7 @@ author:
 id: B_315
 internalId: 8a987dbe-da9b-4029-bfc6-0de9dee46a41
 title: sequence does not detect that action is ready
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,11 @@ policy:
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 branch: b_315_sequence_does_not_detect_that_action_is_ready
 worktree: 2
+changedFiles:
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/schedule/scheduled_card_sequence_engine.js
+  - desktop/src/actions/schedule/scheduled_card_sequence_engine.test.mjs
 ---
 
 The first card in a sequence is ready. The 'ready' state was correctly detected. the action is also done, but the sequence runner did not detect that the action was ready. this is a problem. Now the sequence is stuck. what caused this?
