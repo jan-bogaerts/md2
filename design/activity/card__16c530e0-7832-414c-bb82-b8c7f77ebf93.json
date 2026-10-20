@@ -1240,7 +1240,7 @@
       "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "cardInternalId": "16c530e0-7832-414c-bb82-b8c7f77ebf93",
       "cardPath": "design/feature_descriptions/B_316_new_tasks_on_second_prompt_no_longer_used.md",
-      "completedAt": null,
+      "completedAt": "2026-10-20T14:57:36.249Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 79685
@@ -1975,7 +1975,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 58,
-          "timestamp": "2026-10-20T14:57:35.526Z"
+          "timestamp": "2026-10-20T14:57:36.249Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1985,7 +1985,7 @@
           "agent": "claude",
           "conversationId": "5735271f-a40d-4370-83f5-6c69282ecd90",
           "createdAt": "2026-10-20T14:51:37.063Z",
-          "lastUsedAt": "2026-10-20T14:57:35.526Z",
+          "lastUsedAt": "2026-10-20T14:57:36.249Z",
           "synchronizedThroughMessageId": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-turn-2-assistant-4",
           "usageBaseline": {
             "costUsd": 1.0785255999999999,
@@ -2001,7 +2001,7 @@
         }
       ],
       "startedAt": "2026-10-20T14:50:39.308Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -2036,8 +2036,8 @@
           "reasoningMs": 27391,
           "toolMs": 78760
         },
-        "elapsedMs": 57755,
-        "runningStartedAt": "2026-10-20T14:56:07.049Z"
+        "elapsedMs": 146955,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
