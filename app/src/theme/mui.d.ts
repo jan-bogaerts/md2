@@ -7,6 +7,7 @@ interface CustomPalette {
     chartPalettes: Record<string, string[]>
     colHead: string
     primaryBg: string
+    projectBackground: string
     text3: string
     text4: string
     track: string

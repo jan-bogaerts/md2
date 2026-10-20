@@ -6,22 +6,25 @@ const APP_BORDER_RADIUS = 8
 const LIGHT_CARD_BACKGROUND = '#FCFCFD'
 const DARK_CARD_BACKGROUND = '#222a35'
 
-const LIGHT_PROJECT_BACKGROUNDS: Record<ProjectBackgroundShade, { default: string; paper: string }> = {
-    amber: { default: '#faf7ef', paper: '#fffefa' },
-    blue: { default: '#f1f5fa', paper: '#fbfdff' },
-    green: { default: '#f1f7f3', paper: '#fbfefc' },
-    neutral: { default: '#f4f6f8', paper: '#ffffff' },
-    purple: { default: '#f7f3fa', paper: '#fefcff' },
-    red: { default: '#faf3f3', paper: '#fffdfd' },
+const LIGHT_BACKGROUND = { default: '#f4f6f8', paper: '#ffffff' }
+const DARK_BACKGROUND = { default: '#10151c', paper: '#1a212b' }
+
+const LIGHT_PROJECT_BACKGROUNDS: Record<ProjectBackgroundShade, string> = {
+    amber: '#faf7ef',
+    blue: '#f1f5fa',
+    green: '#f1f7f3',
+    neutral: '#f4f6f8',
+    purple: '#f7f3fa',
+    red: '#faf3f3',
 }
 
-const DARK_PROJECT_BACKGROUNDS: Record<ProjectBackgroundShade, { default: string; paper: string }> = {
-    amber: { default: '#1b1812', paper: '#242016' },
-    blue: { default: '#101821', paper: '#19232e' },
-    green: { default: '#111a17', paper: '#1a2521' },
-    neutral: { default: '#10151c', paper: '#1a212b' },
-    purple: { default: '#19151d', paper: '#231d29' },
-    red: { default: '#1b1416', paper: '#261d20' },
+const DARK_PROJECT_BACKGROUNDS: Record<ProjectBackgroundShade, string> = {
+    amber: '#1b1812',
+    blue: '#101821',
+    green: '#111a17',
+    neutral: '#10151c',
+    purple: '#19151d',
+    red: '#1b1416',
 }
 
 const LIGHT_PALETTE = {
@@ -37,7 +40,8 @@ const DARK_PALETTE = {
 function paletteForMode(mode: PaletteMode, colorScheme: ColorSchemeConfig, backgroundShade: ProjectBackgroundShade) {
     const isDark = mode === 'dark'
     const modePalette = isDark ? DARK_PALETTE : LIGHT_PALETTE
-    const background = isDark ? DARK_PROJECT_BACKGROUNDS[backgroundShade] : LIGHT_PROJECT_BACKGROUNDS[backgroundShade]
+    const background = isDark ? DARK_BACKGROUND : LIGHT_BACKGROUND
+    const projectBackground = isDark ? DARK_PROJECT_BACKGROUNDS[backgroundShade] : LIGHT_PROJECT_BACKGROUNDS[backgroundShade]
     const track = isDark ? '#151c25' : '#eceff3'
     const primaryBackground = isDark ? '#202a36' : '#f0f3f7'
 
@@ -76,6 +80,7 @@ function paletteForMode(mode: PaletteMode, colorScheme: ColorSchemeConfig, backg
                 },
             colHead: modePalette.text.secondary,
             primaryBg: primaryBackground,
+            projectBackground,
             text3: modePalette.text.secondary,
             text4: modePalette.text.disabled,
             track,

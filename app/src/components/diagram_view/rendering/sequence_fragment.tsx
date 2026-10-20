@@ -34,7 +34,7 @@ export function SequenceFragment({emphasis = diagramEmphasisService, emphasisSur
         >
             <Typography
                 color="text.secondary"
-                sx={{ ...diagramFontStyle(undefined, fontScalePercent, 'overline'), bgcolor: 'background.default', border: '1px solid', borderColor: 'custom.borderStrong', left: -1, px: 1, position: 'absolute', top: -1 }}
+                sx={{ ...diagramFontStyle(undefined, fontScalePercent, 'overline'), bgcolor: 'custom.projectBackground', border: '1px solid', borderColor: 'custom.borderStrong', left: -1, px: 1, position: 'absolute', top: -1 }}
                 variant="overline"
             >
                 {fragment.operator}

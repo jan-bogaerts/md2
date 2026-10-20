@@ -224,7 +224,7 @@ export function DiagramView({
     return (
         <Box
             aria-label="Diagram view"
-            sx={{ bgcolor: 'background.default', display: viewMode === 'diagrams' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
+            sx={{ bgcolor: 'custom.projectBackground', display: viewMode === 'diagrams' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
         >
             {content}
             {status === 'ready' ? (

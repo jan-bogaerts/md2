@@ -228,7 +228,7 @@ export function CardView(props: CardViewProps) {
     return (
         <Box
             ref={rootElementRef}
-            sx={{ bgcolor: 'background.default', display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}
+            sx={{ bgcolor: 'custom.projectBackground', display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}
         >
             <DndContext
                 collisionDetection={cardSequenceCollision}

@@ -110,7 +110,7 @@ export function DiagramEdge(props: DiagramEdgeProps) {
                 {visibleLabel && labelPoint ? (
                     <g>
                         <rect
-                            fill={theme.palette.background.default}
+                            fill={theme.palette.custom.projectBackground}
                             height={labelPoint.height}
                             rx={2}
                             width={labelPoint.width}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createAppTheme } from './app_theme'
+import { PROJECT_BACKGROUND_SHADES } from './project_background_shade'
 import { DEFAULT_COLOR_SCHEME } from './theme_config'
 
 describe('createAppTheme', () => {
@@ -48,6 +49,28 @@ describe('createAppTheme', () => {
             expect(claude.every((color) => chartPalette.includes(color))).toBe(true)
             expect(codex.every((color) => chartPalette.includes(color))).toBe(true)
             expect(claude.filter((color) => codex.includes(color))).toEqual([])
+        }
+    })
+
+    it('keeps the shared background neutral for every project shade', () => {
+        for (const mode of ['light', 'dark'] as const) {
+            const neutralBackground = createAppTheme(mode).palette.background
+
+            for (const shade of PROJECT_BACKGROUND_SHADES) {
+                const { background } = createAppTheme(mode, DEFAULT_COLOR_SCHEME, shade).palette
+
+                expect(background.default).toBe(neutralBackground.default)
+                expect(background.paper).toBe(neutralBackground.paper)
+            }
+        }
+    })
+
+    it('applies the project shade to the view-only project background', () => {
+        for (const mode of ['light', 'dark'] as const) {
+            const neutralProjectBackground = createAppTheme(mode, DEFAULT_COLOR_SCHEME, 'neutral').palette.custom.projectBackground
+            const blueProjectBackground = createAppTheme(mode, DEFAULT_COLOR_SCHEME, 'blue').palette.custom.projectBackground
+
+            expect(blueProjectBackground).not.toBe(neutralProjectBackground)
         }
     })
 

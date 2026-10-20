@@ -49,7 +49,7 @@ export function Diagram(props: DiagramProps) {
     }
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: data.width }}>
-            <Box sx={{ bgcolor: 'background.default', left: 0, position: 'sticky', top: 0, width: 'fit-content', zIndex: 5 }}>
+            <Box sx={{ bgcolor: 'custom.projectBackground', left: 0, position: 'sticky', top: 0, width: 'fit-content', zIndex: 5 }}>
                 <Typography sx={diagramFontStyle(undefined, fontScalePercent, 'h6')} variant="h6">{data.meta.title}</Typography>
                 <Typography
                     color="text.secondary"

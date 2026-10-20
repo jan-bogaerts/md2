@@ -109,7 +109,7 @@ export function SplitLayout(props: SplitLayoutProps) {
     }, [leftWidth])
 
     return (
-        <Box ref={containerRef} sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <Box ref={containerRef} sx={{ bgcolor: 'custom.projectBackground', display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <Box hidden={!hasLeftPanel} sx={{ flexShrink: 0, minWidth: 0, overflow: 'auto', width: leftWidth }}>
                 {left}
             </Box>

@@ -46,7 +46,7 @@ function kindStyles(node: PositionedDiagramNode, flowPreset: DiagramFlowPreset |
     }
     if (flowPreset === 'state' && node.kind === 'end') {
         return {
-            bgcolor: 'background.default', border: '2px solid', borderColor: 'text.primary', borderRadius: 99,
+            bgcolor: 'custom.projectBackground', border: '2px solid', borderColor: 'text.primary', borderRadius: 99,
             '&::before': {
                 bgcolor: 'text.primary', borderRadius: 99, content: '""', height: 10, left: 5,
                 position: 'absolute', top: 5, width: 10,
