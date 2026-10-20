@@ -1208,7 +1208,7 @@
         "costUsd": 0.7678866000000001
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1279,6 +1279,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "e10ff693564a27b8030f9a197760a8295718f438",
           "committedAt": "2026-10-20T16:14:36+02:00",
           "deletions": 28,
@@ -1301,8 +1302,7 @@
             "app/src/theme/mui.d.ts"
           ],
           "filesChanged": 16,
-          "insertions": 57,
-          "branch": "dev_main"
+          "insertions": 57
         }
       ],
       "completedAt": "2026-10-20T16:14:36+02:00",
