@@ -1213,6 +1213,31 @@
     "cardInternalId": "16c530e0-7832-414c-bb82-b8c7f77ebf93",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-10-20T14:49:37.026Z",
+      "conversationIds": [
+        "agent-16f7c618-227b-4de4-a57b-5401b7477211"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-5c917acc-e28a-423f-af97-9d1f3d3fbf25",
+      "origin": {
+        "cardInternalId": "16c530e0-7832-414c-bb82-b8c7f77ebf93",
+        "kind": "card"
+      },
+      "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "rootActionLabel": "investigate",
+      "rootConversationId": "agent-16f7c618-227b-4de4-a57b-5401b7477211",
+      "startedAt": "2026-10-20T14:07:53.273Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
