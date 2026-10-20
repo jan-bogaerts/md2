@@ -1241,6 +1241,10 @@
       "cardInternalId": "16c530e0-7832-414c-bb82-b8c7f77ebf93",
       "cardPath": "design/feature_descriptions/B_316_new_tasks_on_second_prompt_no_longer_used.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 67325
+      },
       "entries": [
         {
           "content": "Read and fix the bug described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_316_new_tasks_on_second_prompt_no_longer_used.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned bug description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).&#x20;\n2. create a task for each block\n3. Wait for approval.\n4. include tests\n5. After implementation is done, update the field `status` in the markdown feature description file to `ready`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_316_new_tasks_on_second_prompt_no_longer_used.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria. Keep everything short and to the point.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -1249,18 +1253,426 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-20T14:50:39.308Z"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design/feature_descriptions/B_316_new_tasks_on_second_prompt_no_longer_used.md\"}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-2",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_316\n4\tinternalId: 16c530e0-7832-414c-bb82-b8c7f77ebf93\n5\ttitle: new tasks on second prompt no longer used\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__16c530e0-7832-414c-bb82-b8c7f77ebf93.json\n11\tpolicy:\n12\tafter: 733d678c-49a7-4409-9fa2-5fb384821513\n13\tbranch: b_316_new_tasks_on_second_prompt_no_longer_used\n14\tworktree: 3\n15\t---\n16\tFollow-up on [F\\_434\\_agent\\_task\\_list\\_component.md](design/releases/0.9.0/F_434_agent_task_list_component.md) and [F\\_432\\_claude\\_task\\_list\\_decoder.md](design/releases/0.9.0/F_432_claude_task_list_decoder.md). The task list works across prompts in a live run. Investigation found two gaps in the Claude task list decoder.\n17\t\n18\t## Current state\n19\t\n20\t* `ClaudeTaskListDecoder` (`desktop/src/actions/agent/claude_task_list_decoder.js`) keeps its tasks for the whole lifetime of the adapter. `reset()` at turn end only clears per-turn tool correlation. A task is only removed by a `TaskUpdate` with status `deleted`.\n21\t* Claude Code resets a task list once every task is completed, but keeps a high-water mark, so the next `TaskCreate` continues the numbering (6, 7, …).\n22\t* The decoder is created empty in the `ClaudeStreamingAdapter` constructor (`agent_claude_streaming_adapter.js`) and in `AgentProviderProtocolParser` (`agent_provider_protocol.js`). Both are created per process in `attachRunProtocol` (`agent_run_state.js`), which has the persisted `run.conversation.taskList` available.\n23\t\n24\t## Problems\n25\t\n26\t1. **Completed list is never replaced.** When Claude starts a new list after finishing the previous one, the new tasks are appended below the old completed tasks instead of replacing them.\n27\t2. **Task state is lost when the process restarts.** After an app restart or when a closed conversation is resumed, the new decoder is empty. `TaskUpdate` calls for earlier tasks are dropped with an `Unknown Claude task id` warning, and the first new `TaskCreate` replaces the whole list with only the new task.\n28\t\n29\t## Implementation details\n30\t\n31\t* Problem 1: in `applyCreateResult`, when every known task is completed, clear `tasks` before adding the created task. Keep `taskIds`, since Claude ids keep increasing and stay unique. The emitted list then holds only the new tasks.\n32\t* Problem 2: give `ClaudeTaskListDecoder` an optional initial task list in its constructor. For each task, store it in `tasks` and register it in `taskIds` under its owner: the prefix before `:` for namespaced sub-agent ids, `root` otherwise, with the raw id after the prefix.\n33\t* Pass `run.conversation.taskList` from `attachRunProtocol` through `createAgentStreamingAdapter` to `ClaudeStreamingAdapter`, and through `createAgentProviderProtocolParser` to `AgentProviderProtocolParser`.\n34\t\n35\t## Tests\n36\t\n37\t* Decoder: a `TaskCreate` result after all tasks are completed emits a list with only the new task.\n38\t* Decoder: a `TaskCreate` result while a task is still pending or in progress appends to the list.\n39\t* Decoder: seeded with a persisted list, a `TaskUpdate` for a seeded root task and for a seeded sub-agent task updates that task.\n40\t* Streaming adapter: a conversation with a persisted `taskList` seeds the decoder.\n41\t",
+          "providerItemId": "toolu_01YKCkA6s1Y2sBYH4C5sJWKx",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:43.644Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\claude_task_list_decoder.js\"}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-3",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\tconst CLAUDE_TASK_TOOLS = new Set(['TaskCreate', 'TaskGet', 'TaskList', 'TaskUpdate']);\n2\tconst ROOT_STREAM_KEY = 'root';\n3\t\n4\tfunction streamKey(event) {\n5\t    const parentToolUseId = event?.parent_tool_use_id;\n6\t\n7\t    return typeof parentToolUseId === 'string' && parentToolUseId.length > 0 ? parentToolUseId : ROOT_STREAM_KEY;\n8\t}\n9\t\n10\tfunction toolKey(event, toolUseId) {\n11\t    return `${streamKey(event)}:${toolUseId}`;\n12\t}\n13\t\n14\tfunction validString(value) {\n15\t    return typeof value === 'string' && value.length > 0 ? value : null;\n16\t}\n17\t\n18\tfunction taskStatus(status) {\n19\t    if (status === 'in_progress') return 'inProgress';\n20\t    if (status === 'pending' || status === 'completed') return status;\n21\t\n22\t    return null;\n23\t}\n24\t\n25\tfunction isClaudeTaskToolName(name) {\n26\t    return CLAUDE_TASK_TOOLS.has(name);\n27\t}\n28\t\n29\tclass ClaudeTaskListDecoder {\n30\t    constructor() {\n31\t        this.pendingCreates = new Map();\n32\t        this.taskToolUses = new Set();\n33\t        this.tasks = new Map();\n34\t        this.taskIds = new Map();\n35\t    }\n36\t\n37\t    decode(event) {\n38\t        if (event.type === 'assistant') return this.decodeToolUses(event);\n39\t        if (event.type === 'user') return this.decodeToolResults(event);\n40\t\n41\t        return [];\n42\t    }\n43\t\n44\t    decodeToolUses(event) {\n45\t        if (!Array.isArray(event.message?.content)) return [];\n46\t        const taskListEvents = [];\n47\t        for (const block of event.message.content) {\n48\t            if (block?.type !== 'tool_use' || !isClaudeTaskToolName(block.name)) continue;\n49\t            if (typeof block.id === 'string') this.taskToolUses.add(toolKey(event, block.id));\n50\t            if (block.name === 'TaskCreate') this.rememberCreate(event, block);\n51\t            if (block.name !== 'TaskUpdate') continue;\n52\t            const taskListEvent = this.applyUpdate(event, block.input);\n53\t            if (taskListEvent) taskListEvents.push(taskListEvent);\n54\t        }\n55\t\n56\t        return taskListEvents;\n57\t    }\n58\t\n59\t    rememberCreate(event, block) {\n60\t        if (typeof block.id !== 'string' || block.id.length === 0) return;\n61\t        const subject = validString(block.input?.subject);\n62\t        if (!subject) return;\n63\t        const activeForm = validString(block.input?.activeForm);\n64\t        const pendingCreate = { subject, ...(activeForm ? { activeForm } : {}), streamKey: streamKey(event) };\n65\t        this.pendingCreates.set(toolKey(event, block.id), pendingCreate);\n66\t    }\n67\t\n68\t    decodeToolResults(event) {\n69\t        if (!Array.isArray(event.message?.content)) return [];\n70\t        const resultBlocks = event.message.content.filter((block) => block?.type === 'tool_result');\n71\t        const appliedResult = resultBlocks.length === 1 ? event.tool_use_result : null;\n72\t\n73\t        return resultBlocks\n74\t            .map((block) => this.applyCreateResult(event, block, appliedResult))\n75\t            .filter((taskListEvent) => taskListEvent !== null);\n76\t    }\n77\t\n78\t    applyCreateResult(event, block, appliedResult) {\n79\t        if (typeof block.tool_use_id !== 'string') return null;\n80\t        const pendingKey = toolKey(event, block.tool_use_id);\n81\t        const pendingCreate = this.pendingCreates.get(pendingKey);\n82\t        if (!pendingCreate) return null;\n83\t        this.pendingCreates.delete(pendingKey);\n84\t        if (block.is_error === true) return null;\n85\t        const taskId = validString(appliedResult?.task?.id);\n86\t        if (!taskId) return null;\n87\t        const displayedId = this.resolveCreatedTaskId(taskId, pendingCreate.streamKey);\n88\t        const task = {\n89\t            ...(pendingCreate.activeForm ? { activeForm: pendingCreate.activeForm } : {}),\n90\t            id: displayedId,\n91\t            status: 'pending',\n92\t            subject: pendingCreate.subject,\n93\t        };\n94\t        this.tasks.set(displayedId, task);\n95\t\n96\t        return this.taskListEvent();\n97\t    }\n98\t\n99\t    resolveCreatedTaskId(taskId, owner) {\n100\t        const taskReference = `${owner}:${taskId}`;\n101\t        const knownId = this.taskIds.get(taskReference);\n102\t        if (knownId) return knownId;\n103\t        const collisions = [...this.taskIds.entries()].filter(([reference]) => reference.endsWith(`:${taskId}`));\n104\t        if (collisions.length === 0) {\n105\t            this.taskIds.set(taskReference, taskId);\n106\t            return taskId;\n107\t        }\n108\t        for (const [reference, displayedId] of collisions) {\n109\t            if (displayedId !== taskId) continue;\n110\t            const separatorIndex = reference.indexOf(':');\n111\t            const existingOwner = reference.slice(0, separatorIndex);\n112\t            if (existingOwner === ROOT_STREAM_KEY) continue;\n113\t            const namespacedId = `${existingOwner}:${taskId}`;\n114\t            const existingTask = this.tasks.get(taskId);\n115\t            this.tasks.delete(taskId);\n116\t            if (existingTask) this.tasks.set(namespacedId, { ...existingTask, id: namespacedId });\n117\t            this.taskIds.set(reference, namespacedId);\n118\t        }\n119\t        const displayedId = owner === ROOT_STREAM_KEY ? taskId : `${owner}:${taskId}`;\n120\t        this.taskIds.set(taskReference, displayedId);\n121\t\n122\t        return displayedId;\n123\t    }\n124\t\n125\t    applyUpdate(event, input) {\n126\t        if (!input || typeof input !== 'object' || Array.isArray(input)) return null;\n127\t        const rawTaskId = validString(input.taskId) ?? validString(input.id) ?? validString(input.task_id);\n128\t        if (!rawTaskId) return null;\n129\t        const owner = streamKey(event);\n130\t        const taskReference = this.resolveTaskReference(rawTaskId, owner);\n131\t        const displayedId = taskReference ? this.taskIds.get(taskReference) : null;\n132\t        const task = displayedId ? this.tasks.get(displayedId) : null;\n133\t        if (!task) {\n134\t            console.warn('[agent:claude-task-list]', `Unknown Claude task id: ${rawTaskId}`);\n135\t            return null;\n136\t        }\n137\t        if (input.status === 'deleted') {\n138\t            this.tasks.delete(displayedId);\n139\t            this.taskIds.delete(taskReference);\n140\t            return this.taskListEvent();\n141\t        }\n142\t        const status = input.status === undefined ? task.status : taskStatus(input.status);\n143\t        if (!status) return null;\n144\t        const subject = input.subject === undefined ? task.subject : validString(input.subject);\n145\t        if (!subject) return null;\n146\t        const activeForm = input.activeForm === undefined ? task.activeForm : validString(input.activeForm);\n147\t        const updatedTask = {\n148\t            ...(activeForm ? { activeForm } : {}),\n149\t            id: displayedId,\n150\t            status,\n151\t            subject,\n152\t        };\n153\t        this.tasks.set(displayedId, updatedTask);\n154\t\n155\t        return this.taskListEvent();\n156\t    }\n157\t\n158\t    resolveTaskReference(taskId, owner) {\n159\t        const ownedReference = `${owner}:${taskId}`;\n160\t        if (this.taskIds.has(ownedReference)) return ownedReference;\n161\t        const matches = [...this.taskIds.keys()].filter((reference) => reference.endsWith(`:${taskId}`));\n162\t\n163\t        return matches.length === 1 ? matches[0] : null;\n164\t    }\n165\t\n166\t    isTaskToolResult(event, block) {\n167\t        return block?.type === 'tool_result'\n168\t            && typeof block.tool_use_id === 'string'\n169\t            && this.taskToolUses.has(toolKey(event, block.tool_use_id));\n170\t    }\n171\t\n172\t    taskListEvent() {\n173\t        const taskList = { tasks: [...this.tasks.values()].map((task) => ({ ...task })), updatedAt: new Date().toISOString() };\n174\t\n175\t        return { taskList, type: 'taskList' };\n176\t    }\n177\t\n178\t    /** Clear per-turn tool correlation while retaining Claude session task state. */\n179\t    reset() {\n180\t        this.pendingCreates.clear();\n181\t        this.taskToolUses.clear();\n182\t    }\n183\t}\n184\t\n185\tmodule.exports = { ClaudeTaskListDecoder, isClaudeTaskToolName };\n186\t",
+          "providerItemId": "toolu_016BVz9GdxjiS7NSEAH9BeQA",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:45.179Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"ClaudeTaskListDecoder|createAgentStreamingAdapter|createAgentProviderProtocolParser|attachRunProtocol\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-4",
+          "kind": "event",
+          "label": "Grep",
+          "output": "desktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js:10:const { ClaudeTaskListDecoder, isClaudeTaskToolName } = require('./claude_task_list_decoder');\ndesktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js:250:        this.taskListDecoder = new ClaudeTaskListDecoder();\ndesktop\\src\\actions\\agent\\agent_compact.test.mjs:5:const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');\ndesktop\\src\\actions\\agent\\agent_compact.test.mjs:12:    const adapter = createAgentStreamingAdapter(provider, (message) => writes.push(message), (event) => events.push(event), 'C:/repo', 'session-1');\ndesktop\\src\\actions\\agent\\agent_provider_protocol.js:13:const { ClaudeTaskListDecoder } = require('./claude_task_list_decoder');\ndesktop\\src\\actions\\agent\\agent_provider_protocol.js:156:        this.claudeTaskListDecoder = agent === 'claude' ? new ClaudeTaskListDecoder() : null;\ndesktop\\src\\actions\\agent\\agent_provider_protocol.js:237:function createAgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath, claudeUsageTracker = null) {\ndesktop\\src\\actions\\agent\\agent_provider_protocol.js:243:module.exports = { createAgentProviderProtocolParser, isMissingSession };\ndesktop\\src\\actions\\agent\\agent_provider_protocol.test.mjs:6:const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');\ndesktop\\src\\actions\\agent\\agent_provider_protocol.test.mjs:12:    const instance = createAgentProviderProtocolParser(agent, (event) => events.push(event), malformed, ROOT_PATH);\ndesktop\\src\\actions\\agent\\agent_runner_service.js:29:    attachRunProtocol,\ndesktop\\src\\actions\\agent\\agent_runner_service.js:198:        attachRunProtocol(run, {\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:13:const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:14:const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:297:        const adapter = createAgentStreamingAdapter(\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:324:        const parser = createAgentProviderProtocolParser(\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:357:        const parser = createAgentProviderProtocolParser('codex', (event) => service.handleProviderEvent(run.id, event), vi.fn(), 'C:/repo');\ndesktop\\src\\actions\\agent\\agent_run_state.js:3:const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');\ndesktop\\src\\actions\\agent\\agent_run_state.js:4:const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');\ndesktop\\src\\actions\\agent\\agent_run_state.js:130:function attachRunProtocol(run, {\ndesktop\\src\\actions\\agent\\agent_run_state.js:146:        ? createAgentStreamingAdapter(\ndesktop\\src\\actions\\agent\\agent_run_state.js:161:        : createAgentProviderProtocolParser(run.agent, onProviderEvent, onMalformedOutput, rootPath, run.claudeUsageTracker);\ndesktop\\src\\actions\\agent\\agent_run_state.js:183:    attachRunProtocol,\ndesktop\\src\\actions\\agent\\agent_run_state.test.mjs:5:const { attachRunProtocol } = require('./agent_run_state');\ndesktop\\src\\actions\\agent\\agent_run_state.test.mjs:11:describe('attachRunProtocol', () => {\ndesktop\\src\\actions\\agent\\agent_run_state.test.mjs:25:        attachRunProtocol(run, {\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.js:889:function createAgentStreamingAdapter(\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.js:916:module.exports = { createAgentStreamingAdapter };\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs:6:const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs:7:const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs:14:    const adapter = createAgentStreamingAdapter(\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs:615:        const parser = createAgentProviderProtocolParser('claude', (event) => protocolEvents.push(event), vi.fn(), 'C:\\\\repo');\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.test.mjs:640:        const parser = createAgentProviderProtocolParser('claude', (event) => protocolEvents.push(event), vi.fn(), 'C:\\\\repo');\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:29:class ClaudeTaskListDecoder {\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:185:module.exports = { ClaudeTaskListDecoder, isClaudeTaskToolName };\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.test.mjs:5:const { ClaudeTaskListDecoder } = require('./claude_task_list_decoder');\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.test.mjs:33:describe('ClaudeTaskListDecoder', () => {\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.test.mjs:42:        const decoder = new ClaudeTaskListDecoder();\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.test.mjs:63:        const decoder = new ClaudeTaskListDecoder();\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.test.mjs:73:        const decoder = new ClaudeTaskListDecoder();\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.test.mjs:91:        const decoder = new ClaudeTaskListDecoder();\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.test.mjs:105:        const decoder = new ClaudeTaskListDecoder();\ndesktop\\src\\actions\\agent\\claude_usage_accounting.test.mjs:6:const { attachRunProtocol } = require('./agent_run_state');\ndesktop\\src\\actions\\agent\\claude_usage_accounting.test.mjs:23:    attachRunProtocol(run, {",
+          "providerItemId": "toolu_01S4tGjPZnBZC7ah6nVbt6jJ",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:46.317Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\agent_run_state.js\",\"offset\":120,\"limit\":50}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-5",
+          "kind": "event",
+          "label": "Read",
+          "output": "120\t        suspended: false,\n121\t        turnUsage: null,\n122\t        waitingForQuestion: restoredQuestions?.length > 0,\n123\t    };\n124\t}\n125\t\n126\t/**\n127\t * Wires the run to its provider protocol: streaming runs get the adapter plus a JSONL line buffer,\n128\t * batch runs get the one-shot protocol parser.\n129\t */\n130\tfunction attachRunProtocol(run, {\n131\t    onCodexRuntimeEvent,\n132\t    onMalformedOutput,\n133\t    onProviderEvent,\n134\t    onStreamingEvent,\n135\t    onStreamingLine,\n136\t    providerConversationId,\n137\t    rootPath,\n138\t}) {\n139\t    const writeLine = (message) => writeJsonLine(run.child.stdin, message);\n140\t    const providerSession = run.conversation.providerSessions.find(({ agent, conversationId }) =>\n141\t        agent === run.agent && conversationId === providerConversationId);\n142\t    run.claudeUsageTracker = run.agent === 'claude'\n143\t        ? new ClaudeUsageTracker(providerConversationId, providerSession?.usageBaseline)\n144\t        : null;\n145\t    run.streamingAdapter = run.streaming\n146\t        ? createAgentStreamingAdapter(\n147\t            run.agent,\n148\t            writeLine,\n149\t            onStreamingEvent,\n150\t            rootPath,\n151\t            providerConversationId,\n152\t            onCodexRuntimeEvent,\n153\t            run.request.executionSettings,\n154\t            run.claudeUsageTracker,\n155\t            run.request.agentTaskTrackingEnabled === true,\n156\t        )\n157\t        : null;\n158\t    run.protocolLines = run.streaming ? new JsonLineBuffer(run.id, onStreamingLine) : null;\n159\t    run.parser = run.streaming\n160\t        ? null\n161\t        : createAgentProviderProtocolParser(run.agent, onProviderEvent, onMalformedOutput, rootPath, run.claudeUsageTracker);\n162\t\n163\t    return run;\n164\t}\n165\t\n166\tfunction createRunResult(request, exitCode, run) {\n167\t    return {\n168\t        command: request.command,\n169\t        conversation: run.conversation,",
+          "providerItemId": "toolu_01DrbK6gVR8goSodkHRqnuap",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:48.279Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\agent_streaming_adapter.js\",\"offset\":880}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-6",
+          "kind": "event",
+          "label": "Read",
+          "output": "880\t    }\n881\t\n882\t    async emitDiagnostic(context, method, itemType, itemId) {\n883\t        const event = diagnosticEvent(method, itemType, itemId, this.diagnosticSequence);\n884\t        this.diagnosticSequence += 1;\n885\t        await this.emitEvent(context, codexGeneratedEvent(context, event));\n886\t    }\n887\t}\n888\t\n889\tfunction createAgentStreamingAdapter(\n890\t    agent,\n891\t    writeLine,\n892\t    onEvent,\n893\t    rootPath,\n894\t    providerConversationId = null,\n895\t    onRuntimeEvent = async () => undefined,\n896\t    executionSettings = {},\n897\t    claudeUsageTracker = null,\n898\t    taskTrackingEnabled = false,\n899\t) {\n900\t    if (agent === 'claude') return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, claudeUsageTracker);\n901\t    if (agent === 'codex') {\n902\t        return new CodexStreamingAdapter(\n903\t            writeLine,\n904\t            onEvent,\n905\t            rootPath,\n906\t            providerConversationId,\n907\t            onRuntimeEvent,\n908\t            executionSettings,\n909\t            taskTrackingEnabled,\n910\t        );\n911\t    }\n912\t\n913\t    throw new Error(`Agent profile does not support streaming: ${agent}`);\n914\t}\n915\t\n916\tmodule.exports = { createAgentStreamingAdapter };\n917\t",
+          "providerItemId": "toolu_012ypdXraz4CbEM3ZtEkirpb",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:48.857Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\agent_claude_streaming_adapter.js\",\"offset\":225,\"limit\":40}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-7",
+          "kind": "event",
+          "label": "Read",
+          "output": "225\t\n226\tfunction createStreamState() {\n227\t    return { activeBlocks: new Map(), activeMessageId: null, activeTextOrdinal: 0, turnHasAssistantText: false };\n228\t}\n229\t\n230\tclass ClaudeStreamingAdapter {\n231\t    constructor(writeLine, onEvent, rootPath, providerConversationId, claudeUsageTracker) {\n232\t        this.writeLine = writeLine;\n233\t        this.onEvent = onEvent;\n234\t        this.pendingApprovals = new Map();\n235\t        this.pendingQuestions = new Map();\n236\t        this.providerConversationId = providerConversationId;\n237\t        this.rootPath = rootPath;\n238\t        // One record per stream, so interleaved parent and sub-agent frames cannot clear each other.\n239\t        this.streamStates = new Map();\n240\t        this.subAgentLabels = new Map();\n241\t        // Tool calls outlive the message that issued them: their result can arrive after the next\n242\t        // `message_start`, and for a sub agent it arrives on a different stream entirely.\n243\t        this.toolBlocks = new Map();\n244\t        this.streamedTextItems = new Map();\n245\t        this.protocolErrorSequence = 1;\n246\t        this.contextUsageRequestSequence = 1;\n247\t        this.pendingContextUsage = null;\n248\t        this.pendingLiveContextUsage = null;\n249\t        this.fileResultDecoder = new ClaudeFileResultDecoder(rootPath);\n250\t        this.taskListDecoder = new ClaudeTaskListDecoder();\n251\t        this.messageUsages = new Map();\n252\t        this.claudeUsageTracker = claudeUsageTracker ?? new ClaudeUsageTracker(providerConversationId);\n253\t        this.turnStarted = false;\n254\t        this.compaction = null;\n255\t    }\n256\t\n257\t    streamState(streamKey) {\n258\t        const current = this.streamStates.get(streamKey);\n259\t        if (current) return current;\n260\t        const created = createStreamState();\n261\t        this.streamStates.set(streamKey, created);\n262\t\n263\t        return created;\n264\t    }",
+          "providerItemId": "toolu_01LArnkwogXzTLjU11AFPsP3",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:50.094Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\agent_provider_protocol.js\",\"offset\":145,\"limit\":100}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-8",
+          "kind": "event",
+          "label": "Read",
+          "output": "145\t}\n146\t\n147\tclass AgentProviderProtocolParser {\n148\t    constructor(agent, onEvent, onMalformed, rootPath, claudeUsageTracker) {\n149\t        this.agent = agent;\n150\t        this.lines = new JsonLineBuffer(agent, (line) => this.parseLine(line));\n151\t        this.onEvent = onEvent;\n152\t        this.onMalformed = onMalformed;\n153\t        this.rootPath = rootPath;\n154\t        this.turnStarted = false;\n155\t        this.claudeFileResultDecoder = agent === 'claude' ? new ClaudeFileResultDecoder(rootPath) : null;\n156\t        this.claudeTaskListDecoder = agent === 'claude' ? new ClaudeTaskListDecoder() : null;\n157\t        this.claudeMessageUsages = new Map();\n158\t        this.claudeUsageTracker = agent === 'claude' ? claudeUsageTracker ?? new ClaudeUsageTracker() : null;\n159\t    }\n160\t\n161\t    push(chunk) {\n162\t        this.lines.push(chunk);\n163\t    }\n164\t\n165\t    finish() {\n166\t        this.lines.finish();\n167\t    }\n168\t\n169\t    providerUsage(event) {\n170\t        if (this.agent === 'codex') return codexUsage(event);\n171\t        const isSubAgentResult = typeof event.parent_tool_use_id === 'string' && event.parent_tool_use_id.length > 0;\n172\t        if (event.type !== 'result' || isSubAgentResult) return null;\n173\t        const usage = this.claudeUsageTracker.read(event, accumulatedClaudeUsage(this.claudeMessageUsages));\n174\t        this.claudeMessageUsages.clear();\n175\t\n176\t        return usage;\n177\t    }\n178\t\n179\t    parseLine(line) {\n180\t        let event;\n181\t        try {\n182\t            event = JSON.parse(line);\n183\t        } catch {\n184\t            this.onMalformed(line);\n185\t            return;\n186\t        }\n187\t        if (!event || typeof event !== 'object' || Array.isArray(event)) {\n188\t            this.onMalformed(line);\n189\t            return;\n190\t        }\n191\t\n192\t        if (this.claudeUsageTracker?.isDuplicateResult(event)) return;\n193\t        this.claudeUsageTracker?.observe(event);\n194\t        if (event.type === 'conversation_reset' && !event.parent_tool_use_id) this.claudeMessageUsages.clear();\n195\t        const missingSession = isMissingSession(this.agent, event, this.turnStarted);\n196\t        this.turnStarted = this.turnStarted || isTurnEvent(this.agent, event);\n197\t        if (this.agent === 'claude') recordClaudeAssistantUsage(this.claudeMessageUsages, event);\n198\t        const usage = this.providerUsage(event);\n199\t        const assistantText = this.agent === 'codex' ? codexAssistantText(event) : claudeAssistantText(event);\n200\t        const codexItemEvent = this.agent === 'codex'\n201\t            && (event.type === 'item.started' || event.type === 'item.completed')\n202\t            && event.item;\n203\t        const normalizedItem = codexItemEvent ? normalizeCodexExecItem(event.item) : null;\n204\t        const lifecycleStatus = event.type === 'item.started' ? 'inProgress' : 'completed';\n205\t        const normalizedEvent = normalizedItem\n206\t            ? normalizeCodexEvent(normalizedItem, lifecycleStatus, this.rootPath)\n207\t            : null;\n208\t        const providerEvents = normalizedEvent ? [normalizedEvent] : this.claudeFileResultDecoder?.decode(event) ?? [];\n209\t        const codexTaskList = this.agent === 'codex' ? codexTaskListEvent(event) : null;\n210\t        const taskListEvents = codexTaskList ? [codexTaskList] : this.claudeTaskListDecoder?.decode(event) ?? [];\n211\t        const transcriptEvents = providerTranscriptEvents(\n212\t            this.agent,\n213\t            event,\n214\t            providerEvents,\n215\t            this.claudeTaskListDecoder,\n216\t            codexTaskList,\n217\t        );\n218\t        if (codexItemEvent && event.type === 'item.completed' && providerEvents.length === 0 && transcriptEvents.length === 0\n219\t            && !codexTaskList && event.item.type !== 'agent_message' && event.item.type !== 'error'\n220\t            && event.item.type !== 'user_message') {\n221\t            providerEvents.push(diagnosticEvent('item.completed', event.item.type, event.item.id, 0));\n222\t        }\n223\t        for (const taskListEvent of taskListEvents) this.onEvent(taskListEvent);\n224\t        this.onEvent({\n225\t            assistantText,\n226\t            conversationId: providerConversationId(this.agent, event),\n227\t            errorText: providerErrorText(this.agent, event),\n228\t            missingSession,\n229\t            providerEvents,\n230\t            transcriptEvents,\n231\t            turnStarted: this.turnStarted,\n232\t            usage,\n233\t        });\n234\t    }\n235\t}\n236\t\n237\tfunction createAgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath, claudeUsageTracker = null) {\n238\t    if (agent !== 'codex' && agent !== 'claude') return null;\n239\t\n240\t    return new AgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath, claudeUsageTracker);\n241\t}\n242\t\n243\tmodule.exports = { createAgentProviderProtocolParser, isMissingSession };\n244\t",
+          "providerItemId": "toolu_015FUMirarvT1qY4RHnfk5d1",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:50.382Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-9",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDgBi4Fy2BcyeoFoyY2S:thinking:0",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T14:50:52.336Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"taskList\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\",\"glob\":\"!*.test.mjs\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-10",
+          "kind": "event",
+          "label": "Grep",
+          "output": "desktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js:250:        this.taskListDecoder = new ClaudeTaskListDecoder();\ndesktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js:603:        const taskListEvents = this.taskListDecoder.decode(event);\ndesktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js:604:        for (const taskListEvent of taskListEvents) await this.onEvent(taskListEvent);\ndesktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js:656:        const taskListEvents = this.taskListDecoder.decode(event);\ndesktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js:657:        for (const taskListEvent of taskListEvents) await this.onEvent(taskListEvent);\ndesktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js:661:            if (this.taskListDecoder.isTaskToolResult(event, block)) continue;\ndesktop\\src\\actions\\agent\\agent_claude_streaming_adapter.js:691:        this.taskListDecoder.reset();\ndesktop\\src\\actions\\agent\\agent_claude_events.js:136:function claudeTranscriptEvents(event, taskListDecoder = null) {\ndesktop\\src\\actions\\agent\\agent_claude_events.js:145:            .filter((block) => block?.type === 'tool_result' && !taskListDecoder?.isTaskToolResult(event, block))\ndesktop\\src\\actions\\action\\action_run.js:864:            if (agentEvent.type === 'taskList') {\ndesktop\\src\\actions\\action\\action_run.js:865:                const update = { kind: 'agentTaskList', taskList: agentEvent.taskList };\ndesktop\\src\\actions\\agent\\agent_provider_protocol.js:69:    return { taskList: { tasks, updatedAt: new Date().toISOString() }, type: 'taskList' };\ndesktop\\src\\actions\\agent\\agent_provider_protocol.js:72:function providerTranscriptEvents(agent, event, providerEvents, taskListDecoder, codexTaskList) {\ndesktop\\src\\actions\\agent\\agent_provider_protocol.js:73:    if (agent !== 'codex') return claudeTranscriptEvents(event, taskListDecoder);\ndesktop\\src\\actions\\agent\\agent_provider_protocol.js:210:        const taskListEvents = codexTaskList ? [codexTaskList] : this.claudeTaskListDecoder?.decode(event) ?? [];\ndesktop\\src\\actions\\agent\\agent_provider_protocol.js:223:        for (const taskListEvent of taskListEvents) this.onEvent(taskListEvent);\ndesktop\\src\\actions\\agent\\agent_runner_service.js:59:function recordTaskList(run, taskList) {\ndesktop\\src\\actions\\agent\\agent_runner_service.js:60:    run.conversation.taskList = taskList;\ndesktop\\src\\actions\\agent\\agent_runner_service.js:61:    emitRunEvent(run, { taskList, type: 'taskList' });\ndesktop\\src\\actions\\agent\\agent_runner_service.js:654:        if (providerEvent.type === 'taskList') {\ndesktop\\src\\actions\\agent\\agent_runner_service.js:655:            recordTaskList(run, providerEvent.taskList);\ndesktop\\src\\actions\\agent\\agent_runner_service.js:703:        if (event.type === 'taskList') {\ndesktop\\src\\actions\\agent\\agent_runner_service.js:704:            recordTaskList(run, event.taskList);\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.js:634:        const taskList = { tasks, updatedAt: new Date().toISOString() };\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.js:635:        await this.onEvent({ taskList, type: 'taskList' });\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:46:        const taskListEvents = [];\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:52:            const taskListEvent = this.applyUpdate(event, block.input);\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:53:            if (taskListEvent) taskListEvents.push(taskListEvent);\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:56:        return taskListEvents;\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:75:            .filter((taskListEvent) => taskListEvent !== null);\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:96:        return this.taskListEvent();\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:140:            return this.taskListEvent();\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:155:        return this.taskListEvent();\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:172:    taskListEvent() {\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:173:        const taskList = { tasks: [...this.tasks.values()].map((task) => ({ ...task })), updatedAt: new Date().toISOString() };\ndesktop\\src\\actions\\agent\\claude_task_list_decoder.js:175:        return { taskList, type: 'taskList' };",
+          "providerItemId": "toolu_01JrU7gh5aPjvS1naUTfjvVX",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:53.601Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\claude_task_list_decoder.test.mjs\"}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-11",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { createRequire } from 'node:module';\n2\timport { afterEach, describe, expect, it, vi } from 'vitest';\n3\t\n4\tconst require = createRequire(import.meta.url);\n5\tconst { ClaudeTaskListDecoder } = require('./claude_task_list_decoder');\n6\tconst UPDATED_AT = '2026-10-16T10:00:00.000Z';\n7\t\n8\tfunction assistant(content, parentToolUseId = null) {\n9\t    return {\n10\t        message: { content },\n11\t        ...(parentToolUseId ? { parent_tool_use_id: parentToolUseId } : {}),\n12\t        type: 'assistant',\n13\t    };\n14\t}\n15\t\n16\tfunction toolResult(toolUseId, taskId, options = {}) {\n17\t    return {\n18\t        message: { content: [{ is_error: options.isError, tool_use_id: toolUseId, type: 'tool_result' }] },\n19\t        ...(options.parentToolUseId ? { parent_tool_use_id: options.parentToolUseId } : {}),\n20\t        tool_use_result: { task: { id: taskId } },\n21\t        type: 'user',\n22\t    };\n23\t}\n24\t\n25\tfunction taskCreate(id, subject, activeForm) {\n26\t    return { id, input: { activeForm, subject }, name: 'TaskCreate', type: 'tool_use' };\n27\t}\n28\t\n29\tfunction taskUpdate(id, input) {\n30\t    return { id, input, name: 'TaskUpdate', type: 'tool_use' };\n31\t}\n32\t\n33\tdescribe('ClaudeTaskListDecoder', () => {\n34\t    afterEach(() => {\n35\t        vi.restoreAllMocks();\n36\t        vi.useRealTimers();\n37\t    });\n38\t\n39\t    it('emits full lists for create, update, complete, and delete', () => {\n40\t        vi.useFakeTimers();\n41\t        vi.setSystemTime(UPDATED_AT);\n42\t        const decoder = new ClaudeTaskListDecoder();\n43\t\n44\t        expect(decoder.decode(assistant([taskCreate('create-1', 'Build decoder', 'Building decoder')]))).toEqual([]);\n45\t        expect(decoder.decode(toolResult('create-1', '1'))).toEqual([{\n46\t            taskList: {\n47\t                tasks: [{ activeForm: 'Building decoder', id: '1', status: 'pending', subject: 'Build decoder' }],\n48\t                updatedAt: UPDATED_AT,\n49\t            },\n50\t            type: 'taskList',\n51\t        }]);\n52\t        expect(decoder.decode(assistant([taskUpdate('update-1', {activeForm: 'Implementing decoder', status: 'in_progress', subject: 'Implement decoder', taskId: '1'})]))[0].taskList.tasks).toEqual([\n53\t            { activeForm: 'Implementing decoder', id: '1', status: 'inProgress', subject: 'Implement decoder' },\n54\t        ]);\n55\t        expect(decoder.decode(assistant([taskUpdate('update-2', { id: '1', status: 'completed' })]))[0].taskList.tasks[0].status)\n56\t            .toBe('completed');\n57\t        expect(decoder.decode(assistant([taskUpdate('update-3', { status: 'deleted', task_id: '1' })]))[0].taskList.tasks)\n58\t            .toEqual([]);\n59\t    });\n60\t\n61\t    it('ignores failed creates and logs updates received before create results', () => {\n62\t        const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});\n63\t        const decoder = new ClaudeTaskListDecoder();\n64\t\n65\t        decoder.decode(assistant([taskCreate('create-failed', 'Failed task', 'Failing task')]));\n66\t        expect(decoder.decode(toolResult('create-failed', '1', { isError: true }))).toEqual([]);\n67\t        expect(decoder.decode(assistant([taskUpdate('update-early', { status: 'completed', taskId: '1' })]))).toEqual([]);\n68\t\n69\t        expect(warning).toHaveBeenCalledWith('[agent:claude-task-list]', 'Unknown Claude task id: 1');\n70\t    });\n71\t\n72\t    it('merges sub-agent tasks and namespaces colliding ids by parent tool use id', () => {\n73\t        const decoder = new ClaudeTaskListDecoder();\n74\t\n75\t        decoder.decode(assistant([taskCreate('create-root', 'Root task', 'Root working')]));\n76\t        decoder.decode(toolResult('create-root', '1'));\n77\t        decoder.decode(assistant([taskCreate('create-child', 'Child task', 'Child working')], 'agent-1'));\n78\t        const [created] = decoder.decode(toolResult('create-child', '1', { parentToolUseId: 'agent-1' }));\n79\t\n80\t        expect(created.taskList.tasks).toEqual([\n81\t            { activeForm: 'Root working', id: '1', status: 'pending', subject: 'Root task' },\n82\t            { activeForm: 'Child working', id: 'agent-1:1', status: 'pending', subject: 'Child task' },\n83\t        ]);\n84\t        const [updated] = decoder.decode(assistant([\n85\t            taskUpdate('update-child', { status: 'in_progress', taskId: '1' }),\n86\t        ], 'agent-1'));\n87\t        expect(updated.taskList.tasks[1].status).toBe('inProgress');\n88\t    });\n89\t\n90\t    it('lets a sub agent update a uniquely identified session task', () => {\n91\t        const decoder = new ClaudeTaskListDecoder();\n92\t\n93\t        decoder.decode(assistant([taskCreate('create-root', 'Shared task', 'Working')]));\n94\t        decoder.decode(toolResult('create-root', '1'));\n95\t        const [updated] = decoder.decode(assistant([\n96\t            taskUpdate('update-child', { status: 'completed', taskId: '1' }),\n97\t        ], 'agent-1'));\n98\t\n99\t        expect(updated.taskList.tasks).toEqual([\n100\t            { activeForm: 'Working', id: '1', status: 'completed', subject: 'Shared task' },\n101\t        ]);\n102\t    });\n103\t\n104\t    it('hides task results and resets only per-turn correlation', () => {\n105\t        const decoder = new ClaudeTaskListDecoder();\n106\t        const createEvent = assistant([taskCreate('create-1', 'Task', 'Working')]);\n107\t        const resultEvent = toolResult('create-1', '1');\n108\t\n109\t        decoder.decode(createEvent);\n110\t        expect(decoder.isTaskToolResult(resultEvent, resultEvent.message.content[0])).toBe(true);\n111\t        decoder.decode(resultEvent);\n112\t        decoder.reset();\n113\t        expect(decoder.isTaskToolResult(resultEvent, resultEvent.message.content[0])).toBe(false);\n114\t        expect(decoder.decode(assistant([taskUpdate('update-1', { status: 'completed', taskId: '1' })]))[0].taskList.tasks[0].status)\n115\t            .toBe('completed');\n116\t    });\n117\t});\n118\t",
+          "providerItemId": "toolu_01DseuMUCDEoAmp274Dhf2mn",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:53.605Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDgBwnWHPBHgdHonoCvA:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T14:50:55.369Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"taskList\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\",\"glob\":\"!**/actions/agent/**\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-13",
+          "kind": "event",
+          "label": "Grep",
+          "output": "desktop\\src\\actions\\action\\action_run.test.mjs:1285:        const taskList = {\ndesktop\\src\\actions\\action\\action_run.test.mjs:1305:                input.onEvent({ status: 'running', taskList, type: 'taskList' });\ndesktop\\src\\actions\\action\\action_run.test.mjs:1352:            update: { kind: 'agentTaskList', taskList },\ndesktop\\src\\actions\\action\\action_run.js:864:            if (agentEvent.type === 'taskList') {\ndesktop\\src\\actions\\action\\action_run.js:865:                const update = { kind: 'agentTaskList', taskList: agentEvent.taskList };",
+          "providerItemId": "toolu_01UVuB91wLDLB4mjnYYRoc4K",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:56.160Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"pattern\":\"ClaudeTaskListDecoder|taskList\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\agent_streaming_adapter.test.mjs\",\"output_mode\":\"content\",\"-n\":true}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-14",
+          "kind": "event",
+          "label": "Grep",
+          "output": "645:            .filter(({ type }) => type === 'taskList')\n646:            .map(({ taskList }) => taskList.tasks);\n648:            .filter(({ type }) => type === 'taskList')\n649:            .map(({ taskList }) => taskList.tasks);\n662:        const ordinaryProtocolEvents = protocolEvents.filter(({ type }) => type !== 'taskList');\n1436:        const taskLists = events.filter(({ type }) => type === 'taskList').map(({ taskList }) => taskList);\n1437:        expect(taskLists.map(({ tasks }) => tasks)).toEqual([\n1444:        expect(taskLists.every(({ updatedAt }) => typeof updatedAt === 'string')).toBe(true);\n1445:        expect(JSON.stringify(taskLists)).not.toContain('Internal explanation');\n1471:        expect(events.filter(({ type }) => type === 'taskList').at(-1).taskList.tasks).toEqual([\n1510:        expect(events.filter(({ type }) => type === 'taskList').at(-1).taskList.tasks).toEqual([",
+          "providerItemId": "toolu_018WYPCp5hZQKyZdaja33sbj",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:57.811Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\agent_run_state.test.mjs\"}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-15",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { createRequire } from 'node:module';\n2\timport { describe, expect, it, vi } from 'vitest';\n3\t\n4\tconst require = createRequire(import.meta.url);\n5\tconst { attachRunProtocol } = require('./agent_run_state');\n6\t\n7\tfunction completeWrite(_message, callback) {\n8\t    callback();\n9\t}\n10\t\n11\tdescribe('attachRunProtocol', () => {\n12\t    it.each([\n13\t        [null, 'priority', 'thread/start'],\n14\t        ['saved-thread', 'default', 'thread/resume'],\n15\t    ])('forwards Codex execution settings through run setup for %s', async (providerConversationId, serviceTier, method) => {\n16\t        const executionSettings = { model: 'gpt-6.1-sol', effort: 'xhigh', serviceTier };\n17\t        const writeLine = vi.fn(completeWrite);\n18\t        const run = {\n19\t            agent: 'codex',\n20\t            child: { stdin: { write: writeLine } },\n21\t            conversation: { providerSessions: [] },\n22\t            request: { executionSettings },\n23\t            streaming: true,\n24\t        };\n25\t        attachRunProtocol(run, {\n26\t            onCodexRuntimeEvent: vi.fn(),\n27\t            onMalformedOutput: vi.fn(),\n28\t            onProviderEvent: vi.fn(),\n29\t            onStreamingEvent: vi.fn(),\n30\t            onStreamingLine: vi.fn(),\n31\t            providerConversationId,\n32\t            rootPath: '/repo',\n33\t        });\n34\t        const adapter = run.streamingAdapter;\n35\t\n36\t        await adapter.start('first prompt');\n37\t        await adapter.handleMessage({ id: 1, result: {} });\n38\t        const threadRequests = writeLine.mock.calls.map(([message]) => JSON.parse(message));\n39\t        expect(threadRequests).toContainEqual(expect.objectContaining({\n40\t            method,\n41\t            params: expect.objectContaining({\n42\t                model: executionSettings.model,\n43\t                serviceTier,\n44\t                config: { model_reasoning_effort: executionSettings.effort },\n45\t            }),\n46\t        }));\n47\t        await adapter.handleMessage({\n48\t            id: 3,\n49\t            result: { thread: { id: 'saved-thread' }, model: executionSettings.model, serviceTier },\n50\t        });\n51\t        await adapter.sendMessage('second prompt');\n52\t        const turnRequests = writeLine.mock.calls.map(([message]) => JSON.parse(message))\n53\t            .filter(({ method: requestMethod }) => requestMethod === 'turn/start');\n54\t\n55\t        expect(turnRequests).toHaveLength(2);\n56\t        for (const { params } of turnRequests) {\n57\t            expect(params).toMatchObject(executionSettings);\n58\t        }\n59\t    });\n60\t});\n61\t",
+          "providerItemId": "toolu_01KHyTj8boHD4iF93i5GMu93",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:50:57.774Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDgCFpUWBXvxXBchnCJ5:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T14:50:59.811Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Analysis nearly done; checking streaming adapter test helpers, then plan.",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 17,
+          "timestamp": "2026-10-20T14:50:59.811Z"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\agent_streaming_adapter.test.mjs\",\"offset\":1,\"limit\":40}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-18",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { createRequire } from 'node:module';\n2\timport { describe, expect, it, vi } from 'vitest';\n3\timport { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';\n4\t\n5\tconst require = createRequire(import.meta.url);\n6\tconst { createAgentProviderProtocolParser } = require('./agent_provider_protocol');\n7\tconst { createAgentStreamingAdapter } = require('./agent_streaming_adapter');\n8\tconst { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');\n9\t\n10\tfunction harness(agent, providerConversationId = null, executionSettings = {}, taskTrackingEnabled = false) {\n11\t    const events = [];\n12\t    const runtimeEvents = [];\n13\t    const writes = [];\n14\t    const adapter = createAgentStreamingAdapter(\n15\t        agent,\n16\t        (message) => writes.push(message),\n17\t        (event) => events.push(event),\n18\t        'C:\\\\repo',\n19\t        providerConversationId,\n20\t        (event) => runtimeEvents.push(event),\n21\t        executionSettings,\n22\t        null,\n23\t        taskTrackingEnabled,\n24\t    );\n25\t\n26\t    return { adapter, events, runtimeEvents, writes };\n27\t}\n28\t\n29\tfunction codexBreakdown(cachedInputTokens, inputTokens, outputTokens, reasoningOutputTokens) {\n30\t    return {\n31\t        cachedInputTokens,\n32\t        inputTokens,\n33\t        outputTokens,\n34\t        reasoningOutputTokens,\n35\t        totalTokens: inputTokens + outputTokens,\n36\t    };\n37\t}\n38\t\n39\tfunction codexTokenUsage(last, total) {\n40\t    return {",
+          "providerItemId": "toolu_015fxVEUvWzuuusTp51oeXKU",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:51:01.009Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\agent_streaming_adapter.test.mjs\",\"offset\":1400,\"limit\":120}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-19",
+          "kind": "event",
+          "label": "Read",
+          "output": "1400\t            expect.objectContaining({ content: '', label: 'wait', providerItemId: 'child-message', status: 'inProgress', type: 'agentMessage' }),\n1401\t            expect.objectContaining({ content: 'found it', label: 'wait', status: 'inProgress', type: 'agentMessage' }),\n1402\t            expect.objectContaining({ content: 'found it', label: 'wait', status: 'completed', type: 'agentMessage' }),\n1403\t        ]);\n1404\t        expect(events.filter(({ type }) => type === 'assistant' || type === 'assistantStarted')).toEqual([]);\n1405\t    });\n1406\t\n1407\t    it('replaces Codex root plans with task lists and omits explanations', async () => {\n1408\t        const { adapter, events } = harness('codex');\n1409\t        adapter.threadId = 'thread-root';\n1410\t\n1411\t        await adapter.handleMessage({\n1412\t            method: 'turn/started',\n1413\t            params: { threadId: 'thread-root', turn: { id: 'turn-1' }, turnId: 'turn-1' },\n1414\t        });\n1415\t        await adapter.handleMessage({\n1416\t            method: 'turn/plan/updated',\n1417\t            params: {\n1418\t                explanation: 'Internal explanation',\n1419\t                plan: [\n1420\t                    { status: 'completed', step: 'Inspect decoder' },\n1421\t                    { status: 'inProgress', step: 'Implement decoder' },\n1422\t                ],\n1423\t                threadId: 'thread-root',\n1424\t                turnId: 'turn-1',\n1425\t            },\n1426\t        });\n1427\t        await adapter.handleMessage({\n1428\t            method: 'turn/plan/updated',\n1429\t            params: {\n1430\t                plan: [{ status: 'pending', step: 'Run focused tests' }],\n1431\t                threadId: 'thread-root',\n1432\t                turnId: 'turn-1',\n1433\t            },\n1434\t        });\n1435\t\n1436\t        const taskLists = events.filter(({ type }) => type === 'taskList').map(({ taskList }) => taskList);\n1437\t        expect(taskLists.map(({ tasks }) => tasks)).toEqual([\n1438\t            [\n1439\t                { id: '0', status: 'completed', subject: 'Inspect decoder' },\n1440\t                { id: '1', status: 'inProgress', subject: 'Implement decoder' },\n1441\t            ],\n1442\t            [{ id: '0', status: 'pending', subject: 'Run focused tests' }],\n1443\t        ]);\n1444\t        expect(taskLists.every(({ updatedAt }) => typeof updatedAt === 'string')).toBe(true);\n1445\t        expect(JSON.stringify(taskLists)).not.toContain('Internal explanation');\n1446\t    });\n1447\t\n1448\t    it('merges child-thread plans with thread-prefixed task ids', async () => {\n1449\t        const { adapter, events } = await startCodexCollaboration();\n1450\t\n1451\t        await adapter.handleMessage({\n1452\t            method: 'turn/plan/updated',\n1453\t            params: {\n1454\t                plan: [{ status: 'inProgress', step: 'Coordinate work' }],\n1455\t                threadId: 'thread-root',\n1456\t                turnId: 'turn-root',\n1457\t            },\n1458\t        });\n1459\t        await adapter.handleMessage({\n1460\t            method: 'turn/plan/updated',\n1461\t            params: {\n1462\t                plan: [\n1463\t                    { status: 'completed', step: 'Inspect child state' },\n1464\t                    { status: 'pending', step: 'Report findings' },\n1465\t                ],\n1466\t                threadId: 'thread-child',\n1467\t                turnId: 'turn-child',\n1468\t            },\n1469\t        });\n1470\t\n1471\t        expect(events.filter(({ type }) => type === 'taskList').at(-1).taskList.tasks).toEqual([\n1472\t            { id: '0', status: 'inProgress', subject: 'Coordinate work' },\n1473\t            { id: 'thread-child:0', status: 'completed', subject: 'Inspect child state' },\n1474\t            { id: 'thread-child:1', status: 'pending', subject: 'Report findings' },\n1475\t        ]);\n1476\t    });\n1477\t\n1478\t    it('replaces prior root and child plans when a new root turn publishes its plan', async () => {\n1479\t        const { adapter, events } = await startCodexCollaboration();\n1480\t\n1481\t        await adapter.handleMessage({\n1482\t            method: 'turn/plan/updated',\n1483\t            params: {\n1484\t                plan: [{ status: 'inProgress', step: 'Old root task' }],\n1485\t                threadId: 'thread-root',\n1486\t                turnId: 'turn-root',\n1487\t            },\n1488\t        });\n1489\t        await adapter.handleMessage({\n1490\t            method: 'turn/plan/updated',\n1491\t            params: {\n1492\t                plan: [{ status: 'pending', step: 'Old child task' }],\n1493\t                threadId: 'thread-child',\n1494\t                turnId: 'turn-child',\n1495\t            },\n1496\t        });\n1497\t        await adapter.handleMessage({\n1498\t            method: 'turn/started',\n1499\t            params: { threadId: 'thread-root', turn: { id: 'turn-next' }, turnId: 'turn-next' },\n1500\t        });\n1501\t        await adapter.handleMessage({\n1502\t            method: 'turn/plan/updated',\n1503\t            params: {\n1504\t                plan: [{ status: 'pending', step: 'New root task' }],\n1505\t                threadId: 'thread-root',\n1506\t                turnId: 'turn-next',\n1507\t            },\n1508\t        });\n1509\t\n1510\t        expect(events.filter(({ type }) => type === 'taskList').at(-1).taskList.tasks).toEqual([\n1511\t            { id: '0', status: 'pending', subject: 'New root task' },\n1512\t        ]);\n1513\t    });\n1514\t\n1515\t    it('keeps root assistant text on the main stream while a child thread interleaves its own', async () => {\n1516\t        const { adapter, events } = await startCodexCollaboration();\n1517\t\n1518\t        await adapter.handleMessage({\n1519\t            method: 'item/started',",
+          "providerItemId": "toolu_01LpLWrA8SQrXYi2CSNnsCSK",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:51:01.440Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDgCXeDk7ZMaNL2XHhzk:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T14:51:03.008Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\agent_streaming_adapter.test.mjs\",\"offset\":590,\"limit\":80}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-21",
+          "kind": "event",
+          "label": "Read",
+          "output": "590\t                paths: ['design/feature.md'],\n591\t                providerItemId: 'tool-1',\n592\t                status: 'completed',\n593\t            }),\n594\t            type: 'event',\n595\t        });\n596\t    });\n597\t\n598\t    it('normalizes equivalent streaming and one-shot Claude file results identically', async () => {\n599\t        const assistantEvent = {\n600\t            message: {\n601\t                content: [{ id: 'edit-parity', input: { file_path: 'design/parity.md' }, name: 'Edit', type: 'tool_use' }],\n602\t                id: 'message-parity',\n603\t            },\n604\t            type: 'assistant',\n605\t        };\n606\t        const resultEvent = {\n607\t            message: { content: [{ content: 'updated', tool_use_id: 'edit-parity', type: 'tool_result' }] },\n608\t            tool_use_result: { structuredPatch: [{ lines: ['-before', '+after'] }] },\n609\t            type: 'user',\n610\t        };\n611\t        const streaming = harness('claude');\n612\t        await streaming.adapter.handleMessage(assistantEvent);\n613\t        await streaming.adapter.handleMessage(resultEvent);\n614\t        const protocolEvents = [];\n615\t        const parser = createAgentProviderProtocolParser('claude', (event) => protocolEvents.push(event), vi.fn(), 'C:\\\\repo');\n616\t        parser.push(`${JSON.stringify(assistantEvent)}\\n${JSON.stringify(resultEvent)}\\n`);\n617\t        parser.finish();\n618\t\n619\t        const streamingCompletion = streaming.events.findLast(({ event }) => event?.providerItemId === 'edit-parity').event;\n620\t        expect(streamingCompletion).toEqual(protocolEvents.at(-1).providerEvents[0]);\n621\t    });\n622\t\n623\t    it('decodes identical Claude task fixtures through streaming and one-shot paths without transcript rows', async () => {\n624\t        const fixtureEvents = claudeTaskFixtureEvents();\n625\t        const streaming = harness('claude');\n626\t        await streaming.adapter.handleMessage(claudeStreamEvent({ message: { id: 'task-message-1' }, type: 'message_start' }));\n627\t        await streaming.adapter.handleMessage(claudeStreamEvent({\n628\t            content_block: { id: 'task-create-root', input: {}, name: 'TaskCreate', type: 'tool_use' },\n629\t            index: 0,\n630\t            type: 'content_block_start',\n631\t        }));\n632\t        await streaming.adapter.handleMessage(claudeStreamEvent({\n633\t            delta: { partial_json: '{\"subject\":\"Build root\"}', type: 'input_json_delta' },\n634\t            index: 0,\n635\t            type: 'content_block_delta',\n636\t        }));\n637\t        for (const event of fixtureEvents) await streaming.adapter.handleMessage(event);\n638\t\n639\t        const protocolEvents = [];\n640\t        const parser = createAgentProviderProtocolParser('claude', (event) => protocolEvents.push(event), vi.fn(), 'C:\\\\repo');\n641\t        for (const event of fixtureEvents) parser.push(`${JSON.stringify(event)}\\n`);\n642\t        parser.finish();\n643\t\n644\t        const streamingTaskLists = streaming.events\n645\t            .filter(({ type }) => type === 'taskList')\n646\t            .map(({ taskList }) => taskList.tasks);\n647\t        const protocolTaskLists = protocolEvents\n648\t            .filter(({ type }) => type === 'taskList')\n649\t            .map(({ taskList }) => taskList.tasks);\n650\t        expect(streamingTaskLists).toEqual([\n651\t            [{ activeForm: 'Building root', id: '1', status: 'pending', subject: 'Build root' }],\n652\t            [{ activeForm: 'Building root', id: '1', status: 'inProgress', subject: 'Build root' }],\n653\t            [{ activeForm: 'Building root', id: '1', status: 'completed', subject: 'Build root' }],\n654\t            [\n655\t                { activeForm: 'Building root', id: '1', status: 'completed', subject: 'Build root' },\n656\t                { activeForm: 'Building child', id: '2', status: 'pending', subject: 'Build child' },\n657\t            ],\n658\t            [{ activeForm: 'Building child', id: '2', status: 'pending', subject: 'Build child' }],\n659\t        ]);\n660\t        expect(protocolTaskLists).toEqual(streamingTaskLists);\n661\t        expect(streaming.events.filter(({ event }) => event?.type?.startsWith('tool.Task'))).toEqual([]);\n662\t        const ordinaryProtocolEvents = protocolEvents.filter(({ type }) => type !== 'taskList');\n663\t        expect(ordinaryProtocolEvents.every(({ transcriptEvents }) => transcriptEvents.length === 0)).toBe(true);\n664\t    });\n665\t\n666\t    it('bounds Claude command and tool results without truncating their inputs or duplicating command output', async () => {\n667\t        const { adapter, events } = harness('claude');\n668\t        const command = 'x'.repeat(10_000);\n669\t        const result = `${'start'.repeat(1_000)}${'middle'.repeat(1_000)}${'end'.repeat(1_000)}`;",
+          "providerItemId": "toolu_01VoxkxREEr8HGc9A7T9Wa5h",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:51:03.475Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-22",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDgCg1mPEwKMiJDLzb42:thinking:0",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T14:51:06.022Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"function claudeTaskFixtureEvents\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\agent_streaming_adapter.test.mjs\",\"output_mode\":\"content\",\"-A\":50}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-23",
+          "kind": "event",
+          "label": "Grep",
+          "output": "117:function claudeTaskFixtureEvents() {\n118-    return [\n119-        {\n120-            message: {\n121-                content: [{\n122-                    id: 'task-create-root', input: { activeForm: 'Building root', subject: 'Build root' },\n123-                    name: 'TaskCreate', type: 'tool_use',\n124-                }], id: 'task-message-1',\n125-            },\n126-            type: 'assistant',\n127-        },\n128-        {\n129-            message: { content: [{ content: 'created', tool_use_id: 'task-create-root', type: 'tool_result' }] },\n130-            tool_use_result: { task: { id: '1' } },\n131-            type: 'user',\n132-        },\n133-        {\n134-            message: {content: [{id: 'task-update-progress', input: { status: 'in_progress', taskId: '1' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-2'},\n135-            type: 'assistant',\n136-        },\n137-        {\n138-            message: {content: [{id: 'task-update-complete', input: { id: '1', status: 'completed' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-3'},\n139-            type: 'assistant',\n140-        },\n141-        {\n142-            message: {\n143-                content: [{\n144-                    id: 'task-create-child', input: { activeForm: 'Building child', subject: 'Build child' },\n145-                    name: 'TaskCreate', type: 'tool_use',\n146-                }], id: 'task-message-child',\n147-            },\n148-            parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,\n149-            type: 'assistant',\n150-        },\n151-        {\n152-            message: { content: [{ content: 'created', tool_use_id: 'task-create-child', type: 'tool_result' }] },\n153-            parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,\n154-            tool_use_result: { task: { id: '2' } },\n155-            type: 'user',\n156-        },\n157-        {\n158-            message: {\n159-                content: [{\n160-                    id: 'task-create-failed', input: { activeForm: 'Failing', subject: 'Failed task' },\n161-                    name: 'TaskCreate', type: 'tool_use',\n162-                }], id: 'task-message-4',\n163-            },\n164-            type: 'assistant',\n165-        },\n166-        {\n167-            message: { content: [{ content: 'failed', is_error: true, tool_use_id: 'task-create-failed', type: 'tool_result' }] },",
+          "providerItemId": "toolu_01EtN4MiXvMjoSkXgPzhcrgy",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:51:06.858Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-24",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDgCvNhpfg9x3r3Skti4:thinking:0",
+          "sequence": 24,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T14:51:12.926Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev3\\\\desktop\\\\src\\\\actions\\\\agent\\\\agent_streaming_adapter.test.mjs\",\"offset\":166,\"limit\":20}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-25",
+          "kind": "event",
+          "label": "Read",
+          "output": "166\t        {\n167\t            message: { content: [{ content: 'failed', is_error: true, tool_use_id: 'task-create-failed', type: 'tool_result' }] },\n168\t            tool_use_result: { task: { id: '3' } },\n169\t            type: 'user',\n170\t        },\n171\t        {\n172\t            message: {content: [{id: 'task-update-delete', input: { status: 'deleted', task_id: '1' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-5'},\n173\t            type: 'assistant',\n174\t        },\n175\t        {\n176\t            message: {\n177\t                content: [\n178\t                    { id: 'task-get', input: { taskId: '2' }, name: 'TaskGet', type: 'tool_use' },\n179\t                    { id: 'task-list', input: {}, name: 'TaskList', type: 'tool_use' },\n180\t                ], id: 'task-message-6',\n181\t            },\n182\t            type: 'assistant',\n183\t        },\n184\t        {\n185\t            message: {",
+          "providerItemId": "toolu_01HRGaQUc6pDshP4KyAGiq8S",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:51:13.359Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDgDQA3tPvpW94QThm82:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T14:51:25.658Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nAnalysis done. Plan:\n\n**Root cause**\n- `ClaudeTaskListDecoder.applyCreateResult` always adds to `tasks`. Nothing clears it when Claude starts a new list after the old one is fully completed. Result: new tasks show up below the old completed ones (Problem 1).\n- `ClaudeTaskListDecoder` always starts empty. On resume or app restart, the new process gets an empty decoder even though `run.conversation.taskList` is saved. Result: `TaskUpdate` calls for earlier tasks are dropped as unknown, and the first `TaskCreate` replaces the whole list (Problem 2).\n\n**Block 1: decoder** (`desktop/src/actions/agent/claude_task_list_decoder.js`)\n- Constructor takes `initialTaskList = null`. For each task in `initialTaskList?.tasks ?? []`:\n  - store it in `tasks`;\n  - register it in `taskIds`. A namespaced id (`agent-1:3`) maps to reference `agent-1:3`; a plain id (`3`) maps to `root:3`. The displayed id stays the task id.\n- `applyCreateResult`: before adding the created task, clear `tasks` if every known task has status `completed`. `taskIds` is kept.\n\n**Block 2: wiring**\n- `agent_claude_streaming_adapter.js`: constructor takes `initialTaskList` and passes it to `new ClaudeTaskListDecoder(initialTaskList)`.\n- `agent_streaming_adapter.js`: `createAgentStreamingAdapter` gets a new last parameter `initialTaskList = null` and passes it to `ClaudeStreamingAdapter`. Codex is unchanged.\n- `agent_provider_protocol.js`: `createAgentProviderProtocolParser` and `AgentProviderProtocolParser` get a new last parameter `initialTaskList = null` and pass it to the decoder.\n- `agent_run_state.js`: `attachRunProtocol` passes `run.conversation.taskList` to both factories.\n\n**Block 3: tests**\n- `claude_task_list_decoder.test.mjs`:\n  - a create after all tasks are completed emits only the new task;\n  - a create while a task is pending or in progress appends to the list;\n  - with a seeded list, an update to a seeded root task and to a seeded sub-agent task (`agent-1:1`) updates that task.\n- `agent_streaming_adapter.test.mjs`:\n  - new test: a Claude adapter created with a persisted `taskList` applies a `TaskUpdate` to a seeded task.\n  - **Existing test needs an update:** \"decodes identical Claude task fixtures…\". Its fixture completes task 1 and then creates child task 2, and it expects `[1 completed, 2 pending]`. Under the new rule that list becomes `[2 pending]`, and the later delete of task 1 turns into an unknown-id warning. My proposal is to move the `task-update-complete` event after the child create. The parity, append and delete coverage then stays as it is, and the expected lists become: `[1 pending]`, `[1 inProgress]`, `[1 inProgress, 2 pending]`, `[1 completed, 2 pending]`, `[2 pending]`.\n\n**Block 4:** set `status: ready` in the feature file under `md2\\design\\feature_descriptions`.",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 27,
+          "timestamp": "2026-10-20T14:51:28.611Z"
+        },
+        {
+          "content": "{\"query\":\"select:TaskCreate\",\"max_results\":1}",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-event-28",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskCreate\"}]",
+          "providerItemId": "toolu_016TcB8FmGhMx9YgtG7xNQKj",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-10-20T14:51:28.985Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI've created a task for each of the 4 blocks above. Nothing is edited yet; I'll start once you approve.\n\nOne thing needs your OK: the existing test \"decodes identical Claude task fixtures…\" in `agent_streaming_adapter.test.mjs` will fail after the fix. Its fixture marks task 1 completed and then creates task 2, so the new rule clears task 1 from the list. My proposal is to move the \"complete task 1\" step to after task 2 is created. The test then still covers appending, completing and deleting tasks.\n\nApprove the plan, including that fixture change?",
+          "id": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 29,
+          "timestamp": "2026-10-20T14:51:37.063Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-e8bfac6f-1444-4380-b5cf-15d468552829",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "5735271f-a40d-4370-83f5-6c69282ecd90",
+          "createdAt": "2026-10-20T14:51:37.063Z",
+          "lastUsedAt": "2026-10-20T14:51:37.063Z",
+          "synchronizedThroughMessageId": "agent-turn-f74723fd-8a47-43fd-bef0-a57dc6f5775e-turn-1-assistant-3",
+          "usageBaseline": {
+            "costUsd": 0.6404622,
+            "resultId": "11b78112-d39f-4263-9f6f-6838f3d3b7c9",
+            "tokens": {
+              "cachedInputTokens": 658866,
+              "inputTokens": 24,
+              "outputTokens": 5643,
+              "reasoningTokens": 0,
+              "totalTokens": 664533
+            }
+          }
+        }
+      ],
       "startedAt": "2026-10-20T14:50:39.308Z",
       "status": "running",
+      "taskList": {
+        "tasks": [
+          {
+            "id": "1",
+            "subject": "Block 1: decoder seeding and completed-list replacement",
+            "status": "pending",
+            "activeForm": "Updating task list decoder"
+          },
+          {
+            "id": "2",
+            "subject": "Block 2: wire persisted taskList into decoders",
+            "status": "pending",
+            "activeForm": "Wiring persisted task list"
+          },
+          {
+            "id": "3",
+            "subject": "Block 3: tests",
+            "status": "pending",
+            "activeForm": "Writing tests"
+          },
+          {
+            "id": "4",
+            "subject": "Block 4: set feature status to ready",
+            "status": "pending",
+            "activeForm": "Updating feature status"
+          }
+        ],
+        "updatedAt": "2026-10-20T14:51:34.192Z"
+      },
       "timer": {
+        "breakdown": {
+          "reasoningMs": 19021,
+          "toolMs": 13778
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-10-20T14:50:39.308Z"
       },
       "title": "fix bug",
+      "usage": {
+        "cachedInputTokens": 658866,
+        "inputTokens": 24,
+        "outputTokens": 5643,
+        "reasoningTokens": 0,
+        "totalTokens": 664533,
+        "costUsd": 0.6404622
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
