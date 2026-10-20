@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "379541e5-0bb0-437e-a7c5-4d844ccdffc9",
       "cardPath": "design/feature_descriptions/B_319_codex_not_using_tasks.md",
-      "completedAt": null,
+      "completedAt": "2026-10-20T13:59:01.278Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 132838
@@ -1461,7 +1461,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 107,
-          "timestamp": "2026-10-20T13:55:59.226Z"
+          "timestamp": "2026-10-20T13:59:01.278Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1471,12 +1471,12 @@
           "agent": "codex",
           "conversationId": "01a15991-46fc-74b1-a36e-ca0dc8bcf294",
           "createdAt": "2026-10-20T13:50:48.792Z",
-          "lastUsedAt": "2026-10-20T13:55:59.226Z",
+          "lastUsedAt": "2026-10-20T13:59:01.278Z",
           "synchronizedThroughMessageId": "agent-turn-16da3aae-856c-4d46-9c07-a6edc222c472-turn-3-assistant-3"
         }
       ],
       "startedAt": "2026-10-20T13:47:34.831Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 651,
@@ -1494,7 +1494,7 @@
         "totalTokens": 3149313
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
