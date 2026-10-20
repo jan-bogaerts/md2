@@ -20,10 +20,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "35e2668b-44b4-4be8-9a82-cc3c7f2b4003",
       "cardPath": "design/feature_descriptions/B_317_usage_metrics_not_committed.md",
-      "completedAt": null,
+      "completedAt": "2026-10-20T14:50:54.459Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 114616
+        "usedTokens": 115785
       },
       "entries": [
         {
@@ -967,6 +967,30 @@
           "role": "user",
           "sequence": 75,
           "timestamp": "2026-10-20T14:16:09.827Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5781a4fa-2c98-4f2f-aa5c-50e9d15dfe41-event-76",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgDdYSGV4y2FYdKmNGXVY:thinking:0",
+          "sequence": 76,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-20T14:16:31.108Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "That's what the doc already says, so no edit is needed. Under Implementation details → Desktop, it states that the direct activity commits (`commitTrackedPaths` in `project_agent_token_usage.js` and `activity_files.js`) are not changed. Token rows written after an agent turn will wait for the next batch commit or worktree integration. B_317 stays `ready for implementation`.",
+          "id": "agent-turn-5781a4fa-2c98-4f2f-aa5c-50e9d15dfe41-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 77,
+          "timestamp": "2026-10-20T14:50:54.459Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -992,14 +1016,14 @@
         }
       ],
       "startedAt": "2026-10-19T09:33:21.735Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
-          "reasoningMs": 66875,
+          "reasoningMs": 67056,
           "toolMs": 104209
         },
-        "elapsedMs": 270620,
-        "runningStartedAt": "2026-10-20T14:16:09.827Z"
+        "elapsedMs": 2355067,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
