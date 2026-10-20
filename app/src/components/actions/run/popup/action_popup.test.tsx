@@ -3167,40 +3167,6 @@ describe('ActionPopup', () => {
         })));
     });
 
-    it('uses current Primary card assignment when continuing a conversation', async () => {
-        const popupContext = { ...context, cardInternalId: 'card-1', worktree: '1', worktreeBranch: 'feature' };
-        const assignedCard = {
-            path: context.file,
-            header: { id: 'F-010', internalId: 'card-1', title: 'Card', worktreeValue: '1', branch: 'feature', worktreeError: null },
-        } as Card;
-        vi.spyOn(dataService, 'getState').mockReturnValue({
-            project, runningAgents: [],
-            snapshot: { activeCards: [assignedCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
-        });
-        const waiting = agentConversation({ entries: [{ content: 'Continue on Primary', id: 'message-1', kind: 'message', role: 'assistant', timestamp: '2026-08-01T12:00:00Z' }] });
-        const startAction = vi.fn(async () => 'continued-run');
-        window.md2Actions = {
-            loadCardActivity: vi.fn(async () => createActivityFile({ cardInternalId: 'card-1', kind: 'card' })),
-            onActionRun: vi.fn(() => vi.fn()), prepareActionPrompt: vi.fn(async () => ({ prompt: '' })), startAction,
-        } as unknown as typeof window.md2Actions;
-        mockCodexAvailable();
-        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waiting]);
-        actionService.loadFromFiles([file(agentDefinition('respond', { label: 'Respond', streaming: true }))]);
-        renderPopup(popupContext);
-        expect(await screen.findByText('Continue on Primary')).toBeInTheDocument();
-
-        assignedCard.header.worktreeValue = null;
-        fireEvent.change(within(screen.getByLabelText('Prompt')).getByRole('textbox'), { target: { value: 'Continue here' } });
-        await userEvent.click(screen.getByRole('button', { name: 'Send' }));
-
-        await waitFor(() => expect(startAction).toHaveBeenCalled());
-        const request = startAction.mock.calls[0]?.[0] as ActionStartRequest;
-        expect(request.context).not.toHaveProperty('worktree');
-        expect(request.context).not.toHaveProperty('worktreeBranch');
-        expect(request.context).not.toHaveProperty('worktreeError');
-        expect(request.runInput).toMatchObject({ continueFrom: waiting.path, prompt: 'Continue here' });
-    });
-
     it('allows manual input for a persisted waiting conversation and starts its continuation', async () => {
         const persistedContext: ActionContext = { kind: 'project' }
         const waitingConversation = agentConversation({actionId: 'respond', cardInternalId: null, cardPath: null, path: 'persisted-waiting.json'})

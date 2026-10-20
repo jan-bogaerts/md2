@@ -23,44 +23,38 @@ we update [usage\_metrics.csv](design/usage_metrics.csv) on a regular basis in t
 * Other desktop-written files already reach Git differently:
   * activity files and the token usage summary are committed directly by the desktop (`commitTrackedPaths` in `project_agent_token_usage.js`);
   * conversation view state is committed through the renderer `CommitBatcher`: `agent_acknowledgement_service.ts` calls `DataService.scheduleRepositoryPathCommit(path, message)`, which queues a `kind: 'path'` change. At flush time, the desktop `commit` in `project_files.js` stages that path as it is on disk and commits it together with the rest of the batch. A path that no longer exists is skipped.
-* There is no desktop-to-renderer event for usage metrics writes. Existing desktop-to-renderer subscriptions (for example `onActionConversationViewed`, `onClaudeRateLimits`) use `SUBSCRIPTION_METHODS` in `desktop/main.js`, `subscribeBridge` in `desktop/src/shell/preload.js`, and a handler in `local_bridge_dispatch.js`.
+* Every `CommitBatcher` flush reaches the desktop through the `commit` handler in `desktop/src/shell/local_bridge_dispatch.js`, which calls `localGitService.commit(request, currentLocalProject)` and ends in `commitNow` in `desktop/src/project/project_files.js`. `commitNow` writes and stages `files` and `moves`, stages each entry of `paths` as it is on disk (a missing path is skipped), and then calls `commitStagedChanges`. `commitStagedChanges` does nothing when nothing is staged.
 
 ## Implementation details
 
-Goal: every usage metrics append is committed through the shared `CommitBatcher`, using the same `kind: 'path'` mechanism as conversation view state. The batcher's delay (`AUTO_COMMIT_DELAY_MS`) groups frequent appends into one commit.
+Goal: `usage_metrics.csv` never gets a commit of its own. It is added to commits that already happen. Each time the desktop commits a `CommitBatcher` flush for the active primary project, it also stages the usage metrics file. If the file is unchanged, `git add` stages nothing and the commit contains only the batch.
 
 ### Desktop
 
-* `UsageMetricsService` extends `EventTarget`. After a successful `appendFile` in `appendRecords`, it dispatches a `written` event (`USAGE_METRICS_WRITTEN_EVENT`). The `CustomEvent` detail is `{ path }`: the repository-relative path of the CSV with forward slashes (for example `design/usage_metrics.csv`). No event is dispatched when the append fails or when `recordAccountUsage` finds no changed window.
-* Keep `uncommittedProjectWrites.mark(...)`. It stays the fallback: if the renderer is not subscribed or scheduling fails, the next integration still commits the file. When the batcher already committed the file, `commitTrackedPaths` finds no staged changes and does nothing.
-* `local_bridge_dispatch.js`: add `onUsageMetricsWritten(callback)` to `actionBridge`. It calls `addEventListener` on the injected `usageMetricsService`, forwards `event.detail` to the callback, and returns a cleanup that calls `removeEventListener`. Pass `usageMetricsService` into `createLocalBridgeDispatch` from `desktop/main.js`.
-* `desktop/main.js`: add `'onUsageMetricsWritten'` to `SUBSCRIPTION_METHODS`.
-* `desktop/src/shell/preload.js`: add `onUsageMetricsWritten: (callback) => subscribeBridge('onUsageMetricsWritten', [], callback)`.
-* Remote control is not changed. The desktop window's renderer owns this commit.
+* `UsageMetricsService`: add `repositoryPath(rootPath)`. It returns the CSV path relative to the repository root, with forward slashes (for example `design/usage_metrics.csv`). It returns `null` when no project is active or when `rootPath` is not the bound project root (compare with `projectKey` from `project_operation_coordinator`). The absolute path is already stored in `this.filePath` by `startProject`.
+* `local_bridge_dispatch.js`, `commit` handler: before calling `localGitService.commit`, add `usageMetricsService.repositoryPath(currentLocalProject.rootPath)` to `request.paths` when it is not `null`. Build the new request as one object, for example `{ ...request, paths: [...(request.paths ?? []), usageMetricsPath] }`. The commit message is not changed.
+* `desktop/main.js`: pass `usageMetricsService` into `createLocalBridgeDispatch`.
+* Keep `uncommittedProjectWrites.mark(...)` in `appendRecords`. When no batcher commit happens before the next worktree integration, the integration still commits the file. When a batch already committed it, `commitTrackedPaths` finds no staged changes and does nothing.
+* No change in the app, in `CommitBatcher`, or in the direct activity commits (`commitTrackedPaths` in `project_agent_token_usage.js` and `activity_files.js`).
 
-### App
+### Edge cases and side effects
 
-* `app/src/data/electron_action_bridge.ts`: add an optional `onUsageMetricsWritten?(callback: (event: UsageMetricsWrittenEvent) => void): () => void` with `UsageMetricsWrittenEvent = { path: string }`.
-* `app/src/services/agents/agent_integration.ts`: add a `startUsageMetricsWatch` next to `startConversationViewWatch`, with the same lifecycle (start with the project watch, clean up in `stopScheduledRunWatch`). On each event it calls `dataService.scheduleRepositoryPathCommit(event.path, 'Update usage metrics')`. A scheduling error is reported through `telemetryService.captureError`, like the conversation view watch. It must not be shown as a dialog every 2 minutes.
-
-### Edge cases
-
-* Many appends before the flush: `changeKey` for a path change is `path:<path>`, so they collapse into one pending entry. The flush commits the file content that is on disk at that moment.
-* An append that lands after the flush has staged the file: it dispatches a new event, so it is committed in the next batch.
-* An event from the previous project that arrives after a project switch: the path is resolved against the new project root. If the file does not exist there, the desktop skips it. If it exists, committing it is correct because it is also an uncommitted usage metrics change of the open project.
-* Commit failure: the batcher keeps the path pending (`restoreFailedBatch`) and reports the failure through its existing `flushFailed` event.
+* No usage metrics commits while nothing else is committed: rows written by the 2-minute account usage poll wait for the next batch commit or integration.
+* An append that runs while a commit is staging: `appendRecords` runs inside `projectOperationCoordinator.run(rootPath, ...)` and `commit` runs inside `holdProjectMutation`, which uses the same coordinator. They cannot overlap, so a commit contains only complete rows.
+* The file does not exist yet: `commitNow` skips the missing path.
+* Worktree commits (`commitWorktree`) and integration are separate handlers and are not changed. The usage metrics file only lives in the primary worktree.
+* Remote-control clients flush through the same desktop `commit` handler, so their commits also carry the file.
 
 ### Tests
 
-* `desktop/src/actions/agent/usage_metrics_service.test.mjs`: a `written` event with the relative path after a token append and after a changed account append; no event when nothing changed or when `appendFile` rejects.
-* `desktop/src/shell/local_bridge_dispatch.test.mjs`: `onUsageMetricsWritten` forwards the event detail, and the cleanup removes the listener.
-* App test next to `agent_integration.ts`: a bridge event schedules `scheduleRepositoryPathCommit` with the event path and `'Update usage metrics'`. Stopping the project watch removes the subscription.
+* `desktop/src/actions/agent/usage_metrics_service.test.mjs`: `repositoryPath` returns the relative path for the bound root, and `null` for another root or before `startProject`.
+* `desktop/src/shell/local_bridge_dispatch.test.mjs`: `commit` adds the usage metrics path to `request.paths` next to existing paths, and leaves the request unchanged when `repositoryPath` returns `null`.
 
 ## Acceptance criteria
 
-* After an agent turn or a changed account usage poll, `usage_metrics.csv` is committed by the regular commit batch within the auto-commit delay. No worktree integration is needed.
-* Several appends within one batch window produce one commit that contains the latest file content.
+* `usage_metrics.csv` is never committed on its own: no new commit is created just because rows were appended.
+* When the commit batcher commits other changes of the primary project, pending `usage_metrics.csv` changes are part of that same commit, with the batch's commit message.
+* A batch commit while `usage_metrics.csv` is unchanged contains only the batch files.
+* The next worktree integration still commits the file if no batch commit happened before it.
 * The CSV content and format do not change.
-* If the renderer does not schedule the commit, the file is still committed by the next worktree integration, as it is now.
-* A failed commit leaves the path pending for the next flush. It does not affect agent runs.
-* The new desktop and app tests pass, and lint passes in `app` and `desktop`.
+* The new desktop tests pass, and lint passes in `desktop`.
