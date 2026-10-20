@@ -8680,3 +8680,7 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-20T14:57:35.526Z,token_usage,claude,,,,,24,894297,8135,0,902456,,
 2026-10-20T14:58:57.177Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,7,0
 2026-10-20T15:00:57.369Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,7,0
+2026-10-20T15:04:40.029Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,7,0
+2026-10-20T15:05:18.902Z,token_usage,claude,,,,,16,465133,2993,0,468142,,
+2026-10-20T15:06:46.141Z,token_usage,codex,,,,,86133,904320,2592,2026,995071,,
+2026-10-20T15:06:57.395Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,7,0
