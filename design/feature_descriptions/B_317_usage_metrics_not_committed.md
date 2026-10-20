@@ -3,7 +3,7 @@ author:
 id: B_317
 internalId: 35e2668b-44b4-4be8-9a82-cc3c7f2b4003
 title: usage_metrics not committed
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,12 @@ agents:
 policy:
 branch: b_317_usage_metrics_not_committed
 worktree: 1
+changedFiles:
+  - desktop/main.js
+  - desktop/src/actions/agent/usage_metrics_service.js
+  - desktop/src/actions/agent/usage_metrics_service.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
 ---
 
 we update [usage\_metrics.csv](design/usage_metrics.csv) on a regular basis in the project. but it does not seem to use the [commit\_batcher.ts](app/src/data/commit_batcher.ts) for committing the file?
