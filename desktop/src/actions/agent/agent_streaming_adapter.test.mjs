@@ -135,10 +135,6 @@ function claudeTaskFixtureEvents() {
             type: 'assistant',
         },
         {
-            message: {content: [{id: 'task-update-complete', input: { id: '1', status: 'completed' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-3'},
-            type: 'assistant',
-        },
-        {
             message: {
                 content: [{
                     id: 'task-create-child', input: { activeForm: 'Building child', subject: 'Build child' },
@@ -153,6 +149,10 @@ function claudeTaskFixtureEvents() {
             parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,
             tool_use_result: { task: { id: '2' } },
             type: 'user',
+        },
+        {
+            message: {content: [{id: 'task-update-complete', input: { id: '1', status: 'completed' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-3'},
+            type: 'assistant',
         },
         {
             message: {
@@ -650,7 +650,10 @@ describe('ClaudeStreamingAdapter', () => {
         expect(streamingTaskLists).toEqual([
             [{ activeForm: 'Building root', id: '1', status: 'pending', subject: 'Build root' }],
             [{ activeForm: 'Building root', id: '1', status: 'inProgress', subject: 'Build root' }],
-            [{ activeForm: 'Building root', id: '1', status: 'completed', subject: 'Build root' }],
+            [
+                { activeForm: 'Building root', id: '1', status: 'inProgress', subject: 'Build root' },
+                { activeForm: 'Building child', id: '2', status: 'pending', subject: 'Build child' },
+            ],
             [
                 { activeForm: 'Building root', id: '1', status: 'completed', subject: 'Build root' },
                 { activeForm: 'Building child', id: '2', status: 'pending', subject: 'Build child' },
@@ -661,6 +664,35 @@ describe('ClaudeStreamingAdapter', () => {
         expect(streaming.events.filter(({ event }) => event?.type?.startsWith('tool.Task'))).toEqual([]);
         const ordinaryProtocolEvents = protocolEvents.filter(({ type }) => type !== 'taskList');
         expect(ordinaryProtocolEvents.every(({ transcriptEvents }) => transcriptEvents.length === 0)).toBe(true);
+    });
+
+    it('seeds the Claude task list decoder from a persisted conversation task list', async () => {
+        const events = [];
+        const initialTaskList = {
+            tasks: [{ activeForm: 'Building root', id: '1', status: 'inProgress', subject: 'Build root' }],
+            updatedAt: '2026-10-16T10:00:00.000Z',
+        };
+        const adapter = createAgentStreamingAdapter(
+            'claude',
+            vi.fn(),
+            (event) => events.push(event),
+            'C:\\repo',
+            'session-1',
+            vi.fn(),
+            {},
+            null,
+            false,
+            initialTaskList,
+        );
+
+        await adapter.handleMessage({
+            message: {content: [{id: 'task-update-complete', input: { status: 'completed', taskId: '1' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-1'},
+            type: 'assistant',
+        });
+
+        expect(events.filter(({ type }) => type === 'taskList').at(-1).taskList.tasks).toEqual([
+            { activeForm: 'Building root', id: '1', status: 'completed', subject: 'Build root' },
+        ]);
     });
 
     it('bounds Claude command and tool results without truncating their inputs or duplicating command output', async () => {

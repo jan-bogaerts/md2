@@ -153,12 +153,20 @@ function attachRunProtocol(run, {
             run.request.executionSettings,
             run.claudeUsageTracker,
             run.request.agentTaskTrackingEnabled === true,
+            run.conversation.taskList,
         )
         : null;
     run.protocolLines = run.streaming ? new JsonLineBuffer(run.id, onStreamingLine) : null;
     run.parser = run.streaming
         ? null
-        : createAgentProviderProtocolParser(run.agent, onProviderEvent, onMalformedOutput, rootPath, run.claudeUsageTracker);
+        : createAgentProviderProtocolParser(
+            run.agent,
+            onProviderEvent,
+            onMalformedOutput,
+            rootPath,
+            run.claudeUsageTracker,
+            run.conversation.taskList,
+        );
 
     return run;
 }

@@ -896,8 +896,11 @@ function createAgentStreamingAdapter(
     executionSettings = {},
     claudeUsageTracker = null,
     taskTrackingEnabled = false,
+    initialTaskList = null,
 ) {
-    if (agent === 'claude') return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, claudeUsageTracker);
+    if (agent === 'claude') {
+        return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, claudeUsageTracker, initialTaskList);
+    }
     if (agent === 'codex') {
         return new CodexStreamingAdapter(
             writeLine,

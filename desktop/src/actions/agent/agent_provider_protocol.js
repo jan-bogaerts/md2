@@ -145,7 +145,7 @@ function isMissingSession(agent, event, turnStarted) {
 }
 
 class AgentProviderProtocolParser {
-    constructor(agent, onEvent, onMalformed, rootPath, claudeUsageTracker) {
+    constructor(agent, onEvent, onMalformed, rootPath, claudeUsageTracker, initialTaskList) {
         this.agent = agent;
         this.lines = new JsonLineBuffer(agent, (line) => this.parseLine(line));
         this.onEvent = onEvent;
@@ -153,7 +153,7 @@ class AgentProviderProtocolParser {
         this.rootPath = rootPath;
         this.turnStarted = false;
         this.claudeFileResultDecoder = agent === 'claude' ? new ClaudeFileResultDecoder(rootPath) : null;
-        this.claudeTaskListDecoder = agent === 'claude' ? new ClaudeTaskListDecoder() : null;
+        this.claudeTaskListDecoder = agent === 'claude' ? new ClaudeTaskListDecoder(initialTaskList) : null;
         this.claudeMessageUsages = new Map();
         this.claudeUsageTracker = agent === 'claude' ? claudeUsageTracker ?? new ClaudeUsageTracker() : null;
     }
@@ -234,10 +234,10 @@ class AgentProviderProtocolParser {
     }
 }
 
-function createAgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath, claudeUsageTracker = null) {
+function createAgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath, claudeUsageTracker = null, initialTaskList = null) {
     if (agent !== 'codex' && agent !== 'claude') return null;
 
-    return new AgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath, claudeUsageTracker);
+    return new AgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath, claudeUsageTracker, initialTaskList);
 }
 
 module.exports = { createAgentProviderProtocolParser, isMissingSession };
