@@ -1730,6 +1730,30 @@
       "startedAt": "2026-10-20T15:04:26.795Z",
       "status": "cancelled",
       "rootConversationId": "agent-76252e7b-2867-41e2-a4ad-531489414fa6"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-10-20T15:12:09.753Z",
+      "conversationIds": [
+        "agent-ccf2f8e2-1988-41a6-8396-9cfb66f2d92a"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-dceb88f8-5a8a-4c1c-86ee-eb0ce13ec209",
+      "origin": {
+        "cardInternalId": "35e2668b-44b4-4be8-9a82-cc3c7f2b4003",
+        "kind": "card"
+      },
+      "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "rootActionLabel": "fix bug",
+      "rootConversationId": "agent-ccf2f8e2-1988-41a6-8396-9cfb66f2d92a",
+      "startedAt": "2026-10-20T15:04:38.609Z",
+      "status": "completed"
     }
   ],
   "version": 5
