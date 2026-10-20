@@ -1626,7 +1626,7 @@
         }
       ],
       "startedAt": "2026-10-20T14:50:39.308Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
@@ -1661,8 +1661,8 @@
           "reasoningMs": 19021,
           "toolMs": 13778
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-20T14:50:39.308Z"
+        "elapsedMs": 57755,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
