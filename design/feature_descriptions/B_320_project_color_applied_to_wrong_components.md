@@ -3,7 +3,7 @@ author:
 id: B_320
 internalId: 1deced87-bdc6-46cb-9360-356355f1675d
 title: project color applied to wrong components
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,8 @@ policy:
 branch: b_320_project_color_applied_to_wrong_components
 worktree: 2
 after: 733d678c-49a7-4409-9fa2-5fb384821513
+changedFiles:
+  - app/src/theme/app_theme.node.test.ts
 ---
 
 We have the option to assign a 'color' to a project (in the config dialog). this works, however, it is applied to the cards and the menu bar. It should actually be applied to the background of the  dashboard, stats, diagrams, list views
