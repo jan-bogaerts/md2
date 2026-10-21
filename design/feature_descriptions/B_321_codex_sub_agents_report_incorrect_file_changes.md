@@ -10,6 +10,8 @@ agents:
   - design/activity/card__b4209b86-7a2f-497f-a268-13acc153c748.json
 policy:
 after: 733d678c-49a7-4409-9fa2-5fb384821513
+branch: b_321_codex_sub_agents_report_incorrect_file_changes
+worktree: 1
 ---
 
 When an action runs an agent, we track the number of lines that were changed and removed. This works ok.
