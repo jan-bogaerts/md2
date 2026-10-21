@@ -9,4 +9,6 @@ affects:
 agents:
 policy:
 ---
+![pasted image](pasted-image-367d3577-372c-4319-a948-5c8cb7380db6.png)
 
+Check this image when shown for adding a legend item. it still has all the existing items and for adding a new item, it has a checkbox to include existing types. this is all totally wrong. This is an 'edit dialog' and an add dialog put together
