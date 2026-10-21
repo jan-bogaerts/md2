@@ -2134,16 +2134,42 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-21T12:43:43.696Z"
+        },
+        {
+          "content": "exceeded retry limit, last status: 429 Too Many Requests",
+          "id": "agent-turn-ff5d884d-9ac4-482a-95b9-bccd630f331e-event-2",
+          "kind": "event",
+          "label": "Turn failure",
+          "providerItemId": "system:01a15e7d-2e4d-7a52-8a55-a66497f499d9:error",
+          "sequence": 2,
+          "status": "failed",
+          "timestamp": "2026-10-21T12:43:46.309Z",
+          "type": "system"
+        },
+        {
+          "content": "exceeded retry limit, last status: 429 Too Many Requests",
+          "id": "agent-turn-ff5d884d-9ac4-482a-95b9-bccd630f331e-event-3",
+          "kind": "event",
+          "label": "Turn failure",
+          "providerItemId": "system:01a15e7d-2e4d-7a52-8a55-a66497f499d9:turn/completed",
+          "sequence": 3,
+          "status": "failed",
+          "timestamp": "2026-10-21T12:43:46.319Z",
+          "type": "system"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-484d7297-17e2-45d7-9af0-c99e4a08b7a8",
       "providerSessions": [],
       "startedAt": "2026-10-21T12:43:43.696Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-21T12:43:43.696Z"
+        "breakdown": {
+          "reasoningMs": 0,
+          "toolMs": 0
+        },
+        "elapsedMs": 2623,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usageSchemaVersion": 1,
