@@ -9,5 +9,6 @@ affects:
 agents:
 policy:
 ---
+When the 'add' tool is selected in a diagram and the user has pressed ctrl while adding items or has not yet added an item, it should be possible to press the 'escape' key so that the default 'select' tool is active again.
 
-When the 'add' tool is selected in a diagram and the user has pressed ctrl while adding items or has not yet added an item, it should be possible to press the 'escape' key so that the default 'select' tool is active again
+this already seems to work for adding 'connections', just not for nodes.
