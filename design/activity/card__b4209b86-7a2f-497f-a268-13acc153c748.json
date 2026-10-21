@@ -1151,7 +1151,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "b4209b86-7a2f-497f-a268-13acc153c748",
       "cardPath": "design/feature_descriptions/B_321_codex_sub_agents_report_incorrect_file_changes.md",
-      "completedAt": null,
+      "completedAt": "2026-10-21T12:43:35.632Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 96016
@@ -2057,6 +2057,36 @@
           "role": "assistant",
           "sequence": 66,
           "timestamp": "2026-10-21T12:27:01.460Z"
+        },
+        {
+          "content": "go",
+          "id": "submission-40d431da-d15a-4220-b714-e949e414e3c0",
+          "kind": "message",
+          "role": "user",
+          "sequence": 67,
+          "timestamp": "2026-10-21T12:43:06.455Z"
+        },
+        {
+          "content": "exceeded retry limit, last status: 429 Too Many Requests",
+          "id": "agent-turn-c163686b-e919-4781-afc4-924c0aee3fa0-event-68",
+          "kind": "event",
+          "label": "Turn failure",
+          "providerItemId": "system:01a15e7c-9c02-7510-a93d-1295689e3887:error",
+          "sequence": 68,
+          "status": "failed",
+          "timestamp": "2026-10-21T12:43:08.703Z",
+          "type": "system"
+        },
+        {
+          "content": "exceeded retry limit, last status: 429 Too Many Requests",
+          "id": "agent-turn-c163686b-e919-4781-afc4-924c0aee3fa0-event-69",
+          "kind": "event",
+          "label": "Turn failure",
+          "providerItemId": "system:01a15e7c-9c02-7510-a93d-1295689e3887:turn/completed",
+          "sequence": 69,
+          "status": "failed",
+          "timestamp": "2026-10-21T12:43:08.715Z",
+          "type": "system"
         }
       ],
       "hasExplicitTitle": true,
@@ -2066,18 +2096,18 @@
           "agent": "codex",
           "conversationId": "01a159f1-c5c0-7f81-b3eb-c25313179efb",
           "createdAt": "2026-10-20T15:37:32.085Z",
-          "lastUsedAt": "2026-10-20T15:37:32.085Z",
-          "synchronizedThroughMessageId": "agent-turn-fb9ee2d2-a743-4549-984a-c4502d12ec87-turn-1-assistant-4"
+          "lastUsedAt": "2026-10-21T12:43:35.632Z",
+          "synchronizedThroughMessageId": "submission-40d431da-d15a-4220-b714-e949e414e3c0"
         }
       ],
       "startedAt": "2026-10-20T15:32:58.750Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 187,
           "toolMs": 116206
         },
-        "elapsedMs": 273335,
+        "elapsedMs": 275595,
         "runningStartedAt": null
       },
       "title": "implement",
