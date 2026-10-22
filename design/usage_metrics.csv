@@ -9018,3 +9018,5 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-22T15:05:44.473Z,token_usage,claude,,,,,36,1183790,11247,0,1195073,,
 2026-10-22T15:05:46.993Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,9,1
 2026-10-22T15:11:38.344Z,token_usage,codex,,,,,67984,6298496,23855,7433,6397768,,
+2026-10-22T15:19:48.598Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,9,0
+2026-10-22T15:25:48.602Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,9,0
