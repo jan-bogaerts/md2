@@ -1060,6 +1060,29 @@
       "startedAt": "2026-10-22T14:36:52.046Z",
       "status": "completed",
       "rootConversationId": "agent-af0d9c0b-2649-4a4f-8bb3-dd2c88bb28b9"
+    },
+    {
+      "commits": [
+        {
+          "commit": "8c7b5fdfe864e986420a57bf7f7e54a1de6dcd3a",
+          "committedAt": "2026-10-22T16:57:54+02:00",
+          "deletions": 4,
+          "filePaths": [
+            "app/src/components/actions/conversation/tasks/agent_task_list.test.tsx",
+            "app/src/components/actions/conversation/tasks/agent_task_list.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 62,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-22T16:57:54+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "223f749a-dd16-4a42-b8de-3ce63eab686d",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

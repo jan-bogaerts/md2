@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__223f749a-dd16-4a42-b8de-3ce63eab686d.json
 policy:
-branch: f_444_collaps_task_list_when_done
-worktree: 3
 after: 1a8109e1-2ead-482d-b6d0-c34fd94c0270
 changedFiles:
   - app/src/components/actions/conversation/tasks/agent_task_list.test.tsx
