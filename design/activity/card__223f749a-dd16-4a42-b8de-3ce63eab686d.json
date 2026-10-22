@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "223f749a-dd16-4a42-b8de-3ce63eab686d",
+      "cardPath": "design/feature_descriptions/F_444_collaps_task_list_when_done.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_444_collaps_task_list_when_done.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except files listed under 'agents' in the header. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "submission-2bf92a9f-f703-4901-904a-60fb5954ec0e",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-22T14:29:13.258Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-50f519c8-383e-4fb5-833d-0d0a4bfa525d",
+      "providerSessions": [],
+      "startedAt": "2026-10-22T14:29:13.258Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-22T14:29:13.258Z"
+      },
+      "title": "complete",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "223f749a-dd16-4a42-b8de-3ce63eab686d",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
