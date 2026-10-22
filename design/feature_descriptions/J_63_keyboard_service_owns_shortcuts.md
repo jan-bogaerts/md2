@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__7a123557-495a-47b1-9c18-437364ff3825.json
 policy:
 after: 90ca85d7-9878-4238-a36b-f662d0c8fbd8
 branch: j_63_keyboard_service_owns_shortcuts
