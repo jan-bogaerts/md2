@@ -374,7 +374,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 51909
+        "usedTokens": 58581
       },
       "entries": [
         {
@@ -669,6 +669,274 @@
           "role": "user",
           "sequence": 23,
           "timestamp": "2026-10-22T14:50:45.062Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-24",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ef74ea759f19fb9016ada22d1e3b081919d6a29416eab1712",
+          "sequence": 24,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:50:56.712Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-25",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ef74ea759f19fb9016ada22da0878819180ce0cacde4655a6",
+          "sequence": 25,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:51:04.865Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-26",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ef74ea759f19fb9016ada22dea734819198ba5259ff493c58",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:51:09.498Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Starting Block 1. Change limited to Accordion initial default; no new state, service, or call-site behavior.\n\n",
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 27,
+          "timestamp": "2026-10-22T14:51:09.901Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\components\\actions\\conversation\\tasks\\agent_task_list.tsx",
+          "deletions": 2,
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-28",
+          "insertions": 3,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-5e0444b4-3363-4c12-aaa6-df9b2ebe749a",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:51:14.848Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-29",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ef74ea759f19fb9016ada22e9202c81918abf2110ee62eac3",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:51:19.951Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\components\\actions\\conversation\\tasks\\agent_task_list.test.tsx",
+          "deletions": 2,
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-30",
+          "insertions": 59,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-ab55dfa2-708a-4616-9d30-c24fa5d2bcab",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:51:29.087Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-31",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ef74ea759f19fb9016ada22f378ec81918e6ffa752546c85f",
+          "sequence": 31,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:51:30.284Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 1 done. Block 2 adds historical defaults, accessible header count, manual toggles, live update stability, and remount recalculation. Running focused test next.\n\n",
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 32,
+          "timestamp": "2026-10-22T14:51:31.041Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -NoProfile -Command 'npm run test -- src/components/actions/conversation/tasks/agent_task_list.test.tsx'",
+          "content": "\n> app@0.9.1 test\n> vitest run src/components/actions/conversation/tasks/agent_task_list.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  1 passed (1)\n      Tests  7 passed (7)\n   Start at  16:51:36\n   Duration  5.22s (transform 882ms, setup 227ms, import 2.59s, tests 517ms, environment 1.74s)\n\n",
+          "durationMs": 6452,
+          "exitCode": 0,
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-33",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -NoProfile -Command 'npm run test -- src/components/actions/conversation/tasks/agent_task_list.test.tsx'",
+          "providerItemId": "exec-27173a5d-9ff3-412a-a4b9-4be46a4fe734",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:51:42.110Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-34",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ef74ea759f19fb9016ada2300ba0481919c968664fde32423",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:51:43.557Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Focused test passes: 7/7. Block 2 done. Block 3 now runs app lint, then feature status update.\n\n",
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 35,
+          "timestamp": "2026-10-22T14:51:44.103Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -NoProfile -Command 'npm run lint'",
+          "content": "\n> app@0.9.1 lint\n> eslint .\n\n",
+          "durationMs": 46986,
+          "exitCode": 0,
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-36",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -NoProfile -Command 'npm run lint'",
+          "providerItemId": "exec-3b2cb565-9594-4eb8-8a7c-beb6b3058f25",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:52:34.275Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-37",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ef74ea759f19fb9016ada232487c4819199a6d4662fe29629",
+          "sequence": 37,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:52:19.336Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Lint still running; no findings yet. Waiting for completion.\n\n",
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 38,
+          "timestamp": "2026-10-22T14:52:19.626Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-39",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ef74ea759f19fb9016ada23353450819197314a1f7730dd80",
+          "sequence": 39,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:52:36.044Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Lint passes. Final required change: external feature file status from `ready for implementation` to `ready`; no other spec edits.\n\n",
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 40,
+          "timestamp": "2026-10-22T14:52:36.465Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_444_collaps_task_list_when_done.md",
+          "deletions": 1,
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-41",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-a0771e9b-2c08-4ecb-b834-c7f19ffb5388",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:52:40.077Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-42",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ef74ea759f19fb9016ada233c01648191b2a8554444bcb22c",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:52:42.829Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -NoProfile -Command \"git diff -- app/src/components/actions/conversation/tasks/agent_task_list.tsx app/src/components/actions/conversation/tasks/agent_task_list.test.tsx\nGet-Content 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_444_collaps_task_list_when_done.md' | Select-Object -First 12\"",
+          "content": "diff --git a/app/src/components/actions/conversation/tasks/agent_task_list.test.tsx b/app/src/components/actions/conversation/tasks/agent_task_list.test.tsx\nindex d0473eed6..8856d6397 100644\n--- a/app/src/components/actions/conversation/tasks/agent_task_list.test.tsx\n+++ b/app/src/components/actions/conversation/tasks/agent_task_list.test.tsx\n@@ -80,7 +80,7 @@ describe('AgentTaskList', () => {\n         expect(within(panel).getByText('Map event flow')).toBeInTheDocument()\n     })\n \n-    it('starts expanded and toggles task details', async () => {\n+    it('starts an incomplete list expanded and toggles task details', async () => {\n         const user = userEvent.setup()\n         renderTaskList(conversation('history', taskList([\n             { id: 'task-1', status: 'pending', subject: 'Inspect state' },\n@@ -94,6 +94,36 @@ describe('AgentTaskList', () => {\n         expect(toggle).toHaveAttribute('aria-expanded', 'true')\n     })\n \n+    it('starts a completed list collapsed with its progress visible and expands on request', async () => {\n+        const user = userEvent.setup()\n+        renderTaskList(conversation('history', taskList([\n+            { id: 'task-1', status: 'completed', subject: 'Inspect state' },\n+            { id: 'task-2', status: 'completed', subject: 'Write tests' },\n+        ])))\n+        const panel = screen.getByRole('region', { name: 'Agent tasks' })\n+        const toggle = within(panel).getByRole('button', { name: 'Toggle agent tasks' })\n+\n+        expect(within(panel).getByText('2/2')).toBeInTheDocument()\n+        expect(toggle).toHaveAttribute('aria-expanded', 'false')\n+        await user.click(toggle)\n+        expect(toggle).toHaveAttribute('aria-expanded', 'true')\n+        await user.click(toggle)\n+        expect(toggle).toHaveAttribute('aria-expanded', 'false')\n+    })\n+\n+    it('recalculates the initial state after remounting', () => {\n+        const initial = renderTaskList(conversation('history', taskList([\n+            { id: 'task-1', status: 'inProgress', subject: 'Inspect state' },\n+        ])))\n+\n+        expect(screen.getByRole('button', { name: 'Toggle agent tasks' })).toHaveAttribute('aria-expanded', 'true')\n+        initial.unmount()\n+        renderTaskList(conversation('history', taskList([\n+            { id: 'task-1', status: 'completed', subject: 'Inspect state' },\n+        ])))\n+        expect(screen.getByRole('button', { name: 'Toggle agent tasks' })).toHaveAttribute('aria-expanded', 'false')\n+    })\n+\n     it.each([\n         ['no task list', conversation('history')],\n         ['an empty task list', conversation('history', taskList([]))],\n@@ -103,7 +133,8 @@ describe('AgentTaskList', () => {\n         expect(container).toBeEmptyDOMElement()\n     })\n \n-    it('updates when a live agentTaskList update arrives', () => {\n+    it('keeps the current expansion choice when live task statuses change', async () => {\n+        const user = userEvent.setup()\n         let listener: ((event: ActionRunEvent) => void) | null = null\n         setActionBridgeOverride({\n             onActionRun: vi.fn((nextListener) => {\n@@ -135,8 +166,34 @@ describe('AgentTaskList', () => {\n         }))\n \n         const panel = screen.getByRole('region', { name: 'Agent tasks' })\n+        const toggle = within(panel).getByRole('button', { name: 'Toggle agent tasks' })\n         expect(within(panel).getByText('0/1')).toBeInTheDocument()\n         expect(within(panel).getByText('Implementing panel')).toBeInTheDocument()\n+        expect(toggle).toHaveAttribute('aria-expanded', 'true')\n+\n+        act(() => emit({\n+            ...event,\n+            type: 'update',\n+            update: {\n+                kind: 'agentTaskList',\n+                taskList: taskList([{ id: 'task-1', status: 'completed', subject: 'Implement panel' }]),\n+            },\n+        }))\n+        expect(within(panel).getByText('1/1')).toBeInTheDocument()\n+        expect(toggle).toHaveAttribute('aria-expanded', 'true')\n+\n+        await user.click(toggle)\n+        expect(toggle).toHaveAttribute('aria-expanded', 'false')\n+        act(() => emit({\n+            ...event,\n+            type: 'update',\n+            update: {\n+                kind: 'agentTaskList',\n+                taskList: taskList([{ id: 'task-1', status: 'pending', subject: 'Implement panel' }]),\n+            },\n+        }))\n+        expect(within(panel).getByText('0/1')).toBeInTheDocument()\n+        expect(toggle).toHaveAttribute('aria-expanded', 'false')\n         bindingStore.dispose()\n     })\n })\ndiff --git a/app/src/components/actions/conversation/tasks/agent_task_list.tsx b/app/src/components/actions/conversation/tasks/agent_task_list.tsx\nindex 6b07fc49e..43030a235 100644\n--- a/app/src/components/actions/conversation/tasks/agent_task_list.tsx\n+++ b/app/src/components/actions/conversation/tasks/agent_task_list.tsx\n@@ -56,12 +56,13 @@ export function AgentTaskList({ bindingStore, store }: AgentTaskListProps) {\n \n     if (!taskList || taskList.tasks.length === 0) return null\n \n+    const totalCount = taskList.tasks.length\n     const completedCount = taskList.tasks.filter(({ status }) => status === 'completed').length\n \n     return (\n         <Accordion\n             aria-label=\"Agent tasks\"\n-            defaultExpanded\n+            defaultExpanded={completedCount !== totalCount}\n             disableGutters\n             elevation={0}\n             role=\"region\"\n@@ -86,7 +87,7 @@ export function AgentTaskList({ bindingStore, store }: AgentTaskListProps) {\n                 }}\n             >\n                 <Typography variant=\"caption\">Tasks</Typography>\n-                <Typography color=\"custom.text3\" variant=\"caption\">{completedCount}/{taskList.tasks.length}</Typography>\n+                <Typography color=\"custom.text3\" variant=\"caption\">{completedCount}/{totalCount}</Typography>\n             </AccordionSummary>\n             <AccordionDetails\n                 sx={{\n---\r\nauthor: \r\nid: F_444\r\ninternalId: 223f749a-dd16-4a42-b8de-3ce63eab686d\r\ntitle: collaps task list when done\r\nstatus: ready\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__223f749a-dd16-4a42-b8de-3ce63eab686d.json\r\npolicy:\r\nbranch: f_444_collaps_task_list_when_done\r\n",
+          "durationMs": 170,
+          "exitCode": 0,
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-43",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -NoProfile -Command \"git diff -- app/src/components/actions/conversation/tasks/agent_task_list.tsx app/src/components/actions/conversation/tasks/agent_task_list.test.tsx\nGet-Content 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_444_collaps_task_list_when_done.md' | Select-Object -First 12\"",
+          "providerItemId": "exec-a0342c74-600a-400d-8492-a034a0cda632",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:52:45.032Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-event-44",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ef74ea759f19fb9016ada233fc9048191bff36a6937297d64",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:52:46.586Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Implemented F_444.\n\n- Completed task lists start collapsed; incomplete lists start expanded.\n- Accordion remains uncontrolled during live updates.\n- Header count and manual toggling preserved.\n- Added focused historical, live-update, toggle, and remount tests.\n- Focused tests: 7/7 passed.\n- App lint passed.\n- Feature status changed to `ready`.\n\nFiles: [component](C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\components\\actions\\conversation\\tasks\\agent_task_list.tsx:59), [tests](C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\components\\actions\\conversation\\tasks\\agent_task_list.test.tsx:83), [feature](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_444_collaps_task_list_when_done.md:6).\n\n",
+          "id": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 45,
+          "timestamp": "2026-10-22T14:52:51.455Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -678,8 +946,8 @@
           "agent": "codex",
           "conversationId": "01a1640b-2863-7011-b676-57b41eea5971",
           "createdAt": "2026-10-22T14:37:58.074Z",
-          "lastUsedAt": "2026-10-22T14:37:58.074Z",
-          "synchronizedThroughMessageId": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-turn-1-assistant-3"
+          "lastUsedAt": "2026-10-22T14:52:51.455Z",
+          "synchronizedThroughMessageId": "agent-turn-551301f5-6906-4df2-8fcc-f56f454ce2f1-turn-2-assistant-6"
         }
       ],
       "startedAt": "2026-10-22T14:36:54.175Z",
@@ -689,36 +957,36 @@
           {
             "id": "0",
             "subject": "Block 1 — Component behavior: derive total/completed counts in AgentTaskList; pass defaultExpanded={completedCount !== totalCount}; keep Accordion uncontrolled and preserve header/count/accessibility.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "1",
             "subject": "Block 2 — Focused tests: cover completed historical list collapsed, incomplete list expanded, manual expand/collapse, live completion not overriding current choice, reopen/remount recalculating default, plus existing empty/missing behavior.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 3 — Verification and handoff: run AgentTaskList test file and app lint; fix only relevant failures; then change external feature status to ready.",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-10-22T14:37:53.592Z"
+        "updatedAt": "2026-10-22T14:52:48.105Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 129,
-          "toolMs": 1255
+          "reasoningMs": 252,
+          "toolMs": 59499
         },
         "elapsedMs": 63899,
         "runningStartedAt": "2026-10-22T14:50:45.062Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 333056,
-        "inputTokens": 53275,
-        "outputTokens": 1811,
-        "reasoningTokens": 828,
-        "totalTokens": 388970
+        "cachedInputTokens": 990080,
+        "inputTokens": 62309,
+        "outputTokens": 4606,
+        "reasoningTokens": 2661,
+        "totalTokens": 1059656
       },
       "usageSchemaVersion": 1,
       "viewed": true
