@@ -1,13 +1,11 @@
 import { Box, useMediaQuery, useTheme } from '@mui/material'
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { navigateTo, useAppLocation } from '../../app/app_navigation'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { ConfigPage } from '../config/config_page'
 import { useProjectReference } from '../hooks/use_project_reference'
 import { ProjectWorkspace } from '../project_workspace'
 import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'
-import { GLOBAL_SEARCH_SHORTCUT_BINDING } from '../../services/search/search_open_service'
-import { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'
 import { AppMenu } from './menu/app_menu'
 import { StatusBar } from './status_bar'
 import type { ProjectOpenResolution } from '../../services/project/project_session_service'
@@ -36,8 +34,6 @@ export function MainWindow(props: MainWindowProps) {
         () => isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined,
         [],
     )
-
-    useEffect(() => keyboardShortcutService.register(GLOBAL_SEARCH_SHORTCUT_BINDING), [])
 
     const handleOpenMenu = useCallback(() => {
         setIsMenuOpen(true)

@@ -1,5 +1,5 @@
-import { Profiler, type ReactNode } from 'react'
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { Profiler, type ReactElement, type ReactNode } from 'react'
+import { act, cleanup, fireEvent, render as testingRender, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagramData, DiagramType } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
@@ -19,6 +19,11 @@ import { EditableDiagramNodes } from './editable_diagram_collections'
 import { EditableDiagramNode } from './editable_diagram_node'
 import { DiagramZoomViewport } from '../surface/diagram_zoom_viewport'
 import { DiagramObjectDetailsService } from '../details/diagram_object_details_service'
+import { AppThemeProvider } from '../../../theme/theme_provider'
+
+function render(element: ReactElement) {
+    return testingRender(<AppThemeProvider>{element}</AppThemeProvider>);
+}
 
 const diagram: DiagramData = {
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],

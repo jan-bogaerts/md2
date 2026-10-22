@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
+import { useSyncExternalStore, type ReactNode } from 'react'
 import { CardCommitDiffPanel } from './card_commit_diff_panel'
 import { listCardCommitDiffDataSource } from './list_card_commit_diff_data_source'
 
@@ -15,19 +15,6 @@ export function ListCardCommitDiffPanel(props: ListCardCommitDiffPanelProps) {
         listCardCommitDiffDataSource.getSnapshot,
         listCardCommitDiffDataSource.getSnapshot,
     )
-
-    useEffect(() => {
-        if (!selection) return undefined
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key !== 'Escape') return
-            event.stopPropagation()
-            listCardCommitDiffDataSource.clear()
-        }
-        window.addEventListener('keydown', handleKeyDown, true)
-
-        return () => window.removeEventListener('keydown', handleKeyDown, true)
-    }, [selection])
 
     return (
         <>

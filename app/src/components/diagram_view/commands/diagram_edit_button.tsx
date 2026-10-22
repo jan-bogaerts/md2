@@ -4,7 +4,7 @@ import { dialogService } from '../../../services/dialog_service';
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service';
 import type { DiagramViewService } from '../../../services/diagrams/diagram_view_service';
 import { MenuIconButton } from '../../shell/menu/menu_icon_button';
-import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from '../editing/use_diagram_delete_key';
+import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from '../../../services/shortcuts/diagram_keyboard_shortcut_service';
 
 /** Starts editing only while current diagram source exists. */
 export function DiagramEditButton({ session, viewService }: {

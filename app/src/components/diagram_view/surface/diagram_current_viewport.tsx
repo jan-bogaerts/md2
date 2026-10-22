@@ -15,6 +15,10 @@ import { useDiagramSurfacePan } from '../editing/use_diagram_surface_pan'
 import { diagramEmphasisService, type DiagramEmphasisService } from '../../../services/diagrams/diagram_emphasis_service'
 import { DiagramEmphasisExitButton } from './diagram_emphasis_exit_button'
 import { useDiagramPinchZoom } from './use_diagram_pinch_zoom'
+import {
+    DIAGRAM_ESCAPE_REQUESTED_EVENT,
+    diagramKeyboardShortcutService,
+} from '../../../services/shortcuts/diagram_keyboard_shortcut_service'
 
 /** Pans only from empty diagram background, so node, edge, and group activation keeps working. */
 function isEmptyDiagramBackground(target: EventTarget | null) {
@@ -69,8 +73,8 @@ export function DiagramCurrentViewport(props: DiagramCurrentViewportProps) {
     const cancelActiveGesture = useCallback(() => { pan.cancelPan() }, [pan])
     const pinch = useDiagramPinchZoom(scrollerRef, service, service.getViewportScaleSnapshot, cancelActiveGesture)
     usePreserveDiagramZoomCenter(scrollerRef, scale, pinch.anchorRef)
-    const handleWindowKeyDown = useCallback((event: KeyboardEvent) => {
-        if (event.defaultPrevented || event.key !== 'Escape') return
+    const handleDiagramEscapeRequested = useCallback((event: Event) => {
+        if (event.defaultPrevented) return
         if (pan.cancelPan()) {
             event.preventDefault()
 
@@ -93,10 +97,10 @@ export function DiagramCurrentViewport(props: DiagramCurrentViewportProps) {
     const handlePointerCancel = useCallback(() => { pan.cancelPan() }, [pan])
 
     useEffect(() => {
-        window.addEventListener('keydown', handleWindowKeyDown)
+        diagramKeyboardShortcutService.addEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)
 
-        return () => window.removeEventListener('keydown', handleWindowKeyDown)
-    }, [handleWindowKeyDown])
+        return () => diagramKeyboardShortcutService.removeEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)
+    }, [handleDiagramEscapeRequested])
 
     return (
         <Box sx={{ display: 'flex', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', position: 'relative' }}>

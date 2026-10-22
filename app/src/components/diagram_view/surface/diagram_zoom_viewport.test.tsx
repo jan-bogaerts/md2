@@ -1,6 +1,7 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render as testingRender, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ReactElement } from 'react'
 import type { DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEdgeDrawingService } from '../../../services/diagrams/diagram_edge_drawing_service'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
@@ -15,6 +16,13 @@ import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagr
 import { DEFAULT_DIAGRAM_ZOOM, DIAGRAM_ZOOM_STEP } from '../../../services/diagrams/diagram_zoom'
 import { DiagramZoomViewport } from './diagram_zoom_viewport'
 import { DiagramObjectDetailsService } from '../details/diagram_object_details_service'
+import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
+import { workspaceViewService } from '../../../services/project/workspace_view_service'
+import { AppThemeProvider } from '../../../theme/theme_provider'
+
+function render(element: ReactElement) {
+    return testingRender(<AppThemeProvider>{element}</AppThemeProvider>);
+}
 
 const diagram: DiagramData = {
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
@@ -134,8 +142,14 @@ function expectViewportScrollRange(
     })
 }
 
+beforeEach(() => {
+    workspaceViewService.setViewMode('diagrams')
+    keyboardShortcutService.start()
+})
+
 afterEach(() => {
     cleanup()
+    keyboardShortcutService.stop()
     vi.unstubAllGlobals()
 })
 

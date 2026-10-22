@@ -24,6 +24,7 @@ import { register } from './service_injector'
 import { initDefaultSentryConnectionService, sentryConnectionService } from './sentry/sentry_connection_service'
 import { sentryImportService } from './sentry/sentry_import_service'
 import { agentInstructionsService } from './agent_instructions/agent_instructions_service'
+import { keyboardShortcutService } from './shortcuts/keyboard_shortcut_service'
 
 export type ApplicationStartupPhase = 'ready' | 'starting'
 
@@ -63,6 +64,7 @@ function initializeServices() {
     claudeRateLimitService.start()
     codexRateLimitService.start()
     sentryImportService.start()
+    keyboardShortcutService.start()
 }
 
 const DEFAULT_DEPENDENCIES: ApplicationStartupDependencies = {

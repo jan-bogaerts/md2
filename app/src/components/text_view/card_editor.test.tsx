@@ -1,11 +1,13 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Card } from '../../data/data_types'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { openFilesService } from '../../services/open_files_service'
 import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
 import { CardEditor } from './card_editor'
+import { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'
+import { workspaceViewService } from '../../services/project/workspace_view_service'
 
 const markdownEditorRender = vi.hoisted(() => vi.fn())
 
@@ -84,10 +86,16 @@ const secondCard: Card = {
     path: 'design/F-061.md',
 }
 
+beforeEach(() => {
+    workspaceViewService.setViewMode('text')
+    keyboardShortcutService.start()
+})
+
 afterEach(() => {
     cleanup()
     listCardCommitDiffDataSource.clear()
     openFilesService.clear()
+    keyboardShortcutService.stop()
 })
 
 describe('CardEditor commit diff', () => {

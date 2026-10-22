@@ -26,6 +26,7 @@ import { DialogDisplay } from '../../dialog_display'
 import { AppMenu } from './app_menu'
 import { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../../shared/agent_token_usage_summary.mjs'
 import { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'
+import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
 
 const auth: UseGithubAuthResult = {
     accessToken: null,
@@ -197,6 +198,7 @@ describe('AppMenu', () => {
         workspaceViewService.setViewMode('cards')
         const { selectedPath } = workspaceViewService.getSnapshot()
         if (selectedPath) workspaceViewService.clearSelectedPath(selectedPath)
+        keyboardShortcutService.start()
     })
 
     afterEach(() => {
@@ -208,6 +210,7 @@ describe('AppMenu', () => {
         delete window.md2Data
         setActionBridgeOverride(null)
         cardSequenceDraftService.close()
+        keyboardShortcutService.stop()
         vi.restoreAllMocks()
     })
 
@@ -382,7 +385,7 @@ describe('AppMenu', () => {
         expect(commit).not.toHaveBeenCalled()
     })
 
-    it('removes the Ctrl+S listener when AppMenu unmounts', async () => {
+    it('keeps app-wide Ctrl+S ownership after AppMenu unmounts', async () => {
         const { renderResult } = await renderProjectWithPendingChanges()
         const commit = vi.spyOn(projectSessionService, 'commit').mockResolvedValue()
         renderResult.unmount()
@@ -390,8 +393,8 @@ describe('AppMenu', () => {
 
         fireEvent(window, shortcutEvent)
 
-        expect(shortcutEvent.defaultPrevented).toBe(false)
-        expect(commit).not.toHaveBeenCalled()
+        expect(shortcutEvent.defaultPrevented).toBe(true)
+        expect(commit).toHaveBeenCalledOnce()
     })
 
     it('keeps search text and mobile actions at intermediate workspace widths', () => {

@@ -40,7 +40,7 @@ import {
 import {
     diagramObjectDetailsService, type DiagramObjectDetailsService,
 } from '../details/diagram_object_details_service'
-import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE, useDeleteDiagramSelectionOnDeleteKey } from './use_diagram_delete_key'
+import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from '../../../services/shortcuts/diagram_keyboard_shortcut_service'
 import { useDiagramSurfaceField } from './use_diagram_geometry'
 import { diagramViewService, type DiagramViewService } from '../../../services/diagrams/diagram_view_service'
 import { diagramEmphasisService, type DiagramEmphasisService } from '../../../services/diagrams/diagram_emphasis_service'
@@ -238,7 +238,6 @@ export function EditableDiagram({
     session = diagramEditSessionService,
     viewService = diagramViewService,
 }: EditableDiagramProps) {
-    useDeleteDiagramSelectionOnDeleteKey(selection)
 
     return (
         <Box

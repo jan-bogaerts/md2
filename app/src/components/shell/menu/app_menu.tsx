@@ -30,7 +30,6 @@ import type { EmptyDiagramChoice } from '../../../services/diagrams/empty_diagra
 import { diagramViewService } from '../../../services/diagrams/diagram_view_service'
 import { sentryImportService } from '../../../services/sentry/sentry_import_service'
 import { isSentryConfigurationComplete } from '../../../services/sentry/sentry_types'
-import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
 import { projectContext } from '../../../data/action_context'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import { useProjectReference } from '../../hooks/use_project_reference'
@@ -60,7 +59,7 @@ import { Tab } from './tab'
 import { DiagramMenuTab } from '../../diagram_view/commands/diagram_menu_tab'
 import { StatsMenuTab } from '../../stats_view/stats_menu_tab'
 import { ActiveSchedulesDialog } from '../../actions/run/schedule/active_schedules_dialog'
-import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from '../../diagram_view/editing/use_diagram_delete_key'
+import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from '../../../services/shortcuts/diagram_keyboard_shortcut_service'
 import { hasActiveScheduleBackend, hasSequenceScheduleBackend } from '../../../data/electron_action_bridge'
 import { cardPopupService } from '../../../services/card_popup_service';
 import type { SearchRegexpAgent } from '../../../services/search/search_types'
@@ -206,20 +205,6 @@ export function AppMenu(props: AppMenuProps) {
             // ProjectSessionService emits the user-visible error.
         }
     }, [])
-
-    useEffect(() => {
-        return keyboardShortcutService.register({
-            alt: false,
-            ctrl: false,
-            id: 'commit',
-            key: 's',
-            mod: true,
-            run: () => {
-                if (canCommit) void handleCommit()
-            },
-            shift: false,
-        })
-    }, [canCommit, handleCommit])
 
     const handlePush = async () => {
         try {

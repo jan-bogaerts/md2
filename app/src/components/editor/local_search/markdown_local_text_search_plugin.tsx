@@ -23,6 +23,10 @@ import {
 import { OPEN_MARKDOWN_LOCAL_TEXT_SEARCH_COMMAND } from './markdown_local_text_search_command'
 import { markdownLocalTextSearchConfig$ } from './markdown_local_text_search_config_cell'
 import { RESET_MARKDOWN_DRAFT_COMMAND } from '../data_sources/reset_markdown_draft_command';
+import {
+    MARKDOWN_LOCAL_SEARCH_ESCAPE_REQUESTED_EVENT,
+    markdownLocalSearchKeyboardService,
+} from '../../../services/shortcuts/markdown_local_search_keyboard_service'
 
 function isOpenSearchShortcut(event: KeyboardEvent) {
     return event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'f'
@@ -96,11 +100,11 @@ export function MarkdownLocalTextSearchPlugin() {
         setResultCount(result.count)
     }, [draftCaseSensitive, draftTerm, editor, searchOrigin])
 
-    const handleWindowKeyDown = useCallback((event: KeyboardEvent) => {
-        if (!open || event.key !== 'Escape') return
+    const handleSearchEscapeRequested = useCallback((event: Event) => {
+        if (!open || event.defaultPrevented) return
 
-        event.preventDefault()
         closeSearch()
+        event.preventDefault()
     }, [closeSearch, open])
 
     const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -131,12 +135,18 @@ export function MarkdownLocalTextSearchPlugin() {
     }, [editor, handleKeyDown, openSearch])
 
     useEffect(() => {
-        window.addEventListener('keydown', handleWindowKeyDown)
+        markdownLocalSearchKeyboardService.addEventListener(
+            MARKDOWN_LOCAL_SEARCH_ESCAPE_REQUESTED_EVENT,
+            handleSearchEscapeRequested,
+        )
 
         return () => {
-            window.removeEventListener('keydown', handleWindowKeyDown)
+            markdownLocalSearchKeyboardService.removeEventListener(
+                MARKDOWN_LOCAL_SEARCH_ESCAPE_REQUESTED_EVENT,
+                handleSearchEscapeRequested,
+            )
         }
-    }, [handleWindowKeyDown])
+    }, [handleSearchEscapeRequested])
 
     const handleTermChange = (event: ChangeEvent<HTMLInputElement>) => {
         setDraftTerm(event.target.value)

@@ -1,29 +1,16 @@
 import { Chip } from '@mui/material'
 import KeyboardOutlined from '@mui/icons-material/KeyboardOutlined'
-import { useCallback, useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
+import { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'
 import { MobileStatusRow } from './mobile_status_row'
 
 /** Status-bar indicator reflecting active Caps Lock. */
 export function KeyboardStatus({ mobile = false }: { mobile?: boolean }) {
-    const [isCapsLock, setIsCapsLock] = useState(false)
-
-    const handleKeyDown = useCallback((event: KeyboardEvent) => {
-        setIsCapsLock(event.getModifierState('CapsLock'))
-    }, [])
-
-    const handleKeyUp = useCallback((event: KeyboardEvent) => {
-        setIsCapsLock(event.getModifierState('CapsLock'))
-    }, [])
-
-    useEffect(() => {
-        window.addEventListener('keydown', handleKeyDown)
-        window.addEventListener('keyup', handleKeyUp)
-
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown)
-            window.removeEventListener('keyup', handleKeyUp)
-        }
-    }, [handleKeyDown, handleKeyUp])
+    const isCapsLock = useSyncExternalStore(
+        keyboardShortcutService.subscribeCapsLock,
+        keyboardShortcutService.getCapsLockSnapshot,
+        keyboardShortcutService.getCapsLockSnapshot,
+    )
 
     if (!isCapsLock) return null
 

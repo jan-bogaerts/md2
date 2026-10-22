@@ -19,6 +19,7 @@ import { cardMarkdownDataSource } from '../editor/data_sources/card_markdown_dat
 import { FileTreeView } from './file_tree_view'
 import { agentInstructionsService } from '../../services/agent_instructions/agent_instructions_service'
 import { instructionMarkdownDataSource } from '../editor/data_sources/instruction_markdown_data_source'
+import { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'
 
 function card(path: string, overrides: Partial<Card['header']> = {}, content = ''): Card {
     return {
@@ -217,6 +218,7 @@ function loadMarkdownActions() {
 describe('TextView', () => {
     beforeEach(() => {
         workspaceViewService.setViewMode('text')
+        keyboardShortcutService.start()
         vi.spyOn(dataService, 'getState')
         setCards(activeCards)
         configService.init()
@@ -248,6 +250,7 @@ describe('TextView', () => {
         actionService.clear()
         agentInstructionsService.clear()
         configService.clear()
+        keyboardShortcutService.stop()
         vi.restoreAllMocks()
     })
 

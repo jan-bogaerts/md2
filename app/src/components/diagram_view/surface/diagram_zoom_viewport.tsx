@@ -43,6 +43,11 @@ import { useDiagramSurfacePan } from '../editing/use_diagram_surface_pan'
 import { useActiveDiagramTool } from '../editing/use_diagram_tool'
 import { useDiagramSurfaceField } from '../editing/use_diagram_geometry'
 import { useDiagramPinchZoom } from './use_diagram_pinch_zoom'
+import {
+    DIAGRAM_ESCAPE_REQUESTED_EVENT,
+    diagramKeyboardShortcutService,
+    type DiagramEscapeRequestedDetail,
+} from '../../../services/shortcuts/diagram_keyboard_shortcut_service'
 
 interface DiagramZoomViewportProps {
     details?: DiagramObjectDetailsService
@@ -429,9 +434,11 @@ export function DiagramZoomViewport({
         if (event.currentTarget.contains(event.target as Node)) pinch.endPointerCapture(event)
     }, [pinch])
 
-    const handleWindowKeyDown = useCallback((event: KeyboardEvent) => {
-        if (event.defaultPrevented || event.key !== 'Escape') return
-        if (event.target instanceof Element && event.target.closest('input, textarea, [contenteditable="true"], [role="dialog"]')) return
+    const handleDiagramEscapeRequested = useCallback((event: Event) => {
+        if (event.defaultPrevented) return
+        const { keyboardEvent } = (event as CustomEvent<DiagramEscapeRequestedDetail>).detail
+        if (keyboardEvent.target instanceof Element
+            && keyboardEvent.target.closest('input, textarea, [contenteditable="true"], [role="dialog"]')) return
         if (drawing.isDrawingActive() && drawing.hasSource()) {
             event.preventDefault()
             suppressClickRef.current = false
@@ -504,10 +511,10 @@ export function DiagramZoomViewport({
     }, [endPanGesture, pan, releaseActivePointer, session])
 
     useEffect(() => {
-        window.addEventListener('keydown', handleWindowKeyDown)
+        diagramKeyboardShortcutService.addEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)
 
-        return () => window.removeEventListener('keydown', handleWindowKeyDown)
-    }, [handleWindowKeyDown])
+        return () => diagramKeyboardShortcutService.removeEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)
+    }, [handleDiagramEscapeRequested])
 
     useEffect(
         () => session.read.subscribeTransientGesture(handleTransientGestureChanged),

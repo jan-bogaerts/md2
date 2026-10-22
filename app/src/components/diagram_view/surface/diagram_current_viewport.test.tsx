@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DiagramData } from '../../../services/diagrams/diagram_data'
 import { layout } from '../../../services/diagrams/diagram_layout'
 import { DiagramViewService } from '../../../services/diagrams/diagram_view_service'
@@ -10,6 +10,8 @@ import {
     MINIMUM_DIAGRAM_ZOOM,
 } from '../../../services/diagrams/diagram_zoom'
 import { DiagramCurrentViewport } from './diagram_current_viewport'
+import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
+import { workspaceViewService } from '../../../services/project/workspace_view_service'
 
 const diagram: DiagramData = {
     edges: [],
@@ -35,7 +37,15 @@ function dispatchWheel(scroller: HTMLElement, options: WheelEventInit) {
     return event
 }
 
-afterEach(cleanup)
+beforeEach(() => {
+    workspaceViewService.setViewMode('diagrams')
+    keyboardShortcutService.start()
+})
+
+afterEach(() => {
+    cleanup()
+    keyboardShortcutService.stop()
+})
 
 describe('DiagramCurrentViewport', () => {
     it('keeps title and subtitle in one sticky header above drawing', () => {

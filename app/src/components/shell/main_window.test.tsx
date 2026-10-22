@@ -17,6 +17,7 @@ import { createDeferred } from '../../services/test_support/data_service_test_su
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { DialogDisplay } from '../dialog_display'
 import { MainWindow } from './main_window'
+import { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'
 
 const auth: UseGithubAuthResult = {
     accessToken: null,
@@ -124,6 +125,7 @@ describe('MainWindow', () => {
         openFilesService.init({ actionService, dataService })
         projectPersistenceService.init({ actionService, dataService, openFilesService })
         dataService.init({ storage: createStorage() })
+        keyboardShortcutService.start()
     })
 
     afterEach(() => {
@@ -135,6 +137,7 @@ describe('MainWindow', () => {
         window.location.hash = ''
         workspaceViewService.setViewMode('cards')
         mockMatchMedia(false)
+        keyboardShortcutService.stop()
         vi.restoreAllMocks()
     })
 
