@@ -8990,3 +8990,8 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-22T14:27:57.285Z,token_usage,codex,,,,,77164,1095168,3821,1141,1177294,,
 2026-10-22T14:29:34.742Z,account_usage,codex,codex,primary,10080,2026-10-27T11:34:49.000Z,,,,,,21,0
 2026-10-22T14:29:37.022Z,account_usage,codex,codex,primary,10080,2026-10-27T11:34:48.000Z,,,,,,21,0
+2026-10-22T14:30:14.689Z,token_usage,codex,,,,,85002,953472,3030,1832,1043336,,
+2026-10-22T14:30:26.491Z,token_usage,codex,,,,,64621,457728,1918,1366,525633,,
+2026-10-22T14:30:38.755Z,token_usage,claude,,,,,34,1129834,11774,0,1141642,,
+2026-10-22T14:30:41.985Z,token_usage,claude,,,,,32,893867,7728,0,901627,,
+2026-10-22T14:30:51.719Z,token_usage,codex,,,,,63449,12544,34,123,76150,,
