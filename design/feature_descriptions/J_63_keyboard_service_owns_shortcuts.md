@@ -15,8 +15,9 @@ Keyboard shortcuts are currently registered from React components (`.tsx` files)
 The keyboard service must become the one place that handles keyboard shortcuts, including their registration:
 
 * Services own shortcut registration, not components. No shortcut registration in `.tsx` files.
-* One keyboard service per view: dashboard (cards), text, stats, diagram, ... Each view keyboard service monitors which view is active and enables its shortcuts only while its view is active.
-* App-wide shortcuts (for example Ctrl+S commit, global search) are owned by a global keyboard service, not by a component.
+* A global keyboard service owns the app-wide shortcuts (for example Ctrl+S commit, global search), not a component.
+* One sub keyboard service per view: dashboard (cards), text, stats, diagram, ...
+* The global keyboard service monitors which view is active and loads the matching sub keyboard service. Only the sub keyboard service of the active view handles keys.
 
 ## Current handlers
 
