@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "1a8109e1-2ead-482d-b6d0-c34fd94c0270",
       "cardPath": "design/feature_descriptions/F_446_diagrams_control_key.md",
-      "completedAt": null,
+      "completedAt": "2026-10-22T14:52:14.375Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 119453
@@ -1393,7 +1393,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 101,
-          "timestamp": "2026-10-22T14:37:57.236Z"
+          "timestamp": "2026-10-22T14:52:14.375Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1403,12 +1403,12 @@
           "agent": "codex",
           "conversationId": "01a16403-5725-7321-9ec0-3e08c879845a",
           "createdAt": "2026-10-22T14:30:14.689Z",
-          "lastUsedAt": "2026-10-22T14:37:57.236Z",
+          "lastUsedAt": "2026-10-22T14:52:14.375Z",
           "synchronizedThroughMessageId": "agent-turn-a4cea3e1-b7e3-48a2-a161-084887db4125-turn-2-assistant-3"
         }
       ],
       "startedAt": "2026-10-22T14:28:22.415Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -1500,6 +1500,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "a0d4153eed6eea080254bd5e828332f67de86379",
           "committedAt": "2026-10-22T16:51:03+02:00",
           "deletions": 12,
@@ -1507,8 +1508,7 @@
             "design/feature_descriptions/F_446_diagrams_control_key.md"
           ],
           "filesChanged": 1,
-          "insertions": 16,
-          "branch": "dev_main"
+          "insertions": 16
         }
       ],
       "completedAt": "2026-10-22T16:51:03+02:00",
