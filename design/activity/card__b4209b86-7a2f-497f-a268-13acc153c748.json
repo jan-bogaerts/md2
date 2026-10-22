@@ -2179,7 +2179,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "b4209b86-7a2f-497f-a268-13acc153c748",
       "cardPath": "design/feature_descriptions/B_321_codex_sub_agents_report_incorrect_file_changes.md",
-      "completedAt": null,
+      "completedAt": "2026-10-22T14:35:50.266Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 117629
@@ -3811,7 +3811,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 120,
-          "timestamp": "2026-10-22T14:35:49.583Z"
+          "timestamp": "2026-10-22T14:35:50.266Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3821,12 +3821,12 @@
           "agent": "codex",
           "conversationId": "01a15e83-d934-77f1-b16a-2fe5d1c0f0e5",
           "createdAt": "2026-10-21T12:52:30.689Z",
-          "lastUsedAt": "2026-10-22T14:35:49.583Z",
+          "lastUsedAt": "2026-10-22T14:35:50.266Z",
           "synchronizedThroughMessageId": "agent-turn-5f0b24c6-dcd4-4907-9a53-d0720fdb8263-turn-1-assistant-6"
         }
       ],
       "startedAt": "2026-10-21T12:51:01.008Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -3867,8 +3867,8 @@
           "reasoningMs": 469,
           "toolMs": 41234
         },
-        "elapsedMs": 89681,
-        "runningStartedAt": "2026-10-22T14:31:22.538Z"
+        "elapsedMs": 357409,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
