@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__1a8109e1-2ead-482d-b6d0-c34fd94c0270.json
 policy:
+branch: f_446_diagrams_control_key
+worktree: 2
 ---
 
 When user is working with the select tool he can click on items which selects them or he can draw a box which selects the items in the box. this works ok.
