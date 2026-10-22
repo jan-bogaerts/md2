@@ -9,5 +9,4 @@ affects:
 agents:
 policy:
 ---
-
-When opening an action popup that contains a task list, but the list if completed, then collapse the component by default.
+When opening an action popup that contains a task list, but the list is completed, then collapse the task list by default.
