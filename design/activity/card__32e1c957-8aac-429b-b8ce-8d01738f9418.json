@@ -433,20 +433,28 @@
           "sequence": 28,
           "timestamp": "2026-10-22T14:54:17.230Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-1: Keep, add-only (Recommended)\nclaude-question-2: just all. these types need to be revisited anyway. user should be able to add multiple of same type.\nclaude-question-3: Cancel + Add, closes (Recommended)\nclaude-question-0: drag handles in front of the legend items when in edit mode allow reordering",
+          "id": "agent-turn-71ef57f4-8701-4a86-8b84-be22f1c10d60-answer-28",
+          "kind": "message",
+          "role": "user",
+          "sequence": 29,
+          "timestamp": "2026-10-22T15:04:09.899Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-7be3cf7e-1ceb-42b6-b986-b7fcb240c8ac",
       "providerSessions": [],
       "startedAt": "2026-10-22T14:53:41.046Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 8893,
           "toolMs": 16940
         },
         "elapsedMs": 36184,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-22T15:04:09.899Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
