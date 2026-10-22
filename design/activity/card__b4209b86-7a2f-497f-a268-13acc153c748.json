@@ -4042,6 +4042,30 @@
       "startedAt": "2026-10-22T14:31:21.074Z",
       "status": "completed",
       "rootConversationId": "agent-f425e23b-0544-40cd-bf15-0e7f2dda0ab0"
+    },
+    {
+      "commits": [
+        {
+          "commit": "7414bfe7abc13a762b219c4953db8eb941d9c46e",
+          "committedAt": "2026-10-22T16:58:30+02:00",
+          "deletions": 18,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_usage_summary_data.node.test.ts",
+            "desktop/src/actions/agent/agent_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs"
+          ],
+          "filesChanged": 3,
+          "insertions": 308,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-22T16:58:30+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "b4209b86-7a2f-497f-a268-13acc153c748",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
