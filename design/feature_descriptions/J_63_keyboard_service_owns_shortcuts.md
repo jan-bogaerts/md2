@@ -3,11 +3,12 @@ author:
 id: J_63
 internalId: 7a123557-495a-47b1-9c18-437364ff3825
 title: keyboard service owns shortcuts
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
+after: 90ca85d7-9878-4238-a36b-f662d0c8fbd8
 ---
 
 Keyboard shortcuts are currently registered from React components (`.tsx` files), through a mix of `KeyboardShortcutService` bindings and raw `window` `keydown` listeners. Each handler decides on its own whether it applies, using `viewMode` checks, focus checks, or nothing at all.

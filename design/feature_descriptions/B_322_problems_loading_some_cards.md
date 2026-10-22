@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__594d4ee7-d414-4c2e-9257-09c64c0404bd.json
 policy:
+after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 ---
 we got these errors while trying to open the cards in this project ({{active-cards-folder}}:
 

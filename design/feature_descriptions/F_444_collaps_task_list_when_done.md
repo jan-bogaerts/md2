@@ -11,6 +11,7 @@ agents:
 policy:
 branch: f_444_collaps_task_list_when_done
 worktree: 3
+after: 1a8109e1-2ead-482d-b6d0-c34fd94c0270
 ---
 When opening an action popup that contains a task list, but the list is completed, then collapse the task list by default.
 

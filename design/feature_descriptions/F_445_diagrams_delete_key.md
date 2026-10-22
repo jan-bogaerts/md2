@@ -11,6 +11,7 @@ agents:
 policy:
 changedFiles:
   - design/feature_descriptions/J_63_keyboard_service_owns_shortcuts.md
+after: 223f749a-dd16-4a42-b8de-3ce63eab686d
 ---
 
 When user has 1 or more items selected on a diagram and presses the delete key, the items should be removed
