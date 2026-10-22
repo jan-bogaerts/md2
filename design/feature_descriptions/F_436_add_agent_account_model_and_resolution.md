@@ -7,7 +7,6 @@ status: design
 owner: 
 affects:
 agents:
-  - design/activity/card__b09a5f55-9e4f-4329-b6a7-00cec60df2e9.json
 policy:
 branch: f_436_add_agent_account_model_and_resolution
 after: 4a06c2b1-a7db-4f8f-a995-f638b14e6962

@@ -7,7 +7,6 @@ status: design
 owner: 
 affects:
 agents:
-  - design/activity/card__4a06c2b1-a7db-4f8f-a995-f638b14e6962.json
 policy:
 branch: f_442_scope_agent_catalogs_and_runtime_usage_by_account
 after: 45aee390-2708-4b8b-b215-2f7ecabcabe4

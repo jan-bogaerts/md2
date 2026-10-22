@@ -7,7 +7,6 @@ status: design
 owner: 
 affects:
 agents:
-  - design/activity/card__ca17847c-ab46-4a35-9756-fe5a145ccaf2.json
 policy:
 branch: f_440_run_agents_with_selected_account
 after: 1c16443d-df56-4133-997a-9a4dd0f404a1

@@ -7,7 +7,6 @@ status: design
 owner: 
 affects:
 agents:
-  - design/activity/card__45aee390-2708-4b8b-b215-2f7ecabcabe4.json
 policy:
 branch: f_441_scope_provider_sessions_by_agent_account
 after: ca17847c-ab46-4a35-9756-fe5a145ccaf2

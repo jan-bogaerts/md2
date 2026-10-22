@@ -7,7 +7,6 @@ status: design
 owner: 
 affects:
 agents:
-  - design/activity/card__d2d5c693-62b3-4e7f-b957-728a5c468cb0.json
 policy:
 branch: f_443_scope_usage_metrics_and_reset_schedules_by_account
 after: ab1ad841-86e6-43fb-a211-9ce1f1eaf246
