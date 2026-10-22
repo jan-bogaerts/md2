@@ -56,12 +56,13 @@ export function AgentTaskList({ bindingStore, store }: AgentTaskListProps) {
 
     if (!taskList || taskList.tasks.length === 0) return null
 
+    const totalCount = taskList.tasks.length
     const completedCount = taskList.tasks.filter(({ status }) => status === 'completed').length
 
     return (
         <Accordion
             aria-label="Agent tasks"
-            defaultExpanded
+            defaultExpanded={completedCount !== totalCount}
             disableGutters
             elevation={0}
             role="region"
@@ -86,7 +87,7 @@ export function AgentTaskList({ bindingStore, store }: AgentTaskListProps) {
                 }}
             >
                 <Typography variant="caption">Tasks</Typography>
-                <Typography color="custom.text3" variant="caption">{completedCount}/{taskList.tasks.length}</Typography>
+                <Typography color="custom.text3" variant="caption">{completedCount}/{totalCount}</Typography>
             </AccordionSummary>
             <AccordionDetails
                 sx={{
