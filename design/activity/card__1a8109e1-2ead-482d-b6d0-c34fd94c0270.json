@@ -1496,6 +1496,28 @@
       "startedAt": "2026-10-22T14:28:22.414Z",
       "status": "completed",
       "rootConversationId": "agent-deb49615-1123-4909-b596-fc57b2904925"
+    },
+    {
+      "commits": [
+        {
+          "commit": "a0d4153eed6eea080254bd5e828332f67de86379",
+          "committedAt": "2026-10-22T16:51:03+02:00",
+          "deletions": 12,
+          "filePaths": [
+            "design/feature_descriptions/F_446_diagrams_control_key.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 16,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-22T16:51:03+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1a8109e1-2ead-482d-b6d0-c34fd94c0270",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: 90ca85d7-9878-4238-a36b-f662d0c8fbd8
+branch: j_63_keyboard_service_owns_shortcuts
+worktree: 2
 ---
 
 Keyboard shortcuts are currently registered from React components (`.tsx` files), through a mix of `KeyboardShortcutService` bindings and raw `window` `keydown` listeners. Each handler decides on its own whether it applies, using `viewMode` checks, focus checks, or nothing at all.
