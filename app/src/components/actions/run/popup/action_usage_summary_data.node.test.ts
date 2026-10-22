@@ -120,6 +120,43 @@ describe('scopedActionUsage', () => {
         expect(result.actionCard.tokens.totalTokens).toBe(0)
     })
 
+    it('sums root, parallel child, and nested child file changes from one canonical conversation', () => {
+        const displayedConversation = conversation('conversation-1')
+        displayedConversation.entries = [
+            {
+                content: 'root', deletions: 1, id: 'root-file', insertions: 2, kind: 'event',
+                providerItemId: 'file-1', status: 'completed', timestamp: 'first', type: 'fileChange',
+            },
+            {
+                content: 'first child', deletions: 3, id: 'first-child-file', insertions: 5, kind: 'event',
+                parentItemId: 'activity-one', providerItemId: 'thread-child-one:file-1',
+                status: 'completed', timestamp: 'second', type: 'fileChange',
+            },
+            {
+                content: 'second child', deletions: 7, id: 'second-child-file', insertions: 11, kind: 'event',
+                parentItemId: 'activity-two', providerItemId: 'thread-child-two:file-1',
+                status: 'completed', timestamp: 'third', type: 'fileChange',
+            },
+            {
+                content: 'nested child', deletions: 13, id: 'nested-child-file', insertions: 17, kind: 'event',
+                parentItemId: 'thread-child-one:activity-nested', providerItemId: 'thread-grandchild:file-1',
+                status: 'completed', timestamp: 'fourth', type: 'fileChange',
+            },
+        ]
+
+        const result = scopedActionUsage(
+            [displayedConversation],
+            null,
+            displayedConversation,
+            [],
+            'implement',
+            'card-1',
+        )
+
+        expect(result.conversation?.changes).toEqual({ deletions: 24, insertions: 35 })
+        expect(result.actionCard.changes).toEqual({ deletions: 24, insertions: 35 })
+    })
+
     it('reports a present zero-total file-change count instead of absence', () => {
         const displayedConversation = conversation('conversation-1')
         displayedConversation.entries = [{
