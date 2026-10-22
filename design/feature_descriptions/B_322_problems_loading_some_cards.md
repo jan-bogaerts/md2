@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 ---
+we got these errors while trying to open the cards in this project ({{active-cards-folder}}:
+
 Some agent conversations could not be loaded and were skipped: design/activity/card__b09a5f55-9e4f-4329-b6a7-00cec60df2e9.json
 
 Some agent conversations could not be loaded and were skipped: design/activity/card__ab1ad841-86e6-43fb-a211-9ce1f1eaf246.json
@@ -24,3 +26,7 @@ Some agent conversations could not be loaded and were skipped: design/activity/c
 Some agent conversations could not be loaded and were skipped: design/activity/card__4a06c2b1-a7db-4f8f-a995-f638b14e6962.json
 
 Some agent conversations could not be loaded and were skipped: design/activity/card__d2d5c693-62b3-4e7f-b957-728a5c468cb0.json
+
+
+
+what is wrong?
