@@ -365,13 +365,52 @@
         "totalTokens": 525633
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "223f749a-dd16-4a42-b8de-3ce63eab686d",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "3afd7b319f086ee939b2f5650bc493751fce865a",
+          "committedAt": "2026-10-22T16:30:27+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_444_collaps_task_list_when_done.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 25
+        }
+      ],
+      "completedAt": "2026-10-22T14:30:27.964Z",
+      "conversationIds": [
+        "agent-50f519c8-383e-4fb5-833d-0d0a4bfa525d"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-172d5186-55fc-4cfc-aa80-526aef16b065",
+      "origin": {
+        "cardInternalId": "223f749a-dd16-4a42-b8de-3ce63eab686d",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-50f519c8-383e-4fb5-833d-0d0a4bfa525d",
+      "startedAt": "2026-10-22T14:29:13.256Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
