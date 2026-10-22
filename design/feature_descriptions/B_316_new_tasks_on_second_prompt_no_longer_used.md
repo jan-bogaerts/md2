@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__16c530e0-7832-414c-bb82-b8c7f77ebf93.json
 policy:
-after: 733d678c-49a7-4409-9fa2-5fb384821513
+after: 379541e5-0bb0-437e-a7c5-4d844ccdffc9
 changedFiles:
   - desktop/src/actions/agent/agent_claude_streaming_adapter.js
   - desktop/src/actions/agent/agent_provider_protocol.js

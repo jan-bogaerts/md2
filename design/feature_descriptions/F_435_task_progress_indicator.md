@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__6636980d-0f8d-4f94-a4bb-b5a171ce8891.json
 policy:
+after: a5e97d32-66be-4cf7-9999-c125753f446d
 ---
 We need to add a new component to the run button on the card popups when an action is running on the card that has a task list.
 

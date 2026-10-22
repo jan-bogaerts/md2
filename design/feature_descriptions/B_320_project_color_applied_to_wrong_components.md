@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__1deced87-bdc6-46cb-9360-356355f1675d.json
 policy:
-after: 733d678c-49a7-4409-9fa2-5fb384821513
+after: 35e2668b-44b4-4be8-9a82-cc3c7f2b4003
 changedFiles:
   - app/src/theme/app_theme.node.test.ts
 ---

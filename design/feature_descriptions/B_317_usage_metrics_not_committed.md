@@ -15,6 +15,7 @@ changedFiles:
   - desktop/src/actions/agent/usage_metrics_service.test.mjs
   - desktop/src/shell/local_bridge_dispatch.js
   - desktop/src/shell/local_bridge_dispatch.test.mjs
+after: 16c530e0-7832-414c-bb82-b8c7f77ebf93
 ---
 
 we update [usage\_metrics.csv](design/usage_metrics.csv) on a regular basis in the project. but it does not seem to use the [commit\_batcher.ts](app/src/data/commit_batcher.ts) for committing the file?

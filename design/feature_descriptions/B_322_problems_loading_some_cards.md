@@ -3,13 +3,22 @@ author:
 id: B_322
 internalId: 594d4ee7-d414-4c2e-9257-09c64c0404bd
 title: problems loading some cards
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__594d4ee7-d414-4c2e-9257-09c64c0404bd.json
 policy:
-after: 41d340e6-afae-44bd-82e7-41ab673c94e0
+after: 223f749a-dd16-4a42-b8de-3ce63eab686d
+changedFiles:
+  - design/feature_descriptions/F_436_add_agent_account_model_and_resolution.md
+  - design/feature_descriptions/F_437_add_agent_account_lifecycle_service.md
+  - design/feature_descriptions/F_438_add_agent_account_management_ui.md
+  - design/feature_descriptions/F_439_add_account_selection_to_actions_and_runs.md
+  - design/feature_descriptions/F_440_run_agents_with_selected_account.md
+  - design/feature_descriptions/F_441_scope_provider_sessions_by_agent_account.md
+  - design/feature_descriptions/F_442_scope_agent_catalogs_and_runtime_usage_by_account.md
+  - design/feature_descriptions/F_443_scope_usage_metrics_and_reset_schedules_by_account.md
 ---
 we got these errors while trying to open the cards in this project ({{active-cards-folder}}:
 
