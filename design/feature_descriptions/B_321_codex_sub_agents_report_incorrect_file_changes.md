@@ -3,7 +3,7 @@ author:
 id: B_321
 internalId: b4209b86-7a2f-497f-a268-13acc153c748
 title: codex sub agents report incorrect file changes
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,10 @@ policy:
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 branch: b_321_codex_sub_agents_report_incorrect_file_changes
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/action_usage_summary_data.node.test.ts
+  - desktop/src/actions/agent/agent_streaming_adapter.js
+  - desktop/src/actions/agent/agent_streaming_adapter.test.mjs
 ---
 
 When an action runs an agent, we track the number of lines that were changed and removed. This works ok.

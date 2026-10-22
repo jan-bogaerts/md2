@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__223f749a-dd16-4a42-b8de-3ce63eab686d.json
 policy:
+branch: f_444_collaps_task_list_when_done
+worktree: 3
 ---
 When opening an action popup that contains a task list, but the list is completed, then collapse the task list by default.
 
