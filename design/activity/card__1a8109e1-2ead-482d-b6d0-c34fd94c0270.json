@@ -1408,7 +1408,7 @@
         }
       ],
       "startedAt": "2026-10-22T14:28:22.415Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
@@ -1439,8 +1439,8 @@
           "reasoningMs": 460,
           "toolMs": 10686
         },
-        "elapsedMs": 122201,
-        "runningStartedAt": "2026-10-22T14:36:04.596Z"
+        "elapsedMs": 234841,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
@@ -1451,7 +1451,7 @@
         "totalTokens": 2355904
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
