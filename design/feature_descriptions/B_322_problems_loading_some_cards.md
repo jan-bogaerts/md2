@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__594d4ee7-d414-4c2e-9257-09c64c0404bd.json
 policy:
 ---
 we got these errors while trying to open the cards in this project ({{active-cards-folder}}:

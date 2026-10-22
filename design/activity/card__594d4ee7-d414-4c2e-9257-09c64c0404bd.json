@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "594d4ee7-d414-4c2e-9257-09c64c0404bd",
+      "cardPath": "design/feature_descriptions/B_322_problems_loading_some_cards.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_322_problems_loading_some_cards.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-32443413-71be-4123-b8b2-3646418401df",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-22T14:25:57.109Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-9eb263fb-66bb-470e-99f4-622567574b00",
+      "providerSessions": [],
+      "startedAt": "2026-10-22T14:25:57.109Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-22T14:25:57.109Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "594d4ee7-d414-4c2e-9257-09c64c0404bd",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
