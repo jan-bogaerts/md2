@@ -43,6 +43,10 @@
       {
         "role": "optional",
         "label": "Optional"
+      },
+      {
+        "role": "store",
+        "label": "store"
       }
     ],
     "title": "Test",
