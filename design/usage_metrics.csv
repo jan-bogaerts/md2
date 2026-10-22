@@ -9011,3 +9011,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-22T14:46:44.733Z,token_usage,claude,,,,,18,1032041,3673,0,1035732,,
 2026-10-22T14:48:20.189Z,token_usage,claude,,,,,4,238536,914,0,239454,,
 2026-10-22T14:52:51.455Z,token_usage,codex,,,,,9034,657024,2795,1833,670686,,
+2026-10-22T14:54:24.025Z,token_usage,codex,,,,,101602,711680,4587,4935,822804,,
