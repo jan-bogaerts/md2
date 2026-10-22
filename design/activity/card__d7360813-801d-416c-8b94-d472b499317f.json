@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 108308
+        "usedTokens": 118208
       },
       "entries": [
         {
@@ -1060,6 +1060,251 @@
           "role": "assistant",
           "sequence": 83,
           "timestamp": "2026-10-22T14:41:49.069Z"
+        },
+        {
+          "content": "just a keyboard service is not enough. we need a dashboard-keyboard service, diagram-keyboard service, stats-keyboard service,..\n\n> Root cause. Views are never unmounted. ProjectWorkspace mounts the text view, card view, stats view and diagram view all at once, and hides the inactive ones with display: 'none'. A handler that is registered when its component mounts therefore stays active while its view is hidden. Each handler makes up for this in its own way: some check viewMode, some check focus, some check nothing.\n\nagain, you are not using the project architectural design instructions. the problem you are describing is only a problem if react is responsible for this. it is not. we use services. it is not the view that registers these keyboard shortcuts. it is the service. the service can monitor which view is active and adjust keyboard shortcuts as needed\n\nwe indeed have global like ctrl+S, which again should not be in tsx files.&#x20;\n\nThis needs handling. lets create a job card (status 'design',  no agents files), the job is to make the keyboard service the one handling keyboard shortcuts, including registration and such.",
+          "id": "submission-56d949ea-6452-4419-a260-afc18433c71e",
+          "kind": "message",
+          "role": "user",
+          "sequence": 84,
+          "timestamp": "2026-10-22T14:45:47.744Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-85",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgHTREWTG1a7GNwGK3tN5:thinking:0",
+          "sequence": 85,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:45:49.913Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design && ls feature_descriptions | sort -t_ -k2 -n | tail -15; grep -rl \"^type:\\|job\" feature_descriptions | head; grep -rho \"^id: [A-Z]*_[0-9]*\" feature_descriptions releases | sed 's/id: //' | sort -t_ -k2 -n | tail -3",
+          "content": "F_437_add_agent_account_lifecycle_service.md\nF_438_add_agent_account_management_ui.md\nF_439_add_account_selection_to_actions_and_runs.md\nF_440_run_agents_with_selected_account.md\nF_441_scope_provider_sessions_by_agent_account.md\nF_442_scope_agent_catalogs_and_runtime_usage_by_account.md\nF_443_scope_usage_metrics_and_reset_schedules_by_account.md\nF_444_collaps_task_list_when_done.md\nF_445_diagrams_delete_key.md\nF_446_diagrams_control_key.md\nF_447_diagram_add_tool_escape_key.md\nF_448_add_legend_item_dialog_wrong.md\nF_449_config_dialog_for_diagram_items.md\n20260614_075636.jpg\n20260614_075638.jpg\nfeature_descriptions/20260614_075638.jpg\nfeature_descriptions/diagram_edit_refactor/transaction_context.md\nF_447\nF_448\nF_449",
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-86",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design && ls feature_descriptions | sort -t_ -k2 -n | tail -15; grep -rl \"^type:\\|job\" feature_descriptions | head; grep -rho \"^id: [A-Z]*_[0-9]*\" feature_descriptions releases | sed 's/id: //' | sort -t_ -k2 -n | tail -3",
+          "providerItemId": "toolu_01KW5NcdGbKzzMkQLpScitYQ",
+          "sequence": 86,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:45:57.145Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-87",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgHTRuYxM3fVnGBPLa3gZ:thinking:0",
+          "sequence": 87,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:45:58.538Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2 && ls -a; grep -rl \"cardTypes\" --include=*.json . 2>/dev/null | grep -v node_modules | head; grep -rh \"^type:\\|^cardType:\" design/feature_descriptions design/releases | sort | uniq -c",
+          "content": ".\n..\n.agents\n.claude\n.codex-schema-temp\n.git\n.gitignore\n.playwright-cli\n.vscode\nLICENSE\nREADME.md\nagents.md\napp\ndesign\ndesktop\ndocs\nmd2.config.json\nnode_modules\npackage-lock.json\npackage.json\nreadonlymarkdown.jpg\nrelease\nscreenshots\nscripts\nshared\ntemp.jpg\ntofix.jpg\n./design/activity/card__0b35236a-2fe4-4b58-86f8-bd84af5ac7ce.json\n./design/activity/card__0f5a1edf-4b4e-4dea-8c7a-05df83ae1288.json\n./design/activity/card__1a8109e1-2ead-482d-b6d0-c34fd94c0270.json\n./design/activity/card__1b39ee56-e06e-4705-840f-7541b2a57d3d.json\n./design/activity/card__1deced87-bdc6-46cb-9360-356355f1675d.json\n./design/activity/card__223f749a-dd16-4a42-b8de-3ce63eab686d.json\n./design/activity/card__270e51c5-6c0f-4dea-9eda-8b234ffa0b35.json\n./design/activity/card__48381c25-9fec-439b-9db0-321de114c33f.json\n./design/activity/card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json\n./design/activity/card__575b64d1-3ac4-41e5-ba72-eebcd3eed8cd.json",
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-88",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2 && ls -a; grep -rl \"cardTypes\" --include=*.json . 2>/dev/null | grep -v node_modules | head; grep -rh \"^type:\\|^cardType:\" design/feature_descriptions design/releases | sort | uniq -c",
+          "providerItemId": "toolu_01Q65SV31B8jx16ZhVbTv2mw",
+          "sequence": 88,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:46:03.205Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "grep -n -i -A12 \"cardTypes\\|\\\"job\\\"\" md2.config.json | head -50",
+          "content": "8:  \"cardTypes\": [\n9-    {\n10-      \"color\": \"#1976d2\",\n11-      \"idPrefix\": \"F\",\n12-      \"label\": \"Feature\",\n13-      \"type\": \"feature\"\n14-    },\n15-    {\n16-      \"color\": \"#9c27b0\",\n17-      \"idPrefix\": \"J\",\n18:      \"label\": \"Job\",\n19:      \"type\": \"job\"\n20-    },\n21-    {\n22-      \"color\": \"#d32f2f\",\n23-      \"idPrefix\": \"B\",\n24-      \"label\": \"Bug\",\n25-      \"type\": \"bug\"\n26-    }\n27-  ],\n28-  \"deleteBranchAfterIntegration\": true,\n29-  \"deleteBranchesAfterRelease\": false,\n30-  \"diffCommand\": \"git show {{commit}}\",\n31-  \"diagramFooter\": \"Save exactly one valid JSON object to {{diagram-file}}. Write JSON only: no SVG, markup, Markdown code fence, or explanatory text.\\n\\nRequired root fields:\\n- meta: { version: 1, type, title, description }\\n- nodes: [{ id, label, role }]\\n- edges: [{ id, from, to, kind }]\\n\\nOptional root fields:\\n- groups: [{ id, label, nodeIds }]\\n- fragments for sequence data only\\n\\nOptional meta fields:\\n- preset, required for flow data and forbidden for other types\\n\\nSupported diagram types:\\n- architecture\\n- dependency\\n- sequence\\n- flow\\n- entity\\n- mindmap\\n\\nSupported roles:\\n- focal\\n- backend\\n- store\\n- external\\n- input\\n- optional\\n- boundary\\n\\nNode fields:\\n- Required: id, label, role\\n- Optional: kind, sublabel, tag, drilldown, x, y, width, height\\n- fields: [{ name, optional type, optional key }] is allowed only for entity nodes\\n- Entity field key must be primary or foreign\\n- Omit drilldown or set it to true for selectable nodes; set it to false only for non-selectable nodes\\n\\nNode kinds by diagram type:\\n- architecture: component\\n- dependency: component\\n- sequence: participant\\n- entity: entity\\n- mindmap: exactly one root in every non-empty diagram; all other nodes are topic\\n- flow with preset flowchart: start, end, step, decision\\n- flow with preset state: start, end, state\\n\\nEdge kinds by diagram type:\\n- architecture: connection, data, async\\n- dependency: dependency, cycle\\n- sequence: call, return, async, success\\n- flow: flow, transition\\n- entity: relationship\\n- mindmap: connection\\n\\nOptional edge fields:\\n- label\\n- waypoints: [{ x, y }]\\n- sourceAttachment and targetAttachment: { nodeId, side, offset }\\n- Attachment side must be top, right, bottom, or left\\n- Attachment offset must be a number from 0 through 1, measured along that node side\\n- sourceAttachment.nodeId must equal edge.from; targetAttachment.nodeId must equal edge.to\\n- fromCardinality and toCardinality for entity relationships only\\n- Cardinalities must be 1, N, 0..1, or 1..*\\n\\nFlow rules:\\n- meta.preset must be flowchart or state\\n- Every edge leaving a decision node must have a label\\n- Every state transition must have a label\\n\\nMindmap rules:\\n- An empty mindmap is valid\\n- Every non-empty mindmap has exactly one explicit root node\\n- Root and topic nodes require labels; connection labels are optional\\n- Supply node width and height together or omit both\\n- Do not use entity fields, cardinalities, flow presets, sequence fragments, waypoints, sourceAttachment, or targetAttachment\\n- Connections are directed from source to target; application derives circular endpoints and curved paths\\n\\nSequence rules:\\n- Store message edges in chronological order\\n- fragments use { id, operator, regions: [{ guard, edgeIds }] }\\n- operator must be alt, opt, or loop\\n- alt requires exactly two regions\\n- opt and loop require exactly one region\\n- An edge may occur only once within a fragment\\n\\nReference rules:\\n- Node IDs must be unique\\n- Edge IDs must be unique and must not duplicate node IDs\\n- Every edge.from and edge.to must reference an existing node\\n- Every group.nodeIds entry must reference an existing node\\n- Every fragment edgeIds entry must reference an existing edge\\n\\nLayout is owned by the application. Prefer omitting x, y, width, height, waypoints, sourceAttachment, and targetAttachment. If supplied, all geometry values must be multiples of 4, width and height must be positive, and waypoint segments must be horizontal or vertical. Attachments persist precise connection points across node movement and resizing.\\n\",",
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-89",
+          "kind": "event",
+          "label": "grep -n -i -A12 \"cardTypes\\|\\\"job\\\"\" md2.config.json | head -50",
+          "providerItemId": "toolu_01FuEzzQkWBnnHpNT8uXtSTF",
+          "sequence": 89,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:46:05.103Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-90",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgHTSVJDpqR4jeMtH7kbj:thinking:0",
+          "sequence": 90,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:46:06.572Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design && grep -rlE \"^id: J_\" . | head; grep -rhoE \"^id: J_[0-9]+\" . | sort -t_ -k2 -n | tail -2",
+          "content": "./feature_descriptions/J_28_finishing_action_very_slow.md\n./releases/0.8.0/J_57_back_btn_transparency.md\n./releases/0.8.0/J_58_move_chatlog_item_icons_outside_of_box.md\n./releases/0.8.0/J_59_improve_layout_action_details_on_action_editor.md\n./releases/0.8.3/J_60_analyze_load_prompt_trace.md\n./releases/0.9.0/J_54_move_diagram_field_edits_into_focused_editors.md\n./releases/0.9.0/J_61_change_label_add_sequence.md\n./releases/0.9.0/J_62_analyze_start_sequence_traces.md\n./releases/0_3_0/J_26_add_new_card_is_slow.md\n./releases/0_3_0/J_27_markdown_editor_context_menu.md\nid: J_61\nid: J_62",
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-91",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design && grep -rlE \"^id: J_\" . | head; grep -rhoE \"^id: J_[0-9]+\" . | sort -t_ -k2 -n | tail -2",
+          "providerItemId": "toolu_01SGYuB7L79G6ZjuZE5WD3B4",
+          "sequence": 91,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:46:11.344Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cat feature_descriptions/J_28_finishing_action_very_slow.md | head -20; grep -rhoE \"J_6[3-9]|J_[7-9][0-9]\" . | sort -u | head; cd .. && powershell -NoProfile -Command \"[guid]::NewGuid().ToString()\"",
+          "content": "---\nauthor: \nid: J_28\ninternalId: 38781d24-46e6-4824-9587-b95bf62a0738\ntitle: finishing action very slow\nstatus: new\nowner: \naffects:\nagents:\npolicy:\nafter: 0f92d6ef-ec13-478c-b3f9-d1b0bfcf391d\n---\n\nWhen user clicks on 'finish' to complete an action. The ui appears to do a lot:\n\n* action appears to start again, the action-button begins to show 'running' state again. this should not occur\n* entire popup seems to 'twitch' and reload. why? this should not happen.\n* the entire process appears to take a long time. yet it should be a simple matter of updating a state, saving, updating a few mall sections on the ui.7a123557-495a-47b1-9c18-437364ff3825",
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-92",
+          "kind": "event",
+          "label": "cat feature_descriptions/J_28_finishing_action_very_slow.md | head -20; grep -rhoE \"J_6[3-9]|J_[7-9][0-9]\" . | sort -u | head; cd .. && powershell -NoProfile -Command \"[guid]::NewGuid().ToString()\"",
+          "providerItemId": "toolu_01Ay9ussyyNC9xn6kCv47hPP",
+          "sequence": 92,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:46:18.510Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-93",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgHTTUYs6S7nuSyf5Dtat:thinking:0",
+          "sequence": 93,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:46:20.151Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Creating job card J_63. Checking ID allocation first.",
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 94,
+          "timestamp": "2026-10-22T14:46:20.152Z"
+        },
+        {
+          "content": "{\"pattern\":\"nextId|idCounter|lastId|counter\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\md2.config.json\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-95",
+          "kind": "event",
+          "label": "Grep",
+          "output": "No matches found",
+          "providerItemId": "toolu_015tpnGYLdN2U5CNy87ewdtn",
+          "sequence": 95,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:46:20.742Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-96",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgHTTeCnsDDAdv74tuftD:thinking:0",
+          "sequence": 96,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:46:23.250Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\J_63_keyboard_service_owns_shortcuts.md",
+          "deletions": 0,
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-97",
+          "insertions": 0,
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\J_63_keyboard_service_owns_shortcuts.md (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_019C9RfPMpbE3r1pyhHLbFMD",
+          "sequence": 97,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:46:30.899Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-98",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgHTUPY1wN2XfSofKqnCs:thinking:0",
+          "sequence": 98,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:46:32.661Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\.claude\\projects\\C--Users-janbo-Documents-dev-md2\\memory\\services-own-keyboard-shortcuts.md",
+          "deletions": 0,
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-99",
+          "insertions": 0,
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\.claude\\projects\\C--Users-janbo-Documents-dev-md2\\memory\\services-own-keyboard-shortcuts.md",
+          "providerItemId": "toolu_01E6SXhTMRNXxowcLcdH5qiq",
+          "sequence": 99,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:46:36.845Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\.claude\\projects\\C--Users-janbo-Documents-dev-md2\\memory\\MEMORY.md",
+          "deletions": 0,
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-100",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\.claude\\projects\\C--Users-janbo-Documents-dev-md2\\memory\\MEMORY.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01GAnZoznFfssYP7EUx8UFie",
+          "sequence": 100,
+          "status": "completed",
+          "timestamp": "2026-10-22T14:46:38.215Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-event-101",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgHTUw1cH6FHRuU73e5YU:thinking:0",
+          "sequence": 101,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-22T14:46:44.698Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nYou're right: I blamed React for something services own. I created the job card `design/feature_descriptions/J_63_keyboard_service_owns_shortcuts.md`.\n\n- **Header:** `id: J_63` (the highest existing job id was J_62), a new `internalId`, `status: design`, and `agents` left empty.\n- **Body:** the job as you described it:\n  - The keyboard service owns all shortcut handling and registration, and no `.tsx` file registers shortcuts.\n  - There is one keyboard service per view (cards/dashboard, text, stats, diagram, …), and each one watches the active view and enables its shortcuts only while that view is shown.\n  - App-wide shortcuts like Ctrl+S and global search move out of components into a global keyboard service.\n- **Extra you didn't ask for:** I added a \"Current handlers\" table listing the nine shortcuts that exist today and where each is registered, plus links to F_445, F_446 and F_447. Tell me if you want that removed.\n\nI also saved this rule to memory so I don't propose component-registered listeners again.\n\n**F_445 needs a decision.** Its doc still describes the focus approach and has status `ready for implementation`, which is now wrong. Should I set it back to `design` and make it depend on J_63, or leave it as is for now?",
+          "id": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 102,
+          "timestamp": "2026-10-22T14:46:44.733Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1069,17 +1314,17 @@
           "agent": "claude",
           "conversationId": "e5155bf3-85f4-4025-a9dd-32705ca9f326",
           "createdAt": "2026-10-22T14:30:38.755Z",
-          "lastUsedAt": "2026-10-22T14:41:49.069Z",
-          "synchronizedThroughMessageId": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-turn-2-assistant-2",
+          "lastUsedAt": "2026-10-22T14:46:44.733Z",
+          "synchronizedThroughMessageId": "agent-turn-5b380663-30e1-4c97-98ac-259506526821-turn-3-assistant-2",
           "usageBaseline": {
-            "costUsd": 1.5323541999999999,
-            "resultId": "39a7f113-e659-425a-a367-17feebb72c1b",
+            "costUsd": 1.8895144,
+            "resultId": "655cd5c3-3892-4d2e-9a24-1705b49772e4",
             "tokens": {
-              "cachedInputTokens": 2212049,
-              "inputTokens": 56,
-              "outputTokens": 18716,
+              "cachedInputTokens": 3244090,
+              "inputTokens": 74,
+              "outputTokens": 22389,
               "reasoningTokens": 0,
-              "totalTokens": 2230821
+              "totalTokens": 3266553
             }
           }
         }
@@ -1088,20 +1333,20 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 76439,
-          "toolMs": 69838
+          "reasoningMs": 85264,
+          "toolMs": 107779
         },
-        "elapsedMs": 147398,
-        "runningStartedAt": "2026-10-22T14:40:57.624Z"
+        "elapsedMs": 198843,
+        "runningStartedAt": "2026-10-22T14:45:47.744Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 2212049,
-        "inputTokens": 56,
-        "outputTokens": 18716,
+        "cachedInputTokens": 3244090,
+        "inputTokens": 74,
+        "outputTokens": 22389,
         "reasoningTokens": 0,
-        "totalTokens": 2230821,
-        "costUsd": 1.5323541999999999
+        "totalTokens": 3266553,
+        "costUsd": 1.8895144
       },
       "usageSchemaVersion": 1,
       "viewed": true
