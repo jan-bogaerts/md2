@@ -3,7 +3,7 @@ author:
 id: F_444
 internalId: 223f749a-dd16-4a42-b8de-3ce63eab686d
 title: collaps task list when done
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,9 @@ policy:
 branch: f_444_collaps_task_list_when_done
 worktree: 3
 after: 1a8109e1-2ead-482d-b6d0-c34fd94c0270
+changedFiles:
+  - app/src/components/actions/conversation/tasks/agent_task_list.test.tsx
+  - app/src/components/actions/conversation/tasks/agent_task_list.tsx
 ---
 When opening an action popup that contains a task list, but the list is completed, then collapse the task list by default.
 
