@@ -2209,6 +2209,65 @@
       "startedAt": "2026-10-22T14:51:22.038Z",
       "status": "completed",
       "rootConversationId": "agent-4304eeff-3dbf-4cc2-b0c0-624639b62f9e"
+    },
+    {
+      "commits": [
+        {
+          "commit": "5e20c1f548ef55a47c4f3def9191219611bb0079",
+          "committedAt": "2026-10-22T17:30:27+02:00",
+          "deletions": 558,
+          "filePaths": [
+            "app/src/components/card_view/list_card_commit_diff_panel.tsx",
+            "app/src/components/diagram_view/commands/diagram_edit_button.tsx",
+            "app/src/components/diagram_view/editing/editable_diagram.test.tsx",
+            "app/src/components/diagram_view/editing/editable_diagram.tsx",
+            "app/src/components/diagram_view/editing/use_diagram_delete_key.test.tsx",
+            "app/src/components/diagram_view/editing/use_diagram_delete_key.ts",
+            "app/src/components/diagram_view/surface/diagram_current_viewport.test.tsx",
+            "app/src/components/diagram_view/surface/diagram_current_viewport.tsx",
+            "app/src/components/diagram_view/surface/diagram_zoom_viewport.test.tsx",
+            "app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx",
+            "app/src/components/editor/local_search/markdown_local_text_search_plugin.tsx",
+            "app/src/components/editor/markdown_editor_local_text_search.test.tsx",
+            "app/src/components/shell/keyboard_status.grouped.test.tsx",
+            "app/src/components/shell/keyboard_status.tsx",
+            "app/src/components/shell/main_window.test.tsx",
+            "app/src/components/shell/main_window.tsx",
+            "app/src/components/shell/menu/app_menu.test.tsx",
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/text_view/card_editor.test.tsx",
+            "app/src/components/text_view/text_view.grouped.test.tsx",
+            "app/src/components/text_view/text_view.tsx",
+            "app/src/services/application_startup_service.ts",
+            "app/src/services/search/search_open_service.ts",
+            "app/src/services/shortcuts/cards_keyboard_shortcut_service.ts",
+            "app/src/services/shortcuts/diagram_keyboard_shortcut_service.test.ts",
+            "app/src/services/shortcuts/diagram_keyboard_shortcut_service.ts",
+            "app/src/services/shortcuts/global_keyboard_shortcut_service.node.test.ts",
+            "app/src/services/shortcuts/global_keyboard_shortcut_service.ts",
+            "app/src/services/shortcuts/keyboard_shortcut_service.node.test.ts",
+            "app/src/services/shortcuts/keyboard_shortcut_service.ts",
+            "app/src/services/shortcuts/list_tab_shortcuts.ts",
+            "app/src/services/shortcuts/markdown_local_search_keyboard_service.node.test.ts",
+            "app/src/services/shortcuts/markdown_local_search_keyboard_service.ts",
+            "app/src/services/shortcuts/matches_keyboard_shortcut.node.test.ts",
+            "app/src/services/shortcuts/matches_keyboard_shortcut.ts",
+            "app/src/services/shortcuts/stats_keyboard_shortcut_service.ts",
+            "app/src/services/shortcuts/text_keyboard_shortcut_service.node.test.ts",
+            "app/src/services/shortcuts/text_keyboard_shortcut_service.ts"
+          ],
+          "filesChanged": 38,
+          "insertions": 794,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-22T17:30:27+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "7a123557-495a-47b1-9c18-437364ff3825",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

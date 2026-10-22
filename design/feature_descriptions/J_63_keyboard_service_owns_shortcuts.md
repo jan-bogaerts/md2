@@ -10,8 +10,6 @@ agents:
   - design/activity/card__7a123557-495a-47b1-9c18-437364ff3825.json
 policy:
 after: 90ca85d7-9878-4238-a36b-f662d0c8fbd8
-branch: j_63_keyboard_service_owns_shortcuts
-worktree: 2
 changedFiles:
   - app/src/components/card_view/list_card_commit_diff_panel.tsx
   - app/src/components/diagram_view/commands/diagram_edit_button.tsx
