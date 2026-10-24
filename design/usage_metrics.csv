@@ -9039,3 +9039,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-24T12:03:14.162Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,10,1
 2026-10-24T12:05:14.959Z,token_usage,claude,,,,,44,2172530,18146,0,2190720,,
 2026-10-24T12:05:16.234Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,10,0
+2026-10-24T12:05:33.348Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,10,0

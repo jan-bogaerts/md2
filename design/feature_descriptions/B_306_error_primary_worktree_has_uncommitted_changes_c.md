@@ -3,7 +3,7 @@ author:
 id: B_306
 internalId: c198a211-ff9a-41ec-b20d-5d300cac7035
 title: Error: Primary worktree has uncommitted changes; c
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 153373637
 sentryOrganization: elastetic
-after: b6df6526-3cec-4077-a31e-03269835f435
 ---
 
 ## Sentry issue

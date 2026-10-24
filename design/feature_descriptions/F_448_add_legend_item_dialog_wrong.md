@@ -10,8 +10,6 @@ agents:
   - design/activity/card__32e1c957-8aac-429b-b8ce-8d01738f9418.json
 policy:
 after: d2d5c693-62b3-4e7f-b957-728a5c468cb0
-branch: f_448_add_legend_item_dialog_wrong
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/legend/diagram_legend_details_editor.tsx
   - app/src/components/diagram_view/legend/diagram_legend_entry_list.tsx
