@@ -9043,3 +9043,6 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-24T12:07:33.348Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,10,0
 2026-10-24T12:12:26.244Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,10,0
 2026-10-24T12:13:33.386Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,10,0
+2026-10-24T12:19:33.414Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,10,0
+2026-10-24T12:21:33.421Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,10,0
+2026-10-24T12:22:18.788Z,token_usage,claude,,,,,50,1937700,20544,0,1958294,,
