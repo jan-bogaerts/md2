@@ -12,7 +12,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 153373637
 sentryOrganization: elastetic
 ---
-
 ## Sentry issue
 
 **Title:** Error: Primary worktree has uncommitted changes; commit or discard them and retry integration: design/actions/.md2-schedules.json, design/activity/card__26179cc3-97a2-4a33-9e4f-a3b7116e217c.json, design/activity/card__2ac96102-aba9-4901-a7f3-fcbd78b6b7fc.json,...
@@ -37,11 +36,13 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:724:89548` — async we
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:136:10373` — async EventTarget.integrateCardWorktree
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:504:7743` — async Yge.track
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:504:8155` — unknown function
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:509:21914` — async mve.integrateWorktree
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:136:2548` — dre
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:136:2416` — qm
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:136:2268` — lre
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:724:89548` — async we
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:136:10373` — async EventTarget.integrateCardWorktree
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:504:7743` — async Yge.track
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:504:8155` — unknown function
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:509:21914` — async mve.integrateWorktree
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:136:2548` — dre
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:136:2416` — qm
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:136:2268` — lre
+
+this occurs when we try to merge a worktree back into the main repository (integrate into project) and there are files in the repo that have not yet&#x20;
