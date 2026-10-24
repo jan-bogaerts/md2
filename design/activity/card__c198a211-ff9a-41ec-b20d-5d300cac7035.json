@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 89017
+        "usedTokens": 90078
       },
       "entries": [
         {
@@ -636,20 +636,28 @@
           "sequence": 44,
           "timestamp": "2026-10-24T12:19:36.518Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Any file on disk",
+          "id": "agent-turn-a58a8e29-39c3-4921-9fc4-56a55be50b00-answer-44",
+          "kind": "message",
+          "role": "user",
+          "sequence": 45,
+          "timestamp": "2026-10-24T12:20:12.387Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-1c63c04b-367c-4d9d-99e0-d93517e586f8",
       "providerSessions": [],
       "startedAt": "2026-10-24T12:12:25.845Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 31851,
           "toolMs": 26398
         },
         "elapsedMs": 79800,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-24T12:20:12.387Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
