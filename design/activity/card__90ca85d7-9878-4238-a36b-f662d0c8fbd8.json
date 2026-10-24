@@ -20,10 +20,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "90ca85d7-9878-4238-a36b-f662d0c8fbd8",
       "cardPath": "design/feature_descriptions/F_447_diagram_add_tool_escape_key.md",
-      "completedAt": null,
+      "completedAt": "2026-10-24T12:11:19.762Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 97531
+        "usedTokens": 110995
       },
       "entries": [
         {
@@ -898,6 +898,149 @@
           "role": "user",
           "sequence": 68,
           "timestamp": "2026-10-24T12:05:07.642Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-6553b1c6-e79a-40c8-abb2-fc2fba5639f4-event-69",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgM2nRYugvzkzFkNkyaJs:thinking:0",
+          "sequence": 69,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-24T12:05:18.467Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"function createHarness|new DiagramEditSessionService|diagramEditSessionService\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\diagram_view\\\\surface\\\\diagram_zoom_viewport.test.tsx\",\"output_mode\":\"content\",\"-A\":3}",
+          "id": "agent-turn-6553b1c6-e79a-40c8-abb2-fc2fba5639f4-event-70",
+          "kind": "event",
+          "label": "Grep",
+          "output": "68:function createHarness(sourceDiagram: DiagramData = diagram) {\n69:    const session = new DiagramEditSessionService(new DiagramSourceStub(sourceDiagram))\n70-    session.bindProject(project)\n71-    session.start()\n72-    const geometry = new DiagramGeometryService(session)",
+          "providerItemId": "toolu_01EVxPAHa583Dz76GTAavThM",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-10-24T12:05:19.811Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"pattern\":\"export const diagramEditSessionService|private clearDrawing|beginTransientGesture\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\services\\\\diagrams\",\"output_mode\":\"content\",\"glob\":\"!*.test.ts\",\"-A\":6}",
+          "id": "agent-turn-6553b1c6-e79a-40c8-abb2-fc2fba5639f4-event-71",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\services\\diagrams\\diagram_edge_drawing_service.ts:195:            this.session.beginTransientGesture('edge')\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-196-\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-197-            return true\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-198-        }\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-199-        const sourceAttachment = diagramConnectionPointAt(node, point)\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-200-        const source = absoluteConnectionPoint(sourceAttachment, node)\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-201-        const preview = { kind, points: Object.freeze([Object.freeze(source)]), sourceAttachment, targetAttachment: null }\n--\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts:203:        this.session.beginTransientGesture('edge')\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-204-\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-205-        return true\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-206-    }\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-207-\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-208-    updatePreview(point: DiagramEdgeDrawingPoint, targetNodeId: string | null = null) {\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-209-        requireFinitePoint(point)\n--\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts:363:    private clearDrawing() {\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-364-        this.defaults = null\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-365-        this.sequenceRowIndex = null\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-366-        this.setPreview(null)\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-367-    }\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-368-\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.ts-369-    private requireSequenceRowIndex() {\n--\napp\\src\\services\\diagrams\\diagram_resize_service.ts:129:        this.session.beginTransientGesture('resize')\napp\\src\\services\\diagrams\\diagram_resize_service.ts-130-\napp\\src\\services\\diagrams\\diagram_resize_service.ts-131-        return true\napp\\src\\services\\diagrams\\diagram_resize_service.ts-132-    }\napp\\src\\services\\diagrams\\diagram_resize_service.ts-133-\napp\\src\\services\\diagrams\\diagram_resize_service.ts-134-    updateResize(point: DiagramResizePoint) {\napp\\src\\services\\diagrams\\diagram_resize_service.ts-135-        requireFinitePoint(point)\n--\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts:351:    beginTransientGesture(gesture: DiagramTransientGesture) {\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-352-        if (!this.session) throw new Error('Cannot begin a diagram gesture without an active edit session')\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-353-        if (gesture === this.transientGesture) return\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-354-\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-355-        this.transientGesture = gesture\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-356-        this.dispatchEvent(new Event(TRANSIENT_GESTURE_CHANGED_EVENT))\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-357-    }\n--\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts:791:export const diagramEditSessionService = register('diagramEditSessionService', new DiagramEditSessionService())\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-792-\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-793-export type DiagramEditSessionAccess<\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-794-    ReadKeys extends keyof DiagramEditSessionReadAdapter,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-795-    WriteKeys extends keyof DiagramEditSessionService = never,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-796-> = { read: Pick<DiagramEditSessionReadAdapter, ReadKeys> } & Pick<DiagramEditSessionService, WriteKeys>\n--\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts:104:        this.session.beginTransientGesture('group')\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-105-\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-106-        return true\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-107-    }\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-108-\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-109-    updateDrawing(point: DiagramGroupDrawingPoint) {\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-110-        requireFinitePoint(point)\n--\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts:168:    private clearDrawing() {\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-169-        this.continueAdding = false\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-170-        this.startPoint = null\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-171-        this.setPreview(null)\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-172-        this.setPendingLabelBox(null)\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-173-    }\napp\\src\\services\\diagrams\\diagram_group_drawing_service.ts-174-\n--\napp\\src\\services\\diagrams\\diagram_move_service.ts:81:        this.session.beginTransientGesture('move')\napp\\src\\services\\diagrams\\diagram_move_service.ts-82-\napp\\src\\services\\diagrams\\diagram_move_service.ts-83-        return true\napp\\src\\services\\diagrams\\diagram_move_service.ts-84-    }\napp\\src\\services\\diagrams\\diagram_move_service.ts-85-\napp\\src\\services\\diagrams\\diagram_move_service.ts-86-    updateMove(point: DiagramMovePoint) {\napp\\src\\services\\diagrams\\diagram_move_service.ts-87-        requireFinitePoint(point)\n--\napp\\src\\services\\diagrams\\diagram_node_placement_service.ts:173:        this.session.beginTransientGesture('placement')\napp\\src\\services\\diagrams\\diagram_node_placement_service.ts-174-\napp\\src\\services\\diagrams\\diagram_node_placement_service.ts-175-        return true\napp\\src\\services\\diagrams\\diagram_node_placement_service.ts-176-    }\napp\\src\\services\\diagrams\\diagram_node_placement_service.ts-177-\napp\\src\\services\\diagrams\\diagram_node_placement_service.ts-178-    /** Creates the previewed node; leaves Add for Select unless `continueAdding` (Ctrl held). */\napp\\src\\services\\diagrams\\diagram_node_placement_service.ts-179-    place(point: DiagramNodePlacementPoint, continueAdding: boolean) {",
+          "providerItemId": "toolu_01HGRhBY6jDf2DhuQ4Fz5D87",
+          "sequence": 71,
+          "status": "completed",
+          "timestamp": "2026-10-24T12:05:21.130Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-6553b1c6-e79a-40c8-abb2-fc2fba5639f4-event-72",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgM2oRAs2Mva99sQZMYde:thinking:0",
+          "sequence": 72,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-24T12:05:26.839Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "head -17 design/feature_descriptions/F_447_diagram_add_tool_escape_key.md > /tmp/f447_head.md && file design/feature_descriptions/F_447_diagram_add_tool_escape_key.md",
+          "content": "design/feature_descriptions/F_447_diagram_add_tool_escape_key.md: ASCII text, with very long lines (514)",
+          "id": "agent-turn-6553b1c6-e79a-40c8-abb2-fc2fba5639f4-event-73",
+          "kind": "event",
+          "label": "head -17 design/feature_descriptions/F_447_diagram_add_tool_escape_key.md > /tmp/f447_head.md && file design/feature_descriptions/F_447_diagram_add_tool_escape_key.md",
+          "providerItemId": "toolu_014WXxHBe2QpKHg7AckMzu4h",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-10-24T12:05:31.425Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-6553b1c6-e79a-40c8-abb2-fc2fba5639f4-event-74",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgM2pAZ4wpgH9QLLsFKHA:thinking:0",
+          "sequence": 74,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-24T12:05:32.862Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_447_diagram_add_tool_escape_key.md",
+          "id": "agent-turn-6553b1c6-e79a-40c8-abb2-fc2fba5639f4-event-75",
+          "kind": "event",
+          "label": "Write",
+          "output": "<tool_use_error>File has been modified since read, either by the user or by a linter. Read it again before attempting to write it.</tool_use_error>",
+          "providerItemId": "toolu_01PbCWrL1yMk1FjLAKdBXA8r",
+          "sequence": 75,
+          "status": "failed",
+          "timestamp": "2026-10-24T12:05:58.228Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_447_diagram_add_tool_escape_key.md\"}",
+          "id": "agent-turn-6553b1c6-e79a-40c8-abb2-fc2fba5639f4-event-76",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_447\n4\tinternalId: 90ca85d7-9878-4238-a36b-f662d0c8fbd8\n5\ttitle: diagram add tool escape key\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__90ca85d7-9878-4238-a36b-f662d0c8fbd8.json\n11\tpolicy:\n12\tafter: d7360813-801d-416c-8b94-d472b499317f\n13\t---\n14\tWhen the 'add' tool is selected in a diagram and the user has pressed ctrl while adding items or has not yet added an item, it should be possible to press the 'escape' key so that the default 'select' tool is active again.\n15\t\n16\tthis already seems to work for adding 'connections', just not for nodes.\n17\t\n18\t## Current state\n19\t\n20\t* An Add tool is active when the session active tool is `node:<kind>`, `edge:<kind>`, or `group`. Since F_407 (`design/releases/0.8.0/F_407_diagram_continuous_add_with_ctrl.md`), an add without Ctrl switches to `select`, so an Add tool stays active only before the first add or after Ctrl-adds. Fragment never stays active.\n21\t* Escape routing: `KeyboardShortcutService` (`app/src/services/shortcuts/keyboard_shortcut_service.ts`) owns the window `keydown` listener and, while the workspace view is `diagrams`, passes keys to `DiagramKeyboardShortcutService` (`diagram_keyboard_shortcut_service.ts`). For Escape not already `defaultPrevented`, that service dispatches a cancelable `DIAGRAM_ESCAPE_REQUESTED_EVENT`. A listener marks Escape handled by calling `preventDefault()` on that request event; the service then reports the key handled.\n22\t* Both viewports listen to `DIAGRAM_ESCAPE_REQUESTED_EVENT`. `diagram_current_viewport.tsx` cancels a Current pan or clears Current emphasis. Listener order follows mount order.\n23\t* `handleDiagramEscapeRequested` in `app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx` handles Escape for New. It skips request events already `defaultPrevented` and keyboard events whose `detail.keyboardEvent.target` is inside `input`, `textarea`, `[contenteditable=\"true\"]`, or `[role=\"dialog\"]`. Order today:\n24\t  1. Edge tool with a chosen source (`drawing.isDrawingActive() && drawing.hasSource()`): `drawing.cancelDrawing()`, then `session.setActiveTool('select')`. This is the case the feature calls \"already works for connections\".\n25\t  2. Pan gesture: cancel pan.\n26\t  3. No pointer gesture: clear New emphasis, else do nothing. So node tool, group tool, and edge tool without source stay active.\n27\t  4. Held node placement or group rectangle drag (`activePointerGestureRef` is `placement` or `group`): Escape ignored; pointer-up still commits.\n28\t  5. Resize or move: cancel gesture.\n29\t* `session.setActiveTool('select')` clears the transient gesture. Each service's `handleActiveToolChanged` listener then clears its state: `DiagramNodePlacementService.clearPlacement`, `DiagramGroupDrawingService.clearDrawing`, `DiagramEdgeDrawingService.clearDrawing`. Last selected creation tool stays, so the Add button keeps the same tool.\n30\t* Choose Add tool menu (`diagram_add_control.tsx`) handles its own Escape with `preventDefault` on the keyboard event, so `DiagramKeyboardShortcutService` skips it. Group label dialog is a `role=\"dialog\"`, so it keeps its own Escape close.\n31\t* Tests in `diagram_zoom_viewport.test.tsx` encode the F_407 rule: `keeps node and group Add tools active on Escape` and `keeps an edge Add tool without a chosen source active on Escape`.\n32\t\n33\t## implementation details\n34\t\n35\t* Partly reverses F_407 acceptance criterion 6: Escape now exits every Add tool (node, edge with or without source, group), also during a held placement or group drag. Other Escape behavior stays.\n36\t* `handleWindowKeyDown` in `diagram_zoom_viewport.tsx`: replace the edge-with-source branch with one Add tool branch, placed after the existing guards and before the pan branch. Condition: `drawing.isDrawingActive() || placement.isPlacementActive() || groupDrawing.isDrawingActive()`. Body:\n37\t  * `event.preventDefault()`, `suppressClickRef.current = false`.\n38\t  * If `activePointerGestureRef.current` is `placement` or `group`: set it to `null` and call `releaseActivePointer()`. With `activePointerIdRef` cleared, the later pointer-up is ignored, so no node or group is created.\n39\t  * If edge drawing is active: `drawing.cancelDrawing()` (as today).\n40\t  * `session.setActiveTool('select')`; service listeners clear placement preview, group preview, and edge state.\n41\t* Delete the line `if (activePointerGestureRef.current === 'placement' || activePointerGestureRef.current === 'group') return`; the new branch covers that case first.\n42\t* Add `groupDrawing` and `placement` to the `useCallback` dependency list.\n43\t* Priority: with an Add tool active and New emphasis shown, first Escape exits the Add tool, second Escape clears emphasis (same as the edge-with-source branch today).\n44\t* Pending group label (rectangle drawn, label dialog open): dialog owns Escape through the `[role=\"dialog\"]` guard; unchanged.\n45\t* No service, tooltip, or Add control changes.\n46\t* Tests in `diagram_zoom_viewport.test.tsx`:\n47\t  * Rewrite `keeps node and group Add tools active on Escape` as: Escape with node tool active returns `select`; Escape with group tool active returns `select`; Escape during held node placement returns `select`, and the following pointer-up creates no node; Escape during a group rectangle drag returns `select`, no pending label box, and no group. Stale because F_447 reverses F_407 criterion 6.\n48\t  * Rewrite `keeps an edge Add tool without a chosen source active on Escape` to assert `select`. Same reason.\n49\t  * Add: after a Ctrl-held node add, the tool stays active and Escape returns `select`, new node stays selected.\n50\t  * Add: Escape from an `input` inside the viewport keeps the Add tool active.\n51\t  * `keeps an invalid edge target recoverable until Escape cancels it` stays valid.\n52\t* Run `diagram_zoom_viewport.test.tsx` directly and `npm run lint` in `app/`.\n53\t\n54\t## acceptance criteria\n55\t\n56\t1. With a node, edge, or group Add tool active and no object added yet, Escape switches the active tool to Select.\n57\t2. After adds with Ctrl held, the tool stays active; Escape switches it to Select and the last added object stays selected.\n58\t3. Escape while the mouse button is still held during node placement or group rectangle drawing cancels the gesture, creates nothing, and switches to Select.\n59\t4. Escape during an edge with a chosen source still abandons the edge and switches to Select.\n60\t5. The Add button keeps the same last selected tool after Escape.\n61\t6. Escape from an inline field, the group label dialog, or the Choose Add tool menu keeps its own behavior and does not change the active tool.\n62\t7. Escape still cancels pan, resize, and move gestures and clears emphasis when no Add tool is active.",
+          "providerItemId": "toolu_01L7krXVMBFvUGuLxU77wKqG",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-10-24T12:05:59.643Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-6553b1c6-e79a-40c8-abb2-fc2fba5639f4-event-77",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgM2rFFALxdMdGKPe3GK1:thinking:0",
+          "sequence": 77,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-24T12:06:01.513Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_447_diagram_add_tool_escape_key.md",
+          "deletions": 30,
+          "id": "agent-turn-6553b1c6-e79a-40c8-abb2-fc2fba5639f4-event-78",
+          "insertions": 34,
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_447_diagram_add_tool_escape_key.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01XN7uT11DgAruHy6LrTt8c1",
+          "sequence": 78,
+          "status": "completed",
+          "timestamp": "2026-10-24T12:06:24.487Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "I updated the F_447 card with option B. Status stays `ready for implementation`, and nothing is staged or committed.\n\n**Current state now covers:**\n- `DiagramEditSessionService` owns the active tool and the in-progress drag state.\n- How Escape reaches the diagram: `KeyboardShortcutService` passes it to `DiagramKeyboardShortcutService`, which sends a request event to both viewports.\n- The existing branch where the New viewport switches the tool to Select for an edge with a chosen source. This is keyboard behavior that changes service state, decided inside a component.\n- How the New viewport already lets go of a held mouse pointer when the drag state is cleared.\n\n**Implementation details now say:**\n- `DiagramKeyboardShortcutService` gets the edit session service injected. On Escape it first runs a new `exitAddTool(event)` method. That method skips Escape coming from inline fields and dialogs, and does nothing when no edit session exists. For a node, edge, or group tool, it switches to Select and marks Escape handled, so the viewports never see it.\n- Switching to Select already clears each Add tool's preview and the drag state. The viewport then releases a held pointer, so nothing gets created on mouse release.\n- `handleDiagramEscapeRequested` in `diagram_zoom_viewport.tsx` loses the edge-with-source branch and the early return that ignored Escape during a held placement or group drag. Pan, resize, move, and emphasis handling stay.\n- Tests:\n  - New Escape tests go in `diagram_keyboard_shortcut_service.test.ts`, using a stand-in session.\n  - Two viewport tests that expect the F_407 behaviour are removed.\n  - The invalid-edge-target test is rewritten to switch the tool directly.\n  - New viewport tests check that switching to Select during a held drag creates nothing.\n\n**Acceptance criteria** now have 8 items. Criterion 7 says that with an Add tool active, the first Escape only exits the tool. Criterion 8 says Escape for Add tools lives in the keyboard service, not the viewport.",
+          "id": "agent-turn-6553b1c6-e79a-40c8-abb2-fc2fba5639f4-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 79,
+          "timestamp": "2026-10-24T12:11:19.762Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -923,14 +1066,14 @@
         }
       ],
       "startedAt": "2026-10-22T14:28:02.135Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
-          "reasoningMs": 55643,
-          "toolMs": 54186
+          "reasoningMs": 70576,
+          "toolMs": 110340
         },
-        "elapsedMs": 161859,
-        "runningStartedAt": "2026-10-24T12:03:14.156Z"
+        "elapsedMs": 647317,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
