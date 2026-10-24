@@ -20,10 +20,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "90ca85d7-9878-4238-a36b-f662d0c8fbd8",
       "cardPath": "design/feature_descriptions/F_447_diagram_add_tool_escape_key.md",
-      "completedAt": null,
+      "completedAt": "2026-10-24T12:01:33.211Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 92473
+        "usedTokens": 96923
       },
       "entries": [
         {
@@ -784,6 +784,80 @@
           "role": "assistant",
           "sequence": 58,
           "timestamp": "2026-10-24T12:00:15.911Z"
+        },
+        {
+          "content": "update card",
+          "id": "submission-aed90484-abc7-4b3f-89a1-94f004846d0a",
+          "kind": "message",
+          "role": "user",
+          "sequence": 59,
+          "timestamp": "2026-10-24T12:01:22.319Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-60",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgM2Vp5XA1odeuzQR1CQc:thinking:0",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-24T12:01:24.954Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_447_diagram_add_tool_escape_key.md\"}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-61",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_447\n4\tinternalId: 90ca85d7-9878-4238-a36b-f662d0c8fbd8\n5\ttitle: diagram add tool escape key\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__90ca85d7-9878-4238-a36b-f662d0c8fbd8.json\n11\tpolicy:\n12\tafter: d7360813-801d-416c-8b94-d472b499317f\n13\t---\n14\tWhen the 'add' tool is selected in a diagram and the user has pressed ctrl while adding items or has not yet added an item, it should be possible to press the 'escape' key so that the default 'select' tool is active again.\n15\t\n16\tthis already seems to work for adding 'connections', just not for nodes.\n17\t\n18\t## Current state\n19\t\n20\t* An Add tool is active when the session active tool is `node:<kind>`, `edge:<kind>`, or `group`. Since F_407 (`design/releases/0.8.0/F_407_diagram_continuous_add_with_ctrl.md`), an add without Ctrl switches to `select`, so an Add tool stays active only before the first add or after Ctrl-adds. Fragment never stays active.\n21\t* `handleWindowKeyDown` in `app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx` handles window Escape. It skips events already `defaultPrevented` and events from `input`, `textarea`, `[contenteditable=\"true\"]`, or `[role=\"dialog\"]`. Order today:\n22\t  1. Edge tool with a chosen source (`drawing.isDrawingActive() && drawing.hasSource()`): `drawing.cancelDrawing()`, then `session.setActiveTool('select')`. This is the case the feature calls \"already works for connections\".\n23\t  2. Pan gesture: cancel pan.\n24\t  3. No pointer gesture: clear New emphasis, else do nothing. So node tool, group tool, and edge tool without source stay active.\n25\t  4. Held node placement or group rectangle drag (`activePointerGestureRef` is `placement` or `group`): Escape ignored; pointer-up still commits.\n26\t  5. Resize or move: cancel gesture.\n27\t* `session.setActiveTool('select')` clears the transient gesture. Each service's `handleActiveToolChanged` listener then clears its state: `DiagramNodePlacementService.clearPlacement`, `DiagramGroupDrawingService.clearDrawing`, `DiagramEdgeDrawingService.clearDrawing`. Last selected creation tool stays, so the Add button keeps the same tool.\n28\t* Choose Add tool menu (`diagram_add_control.tsx`) handles its own Escape with `preventDefault`, so the window handler skips it. Group label dialog is a `role=\"dialog\"`, so it keeps its own Escape close.\n29\t* Tests in `diagram_zoom_viewport.test.tsx` encode the F_407 rule: `keeps node and group Add tools active on Escape` and `keeps an edge Add tool without a chosen source active on Escape`.\n30\t\n31\t## implementation details\n32\t\n33\t* Partly reverses F_407 acceptance criterion 6: Escape now exits every Add tool (node, edge with or without source, group), also during a held placement or group drag. Other Escape behavior stays.\n34\t* `handleWindowKeyDown` in `diagram_zoom_viewport.tsx`: replace the edge-with-source branch with one Add tool branch, placed after the existing guards and before the pan branch. Condition: `drawing.isDrawingActive() || placement.isPlacementActive() || groupDrawing.isDrawingActive()`. Body:\n35\t  * `event.preventDefault()`, `suppressClickRef.current = false`.\n36\t  * If `activePointerGestureRef.current` is `placement` or `group`: set it to `null` and call `releaseActivePointer()`. With `activePointerIdRef` cleared, the later pointer-up is ignored, so no node or group is created.\n37\t  * If edge drawing is active: `drawing.cancelDrawing()` (as today).\n38\t  * `session.setActiveTool('select')`; service listeners clear placement preview, group preview, and edge state.\n39\t* Delete the line `if (activePointerGestureRef.current === 'placement' || activePointerGestureRef.current === 'group') return`; the new branch covers that case first.\n40\t* Add `groupDrawing` and `placement` to the `useCallback` dependency list.\n41\t* Priority: with an Add tool active and New emphasis shown, first Escape exits the Add tool, second Escape clears emphasis (same as the edge-with-source branch today).\n42\t* Pending group label (rectangle drawn, label dialog open): dialog owns Escape through the `[role=\"dialog\"]` guard; unchanged.\n43\t* No service, tooltip, or Add control changes.\n44\t* Tests in `diagram_zoom_viewport.test.tsx`:\n45\t  * Rewrite `keeps node and group Add tools active on Escape` as: Escape with node tool active returns `select`; Escape with group tool active returns `select`; Escape during held node placement returns `select`, and the following pointer-up creates no node; Escape during a group rectangle drag returns `select`, no pending label box, and no group. Stale because F_447 reverses F_407 criterion 6.\n46\t  * Rewrite `keeps an edge Add tool without a chosen source active on Escape` to assert `select`. Same reason.\n47\t  * Add: after a Ctrl-held node add, the tool stays active and Escape returns `select`, new node stays selected.\n48\t  * Add: Escape from an `input` inside the viewport keeps the Add tool active.\n49\t  * `keeps an invalid edge target recoverable until Escape cancels it` stays valid.\n50\t* Run `diagram_zoom_viewport.test.tsx` directly and `npm run lint` in `app/`.\n51\t\n52\t## acceptance criteria\n53\t\n54\t1. With a node, edge, or group Add tool active and no object added yet, Escape switches the active tool to Select.\n55\t2. After adds with Ctrl held, the tool stays active; Escape switches it to Select and the last added object stays selected.\n56\t3. Escape while the mouse button is still held during node placement or group rectangle drawing cancels the gesture, creates nothing, and switches to Select.\n57\t4. Escape during an edge with a chosen source still abandons the edge and switches to Select.\n58\t5. The Add button keeps the same last selected tool after Escape.\n59\t6. Escape from an inline field, the group label dialog, or the Choose Add tool menu keeps its own behavior and does not change the active tool.\n60\t7. Escape still cancels pan, resize, and move gestures and clears emphasis when no Add tool is active.",
+          "providerItemId": "toolu_01XvMbHy478cgHtNmrm74wuj",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-10-24T12:01:25.633Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_447_diagram_add_tool_escape_key.md",
+          "deletions": 1,
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-62",
+          "insertions": 3,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_447_diagram_add_tool_escape_key.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01FxCmfcaTcWpPRQLhpaZxJZ",
+          "sequence": 62,
+          "status": "completed",
+          "timestamp": "2026-10-24T12:01:31.380Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_447_diagram_add_tool_escape_key.md",
+          "deletions": 1,
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-63",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_447_diagram_add_tool_escape_key.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Hsj4H7xxU19DFb84mzkMpN",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-10-24T12:01:32.769Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"file_path\": \"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_447_diagram_add_tool_escape_key.md",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-64",
+          "kind": "event",
+          "label": "Edit",
+          "providerItemId": "toolu_01AoBGU4ZXNbKHVUoXZWgTEx",
+          "sequence": 64,
+          "status": "cancelled",
+          "timestamp": "2026-10-24T12:01:33.184Z",
+          "type": "fileChange"
         }
       ],
       "hasExplicitTitle": true,
@@ -809,13 +883,13 @@
         }
       ],
       "startedAt": "2026-10-22T14:28:02.135Z",
-      "status": "waitingForInput",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
-          "reasoningMs": 50751,
-          "toolMs": 47516
+          "reasoningMs": 52225,
+          "toolMs": 54186
         },
-        "elapsedMs": 151444,
+        "elapsedMs": 161859,
         "runningStartedAt": null
       },
       "title": "complete",
@@ -828,7 +902,7 @@
         "costUsd": 1.5888501999999998
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
