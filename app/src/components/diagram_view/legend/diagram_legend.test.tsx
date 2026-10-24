@@ -134,6 +134,12 @@ describe('DiagramLegend', () => {
         expect(moveLegend).toHaveBeenLastCalledWith({ left: 60, top: 20 })
     })
 
+    it('shows no reorder handles without an edit session', () => {
+        renderLegend()
+
+        expect(screen.queryByRole('button', { name: /^Reorder / })).not.toBeInTheDocument()
+    })
+
     it('clamps oversized and out-of-bounds positions', () => {
         expect(clampLegendPosition({ left: -10, top: 500 }, 100, 80, 120, 40)).toEqual({ left: 0, top: 40 })
     })

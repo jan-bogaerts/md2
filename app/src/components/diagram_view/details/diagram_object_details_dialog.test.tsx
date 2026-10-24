@@ -1,3 +1,4 @@
+import { ThemeProvider } from '@mui/material'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -8,11 +9,13 @@ import { DiagramGeometryService } from '../../../services/diagrams/diagram_geome
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
 import { DiagramSelectionService } from '../../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
+import { createAppTheme } from '../../../theme/app_theme'
 import { EditableDiagram } from '../editing/editable_diagram'
 import { DiagramObjectDetailsService } from './diagram_object_details_service'
 
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
+const theme = createAppTheme('dark')
 
 function diagram(type: DiagramType = 'architecture', flowPreset: DiagramFlowPreset = 'flowchart'): DiagramData {
     const nodeKind = type === 'flow' ? flowPreset === 'state' ? 'state' : 'step'
@@ -78,7 +81,11 @@ function renderHarness(type: DiagramType = 'architecture', flowPreset: DiagramFl
     const geometry = new DiagramGeometryService(session)
     const selection = new DiagramSelectionService(session, geometry)
     const details = new DiagramObjectDetailsService()
-    render(<EditableDiagram details={details} geometry={geometry} selection={selection} session={session} />)
+    render(
+        <ThemeProvider theme={theme}>
+            <EditableDiagram details={details} geometry={geometry} selection={selection} session={session} />
+        </ThemeProvider>,
+    )
 
     return { details, selection, session }
 }

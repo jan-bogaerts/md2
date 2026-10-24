@@ -35,7 +35,7 @@ function targetExists(target: DiagramObjectDetailsTarget | null, session: Diagra
     return session.read.getGroupSnapshot(target.objectId) !== null
 }
 
-const SINGLETON_TITLES: Record<'legend' | 'meta', string> = { legend: 'Diagram legend', meta: 'Diagram metadata' }
+const SINGLETON_TITLES: Record<'legend' | 'meta', string> = { legend: 'Add legend entry', meta: 'Diagram metadata' }
 
 export function DiagramObjectDetailsDialog({
     details = diagramObjectDetailsService,

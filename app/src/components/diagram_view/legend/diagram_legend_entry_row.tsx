@@ -1,5 +1,7 @@
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
+import DragIndicatorOutlined from '@mui/icons-material/DragIndicatorOutlined'
+import { useSortable } from '@dnd-kit/sortable'
 import { Box, ButtonBase, IconButton, Menu, MenuItem, TextField, Tooltip, Typography } from '@mui/material'
 import { useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
@@ -27,17 +29,21 @@ export interface DiagramFormattingMutationStore {
 function noSelection() { return null }
 function noSelectionSubscription() { return () => {} }
 
-/** One legend semantic category with hover/focus formatting action and scoped sample subscription. */
-export function DiagramLegendEntryRow({ entry, reader, session, store }: {
-    entry: DiagramLegendEntry, reader: DiagramFormattingStore, session?: DiagramEditSessionService, store: DiagramFormattingMutationStore,
+/**
+ * One legend semantic category with hover/focus formatting action and scoped sample subscription. With an
+ * edit session it is sortable through its drag handle.
+ */
+export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store }: {
+    entry: DiagramLegendEntry, entryKey: string, reader: DiagramFormattingStore, session?: DiagramEditSessionService,
+    store: DiagramFormattingMutationStore,
 }) {
+    const sortable = useSortable({ disabled: !session, id: entryKey })
+    const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition } = sortable
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const [activeRole, setActiveRole] = useState<DiagramRole | null>(null)
     const [draftState, setDraftState] = useState({ base: entry.label, value: entry.label })
     const draftLabel = draftState.base === entry.label ? draftState.value : entry.label
     const [labelError, setLabelError] = useState<string | null>(null)
-    const entryKey = entry.entryType === 'node' ? `node:${entry.role}`
-        : entry.entryType === 'nodeKind' ? `nodeKind:${entry.nodeKind}` : `connection:${entry.kind}`
     const sampleRole = entry.entryType === 'node' ? entry.role
         : entry.entryType === 'nodeKind' ? entry.roles[0] : undefined
     const selectedKey = useSyncExternalStore(
@@ -92,8 +98,12 @@ export function DiagramLegendEntryRow({ entry, reader, session, store }: {
         if (entry.entryType === 'connection') store.setConnectionKindFormatting(entry.kind, value)
     }
 
+    const sortableStyle = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, transition } : { transition }
+
     return (
         <Box
+            ref={setNodeRef}
+            style={sortableStyle}
             sx={{
                 alignItems: 'center', bgcolor: selectedKey === entryKey ? 'custom.primaryBg' : undefined,
                 borderRadius: 1, display: 'flex', gap: 1,
@@ -102,6 +112,20 @@ export function DiagramLegendEntryRow({ entry, reader, session, store }: {
                 '@media (hover: none)': { '& .diagram-formatting-action': { opacity: 1 } },
             }}
         >
+            {session ? (
+                <Tooltip title="Drag to reorder">
+                    <IconButton
+                        {...attributes}
+                        {...listeners}
+                        aria-label={`Reorder ${entry.label}`}
+                        ref={setActivatorNodeRef}
+                        size="small"
+                        sx={{ cursor: 'grab' }}
+                    >
+                        <DragIndicatorOutlined fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+            ) : null}
             {session ? (
                 <ButtonBase aria-label={`Select ${entry.label}`} aria-pressed={selectedKey === entryKey} onClick={handleSelect} sx={{ borderRadius: 0.5, p: 0.5 }}>
                     {entry.entryType !== 'connection' ? (

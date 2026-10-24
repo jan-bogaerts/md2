@@ -56,7 +56,33 @@ function startSession(source: DiagramData) {
     return session
 }
 
-afterEach(cleanup)
+const ROW_HEIGHT = 40
+const ROW_WIDTH = 200
+
+/** jsdom has no layout, so each legend row reports a stacked rectangle by its position in the entry list. */
+function stubLegendRowRects(listLabel: string) {
+    return vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function rowRect(this: HTMLElement) {
+        const list = this.parentElement
+        const index = list?.getAttribute('aria-label') === listLabel ? Array.from(list.children).indexOf(this) : 0
+        const top = index * ROW_HEIGHT
+        const rect = { bottom: top + ROW_HEIGHT, height: ROW_HEIGHT, left: 0, right: ROW_WIDTH, top, width: ROW_WIDTH, x: 0, y: top }
+
+        return { ...rect, toJSON: () => rect }
+    })
+}
+
+async function dragDownOneRow(handleName: string) {
+    const user = userEvent.setup()
+    screen.getByRole('button', { name: handleName }).focus()
+    await user.keyboard(' ')
+    await user.keyboard('{ArrowDown}')
+    await user.keyboard(' ')
+}
+
+afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+})
 
 describe('DiagramSessionLegendEntries', () => {
     it('selects semantic entries by pointer and keyboard, then clears removed and ended selection', async () => {
@@ -265,6 +291,40 @@ describe('DiagramSessionLegendEntries', () => {
         expect(within(entryList).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)).toEqual(['Database', 'Calls'])
     })
 
+    it('shows a reorder handle in front of each row in edit mode', () => {
+        const session = startSession(legendDiagram)
+        render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
+
+        expect(screen.getByRole('button', { name: 'Reorder Service' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Reorder Calls' })).toBeInTheDocument()
+    })
+
+    it('reorders an explicit legend by keyboard dragging the handle', async () => {
+        const session = startSession(legendDiagram)
+        stubLegendRowRects('New diagram legend entries')
+        render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
+
+        await dragDownOneRow('Reorder Service')
+
+        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(['connection:connection', 'node:focal'])
+        const entryList = screen.getByLabelText('New diagram legend entries')
+        expect(within(entryList).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)).toEqual(['Calls', 'Service'])
+    })
+
+    it('materializes a derived legend before reordering it', async () => {
+        const session = startSession(diagram)
+        stubLegendRowRects('New diagram legend entries')
+        render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
+
+        await dragDownOneRow('Reorder Component')
+
+        expect(session.read.getHasExplicitLegendSnapshot()).toBe(true)
+        expect(session.read.getEditableDiagram()?.meta.legend).toEqual([
+            { kind: 'connection', label: 'Connection' },
+            { label: 'Component', nodeKind: 'component' },
+        ])
+    })
+
     it('keeps the New legend empty once the last explicit entry is removed', () => {
         const session = startSession(legendDiagram)
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
@@ -311,6 +371,7 @@ describe('DiagramLegend session tabs', () => {
 
         expect(screen.getByLabelText('Current diagram legend entries')).toHaveTextContent('ComponentConnection')
         expect(screen.queryByLabelText('New diagram legend entries')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /^Reorder / })).not.toBeInTheDocument()
     })
 
     it('keeps Current on saved labels while New follows edited kinds', async () => {
