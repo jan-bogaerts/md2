@@ -52,6 +52,7 @@ function createService(options = {}) {
         mergeConflictService,
         runGit,
         setTimeout: () => 1,
+        trashItem: options.trashItem,
     });
 }
 
@@ -443,7 +444,7 @@ describe('WorktreeService merge conflict lifecycle', () => {
 });
 
 describe('WorktreeService integration synchronization', () => {
-    it('refuses later primary changes without creating a checkpoint commit', async () => {
+    it('reports later primary changes without creating a checkpoint commit', async () => {
         const repository = await createRepository();
         const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
         const service = createService();
@@ -454,8 +455,12 @@ describe('WorktreeService integration synchronization', () => {
             await writeFile(join(repository.primaryPath, 'later.txt'), 'later\n');
             const previousCommit = await runGit(repository.primaryPath, ['rev-parse', 'HEAD']);
 
-            await expect(service.integrate(project, 'feature')).rejects.toThrow('Primary worktree has uncommitted changes; commit or discard them and retry integration: later.txt');
+            const outcome = await service.integrate(project, 'feature');
 
+            expect(outcome).toEqual({
+                changes: [{ path: 'later.txt', tracked: false, onDisk: true, kind: 'untracked' }],
+                status: 'dirtyPrimary',
+            });
             expect(await runGit(repository.primaryPath, ['rev-parse', 'HEAD'])).toBe(previousCommit);
             expect(await runGit(repository.primaryPath, ['status', '--porcelain'])).toContain('later.txt');
         } finally {
@@ -691,4 +696,127 @@ describe('WorktreeService selected record validation', () => {
             await test.cleanup();
         }
     });
+});
+
+async function withPrimaryRepository(options, run) {
+    const repository = await createRepository();
+    const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+    const service = createService(options);
+    try {
+        await service.startProject(project);
+        await run({ project, repository, service });
+    } finally {
+        service.stopProject();
+        await rm(repository.folderPath, { force: true, recursive: true });
+    }
+}
+
+async function prepareMixedPrimaryChanges({ primaryPath }) {
+    await writeFile(join(primaryPath, 'gone.txt'), 'gone\n');
+    await writeFile(join(primaryPath, 'old name.txt'), 'renamed\n');
+    await runGit(primaryPath, ['add', 'gone.txt', 'old name.txt']);
+    await runGit(primaryPath, ['commit', '-m', 'Add files']);
+    await writeFile(join(primaryPath, 'base.txt'), 'changed\n');
+    await rm(join(primaryPath, 'gone.txt'));
+    await runGit(primaryPath, ['mv', 'old name.txt', 'new name.txt']);
+    await mkdir(join(primaryPath, 'folder', 'nested'), { recursive: true });
+    await writeFile(join(primaryPath, 'folder', 'nested', 'one.txt'), 'one\n');
+    await writeFile(join(primaryPath, 'folder', 'two.txt'), 'two\n');
+}
+
+async function expectMixedPrimaryChanges({ project, repository, service }) {
+    await prepareMixedPrimaryChanges(repository);
+
+    const changes = await service.readPrimaryChanges(project);
+
+    expect(changes).toEqual(expect.arrayContaining([
+        { path: 'base.txt', tracked: true, onDisk: true, kind: 'modified' },
+        { path: 'gone.txt', tracked: true, onDisk: false, kind: 'deleted' },
+        { path: 'new name.txt', originalPath: 'old name.txt', tracked: true, onDisk: true, kind: 'renamed' },
+        { path: 'folder/nested/one.txt', tracked: false, onDisk: true, kind: 'untracked' },
+        { path: 'folder/two.txt', tracked: false, onDisk: true, kind: 'untracked' },
+    ]));
+    expect(changes).toHaveLength(5);
+}
+
+async function expectListedPathsCommitted({ project, repository, service }) {
+    await writeFile(join(repository.primaryPath, 'base.txt'), 'changed\n');
+    await writeFile(join(repository.primaryPath, 'listed.txt'), 'listed\n');
+    await writeFile(join(repository.primaryPath, 'unlisted.txt'), 'unlisted\n');
+
+    await service.commitReviewedPrimaryChanges(project, ['base.txt', 'listed.txt'], ' Save review ');
+
+    expect(await runGit(repository.primaryPath, ['log', '-1', '--format=%s'])).toBe('Save review');
+    expect(await runGit(repository.primaryPath, ['show', '--name-only', '--format=', 'HEAD'])).toBe('base.txt\nlisted.txt');
+    expect(await service.readPrimaryChanges(project)).toEqual([
+        { path: 'unlisted.txt', tracked: false, onDisk: true, kind: 'untracked' },
+    ]);
+}
+
+async function expectUnknownCommitPathRejected({ project, repository, service }) {
+    await writeFile(join(repository.primaryPath, 'listed.txt'), 'listed\n');
+    const previousCommit = await runGit(repository.primaryPath, ['rev-parse', 'HEAD']);
+
+    await expect(service.commitReviewedPrimaryChanges(project, ['listed.txt', 'base.txt'], 'Save'))
+        .rejects.toThrow('Primary worktree changed; review the file list again');
+    expect(await runGit(repository.primaryPath, ['rev-parse', 'HEAD'])).toBe(previousCommit);
+}
+
+describe('WorktreeService primary change review', () => {
+    it('lists modified, deleted, renamed and new-folder files per entry', async () => {
+        await withPrimaryRepository({}, expectMixedPrimaryChanges);
+    }, 30_000);
+
+    it('commits only the listed paths with the reviewed message', async () => {
+        await withPrimaryRepository({}, expectListedPathsCommitted);
+    }, 30_000);
+
+    it('rejects committing a path that is not a current dirty entry', async () => {
+        await withPrimaryRepository({}, expectUnknownCommitPathRejected);
+    }, 30_000);
+
+    it('trashes a listed file and returns the refreshed list', async () => {
+        const trashItem = vi.fn((filePath) => rm(filePath));
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService({ trashItem });
+
+        try {
+            await service.startProject(project);
+            await writeFile(join(repository.primaryPath, 'base.txt'), 'changed\n');
+            await writeFile(join(repository.primaryPath, 'scratch.txt'), 'scratch\n');
+
+            const trackedChanges = await service.trashPrimaryChange(project, 'base.txt');
+            const untrackedChanges = await service.trashPrimaryChange(project, 'scratch.txt');
+
+            expect(trashItem).toHaveBeenCalledWith(join(repository.primaryPath, 'base.txt'));
+            expect(trackedChanges).toEqual(expect.arrayContaining([
+                { path: 'base.txt', tracked: true, onDisk: false, kind: 'deleted' },
+                { path: 'scratch.txt', tracked: false, onDisk: true, kind: 'untracked' },
+            ]));
+            expect(trackedChanges).toHaveLength(2);
+            expect(untrackedChanges).toEqual([{ path: 'base.txt', tracked: true, onDisk: false, kind: 'deleted' }]);
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('rejects trashing a path that is not a current dirty entry', async () => {
+        const trashItem = vi.fn();
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService({ trashItem });
+
+        try {
+            await service.startProject(project);
+
+            await expect(service.trashPrimaryChange(project, 'base.txt'))
+                .rejects.toThrow('Primary worktree changed; review the file list again');
+            expect(trashItem).not.toHaveBeenCalled();
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
 });

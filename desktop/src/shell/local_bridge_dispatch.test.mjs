@@ -129,6 +129,7 @@ function createDispatch(options = {}) {
     const worktreeService = {
         add: vi.fn(async () => undefined),
         commit: vi.fn(async () => undefined),
+        commitReviewedPrimaryChanges: vi.fn(async () => undefined),
         deleteBranch: vi.fn(async () => undefined),
         discard: vi.fn(async () => undefined),
         getRecords: vi.fn(() => []),
@@ -151,6 +152,7 @@ function createDispatch(options = {}) {
         subscribe: vi.fn(() => vi.fn()),
         synchronize: vi.fn(async () => undefined),
         synchronizeConflict: vi.fn(async () => undefined),
+        trashPrimaryChange: vi.fn(async () => []),
     };
     const mergeConflictService = {
         addEventListener: vi.fn(),
@@ -834,6 +836,74 @@ describe('createLocalBridgeDispatch', () => {
         })).resolves.toEqual({ session, status: 'conflict' });
 
         expect(localGitService.appendSystemActivityNow).not.toHaveBeenCalled();
+    });
+
+    it('returns dirty primary changes without branch cleanup or integration activity', async () => {
+        const { dispatch, localGitService, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const changes = [{ path: 'later.txt', tracked: false, onDisk: true, kind: 'untracked' }];
+        worktreeService.integrate.mockResolvedValueOnce({ changes, status: 'dirtyPrimary' });
+
+        await expect(dispatch.dataBridge.integrateWorktree({
+            branchName: 'feature',
+            cardInternalId: 'card-1',
+            deleteBranch: true,
+            project,
+            projectFolder: 'design',
+            worktree: 1, worktreeBranch: 'feature',
+        })).resolves.toEqual({ changes, status: 'dirtyPrimary' });
+
+        expect(worktreeService.park).not.toHaveBeenCalled();
+        expect(worktreeService.deleteBranch).not.toHaveBeenCalled();
+        expect(localGitService.appendSystemActivityNow).not.toHaveBeenCalled();
+    });
+
+    it('commits reviewed primary changes inside the project lock', async () => {
+        const calls = [];
+        const projectOperationCoordinator = {
+            run: vi.fn(async (_rootPath, operation) => {
+                calls.push('lock');
+                const result = await operation();
+                calls.push('unlock');
+
+                return result;
+            }),
+        };
+        const { dispatch, worktreeService } = createDispatch({ projectOperationCoordinator });
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        worktreeService.commitReviewedPrimaryChanges.mockImplementation(async () => { calls.push('commit'); });
+
+        await dispatch.dataBridge.commitPrimaryChanges({ message: 'Save', paths: ['later.txt'], project });
+
+        expect(calls).toEqual(['lock', 'commit', 'unlock']);
+        expect(projectOperationCoordinator.run).toHaveBeenCalledWith('C:/repo', expect.any(Function));
+        expect(worktreeService.commitReviewedPrimaryChanges).toHaveBeenCalledWith(project, ['later.txt'], 'Save');
+    });
+
+    it('trashes a primary change inside the project lock and returns the refreshed list', async () => {
+        const calls = [];
+        const projectOperationCoordinator = {
+            run: vi.fn(async (_rootPath, operation) => {
+                calls.push('lock');
+                const result = await operation();
+                calls.push('unlock');
+
+                return result;
+            }),
+        };
+        const { dispatch, worktreeService } = createDispatch({ projectOperationCoordinator });
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const changes = [{ path: 'base.txt', tracked: true, onDisk: false, kind: 'deleted' }];
+        worktreeService.trashPrimaryChange.mockImplementation(async () => {
+            calls.push('trash');
+
+            return changes;
+        });
+
+        await expect(dispatch.dataBridge.trashPrimaryChange({ path: 'base.txt', project })).resolves.toBe(changes);
+
+        expect(calls).toEqual(['lock', 'trash', 'unlock']);
+        expect(worktreeService.trashPrimaryChange).toHaveBeenCalledWith(project, 'base.txt');
     });
 
     it('keeps final conflict session until integration finalization succeeds', async () => {

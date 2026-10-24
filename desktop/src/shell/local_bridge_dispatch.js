@@ -319,7 +319,7 @@ function createLocalBridgeDispatch(dependencies) {
             return projectOperationCoordinator.run(request.project.rootPath, async () => {
                 await uncommittedProjectWrites.commit(request.project.rootPath);
                 const integration = await worktreeService.integrate(request.project, request.worktreeBranch, metadata);
-                if (integration.status === 'conflict') return integration;
+                if (integration.status === 'conflict' || integration.status === 'dirtyPrimary') return integration;
                 const progress = await finalizeIntegrationRepository(
                     request.project,
                     request.worktreeBranch,
@@ -330,6 +330,22 @@ function createLocalBridgeDispatch(dependencies) {
 
                 return { ...(activityPath ? { activityPath } : {}), status: 'completed' };
             });
+        },
+        commitPrimaryChanges: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing primary changes commit request');
+
+            return projectOperationCoordinator.run(
+                request.project.rootPath,
+                () => worktreeService.commitReviewedPrimaryChanges(request.project, request.paths, request.message),
+            );
+        },
+        trashPrimaryChange: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing primary change trash request');
+
+            return projectOperationCoordinator.run(
+                request.project.rootPath,
+                () => worktreeService.trashPrimaryChange(request.project, request.path),
+            );
         },
         abortMergeConflict: (request) => worktreeService.abortConflict(request),
         continueMergeConflict: async (request) => {

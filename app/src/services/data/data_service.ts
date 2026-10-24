@@ -26,6 +26,7 @@ import { getService, register } from '../service_injector'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { worktreeService } from '../project/worktree_service'
 import { mergeConflictService } from '../project/merge_conflict_service'
+import { primaryChangesService } from '../project/primary_changes_service'
 import { dialogService } from '../dialog_service'
 import type { CardParseError } from './markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../open_files_service'
@@ -618,6 +619,7 @@ export class DataService extends EventTarget {
             reportError: (error) => dialogService.error(error, { fallbackMessage: 'Could not verify merge conflict state' }),
             storage: this.storage,
         })
+        primaryChangesService.init({ storage: this.storage })
     }
     private reportCommitFlushFailure(error: unknown) {
         reportCommitFlushFailure(error, () => this.dispatchPersistenceChanged())

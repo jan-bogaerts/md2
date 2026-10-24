@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Card, ProjectReference, ProjectSnapshot, StorageService, WorktreeRecord, WorktreeState } from '../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { createDeferred } from '../test_support/data_service_test_support'
+import type { DirtyPrimaryOutcome } from '../../data/primary_change_types'
+import { primaryChangesService } from './primary_changes_service'
 import { PrimaryWorktreeSelectionError } from './worktree_errors'
 import { WorktreeService } from './worktree_service'
 
@@ -23,6 +25,11 @@ function card(path: string, title: string, worktree: number | null): Card {
             owner: null, policy: {}, references: [], status: 'ready', title, worktree, worktreeError: null, worktreeValue: worktree ? String(worktree) : null,
         }, hasFrontmatter: true, isActive: true, path,
     }
+}
+
+const dirtyPrimary: DirtyPrimaryOutcome = {
+    changes: [{ path: 'later.txt', tracked: false, onDisk: true, kind: 'untracked' }],
+    status: 'dirtyPrimary',
 }
 
 function snapshot(activeCards: Card[] = [], backgroundCards: Card[] = []): ProjectSnapshot {
@@ -596,6 +603,57 @@ describe('WorktreeService', () => {
         expect(unassignCardWorktree).not.toHaveBeenCalled()
         expect(clearCardBranch).not.toHaveBeenCalled()
         expect(assignedCard.header.branch).toBe(first.branch)
+    })
+
+    it('reviews dirty primary changes and retries integration until it completes', async () => {
+        const { emit, storage } = createStorage()
+        storage.integrateWorktree = vi.fn()
+            .mockResolvedValueOnce(dirtyPrimary)
+            .mockResolvedValueOnce({ activityPath: 'design/activity/card__card-1.json', status: 'completed' as const })
+        const review = vi.spyOn(primaryChangesService, 'review').mockResolvedValue(true)
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        const { queueIntegratedActivity, unassignCardWorktree } = initService(service, storage, snapshot([assignedCard]))
+        emit(project, [first])
+
+        await expect(service.integrateCardWorktree(assignedCard.path, true)).resolves.toMatchObject({ status: 'completed' })
+
+        expect(review).toHaveBeenCalledWith(project, dirtyPrimary.changes)
+        expect(storage.integrateWorktree).toHaveBeenCalledTimes(2)
+        expect(queueIntegratedActivity).toHaveBeenCalledWith('design/activity/card__card-1.json')
+        expect(unassignCardWorktree).toHaveBeenCalledWith(assignedCard.path)
+    })
+
+    it('returns cancelled without activity or unassignment when the review is cancelled', async () => {
+        const { emit, storage } = createStorage()
+        storage.integrateWorktree = vi.fn(async () => dirtyPrimary)
+        vi.spyOn(primaryChangesService, 'review').mockResolvedValue(false)
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        const { clearCardBranch, queueIntegratedActivity, unassignCardWorktree } = initService(service, storage, snapshot([assignedCard]))
+        emit(project, [first])
+
+        await expect(service.integrateCardWorktree(assignedCard.path, true)).resolves.toEqual({ status: 'cancelled' })
+
+        expect(storage.integrateWorktree).toHaveBeenCalledOnce()
+        expect(queueIntegratedActivity).not.toHaveBeenCalled()
+        expect(unassignCardWorktree).not.toHaveBeenCalled()
+        expect(clearCardBranch).not.toHaveBeenCalled()
+    })
+
+    it('stops with an error when the primary worktree stays dirty after every review round', async () => {
+        const { emit, storage } = createStorage()
+        storage.integrateWorktree = vi.fn(async () => dirtyPrimary)
+        const review = vi.spyOn(primaryChangesService, 'review').mockResolvedValue(true)
+        const service = new WorktreeService()
+        initService(service, storage)
+        emit(project, [first])
+        service.setProjectActionWorktree(first.branch)
+
+        await expect(service.integrateProjectWorktree()).rejects.toThrow('Primary worktree still has uncommitted changes after review')
+
+        expect(review).toHaveBeenCalledTimes(3)
+        expect(storage.integrateWorktree).toHaveBeenCalledTimes(4)
     })
 
     it('reserves a worktree for a pending sequence by branch and a running sequence by checkout path', () => {

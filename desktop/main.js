@@ -105,7 +105,12 @@ const mergeConflictService = new MergeConflictService({
     runGit: localGitService.runGit,
     store,
 });
-const worktreeService = new WorktreeService({ errorReporter: captureError, mergeConflictService, runGit: localGitService.runGit });
+const worktreeService = new WorktreeService({
+    errorReporter: captureError,
+    mergeConflictService,
+    runGit: localGitService.runGit,
+    trashItem: (filePath) => shell.trashItem(filePath),
+});
 const actionWorktreeRunService = new ActionWorktreeRunService({
     mergeConflictService,
     runGit: localGitService.runGit,

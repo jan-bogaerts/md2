@@ -33,6 +33,7 @@ const DATA_METHODS = [
     'cancelActivityStatsCalculation',
     'checkoutBranch',
     'commit',
+    'commitPrimaryChanges',
     'commitWorktree',
     'continueMergeConflict',
     'createProject',
@@ -81,6 +82,7 @@ const DATA_METHODS = [
     'selectWorktreeFolder',
     'showInFileExplorer',
     'stopAgent',
+    'trashPrimaryChange',
     'writeFiles',
 ];
 const ACTION_METHODS = [

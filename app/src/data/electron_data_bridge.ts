@@ -4,6 +4,7 @@ import type { ActivityStatsCalculationResult } from '../../../shared/project_sta
 import type {
     AgentConversation,
     BranchReference,
+    CommitPrimaryChangesRequest,
     CommitWorktreeRequest,
     CommitResult,
     CommitRequest,
@@ -19,6 +20,7 @@ import type {
     ProjectWatchNotification,
     StorageProjectFiles,
     TopLevelFolderReference,
+    TrashPrimaryChangeRequest,
     WorktreeOperationRequest,
     WorktreeRemovalMode,
     WorktreeState,
@@ -30,6 +32,7 @@ import type {
     MergeConflictSessionRequest,
     WorktreeOperationOutcome,
 } from './merge_conflict_types'
+import type { DirtyPrimaryOutcome, PrimaryChange } from './primary_change_types'
 
 export interface AgentAvailability {
     available: boolean
@@ -46,6 +49,7 @@ export interface ElectronDataBridge {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
     commitWorktree?(request: CommitWorktreeRequest): Promise<void>
+    commitPrimaryChanges?(request: CommitPrimaryChangesRequest): Promise<void>
     createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
@@ -55,7 +59,7 @@ export interface ElectronDataBridge {
     continueMergeConflict?(request: MergeConflictSessionRequest): Promise<WorktreeOperationOutcome>
     getMergeConflictSession?(): Promise<MergeConflictSession | null>
     getStartupProjectPath?(): string | null
-    integrateWorktree?(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome>
+    integrateWorktree?(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome | DirtyPrimaryOutcome>
     launchMergeConflictResolver?(request: MergeConflictPathRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     loadAgentModelCatalog?(request: AgentModelCatalogRequest): Promise<AgentModelCatalog>;
@@ -99,6 +103,7 @@ export interface ElectronDataBridge {
     showInFileExplorer?(request: ShowInFileExplorerRequest): Promise<void>
     removeWorktree?(project: ProjectReference, folderPath: string, mode: WorktreeRemovalMode): Promise<void>
     stopAgent?(runId: string): Promise<void>
+    trashPrimaryChange?(request: TrashPrimaryChangeRequest): Promise<PrimaryChange[]>
     watchProject(project: ProjectReference, callback: (notification: ProjectWatchNotification) => void): () => void
     loadFile(project: ProjectReference, path: string): Promise<MarkdownFile>
     writeFiles(request: WriteFilesRequest): Promise<void>

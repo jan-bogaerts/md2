@@ -101,6 +101,8 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Data.loadAgentAvailability).toEqual(expect.any(Function));
         expect(exposed.md2Data.prepareWorktree).toEqual(expect.any(Function));
         expect(exposed.md2Data.commitWorktree).toEqual(expect.any(Function));
+        expect(exposed.md2Data.commitPrimaryChanges).toEqual(expect.any(Function));
+        expect(exposed.md2Data.trashPrimaryChange).toEqual(expect.any(Function));
         expect(exposed.md2Data.discardWorktreeChanges).toEqual(expect.any(Function));
         expect(exposed.md2Data.deleteLocalBranch).toEqual(expect.any(Function));
         expect(exposed.md2Data.integrateWorktree).toEqual(expect.any(Function));

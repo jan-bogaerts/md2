@@ -88,6 +88,49 @@ function requireProjectBranch(project) {
     return project.branch;
 }
 
+const PORCELAIN_PATH_FIELD_COUNTS = { 1: 8, 2: 9, u: 10 };
+
+/** Strips the fixed metadata fields from one porcelain v2 entry; the path itself can hold spaces. */
+function porcelainEntryPath(entry, fieldCount) {
+    return entry.split(' ').slice(fieldCount).join(' ');
+}
+
+function trackedChange(entryPath, statusCode) {
+    if (statusCode.includes('D')) return { path: entryPath, tracked: true, onDisk: false, kind: 'deleted' };
+    if (statusCode[0] === 'A') return { path: entryPath, tracked: true, onDisk: true, kind: 'added' };
+
+    return { path: entryPath, tracked: true, onDisk: true, kind: 'modified' };
+}
+
+/** Parses `git status --porcelain=v2 -z --untracked-files=all` output into one primary change per file. */
+function parsePrimaryChanges(output) {
+    const entries = output.split('\0').filter((entry) => entry.length > 0);
+    const changes = [];
+    for (let index = 0; index < entries.length; index += 1) {
+        const entry = entries[index];
+        const type = entry[0];
+        if (type === '?') {
+            changes.push({ path: entry.slice(2), tracked: false, onDisk: true, kind: 'untracked' });
+            continue;
+        }
+        const fieldCount = PORCELAIN_PATH_FIELD_COUNTS[type];
+        if (!fieldCount) continue;
+        const entryPath = porcelainEntryPath(entry, fieldCount);
+        if (type === 'u') {
+            changes.push({ path: entryPath, tracked: true, onDisk: true, kind: 'modified' });
+            continue;
+        }
+        if (type === '1') {
+            changes.push(trackedChange(entryPath, entry.slice(2, 4)));
+            continue;
+        }
+        index += 1;
+        changes.push({ path: entryPath, originalPath: entries[index], tracked: true, onDisk: true, kind: 'renamed' });
+    }
+
+    return changes;
+}
+
 function parseRevisionCounts(output) {
     const values = output.trim().split(/\s+/u).map((value) => Number.parseInt(value, 10));
     if (values.length !== 2 || values.some((value) => !Number.isInteger(value))) throw new Error(`Invalid Git revision counts: ${output}`);
@@ -115,6 +158,7 @@ class WorktreeService {
         this.refreshTimer = null;
         this.executeGit = dependencies.runGit;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
+        this.trashItem = dependencies.trashItem ?? null;
         this.state = { error: null, primaryStatus: null, project: null, records: [] };
     }
 
@@ -307,6 +351,44 @@ class WorktreeService {
         });
     }
 
+    /** Commits exactly the reviewed primary worktree entries; the list must still match the current dirty entries. */
+    commitReviewedPrimaryChanges(project, paths, message) {
+        return this.enqueueScopedMutation([project.rootPath], async () => {
+            if (typeof message !== 'string' || message.trim().length === 0) throw new Error('Missing primary commit message');
+            if (!Array.isArray(paths) || paths.length === 0) throw new Error('Missing primary change paths');
+            const activeProject = this.requireActiveProject(project);
+            const changes = await this.readPrimaryChanges(activeProject);
+            const commitPaths = [];
+            for (const requestedPath of paths) {
+                const change = changes.find((candidate) => candidate.path === requestedPath);
+                if (!change) throw new Error('Primary worktree changed; review the file list again');
+                commitPaths.push(change.path);
+                if (change.originalPath) commitPaths.push(change.originalPath);
+            }
+            // --literal-pathspecs precedes the Git command, so the ownership guard in runGit cannot see it.
+            checkoutOwnershipService.assertAvailable(activeProject.rootPath);
+            await this.runGit(activeProject.rootPath, ['--literal-pathspecs', 'add', '-A', '--', ...commitPaths]);
+            await this.runGit(activeProject.rootPath, ['--literal-pathspecs', 'commit', '--only', '-m', message.trim(), '--', ...commitPaths]);
+            await this.refreshAfterMutation();
+        });
+    }
+
+    /** Moves one listed primary worktree file to the system trash and returns the refreshed dirty entries. */
+    trashPrimaryChange(project, changePath) {
+        return this.enqueueScopedMutation([project.rootPath], async () => {
+            if (!this.trashItem) throw new Error('Moving files to the trash is not available');
+            const activeProject = this.requireActiveProject(project);
+            const changes = await this.readPrimaryChanges(activeProject);
+            const change = changes.find((candidate) => candidate.path === changePath);
+            if (!change) throw new Error('Primary worktree changed; review the file list again');
+            if (!change.onDisk) throw new Error(`File is not on disk: ${changePath}`);
+            await this.trashItem(path.resolve(activeProject.rootPath, change.path));
+            await this.refreshAfterMutation();
+
+            return this.readPrimaryChanges(activeProject);
+        });
+    }
+
     refreshRemote(project) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
@@ -437,7 +519,8 @@ class WorktreeService {
             await this.requireRepositoryMatch(activeProject, resolution.record);
             let record = await this.requireClean(resolution.record, activeProject.branch);
             if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
-            await this.requireCleanPrimaryForIntegration(activeProject);
+            const changes = await this.readPrimaryChanges(activeProject);
+            if (changes.length > 0) return { changes, status: 'dirtyPrimary' };
             const checkpointCommit = await this.runGit(activeProject.rootPath, ['rev-parse', 'HEAD']);
             const worktreeCheckpointCommit = await this.runGit(record.path, ['rev-parse', 'HEAD']);
             if (record.status.baseBehind > 0) {
@@ -824,17 +907,13 @@ class WorktreeService {
         await this.runGit(project.rootPath, ['commit', '-m', PRIMARY_CHECKPOINT_MESSAGE]);
     }
 
-    async requireCleanPrimaryForIntegration(project) {
+    /** Lists every dirty entry of the primary worktree, one entry per file, without changing the repository. */
+    async readPrimaryChanges(project) {
         const branch = (await this.runGit(project.rootPath, ['branch', '--show-current'])).trim();
         if (branch !== project.branch) throw new Error(`Primary worktree is on ${branch || 'a detached HEAD'}, expected ${project.branch}`);
-        const porcelain = await this.runGit(project.rootPath, ['status', '--porcelain']);
-        const dirtyPaths = porcelain.split(/\r?\n/u)
-            .map((line) => line.trim())
-            .filter((line) => line.length > 0)
-            .map((line) => line.replace(/^\S+\s+/u, ''));
-        if (dirtyPaths.length === 0) return;
+        const porcelain = await this.runGit(project.rootPath, ['status', '--porcelain=v2', '-z', '--untracked-files=all']);
 
-        throw new Error(`Primary worktree has uncommitted changes; commit or discard them and retry integration: ${dirtyPaths.join(', ')}`);
+        return parsePrimaryChanges(porcelain);
     }
 
     async revalidateRecord(record, projectBranch) {

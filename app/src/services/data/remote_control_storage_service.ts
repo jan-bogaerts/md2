@@ -44,6 +44,7 @@ import type {
     AgentConversation,
     AgentRunEvent,
     BranchReference,
+    CommitPrimaryChangesRequest,
     CommitWorktreeRequest,
     CommitRequest,
     CommitResult,
@@ -62,6 +63,7 @@ import type {
     StorageProjectFiles,
     StorageService,
     TopLevelFolderReference,
+    TrashPrimaryChangeRequest,
     WorktreeOperationRequest,
     WorktreeRemovalMode,
     WorktreeState,
@@ -77,6 +79,7 @@ import type {
     MergeConflictSessionRequest,
     WorktreeOperationOutcome,
 } from '../../data/merge_conflict_types'
+import type { DirtyPrimaryOutcome, PrimaryChange } from '../../data/primary_change_types'
 import type { DesktopConfigValues } from '../config/config_entries'
 import type { DesktopConfigTransport } from '../config/desktop_config_transport'
 
@@ -467,11 +470,20 @@ export class RemoteControlStorageService implements
         this.pendingPushBranches.add(request.branch)
     }
 
-    async integrateWorktree(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome> {
-        const outcome = await this.request<WorktreeOperationOutcome>('integrateWorktree', [request])
+    async integrateWorktree(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome | DirtyPrimaryOutcome> {
+        const outcome = await this.request<WorktreeOperationOutcome | DirtyPrimaryOutcome>('integrateWorktree', [request])
         this.pendingPushBranches.add(request.project.branch)
 
         return outcome
+    }
+
+    async commitPrimaryChanges(request: CommitPrimaryChangesRequest): Promise<void> {
+        await this.request('commitPrimaryChanges', [request])
+        this.pendingPushBranches.add(request.project.branch)
+    }
+
+    async trashPrimaryChange(request: TrashPrimaryChangeRequest): Promise<PrimaryChange[]> {
+        return this.request<PrimaryChange[]>('trashPrimaryChange', [request])
     }
 
     async abortMergeConflict(request: MergeConflictSessionRequest): Promise<void> {
