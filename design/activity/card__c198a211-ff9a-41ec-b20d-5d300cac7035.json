@@ -13,6 +13,20 @@
           "thinkingLevel": "medium"
         }
       }
+    },
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
     }
   },
   "conversations": [
@@ -938,7 +952,7 @@
         "costUsd": 1.52441
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -965,11 +979,11 @@
         "agent-1c63c04b-367c-4d9d-99e0-d93517e586f8"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-51418d1a-a6c1-4ef2-891b-9bcb4017c642",
       "origin": {
@@ -978,9 +992,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-1c63c04b-367c-4d9d-99e0-d93517e586f8",
       "startedAt": "2026-10-24T12:12:25.843Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-1c63c04b-367c-4d9d-99e0-d93517e586f8"
     }
   ],
   "version": 5

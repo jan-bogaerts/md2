@@ -12,6 +12,8 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 153373637
 sentryOrganization: elastetic
+branch: b_306_error_primary_worktree_has_uncommitted_changes_c
+worktree: 1
 ---
 ## Sentry issue
 
