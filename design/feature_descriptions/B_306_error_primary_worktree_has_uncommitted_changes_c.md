@@ -45,4 +45,11 @@ sentryOrganization: elastetic
 * `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:136:2416` — qm
 * `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz3gyJQK.js:136:2268` — lre
 
-this occurs when we try to merge a worktree back into the main repository (integrate into project) and there are files in the repo that have not yet&#x20;
+this occurs when we try to merge a worktree back into the main repository (integrate into project) and there are files in the repo that have not yet been staged.&#x20;
+
+instead of showing an error, we should show a dialog that
+
+* lists all the files
+* user can delete files (trashcan behind each file, visible when mouse is over entry). deleted files are moved to the systems trash can.
+* user can enter a commit text
+* user can click ok or cancel. cancel stops the operation (including merge). ok stages the files and commits them, then the previous (merge) process can continue
