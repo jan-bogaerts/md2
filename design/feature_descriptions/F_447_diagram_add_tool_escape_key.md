@@ -18,14 +18,16 @@ this already seems to work for adding 'connections', just not for nodes.
 ## Current state
 
 * An Add tool is active when the session active tool is `node:<kind>`, `edge:<kind>`, or `group`. Since F_407 (`design/releases/0.8.0/F_407_diagram_continuous_add_with_ctrl.md`), an add without Ctrl switches to `select`, so an Add tool stays active only before the first add or after Ctrl-adds. Fragment never stays active.
-* `handleWindowKeyDown` in `app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx` handles window Escape. It skips events already `defaultPrevented` and events from `input`, `textarea`, `[contenteditable="true"]`, or `[role="dialog"]`. Order today:
+* Escape routing: `KeyboardShortcutService` (`app/src/services/shortcuts/keyboard_shortcut_service.ts`) owns the window `keydown` listener and, while the workspace view is `diagrams`, passes keys to `DiagramKeyboardShortcutService` (`diagram_keyboard_shortcut_service.ts`). For Escape not already `defaultPrevented`, that service dispatches a cancelable `DIAGRAM_ESCAPE_REQUESTED_EVENT`. A listener marks Escape handled by calling `preventDefault()` on that request event; the service then reports the key handled.
+* Both viewports listen to `DIAGRAM_ESCAPE_REQUESTED_EVENT`. `diagram_current_viewport.tsx` cancels a Current pan or clears Current emphasis. Listener order follows mount order.
+* `handleDiagramEscapeRequested` in `app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx` handles Escape for New. It skips request events already `defaultPrevented` and keyboard events whose `detail.keyboardEvent.target` is inside `input`, `textarea`, `[contenteditable="true"]`, or `[role="dialog"]`. Order today:
   1. Edge tool with a chosen source (`drawing.isDrawingActive() && drawing.hasSource()`): `drawing.cancelDrawing()`, then `session.setActiveTool('select')`. This is the case the feature calls "already works for connections".
   2. Pan gesture: cancel pan.
   3. No pointer gesture: clear New emphasis, else do nothing. So node tool, group tool, and edge tool without source stay active.
   4. Held node placement or group rectangle drag (`activePointerGestureRef` is `placement` or `group`): Escape ignored; pointer-up still commits.
   5. Resize or move: cancel gesture.
 * `session.setActiveTool('select')` clears the transient gesture. Each service's `handleActiveToolChanged` listener then clears its state: `DiagramNodePlacementService.clearPlacement`, `DiagramGroupDrawingService.clearDrawing`, `DiagramEdgeDrawingService.clearDrawing`. Last selected creation tool stays, so the Add button keeps the same tool.
-* Choose Add tool menu (`diagram_add_control.tsx`) handles its own Escape with `preventDefault`, so the window handler skips it. Group label dialog is a `role="dialog"`, so it keeps its own Escape close.
+* Choose Add tool menu (`diagram_add_control.tsx`) handles its own Escape with `preventDefault` on the keyboard event, so `DiagramKeyboardShortcutService` skips it. Group label dialog is a `role="dialog"`, so it keeps its own Escape close.
 * Tests in `diagram_zoom_viewport.test.tsx` encode the F_407 rule: `keeps node and group Add tools active on Escape` and `keeps an edge Add tool without a chosen source active on Escape`.
 
 ## implementation details
