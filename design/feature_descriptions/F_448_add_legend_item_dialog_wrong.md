@@ -10,6 +10,8 @@ agents:
   - design/activity/card__32e1c957-8aac-429b-b8ce-8d01738f9418.json
 policy:
 after: d2d5c693-62b3-4e7f-b957-728a5c468cb0
+branch: f_448_add_legend_item_dialog_wrong
+worktree: 1
 ---
 ![pasted image](pasted-image-367d3577-372c-4319-a948-5c8cb7380db6.png)
 
