@@ -3,7 +3,7 @@ author:
 id: F_448
 internalId: 32e1c957-8aac-429b-b8ce-8d01738f9418
 title: add legend item dialog wrong
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,10 @@ policy:
 after: d2d5c693-62b3-4e7f-b957-728a5c468cb0
 branch: f_448_add_legend_item_dialog_wrong
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/legend/diagram_legend_details_editor.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_entry_list.tsx
+  - app/src/components/diagram_view/legend/diagram_session_legend_entries.test.tsx
 ---
 ![pasted image](pasted-image-367d3577-372c-4319-a948-5c8cb7380db6.png)
 

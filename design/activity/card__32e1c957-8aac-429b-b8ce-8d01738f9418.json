@@ -1876,11 +1876,11 @@
         "agent-b6af78fd-93bd-4bea-a6f6-03796a55432d"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-d0acc6d3-3f0e-4980-b662-417505a3c512",
       "origin": {
@@ -1889,9 +1889,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-b6af78fd-93bd-4bea-a6f6-03796a55432d",
       "startedAt": "2026-10-24T11:58:10.712Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-b6af78fd-93bd-4bea-a6f6-03796a55432d"
     }
   ],
   "version": 5
