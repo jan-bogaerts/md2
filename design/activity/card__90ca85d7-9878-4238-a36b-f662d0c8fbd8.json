@@ -20,10 +20,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "90ca85d7-9878-4238-a36b-f662d0c8fbd8",
       "cardPath": "design/feature_descriptions/F_447_diagram_add_tool_escape_key.md",
-      "completedAt": "2026-10-22T14:30:46.376Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 74303
+        "usedTokens": 92473
       },
       "entries": [
         {
@@ -548,6 +548,242 @@
           "role": "assistant",
           "sequence": 39,
           "timestamp": "2026-10-22T14:30:46.376Z"
+        },
+        {
+          "content": "code has changed, we now have a centralized keyboard service. check design/feature_descriptions/F_447_diagram_add_tool_escape_key.md to see if it is still valid against the new code",
+          "id": "submission-459751b7-2c05-4821-a362-93f696daf694",
+          "kind": "message",
+          "role": "user",
+          "sequence": 40,
+          "timestamp": "2026-10-24T11:59:24.186Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-41",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgM2MBrhmTHvpzDyRJXcJ:thinking:0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-24T11:59:28.141Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"Escape\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"glob\":\"!**/*.test.*\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-42",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\components\\diagram_view\\surface\\diagram_zoom_viewport.tsx:49:    type DiagramEscapeRequestedDetail,\napp\\src\\components\\diagram_view\\surface\\diagram_zoom_viewport.tsx:437:    const handleDiagramEscapeRequested = useCallback((event: Event) => {\napp\\src\\components\\diagram_view\\surface\\diagram_zoom_viewport.tsx:439:        const { keyboardEvent } = (event as CustomEvent<DiagramEscapeRequestedDetail>).detail\napp\\src\\components\\diagram_view\\surface\\diagram_zoom_viewport.tsx:514:        diagramKeyboardShortcutService.addEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)\napp\\src\\components\\diagram_view\\surface\\diagram_zoom_viewport.tsx:516:        return () => diagramKeyboardShortcutService.removeEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)\napp\\src\\components\\diagram_view\\surface\\diagram_zoom_viewport.tsx:517:    }, [handleDiagramEscapeRequested])\napp\\src\\components\\diagram_view\\surface\\diagram_current_viewport.tsx:76:    const handleDiagramEscapeRequested = useCallback((event: Event) => {\napp\\src\\components\\diagram_view\\surface\\diagram_current_viewport.tsx:100:        diagramKeyboardShortcutService.addEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)\napp\\src\\components\\diagram_view\\surface\\diagram_current_viewport.tsx:102:        return () => diagramKeyboardShortcutService.removeEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)\napp\\src\\components\\diagram_view\\surface\\diagram_current_viewport.tsx:103:    }, [handleDiagramEscapeRequested])\napp\\src\\components\\resizable_popper.tsx:50:    closeOnEscape: false\napp\\src\\components\\resizable_popper.tsx:53:    closeOnEscape?: true\napp\\src\\components\\resizable_popper.tsx:204:        closeOnEscape = true,\napp\\src\\components\\resizable_popper.tsx:325:        if (event.key !== 'Escape' || !closeOnEscape) return\napp\\src\\components\\text_view\\card_properties_panel.tsx:112:        if (event.key === 'Escape') {\napp\\src\\components\\text_view\\card_properties_panel.tsx:130:        if (event.key === 'Escape') {\napp\\src\\components\\diagram_view\\creation_tools\\diagram_add_control.tsx:123:        if (event.key !== 'Escape') return;\napp\\src\\components\\card_view\\card_body_popover.tsx:223:        if (event.key === 'Escape' && card) setTitleEdit({ cardInternalId, title: card.header.title })\napp\\src\\components\\diagram_view\\legend\\diagram_legend_entry_row.tsx:68:        if (event.key === 'Escape') {\napp\\src\\components\\diagram_view\\legend\\diagram_legend_entry_editor.tsx:54:        if (event.key === 'Escape') setDraftLabel(label)\napp\\src\\services\\shortcuts\\text_keyboard_shortcut_service.ts:23:        if (event.key === 'Escape' && this.dependencies.commitDiff.getSnapshot()) {\napp\\src\\services\\shortcuts\\markdown_local_search_keyboard_service.ts:3:export const MARKDOWN_LOCAL_SEARCH_ESCAPE_REQUESTED_EVENT = 'markdownLocalSearchEscapeRequested';\napp\\src\\services\\shortcuts\\markdown_local_search_keyboard_service.ts:5:/** Routes Escape to any open Markdown-local search without knowing editor instances. */\napp\\src\\services\\shortcuts\\markdown_local_search_keyboard_service.ts:8:        if (event.key !== 'Escape') return false;\napp\\src\\services\\shortcuts\\diagram_keyboard_shortcut_service.ts:5:export const DIAGRAM_ESCAPE_REQUESTED_EVENT = 'diagramEscapeRequested';\napp\\src\\services\\shortcuts\\diagram_keyboard_shortcut_service.ts:14:export interface DiagramEscapeRequestedDetail {\napp\\src\\services\\shortcuts\\diagram_keyboard_shortcut_service.ts:37:        if (event.key !== 'Escape') return false;\napp\\src\\services\\shortcuts\\diagram_keyboard_shortcut_service.ts:39:        const request = new CustomEvent<DiagramEscapeRequestedDetail>(DIAGRAM_ESCAPE_REQUESTED_EVENT, {\napp\\src\\components\\actions\\conversation\\search\\action_conversation_search_service.ts:282:        if (event.key === 'Escape' && this.open) {\napp\\src\\components\\card_view\\project_card_view.tsx:111:        if (event.key === 'Escape') setIsEditingTitle(false)\napp\\src\\components\\shell\\project\\new_card_dialog.tsx:138:    // Full screen in a browser is the only case where the dialog has no visible Escape key,\napp\\src\\components\\diagram_view\\editing\\diagram_inline_node_controls.tsx:32:        if (event.key === 'Escape') {\napp\\src\\components\\diagram_view\\editing\\diagram_inline_metadata_field.tsx:35:        if (event.key === 'Escape') {\napp\\src\\components\\editor\\local_search\\markdown_local_text_search_plugin.tsx:103:    const handleSearchEscapeRequested = useCallback((event: Event) => {\napp\\src\\components\\editor\\local_search\\markdown_local_text_search_plugin.tsx:140:            handleSearchEscapeRequested,\napp\\src\\components\\editor\\local_search\\markdown_local_text_search_plugin.tsx:146:                handleSearchEscapeRequested,\napp\\src\\components\\editor\\local_search\\markdown_local_text_search_plugin.tsx:149:    }, [handleSearchEscapeRequested])\napp\\src\\components\\shell\\search\\search_panel.tsx:303:                    closeOnEscape={false}\napp\\src\\components\\editor\\file_search\\markdown_file_search_menu.tsx:40:                closeOnEscape={false}",
+          "providerItemId": "toolu_01LRpooFE8fzBa74U6z4uAGM",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:29.003Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\.claude\\\\projects\\\\C--Users-janbo-Documents-dev-md2\\\\memory\\\\services-own-keyboard-shortcuts.md\"}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-43",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tname: services-own-keyboard-shortcuts\n3\tdescription: \"keyboard shortcuts belong to services (global + one per view) that track the active view, never registered from React components\"\n4\tmetadata:\n5\t  node_type: memory\n6\t  type: feedback\n7\t  originSessionId: e5155bf3-85f4-4025-a9dd-32705ca9f326\n8\t  modified: 2026-10-22T14:48:17.795Z\n9\t---\n10\t\n11\tKeyboard shortcuts are owned and registered by services, not by `.tsx` components or hooks. One global keyboard service (Ctrl+S, search) plus one sub keyboard service per view (cards/dashboard, text, stats, diagram). The global service monitors the active view and loads the matching sub keyboard service; sub services do not track the view themselves. Tracked as job J_63.\n12\t\n13\t**Why:** User rejected reasoning like \"views stay mounted, so their handlers stay registered\" — that is only a problem if React owns registration; in md2 services own behavior and state.\n14\t\n15\t**How to apply:** When designing key handling, never propose component-lifetime listeners, focus heuristics, or `viewMode` checks inside handlers. Route through the view's keyboard service. Related: [[granular-events-no-object-republish]].\n16\t",
+          "providerItemId": "toolu_01VeJkCn8CSzHAehxxZSRUJN",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:29.768Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\services\\\\shortcuts\\\\diagram_keyboard_shortcut_service.ts\"}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-44",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { diagramSelectionService, type DiagramSelectionService } from '../diagrams/diagram_selection_service'\n2\timport type { KeyboardShortcutHandler } from './keyboard_shortcut_service'\n3\t\n4\texport const DIAGRAM_EDITOR_ROOT_ATTRIBUTE = 'data-diagram-editor';\n5\texport const DIAGRAM_ESCAPE_REQUESTED_EVENT = 'diagramEscapeRequested';\n6\t\n7\tconst DIAGRAM_EDITOR_ROOT_SELECTOR = `[${DIAGRAM_EDITOR_ROOT_ATTRIBUTE}]`;\n8\tconst DELETE_KEY_OWNER_SELECTOR = [\n9\t    'input', 'textarea', 'select',\n10\t    '[contenteditable=\"\"]', '[contenteditable=\"true\"]',\n11\t    '[role=\"dialog\"]', '[role=\"menu\"]', '[role=\"menuitem\"]', '[role=\"listbox\"]', '[role=\"combobox\"]', '[role=\"textbox\"]',\n12\t].join(', ');\n13\t\n14\texport interface DiagramEscapeRequestedDetail {\n15\t    keyboardEvent: KeyboardEvent;\n16\t}\n17\t\n18\tfunction deleteKeyBelongsToDiagramEditor(activeElement: Element | null) {\n19\t    if (!activeElement || activeElement === activeElement.ownerDocument.body) return true;\n20\t    if (activeElement.closest(DELETE_KEY_OWNER_SELECTOR)) return false;\n21\t\n22\t    return !!activeElement.closest(DIAGRAM_EDITOR_ROOT_SELECTOR);\n23\t}\n24\t\n25\t/** Handles diagram keys and asks mounted viewports to cancel their local gestures. */\n26\texport class DiagramKeyboardShortcutService extends EventTarget implements KeyboardShortcutHandler {\n27\t    private readonly selection: Pick<DiagramSelectionService, 'deleteSelection'>;\n28\t\n29\t    constructor(selection: Pick<DiagramSelectionService, 'deleteSelection'>) {\n30\t        super();\n31\t        this.selection = selection;\n32\t    }\n33\t\n34\t    handleKeyDown(event: KeyboardEvent) {\n35\t        if (event.defaultPrevented) return false;\n36\t        if (event.key === 'Delete') return this.deleteSelection(event);\n37\t        if (event.key !== 'Escape') return false;\n38\t\n39\t        const request = new CustomEvent<DiagramEscapeRequestedDetail>(DIAGRAM_ESCAPE_REQUESTED_EVENT, {\n40\t            cancelable: true,\n41\t            detail: { keyboardEvent: event },\n42\t        });\n43\t\n44\t        return !this.dispatchEvent(request);\n45\t    }\n46\t\n47\t    private deleteSelection(event: KeyboardEvent) {\n48\t        if (event.altKey || event.ctrlKey || event.metaKey) return false;\n49\t        if (!deleteKeyBelongsToDiagramEditor(document.activeElement)) return false;\n50\t\n51\t        return this.selection.deleteSelection();\n52\t    }\n53\t}\n54\t\n55\texport const diagramKeyboardShortcutService = new DiagramKeyboardShortcutService(diagramSelectionService);\n56\t",
+          "providerItemId": "toolu_01KJUW6SjWxcxQrRoA7AncYV",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:31.391Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\diagram_view\\\\surface\\\\diagram_zoom_viewport.tsx\",\"offset\":425,\"limit\":100}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-45",
+          "kind": "event",
+          "label": "Read",
+          "output": "425\t        event.stopPropagation()\n426\t    }, [pan, pinch])\n427\t\n428\t    const handlePointerUpCapture = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {\n429\t        if (!event.currentTarget.contains(event.target as Node)) return\n430\t        pinch.endPointerCapture(event)\n431\t        if (selection.getRectangleSnapshot()) suppressClickRef.current = true\n432\t    }, [pinch, selection])\n433\t    const handlePointerCancelCapture = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {\n434\t        if (event.currentTarget.contains(event.target as Node)) pinch.endPointerCapture(event)\n435\t    }, [pinch])\n436\t\n437\t    const handleDiagramEscapeRequested = useCallback((event: Event) => {\n438\t        if (event.defaultPrevented) return\n439\t        const { keyboardEvent } = (event as CustomEvent<DiagramEscapeRequestedDetail>).detail\n440\t        if (keyboardEvent.target instanceof Element\n441\t            && keyboardEvent.target.closest('input, textarea, [contenteditable=\"true\"], [role=\"dialog\"]')) return\n442\t        if (drawing.isDrawingActive() && drawing.hasSource()) {\n443\t            event.preventDefault()\n444\t            suppressClickRef.current = false\n445\t            drawing.cancelDrawing()\n446\t            session.setActiveTool('select')\n447\t\n448\t            return\n449\t        }\n450\t        if (activePointerGestureRef.current === 'pan') {\n451\t            event.preventDefault()\n452\t            endPanGesture()\n453\t            pan.cancelPan()\n454\t\n455\t            return\n456\t        }\n457\t        if (activePointerGestureRef.current === null) {\n458\t            if (emphasis.getTargetSnapshot()?.surface !== 'new') return\n459\t            event.preventDefault()\n460\t            emphasis.clear()\n461\t\n462\t            return\n463\t        }\n464\t        if (activePointerGestureRef.current === 'placement' || activePointerGestureRef.current === 'group') return\n465\t\n466\t        event.preventDefault()\n467\t        suppressClickRef.current = false\n468\t        if (activePointerGestureRef.current === 'resize') resize.cancelResize()\n469\t        else movement.cancelMove()\n470\t        activePointerGestureRef.current = null\n471\t        releaseActivePointer()\n472\t    }, [drawing, emphasis, endPanGesture, movement, pan, releaseActivePointer, resize, session])\n473\t\n474\t    const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {\n475\t        if (!event.currentTarget.contains(event.target as Node)) return\n476\t        if (activePointerGestureRef.current !== null || !event.key.startsWith('Arrow')) return\n477\t        const resizeTarget = diagramResizeTargetFromTarget(event.target)\n478\t        if (!resizeTarget) return\n479\t\n480\t        const horizontal = resizeTarget.direction.includes('east') || resizeTarget.direction.includes('west')\n481\t        const vertical = resizeTarget.direction.includes('north') || resizeTarget.direction.includes('south')\n482\t        const delta = {\n483\t            x: horizontal ? (event.key === 'ArrowLeft' ? -KEYBOARD_RESIZE_STEP : event.key === 'ArrowRight' ? KEYBOARD_RESIZE_STEP : 0) : 0,\n484\t            y: vertical ? (event.key === 'ArrowUp' ? -KEYBOARD_RESIZE_STEP : event.key === 'ArrowDown' ? KEYBOARD_RESIZE_STEP : 0) : 0,\n485\t        }\n486\t        if (delta.x === 0 && delta.y === 0) return\n487\t\n488\t        event.preventDefault()\n489\t        const start = { x: 0, y: 0 }\n490\t        if (!resize.beginResize(resizeTarget.identity, resizeTarget.direction, start)) return\n491\t        resize.updateResize(delta)\n492\t        resize.completeResize()\n493\t    }, [resize])\n494\t\n495\t    const handleTransientGestureChanged = useCallback(() => {\n496\t        if (\n497\t            completingGestureRef.current\n498\t            || activePointerIdRef.current === null\n499\t            || session.read.getTransientGestureSnapshot() === activePointerGestureRef.current\n500\t        ) return\n501\t        if (activePointerGestureRef.current === 'pan') {\n502\t            endPanGesture()\n503\t            pan.cancelPan()\n504\t\n505\t            return\n506\t        }\n507\t\n508\t        suppressClickRef.current = false\n509\t        activePointerGestureRef.current = null\n510\t        releaseActivePointer()\n511\t    }, [endPanGesture, pan, releaseActivePointer, session])\n512\t\n513\t    useEffect(() => {\n514\t        diagramKeyboardShortcutService.addEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)\n515\t\n516\t        return () => diagramKeyboardShortcutService.removeEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)\n517\t    }, [handleDiagramEscapeRequested])\n518\t\n519\t    useEffect(\n520\t        () => session.read.subscribeTransientGesture(handleTransientGestureChanged),\n521\t        [handleTransientGestureChanged, session],\n522\t    )\n523\t\n524\t    return (",
+          "providerItemId": "toolu_017c2Y7HjnaTAE2m1C8HX6dL",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:32.131Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-46",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgM2MgcaJZkAyKp4iKJob:thinking:0",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-24T11:59:34.374Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\diagram_view\\\\surface\\\\diagram_current_viewport.tsx\",\"offset\":70,\"limit\":35}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-47",
+          "kind": "event",
+          "label": "Read",
+          "output": "70\t        [],\n71\t    )\n72\t    const pan = useDiagramSurfacePan(scrollerRef, { canStartPan })\n73\t    const cancelActiveGesture = useCallback(() => { pan.cancelPan() }, [pan])\n74\t    const pinch = useDiagramPinchZoom(scrollerRef, service, service.getViewportScaleSnapshot, cancelActiveGesture)\n75\t    usePreserveDiagramZoomCenter(scrollerRef, scale, pinch.anchorRef)\n76\t    const handleDiagramEscapeRequested = useCallback((event: Event) => {\n77\t        if (event.defaultPrevented) return\n78\t        if (pan.cancelPan()) {\n79\t            event.preventDefault()\n80\t\n81\t            return\n82\t        }\n83\t        if (emphasis.getTargetSnapshot()?.surface !== 'current') return\n84\t        event.preventDefault()\n85\t        emphasis.clear()\n86\t    }, [emphasis, pan])\n87\t    const handleClickCapture = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {\n88\t        const pinchSuppressed = pinch.consumeSuppressedClick()\n89\t        if (!pinchSuppressed && !pan.consumeSuppressedClick()) return\n90\t\n91\t        event.preventDefault()\n92\t        event.stopPropagation()\n93\t    }, [pan, pinch])\n94\t    const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => { pan.beginPan(event) }, [pan])\n95\t    const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => { pan.updatePan(event) }, [pan])\n96\t    const handlePointerUp = useCallback(() => { pan.completePan() }, [pan])\n97\t    const handlePointerCancel = useCallback(() => { pan.cancelPan() }, [pan])\n98\t\n99\t    useEffect(() => {\n100\t        diagramKeyboardShortcutService.addEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)\n101\t\n102\t        return () => diagramKeyboardShortcutService.removeEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)\n103\t    }, [handleDiagramEscapeRequested])\n104\t",
+          "providerItemId": "toolu_01DLunDaVwSbE3fVpVGRRnfV",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:35.041Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"Escape\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\diagram_view\\\\surface\\\\diagram_zoom_viewport.test.tsx\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-48",
+          "kind": "event",
+          "label": "Grep",
+          "output": "382:    it('keeps an invalid edge target recoverable until Escape cancels it', () => {\n398:        fireEvent.keyDown(window, { key: 'Escape' })\n405:    it('keeps node and group Add tools active on Escape', () => {\n421:        fireEvent.keyDown(window, { key: 'Escape' })\n425:        fireEvent.keyDown(window, { key: 'Escape' })\n430:        fireEvent.keyDown(window, { key: 'Escape' })\n434:    it('keeps an edge Add tool without a chosen source active on Escape', () => {\n439:        fireEvent.keyDown(window, { key: 'Escape' })\n931:    it('supports keyboard resizing and restores pointer resize when Escape cancels it', () => {\n951:        fireEvent.keyDown(window, { key: 'Escape' })\n1003:    it('restores the scroll position when Escape or a cancelled pointer ends a pan', () => {\n1013:        fireEvent.keyDown(window, { key: 'Escape' })",
+          "providerItemId": "toolu_01WPmq7hMVD1QPKRJ25TUf6r",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:36.056Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"pattern\":\"app/src/services/shortcuts/*.ts\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\"}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-49",
+          "kind": "event",
+          "label": "Glob",
+          "output": "app\\src\\services\\shortcuts\\keyboard_platform.node.test.ts\napp\\src\\services\\shortcuts\\keyboard_platform.ts\napp\\src\\services\\shortcuts\\cards_keyboard_shortcut_service.ts\napp\\src\\services\\shortcuts\\diagram_keyboard_shortcut_service.test.ts\napp\\src\\services\\shortcuts\\diagram_keyboard_shortcut_service.ts\napp\\src\\services\\shortcuts\\global_keyboard_shortcut_service.node.test.ts\napp\\src\\services\\shortcuts\\global_keyboard_shortcut_service.ts\napp\\src\\services\\shortcuts\\keyboard_shortcut_service.node.test.ts\napp\\src\\services\\shortcuts\\keyboard_shortcut_service.ts\napp\\src\\services\\shortcuts\\list_tab_shortcuts.ts\napp\\src\\services\\shortcuts\\markdown_local_search_keyboard_service.node.test.ts\napp\\src\\services\\shortcuts\\markdown_local_search_keyboard_service.ts\napp\\src\\services\\shortcuts\\matches_keyboard_shortcut.node.test.ts\napp\\src\\services\\shortcuts\\matches_keyboard_shortcut.ts\napp\\src\\services\\shortcuts\\stats_keyboard_shortcut_service.ts\napp\\src\\services\\shortcuts\\text_keyboard_shortcut_service.node.test.ts\napp\\src\\services\\shortcuts\\text_keyboard_shortcut_service.ts",
+          "providerItemId": "toolu_01JX7RcZmxXAc8ntvwkU3gNk",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:37.482Z",
+          "type": "tool.Glob"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-50",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgM2N5HqQtxxpk8XWmLAN:thinking:0",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-24T11:59:39.239Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\services\\\\shortcuts\\\\keyboard_shortcut_service.ts\"}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-51",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport type { WorkspaceViewMode, WorkspaceViewService } from '../project/workspace_view_service'\n2\timport { workspaceViewService } from '../project/workspace_view_service'\n3\timport { register } from '../service_injector'\n4\timport { cardsKeyboardShortcutService } from './cards_keyboard_shortcut_service'\n5\timport { diagramKeyboardShortcutService } from './diagram_keyboard_shortcut_service'\n6\timport { globalKeyboardShortcutService } from './global_keyboard_shortcut_service'\n7\timport { markdownLocalSearchKeyboardService } from './markdown_local_search_keyboard_service'\n8\timport { statsKeyboardShortcutService } from './stats_keyboard_shortcut_service'\n9\timport { textKeyboardShortcutService } from './text_keyboard_shortcut_service'\n10\t\n11\texport interface KeyboardShortcutHandler {\n12\t    handleKeyDown(event: KeyboardEvent): boolean;\n13\t}\n14\t\n15\texport type ViewKeyboardShortcutServices = Record<WorkspaceViewMode, KeyboardShortcutHandler>;\n16\t\n17\texport interface KeyboardShortcutServiceDependencies {\n18\t    global: KeyboardShortcutHandler;\n19\t    markdownLocalSearch: KeyboardShortcutHandler;\n20\t    views: ViewKeyboardShortcutServices;\n21\t    workspaceView: WorkspaceViewService;\n22\t}\n23\t\n24\t/** Owns keyboard listeners and routes keys to global behavior plus active workspace view. */\n25\texport class KeyboardShortcutService extends EventTarget {\n26\t    private activeView: KeyboardShortcutHandler;\n27\t    private capsLockActive = false;\n28\t    private readonly dependencies: KeyboardShortcutServiceDependencies;\n29\t    private listenerTarget: Window | null = null;\n30\t\n31\t    constructor(dependencies: KeyboardShortcutServiceDependencies) {\n32\t        super();\n33\t        this.dependencies = dependencies;\n34\t        this.activeView = dependencies.views[dependencies.workspaceView.getSnapshot().viewMode];\n35\t    }\n36\t\n37\t    readonly getCapsLockSnapshot = () => this.capsLockActive;\n38\t\n39\t    readonly subscribeCapsLock = (listener: () => void) => {\n40\t        this.addEventListener('capsLockChanged', listener);\n41\t\n42\t        return () => this.removeEventListener('capsLockChanged', listener);\n43\t    };\n44\t\n45\t    start(listenerTarget: Window = window) {\n46\t        if (this.listenerTarget === listenerTarget) return;\n47\t        if (this.listenerTarget) this.stop();\n48\t\n49\t        this.listenerTarget = listenerTarget;\n50\t        this.activeView = this.dependencies.views[this.dependencies.workspaceView.getSnapshot().viewMode];\n51\t        listenerTarget.addEventListener('keydown', this.handleKeyDown);\n52\t        listenerTarget.addEventListener('keyup', this.handleKeyUp);\n53\t        this.dependencies.workspaceView.addEventListener('changed', this.handleWorkspaceViewChanged);\n54\t    }\n55\t\n56\t    stop() {\n57\t        if (!this.listenerTarget) return;\n58\t\n59\t        this.listenerTarget.removeEventListener('keydown', this.handleKeyDown);\n60\t        this.listenerTarget.removeEventListener('keyup', this.handleKeyUp);\n61\t        this.dependencies.workspaceView.removeEventListener('changed', this.handleWorkspaceViewChanged);\n62\t        this.listenerTarget = null;\n63\t        this.setCapsLockActive(false);\n64\t    }\n65\t\n66\t    private readonly handleKeyDown = (event: KeyboardEvent) => {\n67\t        this.updateCapsLock(event);\n68\t        const handled = this.dependencies.global.handleKeyDown(event)\n69\t            || this.activeView.handleKeyDown(event)\n70\t            || this.dependencies.markdownLocalSearch.handleKeyDown(event);\n71\t        if (handled) event.preventDefault();\n72\t    };\n73\t\n74\t    private readonly handleKeyUp = (event: KeyboardEvent) => {\n75\t        this.updateCapsLock(event);\n76\t    };\n77\t\n78\t    private readonly handleWorkspaceViewChanged = () => {\n79\t        const { viewMode } = this.dependencies.workspaceView.getSnapshot();\n80\t        this.activeView = this.dependencies.views[viewMode];\n81\t    };\n82\t\n83\t    private updateCapsLock(event: KeyboardEvent) {\n84\t        this.setCapsLockActive(event.getModifierState('CapsLock'));\n85\t    }\n86\t\n87\t    private setCapsLockActive(nextCapsLockActive: boolean) {\n88\t        if (nextCapsLockActive === this.capsLockActive) return;\n89\t\n90\t        this.capsLockActive = nextCapsLockActive;\n91\t        this.dispatchEvent(new Event('capsLockChanged'));\n92\t    }\n93\t}\n94\t\n95\tconst viewServices: ViewKeyboardShortcutServices = {\n96\t    cards: cardsKeyboardShortcutService,\n97\t    diagrams: diagramKeyboardShortcutService,\n98\t    stats: statsKeyboardShortcutService,\n99\t    text: textKeyboardShortcutService,\n100\t};\n101\t\n102\texport const keyboardShortcutService = register('keyboardShortcutService', new KeyboardShortcutService({\n103\t    global: globalKeyboardShortcutService,\n104\t    markdownLocalSearch: markdownLocalSearchKeyboardService,\n105\t    views: viewServices,\n106\t    workspaceView: workspaceViewService,\n107\t}));\n108\t",
+          "providerItemId": "toolu_014ZCwthkw9edLW3zXiBxwi5",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:39.842Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"keyboard|Keyboard\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\diagram_view\\\\surface\\\\diagram_zoom_viewport.test.tsx\",\"output_mode\":\"content\",\"head_limit\":20}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-52",
+          "kind": "event",
+          "label": "Grep",
+          "output": "19:import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'\n147:    keyboardShortcutService.start()\n152:    keyboardShortcutService.stop()\n931:    it('supports keyboard resizing and restores pointer resize when Escape cancels it', () => {",
+          "providerItemId": "toolu_011TLy9QDYCEQ2ZLQTLULt5f",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:40.909Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-53",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgM2NKtgB8QAcyGdJZgHW:thinking:0",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-24T11:59:55.228Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"Escape|key ===\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\services\\\\shortcuts\\\\global_keyboard_shortcut_service.ts\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-54",
+          "kind": "event",
+          "label": "Grep",
+          "output": "No matches found",
+          "providerItemId": "toolu_01DgFFRYWXnqogLkd5DgDk7u",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:56.300Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\services\\\\shortcuts\\\\diagram_keyboard_shortcut_service.test.ts\"}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-55",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { afterEach, describe, expect, it, vi } from 'vitest'\n2\timport {\n3\t    DIAGRAM_EDITOR_ROOT_ATTRIBUTE,\n4\t    DIAGRAM_ESCAPE_REQUESTED_EVENT,\n5\t    DiagramKeyboardShortcutService,\n6\t} from './diagram_keyboard_shortcut_service'\n7\t\n8\tfunction createKeyboardEvent(key: string, modifiers: KeyboardEventInit = {}) {\n9\t    return new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key, ...modifiers });\n10\t}\n11\t\n12\tdescribe('DiagramKeyboardShortcutService', () => {\n13\t    afterEach(() => {\n14\t        document.body.replaceChildren();\n15\t    });\n16\t\n17\t    it('deletes selection for unmodified Delete owned by diagram editor', () => {\n18\t        const deleteSelection = vi.fn(() => true);\n19\t        const service = new DiagramKeyboardShortcutService({ deleteSelection });\n20\t        const editor = document.createElement('div');\n21\t        editor.setAttribute(DIAGRAM_EDITOR_ROOT_ATTRIBUTE, '');\n22\t        editor.tabIndex = -1;\n23\t        document.body.append(editor);\n24\t        editor.focus();\n25\t\n26\t        expect(service.handleKeyDown(createKeyboardEvent('Delete'))).toBe(true);\n27\t        expect(deleteSelection).toHaveBeenCalledOnce();\n28\t    });\n29\t\n30\t    it('leaves Delete to text fields, dialogs, menus, and modified keys', () => {\n31\t        const deleteSelection = vi.fn(() => true);\n32\t        const service = new DiagramKeyboardShortcutService({ deleteSelection });\n33\t        const input = document.createElement('input');\n34\t        document.body.append(input);\n35\t        input.focus();\n36\t        const events = [\n37\t            createKeyboardEvent('Delete'),\n38\t            createKeyboardEvent('Delete', { altKey: true }),\n39\t            createKeyboardEvent('Delete', { ctrlKey: true }),\n40\t            createKeyboardEvent('Delete', { metaKey: true }),\n41\t        ];\n42\t\n43\t        expect(events.some((event) => service.handleKeyDown(event))).toBe(false);\n44\t        expect(deleteSelection).not.toHaveBeenCalled();\n45\t    });\n46\t\n47\t    it('reports Delete unhandled when selection service changes nothing', () => {\n48\t        const service = new DiagramKeyboardShortcutService({ deleteSelection: () => false });\n49\t\n50\t        expect(service.handleKeyDown(createKeyboardEvent('Delete'))).toBe(false);\n51\t    });\n52\t\n53\t    it('routes Escape to diagram subscribers and reports whether one handled it', () => {\n54\t        const service = new DiagramKeyboardShortcutService({ deleteSelection: () => false });\n55\t        service.addEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, (event) => event.preventDefault());\n56\t\n57\t        expect(service.handleKeyDown(createKeyboardEvent('Escape'))).toBe(true);\n58\t        expect(service.handleKeyDown(createKeyboardEvent('Enter'))).toBe(false);\n59\t    });\n60\t});\n61\t",
+          "providerItemId": "toolu_01QGYMUDqs3akzbDsgMMLKT9",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:56.849Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\diagram_view\\\\surface\\\\diagram_zoom_viewport.test.tsx\",\"offset\":100,\"limit\":60}",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-56",
+          "kind": "event",
+          "label": "Read",
+          "output": "100\t\n101\tlet viewportResizeCallback: ResizeObserverCallback | null = null\n102\t\n103\tclass ViewportResizeObserverStub {\n104\t    private readonly callback: ResizeObserverCallback\n105\t    constructor(callback: ResizeObserverCallback) { this.callback = callback }\n106\t    observe(target: Element) {\n107\t        if (target.getAttribute('aria-label') === 'New diagram scroller') viewportResizeCallback = this.callback\n108\t    }\n109\t    disconnect() {\n110\t        if (viewportResizeCallback === this.callback) viewportResizeCallback = null\n111\t    }\n112\t}\n113\t\n114\tfunction triggerViewportResize() {\n115\t    const callback = viewportResizeCallback\n116\t    if (!callback) throw new Error('Expected viewport resize observer')\n117\t    act(() => { callback([], {} as ResizeObserver) })\n118\t}\n119\t\n120\tfunction expectViewportScrollRange(\n121\t    scroller: HTMLElement,\n122\t    drawingSurface: HTMLElement,\n123\t    geometry: DiagramGeometryService,\n124\t    scale: number,\n125\t    viewportWidth: number,\n126\t    viewportHeight: number,\n127\t) {\n128\t    const scrollerStyle = window.getComputedStyle(scroller)\n129\t    const editor = screen.getByLabelText('New diagram editor')\n130\t    const editorBottomPadding = Number.parseFloat(window.getComputedStyle(editor).paddingBottom) * scale\n131\t    const horizontalPadding = Number.parseFloat(scrollerStyle.paddingLeft) + Number.parseFloat(scrollerStyle.paddingRight)\n132\t    const verticalPadding = Number.parseFloat(scrollerStyle.paddingTop) + Number.parseFloat(scrollerStyle.paddingBottom)\n133\t    const width = geometry.getSurfaceFieldSnapshot('width') * scale + horizontalPadding - viewportWidth\n134\t    const height = geometry.getSurfaceFieldSnapshot('height') * scale + verticalPadding\n135\t        + 80 * scale + editorBottomPadding - viewportHeight\n136\t\n137\t    expect(width).toBeGreaterThanOrEqual(64)\n138\t    expect(height).toBeGreaterThanOrEqual(64)\n139\t    expect(drawingSurface).toHaveStyle({\n140\t        height: `${geometry.getSurfaceFieldSnapshot('height')}px`,\n141\t        width: `${geometry.getSurfaceFieldSnapshot('width')}px`,\n142\t    })\n143\t}\n144\t\n145\tbeforeEach(() => {\n146\t    workspaceViewService.setViewMode('diagrams')\n147\t    keyboardShortcutService.start()\n148\t})\n149\t\n150\tafterEach(() => {\n151\t    cleanup()\n152\t    keyboardShortcutService.stop()\n153\t    vi.unstubAllGlobals()\n154\t})\n155\t\n156\tdescribe('DiagramZoomViewport', () => {\n157\t    it.each(['empty', 'small'])('keeps a scrollable drawing surface for %s diagrams through resize and zoom', (kind) => {\n158\t        const meta: DiagramData['meta'] = { description: '', title: kind, type: 'architecture', version: 1 }\n159\t        const nodes: DiagramData['nodes'] = kind === 'small'",
+          "providerItemId": "toolu_01CBjE4KffBCPqp4MdVJhmJ7",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-10-24T11:59:57.639Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-event-57",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgM2PZTGr1f1YR18EhejW:thinking:0",
+          "sequence": 57,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-24T12:00:13.226Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Doc mostly still valid. The Escape logic itself is unchanged; only how Escape reaches the New viewport changed. I have not edited anything.\n\n**What changed in code:**\n- Before: `diagram_zoom_viewport.tsx` listened for `keydown` on `window` in `handleWindowKeyDown`.\n- Now: `KeyboardShortcutService` (`app/src/services/shortcuts/keyboard_shortcut_service.ts`) owns the window `keydown` listener. In the diagrams view it passes keys to `DiagramKeyboardShortcutService`. For Escape, that service dispatches a cancelable `DIAGRAM_ESCAPE_REQUESTED_EVENT`. Both `diagram_zoom_viewport.tsx` (`handleDiagramEscapeRequested`) and `diagram_current_viewport.tsx` listen to it. A listener marks Escape handled by calling `preventDefault()` on that request event.\n- The body of `handleDiagramEscapeRequested` matches the old `handleWindowKeyDown` branch for branch: edge with source, then pan, then emphasis, then ignore placement/group, then resize/move.\n\n**Out of date in F_447:**\n1. **Wrong handler name.** It says `handleWindowKeyDown` on window Escape. It should be `handleDiagramEscapeRequested`, reached through `diagramKeyboardShortcutService`. The skip guard now reads `detail.keyboardEvent.target`.\n2. **New limit.** Escape only reaches the diagram when the workspace view is `diagrams`.\n3. **New ordering gap.** The Current viewport listens to the same event. If New has an Add tool active and Current has emphasis shown, the first Escape may clear the Current emphasis instead. Which runs first depends on mount order. The doc's priority rule only covers New emphasis, so that part is still correct.\n\n**Still valid:**\n- The planned change itself.\n- Escape on the Choose Add tool menu: `DiagramKeyboardShortcutService` skips Escape already handled by the menu (`defaultPrevented`).\n- The test plan. The tests still fire `keyDown` on `window`; `keyboardShortcutService` is started in `beforeEach`. Test names are unchanged.\n\n**Design question.** Your keyboard rule is that services own shortcuts. Exiting an Add tool only changes the session's active tool, not a viewport-local gesture.\n- **A (my recommendation):** keep the Add-tool branch in the viewport's `handleDiagramEscapeRequested`, next to the existing edge-with-source branch. Smallest change, and the existing viewport tests keep working.\n- **B:** move it into `DiagramKeyboardShortcutService`. It would check whether the active tool starts with `node:` or `edge:` or is `group`, call `setActiveTool('select')`, and only dispatch the request event otherwise. The viewport already resets held pointer gestures when the transient gesture clears. Costs: `diagramEditSessionService` must be injected into the keyboard service, the input/dialog guard moves into the service, the existing edge-with-source branch should probably move too, and the tests move to `diagram_keyboard_shortcut_service.test.ts`.\n\nShould I update F_447 for findings 1–3, and with A or B?",
+          "id": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 58,
+          "timestamp": "2026-10-24T12:00:15.911Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -557,39 +793,39 @@
           "agent": "claude",
           "conversationId": "7667fc8a-ff91-44e8-9676-68ab204d7e29",
           "createdAt": "2026-10-22T14:30:41.985Z",
-          "lastUsedAt": "2026-10-22T14:30:46.376Z",
-          "synchronizedThroughMessageId": "agent-turn-3a7f1e1d-d289-4504-9baa-d597487e0c89-turn-1-assistant-3",
+          "lastUsedAt": "2026-10-24T12:00:15.911Z",
+          "synchronizedThroughMessageId": "agent-turn-7c1ff3ef-7005-4866-9249-7fe67f419200-turn-1-assistant-1",
           "usageBaseline": {
-            "costUsd": 0.7966409999999999,
-            "resultId": "b9562e31-7acb-464c-8578-e4885eb3ce3e",
+            "costUsd": 1.5888501999999998,
+            "resultId": "51de0e2e-4a1c-409c-bf59-e6531f6fdaac",
             "tokens": {
-              "cachedInputTokens": 893867,
-              "inputTokens": 32,
-              "outputTokens": 7728,
+              "cachedInputTokens": 1399436,
+              "inputTokens": 44,
+              "outputTokens": 12686,
               "reasoningTokens": 0,
-              "totalTokens": 901627
+              "totalTokens": 1412166
             }
           }
         }
       ],
       "startedAt": "2026-10-22T14:28:02.135Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 20964,
-          "toolMs": 37229
+          "reasoningMs": 50751,
+          "toolMs": 47516
         },
         "elapsedMs": 99719,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-24T11:59:24.186Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 893867,
-        "inputTokens": 32,
-        "outputTokens": 7728,
+        "cachedInputTokens": 1399436,
+        "inputTokens": 44,
+        "outputTokens": 12686,
         "reasoningTokens": 0,
-        "totalTokens": 901627,
-        "costUsd": 0.7966409999999999
+        "totalTokens": 1412166,
+        "costUsd": 1.5888501999999998
       },
       "usageSchemaVersion": 1,
       "viewed": true
