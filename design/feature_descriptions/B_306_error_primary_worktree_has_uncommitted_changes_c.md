@@ -3,7 +3,7 @@ author:
 id: B_306
 internalId: c198a211-ff9a-41ec-b20d-5d300cac7035
 title: Error: Primary worktree has uncommitted changes; c
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -14,6 +14,23 @@ sentryIssueId: 153373637
 sentryOrganization: elastetic
 branch: b_306_error_primary_worktree_has_uncommitted_changes_c
 worktree: 1
+changedFiles:
+  - app/src/components/hooks/use_primary_changes.ts
+  - app/src/components/primary_change_list.tsx
+  - app/src/components/primary_change_message_field.tsx
+  - app/src/components/primary_change_row.tsx
+  - app/src/components/primary_changes_confirm_button.tsx
+  - app/src/components/primary_changes_dialog.test.tsx
+  - app/src/components/primary_changes_dialog.tsx
+  - app/src/components/worktree_selector.test.tsx
+  - app/src/data/electron_data_bridge.ts
+  - app/src/data/primary_change_types.ts
+  - app/src/services/project/primary_changes_service.node.test.ts
+  - app/src/services/project/primary_changes_service.ts
+  - desktop/src/git/worktree_service.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.test.mjs
 ---
 ## Sentry issue
 

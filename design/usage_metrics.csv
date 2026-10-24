@@ -9048,3 +9048,11 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-24T12:22:18.788Z,token_usage,claude,,,,,50,1937700,20544,0,1958294,,
 2026-10-24T12:22:20.580Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,11,1
 2026-10-24T12:25:30.029Z,token_usage,claude,,,,,42,1376380,8767,0,1385189,,
+2026-10-24T12:28:48.057Z,token_usage,claude,,,,,2,86511,920,0,87433,,
+2026-10-24T12:29:33.468Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,11,0
+2026-10-24T12:31:33.484Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,11,0
+2026-10-24T12:33:33.492Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,12,1
+2026-10-24T12:35:33.505Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,12,0
+2026-10-24T12:37:33.517Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,12,0
+2026-10-24T12:39:33.528Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,12,0
+2026-10-24T12:41:37.409Z,token_usage,claude,,,,,142,9943017,50706,0,9993865,,
