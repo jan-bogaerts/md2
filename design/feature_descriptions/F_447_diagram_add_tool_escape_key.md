@@ -3,7 +3,7 @@ author:
 id: F_447
 internalId: 90ca85d7-9878-4238-a36b-f662d0c8fbd8
 title: diagram add tool escape key
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,8 @@ policy:
 after: d7360813-801d-416c-8b94-d472b499317f
 branch: f_447_diagram_add_tool_escape_key
 worktree: 3
+changedFiles:
+  - app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx
 ---
 When the 'add' tool is selected in a diagram and the user has pressed ctrl while adding items or has not yet added an item, it should be possible to press the 'escape' key so that the default 'select' tool is active again.
 
