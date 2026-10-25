@@ -1427,6 +1427,14 @@
           "role": "assistant",
           "sequence": 34,
           "timestamp": "2026-10-25T13:02:12.262Z"
+        },
+        {
+          "content": "go",
+          "id": "submission-218b8a32-f85c-4302-a50d-1f83f4970d9c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 35,
+          "timestamp": "2026-10-25T13:02:44.156Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1441,7 +1449,7 @@
         }
       ],
       "startedAt": "2026-10-25T13:01:05.506Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -1473,7 +1481,7 @@
           "toolMs": 3200
         },
         "elapsedMs": 66756,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-25T13:02:44.156Z"
       },
       "title": "implement",
       "usage": {
@@ -1484,7 +1492,7 @@
         "totalTokens": 421864
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
