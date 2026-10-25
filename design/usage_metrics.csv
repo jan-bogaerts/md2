@@ -9123,3 +9123,6 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-25T13:03:08.069Z,token_usage,claude,,,,,14,336656,2911,0,339581,,
 2026-10-25T13:02:36.650Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,13,0
 2026-10-25T13:05:02.527Z,token_usage,codex,,,,,11454,886016,2870,1225,901565,,
+2026-10-25T13:06:33.304Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,13,0
+2026-10-25T13:08:33.304Z,account_usage,claude,default,weekly,10080,2026-10-25T17:00:00.000Z,,,,,,13,0
+2026-10-25T13:16:33.340Z,account_usage,claude,default,weekly,10080,2026-10-25T16:59:00.000Z,,,,,,13,0
