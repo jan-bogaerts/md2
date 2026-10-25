@@ -1105,7 +1105,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "90ca85d7-9878-4238-a36b-f662d0c8fbd8",
       "cardPath": "design/feature_descriptions/F_447_diagram_add_tool_escape_key.md",
-      "completedAt": null,
+      "completedAt": "2026-10-25T13:40:39.102Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 76231
@@ -1603,7 +1603,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 41,
-          "timestamp": "2026-10-25T13:40:37.340Z"
+          "timestamp": "2026-10-25T13:40:39.102Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1613,7 +1613,7 @@
           "agent": "claude",
           "conversationId": "ae858cd9-48ad-48f0-b572-df63e9430d2a",
           "createdAt": "2026-10-25T13:21:20.306Z",
-          "lastUsedAt": "2026-10-25T13:40:37.340Z",
+          "lastUsedAt": "2026-10-25T13:40:39.102Z",
           "synchronizedThroughMessageId": "agent-turn-daaac7c4-dc1e-4724-a5d2-4c1dc7374ef5-turn-2-assistant-5",
           "usageBaseline": {
             "costUsd": 1.0204684000000002,
@@ -1629,7 +1629,7 @@
         }
       ],
       "startedAt": "2026-10-25T13:20:37.146Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -1660,8 +1660,8 @@
           "reasoningMs": 15020,
           "toolMs": 186190
         },
-        "elapsedMs": 43160,
-        "runningStartedAt": "2026-10-25T13:37:12.165Z"
+        "elapsedMs": 250097,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
