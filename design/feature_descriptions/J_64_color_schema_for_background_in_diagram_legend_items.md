@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__e3024124-3c82-4b0d-9af0-e50cb93cf995.json
 policy:
+branch: j_64_color_schema_for_background_in_diagram_legend_items
+worktree: 2
 ---
 
 The legend on the diagrams allows for configuration. one of the configs that can be changed, is the background. Currently however, the color picker component proposes a set of hard colors which are not ideal for backgrounds. Can we replace them with their softer counter parts?
