@@ -958,7 +958,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 59221
+        "usedTokens": 67860
       },
       "entries": [
         {
@@ -1435,6 +1435,336 @@
           "role": "user",
           "sequence": 35,
           "timestamp": "2026-10-25T13:02:44.156Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-36",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfdfc10f08191b1f144a9b80e0cc7",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:02:53.233Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Plan approved. Starting Block 1 tests, then production change. Existing bridge and renderer remain untouched.\n\n",
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 37,
+          "timestamp": "2026-10-25T13:02:53.673Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfdff80b08191a74c4367030af6a4",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:02:56.278Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop\\\\src\\\\git\\\\worktree_service.test.mjs' | Select-Object -First 225\"",
+          "content": "import { mkdir, mkdtemp, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';\r\nimport { tmpdir } from 'node:os';\r\nimport { join, resolve } from 'node:path';\r\nimport { createRequire } from 'node:module';\r\nimport { describe, expect, it, vi } from 'vitest';\r\n\r\nconst require = createRequire(import.meta.url);\r\nconst { runGit } = require('./git_commands');\r\nconst { MergeConflictService } = require('./merge_conflict_service');\r\nconst { WorktreeService, parseWorktreeList } = require('./worktree_service');\r\nconst { checkoutOwnershipService } = require('./checkout_ownership_service');\r\n\r\nasync function createRepository() {\r\n    const folderPath = await realpath(await mkdtemp(join(tmpdir(), 'md2-worktree-sync-')));\r\n    const primaryPath = join(folderPath, 'primary');\r\n    const linkedPath = join(folderPath, 'linked');\r\n    await mkdir(primaryPath);\r\n    await runGit(primaryPath, ['init', '-b', 'main']);\r\n    await runGit(primaryPath, ['config', 'user.email', 'test@example.com']);\r\n    await runGit(primaryPath, ['config', 'user.name', 'MD2 Test']);\r\n    await writeFile(join(primaryPath, 'base.txt'), 'base\\n');\r\n    await runGit(primaryPath, ['add', 'base.txt']);\r\n    await runGit(primaryPath, ['commit', '-m', 'Initial commit']);\r\n    await runGit(primaryPath, ['worktree', 'add', '-b', 'feature', linkedPath, 'main']);\r\n\r\n    return { folderPath, linkedPath, primaryPath };\r\n}\r\n\r\nasync function commitLinkedChange(linkedPath) {\r\n    await writeFile(join(linkedPath, 'feature.txt'), 'feature\\n');\r\n    await runGit(linkedPath, ['add', 'feature.txt']);\r\n    await runGit(linkedPath, ['commit', '-m', 'Feature change']);\r\n}\r\n\r\nfunction createStore() {\r\n    const values = new Map();\r\n\r\n    return {\r\n        delete: (key) => values.delete(key),\r\n        get: (key) => values.get(key),\r\n        set: (key, value) => values.set(key, value),\r\n    };\r\n}\r\n\r\nfunction createService(options = {}) {\r\n    const mergeConflictService = options.mergeConflicts\r\n        ? new MergeConflictService({ configProvider: () => ({ mergeConflictResolverCommand: '' }), runGit, store: createStore() })\r\n        : null;\r\n\r\n    return new WorktreeService({\r\n        clearTimeout: () => {},\r\n        mergeConflictService,\r\n        runGit,\r\n        setTimeout: () => 1,\r\n        trashItem: options.trashItem,\r\n    });\r\n}\r\n\r\ndescribe('WorktreeService linked worktree mutations', () => {\r\n    it('creates a linked worktree and prepares its parking branch', async () => {\r\n        const repository = await createRepository();\r\n        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };\r\n        const service = createService();\r\n        const addedPath = join(repository.folderPath, 'added');\r\n\r\n        try {\r\n            await service.startProject(project);\r\n            await service.add(project, addedPath);\r\n\r\n            const addedRecord = service.getRecords(project).find((record) => record.path === addedPath);\r\n            expect(addedRecord).toBeDefined();\r\n            expect(await runGit(addedPath, ['branch', '--show-current'])).toBe(addedRecord.parkingBranch);\r\n        } finally {\r\n            service.stopProject();\r\n            await rm(repository.folderPath, { force: true, recursive: true });\r\n        }\r\n    }, 30_000);\r\n\r\n    it('removes a clean checkout without deleting its branch', async () => {\r\n        const repository = await createRepository();\r\n        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };\r\n        const service = createService();\r\n\r\n        try {\r\n            await service.startProject(project);\r\n            await service.remove(project, repository.linkedPath);\r\n\r\n            expect(service.getRecords(project)).toEqual([]);\r\n            expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('feature');\r\n        } finally {\r\n            service.stopProject();\r\n            await rm(repository.folderPath, { force: true, recursive: true });\r\n        }\r\n    }, 30_000);\r\n\r\n    it('rejects adding a folder that already ho\n[2261 characters omitted]\n            expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('feature');\r\n        } finally {\r\n            service.stopProject();\r\n            await rm(repository.folderPath, { force: true, recursive: true });\r\n        }\r\n    }, 30_000);\r\n\r\n    it('leaves an empty folder behind in files mode', async () => {\r\n        const repository = await createRepository();\r\n        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };\r\n        const service = createService();\r\n        await writeFile(join(repository.linkedPath, 'untracked.txt'), 'agent output\\n');\r\n\r\n        try {\r\n            await service.startProject(project);\r\n            await service.remove(project, repository.linkedPath, 'files');\r\n\r\n            expect(await listWorktreePaths(repository.primaryPath)).not.toContain(repository.linkedPath);\r\n            expect(await folderExists(repository.linkedPath)).toBe(true);\r\n            expect(await readdir(repository.linkedPath)).toEqual([]);\r\n            expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('feature');\r\n        } finally {\r\n            service.stopProject();\r\n            await rm(repository.folderPath, { force: true, recursive: true });\r\n        }\r\n    }, 30_000);\r\n\r\n    it('keeps folder and files in unregister mode and leaves no dangling .git link', async () => {\r\n        const repository = await createRepository();\r\n        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };\r\n        const service = createService();\r\n        await writeFile(join(repository.linkedPath, 'untracked.txt'), 'agent output\\n');\r\n\r\n        try {\r\n            await service.startProject(project);\r\n            await service.remove(project, repository.linkedPath, 'unregister');\r\n\r\n            expect(await listWorktreePaths(repository.primaryPath)).not.toContain(repository.linkedPath);\r\n            expect((await readdir(repository.linkedPath)).sort()).toEqual(['base.txt', 'untracked.txt']);\r\n            expect(await folderExists(join(repository.linkedPath, '.git'))).toBe(false);\r\n            await expect(stat(join(repository.linkedPath, '.git'))).rejects.toThrow();\r\n            expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('feature');\r\n        } finally {\r\n            service.stopProject();\r\n            await rm(repository.folderPath, { force: true, recursive: true });\r\n        }\r\n    }, 30_000);\r\n\r\n    it('prunes the stale registration of a worktree folder that is gone from disk', async () => {\r\n        const repository = await createRepository();\r\n        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };\r\n        const service = createService();\r\n\r\n        try {\r\n            await service.startProject(project);\r\n            await rm(repository.linkedPath, { force: true, recursive: true });\r\n            await service.refreshLocal();\r\n\r\n            const [record] = service.getRecords(project);\r\n            expect(record).toMatchObject({ parkingBranch: null, path: repository.linkedPath, valid: false });\r\n\r\n            await service.remove(project, repository.linkedPath, 'folder');\r\n            expect(service.getRecords(project)).toEqual([]);\r\n            expect(await listWorktreePaths(repository.primaryPath)).not.toContain(repository.linkedPath);\r\n        } finally {\r\n            service.stopProject();\r\n            await rm(repository.folderPath, { force: true, recursive: true });\r\n        }\r\n    }, 30_000);\r\n});\r\n\r\ndescribe('WorktreeService record reading', () => {\r\n    it('keeps healthy records when another worktree folder is missing', async () => {\r\n        const repository = await createRepository();\r\n        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };\r\n        const service = createService();\r\n        const healthyPath = join(repository.folderPath, 'healthy');\r\n\r\n        try {\r\n            await service.startProject(project);\r\n",
+          "durationMs": 127,
+          "exitCode": 0,
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-39",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop\\\\src\\\\git\\\\worktree_service.test.mjs' | Select-Object -First 225\"",
+          "providerItemId": "exec-020479e8-1575-46b4-9f42-57dcdc182361",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-10-25T13:02:58.071Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-40",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfe0997388191a26865c97de238a8",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:03:06.368Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\git\\worktree_service.test.mjs",
+          "deletions": 1,
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-41",
+          "insertions": 59,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-9f76d4a8-ebbe-4e3e-a7e9-0112e042b682",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-10-25T13:03:14.905Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-42",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfe13a4b88191ba300ad90447c34d",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:03:16.402Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-43",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfe16d9a0819187d4aef6c42ae63e",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:03:19.616Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\git\\worktree_service.js",
+          "deletions": 1,
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-44",
+          "insertions": 6,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-7f757627-9829-4519-bca4-e07d440427d1",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-10-25T13:03:21.789Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfe1a038c81918620c2afc420b06a",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:03:22.777Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Blocks 1–2 done. Discard now tolerates clean failure only after Git confirms no tracked or untracked changes; original error survives dirty result. Running requested test file and desktop lint.\n\n",
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-10-25T13:03:23.438Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfe1e1f6c8191949aa2bf170e6d09",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:03:26.922Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> desktop@0.9.1 lint\n> eslint .\n\n",
+          "durationMs": 3541,
+          "exitCode": 0,
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-1aa98289-bc7b-4d39-a85e-405aa9d81c79",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-10-25T13:03:32.228Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- src/git/worktree_service.test.mjs'",
+          "content": "\n> desktop@0.9.1 test\n> vitest run src/git/worktree_service.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/desktop\n\n\n Test Files  1 passed (1)\n      Tests  33 passed (33)\n   Start at  14:03:29\n   Duration  69.39s (transform 30ms, setup 0ms, import 72ms, tests 69.18s, environment 0ms)\n\n",
+          "durationMs": 70099,
+          "exitCode": 0,
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-49",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- src/git/worktree_service.test.mjs'",
+          "providerItemId": "exec-6e5c3df9-fc7a-4628-9b7f-24bd2401d7e6",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-10-25T13:04:39.321Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-50",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfe4020708191830a2e865f0d067b",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:04:00.898Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "item/commandExecution/terminalInteraction: unknown (exec-6e5c3df9-fc7a-4628-9b7f-24bd2401d7e6)",
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-51",
+          "kind": "event",
+          "label": "Codex protocol diagnostic",
+          "providerItemId": "diagnostic:exec-6e5c3df9-fc7a-4628-9b7f-24bd2401d7e6:1",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-10-25T13:04:31.312Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-52",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfe5f8b9c8191aa16bd88d405ab94",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:04:32.308Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-53",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfe68bea081919dff7fc22c479267",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:04:41.510Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Verification passed: 33 related tests, desktop lint clean. Final block: update external feature status only.\n\n",
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 54,
+          "timestamp": "2026-10-25T13:04:42.116Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_323_drop_changes_does_not_work.md",
+          "deletions": 1,
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-55",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-60026962-72cf-4b9c-b4c0-c00964f627f1",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-10-25T13:04:50.276Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-56",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfe72eea48191a8ba2948ec107a86",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:04:51.699Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^status:\" '\"'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_323_drop_changes_does_not_work.md'\"",
+          "content": "6:status: ready\n",
+          "durationMs": 296,
+          "exitCode": 0,
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-57",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^status:\" '\"'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_323_drop_changes_does_not_work.md'\"",
+          "providerItemId": "exec-7716faa9-9fe4-4235-842a-866bf48fd305",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-10-25T13:04:55.068Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 8 \\\"remainingChanges|createFailedCleanGitRunner|completes discard when|rethrows failed clean\\\" desktop\\\\src\\\\git\\\\worktree_service.js desktop\\\\src\\\\git\\\\worktree_service.test.mjs\"",
+          "content": "desktop\\src\\git\\worktree_service.test.mjs-51-        clearTimeout: () => {},\ndesktop\\src\\git\\worktree_service.test.mjs-52-        mergeConflictService,\ndesktop\\src\\git\\worktree_service.test.mjs-53-        runGit: options.runGit ?? runGit,\ndesktop\\src\\git\\worktree_service.test.mjs-54-        setTimeout: () => 1,\ndesktop\\src\\git\\worktree_service.test.mjs-55-        trashItem: options.trashItem,\ndesktop\\src\\git\\worktree_service.test.mjs-56-    });\ndesktop\\src\\git\\worktree_service.test.mjs-57-}\ndesktop\\src\\git\\worktree_service.test.mjs-58-\ndesktop\\src\\git\\worktree_service.test.mjs:59:function createFailedCleanGitRunner(cleanError, statusOutput) {\ndesktop\\src\\git\\worktree_service.test.mjs-60-    let cleanFailed = false;\ndesktop\\src\\git\\worktree_service.test.mjs-61-\ndesktop\\src\\git\\worktree_service.test.mjs-62-    return vi.fn(async (rootPath, argumentsValue) => {\ndesktop\\src\\git\\worktree_service.test.mjs-63-        if (argumentsValue[0] === 'clean' && argumentsValue[1] === '-fd') {\ndesktop\\src\\git\\worktree_service.test.mjs-64-            cleanFailed = true;\ndesktop\\src\\git\\worktree_service.test.mjs-65-            throw cleanError;\ndesktop\\src\\git\\worktree_service.test.mjs-66-        }\ndesktop\\src\\git\\worktree_service.test.mjs-67-        if (cleanFailed && argumentsValue[0] === 'status' && argumentsValue[1] === '--porcelain') return statusOutput;\n--\ndesktop\\src\\git\\worktree_service.test.mjs-122-            expect(await listWorktreePaths(repository.primaryPath)).not.toContain(occupiedPath);\ndesktop\\src\\git\\worktree_service.test.mjs-123-            expect(await readdir(occupiedPath)).toEqual(['existing.txt']);\ndesktop\\src\\git\\worktree_service.test.mjs-124-        } finally {\ndesktop\\src\\git\\worktree_service.test.mjs-125-            service.stopProject();\ndesktop\\src\\git\\worktree_service.test.mjs-126-            await rm(repository.folderPath, { force: true, recursive: true });\ndesktop\\src\\git\\worktree_service.test.mjs-127-        }\ndesktop\\src\\git\\worktree_service.test.mjs-128-    }, 30_000);\ndesktop\\src\\git\\worktree_service.test.mjs-129-\ndesktop\\src\\git\\worktree_service.test.mjs:130:    it('completes discard when failed clean leaves no tracked or untracked changes', async () => {\ndesktop\\src\\git\\worktree_service.test.mjs-131-        const repository = await createRepository();\ndesktop\\src\\git\\worktree_service.test.mjs-132-        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };\ndesktop\\src\\git\\worktree_service.test.mjs-133-        const cleanError = new Error('git clean could not remove ignored residue');\ndesktop\\src\\git\\worktree_service.test.mjs:134:        const mockedRunGit = createFailedCleanGitRunner(cleanError, '');\ndesktop\\src\\git\\worktree_service.test.mjs-135-        const service = createService({ runGit: mockedRunGit });\ndesktop\\src\\git\\worktree_service.test.mjs-136-\ndesktop\\src\\git\\worktree_service.test.mjs-137-        try {\ndesktop\\src\\git\\worktree_service.test.mjs-138-            await service.startProject(project);\ndesktop\\src\\git\\worktree_service.test.mjs-139-            const refreshAfterMutation = vi.spyOn(service, 'refreshAfterMutation');\ndesktop\\src\\git\\worktree_service.test.mjs-140-\ndesktop\\src\\git\\worktree_service.test.mjs-141-            await expect(service.discard(project, 'feature')).resolves.toBeUndefined();\ndesktop\\src\\git\\worktree_service.test.mjs-142-\n--\ndesktop\\src\\git\\worktree_service.test.mjs-144-            expect(mockedRunGit.mock.calls[cleanCallIndex + 1]).toEqual([repository.linkedPath, ['status', '--porcelain']]);\ndesktop\\src\\git\\worktree_service.test.mjs-145-            expect(refreshAfterMutation).toHaveBeenCalledOnce();\ndesktop\\src\\git\\worktree_service.test.mjs-146-        } finally {\ndesktop\\src\\git\\worktree_service.test.mjs-147-            service.stopProject();\ndesktop\\src\\git\\worktree_service.test.mjs-148-            await rm(repository.folderPath, { force: true, recursive: true });\ndesktop\\src\\git\\worktree_service.test.mjs-149-        }\ndesktop\\src\\git\\worktree_service.test.mjs-150-    }, 30_000);\ndesktop\\src\\git\\worktree_service.test.mjs-151-\ndesktop\\src\\git\\worktree_service.test.mjs:152:    it('rethrows failed clean when tracked or untracked changes remain', async () => {\ndesktop\\src\\git\\worktree_service.test.mjs-153-        const repository = await createRepository();\ndesktop\\src\\git\\worktree_service.test.mjs-154-        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };\ndesktop\\src\\git\\worktree_service.test.mjs-155-        const cleanError = new Error('git clean failed');\ndesktop\\src\\git\\worktree_service.test.mjs:156:        const mockedRunGit = createFailedCleanGitRunner(cleanError, '?? remaining.txt');\ndesktop\\src\\git\\worktree_service.test.mjs-157-        const service = createService({ runGit: mockedRunGit });\ndesktop\\src\\git\\worktree_service.test.mjs-158-\ndesktop\\src\\git\\worktree_service.test.mjs-159-        try {\ndesktop\\src\\git\\worktree_service.test.mjs-160-            await service.startProject(project);\ndesktop\\src\\git\\worktree_service.test.mjs-161-            const refreshAfterMutation = vi.spyOn(service, 'refreshAfterMutation');\ndesktop\\src\\git\\worktree_service.test.mjs-162-\ndesktop\\src\\git\\worktree_service.test.mjs-163-            await expect(service.discard(project, 'feature')).rejects.toBe(cleanError);\ndesktop\\src\\git\\worktree_service.test.mjs-164-\n--\ndesktop\\src\\git\\worktree_service.js-818-\ndesktop\\src\\git\\worktree_service.js-819-    discard(project, worktreeBranch) {\ndesktop\\src\\git\\worktree_service.js-820-        return this.enqueueMutation(async () => {\ndesktop\\src\\git\\worktree_service.js-821-            const { record } = await this.resolveBranch(project, worktreeBranch);\ndesktop\\src\\git\\worktree_service.js-822-            await this.runGit(record.path, ['reset', '--hard', 'HEAD']);\ndesktop\\src\\git\\worktree_service.js-823-            try {\ndesktop\\src\\git\\worktree_service.js-824-                await this.runGit(record.path, ['clean', '-fd']);\ndesktop\\src\\git\\worktree_service.js-825-            } catch (cleanError) {\ndesktop\\src\\git\\worktree_service.js:826:                const remainingChanges = await this.runGit(record.path, ['status', '--porcelain']);\ndesktop\\src\\git\\worktree_service.js:827:                if (remainingChanges.length > 0) throw cleanError;\ndesktop\\src\\git\\worktree_service.js-828-            }\ndesktop\\src\\git\\worktree_service.js-829-            await this.refreshAfterMutation();\ndesktop\\src\\git\\worktree_service.js-830-        });\ndesktop\\src\\git\\worktree_service.js-831-    }\ndesktop\\src\\git\\worktree_service.js-832-\ndesktop\\src\\git\\worktree_service.js-833-    park(project, worktreeBranch) {\ndesktop\\src\\git\\worktree_service.js-834-        const resolution = this.resolveCachedBranch(project, worktreeBranch);\ndesktop\\src\\git\\worktree_service.js-835-\n",
+          "durationMs": 281,
+          "exitCode": 0,
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-58",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 8 \\\"remainingChanges|createFailedCleanGitRunner|completes discard when|rethrows failed clean\\\" desktop\\\\src\\\\git\\\\worktree_service.js desktop\\\\src\\\\git\\\\worktree_service.test.mjs\"",
+          "providerItemId": "exec-086a2c76-a97b-4c65-8860-9a2807992ae9",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-10-25T13:04:55.108Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfe78fdc081919fca5f76e7664d83",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:04:57.898Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-event-60",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_048cd4aecdeff80c016addfe7ba8d08191aa8e6a5e2e6f2349",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-25T13:05:00.484Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Implemented B_323.\n\n- Failed `git clean -fd` now triggers `git status --porcelain`.\n- Empty status continues parking/unassignment flow.\n- Dirty status rethrows original clean error.\n- Ignored residue remains untouched.\n- Added both regression cases.\n\nVerification:\n\n- Related tests: 33 passed.\n- Desktop lint: passed.\n- Feature [status set to `ready`](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_323_drop_changes_does_not_work.md:6).\n\nChanged [worktree_service.js](C:/Users/janbo/Documents/dev/md2_workers/dev1/desktop/src/git/worktree_service.js:819) and [worktree_service.test.mjs](C:/Users/janbo/Documents/dev/md2_workers/dev1/desktop/src/git/worktree_service.test.mjs:130).\n\n",
+          "id": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 61,
+          "timestamp": "2026-10-25T13:05:02.527Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1444,8 +1774,8 @@
           "agent": "codex",
           "conversationId": "01a17326-8297-7492-937c-454336d4d0a4",
           "createdAt": "2026-10-25T13:02:12.262Z",
-          "lastUsedAt": "2026-10-25T13:02:12.262Z",
-          "synchronizedThroughMessageId": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-turn-1-assistant-3"
+          "lastUsedAt": "2026-10-25T13:05:02.527Z",
+          "synchronizedThroughMessageId": "agent-turn-f4d565a4-49df-4895-8c16-69e3fe954b7e-turn-2-assistant-4"
         }
       ],
       "startedAt": "2026-10-25T13:01:05.506Z",
@@ -1455,41 +1785,41 @@
           {
             "id": "0",
             "subject": "Block 1 — Add desktop regression tests for failed clean with empty versus dirty porcelain status",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "1",
             "subject": "Block 2 — Update WorktreeService.discard to verify status after clean failure and preserve original error when still dirty",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 3 — Run worktree_service.test.mjs and desktop lint; fix only related failures",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Block 4 — Set external B_323 feature status to ready after verified implementation",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-10-25T13:02:07.678Z"
+        "updatedAt": "2026-10-25T13:04:58.930Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 120,
-          "toolMs": 3200
+          "reasoningMs": 296,
+          "toolMs": 80028
         },
         "elapsedMs": 66756,
         "runningStartedAt": "2026-10-25T13:02:44.156Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 357760,
-        "inputTokens": 60683,
-        "outputTokens": 2693,
-        "reasoningTokens": 728,
-        "totalTokens": 421864
+        "cachedInputTokens": 1243776,
+        "inputTokens": 72137,
+        "outputTokens": 5563,
+        "reasoningTokens": 1953,
+        "totalTokens": 1323429
       },
       "usageSchemaVersion": 1,
       "viewed": true
