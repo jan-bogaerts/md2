@@ -1572,14 +1572,14 @@
         }
       ],
       "startedAt": "2026-10-22T14:28:41.330Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 99740,
           "toolMs": 119497
         },
-        "elapsedMs": 264177,
-        "runningStartedAt": "2026-10-25T13:20:56.560Z"
+        "elapsedMs": 296329,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
@@ -1591,7 +1591,7 @@
         "costUsd": 3.0836734
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {

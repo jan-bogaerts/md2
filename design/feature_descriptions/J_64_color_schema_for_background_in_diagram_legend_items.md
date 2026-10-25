@@ -3,7 +3,7 @@ author:
 id: J_64
 internalId: e3024124-3c82-4b0d-9af0-e50cb93cf995
 title: color schema for background in diagram legend items
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,14 @@ agents:
 policy:
 branch: j_64_color_schema_for_background_in_diagram_legend_items
 worktree: 2
+changedFiles:
+  - app/src/components/color_picker_button.test.tsx
+  - app/src/components/color_picker_button.tsx
+  - app/src/components/color_picker_field.test.tsx
+  - app/src/components/color_picker_field.tsx
+  - app/src/components/color_picker_palette.ts
+  - app/src/components/diagram_view/formatting/diagram_formatting_popover.test.tsx
+  - app/src/components/diagram_view/formatting/diagram_formatting_popover.tsx
 ---
 
 The legend on the diagrams allows for configuration. one of the configs that can be changed, is the background. Currently however, the color picker component proposes a set of hard colors which are not ideal for backgrounds. Can we replace them with their softer counter parts?
