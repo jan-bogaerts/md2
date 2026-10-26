@@ -1804,7 +1804,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 131,
-          "timestamp": "2026-10-25T13:39:08.438Z"
+          "timestamp": "2026-10-26T08:08:28.493Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1819,7 +1819,7 @@
         }
       ],
       "startedAt": "2026-10-22T14:28:22.415Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
@@ -1850,8 +1850,8 @@
           "reasoningMs": 510,
           "toolMs": 11446
         },
-        "elapsedMs": 234841,
-        "runningStartedAt": "2026-10-25T13:38:09.197Z"
+        "elapsedMs": 294082,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
