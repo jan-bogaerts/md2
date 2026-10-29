@@ -3,13 +3,15 @@ author:
 id: F_445
 internalId: d7360813-801d-416c-8b94-d472b499317f
 title: diagrams delete key
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__d7360813-801d-416c-8b94-d472b499317f.json
 policy:
 changedFiles:
+  - app/src/services/shortcuts/diagram_keyboard_shortcut_service.test.ts
+  - app/src/services/shortcuts/diagram_keyboard_shortcut_service.ts
   - design/feature_descriptions/J_63_keyboard_service_owns_shortcuts.md
 after: 223f749a-dd16-4a42-b8de-3ce63eab686d
 branch: f_445_diagrams_delete_key
