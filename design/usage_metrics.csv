@@ -9400,3 +9400,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-29T15:56:16.604Z,account_usage,claude,default,weekly,10080,2026-11-01T16:59:00.000Z,,,,,,0,0
 2026-10-29T15:59:28.096Z,token_usage,codex,,,,,10458,1555584,8020,3591,1577653,,
 2026-10-29T15:59:56.869Z,token_usage,claude,,,,,32,1203169,12410,0,1215611,,
+2026-10-29T16:03:27.361Z,token_usage,claude,,,,,2,103313,685,0,104000,,
