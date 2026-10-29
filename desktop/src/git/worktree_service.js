@@ -820,7 +820,12 @@ class WorktreeService {
         return this.enqueueMutation(async () => {
             const { record } = await this.resolveBranch(project, worktreeBranch);
             await this.runGit(record.path, ['reset', '--hard', 'HEAD']);
-            await this.runGit(record.path, ['clean', '-fd']);
+            try {
+                await this.runGit(record.path, ['clean', '-fd']);
+            } catch (cleanError) {
+                const remainingChanges = await this.runGit(record.path, ['status', '--porcelain']);
+                if (remainingChanges.length > 0) throw cleanError;
+            }
             await this.refreshAfterMutation();
         });
     }

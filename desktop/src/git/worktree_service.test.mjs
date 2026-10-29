@@ -50,9 +50,23 @@ function createService(options = {}) {
     return new WorktreeService({
         clearTimeout: () => {},
         mergeConflictService,
-        runGit,
+        runGit: options.runGit ?? runGit,
         setTimeout: () => 1,
         trashItem: options.trashItem,
+    });
+}
+
+function createFailedCleanGitRunner(cleanError, statusOutput) {
+    let cleanFailed = false;
+
+    return vi.fn(async (rootPath, argumentsValue) => {
+        if (argumentsValue[0] === 'clean' && argumentsValue[1] === '-fd') {
+            cleanFailed = true;
+            throw cleanError;
+        }
+        if (cleanFailed && argumentsValue[0] === 'status' && argumentsValue[1] === '--porcelain') return statusOutput;
+
+        return runGit(rootPath, argumentsValue);
     });
 }
 
@@ -107,6 +121,50 @@ describe('WorktreeService linked worktree mutations', () => {
             await expect(service.add(project, occupiedPath)).rejects.toThrow(/Linked worktree folder is not empty/u);
             expect(await listWorktreePaths(repository.primaryPath)).not.toContain(occupiedPath);
             expect(await readdir(occupiedPath)).toEqual(['existing.txt']);
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('completes discard when failed clean leaves no tracked or untracked changes', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const cleanError = new Error('git clean could not remove ignored residue');
+        const mockedRunGit = createFailedCleanGitRunner(cleanError, '');
+        const service = createService({ runGit: mockedRunGit });
+
+        try {
+            await service.startProject(project);
+            const refreshAfterMutation = vi.spyOn(service, 'refreshAfterMutation');
+
+            await expect(service.discard(project, 'feature')).resolves.toBeUndefined();
+
+            const cleanCallIndex = mockedRunGit.mock.calls.findIndex(([, argumentsValue]) => argumentsValue[0] === 'clean');
+            expect(mockedRunGit.mock.calls[cleanCallIndex + 1]).toEqual([repository.linkedPath, ['status', '--porcelain']]);
+            expect(refreshAfterMutation).toHaveBeenCalledOnce();
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('rethrows failed clean when tracked or untracked changes remain', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const cleanError = new Error('git clean failed');
+        const mockedRunGit = createFailedCleanGitRunner(cleanError, '?? remaining.txt');
+        const service = createService({ runGit: mockedRunGit });
+
+        try {
+            await service.startProject(project);
+            const refreshAfterMutation = vi.spyOn(service, 'refreshAfterMutation');
+
+            await expect(service.discard(project, 'feature')).rejects.toBe(cleanError);
+
+            const cleanCallIndex = mockedRunGit.mock.calls.findIndex(([, argumentsValue]) => argumentsValue[0] === 'clean');
+            expect(mockedRunGit.mock.calls[cleanCallIndex + 1]).toEqual([repository.linkedPath, ['status', '--porcelain']]);
+            expect(refreshAfterMutation).not.toHaveBeenCalled();
         } finally {
             service.stopProject();
             await rm(repository.folderPath, { force: true, recursive: true });
