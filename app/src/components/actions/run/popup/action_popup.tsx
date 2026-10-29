@@ -84,6 +84,7 @@ interface ActionPopupProps {
     popupEntryId?: string
     popupVisible?: boolean
     stackPosition?: number
+    subscribeFocusRequest?: (listener: () => void) => () => void
 }
 
 /** Universal action selector and run popup for the supplied context. */

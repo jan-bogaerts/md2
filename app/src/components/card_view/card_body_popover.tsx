@@ -28,6 +28,7 @@ import { isWorktreeIntegratable, worktreeService } from '../../services/project/
 import { dataService } from '../../services/data/data_service'
 import {
     cardPopupService,
+    subscribeCardPopupFocusRequest,
     subscribeCardPopups,
     type CardDetailsPopupEntry,
 } from '../../services/card_popup_service'
@@ -108,6 +109,10 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
     const readOnly = useProjectReadOnly()
     const { cardInternalId, diffSelection } = entry
     const anchorElement = entry.anchorElement.isConnected ? entry.anchorElement : entry.fallbackAnchorElement
+    const subscribeFocusRequest = useCallback(
+        (listener: () => void) => subscribeCardPopupFocusRequest(entry.id, listener),
+        [entry.id],
+    )
     const card = useCardMetadataByInternalId(cardInternalId)
     const activity = useCardConversationsByInternalId(cardInternalId)
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
@@ -278,6 +283,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                 resizeLabel="Resize card details popup"
                 stackPosition={stackPosition}
                 storageKey={isMobile ? undefined : CARD_BODY_POPOVER_SIZE_KEY}
+                subscribeFocusRequest={subscribeFocusRequest}
             >
                 <MarkdownTypeaheadLayerProvider stackPosition={stackPosition}>
                     {card ? (

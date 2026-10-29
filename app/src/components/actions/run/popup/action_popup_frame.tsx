@@ -45,7 +45,7 @@ export function ActionPopupFrame(
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,
         onClose, onSelectAction, onToggleFullHeight, open, primaryPath, readOnlyMessage, stackPosition,
-        target, targetTitle, titleId,
+        subscribeFocusRequest, target, targetTitle, titleId,
     } = contentProps
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -116,6 +116,7 @@ export function ActionPopupFrame(
             resizeLabel="Resize action popup"
             stackPosition={stackPosition}
             storageKey={isMobile ? undefined : sizeStorageKey}
+            subscribeFocusRequest={subscribeFocusRequest}
         >
             <MarkdownTypeaheadLayerProvider stackPosition={stackPosition ?? 0}>
                 <Box onKeyDown={handleKeyDown} sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>

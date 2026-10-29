@@ -44,6 +44,7 @@ interface ResizablePopperBaseProps {
     resizeLabel: string
     stackPosition?: number
     storageKey?: string
+    subscribeFocusRequest?: (listener: () => void) => () => void
 }
 
 type ResizablePopperProps = ResizablePopperBaseProps & ({
@@ -221,6 +222,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         resizeLabel,
         stackPosition,
         storageKey,
+        subscribeFocusRequest,
     } = props
     const focusOnMount = focusOnMountProp ?? stackPosition !== undefined
     const [size, setSize] = useState(() => loadSize(
@@ -278,6 +280,17 @@ export function ResizablePopper(props: ResizablePopperProps) {
         focusOnMountRef.current = false
         element.focus()
     }, [])
+    useEffect(() => {
+        if (!subscribeFocusRequest) return
+
+        return subscribeFocusRequest(() => {
+            if (paperRef.current) {
+                paperRef.current.focus()
+                return
+            }
+            focusOnMountRef.current = true
+        })
+    }, [subscribeFocusRequest])
     useEffect(() => {
         if (!storageKey || persistSizeOnResizeEndOnly) return
 

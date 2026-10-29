@@ -5,7 +5,7 @@ import { useDndContext, useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useSyncExternalStore, type KeyboardEvent } from 'react'
 import { ResizablePopper } from '../../../resizable_popper';
-import { cardPopupService, subscribeCardPopups } from '../../../../services/card_popup_service';
+import { cardPopupService, subscribeCardPopupFocusRequest, subscribeCardPopups } from '../../../../services/card_popup_service';
 import type { ProjectSnapshot } from '../../../../data/data_types'
 import { CARD_ADDED_EVENT, CARD_REMOVED_EVENT, cardCollectionFieldChangedEvent, dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
@@ -74,6 +74,10 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
     const entry = entries.find(({ kind }) => kind === 'sequence');
     const stackPosition = entry ? entries.indexOf(entry) : 0;
     const visible = !isMobile || !entry || entries.at(-1)?.id === entry.id;
+    const entryId = entry?.id;
+    const subscribeFocusRequest = useMemo(() => entryId
+        ? (listener: () => void) => subscribeCardPopupFocusRequest(entryId, listener)
+        : undefined, [entryId]);
     const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot)
     const activeCards = useSyncExternalStore(subscribeActiveCards, getActiveCards, getActiveCards)
     const { actions } = useActions()
@@ -206,6 +210,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
             paperSx={{ display: 'flex', flexDirection: 'column' }}
             resizeLabel="Resize card sequence"
             stackPosition={stackPosition}
+            subscribeFocusRequest={subscribeFocusRequest}
         >
             <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
                 <DialogTitle

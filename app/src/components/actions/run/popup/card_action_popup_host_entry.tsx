@@ -1,5 +1,7 @@
+import { useCallback } from 'react'
 import {
     cardPopupService,
+    subscribeCardPopupFocusRequest,
     type CardActionPopupEntry,
 } from '../../../../services/card_popup_service'
 import { ActionPopup } from './action_popup'
@@ -20,6 +22,11 @@ export function CardActionPopupHostEntry({ entry, stackPosition, visible }: Card
         cardPopupService.activate(entry.id)
     }
 
+    const subscribeFocusRequest = useCallback(
+        (listener: () => void) => subscribeCardPopupFocusRequest(entry.id, listener),
+        [entry.id],
+    )
+
     const anchorElement = entry.anchorElement.isConnected ? entry.anchorElement : entry.fallbackAnchorElement
 
     return (
@@ -36,6 +43,7 @@ export function CardActionPopupHostEntry({ entry, stackPosition, visible }: Card
             popupEntryId={entry.id}
             popupVisible={visible}
             stackPosition={stackPosition}
+            subscribeFocusRequest={subscribeFocusRequest}
         />
     )
 }
