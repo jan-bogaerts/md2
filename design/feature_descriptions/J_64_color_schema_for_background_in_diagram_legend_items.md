@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__e3024124-3c82-4b0d-9af0-e50cb93cf995.json
 policy:
-branch: j_64_color_schema_for_background_in_diagram_legend_items
-worktree: 2
 changedFiles:
   - app/src/components/color_picker_button.test.tsx
   - app/src/components/color_picker_button.tsx
