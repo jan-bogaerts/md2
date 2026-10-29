@@ -439,14 +439,6 @@ export function DiagramZoomViewport({
         const { keyboardEvent } = (event as CustomEvent<DiagramEscapeRequestedDetail>).detail
         if (keyboardEvent.target instanceof Element
             && keyboardEvent.target.closest('input, textarea, [contenteditable="true"], [role="dialog"]')) return
-        if (drawing.isDrawingActive() && drawing.hasSource()) {
-            event.preventDefault()
-            suppressClickRef.current = false
-            drawing.cancelDrawing()
-            session.setActiveTool('select')
-
-            return
-        }
         if (activePointerGestureRef.current === 'pan') {
             event.preventDefault()
             endPanGesture()
@@ -461,7 +453,6 @@ export function DiagramZoomViewport({
 
             return
         }
-        if (activePointerGestureRef.current === 'placement' || activePointerGestureRef.current === 'group') return
 
         event.preventDefault()
         suppressClickRef.current = false
@@ -469,7 +460,7 @@ export function DiagramZoomViewport({
         else movement.cancelMove()
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [drawing, emphasis, endPanGesture, movement, pan, releaseActivePointer, resize, session])
+    }, [emphasis, endPanGesture, movement, pan, releaseActivePointer, resize])
 
     const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
         if (!event.currentTarget.contains(event.target as Node)) return

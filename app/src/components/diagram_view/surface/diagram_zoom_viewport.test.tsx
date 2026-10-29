@@ -379,7 +379,7 @@ describe('DiagramZoomViewport', () => {
         expect(screen.queryByTestId('diagram-edge-drawing-preview')).not.toBeInTheDocument()
     })
 
-    it('keeps an invalid edge target recoverable until Escape cancels it', () => {
+    it('keeps an invalid edge target recoverable until Select replaces the edge tool', () => {
         const { drawing, geometry, selection, session } = createHarness()
         render(
             <DiagramZoomViewport drawing={drawing} geometry={geometry} selection={selection} session={session} />,
@@ -395,50 +395,45 @@ describe('DiagramZoomViewport', () => {
         expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
         expect(drawing.getPreviewSnapshot()).not.toBeNull()
 
-        fireEvent.keyDown(window, { key: 'Escape' })
+        act(() => { session.setActiveTool('select') })
 
         expect(session.read.getEdgeIdsSnapshot()).toEqual(['orders-store'])
         expect(session.read.getActiveToolSnapshot()).toBe('select')
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
 
-    it('keeps node and group Add tools active on Escape', () => {
-        const { geometry, groupDrawing, placement, selection, session } = createHarness()
-        render(
-            <DiagramZoomViewport
-                geometry={geometry}
-                groupDrawing={groupDrawing}
-                placement={placement}
-                selection={selection}
-                session={session}
-            />,
-        )
+    it('creates no node when Select replaces a held node placement', () => {
+        const { geometry, placement, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} placement={placement} selection={selection} session={session} />)
         const scroller = screen.getByLabelText('New diagram scroller')
         act(() => {
             placement.activate({ defaults: { height: 72, label: 'New component', role: 'focal', width: 160 }, kind: 'component' })
         })
 
-        fireEvent.keyDown(window, { key: 'Escape' })
-        expect(session.read.getActiveToolSnapshot()).toBe('node:component')
-
         fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 27 })
-        fireEvent.keyDown(window, { key: 'Escape' })
+        act(() => { session.setActiveTool('select') })
         fireEvent.pointerUp(scroller, { clientX: 100, clientY: 80, pointerId: 27 })
-        expect(session.read.getNodeIdsSnapshot()).toHaveLength(3)
 
-        act(() => { groupDrawing.activate() })
-        fireEvent.keyDown(window, { key: 'Escape' })
-        expect(session.read.getActiveToolSnapshot()).toBe('group')
+        expect(session.read.getNodeIdsSnapshot()).toEqual(['orders', 'store'])
+        expect(session.read.getActiveToolSnapshot()).toBe('select')
+        expect(screen.queryByText('New component')).not.toBeInTheDocument()
     })
 
-    it('keeps an edge Add tool without a chosen source active on Escape', () => {
-        const { drawing, geometry, selection, session } = createHarness()
-        render(<DiagramZoomViewport drawing={drawing} geometry={geometry} selection={selection} session={session} />)
-        act(() => { drawing.activate({ kind: 'connection' }) })
+    it('creates no group or label box when Select replaces a held group drag', () => {
+        const { geometry, groupDrawing, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} groupDrawing={groupDrawing} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        act(() => { groupDrawing.activate() })
 
-        fireEvent.keyDown(window, { key: 'Escape' })
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 28 })
+        fireEvent.pointerMove(scroller, { clientX: 220, clientY: 180, pointerId: 28 })
+        act(() => { session.setActiveTool('select') })
+        fireEvent.pointerUp(scroller, { clientX: 220, clientY: 180, pointerId: 28 })
 
-        expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(session.read.getGroupIdsSnapshot()).toEqual(['backend'])
+        expect(session.read.getActiveToolSnapshot()).toBe('select')
+        expect(screen.queryByRole('dialog', { name: 'New group' })).not.toBeInTheDocument()
+        expect(screen.queryByTestId('diagram-group-drawing-preview')).not.toBeInTheDocument()
     })
 
     it('keeps node, edge, and group Add tools active when Ctrl is held as the add commits', async () => {
