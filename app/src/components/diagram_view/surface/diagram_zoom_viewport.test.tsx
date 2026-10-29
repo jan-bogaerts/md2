@@ -759,6 +759,55 @@ describe('DiagramZoomViewport', () => {
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders', objectKind: 'node' }])
     })
 
+    it.each([
+        ['node', 'Store', 'store', 'node'],
+        ['edge', 'writes', 'orders-store', 'edge'],
+        ['group', 'Backend', 'backend', 'group'],
+    ] as const)('adds and removes a %s with Ctrl-click without starting a transient gesture', (
+        _description,
+        label,
+        objectId,
+        objectKind,
+    ) => {
+        const { geometry, movement, resize, selection, session } = createHarness()
+        render(
+            <DiagramZoomViewport
+                geometry={geometry}
+                movement={movement}
+                resize={resize}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const target = screen.getByRole('button', { name: label })
+        const editableDiagram = session.read.getEditableDiagram()
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+
+        fireEvent.pointerDown(target, { button: 0, clientX: 100, clientY: 100, ctrlKey: true, isPrimary: true, pointerId: 11 })
+        fireEvent.pointerMove(scroller, { clientX: 132, clientY: 124, ctrlKey: true, pointerId: 11 })
+        expect(movement.getMoveActiveSnapshot()).toBe(false)
+        expect(resize.getResizeActiveSnapshot()).toBe(false)
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
+        fireEvent.pointerUp(scroller, { clientX: 132, clientY: 124, ctrlKey: true, pointerId: 11 })
+        fireEvent.click(target, { ctrlKey: true })
+
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId, objectKind },
+        ])
+
+        fireEvent.pointerDown(target, { button: 0, clientX: 132, clientY: 124, ctrlKey: true, isPrimary: true, pointerId: 12 })
+        fireEvent.pointerUp(scroller, { clientX: 132, clientY: 124, ctrlKey: true, pointerId: 12 })
+        fireEvent.click(target, { ctrlKey: true })
+
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders', objectKind: 'node' }])
+        expect(session.read.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.read.getDirtySnapshot()).toBe(false)
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(session.read.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
+    })
+
     it('keeps rectangle diagram coordinates stable through viewport scroll and zoom', () => {
         const { geometry, selection, session } = createHarness()
         render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
@@ -791,6 +840,111 @@ describe('DiagramZoomViewport', () => {
             left: `${75 / (DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)}px`,
             top: `${37.5 / (DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)}px`,
         })
+    })
+
+    it('adds every mixed rectangle intersection at Ctrl-modified pointer release without changing diagram state', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const surface = screen.getByLabelText('New diagram')
+        const editableDiagram = session.read.getEditableDiagram()
+        const ordersNode = session.read.getNodeSnapshot('orders')
+        const edgeRoute = geometry.getEdgeRouteSnapshot('orders-store')
+        act(() => { selection.replace([{ objectId: 'store', objectKind: 'node' }]) })
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 21 })
+        fireEvent.pointerMove(surface, { clientX: 800, clientY: 400, pointerId: 21 })
+        fireEvent.pointerUp(surface, { clientX: 800, clientY: 400, ctrlKey: true, pointerId: 21 })
+
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'store', objectKind: 'node' },
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'orders-store', objectKind: 'edge' },
+            { objectId: 'backend', objectKind: 'group' },
+        ])
+        expect(session.read.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.read.getNodeSnapshot('orders')).toBe(ordersNode)
+        expect(geometry.getEdgeRouteSnapshot('orders-store')).toBe(edgeRoute)
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
+        expect(session.read.getDirtySnapshot()).toBe(false)
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(session.read.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
+    })
+
+    it('uses Ctrl state at rectangle release and keeps plain replacement behavior', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const surface = screen.getByLabelText('New diagram')
+        act(() => { selection.replace([{ objectId: 'store', objectKind: 'node' }]) })
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 235, clientY: 115, ctrlKey: true, pointerId: 22 })
+        fireEvent.pointerMove(surface, { clientX: 410, clientY: 205, ctrlKey: true, pointerId: 22 })
+        fireEvent.pointerUp(surface, { clientX: 410, clientY: 205, pointerId: 22 })
+
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'orders-store', objectKind: 'edge' },
+            { objectId: 'backend', objectKind: 'group' },
+        ])
+    })
+
+    it('preserves selection for additive empty rectangles and clears it for plain empty rectangles', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const surface = screen.getByLabelText('New diagram')
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+        const selectionSnapshot = selection.getSelectionSnapshot()
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 20, clientY: 20, pointerId: 23 })
+        fireEvent.pointerUp(surface, { clientX: 20, clientY: 20, ctrlKey: true, pointerId: 23 })
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 24 })
+        fireEvent.pointerMove(surface, { clientX: 10, clientY: 10, pointerId: 24 })
+        fireEvent.pointerUp(surface, { clientX: 10, clientY: 10, ctrlKey: true, pointerId: 24 })
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 25 })
+        fireEvent.pointerMove(surface, { clientX: 10, clientY: 10, pointerId: 25 })
+        fireEvent.pointerUp(surface, { clientX: 10, clientY: 10, pointerId: 25 })
+        expect(selection.getSelectionSnapshot()).toEqual([])
+
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+        fireEvent.pointerDown(surface, { button: 0, clientX: 20, clientY: 20, pointerId: 26 })
+        fireEvent.pointerUp(surface, { clientX: 20, clientY: 20, pointerId: 26 })
+        expect(selection.getSelectionSnapshot()).toEqual([])
+    })
+
+    it('cancels rectangle selection on pointer cancellation, lost capture, or tool change', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const surface = screen.getByLabelText('New diagram')
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+        const selectionSnapshot = selection.getSelectionSnapshot()
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 27 })
+        fireEvent.pointerMove(surface, { clientX: 100, clientY: 100, pointerId: 27 })
+        fireEvent.pointerCancel(surface, { pointerId: 27 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 28 })
+        fireEvent.pointerMove(surface, { clientX: 100, clientY: 100, pointerId: 28 })
+        fireEvent.lostPointerCapture(surface, { pointerId: 28 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 29 })
+        fireEvent.pointerMove(surface, { clientX: 100, clientY: 100, pointerId: 29 })
+        act(() => { session.setActiveTool('pan') })
+        fireEvent.pointerUp(surface, { clientX: 100, clientY: 100, ctrlKey: true, pointerId: 29 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 30 })
+        fireEvent.pointerMove(surface, { clientX: 100, clientY: 100, pointerId: 30 })
+        fireEvent.pointerUp(surface, { clientX: 100, clientY: 100, ctrlKey: true, pointerId: 30 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
     })
 
     it('moves complete selection through scrolled, zoomed viewport coordinates and preserves it after click', () => {

@@ -298,7 +298,7 @@ export function DiagramZoomViewport({
         const identity = resizeTarget ? null : diagramIdentityFromTarget(event.target)
         const gesture = resizeTarget && resize.beginResize(resizeTarget.identity, resizeTarget.direction, point)
             ? 'resize'
-            : identity && movement.beginMove(identity, point)
+            : identity && !event.ctrlKey && movement.beginMove(identity, point)
                 ? 'move'
                 : null
         if (!gesture) return

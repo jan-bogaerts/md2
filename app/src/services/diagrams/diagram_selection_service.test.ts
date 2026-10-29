@@ -318,6 +318,54 @@ describe('DiagramSelectionService', () => {
         expect(selection.getSelectionSnapshot()).toEqual([])
     })
 
+    it('adds mixed rectangle intersections without duplicates or unrelated identity events', () => {
+        const { selection, session } = createRectangleHarness()
+        selection.replace([store, edge])
+        const editableDiagram = session.read.getEditableDiagram()
+        const storeNode = session.read.getNodeSnapshot('store')
+        const transientGesture = session.read.getTransientGestureSnapshot()
+        const viewportScale = session.read.getViewportScaleSnapshot()
+        const ordersChanged = vi.fn()
+        const storeChanged = vi.fn()
+        const edgeChanged = vi.fn()
+        const groupChanged = vi.fn()
+        selection.subscribeSelected(orders, ordersChanged)
+        selection.subscribeSelected(store, storeChanged)
+        selection.subscribeSelected(edge, edgeChanged)
+        selection.subscribeSelected(group, groupChanged)
+
+        selection.beginRectangleSelection({ x: 55, y: 55 })
+        expect(selection.completeAdditiveRectangleSelection({ x: 5, y: 5 })).toBe(true)
+
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toEqual([store, edge, orders, group])
+        expect(ordersChanged).toHaveBeenCalledOnce()
+        expect(storeChanged).not.toHaveBeenCalled()
+        expect(edgeChanged).not.toHaveBeenCalled()
+        expect(groupChanged).toHaveBeenCalledOnce()
+        expect(session.read.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.read.getNodeSnapshot('store')).toBe(storeNode)
+        expect(session.read.getTransientGestureSnapshot()).toBe(transientGesture)
+        expect(session.read.getViewportScaleSnapshot()).toBe(viewportScale)
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(session.read.getDirtySnapshot()).toBe(false)
+    })
+
+    it('preserves selection for additive zero-distance and non-intersecting rectangles', () => {
+        const { selection } = createRectangleHarness()
+        selection.replace([orders])
+        const selectionSnapshot = selection.getSelectionSnapshot()
+
+        selection.beginRectangleSelection({ x: 20, y: 20 })
+        expect(selection.completeAdditiveRectangleSelection({ x: 20, y: 20 })).toBe(true)
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        selection.beginRectangleSelection({ x: 200, y: 200 })
+        expect(selection.completeAdditiveRectangleSelection({ x: 210, y: 210 })).toBe(true)
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+        expect(selection.getRectangleSnapshot()).toBeNull()
+    })
+
     it('cancels rectangle state without changing selection', () => {
         const { selection, session } = createRectangleHarness()
         selection.replace([store])

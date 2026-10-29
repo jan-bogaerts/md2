@@ -137,7 +137,9 @@ export function EditableDiagramSurface({
     const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== event.pointerId) return
 
-        selection.completeRectangleSelection(diagramPointFromPointer(event))
+        const point = diagramPointFromPointer(event)
+        if (event.ctrlKey) selection.completeAdditiveRectangleSelection(point)
+        else selection.completeRectangleSelection(point)
         suppressNextClickRef.current = true
         releasePointer(event)
     }
