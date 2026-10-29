@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "1a8109e1-2ead-482d-b6d0-c34fd94c0270",
       "cardPath": "design/feature_descriptions/F_446_diagrams_control_key.md",
-      "completedAt": null,
+      "completedAt": "2026-10-29T15:46:08.537Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 160780
@@ -1819,7 +1819,7 @@
         }
       ],
       "startedAt": "2026-10-22T14:28:22.415Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -1963,13 +1963,13 @@
         "agent-deb49615-1123-4909-b596-fc57b2904925"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-e9127b41-43af-4541-bd15-e0d5948d2f1c",
       "origin": {
@@ -1978,9 +1978,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-deb49615-1123-4909-b596-fc57b2904925",
       "startedAt": "2026-10-25T13:38:09.195Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-deb49615-1123-4909-b596-fc57b2904925"
     }
   ],
   "version": 5
