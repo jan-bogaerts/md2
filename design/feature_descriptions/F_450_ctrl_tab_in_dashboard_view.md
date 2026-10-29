@@ -3,7 +3,7 @@ author:
 id: F_450
 internalId: 5ee8aecb-2f88-4c84-ad76-2b7126529159
 title: ctrl tab in dashboard view
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,11 @@ agents:
 policy:
 branch: f_450_ctrl_tab_in_dashboard_view
 worktree: 1
+changedFiles:
+  - app/src/components/resizable_popper.test.tsx
+  - app/src/services/card_popup_service.test.ts
+  - app/src/services/shortcuts/cards_keyboard_shortcut_service.node.test.ts
+  - app/src/services/shortcuts/cards_keyboard_shortcut_service.ts
 ---
 
 ctrl tab in dashboard view should switch between topmost popup.
