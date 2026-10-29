@@ -3283,6 +3283,33 @@
       "startedAt": "2026-10-29T15:46:28.843Z",
       "status": "completed",
       "rootConversationId": "agent-665c160c-1044-4d00-9b56-69d7a4296594"
+    },
+    {
+      "commits": [
+        {
+          "commit": "da8cf2dcfd627089e8f3f1cbd28ed195e387ce63",
+          "committedAt": "2026-10-29T17:02:03+01:00",
+          "deletions": 9,
+          "filePaths": [
+            "app/src/components/diagram_view/editing/editable_diagram.tsx",
+            "app/src/components/diagram_view/editing/editable_diagram_selection.test.tsx",
+            "app/src/components/diagram_view/surface/diagram_zoom_viewport.test.tsx",
+            "app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx",
+            "app/src/services/diagrams/diagram_selection_service.test.ts",
+            "app/src/services/diagrams/diagram_selection_service.ts"
+          ],
+          "filesChanged": 6,
+          "insertions": 233,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-29T17:02:03+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1a8109e1-2ead-482d-b6d0-c34fd94c0270",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
