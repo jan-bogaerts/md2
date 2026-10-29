@@ -14,8 +14,6 @@ changedFiles:
   - app/src/services/shortcuts/diagram_keyboard_shortcut_service.ts
   - design/feature_descriptions/J_63_keyboard_service_owns_shortcuts.md
 after: 223f749a-dd16-4a42-b8de-3ce63eab686d
-branch: f_445_diagrams_delete_key
-worktree: 1
 ---
 
 When user has 1 or more items selected on a diagram and presses the delete key, the items should be removed
