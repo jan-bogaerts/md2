@@ -5,7 +5,6 @@ import type { KeyboardShortcutHandler } from './keyboard_shortcut_service'
 export const DIAGRAM_EDITOR_ROOT_ATTRIBUTE = 'data-diagram-editor';
 export const DIAGRAM_ESCAPE_REQUESTED_EVENT = 'diagramEscapeRequested';
 
-const DIAGRAM_EDITOR_ROOT_SELECTOR = `[${DIAGRAM_EDITOR_ROOT_ATTRIBUTE}]`;
 const DELETE_KEY_OWNER_SELECTOR = [
     'input', 'textarea', 'select',
     '[contenteditable=""]', '[contenteditable="true"]',
@@ -20,10 +19,7 @@ export interface DiagramEscapeRequestedDetail {
 }
 
 function deleteKeyBelongsToDiagramEditor(activeElement: Element | null) {
-    if (!activeElement || activeElement === activeElement.ownerDocument.body) return true;
-    if (activeElement.closest(DELETE_KEY_OWNER_SELECTOR)) return false;
-
-    return !!activeElement.closest(DIAGRAM_EDITOR_ROOT_SELECTOR);
+    return !activeElement?.closest(DELETE_KEY_OWNER_SELECTOR);
 }
 
 /** Handles diagram keys and asks mounted viewports to cancel their local gestures. */

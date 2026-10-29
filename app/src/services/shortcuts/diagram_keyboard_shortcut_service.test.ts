@@ -44,6 +44,17 @@ describe('DiagramKeyboardShortcutService', () => {
         expect(deleteSelection).toHaveBeenCalledOnce();
     });
 
+    it('deletes selection when focus remains on a button outside the diagram editor', () => {
+        const deleteSelection = vi.fn(() => true);
+        const service = new DiagramKeyboardShortcutService({ deleteSelection }, createSessionStub('select'));
+        const toolboxButton = document.createElement('button');
+        document.body.append(toolboxButton);
+        toolboxButton.focus();
+
+        expect(service.handleKeyDown(createKeyboardEvent('Delete'))).toBe(true);
+        expect(deleteSelection).toHaveBeenCalledOnce();
+    });
+
     it('leaves Delete to text fields, dialogs, menus, and modified keys', () => {
         const deleteSelection = vi.fn(() => true);
         const service = new DiagramKeyboardShortcutService({ deleteSelection }, createSessionStub('select'));
