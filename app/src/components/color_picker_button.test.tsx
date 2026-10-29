@@ -25,4 +25,13 @@ describe('ColorPickerButton', () => {
 
         expect(onChange).toHaveBeenCalledWith('#2e7d32')
     })
+
+    it('offers the given palette in the opened picker', () => {
+        render(<ColorPickerButton label="Color" onChange={vi.fn()} palette={['#ffcdd2']} value={undefined} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Color' }))
+
+        expect(screen.getAllByRole('button', { name: /^Use colour #/ })).toHaveLength(1)
+        expect(screen.getByRole('button', { name: 'Use colour #ffcdd2' })).toBeInTheDocument()
+    })
 })

@@ -11,6 +11,8 @@ interface ColorPickerFieldBaseProps {
     disabled?: boolean
     label: string
     name?: string
+    /** Preset swatches; defaults to `COLOR_PICKER_PALETTE`. */
+    palette?: readonly string[]
 }
 
 interface RequiredColorPickerFieldProps extends ColorPickerFieldBaseProps {
@@ -33,7 +35,7 @@ type ColorPickerFieldProps = RequiredColorPickerFieldProps | DefaultableColorPic
  * With `showDefault`, the row starts with a Default box that reports `undefined`.
  */
 export function ColorPickerField(props: ColorPickerFieldProps) {
-    const { disabled = false, label, name = 'color', onChange, value } = props
+    const { disabled = false, label, name = 'color', onChange, palette = COLOR_PICKER_PALETTE, value } = props
     const isDefault = value === undefined
 
     const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -80,7 +82,7 @@ export function ColorPickerField(props: ColorPickerFieldProps) {
                         </ButtonBase>
                     </Tooltip>
                 ) : null}
-                {COLOR_PICKER_PALETTE.map((preset) => (
+                {palette.map((preset) => (
                     <Tooltip key={preset} title={preset}>
                         <ButtonBase
                             aria-label={`Use colour ${preset}`}

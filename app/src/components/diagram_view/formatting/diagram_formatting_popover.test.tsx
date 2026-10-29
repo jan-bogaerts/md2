@@ -4,11 +4,21 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { dialogService } from '../../../services/dialog_service';
 import { createAppTheme } from '../../../theme/app_theme';
+import { COLOR_PICKER_PALETTE, COLOR_PICKER_SOFT_DARK_PALETTE, COLOR_PICKER_SOFT_LIGHT_PALETTE } from '../../color_picker_palette';
 import { NodeFormattingPopover } from './diagram_formatting_popover';
 
-const theme = createAppTheme('dark');
+const darkTheme = createAppTheme('dark');
+const lightTheme = createAppTheme('light');
 
-function renderPopover(onApply = vi.fn(), onClose = vi.fn()) {
+function swatchLabels() {
+    return screen.getAllByRole('button', { name: /^Use colour #/ }).map((swatch) => swatch.getAttribute('aria-label'));
+}
+
+function presetLabels(palette: readonly string[]) {
+    return palette.map((preset) => `Use colour ${preset}`);
+}
+
+function renderPopover(onApply = vi.fn(), onClose = vi.fn(), theme = darkTheme) {
     const anchorElement = document.createElement('button');
     document.body.appendChild(anchorElement);
     render(
@@ -113,6 +123,48 @@ describe('NodeFormattingPopover', () => {
 
         expect(onApply).not.toHaveBeenCalled();
         expect(onClose).toHaveBeenCalledOnce();
+    });
+
+    it('offers soft dark fill swatches under the dark theme', async () => {
+        const user = userEvent.setup();
+        renderPopover();
+
+        await user.click(screen.getByRole('button', { name: 'Fill color' }));
+
+        expect(swatchLabels()).toEqual(presetLabels(COLOR_PICKER_SOFT_DARK_PALETTE));
+    });
+
+    it('offers soft light fill swatches under the light theme', async () => {
+        const user = userEvent.setup();
+        renderPopover(vi.fn(), vi.fn(), lightTheme);
+
+        await user.click(screen.getByRole('button', { name: 'Fill color' }));
+
+        expect(swatchLabels()).toEqual(presetLabels(COLOR_PICKER_SOFT_LIGHT_PALETTE));
+    });
+
+    it('keeps the standard swatches for font and border colors', async () => {
+        const user = userEvent.setup();
+        renderPopover();
+
+        for (const label of ['Font color', 'Border color']) {
+            await user.click(screen.getByRole('button', { name: label }));
+            expect(swatchLabels()).toEqual(presetLabels(COLOR_PICKER_PALETTE));
+            await user.keyboard('{Escape}');
+        }
+    });
+
+    it('applies a picked soft swatch as the fill color', async () => {
+        const user = userEvent.setup();
+        const { onApply } = renderPopover();
+        const softFill = COLOR_PICKER_SOFT_DARK_PALETTE[0];
+
+        await user.click(screen.getByRole('button', { name: 'Fill color' }));
+        await user.click(screen.getByRole('button', { name: `Use colour ${softFill}` }));
+        await user.keyboard('{Escape}');
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
+
+        expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ box: expect.objectContaining({ fillColor: softFill }) }));
     });
 
     it('clears an unknown saved family by choosing Theme default', async () => {
