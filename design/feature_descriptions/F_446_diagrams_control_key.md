@@ -3,7 +3,7 @@ author:
 id: F_446
 internalId: 1a8109e1-2ead-482d-b6d0-c34fd94c0270
 title: diagrams control key
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,13 @@ policy:
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 branch: f_446_diagrams_control_key
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/editing/editable_diagram.tsx
+  - app/src/components/diagram_view/editing/editable_diagram_selection.test.tsx
+  - app/src/components/diagram_view/surface/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx
+  - app/src/services/diagrams/diagram_selection_service.test.ts
+  - app/src/services/diagrams/diagram_selection_service.ts
 ---
 
 When user is working with the select tool he can click on items which selects them or he can draw a box which selects the items in the box. this works ok.
