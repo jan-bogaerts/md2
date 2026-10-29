@@ -10,8 +10,6 @@ agents:
   - design/activity/card__90ca85d7-9878-4238-a36b-f662d0c8fbd8.json
 policy:
 after: d7360813-801d-416c-8b94-d472b499317f
-branch: f_447_diagram_add_tool_escape_key
-worktree: 3
 changedFiles:
   - app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx
 ---
