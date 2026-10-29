@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 79971
+        "usedTokens": 80411
       },
       "entries": [
         {
@@ -400,24 +400,32 @@
           "sequence": 27,
           "timestamp": "2026-10-29T15:57:17.043Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Cycle all (Recommended)\nclaude-question-1: Move focus (Recommended)",
+          "id": "agent-turn-59a7399d-a44b-47a9-baef-6c9566cfadd9-answer-27",
+          "kind": "message",
+          "role": "user",
+          "sequence": 28,
+          "timestamp": "2026-10-29T15:58:40.388Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-f3293f57-e48e-4533-a077-456906e117fa",
       "providerSessions": [],
       "startedAt": "2026-10-29T15:56:16.291Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 20932,
           "toolMs": 27762
         },
         "elapsedMs": 60752,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-29T15:58:40.388Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
