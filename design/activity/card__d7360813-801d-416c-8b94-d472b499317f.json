@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "d7360813-801d-416c-8b94-d472b499317f",
       "cardPath": "design/feature_descriptions/F_445_diagrams_delete_key.md",
-      "completedAt": null,
+      "completedAt": "2026-10-29T13:06:04.463Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 139230
@@ -1630,7 +1630,7 @@
         }
       ],
       "startedAt": "2026-10-22T14:28:41.330Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 100739,
@@ -1736,11 +1736,11 @@
         "agent-818edede-7067-4b9f-bd19-c3a52cc5c4e7"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-243281b3-9a19-4707-987c-21455ab209d8",
       "origin": {
@@ -1749,9 +1749,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-818edede-7067-4b9f-bd19-c3a52cc5c4e7",
       "startedAt": "2026-10-25T13:20:56.558Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-818edede-7067-4b9f-bd19-c3a52cc5c4e7"
     }
   ],
   "version": 5
