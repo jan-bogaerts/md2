@@ -1893,6 +1893,29 @@
       "startedAt": "2026-10-25T13:01:04.000Z",
       "status": "completed",
       "rootConversationId": "agent-05487e42-12f8-47bb-a7d8-a24c42814243"
+    },
+    {
+      "commits": [
+        {
+          "commit": "5c2622bcfe950178d7b6e877df7bb8090330c822",
+          "committedAt": "2026-10-29T14:07:07+01:00",
+          "deletions": 2,
+          "filePaths": [
+            "desktop/src/git/worktree_service.js",
+            "desktop/src/git/worktree_service.test.mjs"
+          ],
+          "filesChanged": 2,
+          "insertions": 65,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-29T14:07:07+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "dbff8fd6-e09c-4ab4-909b-a2a15429e374",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__dbff8fd6-e09c-4ab4-909b-a2a15429e374.json
 policy:
-branch: b_323_drop_changes_does_not_work
-worktree: 1
 changedFiles:
   - desktop/src/git/worktree_service.js
   - desktop/src/git/worktree_service.test.mjs
