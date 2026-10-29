@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__5ee8aecb-2f88-4c84-ad76-2b7126529159.json
 policy:
-branch: f_450_ctrl_tab_in_dashboard_view
-worktree: 1
 changedFiles:
   - app/src/components/resizable_popper.test.tsx
   - app/src/services/card_popup_service.test.ts

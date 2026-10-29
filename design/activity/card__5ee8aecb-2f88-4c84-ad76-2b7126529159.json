@@ -1587,6 +1587,39 @@
       "startedAt": "2026-10-29T16:04:03.249Z",
       "status": "completed",
       "rootConversationId": "agent-5b58104a-95f6-4d08-b172-05ca23992275"
+    },
+    {
+      "commits": [
+        {
+          "commit": "5aa327fa9fb0cd838a03e7659682255de3837f39",
+          "committedAt": "2026-10-29T17:28:46+01:00",
+          "deletions": 3,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup.tsx",
+            "app/src/components/actions/run/popup/action_popup_frame.tsx",
+            "app/src/components/actions/run/popup/action_popup_types.ts",
+            "app/src/components/actions/run/popup/card_action_popup_host_entry.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_dialog.tsx",
+            "app/src/components/card_view/card_body_popover.tsx",
+            "app/src/components/resizable_popper.test.tsx",
+            "app/src/components/resizable_popper.tsx",
+            "app/src/services/card_popup_service.test.ts",
+            "app/src/services/card_popup_service.ts",
+            "app/src/services/shortcuts/cards_keyboard_shortcut_service.node.test.ts",
+            "app/src/services/shortcuts/cards_keyboard_shortcut_service.ts"
+          ],
+          "filesChanged": 12,
+          "insertions": 265,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-29T17:28:46+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "5ee8aecb-2f88-4c84-ad76-2b7126529159",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
