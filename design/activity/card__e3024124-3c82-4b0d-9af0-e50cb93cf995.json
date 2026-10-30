@@ -1377,7 +1377,7 @@
         "costUsd": 0.8162296000000001
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1474,6 +1474,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "c790bb590c08ec11c980f3d10204bd8d4f252cb6",
           "committedAt": "2026-10-29T14:06:45+01:00",
           "deletions": 8,
@@ -1487,8 +1488,7 @@
             "app/src/components/diagram_view/formatting/diagram_formatting_popover.tsx"
           ],
           "filesChanged": 7,
-          "insertions": 151,
-          "branch": "dev_main"
+          "insertions": 151
         }
       ],
       "completedAt": "2026-10-29T14:06:45+01:00",
