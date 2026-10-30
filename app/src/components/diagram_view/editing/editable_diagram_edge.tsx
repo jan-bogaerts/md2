@@ -44,6 +44,7 @@ function EditableDiagramEdgeLeaf({
     const fromCardinality = useEditableDiagramEdgeField(edgeId, 'fromCardinality', session)
     const kind = useEditableDiagramEdgeField(edgeId, 'kind', session)
     const label = useEditableDiagramEdgeField(edgeId, 'label', session)
+    const legendEntryId = useEditableDiagramEdgeField(edgeId, 'legendEntryId', session)
     const to = useEditableDiagramEdgeField(edgeId, 'to', session)
     const toCardinality = useEditableDiagramEdgeField(edgeId, 'toCardinality', session)
     const diagramType = useEditableDiagramMetadataField('type', session)
@@ -52,7 +53,7 @@ function EditableDiagramEdgeLeaf({
     const points = useDiagramEdgeRoute(edgeId, geometry)
     const selected = useIsDiagramObjectSelected(edgeId, 'edge', selection)
     const dimmed = useDiagramObjectDimmed('new', 'edge', edgeId, emphasis)
-    if (from === null || to === null || kind === null || points.length === 0) return null
+    if (from === null || to === null || kind === null || legendEntryId === null || points.length === 0) return null
 
     const handleSelect = (_selection: unknown, ctrlKey: boolean) => {
         if (session.read.getActiveToolSnapshot() !== 'select') return
@@ -72,6 +73,7 @@ function EditableDiagramEdgeLeaf({
         from,
         id: edgeId,
         kind,
+        legendEntryId,
         points: points as DiagramWaypoint[],
         to,
         ...(fromCardinality ? { fromCardinality } : {}),

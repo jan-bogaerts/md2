@@ -7,7 +7,7 @@ import type { DiagramSelectHandler } from '../editing/diagram_selection'
 import { DIAGRAM_DIMMED_OPACITY } from '../surface/diagram_emphasis_presentation'
 import { DiagramConnectionMarkerShape } from './diagram_connection_marker'
 import {
-    type DiagramFormattingStore, useDiagramConnectionKindFormatting, useDiagramFormattingScale,
+    type DiagramFormattingStore, useDiagramConnectionFormatting, useDiagramFormattingScale,
 } from '../formatting/use_diagram_formatting'
 
 const EDGE_LABEL_FONT_SIZE = 8
@@ -40,7 +40,7 @@ export function DiagramEdge(props: DiagramEdgeProps) {
     const path = curved && edge.controlPoint
         ? curvedDiagramPath(edge.points, edge.controlPoint as NonNullable<PositionedDiagramEdge['controlPoint']>)
         : roundedDiagramPath(edge.points)
-    const formatting = useDiagramConnectionKindFormatting(edge.kind, formattingStore)
+    const formatting = useDiagramConnectionFormatting(edge.legendEntryId, edge.kind, formattingStore)
     const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
     const { color, endMarker, startMarker, strokeDasharray, strokeWidth } = diagramEdgeStyle(
         edge.kind, theme, focused || selected, formatting,

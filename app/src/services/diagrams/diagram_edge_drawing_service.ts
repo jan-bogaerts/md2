@@ -14,6 +14,7 @@ import type {
     NewDiagramEdge,
 } from './diagram_edit_types'
 import { diagramGeometryService, type DiagramGeometryService } from './diagram_geometry_service'
+import { findCompatibleEdgeLegendEntry } from './diagram_legend_entry_compatibility'
 import {
     mindmapConnectionGeometry,
     sequenceMessageInsertionIndexAt,
@@ -36,13 +37,14 @@ export interface DiagramEdgeDrawingPoint {
 
 export type DiagramEdgeDrawingDefaults = Omit<
     NewDiagramEdge,
-    'from' | 'sourceAttachment' | 'targetAttachment' | 'to' | 'waypoints'
+    'from' | 'legendEntryId' | 'sourceAttachment' | 'targetAttachment' | 'to' | 'waypoints'
 >
 
 export interface DiagramEdgeDrawingPreview {
     controlPoint?: DiagramWaypoint
     curved?: boolean
     kind: DiagramEdgeKind
+    legendEntryId: string
     points: readonly DiagramWaypoint[]
     sourceAttachment: DiagramConnectionPoint
     targetAttachment: DiagramConnectionPoint | null
@@ -178,10 +180,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
 
     beginSource(nodeId: string, point: DiagramEdgeDrawingPoint) {
         const defaults = this.requireActiveDefaults()
-        const selectedKey = this.session.read.getSelectedLegendEntryKeySnapshot()
-        const selectedKind = selectedKey?.startsWith('connection:')
-            ? selectedKey.slice('connection:'.length) as DiagramEdgeKind : null
-        const kind = selectedKind && this.isEdgeKindAvailable(selectedKind) ? selectedKind : defaults.kind
+        const { kind, legendEntryId } = this.edgeClassification(defaults.kind, false)
         const node = this.requirePositionedNode(nodeId)
         if (this.session.read.getMetadataFieldSnapshot('type') === 'sequence') {
             const spacingScalePercent = this.session.read.getFormattingScaleSnapshot('spacingScalePercent')
@@ -191,14 +190,14 @@ export class DiagramEdgeDrawingService extends EventTarget {
             const sourceAttachment = { nodeId, offset: 0.5, side: 'bottom' } as const
             const source = Object.freeze({ x: node.x + node.width / 2, y: sequenceMessageRowY(rowIndex, spacingScalePercent) })
             this.sequenceRowIndex = rowIndex
-            this.setPreview({ kind, points: Object.freeze([source]), sourceAttachment, targetAttachment: null })
+            this.setPreview({ kind, legendEntryId, points: Object.freeze([source]), sourceAttachment, targetAttachment: null })
             this.session.beginTransientGesture('edge')
 
             return true
         }
         const sourceAttachment = diagramConnectionPointAt(node, point)
         const source = absoluteConnectionPoint(sourceAttachment, node)
-        const preview = { kind, points: Object.freeze([Object.freeze(source)]), sourceAttachment, targetAttachment: null }
+        const preview = { kind, legendEntryId, points: Object.freeze([Object.freeze(source)]), sourceAttachment, targetAttachment: null }
         this.setPreview(preview)
         this.session.beginTransientGesture('edge')
 
@@ -220,7 +219,10 @@ export class DiagramEdgeDrawingService extends EventTarget {
         const targetAttachment = targetNode ? diagramConnectionPointAt(targetNode, point) : null
         const target = targetAttachment && targetNode ? absoluteConnectionPoint(targetAttachment, targetNode) : point
         const points = orthogonalEdgePreviewRoute(source, target, preview.sourceAttachment.side)
-        this.setPreview({ kind: preview.kind, points, sourceAttachment: preview.sourceAttachment, targetAttachment })
+        this.setPreview({
+            kind: preview.kind, legendEntryId: preview.legendEntryId, points,
+            sourceAttachment: preview.sourceAttachment, targetAttachment,
+        })
 
         return true
     }
@@ -245,9 +247,11 @@ export class DiagramEdgeDrawingService extends EventTarget {
         const sequenceDiagram = diagramType === 'sequence'
         const mindmapDiagram = diagramType === 'mindmap'
         const from = completedPreview.sourceAttachment.nodeId
+        const { legendEntryId } = this.edgeClassification(completedPreview.kind, true, completedPreview.legendEntryId)
         const edge: NewDiagramEdge = {
             ...defaults,
             kind: completedPreview.kind,
+            legendEntryId,
             ...this.requiredLabel({ ...defaults, kind: completedPreview.kind }, from),
             from,
             ...(sequenceDiagram || mindmapDiagram ? {} : { sourceAttachment: { ...completedPreview.sourceAttachment } }),
@@ -306,6 +310,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
         this.sequenceRowIndex = rowIndex
         this.setPreview({
             kind: preview.kind,
+            legendEntryId: preview.legendEntryId,
             points: Object.freeze([source, target]),
             sourceAttachment: preview.sourceAttachment,
             targetAttachment,
@@ -334,12 +339,30 @@ export class DiagramEdgeDrawingService extends EventTarget {
             controlPoint: Object.freeze(controlPoint),
             curved: true,
             kind: preview.kind,
+            legendEntryId: preview.legendEntryId,
             points: Object.freeze(points.map((curvePoint) => Object.freeze(curvePoint))),
             sourceAttachment: preview.sourceAttachment,
             targetAttachment,
         })
 
         return true
+    }
+
+    private edgeClassification(defaultKind: DiagramEdgeKind, createMissing: boolean, preferredId?: string) {
+        const diagram = this.session.read.getEditableDiagram()
+        if (!diagram) throw new Error('Cannot classify an edge without an editable diagram')
+        const selectedId = preferredId || this.session.read.getSelectedLegendEntryKeySnapshot()
+        const selectedEntry = diagram.meta.legend.find(({ id }) => id === selectedId)
+        const kind = !preferredId && selectedEntry && 'kind' in selectedEntry && this.isEdgeKindAvailable(selectedEntry.kind)
+            ? selectedEntry.kind : defaultKind
+        const selected = selectedEntry && 'kind' in selectedEntry && selectedEntry.kind === kind ? selectedEntry : null
+        const existing = selected ?? findCompatibleEdgeLegendEntry(diagram.meta.legend, { kind })
+        if (existing) return { kind, legendEntryId: existing.id }
+        if (!createMissing) return { kind, legendEntryId: '' }
+        const legendEntryId = this.session.legend.addLegendEntry({ kind })
+        if (!legendEntryId) throw new Error(`Could not create legend entry for edge kind ${kind}`)
+
+        return { kind, legendEntryId }
     }
 
     /** Supplies a placeholder label when the diagram preset and source node make one mandatory. */

@@ -86,6 +86,7 @@ export interface DiagramPasteFragment {
     edges: readonly (ReadonlyDiagramData['edges'][number])[]
     fragments: readonly (NonNullable<ReadonlyDiagramData['fragments']>[number])[]
     groups: readonly (ReadonlyDiagramData['groups'][number])[]
+    legendEntries: readonly (ReadonlyDiagramData['meta']['legend'][number])[]
     nodes: readonly (ReadonlyDiagramData['nodes'][number])[]
 }
 

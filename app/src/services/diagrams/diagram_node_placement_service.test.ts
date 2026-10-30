@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagramData, DiagramNodeKind } from './diagram_data'
+import { parseDiagramData, type DiagramData, type DiagramNodeKind } from './diagram_data'
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import type { DiagramRecord } from './diagram_index'
 import { DiagramNodePlacementService } from './diagram_node_placement_service'
@@ -37,17 +37,35 @@ const geometryStub = {
 }
 
 function diagram(type: DiagramData['meta']['type'], preset?: DiagramData['meta']['preset']): DiagramData {
-    const edgeKind = type === 'dependency' ? 'dependency' : type === 'entity' ? 'relationship' : 'connection'
+    const edgeKind = type === 'dependency'
+        ? 'dependency'
+        : type === 'entity'
+            ? 'relationship'
+            : type === 'sequence'
+                ? 'call'
+                : type === 'flow'
+                    ? preset === 'state' ? 'transition' : 'flow'
+                    : 'connection'
+    const firstKind = type === 'sequence'
+        ? 'participant'
+        : type === 'entity'
+            ? 'entity'
+            : type === 'mindmap'
+                ? 'root'
+                : type === 'flow'
+                    ? preset === 'state' ? 'state' : 'step'
+                    : undefined
+    const secondKind = type === 'mindmap' ? 'topic' : firstKind
 
-    return {
-        edges: [{ from: 'existing', id: 'existing-edge', kind: edgeKind, to: 'other' }],
+    return parseDiagramData(JSON.stringify({
+        edges: [{ from: 'existing', id: 'existing-edge', kind: edgeKind, ...(edgeKind === 'transition' ? { label: 'next' } : {}), to: 'other' }],
         groups: [],
         meta: { description: 'Placement test', ...(preset ? { preset } : {}), title: 'Placement', type, version: 1 },
         nodes: [
-            { id: 'existing', label: 'Existing', role: 'focal', ...(type === 'flow' ? { kind: 'step' as const } : {}) },
-            { id: 'other', label: 'Other', role: 'backend', ...(type === 'flow' ? { kind: 'step' as const } : {}) },
+            { id: 'existing', label: 'Existing', role: 'focal', ...(firstKind ? { kind: firstKind } : {}), ...(type === 'entity' ? { fields: [] } : {}) },
+            { id: 'other', label: 'Other', role: 'backend', ...(secondKind ? { kind: secondKind } : {}), ...(type === 'entity' ? { fields: [] } : {}) },
         ],
-    }
+    }))
 }
 
 function createHarness(source = diagram('architecture')) {
@@ -233,6 +251,7 @@ describe('DiagramNodePlacementService', () => {
             id: 'placed-node',
             kind: 'participant',
             label: 'New participant',
+            legendEntryId: expect.any(String),
             role: 'focal',
             width: 160,
             x: 504,
@@ -262,6 +281,7 @@ describe('DiagramNodePlacementService', () => {
             id: 'placed-node',
             kind: 'entity',
             label: 'New entity',
+            legendEntryId: expect.any(String),
             role: 'focal',
             width: 160,
             x: 32,
@@ -309,6 +329,7 @@ describe('DiagramNodePlacementService', () => {
             id: 'placed-node',
             kind: 'decision',
             label: 'New decision',
+            legendEntryId: expect.any(String),
             role: 'focal',
             width: 96,
             x: 40,
@@ -340,6 +361,7 @@ describe('DiagramNodePlacementService', () => {
             id: 'placed-node',
             kind: 'state',
             label: 'New state',
+            legendEntryId: expect.any(String),
             role: 'focal',
             width: 160,
             x: 12,
@@ -374,6 +396,7 @@ describe('DiagramNodePlacementService', () => {
             id: 'placed-node',
             kind: 'start',
             label: 'Start',
+            legendEntryId: expect.any(String),
             role: 'focal',
             width: size.width,
             x: 12,
@@ -381,7 +404,7 @@ describe('DiagramNodePlacementService', () => {
         })
         expect(session.read.getNodeSnapshot('existing')).toBe(originalNode)
         expect(membershipChanged).toHaveBeenCalledOnce()
-        expect(session.read.getChangeIdsSnapshot()).toHaveLength(1)
+        expect(session.read.getChangeIdsSnapshot()).toHaveLength(2)
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
         expect(session.read.getActiveToolSnapshot()).toBe('node:start')
     })
@@ -407,6 +430,7 @@ describe('DiagramNodePlacementService', () => {
             id: 'placed-node',
             kind: 'end',
             label: 'End',
+            legendEntryId: expect.any(String),
             role: 'focal',
             width: size.width,
             x: 12,
@@ -414,7 +438,7 @@ describe('DiagramNodePlacementService', () => {
         })
         expect(session.read.getNodeSnapshot('existing')).toBe(originalNode)
         expect(membershipChanged).toHaveBeenCalledOnce()
-        expect(session.read.getChangeIdsSnapshot()).toHaveLength(1)
+        expect(session.read.getChangeIdsSnapshot()).toHaveLength(2)
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
         expect(session.read.getActiveToolSnapshot()).toBe('node:end')
     })
@@ -481,10 +505,11 @@ describe('DiagramNodePlacementService', () => {
 
     it('uses selected legend role for preview and node while keeping tool defaults', () => {
         const source = diagram('architecture')
-        source.meta.legend = [{ label: 'Backend', role: 'backend' }]
+        const backendEntry = { id: 'backend-entry', label: 'Backend', role: 'backend' as const }
+        source.meta.legend.push(backendEntry)
         const { placement, session } = createHarness(source)
         placement.activate(componentDefinition)
-        expect(session.selectLegendEntry('node:backend')).toBe(true)
+        expect(session.selectLegendEntry(backendEntry.id)).toBe(true)
 
         placement.updatePreview({ x: 32, y: 40 })
         expect(placement.getPreviewSnapshot()?.node).toMatchObject({ kind: 'component', role: 'backend', width: 160 })
@@ -492,13 +517,15 @@ describe('DiagramNodePlacementService', () => {
 
         expect(session.read.getNodeSnapshot('placed-node')).toMatchObject({ kind: 'component', role: 'backend', width: 160 })
         expect(session.read.getActiveToolSnapshot()).toBe('node:component')
-        expect(session.read.getSelectedLegendEntryKeySnapshot()).toBe('node:backend')
+        expect(session.read.getSelectedLegendEntryKeySnapshot()).toBe(backendEntry.id)
     })
 
     it('keeps node default when selected legend entry is a connection', () => {
         const { placement, session } = createHarness()
         placement.activate(componentDefinition)
-        expect(session.selectLegendEntry('connection:connection')).toBe(true)
+        const connectionEntry = session.read.getEditableDiagram()?.meta.legend.find((entry) => 'kind' in entry && entry.kind === 'connection')
+        if (!connectionEntry) throw new Error('Missing connection legend entry')
+        expect(session.selectLegendEntry(connectionEntry.id)).toBe(true)
 
         placement.updatePreview({ x: 32, y: 40 })
         expect(placement.getPreviewSnapshot()?.node.role).toBe('focal')

@@ -2,7 +2,7 @@ import { ThemeProvider } from '@mui/material'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData, DiagramFlowPreset, DiagramType } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData, type DiagramFlowPreset, type DiagramType } from '../../../services/diagrams/diagram_data'
 import { dialogService } from '../../../services/dialog_service'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
@@ -74,7 +74,7 @@ class DiagramSourceStub extends EventTarget {
 }
 
 function renderHarness(type: DiagramType = 'architecture', flowPreset: DiagramFlowPreset = 'flowchart') {
-    const source = { diagram: diagram(type, flowPreset), record }
+    const source = { diagram: parseDiagramData(JSON.stringify(diagram(type, flowPreset))), record }
     const session = new DiagramEditSessionService(new DiagramSourceStub(source))
     session.bindProject(project)
     session.start()
@@ -104,7 +104,7 @@ describe('diagram object details dialog', () => {
         expect(screen.getByRole('dialog', { name: 'Diagram metadata' })).toBeInTheDocument()
         expect(screen.getByRole('textbox', { name: 'Type' })).toHaveValue('architecture')
         expect(screen.getByRole('textbox', { name: 'Type' })).toHaveAttribute('readonly')
-        expect(screen.getByRole('textbox', { name: 'Schema version' })).toHaveValue('1')
+        expect(screen.getByRole('textbox', { name: 'Schema version' })).toHaveValue('2')
         expect(screen.getByRole('textbox', { name: 'Schema version' })).toHaveAttribute('readonly')
         expect(screen.queryByRole('textbox', { name: 'Flow preset' })).toBeNull()
         await user.click(screen.getByRole('button', { name: 'Cancel' }))

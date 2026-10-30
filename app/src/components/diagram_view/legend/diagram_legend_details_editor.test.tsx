@@ -2,7 +2,7 @@ import { ThemeProvider } from '@mui/material'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
@@ -46,7 +46,7 @@ class DiagramSourceStub extends EventTarget {
 function renderEditor(source: DiagramData, reportValidationError = vi.fn()) {
     const sourceService = new DiagramSourceStub()
     const session = new DiagramEditSessionService(sourceService, undefined, reportValidationError)
-    sourceService.setSource({ diagram: source, record })
+    sourceService.setSource({ diagram: parseDiagramData(JSON.stringify(source)), record })
     session.bindProject({ branch: 'main', id: 'project', rootPath: 'C:/repo' })
     session.start()
     const onClose = vi.fn()
@@ -76,13 +76,6 @@ describe('DiagramLegendDetailsEditor', () => {
         expect(screen.getByLabelText('Add entry for')).toBeInTheDocument()
     })
 
-    it('explains that adding to a derived legend keeps its entries', () => {
-        renderEditor(diagram)
-
-        expect(screen.getByText(/derived from the node kinds/)).toBeInTheDocument()
-        expect(screen.getByText(/Adding an entry keeps those derived entries/)).toBeInTheDocument()
-    })
-
     it('lists used, unused, and already-in-legend types in the picker', async () => {
         renderEditor(legendDiagram)
 
@@ -97,14 +90,16 @@ describe('DiagramLegendDetailsEditor', () => {
 
     it('adds the chosen entry with an edited label and closes', async () => {
         const { onClose, session } = renderEditor(legendDiagram)
+        const originalEntryIds = session.read.getLegendEntryKeysSnapshot()
 
         await chooseType('backend node')
         await userEvent.clear(screen.getByLabelText('Label for the added entry'))
         await userEvent.type(screen.getByLabelText('Label for the added entry'), 'Database')
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
-        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection', 'node:backend'])
-        expect(session.read.getLegendEntryFieldSnapshot('node:backend', 'label')).toBe('Database')
+        const addedEntryId = session.read.getLegendEntryKeysSnapshot().at(-1) as string
+        expect(session.read.getLegendEntryKeysSnapshot()).toEqual([...originalEntryIds, addedEntryId])
+        expect(session.read.getLegendEntryFieldSnapshot(addedEntryId, 'label')).toBe('Database')
         expect(onClose).toHaveBeenCalledOnce()
     })
 
@@ -115,56 +110,43 @@ describe('DiagramLegendDetailsEditor', () => {
         expect(screen.getByLabelText('Label for the added entry')).toHaveValue('backend')
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
-        expect(session.read.getLegendEntryFieldSnapshot('node:backend', 'label')).toBe('backend')
+        const addedEntryId = session.read.getLegendEntryKeysSnapshot().at(-1) as string
+        expect(session.read.getLegendEntryFieldSnapshot(addedEntryId, 'label')).toBe('backend')
     })
 
     it('cancels without changing the legend', async () => {
         const { onClose, session } = renderEditor(legendDiagram)
+        const originalEntryIds = session.read.getLegendEntryKeysSnapshot()
 
         await chooseType('backend node')
         await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
         expect(onClose).toHaveBeenCalledOnce()
-        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
+        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(originalEntryIds)
         expect(session.read.getDirtySnapshot()).toBe(false)
     })
 
     it('reports when no type has been chosen and stays open', async () => {
         const { onClose, session } = renderEditor(legendDiagram)
+        const originalEntryIds = session.read.getLegendEntryKeysSnapshot()
 
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
         expect(screen.getByText('Choose the node kind, node role, or connection kind to add.')).toBeInTheDocument()
-        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
+        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(originalEntryIds)
         expect(onClose).not.toHaveBeenCalled()
     })
 
-    it('rejects a type already in the legend and stays open', async () => {
+    it('adds a duplicate type as a separate legend entry', async () => {
         const { onClose, session } = renderEditor(legendDiagram)
+        const originalEntryIds = session.read.getLegendEntryKeysSnapshot()
 
         await chooseType('focal node')
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
-        expect(screen.getByText('That node kind, node role, or connection kind already has a legend entry.')).toBeInTheDocument()
-        expect(session.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
-        expect(onClose).not.toHaveBeenCalled()
-    })
-
-    it('keeps derived entries on add and rejects a type already displayed there', async () => {
-        const { onClose, session } = renderEditor(diagram)
-
-        await chooseType('Component node kind')
-        await userEvent.click(screen.getByRole('button', { name: 'Add' }))
-        expect(screen.getByText('That node kind, node role, or connection kind already has a legend entry.')).toBeInTheDocument()
-        expect(session.read.getHasExplicitLegendSnapshot()).toBe(false)
-
-        await chooseType('backend node')
-        await userEvent.click(screen.getByRole('button', { name: 'Add' }))
-        expect(session.read.getEditableDiagram()?.meta.legend).toEqual([
-            { label: 'Component', nodeKind: 'component' },
-            { kind: 'connection', label: 'Connection' },
-            { label: 'backend', role: 'backend' },
-        ])
+        const addedEntryId = session.read.getLegendEntryKeysSnapshot().at(-1) as string
+        expect(session.read.getLegendEntryKeysSnapshot()).toEqual([...originalEntryIds, addedEntryId])
+        expect(session.read.getLegendEntryFieldSnapshot(addedEntryId, 'role')).toBe('focal')
         expect(onClose).toHaveBeenCalledOnce()
     })
 })

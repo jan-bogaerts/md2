@@ -5,6 +5,7 @@ import {
     type DiagramData,
     type DiagramEdge,
     type DiagramGroup,
+    type DiagramLegendEntryData,
     type DiagramNode,
     type DiagramSequenceFragment,
 } from './diagram_data';
@@ -14,6 +15,7 @@ export interface PreparedDiagramPaste {
     edges: DiagramEdge[];
     fragments: DiagramSequenceFragment[];
     groups: DiagramGroup[];
+    legendEntries: DiagramLegendEntryData[];
     nodes: DiagramNode[];
 }
 
@@ -22,7 +24,8 @@ export interface DiagramPastePreparationContext {
     generateId: (reservedIds: Set<string>) => string;
     validateFragment: (fragment: DiagramSequenceFragment) => void;
     validateGroup: (group: DiagramGroup) => void;
-    validateNode: (node: DiagramNode) => void;
+    validateEdge: (edge: DiagramEdge, legendEntries: readonly DiagramLegendEntryData[]) => void;
+    validateNode: (node: DiagramNode, legendEntries: readonly DiagramLegendEntryData[]) => void;
 }
 
 function invalidPasteField(field: string, reason: string): never {
@@ -39,18 +42,24 @@ function mapRequiredId(ids: ReadonlyMap<string, string>, id: string, field: stri
 function createPastedNode(
     source: ReadonlyDiagramData['nodes'][number],
     nodeIds: ReadonlyMap<string, string>,
+    legendEntryIds: ReadonlyMap<string, string>,
+    legendEntries: readonly DiagramLegendEntryData[],
     offset: number,
-    validateNode: (node: DiagramNode) => void,
+    validateNode: (node: DiagramNode, legendEntries: readonly DiagramLegendEntryData[]) => void,
 ) {
     const id = mapRequiredId(nodeIds, source.id, 'paste.nodes', `missing ID mapping for node ${source.id}`);
+    const legendEntryId = mapRequiredId(
+        legendEntryIds, source.legendEntryId, 'paste.nodes', `missing legend entry mapping for node ${source.id}`,
+    );
     const node: DiagramNode = {
         ...source,
         fields: source.fields?.map((field) => ({ ...field })),
         id,
+        legendEntryId,
         ...(source.x === undefined ? {} : { x: source.x + offset }),
         ...(source.y === undefined ? {} : { y: source.y + offset }),
     };
-    validateNode(node);
+    validateNode(node, legendEntries);
 
     return node;
 }
@@ -59,18 +68,25 @@ function createPastedEdge(
     source: ReadonlyDiagramData['edges'][number],
     nodeIds: ReadonlyMap<string, string>,
     edgeIds: ReadonlyMap<string, string>,
+    legendEntryIds: ReadonlyMap<string, string>,
     pastedNodesById: ReadonlyMap<string, DiagramNode>,
     diagram: DiagramData,
+    legendEntries: readonly DiagramLegendEntryData[],
     offset: number,
+    validateEdge: (edge: DiagramEdge, legendEntries: readonly DiagramLegendEntryData[]) => void,
 ) {
     const missingMapping = `missing internal ID mapping for edge ${source.id}`;
     const id = mapRequiredId(edgeIds, source.id, 'paste.edges', missingMapping);
+    const legendEntryId = mapRequiredId(
+        legendEntryIds, source.legendEntryId, 'paste.edges', `missing legend entry mapping for edge ${source.id}`,
+    );
     const from = mapRequiredId(nodeIds, source.from, 'paste.edges', missingMapping);
     const to = mapRequiredId(nodeIds, source.to, 'paste.edges', missingMapping);
     const edge: DiagramEdge = {
         ...source,
         from,
         id,
+        legendEntryId,
         to,
         ...(source.sourceAttachment ? { sourceAttachment: { ...source.sourceAttachment, nodeId: from } } : {}),
         ...(source.targetAttachment ? { targetAttachment: { ...source.targetAttachment, nodeId: to } } : {}),
@@ -83,6 +99,7 @@ function createPastedEdge(
     if ((edge.fromCardinality !== undefined || edge.toCardinality !== undefined) && diagram.meta.type !== 'entity') {
         invalidPasteField(`paste.edges.${edge.id}.cardinality`, 'value only allowed for entity diagrams');
     }
+    validateEdge(edge, legendEntries);
 
     return edge;
 }
@@ -142,11 +159,12 @@ export function prepareDiagramPaste(
     context: DiagramPastePreparationContext,
 ): PreparedDiagramPaste {
     requireDiagramGridNumber(offset, 'paste.offset', true);
-    const { diagram, generateId, validateFragment, validateGroup, validateNode } = context;
+    const { diagram, generateId, validateEdge, validateFragment, validateGroup, validateNode } = context;
     const nodeIds = new Map<string, string>();
     const edgeIds = new Map<string, string>();
     const groupIds = new Map<string, string>();
     const fragmentIds = new Map<string, string>();
+    const legendEntryIds = new Map<string, string>();
     const reservedSelectableIds = new Set([...diagram.nodes.map(({ id }) => id), ...diagram.edges.map(({ id }) => id)]);
     for (const node of fragment.nodes) nodeIds.set(node.id, generateId(reservedSelectableIds));
     for (const edge of fragment.edges) edgeIds.set(edge.id, generateId(reservedSelectableIds));
@@ -154,14 +172,33 @@ export function prepareDiagramPaste(
     for (const group of fragment.groups) groupIds.set(group.id, generateId(reservedGroupIds));
     const reservedFragmentIds = new Set((diagram.fragments ?? []).map(({ id }) => id));
     for (const sourceFragment of fragment.fragments) fragmentIds.set(sourceFragment.id, generateId(reservedFragmentIds));
+    const reservedLegendEntryIds = new Set(diagram.meta.legend.map(({ id }) => id));
+    const legendEntries: DiagramLegendEntryData[] = [];
+    for (const sourceEntry of fragment.legendEntries) {
+        const existing = diagram.meta.legend.find(({ id }) => id === sourceEntry.id);
+        if (existing && JSON.stringify(existing) === JSON.stringify(sourceEntry)) {
+            legendEntryIds.set(sourceEntry.id, existing.id);
+            continue;
+        }
+        const id = generateId(reservedLegendEntryIds);
+        legendEntryIds.set(sourceEntry.id, id);
+        legendEntries.push({ ...sourceEntry, id } as DiagramLegendEntryData);
+    }
+    const availableLegendEntries = [...diagram.meta.legend, ...legendEntries];
 
-    const nodes = fragment.nodes.map((node) => createPastedNode(node, nodeIds, offset, validateNode));
+    const nodes = fragment.nodes.map((node) => (
+        createPastedNode(node, nodeIds, legendEntryIds, availableLegendEntries, offset, validateNode)
+    ));
     const pastedNodesById = new Map(nodes.map((node) => [node.id, node]));
-    const edges = fragment.edges.map((edge) => createPastedEdge(edge, nodeIds, edgeIds, pastedNodesById, diagram, offset));
+    const edges = fragment.edges.map((edge) => (
+        createPastedEdge(
+            edge, nodeIds, edgeIds, legendEntryIds, pastedNodesById, diagram, availableLegendEntries, offset, validateEdge,
+        )
+    ));
     const groups = fragment.groups.map((group) => createPastedGroup(group, nodeIds, groupIds, offset, validateGroup));
     const fragments = fragment.fragments.map((sourceFragment) => (
         createPastedSequenceFragment(sourceFragment, edgeIds, fragmentIds, validateFragment)
     ));
 
-    return { edges, fragments, groups, nodes };
+    return { edges, fragments, groups, legendEntries, nodes };
 }

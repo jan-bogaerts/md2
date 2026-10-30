@@ -15,8 +15,7 @@ interface DiagramLegendEntryListProps {
 }
 
 function legendEntryKey(entry: DiagramLegendEntry) {
-    return entry.entryType === 'node' ? `node:${entry.role}`
-        : entry.entryType === 'nodeKind' ? `nodeKind:${entry.nodeKind}` : `connection:${entry.kind}`
+    return entry.id
 }
 
 /**
@@ -31,7 +30,6 @@ export function DiagramLegendEntryList({ entries, label, reader, session, store 
     const entryKeys = entries.map(legendEntryKey)
     const handleDragEnd = ({ active, over }: DragEndEvent) => {
         if (!session || !over || over.id === active.id) return
-        session.legend.materializeDerivedLegend()
         session.legend.moveLegendEntry(String(active.id), entryKeys.indexOf(String(over.id)))
     }
     const rows = entries.map((entry, index) => (

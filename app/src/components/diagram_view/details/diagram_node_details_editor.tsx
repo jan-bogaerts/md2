@@ -11,10 +11,12 @@ import {
     DIAGRAM_ROLES,
     requireDiagramNodeKind,
     type DiagramEntityField,
+    type DiagramLegendEntryData,
     type DiagramNodeKind,
     type DiagramRole,
 } from '../../../services/diagrams/diagram_data'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
+import { findCompatibleNodeLegendEntry } from '../../../services/diagrams/diagram_legend_entry_compatibility'
 
 type DrilldownDraft = 'default' | 'disabled' | 'enabled'
 
@@ -30,6 +32,7 @@ interface NodeDraft {
     entityFields: EntityFieldDraft[]
     kind: DiagramNodeKind | ''
     label: string
+    legendEntryId: string
     nextEntityFieldId: number
     role: DiagramRole
     sublabel: string
@@ -80,6 +83,7 @@ function initialDraft(nodeId: string, session: DiagramEditSessionService): NodeD
         entityFields: node?.fields?.map((field, fieldIndex) => ({draftId: `existing:${fieldIndex}`, key: field.key ?? '', name: field.name, type: field.type ?? ''})) ?? [],
         kind: node?.kind ?? '',
         label: node?.label ?? '',
+        legendEntryId: node?.legendEntryId ?? '',
         nextEntityFieldId: 0,
         role: node?.role ?? 'focal',
         sublabel: node?.sublabel ?? '',
@@ -145,9 +149,29 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
     const diagramType = session.read.getMetadataFieldSnapshot('type')
     const preset = session.read.getMetadataFieldSnapshot('preset')
     const kindOptions = nodeKindOptions(session)
+    const legendEntries = session.read.getEditableDiagram()?.meta.legend.filter((entry) => !('kind' in entry)) ?? []
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target
-        setDraft((current) => ({ ...current, [name]: value }))
+        setDraft((current) => {
+            if (name !== 'kind' && name !== 'role') return { ...current, [name]: value }
+            const next = { ...current, [name]: value } as NodeDraft
+            const entry = findCompatibleNodeLegendEntry(
+                legendEntries,
+                { kind: next.kind || undefined, role: next.role },
+                diagramType ?? 'architecture',
+            )
+
+            return { ...next, legendEntryId: entry?.id ?? '' }
+        })
+    }
+    const handleLegendEntryChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const entry = legendEntries.find(({ id }) => id === event.target.value) as DiagramLegendEntryData | undefined
+        if (!entry || 'kind' in entry) return
+        setDraft((current) => ({
+            ...current,
+            ...('role' in entry ? { role: entry.role } : { kind: entry.nodeKind }),
+            legendEntryId: entry.id,
+        }))
     }
     const handleEntityFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
         const [fieldIndexText, field] = event.target.name.split(':') as [string, keyof EntityFieldDraft]
@@ -212,13 +236,15 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
         const nextSublabel = optionalText(draft.sublabel)
         const nextTag = optionalText(draft.tag)
         if (node.label !== draft.label) saved = session.objects.setNodeField(nodeId, 'label', draft.label) && saved
-        if (node.role !== draft.role) saved = session.objects.setNodeField(nodeId, 'role', draft.role) && saved
+        if (node.role !== draft.role || node.kind !== (draft.kind || undefined) || node.legendEntryId !== draft.legendEntryId) {
+            const legendEntryId = draft.legendEntryId || session.legend.addLegendEntry({ role: draft.role })
+            if (!legendEntryId) return
+            const classification = {kind: draft.kind || undefined, legendEntryId, role: draft.role}
+            saved = session.objects.setNodeClassification(nodeId, classification) && saved
+        }
         if (node.sublabel !== nextSublabel) saved = session.objects.setNodeField(nodeId, 'sublabel', nextSublabel) && saved
         if (node.tag !== nextTag) saved = session.objects.setNodeField(nodeId, 'tag', nextTag) && saved
         if (node.drilldown !== nextDrilldown) saved = session.objects.setNodeField(nodeId, 'drilldown', nextDrilldown) && saved
-        if (diagramType === 'flow' && node.kind !== draft.kind) {
-            saved = session.objects.setNodeField(nodeId, 'kind', draft.kind as DiagramNodeKind) && saved
-        }
         if (diagramType === 'entity') {
             saved = synchronizeEntityFields(nodeId, draft.entityFields, session) && saved
         }
@@ -233,6 +259,9 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
                     <TextField autoFocus label="Label" name="label" onChange={handleFieldChange} required size="small" value={draft.label} />
                     <TextField label="Role" name="role" onChange={handleFieldChange} select size="small" value={draft.role}>
                         {DIAGRAM_ROLES.map((role) => <MenuItem key={role} value={role}>{role}</MenuItem>)}
+                    </TextField>
+                    <TextField label="Legend entry" name="legendEntryId" onChange={handleLegendEntryChange} select size="small" value={draft.legendEntryId}>
+                        {legendEntries.map((entry) => <MenuItem key={entry.id} value={entry.id}>{entry.label}</MenuItem>)}
                     </TextField>
                     {diagramType === 'flow' ? (
                         <TextField label="Kind" name="kind" onChange={handleFieldChange} select size="small" value={draft.kind}>

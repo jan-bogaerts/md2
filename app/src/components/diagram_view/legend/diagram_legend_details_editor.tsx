@@ -1,4 +1,4 @@
-import { Alert, Button, DialogActions, DialogContent, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Button, DialogActions, DialogContent, MenuItem, Stack, TextField } from '@mui/material'
 import { useMemo, useState, type ChangeEvent } from 'react'
 import {
     diagramEdgeKindsForType, DIAGRAM_NODE_KINDS, DIAGRAM_ROLES, requireDiagramNodeKind,
@@ -57,7 +57,7 @@ export function DiagramLegendDetailsEditor({ onClose, session }: DiagramLegendDe
             return
         }
         if (session.legend.addLegendEntry(newEntryFor(addedSemantic, addedLabel)) === null) {
-            setValidationMessage('That node kind, node role, or connection kind already has a legend entry.')
+            setValidationMessage('Legend entry could not be added.')
 
             return
         }
@@ -69,12 +69,6 @@ export function DiagramLegendDetailsEditor({ onClose, session }: DiagramLegendDe
             <DialogContent dividers>
                 <Stack spacing={2} sx={{ pt: 0.5 }}>
                     {validationMessage ? <Alert severity="error">{validationMessage}</Alert> : null}
-                    {!session.read.getHasExplicitLegendSnapshot() ? (
-                        <Typography color="text.secondary" variant="body2">
-                            This diagram has no explicit legend entries, so its legend is derived from the node kinds and
-                            connection kinds it uses. Adding an entry keeps those derived entries.
-                        </Typography>
-                    ) : null}
                     <Stack direction="row" spacing={1}>
                         <TextField
                             label="Add entry for"

@@ -11,7 +11,7 @@ import { DIAGRAM_DIMMED_OPACITY } from '../surface/diagram_emphasis_presentation
 import { diagramFontStyle } from '../formatting/diagram_font_style'
 import { DiagramInlineNodeControls } from '../editing/diagram_inline_node_controls'
 import {
-    type DiagramFormattingStore, useDiagramFormattingScale, useDiagramNodeRoleFormatting,
+    type DiagramFormattingStore, useDiagramFormattingScale, useDiagramNodeFormatting,
 } from '../formatting/use_diagram_formatting'
 
 interface EditableEntityFieldSource {
@@ -69,7 +69,7 @@ export function DiagramNode(props: DiagramNodeProps) {
     const {onOpenDetails, onSelect, selected} = props
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
     const decision = node.kind === 'decision'
-    const formatting = useDiagramNodeRoleFormatting(node.role, formattingStore)
+    const formatting = useDiagramNodeFormatting(node.legendEntryId, node.role, formattingStore)
     const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
     const roleStyle = diagramRoleStyle(node.role, formatting)
     const positionStyle = contentPosition(formatting?.box?.contentPosition)

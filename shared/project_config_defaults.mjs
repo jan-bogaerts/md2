@@ -7,9 +7,16 @@ export const DEFAULT_DIAGRAMS_FOLDER = 'diagrams'
 export const DEFAULT_DIAGRAM_FOOTER = `Save exactly one valid JSON object to {{diagram-file}}. Write JSON only: no SVG, markup, Markdown code fence, or explanatory text.
 
 Required root fields:
-- meta: { version: 1, type, title, description }
-- nodes: [{ id, label, role }]
-- edges: [{ id, from, to, kind }]
+- meta: { version: 2, type, title, description, legend }
+- nodes: [{ id, label, role, legendEntryId }]
+- edges: [{ id, from, to, kind, legendEntryId }]
+
+Legend entries:
+- Every entry has a stable opaque id, label, and exactly one of role, nodeKind, or kind
+- Multiple entries may use the same role, nodeKind, or kind when their ids differ
+- Every node and edge must reference one compatible legend entry by legendEntryId
+- A node entry is compatible when its role matches the node role or its nodeKind matches the node effective kind
+- An edge entry is compatible when its kind matches the edge kind
 
 Optional root fields:
 - groups: [{ id, label, nodeIds }]
@@ -96,6 +103,8 @@ Reference rules:
 - Every edge.from and edge.to must reference an existing node
 - Every group.nodeIds entry must reference an existing node
 - Every fragment edgeIds entry must reference an existing edge
+- Legend entry IDs must be unique
+- Every node and edge legendEntryId must reference a compatible legend entry
 
 Layout is owned by the application. Prefer omitting x, y, width, height, waypoints, sourceAttachment, and targetAttachment. If supplied, all geometry values must be multiples of 4, width and height must be positive, and waypoint segments must be horizontal or vertical. Attachments persist precise connection points across node movement and resizing.
 `

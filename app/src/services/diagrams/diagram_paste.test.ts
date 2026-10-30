@@ -12,7 +12,8 @@ const payload = JSON.stringify({
     format: DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT,
     fragments: [],
     groups: [],
-    nodes: [{ id: 'source', label: 'Source', role: 'focal', x: 4, y: 4 }],
+    legendEntries: [{ id: 'focal-entry', label: 'Focal', role: 'focal' }],
+    nodes: [{ id: 'source', label: 'Source', legendEntryId: 'focal-entry', role: 'focal', x: 4, y: 4 }],
     version: DIAGRAM_FRAGMENT_CLIPBOARD_VERSION,
 })
 const pastedResult: DiagramPasteResult = {identities: [{ objectId: 'pasted', objectKind: 'node' }]}

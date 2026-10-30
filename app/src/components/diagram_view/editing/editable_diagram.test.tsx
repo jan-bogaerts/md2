@@ -1,7 +1,7 @@
 import { Profiler, type ReactElement, type ReactNode } from 'react'
 import { act, cleanup, fireEvent, render as testingRender, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData, DiagramType } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData, type DiagramType } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
@@ -78,7 +78,7 @@ function MeasuredMetadata({ counts, onRootRender, session }: {
 }
 
 function createHarness(sourceDiagram: DiagramData = diagram) {
-    const session = new DiagramEditSessionService(new DiagramSourceStub(sourceDiagram))
+    const session = new DiagramEditSessionService(new DiagramSourceStub(parseDiagramData(JSON.stringify(sourceDiagram))))
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
@@ -263,7 +263,8 @@ describe('editable diagram', () => {
         const before = new Map(counts)
         const nodeIds = session.read.getNodeIdsSnapshot()
 
-        act(() => { session.createNode({ label: 'Mail', role: 'external' }) })
+        const legendEntryId = session.legend.addLegendEntry({ label: 'External', role: 'external' }) as string
+        act(() => { session.createNode({ label: 'Mail', legendEntryId, role: 'external' }) })
 
         expect(session.read.getNodeIdsSnapshot()).not.toBe(nodeIds)
         expect(screen.getByRole('button', { name: 'Mail' })).toBeTruthy()

@@ -11,7 +11,7 @@ export function derivedDiagramLegendEntries(data: {
     const edgeKinds = [...new Set(data.edges.map(({ kind }) => kind))]
 
     return [
-        ...nodeKinds.map((nodeKind) => ({ label: diagramNodeKindLabel(nodeKind), nodeKind })),
-        ...edgeKinds.map((kind) => ({ kind, label: diagramEdgeKindLabel(kind) })),
+        ...nodeKinds.map((nodeKind, index) => ({ id: `derived-legend-${index + 1}`, label: diagramNodeKindLabel(nodeKind), nodeKind })),
+        ...edgeKinds.map((kind, index) => ({ id: `derived-legend-${nodeKinds.length + index + 1}`, kind, label: diagramEdgeKindLabel(kind) })),
     ]
 }

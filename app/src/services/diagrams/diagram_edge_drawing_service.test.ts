@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from './diagram_data'
+import { parseDiagramData, type DiagramData } from './diagram_data'
 import {
     DiagramEdgeDrawingService,
     diagramConnectionPointAt,
@@ -120,7 +120,8 @@ class DiagramSourceStub extends EventTarget {
 }
 
 function createHarness(source: DiagramData = architectureDiagram(), createId: () => string = () => 'drawn-edge') {
-    const session = new DiagramEditSessionService(new DiagramSourceStub({ diagram: source, record }), createId)
+    const parsedSource = parseDiagramData(JSON.stringify(source))
+    const session = new DiagramEditSessionService(new DiagramSourceStub({ diagram: parsedSource, record }), createId)
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
@@ -140,7 +141,9 @@ describe('diagram edge drawing geometry', () => {
         expect(drawing.getPreviewSnapshot()).toMatchObject({ curved: true, targetAttachment: { nodeId: 'target' } })
         expect(drawing.getPreviewSnapshot()?.controlPoint).toBeDefined()
         expect(drawing.completeTarget('target', { x: 280, y: 68 }, true)).toBe('drawn-edge')
-        expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind: 'connection', to: 'target'})
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({
+            from: 'source', id: 'drawn-edge', kind: 'connection', legendEntryId: expect.any(String), to: 'target',
+        })
     })
 
     it('resolves the nearest node boundary and relative offset', () => {
@@ -165,11 +168,11 @@ describe('diagram edge drawing geometry', () => {
 
 describe('DiagramEdgeDrawingService', () => {
     it('uses compatible selected connection kind for preview and created edge', () => {
-        const source = architectureDiagram()
-        source.meta.legend = [{ kind: 'data', label: 'Data' }]
+        const source = parseDiagramData(JSON.stringify(architectureDiagram()))
+        source.meta = { ...source.meta, legend: [...source.meta.legend, { id: 'data-entry', kind: 'data', label: 'Data' }] }
         const { drawing, session } = createHarness(source)
         drawing.activate({ kind: 'connection' })
-        expect(session.selectLegendEntry('connection:data')).toBe(true)
+        expect(session.selectLegendEntry('data-entry')).toBe(true)
 
         drawing.beginSource('source', { x: 120, y: 40 })
         expect(drawing.getPreviewSnapshot()?.kind).toBe('data')
@@ -180,11 +183,12 @@ describe('DiagramEdgeDrawingService', () => {
     })
 
     it('keeps edge default when selected legend entry is a node role', () => {
-        const source = architectureDiagram()
-        source.meta.legend = [{ label: 'Store', role: 'store' }]
+        const source = parseDiagramData(JSON.stringify(architectureDiagram()))
+        const storeEntry = { id: 'store-entry', label: 'Store', role: 'store' as const }
+        source.meta.legend.push(storeEntry)
         const { drawing, session } = createHarness(source)
         drawing.activate({ kind: 'data' })
-        expect(session.selectLegendEntry('node:store')).toBe(true)
+        expect(session.selectLegendEntry(storeEntry.id)).toBe(true)
 
         drawing.beginSource('source', { x: 120, y: 40 })
         expect(drawing.getPreviewSnapshot()?.kind).toBe('data')
@@ -275,7 +279,9 @@ describe('DiagramEdgeDrawingService', () => {
             expect(drawing.completeTarget('target', { x: 300, y: 200 }, true)).toBe('drawn-edge')
 
             expect(session.read.getEdgeIdsSnapshot()).toEqual(['call', 'drawn-edge', 'return'])
-            expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind, to: 'target'})
+            expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({
+                from: 'source', id: 'drawn-edge', kind, legendEntryId: expect.any(String), to: 'target',
+            })
         },
     )
 

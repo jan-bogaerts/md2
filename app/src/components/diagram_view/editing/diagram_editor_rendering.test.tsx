@@ -1,7 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react'
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
 import {
     DiagramEditSessionService,
 } from '../../../services/diagrams/diagram_edit_session_service'
@@ -53,7 +53,7 @@ function countRender(counts: RenderCounts, id: string) {
 }
 
 class DiagramSourceStub extends EventTarget {
-    private readonly source: DiagramViewSourceSnapshot = { diagram, record }
+    private readonly source: DiagramViewSourceSnapshot = { diagram: parseDiagramData(JSON.stringify(diagram)), record }
 
     getSourceSnapshot = () => this.source
 

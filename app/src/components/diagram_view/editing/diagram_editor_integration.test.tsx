@@ -10,6 +10,7 @@ import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagr
 import { layout } from '../../../services/diagrams/diagram_layout'
 import { DiagramChangeReviewService } from '../review/diagram_change_review_service'
 import { DiagramComparison } from '../comparison/diagram_comparison'
+import { AppThemeProvider } from '../../../theme/theme_provider'
 
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
@@ -84,7 +85,7 @@ class DiagramSourceStub extends EventTarget {
 }
 
 function createSession(diagram: DiagramData) {
-    const session = new DiagramEditSessionService(new DiagramSourceStub(diagram))
+    const session = new DiagramEditSessionService(new DiagramSourceStub(parseDiagramData(JSON.stringify(diagram))))
     session.bindProject(project)
     session.start()
 
@@ -106,13 +107,16 @@ describe('diagram editor integration', () => {
         const originalText = JSON.stringify(diagram)
         const session = createSession(diagram)
         const geometry = new DiagramGeometryService(session)
+        const currentDiagram = layout(parseDiagramData(JSON.stringify(diagram)))
         render(
-            <DiagramComparison
-                currentDiagram={layout(diagram)}
-                geometry={geometry}
-                onCurrentSelect={vi.fn()}
-                session={session}
-            />,
+            <AppThemeProvider>
+                <DiagramComparison
+                    currentDiagram={currentDiagram}
+                    geometry={geometry}
+                    onCurrentSelect={vi.fn()}
+                    session={session}
+                />
+            </AppThemeProvider>,
         )
         const current = screen.getByRole('region', { name: 'Current' })
         const next = screen.getByRole('region', { name: 'New' })

@@ -2,7 +2,7 @@ import { requireDiagramString, type DiagramEdge, type DiagramGroup, type Diagram
 import { DiagramEditContext } from './diagram_edit_context'
 import { diagramConnectionPointFieldChangedEvent, diagramMetadataFieldChangedEvent, diagramObjectFieldChangedEvent } from './diagram_edit_events'
 import { groupMembershipEvent, collectionMembershipEvent } from './diagram_edit_membership_events'
-import { invalidDiagramField, requireOptionalGridNumber, validateConnectionPointValue } from './diagram_edit_validation'
+import { invalidDiagramField, requireOptionalGridNumber, validateConnectionPointValue, validateEdgeLegendEntry, validateNodeLegendEntry } from './diagram_edit_validation'
 import { planEdgeReconnection } from './diagram_edge_reconnection_plan'
 import type { DiagramChange, DiagramConnectionEndpoint, DiagramFieldChangeDetail, MutableDiagramEdgeField, MutableDiagramGroupField, MutableDiagramMetaField, MutableDiagramNodeField } from './diagram_edit_types'
 
@@ -37,7 +37,11 @@ export class DiagramObjectFieldEditor {
         if (Object.is(previousValue, value)) return false
         if (!this.context.validateOperation('Set node field', () => {
             this.context.validation.validateNodeFieldValue(nodeId, field, value)
-            this.context.validation.validateMindmapNode({ ...node, [field]: value }, nodeId)
+            const candidate = { ...node, [field]: value }
+            this.context.validation.validateMindmapNode(candidate, nodeId)
+            if (field === 'kind' || field === 'legendEntryId' || field === 'role') {
+                validateNodeLegendEntry(this.context.diagram, candidate, `nodes.${nodeId}.legendEntryId`)
+            }
         })) return false
 
         node[field] = value
@@ -93,11 +97,88 @@ export class DiagramObjectFieldEditor {
         const previousValue = edge[field]
         if (Object.is(previousValue, value)) return false
         if (!this.context.validateOperation('Set edge field', () => this.context.validation.validateEdgeFieldValue(edge, field, value))) return false
+        if ((field === 'kind' || field === 'legendEntryId') && !this.context.validateOperation(
+            'Set edge field',
+            () => validateEdgeLegendEntry(this.context.diagram, { ...edge, [field]: value }, `edges.${edgeId}.legendEntryId`),
+        )) return false
 
         edge[field] = value
         const originalValue = this.context.changeRegistry.originalEdges.get(edgeId)?.[field]
         const eventName = diagramObjectFieldChangedEvent('edge', edgeId, field)
         this.context.transaction.finishFieldChange(eventName, `edge:${edgeId}`, 'edge', edgeId, field, originalValue, previousValue, value)
+
+        return true
+    }
+
+    /** Changes node semantics and its compatible legend reference in one transaction. */
+    setNodeClassification(nodeId: string, value: Pick<DiagramNode, 'kind' | 'legendEntryId' | 'role'>) {
+        const node = this.context.getNode(nodeId)
+        const candidate = { ...node, ...value }
+        const fields = (['kind', 'legendEntryId', 'role'] as const).filter((field) => !Object.is(node[field], candidate[field]))
+        if (fields.length === 0) return false
+        if (!this.context.validateOperation('Set node classification', () => {
+            for (const field of fields) this.context.validation.validateNodeFieldValue(nodeId, field, candidate[field])
+            this.context.validation.validateMindmapNode(candidate, nodeId)
+            validateNodeLegendEntry(this.context.diagram, candidate, `nodes.${nodeId}.legendEntryId`)
+        })) return false
+
+        const original = this.context.changeRegistry.originalNodes.get(nodeId)
+        const changes = fields.map((field) => {
+            return {field, originalValue: original?.[field], previousValue: node[field], value: candidate[field]}
+        })
+        for (const { field, value: nextValue } of changes) node[field] = nextValue as never
+        for (const change of changes) {
+            const eventName = diagramObjectFieldChangedEvent('node', nodeId, change.field)
+            const diagramChange: DiagramChange = {
+                category: 'field', field: change.field, id: eventName, objectId: nodeId, objectKind: 'node',
+                originalValue: change.originalValue, ownerId: null, regionIndex: null, value: change.value,
+            }
+            this.context.changeRegistry.set(diagramChange, `node:${nodeId}`, Object.is(change.originalValue, change.value))
+        }
+        this.context.transaction.commit([])
+        for (const change of changes) {
+            const detail: DiagramFieldChangeDetail = {
+                field: change.field, objectId: nodeId, objectKind: 'node',
+                previousValue: change.previousValue, value: change.value,
+            }
+            this.context.target.dispatchEvent(new CustomEvent(diagramObjectFieldChangedEvent('node', nodeId, change.field), { detail }))
+        }
+
+        return true
+    }
+
+    /** Changes edge kind and its compatible legend reference in one transaction. */
+    setEdgeClassification(edgeId: string, value: Pick<DiagramEdge, 'kind' | 'legendEntryId'>) {
+        const edge = this.context.getEdge(edgeId)
+        const candidate = { ...edge, ...value }
+        const fields = (['kind', 'legendEntryId'] as const).filter((field) => !Object.is(edge[field], candidate[field]))
+        if (fields.length === 0) return false
+        if (!this.context.validateOperation('Set edge classification', () => {
+            for (const field of fields) this.context.validation.validateEdgeFieldValue(candidate, field, candidate[field])
+            validateEdgeLegendEntry(this.context.diagram, candidate, `edges.${edgeId}.legendEntryId`)
+        })) return false
+
+        const original = this.context.changeRegistry.originalEdges.get(edgeId)
+        const changes = fields.map((field) => {
+            return {field, originalValue: original?.[field], previousValue: edge[field], value: candidate[field]}
+        })
+        for (const { field, value: nextValue } of changes) edge[field] = nextValue as never
+        for (const change of changes) {
+            const eventName = diagramObjectFieldChangedEvent('edge', edgeId, change.field)
+            const diagramChange: DiagramChange = {
+                category: 'field', field: change.field, id: eventName, objectId: edgeId, objectKind: 'edge',
+                originalValue: change.originalValue, ownerId: null, regionIndex: null, value: change.value,
+            }
+            this.context.changeRegistry.set(diagramChange, `edge:${edgeId}`, Object.is(change.originalValue, change.value))
+        }
+        this.context.transaction.commit([])
+        for (const change of changes) {
+            const detail: DiagramFieldChangeDetail = {
+                field: change.field, objectId: edgeId, objectKind: 'edge',
+                previousValue: change.previousValue, value: change.value,
+            }
+            this.context.target.dispatchEvent(new CustomEvent(diagramObjectFieldChangedEvent('edge', edgeId, change.field), { detail }))
+        }
 
         return true
     }

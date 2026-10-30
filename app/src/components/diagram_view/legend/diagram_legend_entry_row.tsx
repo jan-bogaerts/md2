@@ -8,6 +8,7 @@ import type { DiagramEditSessionService } from '../../../services/diagrams/diagr
 import type {
     DiagramConnectionKindFormatting,
     DiagramEdgeKind,
+    DiagramLegendEntryFormatting,
     DiagramNodeRoleFormatting,
     DiagramRole,
 } from '../../../services/diagrams/diagram_data'
@@ -18,12 +19,13 @@ import type { DiagramLegendEntry } from './diagram_legend_entries'
 import { diagramRoleStyle } from '../formatting/diagram_role_style'
 import {
     type DiagramFormattingStore,
-    useDiagramNodeRoleFormatting,
+    useDiagramNodeFormatting,
 } from '../formatting/use_diagram_formatting'
 
 export interface DiagramFormattingMutationStore {
     setConnectionKindFormatting(kind: DiagramEdgeKind, value: DiagramConnectionKindFormatting): void
     setNodeRoleFormatting(role: DiagramRole, value: DiagramNodeRoleFormatting): void
+    setLegendEntryFormatting(legendEntryId: string, value: DiagramLegendEntryFormatting): void
 }
 
 function noSelection() { return null }
@@ -63,7 +65,6 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
 
             return
         }
-        session.legend.materializeDerivedLegend()
         if (!session.legend.setLegendEntryLabel(entryKey, draftLabel)) setLabelError('Label could not be saved.')
     }
     const handleLabelKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -77,10 +78,9 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
         }
     }
     const handleRemove = () => {
-        session?.legend.materializeDerivedLegend()
         session?.legend.removeLegendEntry(entryKey)
     }
-    const nodeFormatting = useDiagramNodeRoleFormatting(sampleRole ?? 'focal', reader)
+    const nodeFormatting = useDiagramNodeFormatting(entry.id, sampleRole ?? 'focal', reader)
     const handleOpen = (event: MouseEvent<HTMLButtonElement>) => {
         setAnchorElement(event.currentTarget)
         setActiveRole(entry.entryType === 'node' ? entry.role
@@ -92,11 +92,15 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
     }
     const handleRoleChoice = (event: MouseEvent<HTMLLIElement>) => setActiveRole(event.currentTarget.dataset.role as DiagramRole)
     const handleNodeApply = (value: DiagramNodeRoleFormatting) => {
-        if (activeRole) store.setNodeRoleFormatting(activeRole, value)
+        if (activeRole) store.setLegendEntryFormatting(entry.id, value)
     }
     const handleConnectionApply = (value: DiagramConnectionKindFormatting) => {
-        if (entry.entryType === 'connection') store.setConnectionKindFormatting(entry.kind, value)
+        if (entry.entryType === 'connection') store.setLegendEntryFormatting(entry.id, value)
     }
+    const connectionFormatting = entry.entryType === 'connection'
+        ? reader.getConnectionFormattingSnapshot?.(entry.id, entry.kind)
+            ?? reader.getConnectionKindFormattingSnapshot(entry.kind)
+        : undefined
 
     const sortableStyle = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, transition } : { transition }
 
@@ -130,11 +134,11 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
                 <ButtonBase aria-label={`Select ${entry.label}`} aria-pressed={selectedKey === entryKey} onClick={handleSelect} sx={{ borderRadius: 0.5, p: 0.5 }}>
                     {entry.entryType !== 'connection' ? (
                         <Box data-role={sampleRole} sx={{ border: '1px solid', borderRadius: 0.5, height: 12, width: 20, ...(sampleRole ? diagramRoleStyle(sampleRole, nodeFormatting) : {}) }} />
-                    ) : <DiagramLegendConnectionSample kind={entry.kind} store={reader} />}
+                    ) : <DiagramLegendConnectionSample kind={entry.kind} legendEntryId={entry.id} store={reader} />}
                 </ButtonBase>
             ) : entry.entryType !== 'connection' ? (
                 <Box data-role={sampleRole} sx={{ border: '1px solid', borderRadius: 0.5, flexShrink: 0, height: 12, width: 20, ...(sampleRole ? diagramRoleStyle(sampleRole, nodeFormatting) : {}) }} />
-            ) : <DiagramLegendConnectionSample kind={entry.kind} store={reader} />}
+            ) : <DiagramLegendConnectionSample kind={entry.kind} legendEntryId={entry.id} store={reader} />}
             {session ? (
                 <TextField
                     error={!!labelError}
@@ -180,7 +184,7 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
                     label={entry.entryType === 'nodeKind' ? `${entry.label} (${activeRole})` : entry.label}
                     onApply={handleNodeApply}
                     onClose={handleClose}
-                    value={reader.getNodeRoleFormattingSnapshot(activeRole)}
+                    value={reader.getNodeFormattingSnapshot?.(entry.id, activeRole) ?? reader.getNodeRoleFormattingSnapshot(activeRole)}
                 />
             ) : null}
             {anchorElement && entry.entryType === 'connection' ? (
@@ -190,7 +194,7 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
                     label={entry.label}
                     onApply={handleConnectionApply}
                     onClose={handleClose}
-                    value={reader.getConnectionKindFormattingSnapshot(entry.kind)}
+                    value={connectionFormatting}
                 />
             ) : null}
         </Box>

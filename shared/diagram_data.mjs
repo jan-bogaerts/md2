@@ -1,4 +1,4 @@
-export const DIAGRAM_DATA_VERSION = 1;
+export const DIAGRAM_DATA_VERSION = 2;
 export const DIAGRAM_TYPES = ['architecture', 'dependency', 'sequence', 'flow', 'entity', 'mindmap'];
 export const DIAGRAM_ROLES = ['focal', 'backend', 'store', 'external', 'input', 'optional', 'boundary'];
 export const DIAGRAM_NODE_KINDS = ['component', 'participant', 'step', 'decision', 'start', 'end', 'state', 'entity', 'root', 'topic'];
@@ -93,10 +93,9 @@ export function requireDiagramEnum(value, values, field) {
 export function optionalDiagramEnum(value, values, field) {
     return value === undefined ? undefined : requireDiagramEnum(value, values, field);
 }
-function parseLegend(value) {
-    if (value === undefined)
+function parseLegend(value, legacy) {
+    if (legacy && value === undefined)
         return undefined;
-    const seenSemantics = new Set();
     return requireArray(value, 'meta.legend').map((entry, index) => {
         const field = `meta.legend[${index}]`;
         const item = requireObject(entry, field);
@@ -107,17 +106,17 @@ function parseLegend(value) {
             : item.nodeKind !== undefined
                 ? { nodeKind: requireDiagramEnum(item.nodeKind, DIAGRAM_NODE_KINDS, `${field}.nodeKind`) }
                 : { kind: requireDiagramEnum(item.kind, DIAGRAM_EDGE_KINDS, `${field}.kind`) };
-        const semanticKey = item.role !== undefined ? `role:${semantic.role}`
-            : item.nodeKind !== undefined ? `nodeKind:${semantic.nodeKind}` : `kind:${semantic.kind}`;
-        if (seenSemantics.has(semanticKey))
-            malformed(field, `duplicate entry for ${semanticKey}`);
-        seenSemantics.add(semanticKey);
-        return { ...semantic, label: requireDiagramString(item.label, `${field}.label`) };
+        return {
+            ...(legacy ? {} : { id: requireDiagramString(item.id, `${field}.id`) }),
+            ...semantic,
+            label: requireDiagramString(item.label, `${field}.label`),
+        };
     });
 }
-function parseMeta(value) {
+function parseMeta(value, legacy) {
     const meta = requireObject(value, 'meta');
-    if (meta.version !== DIAGRAM_DATA_VERSION)
+    const expectedVersion = legacy ? 1 : DIAGRAM_DATA_VERSION;
+    if (meta.version !== expectedVersion)
         malformed('meta.version', `unsupported value ${String(meta.version)}`);
     const type = requireDiagramEnum(meta.type, DIAGRAM_TYPES, 'meta.type');
     const preset = optionalDiagramEnum(meta.preset, DIAGRAM_FLOW_PRESETS, 'meta.preset');
@@ -125,14 +124,14 @@ function parseMeta(value) {
         malformed('meta.preset', 'required value for flow diagrams');
     if (type !== 'flow' && preset)
         malformed('meta.preset', 'value only allowed for flow diagrams');
-    const legend = parseLegend(meta.legend);
+    const legend = parseLegend(meta.legend, legacy);
     return {
         description: requireDiagramString(meta.description, 'meta.description'),
-        ...(legend ? { legend } : {}),
+        ...(legend === undefined ? {} : { legend }),
         ...(preset ? { preset } : {}),
         title: requireDiagramString(meta.title, 'meta.title'),
         type,
-        version: DIAGRAM_DATA_VERSION,
+        version: expectedVersion,
     };
 }
 function parseFontFormatting(value, field) {
@@ -193,16 +192,14 @@ function parseLineFormatting(value, field) {
         ...(thickness === undefined ? {} : { thickness }),
     };
 }
-function parseNodeRoleFormatting(value, role) {
-    const field = `formatting.nodeRoles.${role}`;
+function parseNodeRoleFormatting(value, role, field = `formatting.nodeRoles.${role}`) {
     const formatting = requireObject(value, field);
     rejectUnknownKeys(formatting, ['box', 'font'], field);
     const box = parseBoxFormatting(formatting.box, `${field}.box`);
     const font = parseFontFormatting(formatting.font, `${field}.font`);
     return { ...(box ? { box } : {}), ...(font ? { font } : {}) };
 }
-function parseConnectionKindFormatting(value, kind) {
-    const field = `formatting.connectionKinds.${kind}`;
+function parseConnectionKindFormatting(value, kind, field = `formatting.connectionKinds.${kind}`) {
     const formatting = requireObject(value, field);
     rejectUnknownKeys(formatting, ['endMarker', 'font', 'line', 'startMarker'], field);
     const endMarker = optionalDiagramEnum(formatting.endMarker, DIAGRAM_CONNECTION_MARKERS, `${field}.endMarker`);
@@ -227,12 +224,29 @@ function parseCategoryFormatting(value, field, categories, parseCategory) {
         [category, parseCategory(override, category)]
     )));
 }
-function parseFormatting(value) {
+function parseLegendEntryFormatting(value, id, legend) {
+    const entry = legend.find((candidate) => candidate.id === id);
+    if (!entry)
+        malformed(`formatting.legendEntries.${id}`, `unknown legend entry ${id}`);
+    const field = `formatting.legendEntries.${id}`;
+    return 'kind' in entry
+        ? parseConnectionKindFormatting(value, id, field)
+        : parseNodeRoleFormatting(value, id, field);
+}
+function parseLegendEntryFormattingMap(value, legend) {
+    if (value === undefined)
+        return undefined;
+    const formatting = requireObject(value, 'formatting.legendEntries');
+    return Object.fromEntries(Object.entries(formatting).map(([id, override]) => (
+        [id, parseLegendEntryFormatting(override, id, legend)]
+    )));
+}
+function parseFormatting(value, legend) {
     if (value === undefined)
         return undefined;
     const formatting = requireObject(value, 'formatting');
     rejectUnknownKeys(formatting, [
-        'boxScalePercent', 'connectionKinds', 'fontScalePercent', 'nodeRoles', 'spacingScalePercent',
+        'boxScalePercent', 'connectionKinds', 'fontScalePercent', 'legendEntries', 'nodeRoles', 'spacingScalePercent',
     ], 'formatting');
     const boxScalePercent = optionalBoundedNumber(
         formatting.boxScalePercent, 'formatting.boxScalePercent',
@@ -245,6 +259,7 @@ function parseFormatting(value) {
         formatting.fontScalePercent, 'formatting.fontScalePercent',
         DIAGRAM_FORMATTING_SCALE_MINIMUM, DIAGRAM_FORMATTING_SCALE_MAXIMUM,
     );
+    const legendEntries = parseLegendEntryFormattingMap(formatting.legendEntries, legend);
     const nodeRoles = parseCategoryFormatting(
         formatting.nodeRoles, 'formatting.nodeRoles', DIAGRAM_ROLES, parseNodeRoleFormatting,
     );
@@ -256,6 +271,7 @@ function parseFormatting(value) {
         ...(boxScalePercent === undefined ? {} : { boxScalePercent }),
         ...(connectionKinds ? { connectionKinds } : {}),
         ...(fontScalePercent === undefined ? {} : { fontScalePercent }),
+        ...(legendEntries ? { legendEntries } : {}),
         ...(nodeRoles ? { nodeRoles } : {}),
         ...(spacingScalePercent === undefined ? {} : { spacingScalePercent }),
     };
@@ -273,7 +289,7 @@ function parseEntityFields(value, field) {
         };
     });
 }
-function parseNode(value, index) {
+function parseNode(value, index, legacy) {
     const field = `nodes[${index}]`;
     const node = requireObject(value, field);
     const kind = optionalDiagramEnum(node.kind, DIAGRAM_NODE_KINDS, `${field}.kind`);
@@ -285,6 +301,7 @@ function parseNode(value, index) {
         id: requireDiagramString(node.id, `${field}.id`),
         ...(kind ? { kind } : {}),
         label: requireDiagramString(node.label, `${field}.label`),
+        ...(legacy ? {} : { legendEntryId: requireDiagramString(node.legendEntryId, `${field}.legendEntryId`) }),
         role: requireDiagramEnum(node.role, DIAGRAM_ROLES, `${field}.role`),
         ...(node.sublabel === undefined ? {} : { sublabel: optionalDiagramString(node.sublabel, `${field}.sublabel`) }),
         ...(node.tag === undefined ? {} : { tag: optionalDiagramString(node.tag, `${field}.tag`) }),
@@ -323,7 +340,7 @@ function parseConnectionPoint(value, field) {
         side: requireDiagramEnum(connectionPoint.side, DIAGRAM_CONNECTION_SIDES, `${field}.side`),
     };
 }
-function parseEdge(value, index) {
+function parseEdge(value, index, legacy) {
     const field = `edges[${index}]`;
     const edge = requireObject(value, field);
     const fromCardinality = optionalDiagramEnum(edge.fromCardinality, DIAGRAM_CARDINALITIES, `${field}.fromCardinality`);
@@ -337,6 +354,7 @@ function parseEdge(value, index) {
         id: requireDiagramString(edge.id, `${field}.id`),
         kind: requireDiagramEnum(edge.kind, DIAGRAM_EDGE_KINDS, `${field}.kind`),
         ...(edge.label === undefined ? {} : { label: requireDiagramString(edge.label, `${field}.label`) }),
+        ...(legacy ? {} : { legendEntryId: requireDiagramString(edge.legendEntryId, `${field}.legendEntryId`) }),
         ...(sourceAttachment ? { sourceAttachment } : {}),
         ...(targetAttachment ? { targetAttachment } : {}),
         to: requireDiagramString(edge.to, `${field}.to`),
@@ -387,9 +405,52 @@ function requireUniqueIds(items, field) {
     }
     return ids;
 }
+function effectiveNodeKind(node, type) {
+    if (node.kind !== undefined)
+        return node.kind;
+    const defaults = { architecture: 'component', dependency: 'component', entity: 'entity', sequence: 'participant' };
+    const kind = defaults[type];
+    if (!kind)
+        malformed(`nodes.${node.id}.kind`, `required value for ${type}`);
+    return kind;
+}
+function nodeLegendEntryIsCompatible(node, entry, type) {
+    return entry.role === node.role || entry.nodeKind === effectiveNodeKind(node, type);
+}
+function edgeLegendEntryIsCompatible(edge, entry) {
+    return entry.kind === edge.kind;
+}
+function legacyLegendEntryId(index) {
+    return `legend-entry-${index + 1}`;
+}
+function legacyLegendLabel(value) {
+    return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+}
+function migrateVersionOne(data) {
+    const sourceEntries = data.meta.legend ?? [];
+    const legend = sourceEntries.map((entry, index) => ({ id: legacyLegendEntryId(index), ...entry }));
+    const appendEntry = (semantic) => {
+        const entry = { id: legacyLegendEntryId(legend.length), label: legacyLegendLabel(Object.values(semantic)[0]), ...semantic };
+        legend.push(entry);
+        return entry;
+    };
+    const nodes = data.nodes.map((node) => {
+        const entry = legend.find((candidate) => nodeLegendEntryIsCompatible(node, candidate, data.meta.type))
+            ?? appendEntry({ nodeKind: effectiveNodeKind(node, data.meta.type) });
+        return { ...node, legendEntryId: entry.id };
+    });
+    const edges = data.edges.map((edge) => {
+        const entry = legend.find((candidate) => edgeLegendEntryIsCompatible(edge, candidate))
+            ?? appendEntry({ kind: edge.kind });
+        return { ...edge, legendEntryId: entry.id };
+    });
+    return { ...data, edges, meta: { ...data.meta, legend, version: DIAGRAM_DATA_VERSION }, nodes };
+}
 function validateReferences(data) {
     const nodeIds = requireUniqueIds(data.nodes, 'nodes');
     const edgeIds = requireUniqueIds(data.edges, 'edges');
+    requireUniqueIds(data.meta.legend, 'meta.legend');
+    const legendEntriesById = new Map(data.meta.legend.map((entry) => [entry.id, entry]));
     const duplicateSelectableId = [...edgeIds].find((id) => nodeIds.has(id));
     if (duplicateSelectableId)
         malformed('nodes and edges', `duplicate id ${duplicateSelectableId}`);
@@ -404,6 +465,20 @@ function validateReferences(data) {
             malformed(`edges.${id}.sourceAttachment.nodeId`, `node ${sourceAttachment.nodeId} does not match from ${from}`);
         if (targetAttachment && targetAttachment.nodeId !== to)
             malformed(`edges.${id}.targetAttachment.nodeId`, `node ${targetAttachment.nodeId} does not match to ${to}`);
+    }
+    for (const node of data.nodes) {
+        const entry = legendEntriesById.get(node.legendEntryId);
+        if (!entry)
+            malformed(`nodes.${node.id}.legendEntryId`, `unknown legend entry ${node.legendEntryId}`);
+        if (!nodeLegendEntryIsCompatible(node, entry, data.meta.type))
+            malformed(`nodes.${node.id}.legendEntryId`, `incompatible legend entry ${node.legendEntryId}`);
+    }
+    for (const edge of data.edges) {
+        const entry = legendEntriesById.get(edge.legendEntryId);
+        if (!entry)
+            malformed(`edges.${edge.id}.legendEntryId`, `unknown legend entry ${edge.legendEntryId}`);
+        if (!edgeLegendEntryIsCompatible(edge, entry))
+            malformed(`edges.${edge.id}.legendEntryId`, `incompatible legend entry ${edge.legendEntryId}`);
     }
     for (const { id, nodeIds: groupNodeIds } of data.groups) {
         for (const nodeId of groupNodeIds) {
@@ -524,13 +599,23 @@ export function parseDiagramData(content) {
         throw new Error('Malformed diagram data: invalid JSON');
     }
     const root = requireObject(parsedValue, 'root');
-    const data = {
-        edges: requireArray(root.edges, 'edges').map(parseEdge),
-        ...(root.formatting === undefined ? {} : { formatting: parseFormatting(root.formatting) }),
+    const rawMeta = requireObject(root.meta, 'meta');
+    if (rawMeta.version !== 1 && rawMeta.version !== DIAGRAM_DATA_VERSION)
+        malformed('meta.version', `unsupported value ${String(rawMeta.version)}`);
+    const legacy = rawMeta.version === 1;
+    const parsedData = {
+        edges: requireArray(root.edges, 'edges').map((edge, index) => parseEdge(edge, index, legacy)),
         ...(root.fragments === undefined ? {} : { fragments: requireArray(root.fragments, 'fragments').map(parseSequenceFragment) }),
         groups: root.groups === undefined ? [] : requireArray(root.groups, 'groups').map(parseGroup),
-        meta: parseMeta(root.meta),
-        nodes: requireArray(root.nodes, 'nodes').map(parseNode),
+        meta: parseMeta(root.meta, legacy),
+        nodes: requireArray(root.nodes, 'nodes').map((node, index) => parseNode(node, index, legacy)),
+    };
+    const migratedData = legacy ? migrateVersionOne(parsedData) : parsedData;
+    const data = {
+        ...migratedData,
+        ...(root.formatting === undefined ? {} : {
+            formatting: parseFormatting(root.formatting, migratedData.meta.legend),
+        }),
     };
     validateReferences(data);
     validateTypeSpecificData(data);

@@ -1,6 +1,6 @@
 import type { DiagramConnectionPoint, DiagramEdge, DiagramEntityField, DiagramGroup, DiagramMeta, DiagramNode, DiagramSequenceFragment, DiagramSequenceFragmentRegion, DiagramRole, DiagramEdgeKind, DiagramFormatting } from './diagram_data';
 import type { DiagramScaleField } from './diagram_formatting';
-import { diagramScale } from './diagram_formatting';
+import { diagramScale, resolvedConnectionFormatting, resolvedNodeFormatting } from './diagram_formatting';
 import type { DiagramRecord } from './diagram_index';
 import { CHANGE_IDS_CHANGED_EVENT, type DiagramChangeRegistry } from './diagram_change_registry';
 import type { DeepReadonly, DiagramChange, DiagramChangeField, DiagramCollectionKind, DiagramConnectionEndpoint, DiagramCreationTool, DiagramEditSessionSnapshot, DiagramPersistentTool, DiagramTransientGesture, MutableDiagramLegendEntryField, OriginalDiagramSnapshot, ReadonlyDiagramData } from './diagram_edit_types';
@@ -76,6 +76,14 @@ export class DiagramEditSessionReadAdapter {
 
     getConnectionKindFormattingSnapshot = (kind: DiagramEdgeKind) => this.getState().editableDiagram?.formatting?.connectionKinds?.[kind]
 
+    getNodeFormattingSnapshot = (legendEntryId: string, role: DiagramRole) => (
+        resolvedNodeFormatting(this.getState().editableDiagram ?? undefined, legendEntryId, role)
+    )
+
+    getConnectionFormattingSnapshot = (legendEntryId: string, kind: DiagramEdgeKind) => (
+        resolvedConnectionFormatting(this.getState().editableDiagram ?? undefined, legendEntryId, kind)
+    )
+
     getChangeIdsSnapshot = () => this.getState().changeRegistry.ids
 
     /** Complete change read boundary for review generation; React must use granular change-field snapshots. */
@@ -116,23 +124,23 @@ export class DiagramEditSessionReadAdapter {
 
     getSelectedLegendEntryKeySnapshot = () => this.getState().selectedLegendEntryKey
 
-    getHasExplicitLegendSnapshot = () => this.getState().editableDiagram?.meta.legend !== undefined
+    getHasExplicitLegendSnapshot = () => !!this.getState().editableDiagram
 
-    getLegendEntryFieldSnapshot = <Field extends 'kind' | 'label' | 'nodeKind' | 'role'>(
+    getLegendEntryFieldSnapshot = <Field extends 'id' | 'kind' | 'label' | 'nodeKind' | 'role'>(
         entryKey: string,
         field: Field,
     ): string | null => {
-        const entry = this.getState().editableDiagram?.meta.legend?.find((entry) => diagramLegendEntryKey(entry) === entryKey) ?? null
+        const entry = this.getState().editableDiagram?.meta.legend.find((entry) => diagramLegendEntryKey(entry) === entryKey) ?? null
         if (!entry) return null
 
         return (entry as Record<string, string | undefined>)[field] ?? null
     }
 
-    getOriginalLegendEntryFieldSnapshot = <Field extends 'kind' | 'label' | 'nodeKind' | 'role'>(
+    getOriginalLegendEntryFieldSnapshot = <Field extends 'id' | 'kind' | 'label' | 'nodeKind' | 'role'>(
         entryKey: string,
         field: Field,
     ): string | null => {
-        const entry = this.getState().originalDiagram?.diagram.meta.legend?.find(
+        const entry = this.getState().originalDiagram?.diagram.meta.legend.find(
             (entry) => diagramLegendEntryKey(entry) === entryKey,
         ) ?? null
         if (!entry) return null
@@ -239,6 +247,20 @@ export class DiagramEditSessionReadAdapter {
     subscribeConnectionKindFormatting = (kind: DiagramEdgeKind, listener: () => void) => (
         this.subscribe(diagramFormattingCategoryChangedEvent('connectionKind', kind), listener)
     )
+
+    subscribeNodeFormatting = (legendEntryId: string, role: DiagramRole, listener: () => void) => {
+        const unsubscribeEntry = this.subscribe(diagramFormattingCategoryChangedEvent('legendEntry', legendEntryId), listener)
+        const unsubscribeDefault = this.subscribe(diagramFormattingCategoryChangedEvent('nodeRole', role), listener)
+
+        return () => { unsubscribeEntry(); unsubscribeDefault() }
+    }
+
+    subscribeConnectionFormatting = (legendEntryId: string, kind: DiagramEdgeKind, listener: () => void) => {
+        const unsubscribeEntry = this.subscribe(diagramFormattingCategoryChangedEvent('legendEntry', legendEntryId), listener)
+        const unsubscribeDefault = this.subscribe(diagramFormattingCategoryChangedEvent('connectionKind', kind), listener)
+
+        return () => { unsubscribeEntry(); unsubscribeDefault() }
+    }
 
     subscribeChangeIds = (listener: () => void) => this.subscribe(CHANGE_IDS_CHANGED_EVENT, listener)
 

@@ -2,13 +2,14 @@ import { ThemeProvider } from '@mui/material'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { parseDiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramViewService, type DiagramLegendPosition } from '../../../services/diagrams/diagram_view_service'
 import { layout } from '../../../services/diagrams/diagram_layout'
 import { createAppTheme } from '../../../theme/app_theme'
 import { DiagramLegend } from './diagram_legend'
 import { clampLegendPosition } from './diagram_legend_position'
 
-const data = layout({
+const data = layout(parseDiagramData(JSON.stringify({
     edges: [
         { from: 'one', id: 'async-edge', kind: 'async', to: 'two' },
         { from: 'two', id: 'success-edge', kind: 'success', to: 'one' },
@@ -19,7 +20,7 @@ const data = layout({
         { id: 'one', label: 'One', role: 'focal' },
         { id: 'two', label: 'Two', role: 'backend' },
     ],
-})
+})))
 const theme = createAppTheme('dark')
 
 function renderLegend(

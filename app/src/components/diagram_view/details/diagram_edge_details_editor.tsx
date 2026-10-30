@@ -15,6 +15,7 @@ interface EdgeDraft {
     fromCardinality: DiagramCardinality | ''
     kind: DiagramEdgeKind
     label: string
+    legendEntryId: string
     row: string
     to: string
     toCardinality: DiagramCardinality | ''
@@ -49,6 +50,7 @@ function initialDraft(edgeId: string, session: DiagramEditSessionService): EdgeD
         fromCardinality: edge?.fromCardinality ?? '',
         kind: edge?.kind ?? 'connection',
         label: edge?.label ?? '',
+        legendEntryId: edge?.legendEntryId ?? '',
         row: String(Math.max(session.read.getEdgeIdsSnapshot().indexOf(edgeId), 0) + 1),
         to: edge?.to ?? '',
         toCardinality: edge?.toCardinality ?? '',
@@ -61,13 +63,24 @@ export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEd
     const diagramType = session.read.getMetadataFieldSnapshot('type') ?? 'architecture'
     const preset = session.read.getMetadataFieldSnapshot('preset')
     const kindOptions = edgeKindOptions(diagramType)
+    const legendEntries = session.read.getEditableDiagram()?.meta.legend.filter((entry) => 'kind' in entry) ?? []
     const nodeOptions = session.read.getNodeIdsSnapshot().map((nodeId) => ({
         id: nodeId,
         label: session.read.getNodeFieldSnapshot(nodeId, 'label') ?? nodeId,
     }))
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target
-        setDraft((current) => ({ ...current, [name]: value }))
+        setDraft((current) => {
+            if (name !== 'kind') return { ...current, [name]: value }
+            const entry = legendEntries.find((candidate) => candidate.kind === value)
+
+            return { ...current, kind: value as DiagramEdgeKind, legendEntryId: entry?.id ?? '' }
+        })
+    }
+    const handleLegendEntryChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const entry = legendEntries.find(({ id }) => id === event.target.value)
+        if (!entry) return
+        setDraft((current) => ({ ...current, kind: entry.kind, legendEntryId: entry.id }))
     }
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
@@ -84,7 +97,11 @@ export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEd
         const nextLabel = optionalText(draft.label)
         const nextFromCardinality = draft.fromCardinality || undefined
         const nextToCardinality = draft.toCardinality || undefined
-        if (edge.kind !== draft.kind) saved = session.objects.setEdgeField(edgeId, 'kind', draft.kind) && saved
+        if (edge.kind !== draft.kind || edge.legendEntryId !== draft.legendEntryId) {
+            const legendEntryId = draft.legendEntryId || session.legend.addLegendEntry({ kind: draft.kind })
+            if (!legendEntryId) return
+            saved = session.objects.setEdgeClassification(edgeId, {kind: draft.kind, legendEntryId}) && saved
+        }
         if (edge.label !== nextLabel) saved = session.objects.setEdgeField(edgeId, 'label', nextLabel) && saved
         if ((diagramType === 'architecture' || diagramType === 'sequence') && edge.from !== draft.from) {
             saved = session.objects.reconnectEdgeEndpoint(edgeId, 'sourceAttachment', draft.from) && saved
@@ -134,6 +151,9 @@ export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEd
                             {kindOptions.map((kind) => <MenuItem key={kind} value={kind}>{kind}</MenuItem>)}
                         </TextField>
                     ) : null}
+                    <TextField label="Legend entry" name="legendEntryId" onChange={handleLegendEntryChange} select size="small" value={draft.legendEntryId}>
+                        {legendEntries.map((entry) => <MenuItem key={entry.id} value={entry.id}>{entry.label}</MenuItem>)}
+                    </TextField>
                     {diagramType === 'entity' ? (
                         <>
                             <TextField label="From cardinality" name="fromCardinality" onChange={handleFieldChange} select size="small" value={draft.fromCardinality}>

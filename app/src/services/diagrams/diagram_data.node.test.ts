@@ -23,15 +23,25 @@ describe('diagramEdgeKindsForType', () => {
 
 describe('parseDiagramData', () => {
     it('parses and serializes empty and populated mindmaps', () => {
-        const empty: DiagramData = {edges: [], groups: [], meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 }, nodes: []}
+        const empty: DiagramData = {
+            edges: [], groups: [], meta: { description: 'Ideas', legend: [], title: 'Ideas', type: 'mindmap', version: 2 }, nodes: [],
+        }
         expect(parseDiagramData(serializeDiagramData(empty))).toEqual(empty)
 
         const populated: DiagramData = {
             ...empty,
-            edges: [{ from: 'root', id: 'root-topic', kind: 'connection', label: 'contains', to: 'topic' }],
+            edges: [{ from: 'root', id: 'root-topic', kind: 'connection', label: 'contains', legendEntryId: 'contains', to: 'topic' }],
+            meta: {
+                ...empty.meta,
+                legend: [
+                    { id: 'root', label: 'Root', nodeKind: 'root' },
+                    { id: 'topic', label: 'Topic', nodeKind: 'topic' },
+                    { id: 'contains', kind: 'connection', label: 'Contains' },
+                ],
+            },
             nodes: [
-                { height: 120, id: 'root', kind: 'root', label: 'Root', role: 'focal', width: 160 },
-                { id: 'topic', kind: 'topic', label: 'Topic', role: 'backend' },
+                { height: 120, id: 'root', kind: 'root', label: 'Root', legendEntryId: 'root', role: 'focal', width: 160 },
+                { id: 'topic', kind: 'topic', label: 'Topic', legendEntryId: 'topic', role: 'backend' },
             ],
         }
         expect(parseDiagramData(serializeDiagramData(populated))).toEqual(populated)
@@ -120,7 +130,15 @@ describe('parseDiagramData', () => {
     })
 
     it('parses versioned semantic data and optional geometry', () => {
-        expect(parseDiagramData(JSON.stringify(validDiagram()))).toEqual(validDiagram())
+        const parsed = parseDiagramData(JSON.stringify(validDiagram()))
+
+        expect(parsed.meta.version).toBe(2)
+        expect(parsed.meta.legend).toEqual([
+            { id: 'legend-entry-1', label: 'Component', nodeKind: 'component' },
+            { id: 'legend-entry-2', kind: 'connection', label: 'Connection' },
+        ])
+        expect(parsed.nodes.every(({ legendEntryId }) => legendEntryId === 'legend-entry-1')).toBe(true)
+        expect(parsed.edges[0].legendEntryId).toBe('legend-entry-2')
     })
 
     it('parses and serializes canonical edge connection points', () => {
@@ -178,8 +196,8 @@ describe('parseDiagramData', () => {
 
         const parsed = parseDiagramData(JSON.stringify(diagram))
 
-        expect(parsed.meta.legend).toEqual(legend)
-        expect(parseDiagramData(serializeDiagramData(parsed)).meta.legend).toEqual(legend)
+        expect(parsed.meta.legend.map(({ label }) => label)).toEqual(legend.map(({ label }) => label))
+        expect(parseDiagramData(serializeDiagramData(parsed)).meta.legend).toEqual(parsed.meta.legend)
     })
 
     it('round-trips node-kind entries alongside existing role and connection entries', () => {
@@ -191,17 +209,18 @@ describe('parseDiagramData', () => {
         ]
         diagram.meta = { ...diagram.meta, legend } as typeof diagram.meta
 
-        expect(parseDiagramData(serializeDiagramData(parseDiagramData(JSON.stringify(diagram)))).meta.legend).toEqual(legend)
+        const parsed = parseDiagramData(JSON.stringify(diagram))
+        expect(parseDiagramData(serializeDiagramData(parsed)).meta.legend).toEqual(parsed.meta.legend)
     })
 
-    it('omits the legend key for diagrams without explicit entries', () => {
+    it('materializes a stable legend and object references for legacy diagrams', () => {
         const parsed = parseDiagramData(JSON.stringify(validDiagram()))
 
-        expect('legend' in parsed.meta).toBe(false)
-        expect(serializeDiagramData(parsed)).not.toContain('legend')
+        expect(parsed.meta.legend).toHaveLength(2)
+        expect(parseDiagramData(serializeDiagramData(parsed))).toEqual(parsed)
     })
 
-    it('rejects legend entries that are duplicated, unlabelled, or semantically ambiguous', () => {
+    it('allows duplicate semantics while rejecting malformed entries', () => {
         const withLegend = (legend: unknown) => {
             const diagram = validDiagram()
             diagram.meta = { ...diagram.meta, legend } as typeof diagram.meta
@@ -209,12 +228,9 @@ describe('parseDiagramData', () => {
             return () => parseDiagramData(JSON.stringify(diagram))
         }
 
-        expect(withLegend([{ label: 'One', role: 'focal' }, { label: 'Two', role: 'focal' }]))
-            .toThrow('meta.legend[1] has duplicate entry for role:focal')
-        expect(withLegend([{ kind: 'connection', label: 'One' }, { kind: 'connection', label: 'Two' }]))
-            .toThrow('meta.legend[1] has duplicate entry for kind:connection')
-        expect(withLegend([{ label: 'One', nodeKind: 'component' }, { label: 'Two', nodeKind: 'component' }]))
-            .toThrow('meta.legend[1] has duplicate entry for nodeKind:component')
+        expect(withLegend([{ label: 'One', role: 'focal' }, { label: 'Two', role: 'focal' }])).not.toThrow()
+        expect(withLegend([{ kind: 'connection', label: 'One' }, { kind: 'connection', label: 'Two' }])).not.toThrow()
+        expect(withLegend([{ label: 'One', nodeKind: 'component' }, { label: 'Two', nodeKind: 'component' }])).not.toThrow()
         expect(withLegend([{ label: 'Both', nodeKind: 'component', role: 'focal' }]))
             .toThrow('meta.legend[0] has exactly one of role, nodeKind or kind')
         expect(withLegend([{ kind: 'connection', label: 'Both', role: 'focal' }]))
@@ -223,6 +239,27 @@ describe('parseDiagramData', () => {
         expect(withLegend([{ label: '   ', role: 'focal' }])).toThrow('meta.legend[0].label has invalid string')
         expect(withLegend([{ label: 'Unknown', role: 'nope' }])).toThrow('meta.legend[0].role has unsupported value nope')
         expect(withLegend('nope')).toThrow('meta.legend has invalid array')
+    })
+
+    it('round-trips duplicate entries by ID and validates object references', () => {
+        const diagram = parseDiagramData(JSON.stringify(validDiagram()))
+        diagram.meta.legend.push({ id: 'connection-secondary', kind: 'connection', label: 'Replication' })
+        diagram.edges[0].legendEntryId = 'connection-secondary'
+        diagram.formatting = {
+            legendEntries: { 'connection-secondary': { line: { color: '#112233', thickness: 4 } } },
+        }
+
+        expect(parseDiagramData(serializeDiagramData(diagram))).toEqual(diagram)
+        expect(() => parseDiagramData(JSON.stringify({
+            ...diagram,
+            meta: { ...diagram.meta, legend: [...diagram.meta.legend, { ...diagram.meta.legend[0] }] },
+        }))).toThrow('meta.legend has duplicate id legend-entry-1')
+        expect(() => parseDiagramData(JSON.stringify({
+            ...diagram, nodes: [{ ...diagram.nodes[0], legendEntryId: 'missing' }, diagram.nodes[1]],
+        }))).toThrow('nodes.api.legendEntryId has unknown legend entry missing')
+        expect(() => parseDiagramData(JSON.stringify({
+            ...diagram, edges: [{ ...diagram.edges[0], legendEntryId: 'legend-entry-1' }],
+        }))).toThrow('edges.request.legendEntryId has incompatible legend entry legend-entry-1')
     })
 
     it('rejects a legend entry naming an edge kind the diagram type does not support', () => {
@@ -263,8 +300,8 @@ describe('parseDiagramData', () => {
 
     it('rejects malformed values and references with precise fields', () => {
         expect(() => parseDiagramData('{')).toThrow('Malformed diagram data: invalid JSON')
-        expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), meta: { ...validDiagram().meta, version: 2 } })))
-            .toThrow('meta.version has unsupported value 2')
+        expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), meta: { ...validDiagram().meta, version: 3 } })))
+            .toThrow('meta.version has unsupported value 3')
         expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), nodes: [...validDiagram().nodes, validDiagram().nodes[0]] })))
             .toThrow('nodes has duplicate id api')
         expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), edges: [{ ...validDiagram().edges[0], to: 'missing' }] })))

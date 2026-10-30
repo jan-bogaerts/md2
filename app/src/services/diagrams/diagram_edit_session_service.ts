@@ -6,7 +6,6 @@ import {
     type DiagramData,
     type DiagramEdge,
     type DiagramGroup,
-    type DiagramLegendEntryData,
     type DiagramNode,
     type DiagramSequenceFragment,
 } from './diagram_data'
@@ -23,6 +22,7 @@ import type { DiagramEditErrorReporter } from './diagram_edit_operation_validati
 import {
     DiagramEditValidation,
     invalidDiagramField,
+    validateEdgeLegendEntry,
     validateNewGroup,
 } from './diagram_edit_validation'
 import { prepareDiagramPaste } from './diagram_paste_preparation'
@@ -48,7 +48,6 @@ import {
 } from './diagram_edit_events'
 import { diagramLegendEntryKey } from './diagram_legend_entry_key'
 import { DiagramEditSessionReadAdapter, type DiagramEditReadState } from './diagram_edit_session_read_adapter'
-import { derivedDiagramLegendEntries } from './diagram_derived_legend'
 const DIRTY_CHANGED_EVENT = 'dirtyChanged'
 const ORIGINAL_DIAGRAM_CHANGED_EVENT = 'originalDiagramChanged'
 const SESSION_CHANGED_EVENT = 'sessionChanged'
@@ -183,11 +182,8 @@ export class DiagramEditSessionService extends EventTarget {
     }
 
     selectLegendEntry(entryKey: string) {
-        const diagram = this.requireEditableDiagram()
-        const availableKeys = diagram.meta.legend
-            ? this.legendEntryKeys
-            : DiagramEditSessionService.derivedLegendEntries(diagram).map(diagramLegendEntryKey)
-        if (!availableKeys.includes(entryKey)) return false
+        this.requireEditableDiagram()
+        if (!this.legendEntryKeys.includes(entryKey)) return false
         if (this.selectedLegendEntryKey === entryKey) return true
 
         this.selectedLegendEntryKey = entryKey
@@ -264,7 +260,7 @@ export class DiagramEditSessionService extends EventTarget {
         this.entityFieldIndexesByNodeId = new Map(editableDiagram.nodes.map((node) => (
             [node.id, DiagramEditSessionService.entityFieldIndexes(node)]
         )))
-        this.legendEntryKeys = Object.freeze((editableDiagram.meta.legend ?? []).map(diagramLegendEntryKey))
+        this.legendEntryKeys = Object.freeze(editableDiagram.meta.legend.map(diagramLegendEntryKey))
         this.clearSelectedLegendEntry()
         this.changeRegistry.setBaseline(savedDiagram ?? source.diagram)
         this.changeRegistry.setCurrentDiagram(editableDiagram)
@@ -463,14 +459,25 @@ export class DiagramEditSessionService extends EventTarget {
             const context = {
                 diagram,
                 generateId: (reservedIds: Set<string>) => this.editContext.generateReservedObjectId(reservedIds),
+                validateEdge: (candidate: DiagramEdge, legendEntries: readonly (DiagramData['meta']['legend'][number])[]) => {
+                    const validationDiagram = { ...diagram, meta: { ...diagram.meta, legend: [...legendEntries] } }
+                    validateEdgeLegendEntry(validationDiagram, candidate, `paste.edges.${candidate.id}.legendEntryId`)
+                },
                 validateFragment: (candidate: DiagramSequenceFragment) => this.requireValidation().validateNewFragment(candidate),
                 validateGroup: validateNewGroup,
-                validateNode: (candidate: DiagramNode) => this.requireValidation().validateNewNode(candidate),
+                validateNode: (candidate: DiagramNode, legendEntries: readonly (DiagramData['meta']['legend'][number])[]) => {
+                    const validationDiagram = { ...diagram, meta: { ...diagram.meta, legend: [...legendEntries] } }
+                    new DiagramEditValidation(validationDiagram, this.nodesById).validateNewNode(candidate)
+                },
             }
             return prepareDiagramPaste(fragment, offset, context)
         })
         if (!pasted) return null
 
+        if (pasted.legendEntries.length > 0) {
+            diagram.meta.legend.push(...pasted.legendEntries)
+            this.editContext.transaction.finishLegendMembershipChange(pasted.legendEntries.map(({ id }) => id), [])
+        }
         diagram.nodes.push(...pasted.nodes)
         diagram.edges.push(...pasted.edges)
         diagram.groups.push(...pasted.groups)
@@ -723,19 +730,7 @@ export class DiagramEditSessionService extends EventTarget {
     private reconcileSelectedLegendEntry() {
         const entryKey = this.selectedLegendEntryKey
         if (entryKey === null) return
-        const diagram = this.requireEditableDiagram()
-        if (diagram.meta.legend) {
-            if (!this.legendEntryKeys.includes(entryKey)) this.clearSelectedLegendEntry()
-
-            return
-        }
-        const present = DiagramEditSessionService.derivedLegendEntries(diagram)
-            .some((entry) => diagramLegendEntryKey(entry) === entryKey)
-        if (!present) this.clearSelectedLegendEntry()
-    }
-
-    private static derivedLegendEntries(diagram: DiagramData): DiagramLegendEntryData[] {
-        return derivedDiagramLegendEntries(diagram)
+        if (!this.legendEntryKeys.includes(entryKey)) this.clearSelectedLegendEntry()
     }
 
     private static entityFieldIndexes(node: DiagramNode) {

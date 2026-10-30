@@ -18,6 +18,7 @@ import {
     type DiagramEntityField,
     type DiagramNode,
 } from './diagram_data';
+import { edgeLegendEntryIsCompatible, nodeLegendEntryIsCompatible } from './diagram_legend_entry_compatibility';
 import type {
     DiagramConnectionEndpoint,
     MutableDiagramConnectionPointField,
@@ -81,6 +82,26 @@ export function validateNewLegendEntry(entry: NewDiagramLegendEntry, diagramType
     if (entry.label !== undefined) requireDiagramString(entry.label, 'meta.legend.new.label')
 }
 
+function requireLegendEntry(diagram: DiagramData, legendEntryId: unknown, field: string) {
+    const id = requireDiagramString(legendEntryId, field)
+    const entry = diagram.meta.legend.find((candidate) => candidate.id === id)
+    if (!entry) invalidDiagramField(field, `unknown legend entry ${id}`)
+
+    return entry
+}
+
+export function validateNodeLegendEntry(diagram: DiagramData, node: Pick<DiagramNode, 'kind' | 'legendEntryId' | 'role'>, field: string) {
+    const entry = requireLegendEntry(diagram, node.legendEntryId, field)
+    if (!nodeLegendEntryIsCompatible(entry, node, diagram.meta.type)) {
+        invalidDiagramField(field, `incompatible legend entry ${entry.id}`)
+    }
+}
+
+export function validateEdgeLegendEntry(diagram: DiagramData, edge: Pick<DiagramEdge, 'kind' | 'legendEntryId'>, field: string) {
+    const entry = requireLegendEntry(diagram, edge.legendEntryId, field)
+    if (!edgeLegendEntryIsCompatible(entry, edge)) invalidDiagramField(field, `incompatible legend entry ${entry.id}`)
+}
+
 /** Validates diagram edits against the active model and its node index. */
 export class DiagramEditValidation {
     private readonly diagram: DiagramData;
@@ -108,6 +129,7 @@ export class DiagramEditValidation {
             }
         }
         if (field === 'label') requireDiagramString(value, fieldPath)
+        if (field === 'legendEntryId') requireDiagramString(value, fieldPath)
         if (field === 'role') requireDiagramEnum(value, DIAGRAM_ROLES, fieldPath)
         if (field === 'sublabel' || field === 'tag') optionalDiagramString(value, fieldPath)
         if (field === 'x' || field === 'y') requireOptionalGridNumber(value, fieldPath)
@@ -133,6 +155,7 @@ export class DiagramEditValidation {
             const source = this.nodesById.get(edge.from)
             requireDiagramEdgeLabel(value, diagram.meta.type, diagram.meta.preset, source?.kind, fieldPath)
         }
+        if (field === 'legendEntryId') requireDiagramString(value, fieldPath)
         if (field === 'fromCardinality' || field === 'toCardinality') {
             optionalDiagramEnum(value, DIAGRAM_CARDINALITIES, fieldPath)
             if (value !== undefined && diagram.meta.type !== 'entity') {
@@ -143,6 +166,7 @@ export class DiagramEditValidation {
 
     validateNewNode(node: NewDiagramNode) {
         this.validateNodeFieldValue('new', 'label', node.label)
+        this.validateNodeFieldValue('new', 'legendEntryId', node.legendEntryId)
         this.validateNodeFieldValue('new', 'role', node.role)
         this.validateNodeFieldValue('new', 'kind', node.kind)
         this.validateNodeFieldValue('new', 'drilldown', node.drilldown)
@@ -163,6 +187,7 @@ export class DiagramEditValidation {
             requireEntityFieldValue('type', entityField.type, `nodes.new.fields[${index}].type`)
         }
         this.validateMindmapNode({ ...node, id: 'new' }, 'new')
+        validateNodeLegendEntry(this.diagram, node, 'nodes.new.legendEntryId')
     }
 
     validateMindmapNode(node: DiagramNode, nodeId: string) {
@@ -182,6 +207,7 @@ export class DiagramEditValidation {
         this.validateEdgeFieldValue(candidate, 'to', edge.to)
         this.validateEdgeFieldValue(candidate, 'kind', edge.kind)
         this.validateEdgeFieldValue(candidate, 'label', edge.label)
+        this.validateEdgeFieldValue(candidate, 'legendEntryId', edge.legendEntryId)
         this.validateEdgeFieldValue(candidate, 'fromCardinality', edge.fromCardinality)
         this.validateEdgeFieldValue(candidate, 'toCardinality', edge.toCardinality)
         if (edge.sourceAttachment) {
@@ -194,6 +220,7 @@ export class DiagramEditValidation {
             validateConnectionPointValue(candidate, 'targetAttachment', 'offset', edge.targetAttachment.offset)
             validateConnectionPointValue(candidate, 'targetAttachment', 'side', edge.targetAttachment.side)
         }
+        validateEdgeLegendEntry(this.diagram, candidate, 'edges.new.legendEntryId')
         for (let index = 0; index < (edge.waypoints?.length ?? 0); index += 1) {
             const waypoint = edge.waypoints?.[index]
             if (!waypoint) continue
