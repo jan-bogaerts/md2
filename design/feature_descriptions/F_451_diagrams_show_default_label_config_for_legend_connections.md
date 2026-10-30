@@ -10,6 +10,8 @@ agents:
   - design/activity/card__c814173c-590e-47c3-b5cf-b7bcc7ae356e.json
 policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
+branch: f_451_diagrams_show_default_label_config_for_legend_connections
+worktree: 2
 ---
 
 We can already configure legend items in the diagrams legend list. For connection types, we need to add an option so that the user can specify that the legend label should also be used as the `default` label for connections between nodes that are of the selected legend-type
