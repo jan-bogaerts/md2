@@ -829,6 +829,14 @@
           "role": "assistant",
           "sequence": 58,
           "timestamp": "2026-10-30T12:59:38.799Z"
+        },
+        {
+          "content": "an entry can have a `role, nodeKind and connection kind`  at the same time? what is the difference between them?&#x20;\n\nWhat is the difference between node.role and edge.kind and can we select both when creating new legend entries?",
+          "id": "submission-f8edc5f7-1162-40d0-85a6-94a1a9911253",
+          "kind": "message",
+          "role": "user",
+          "sequence": 59,
+          "timestamp": "2026-10-30T13:14:30.906Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -843,7 +851,7 @@
         }
       ],
       "startedAt": "2026-10-30T12:58:16.150Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -870,7 +878,7 @@
           "toolMs": 6990
         },
         "elapsedMs": 82649,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-30T13:14:30.906Z"
       },
       "title": "investigate",
       "usage": {
