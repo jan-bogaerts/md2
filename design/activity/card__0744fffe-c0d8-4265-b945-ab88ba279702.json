@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "0744fffe-c0d8-4265-b945-ab88ba279702",
+      "cardPath": "design/feature_descriptions/B_324_legend_does_not_allow_multiple_entires_of_same_type.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_324_legend_does_not_allow_multiple_entires_of_same_type.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-dcf85c63-b411-4e4d-845f-174a0dcca2f2",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-30T12:58:16.150Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-ebb47bbb-1005-463d-81aa-ee4aaa296eed",
+      "providerSessions": [],
+      "startedAt": "2026-10-30T12:58:16.150Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-30T12:58:16.150Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "0744fffe-c0d8-4265-b945-ab88ba279702",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}

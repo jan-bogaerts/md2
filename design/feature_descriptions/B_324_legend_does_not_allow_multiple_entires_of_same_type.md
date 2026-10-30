@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__0744fffe-c0d8-4265-b945-ab88ba279702.json
 policy:
 ---
 error message: Add legend entry rejected: `meta.legend has duplicate entry for connection:connection`
