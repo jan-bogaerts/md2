@@ -9,5 +9,6 @@ affects:
 agents:
 policy:
 ---
+I think we have tried to fix this before: it should be&#x20;
 
 error message: `Add legend entry rejected: meta.legend has duplicate entry for connection:connection`
