@@ -603,6 +603,14 @@
           "role": "assistant",
           "sequence": 47,
           "timestamp": "2026-10-30T15:47:36.073Z"
+        },
+        {
+          "content": "yes",
+          "id": "submission-186e48ee-5a8a-4050-8fd6-610e443dd3b1",
+          "kind": "message",
+          "role": "user",
+          "sequence": 48,
+          "timestamp": "2026-10-30T15:48:04.051Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -617,7 +625,7 @@
         }
       ],
       "startedAt": "2026-10-30T14:41:56.893Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -649,7 +657,7 @@
           "toolMs": 3972
         },
         "elapsedMs": 110845,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-30T15:48:04.051Z"
       },
       "title": "complete",
       "usage": {
