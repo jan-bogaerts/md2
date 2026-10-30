@@ -9413,3 +9413,7 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-30T12:41:33.603Z,account_usage,claude,default,weekly,10080,2026-11-01T17:00:00.000Z,,,,,,5,1
 2026-10-30T12:53:33.663Z,account_usage,claude,default,weekly,10080,2026-11-01T17:00:00.000Z,,,,,,6,1
 2026-10-30T12:55:35.185Z,token_usage,codex,,,,,92260,646144,1932,1009,741345,,
+2026-10-30T12:59:38.799Z,token_usage,codex,,,,,58284,724480,2305,1156,786225,,
+2026-10-30T13:14:38.169Z,token_usage,codex,,,,,210,77184,239,115,77748,,
+2026-10-30T13:21:11.695Z,token_usage,codex,,,,,207,77568,138,0,77913,,
+2026-10-30T13:22:25.352Z,token_usage,codex,,,,,3452,480256,1595,1297,486600,,
