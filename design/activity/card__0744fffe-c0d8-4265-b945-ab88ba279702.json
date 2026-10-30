@@ -859,6 +859,14 @@
           "role": "assistant",
           "sequence": 61,
           "timestamp": "2026-10-30T13:14:38.169Z"
+        },
+        {
+          "content": "so, it is possible to add a legend id to diagram objects while they retain their role and kind?",
+          "id": "submission-42c54b40-27af-4ffe-9d1f-771e46d0ab30",
+          "kind": "message",
+          "role": "user",
+          "sequence": 62,
+          "timestamp": "2026-10-30T13:21:07.793Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -873,7 +881,7 @@
         }
       ],
       "startedAt": "2026-10-30T12:58:16.150Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -900,7 +908,7 @@
           "toolMs": 6990
         },
         "elapsedMs": 89912,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-30T13:21:07.793Z"
       },
       "title": "investigate",
       "usage": {
