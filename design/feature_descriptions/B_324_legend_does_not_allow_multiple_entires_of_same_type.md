@@ -11,7 +11,6 @@ agents:
 policy:
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 branch: b_324_legend_does_not_allow_multiple_entires_of_same_type
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/details/diagram_edge_details_editor.tsx
   - app/src/components/diagram_view/details/diagram_node_details_editor.tsx
