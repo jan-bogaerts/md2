@@ -612,6 +612,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "c814173c-590e-47c3-b5cf-b7bcc7ae356e",
+      "cardPath": "design/feature_descriptions/F_451_diagrams_show_default_label_config_for_legend_connections.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_451_diagrams_show_default_label_config_for_legend_connections.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_451_diagrams_show_default_label_config_for_legend_connections.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "submission-bd4f5e47-853b-44e0-8e5b-beca0030e6c9",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-30T14:52:56.227Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-e11bdfab-846a-4944-9f2e-a3b5802adceb",
+      "providerSessions": [],
+      "startedAt": "2026-10-30T14:52:56.227Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-30T14:52:56.227Z"
+      },
+      "title": "implement",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
