@@ -3,7 +3,7 @@ author:
 id: F_453
 internalId: ed0eaa91-383d-492b-ad2d-06963c9777a6
 title: diagrams auto focus label after adding items
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,24 @@ policy:
 after: a18b2880-10c9-4ded-b45c-29113f160478
 branch: f_453_diagrams_auto_focus_label_after_adding_items
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/details/diagram_edge_details_editor.tsx
+  - app/src/components/diagram_view/details/diagram_object_details_dialog.test.tsx
+  - app/src/components/diagram_view/details/diagram_object_details_dialog.tsx
+  - app/src/components/diagram_view/editing/diagram_edge_label_focus_handler.tsx
+  - app/src/components/diagram_view/editing/diagram_inline_node_controls.tsx
+  - app/src/components/diagram_view/editing/editable_diagram.tsx
+  - app/src/components/diagram_view/editing/editable_diagram_collections.tsx
+  - app/src/components/diagram_view/editing/editable_diagram_node.tsx
+  - app/src/components/diagram_view/rendering/diagram_node.tsx
+  - app/src/components/diagram_view/surface/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx
+  - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.ts
+  - app/src/services/diagrams/diagram_label_focus_service.test.ts
+  - app/src/services/diagrams/diagram_label_focus_service.ts
+  - app/src/services/diagrams/diagram_node_placement_service.test.ts
+  - app/src/services/diagrams/diagram_node_placement_service.ts
 ---
 
 With the add tool, the user can add new items to a diagram. Most items have a label. Keyboard focus should be on this label after adding, so user can start typing label without extra clicking
