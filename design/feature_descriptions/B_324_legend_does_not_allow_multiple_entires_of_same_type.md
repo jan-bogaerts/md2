@@ -3,12 +3,13 @@ author:
 id: B_324
 internalId: 0744fffe-c0d8-4265-b945-ab88ba279702
 title: legend does not allow multiple entires of same type
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__0744fffe-c0d8-4265-b945-ab88ba279702.json
 policy:
+after: 733d678c-49a7-4409-9fa2-5fb384821513
 ---
 error message: Add legend entry rejected: `meta.legend has duplicate entry for connection:connection`
 

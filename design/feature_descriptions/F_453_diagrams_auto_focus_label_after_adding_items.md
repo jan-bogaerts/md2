@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__ed0eaa91-383d-492b-ad2d-06963c9777a6.json
 policy:
+after: a18b2880-10c9-4ded-b45c-29113f160478
 ---
 
 With the add tool, the user can add new items to a diagram. Most items have a label. Keyboard focus should be on this label after adding, so user can start typing label without extra clicking
