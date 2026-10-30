@@ -9,6 +9,6 @@ affects:
 agents:
 policy:
 ---
-I think we have tried to fix this before: it should be&#x20;
+error message: Add legend entry rejected: `meta.legend has duplicate entry for connection:connection`
 
-error message: `Add legend entry rejected: meta.legend has duplicate entry for connection:connection`
+I think we have tried to fix this before: it should be possible to add multiple entries of the same kind of diagram object to the legend. so 2 types of connections should be allowed. Diagram objects should refer to the legend entries, not to the node kinds directly.
