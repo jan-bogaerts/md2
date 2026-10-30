@@ -3,7 +3,7 @@ author:
 id: B_324
 internalId: 0744fffe-c0d8-4265-b945-ab88ba279702
 title: legend does not allow multiple entires of same type
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,54 @@ policy:
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 branch: b_324_legend_does_not_allow_multiple_entires_of_same_type
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/details/diagram_edge_details_editor.tsx
+  - app/src/components/diagram_view/details/diagram_node_details_editor.tsx
+  - app/src/components/diagram_view/details/diagram_object_details_dialog.test.tsx
+  - app/src/components/diagram_view/editing/diagram_editor_integration.test.tsx
+  - app/src/components/diagram_view/editing/diagram_editor_rendering.test.tsx
+  - app/src/components/diagram_view/editing/editable_diagram.test.tsx
+  - app/src/components/diagram_view/editing/editable_diagram_edge.tsx
+  - app/src/components/diagram_view/editing/editable_diagram_node.tsx
+  - app/src/components/diagram_view/formatting/use_diagram_formatting.ts
+  - app/src/components/diagram_view/legend/diagram_legend.test.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_connection_sample.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_details_editor.test.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_details_editor.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_entries.ts
+  - app/src/components/diagram_view/legend/diagram_legend_entry_list.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_entry_row.tsx
+  - app/src/components/diagram_view/legend/diagram_session_legend_entries.test.tsx
+  - app/src/components/diagram_view/legend/diagram_session_legend_entries.tsx
+  - app/src/components/diagram_view/rendering/diagram_edge.tsx
+  - app/src/components/diagram_view/rendering/diagram_node.tsx
+  - app/src/services/diagrams/diagram_change_descriptions.ts
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_derived_legend.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.ts
+  - app/src/services/diagrams/diagram_edit_session_read_adapter.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_edit_types.ts
+  - app/src/services/diagrams/diagram_edit_validation.ts
+  - app/src/services/diagrams/diagram_formatting.ts
+  - app/src/services/diagrams/diagram_formatting_editor.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.test.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.ts
+  - app/src/services/diagrams/diagram_legend_editor.ts
+  - app/src/services/diagrams/diagram_legend_entry_compatibility.ts
+  - app/src/services/diagrams/diagram_legend_entry_key.ts
+  - app/src/services/diagrams/diagram_node_placement_service.test.ts
+  - app/src/services/diagrams/diagram_node_placement_service.ts
+  - app/src/services/diagrams/diagram_object_field_editor.ts
+  - app/src/services/diagrams/diagram_paste.test.ts
+  - app/src/services/diagrams/diagram_paste_preparation.ts
+  - app/src/services/diagrams/diagram_view_service.ts
+  - app/src/services/diagrams/empty_diagram_factory.ts
+  - shared/diagram_data.d.mts
+  - shared/diagram_data.mjs
+  - shared/project_config_defaults.mjs
 ---
 error message: Add legend entry rejected: `meta.legend has duplicate entry for connection:connection`
 
