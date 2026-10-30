@@ -2219,6 +2219,14 @@
           "role": "assistant",
           "sequence": 80,
           "timestamp": "2026-10-30T13:30:55.700Z"
+        },
+        {
+          "content": "go",
+          "id": "submission-6992ed29-6466-41a8-8d32-61d3f49c3364",
+          "kind": "message",
+          "role": "user",
+          "sequence": 81,
+          "timestamp": "2026-10-30T13:37:54.914Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2233,7 +2241,7 @@
         }
       ],
       "startedAt": "2026-10-30T13:28:47.165Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -2280,7 +2288,7 @@
           "toolMs": 8430
         },
         "elapsedMs": 128535,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-30T13:37:54.914Z"
       },
       "title": "fix bug",
       "usage": {
