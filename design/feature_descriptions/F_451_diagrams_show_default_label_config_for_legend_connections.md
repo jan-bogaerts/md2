@@ -3,7 +3,7 @@ author:
 id: F_451
 internalId: c814173c-590e-47c3-b5cf-b7bcc7ae356e
 title: diagrams show default label config for legend connections
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,25 @@ policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 branch: f_451_diagrams_show_default_label_config_for_legend_connections
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/legend/diagram_legend_entries.node.test.ts
+  - app/src/components/diagram_view/legend/diagram_legend_entries.ts
+  - app/src/components/diagram_view/legend/diagram_legend_entry_row.tsx
+  - app/src/components/diagram_view/legend/diagram_session_legend_entries.test.tsx
+  - app/src/components/diagram_view/legend/diagram_session_legend_entries.tsx
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.ts
+  - app/src/services/diagrams/diagram_edit_events.ts
+  - app/src/services/diagrams/diagram_edit_session_read_adapter.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_types.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.test.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.ts
+  - app/src/services/diagrams/diagram_legend_editor.ts
+  - shared/diagram_data.d.mts
+  - shared/diagram_data.mjs
+  - shared/project_config_defaults.mjs
 ---
 
 We can already configure legend items in the diagrams legend list. For connection types, we need to add an option so that the user can specify that the legend label should also be used as the `default` label for connections between nodes that are of the selected legend-type
