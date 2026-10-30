@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "c814173c-590e-47c3-b5cf-b7bcc7ae356e",
       "cardPath": "design/feature_descriptions/F_451_diagrams_show_default_label_config_for_legend_connections.md",
-      "completedAt": null,
+      "completedAt": "2026-10-30T14:43:46.333Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 99403
@@ -553,7 +553,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 41,
-          "timestamp": "2026-10-30T14:43:45.930Z"
+          "timestamp": "2026-10-30T14:43:46.333Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -563,12 +563,12 @@
           "agent": "codex",
           "conversationId": "01a18d42-7e04-73c0-922b-42cee0daac32",
           "createdAt": "2026-10-30T14:43:45.930Z",
-          "lastUsedAt": "2026-10-30T14:43:45.930Z",
+          "lastUsedAt": "2026-10-30T14:43:46.333Z",
           "synchronizedThroughMessageId": "agent-turn-63baa463-afc8-48eb-a81f-042ce0e53d73-turn-1-assistant-4"
         }
       ],
       "startedAt": "2026-10-30T14:41:47.041Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -599,8 +599,8 @@
           "reasoningMs": 251,
           "toolMs": 2015
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-30T14:41:47.041Z"
+        "elapsedMs": 119292,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
