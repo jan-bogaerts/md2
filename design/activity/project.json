@@ -1732,14 +1732,14 @@
         }
       ],
       "startedAt": "2026-10-30T13:30:33.826Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 69,
           "toolMs": 9966
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-30T13:30:33.826Z"
+        "elapsedMs": 39732,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
