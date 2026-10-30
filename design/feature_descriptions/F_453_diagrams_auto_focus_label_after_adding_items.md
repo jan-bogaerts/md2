@@ -10,6 +10,8 @@ agents:
   - design/activity/card__ed0eaa91-383d-492b-ad2d-06963c9777a6.json
 policy:
 after: a18b2880-10c9-4ded-b45c-29113f160478
+branch: f_453_diagrams_auto_focus_label_after_adding_items
+worktree: 1
 ---
 
 With the add tool, the user can add new items to a diagram. Most items have a label. Keyboard focus should be on this label after adding, so user can start typing label without extra clicking
