@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 93369
+        "usedTokens": 100004
       },
       "entries": [
         {
@@ -346,6 +346,153 @@
           "role": "assistant",
           "sequence": 26,
           "timestamp": "2026-10-30T14:30:19.786Z"
+        },
+        {
+          "content": "> typing while Ctrl remains physically held triggers browser/app shortcuts.\n\nyes, we don't need to handle these. user must release ctrl key to type text. the list you made is correct. is this how it is implemented today? cause that is not how it is working.",
+          "id": "submission-d31225f6-2467-4dce-8b12-17a0e346ab67",
+          "kind": "message",
+          "role": "user",
+          "sequence": 27,
+          "timestamp": "2026-10-30T14:31:59.481Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-event-28",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00d98cf8776b0611016ae4aa6568188191aeec25a2a295663f",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T14:32:04.143Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "No. Current code keeps Ctrl-add tool active, but never requests label focus after creation. Node and edge services only create item and select it. Non-Ctrl additionally switches tool to Select. Group label already receives focus before group creation; fragments have no label. Clarification resolved; updating feature doc with focus independent from tool state.\n\n",
+          "id": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 29,
+          "timestamp": "2026-10-30T14:32:05.335Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_451_diagrams_show_default_label_config_for_legend_connections.md'; Get-Content -Raw 'design\\\\feature_descriptions\\\\F_452_diagrams_add_format_painter_tool.md'; Get-Content -Raw 'design\\\\feature_descriptions\\\\F_450_ctrl_tab_in_dashboard_view.md'\"",
+          "content": "---\nauthor: \nid: F_451\ninternalId: c814173c-590e-47c3-b5cf-b7bcc7ae356e\ntitle: diagrams show default label config for legend connections\nstatus: design\nowner: \naffects:\nagents:\npolicy:\nafter: 41d340e6-afae-44bd-82e7-41ab673c94e0\n---\n\nWe can already configure legend items in the diagrams legend list. For connection types, we need to add an option so that the user can specify that the legend label should also be used as the `default` label for connections between nodes that are of the selected legend-type\r\n---\nauthor: \nid: F_452\ninternalId: a18b2880-10c9-4ded-b45c-29113f160478\ntitle: diagrams add format painter tool\nstatus: design\nowner: \naffects:\nagents:\npolicy:\nafter: c814173c-590e-47c3-b5cf-b7bcc7ae356e\n---\n\n* available when something on the diagram has been copied.\n* applies the formatting of the item in the copy buffer to the item(s) that is/are currently selected\r\n---\nauthor: \nid: F_450\ninternalId: 5ee8aecb-2f88-4c84-ad76-2b7126529159\ntitle: ctrl tab in dashboard view\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__5ee8aecb-2f88-4c84-ad76-2b7126529159.json\npolicy:\nchangedFiles:\n  - app/src/components/resizable_popper.test.tsx\n  - app/src/services/card_popup_service.test.ts\n  - app/src/services/shortcuts/cards_keyboard_shortcut_service.node.test.ts\n  - app/src/services/shortcuts/cards_keyboard_shortcut_service.ts\n---\n\nctrl tab in dashboard view should switch between topmost popup.\n\n## Current state\n\n* \"Dashboard view\" is the cards workspace view (`WorkspaceViewMode` `cards`, see J_63).\n* Popup stack: `CardPopupService` (`app/src/services/card_popup_service.ts`) owns an ordered `entries` list of three kinds: `action` (rendered by `CardActionPopupHost`), `card-details` (`CardBodyPopover`), and `sequence` (`CardSequenceDialog`). The last entry is the topmost popup; `stackPosition` (list index) sets the z-index in `ResizablePopper`. In cards view every entry is visible; on mobile width only the top entry is visible.\n* `activate(id)` moves one entry to the end of the list and dispatches `changed`. It does not move keyboard focus. Clicking or focusing a popup calls `activate` through `ResizablePopper` `onActivate` (`onPointerDownCapture`, `onFocusCapture`).\n* Focus: `ResizablePopper` focuses its paper (`role=\"dialog\"`, `tabIndex={-1}`) only once, on first mount (`focusOnMountRef`, `setPaperElement`). No way exists to focus an already mounted popup from outside.\n* Keyboard: `KeyboardShortcutService` routes keys to the global service, then the active view service. `cardsKeyboardShortcutService` (`app/src/services/shortcuts/cards_keyboard_shortcut_service.ts`) is a stub that handles nothing. `TextKeyboardShortcutService` already maps Ctrl+Tab and Ctrl+Shift+Tab (`NEXT_LIST_TAB_SHORTCUT`, `PREVIOUS_LIST_TAB_SHORTCUT` in `list_tab_shortcuts.ts`) to next and previous open document.\n* No popup component handles Ctrl+Tab itself, so the key reaches the window listener.\n\n## implementation details\n\n* Behavior: in cards view, Ctrl+Tab cycles forward through the popup stack: the bottom-most popup moves to the top. Ctrl+Shift+Tab cycles backward: the top popup moves to the bottom. Repeated presses visit every popup. After each cycle, keyboard focus moves into the new top popup.\n* `CardPopupService`:\n  * New method `cycle(offset: 1 | -1)`. With fewer than two entries, return `false`. Forward: move `entries[0]` to the end. Backward: move the last entry to the front. Call `setEntries`, then dispatch a focus request for the new top entry, then return `true`.\n  * Focus request is a granular event per entry: type `focusRequested:<entryId>` (constant prefix in the module). Order matters: entries update first, focus request second.\n  * New exported function `subscribeCardPopupFocusRequest(entryId, listener)` next to `subscribeCardPopups`; returns an unsubscribe function.\n* `CardsKeyboardShortcutService`: replace the stub object with a class like `TextKeyboardShortcutService`, with dependency `{ popups: CardPopupService }`. `handleKeyDown`: on `NEXT_LIST_TAB_SHORTCUT` return `popups.cycle(1)`; on `PREVIOUS_LIST_TAB_SHORTCUT` return `popups.cycle(-1)`; else `false`. Singleton passes `cardPopupService`. Only call site: `viewServices` in `keyboard_shortcut_service.ts` (unchanged import name).\n* `ResizablePopper`: new optional prop `subscribeFocusRequest?: (listener: () => void) => () => void`. An effect subscribes when the prop is set. On request: if `paperRef.current` exists, focus it; else set `focusOnMountRef.current = true`, so the paper focuses when it mounts (mobile: new top popup opens only after the reorder renders). Other `ResizablePopper` users (search panel, file search menu, diagram popups) pass nothing; unchanged.\n* Pass the subscription from each card popup owner, built with `useCallback` on `entry.id`:\n  * `CardActionPopupHostEntry` to `ActionPopup` (new optional prop), into `ActionPopupContentProps`, then `ActionPopupFrame` to `ResizablePopper`. Diagram action popups pass nothing.\n  * `CardBodyPopoverEntry` to its `ResizablePopper`.\n  * `CardSequenceDialog` to its `ResizablePopper` (only when `entry` exists).\n* Focus side effect: focusing the new top paper fires `onFocusCapture`, which calls `activate` on the entry that is already top; no-op, no extra `changed` event.\n* Edge cases:\n  * Zero or one popup: `cycle` returns `false`; key is not handled; nothing changes.\n  * Other views: text view keeps its Ctrl+Tab document switching; diagrams and stats views unchanged (cards service not active there).\n  * Focus inside a text field of the old top popup: Ctrl+Tab still cycles; focus leaves the field.\n  * Modal MUI dialog open above popups (delete card, affects editor): popups still reorder beneath; the dialog focus trap keeps focus in the dialog.\n* Tests:\n  * `card_popup_service.test.ts`: forward and backward cycle order with three entries; focus request fires for the new top entry only, after `changed`; fewer than two entries returns `false` and dispatches nothing.\n  * New `cards_keyboard_shortcut_service.node.test.ts` (popup service stub): Ctrl+Tab calls `cycle(1)`, Ctrl+Shift+Tab calls `cycle(-1)`, return value passes through; other keys return `false`.\n  * `resizable_popper.test.tsx`: focus request focuses a mounted paper; request while closed focuses the paper after open.\n  * Run those files directly and `npm run lint` in `app/`.\n\n## acceptance criteria\n\n1. In cards view with two or more popups open (any mix of action, card details, sequence), Ctrl+Tab brings the bottom-most popup to the top.\n2. Repeated Ctrl+Tab visits every open popup in turn and returns to the first after a full cycle.\n3. Ctrl+Shift+Tab cycles in the opposite direction: the top popup moves to the bottom.\n4. After each Ctrl+Tab or Ctrl+Shift+Tab, keyboard focus is inside the new top popup, also on mobile width where only the top popup shows.\n5. With zero or one popup, Ctrl+Tab changes nothing.\n6. Ctrl+Tab in text view still switches open documents; diagrams and stats views are unchanged.\n7. Ctrl+Tab handling lives in `CardsKeyboardShortcutService` and `CardPopupService`; no shortcut registration in `.tsx` files.\r\n",
+          "durationMs": 105,
+          "exitCode": 0,
+          "id": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-event-30",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_451_diagrams_show_default_label_config_for_legend_connections.md'; Get-Content -Raw 'design\\\\feature_descriptions\\\\F_452_diagrams_add_format_painter_tool.md'; Get-Content -Raw 'design\\\\feature_descriptions\\\\F_450_ctrl_tab_in_dashboard_view.md'\"",
+          "providerItemId": "exec-f7e77d33-aae0-429b-b2aa-f34817624be4",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-10-30T14:32:07.297Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-event-31",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00d98cf8776b0611016ae4aa70cd5c81919650150ab54f5ef6",
+          "sequence": 31,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T14:32:15.527Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-event-32",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00d98cf8776b0611016ae4aa78e2848191b0c826960d22c1a7",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T14:32:23.609Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-event-33",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00d98cf8776b0611016ae4aa7ffe30819191a46ef4bbf7bf0e",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T14:32:30.721Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_453_diagrams_auto_focus_label_after_adding_items.md",
+          "deletions": 2,
+          "id": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-event-34",
+          "insertions": 31,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-f131922c-c13f-41f1-90df-f463f686b12e",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-10-30T14:32:42.578Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-event-35",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00d98cf8776b0611016ae4aa8d553c8191babebc65f6ec04b9",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T14:32:44.048Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md'; git diff -- 'design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md'\"",
+          "content": "diff --git a/design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md b/design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md\nindex 5ae2c49f7..61fe81fdb 100644\n--- a/design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md\n+++ b/design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md\n@@ -3,7 +3,7 @@ author:\n id: F_453\n internalId: ed0eaa91-383d-492b-ad2d-06963c9777a6\n title: diagrams auto focus label after adding items\n-status: design\n+status: ready for implementation\n owner: \n affects:\n agents:\n@@ -12,4 +12,33 @@ policy:\n after: a18b2880-10c9-4ded-b45c-29113f160478\n ---\n \n-With the add tool, the user can add new items to a diagram. Most items have a label. Keyboard focus should be on this label after adding, so user can start typing label without extra clicking\n\\ No newline at end of file\n+With the add tool, the user can add new items to a diagram. Most items have a label. Keyboard focus should be on this label after adding, so user can start typing label without extra clicking\n+\n+## Current state\n+\n+* `DiagramAddControl` activates node placement, edge drawing, group drawing, or fragment creation. `DiagramZoomViewport` passes the pointer event's `ctrlKey` to node, edge, and group completion.\n+* `DiagramNodePlacementService.place` and `DiagramEdgeDrawingService.completeTarget` create and select the new object. Without Ctrl they switch to Select; with Ctrl they keep the Add tool active. Neither path requests keyboard focus.\n+* Editable nodes render their label through `DiagramInlineNodeControls`. Its `TextField` can edit the label, but has no focus request or input ref, so adding a node leaves focus outside the label.\n+* Edges have no inline label input. Their label is edited in `DiagramEdgeDetailsEditor`, whose Label field receives focus only after the details dialog is opened manually.\n+* Group drawing already opens `DiagramGroupLabelDialog` before creation. Its required Label field has `autoFocus`; saving that form creates the group. Sequence fragments have operators and region guards, but no label field.\n+* Selection and active Add tool are independent view state. Keeping a node or edge Add tool active does not prevent focus from moving to the new object's label.\n+\n+## implementation details\n+\n+* Add `DiagramLabelFocusService` in `app/src/services/diagrams/diagram_label_focus_service.ts`. It owns one pending `{ objectId, objectKind }` target for `node` or `edge`, publishes changes through `EventTarget`, and exposes snapshot, subscription, request, and completion operations. A request remains pending until the matching input focuses, so creation and React mounting order cannot lose it. Clear pending state when the edit session changes.\n+* Inject the focus service into `DiagramNodePlacementService` and `DiagramEdgeDrawingService`. After successful creation, selection, gesture completion, and any tool transition, request label focus for the returned ID. Request focus for both ordinary clicks and Ctrl-clicks. Ctrl affects only whether the Add tool remains active.\n+* In `DiagramInlineNodeControls`, subscribe only to the focus state for its node. When requested, focus the underlying input, select its complete default label, then complete the request. Existing pointer-event isolation remains: typing edits the label while the active node Add tool still determines later surface-click behavior.\n+* Add a small edge-focus handler under `components/diagram_view/editing`. When an edge focus request arrives, open `DiagramObjectDetailsService` for that edge. `DiagramEdgeDetailsEditor` then focuses and selects the complete Label value before completing the request. Manual details opening keeps its current focus behavior and must not be treated as a creation request.\n+* Do not change Add-tool state when focusing. After Ctrl-click, user releases Ctrl and types; behavior while Ctrl remains physically held needs no special handling. After editing, the next diagram-surface click still uses the active Add tool.\n+* Group creation remains unchanged because its label is already focused and entered before creation. Fragment creation remains unchanged because fragments have no label.\n+* Cover focus-service request lifetime and session clearing; node and edge requests for Ctrl and non-Ctrl creation; node input focus and full-text selection; edge dialog opening, focus, and full-text selection; and preserved active-tool state after Ctrl creation. Run affected diagram service/component tests and `npm run lint` in `app/`.\n+\n+## acceptance criteria\n+\n+1. After adding a node without Ctrl, its inline Label input has keyboard focus and its complete default label is selected, so typing replaces that label.\n+2. After adding an edge without Ctrl, its details dialog opens, its Label input has keyboard focus, and its complete default or existing label is selected.\n+3. After adding a node or edge with Ctrl, the same label focus and selection occur while the chosen Add tool remains active.\n+4. After a Ctrl-add, releasing Ctrl and typing changes only the new object's label. The next diagram-surface click still starts or completes another addition with the active tool.\n+5. Focus is requested only after creation succeeds. Failed or cancelled creation neither opens edge details nor moves focus to a label.\n+6. Group creation keeps focusing its required pre-creation Label field. Fragment creation remains unchanged because a fragment has no label.\n+7. Manually opening node or edge details retains its current focus behavior; full-label selection caused by this feature occurs only for a newly added object.\n",
+          "durationMs": 88,
+          "exitCode": 0,
+          "id": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-event-36",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md'; git diff -- 'design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md'\"",
+          "providerItemId": "exec-9ec2018d-6aba-41c4-948e-8552488e3eb5",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-10-30T14:32:45.286Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-event-37",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00d98cf8776b0611016ae4aa9254c881918281c145728a2bac",
+          "sequence": 37,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T14:32:49.070Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "No, current implementation only selects new node or edge; it never focuses label.\n\nUpdated [F_453](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md) with:\n\n- `status: ready for implementation`\n- `Current state`\n- `implementation details`\n- `acceptance criteria`\n- Ctrl-add retains active tool while label receives focus\n\n`git diff --check` passes. Nothing staged or committed.\n\n",
+          "id": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 38,
+          "timestamp": "2026-10-30T14:32:52.279Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -355,8 +502,8 @@
           "agent": "codex",
           "conversationId": "01a18ce0-6bcc-7401-9add-d32a6241ee32",
           "createdAt": "2026-10-30T12:55:35.185Z",
-          "lastUsedAt": "2026-10-30T14:30:19.786Z",
-          "synchronizedThroughMessageId": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-turn-1-assistant-1"
+          "lastUsedAt": "2026-10-30T14:32:52.279Z",
+          "synchronizedThroughMessageId": "agent-turn-93a8b649-62ba-493a-a775-a85594338cb5-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-10-30T12:54:39.835Z",
@@ -376,31 +523,31 @@
           {
             "id": "2",
             "subject": "Update status and requested sections",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Review diff and validate documentation",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-10-30T12:55:29.093Z"
+        "updatedAt": "2026-10-30T14:32:50.008Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 254,
-          "toolMs": 1366
+          "reasoningMs": 329,
+          "toolMs": 1938
         },
-        "elapsedMs": 55350,
-        "runningStartedAt": "2026-10-30T14:30:11.105Z"
+        "elapsedMs": 64031,
+        "runningStartedAt": "2026-10-30T14:31:59.481Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 646144,
-        "inputTokens": 185301,
-        "outputTokens": 2033,
-        "reasoningTokens": 1236,
-        "totalTokens": 834714
+        "cachedInputTokens": 1128960,
+        "inputTokens": 189255,
+        "outputTokens": 3625,
+        "reasoningTokens": 3140,
+        "totalTokens": 1324980
       },
       "usageSchemaVersion": 1,
       "viewed": true
