@@ -9459,3 +9459,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-30T15:33:47.900Z,account_usage,claude,default,weekly,10080,2026-11-01T17:00:00.000Z,,,,,,8,0
 2026-10-30T15:39:47.954Z,account_usage,claude,default,weekly,10080,2026-11-01T16:59:00.000Z,,,,,,8,0
 2026-10-30T15:41:47.970Z,account_usage,claude,default,weekly,10080,2026-11-01T17:00:00.000Z,,,,,,8,0
+2026-10-30T15:47:07.834Z,token_usage,codex,,,,,93157,1841920,3044,2428,1940549,,
