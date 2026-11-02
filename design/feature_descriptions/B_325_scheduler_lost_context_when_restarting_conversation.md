@@ -3,7 +3,7 @@ author:
 id: B_325
 internalId: 6414956f-fccd-4086-974d-cd91d67eab99
 title: scheduler lost context when restarting conversation
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,16 @@ policy:
 branch: b_325_scheduler_lost_context_when_restarting_conversation
 worktree: 3
 after: a18b2880-10c9-4ded-b45c-29113f160478
+changedFiles:
+  - app/src/components/actions/agent/action_prompt_owner.tsx
+  - app/src/components/actions/run/popup/action_popup_defaults.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_defaults.ts
+  - app/src/components/actions/run/schedule/action_schedule_owner.test.tsx
+  - app/src/components/actions/run/schedule/action_schedule_owner.tsx
+  - app/src/data/action_schedule_types.node.test.ts
+  - app/src/data/electron_action_bridge.ts
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
 ---
 
 I was in the middle of a conversation when the claude user account reached 100%. So I scheduled a next prompt to be sent when the account usage went back to 0.
