@@ -2564,13 +2564,21 @@
           "status": "failed",
           "timestamp": "2026-11-02T13:33:54.801Z",
           "type": "system"
+        },
+        {
+          "content": "continue",
+          "id": "submission-ecc8809e-da61-48aa-ae11-8806ccf7e081",
+          "kind": "message",
+          "role": "user",
+          "sequence": 7,
+          "timestamp": "2026-11-02T13:35:32.079Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-7af1ac6c-3f79-48c1-adaa-4e285cac2d1d",
       "providerSessions": [],
       "startedAt": "2026-11-02T13:33:31.395Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -2597,7 +2605,7 @@
           "toolMs": 436
         },
         "elapsedMs": 23407,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-02T13:35:32.079Z"
       },
       "title": "+",
       "usageSchemaVersion": 1,
