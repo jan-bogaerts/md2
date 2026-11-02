@@ -2493,6 +2493,10 @@
       "cardInternalId": "ed0eaa91-383d-492b-ad2d-06963c9777a6",
       "cardPath": "design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 22352
+      },
       "entries": [
         {
           "content": "we implemented design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md, but something strange is now occuring, not certain if it is because of this or another card, but now, when user creates a connection between 2 nodes, the app automatically shows a popup where the user can enter a label and select the legend item. this is not supposed to be the case, for the connections, we should show an inline input editor, like for the nodes.",
@@ -2501,16 +2505,99 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-11-02T13:33:31.395Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-event-2",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f2b37be7bc9f64f016ae891396520819197bc8d27ab72d1a9",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-02T13:33:43.520Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll trace the implemented focus behavior and the connection-creation flow, then correct it so new connections use the same inline label editor pattern as nodes. I’ll first verify whether F_453 caused the popup or only exposed an existing path.\n\n",
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 3,
+          "timestamp": "2026-11-02T13:33:54.802Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md'; rg -n \\\"legend|inline|label|connection|edge|dialog|popup\\\" app desktop design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md\"",
+          "content": "---\nauthor: \nid: F_453\ninternalId: ed0eaa91-383d-492b-ad2d-06963c9777a6\ntitle: diagrams auto focus label after adding items\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__ed0eaa91-383d-492b-ad2d-06963c9777a6.json\npolicy:\nafter: a18b2880-10c9-4ded-b45c-29113f160478\nchangedFiles:\n  - app/src/components/diagram_view/details/diagram_edge_details_editor.tsx\n  - app/src/components/diagram_view/details/diagram_object_details_dialog.test.tsx\n  - app/src/components/diagram_view/details/diagram_object_details_dialog.tsx\n  - app/src/components/diagram_view/editing/diagram_edge_label_focus_handler.tsx\n  - app/src/components/diagram_view/editing/diagram_inline_node_controls.tsx\n  - app/src/components/diagram_view/editing/editable_diagram.tsx\n  - app/src/components/diagram_view/editing/editable_diagram_collections.tsx\n  - app/src/components/diagram_view/editing/editable_diagram_node.tsx\n  - app/src/components/diagram_view/rendering/diagram_node.tsx\n  - app/src/components/diagram_view/surface/diagram_zoom_viewport.test.tsx\n  - app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx\n  - app/src/services/diagrams/diagram_edge_drawing_service.test.ts\n  - app/src/services/diagrams/diagram_edge_drawing_service.ts\n  - app/src/services/diagrams/diagram_label_focus_service.test.ts\n  - app/src/services/diagrams/diagram_label_focus_service.ts\n  - app/src/services/diagrams/diagram_node_placement_service.test.ts\n  - app/src/services/diagrams/diagram_node_placement_service.ts\n---\n\nWith the add tool, the user can add new items to a diagram. Most items have a label. Keyboard focus should be on this label after adding, so user can start typing label without extra clicking\n\n## Current state\n\n* `DiagramAddControl` activates node placement, edge drawing, group drawing, or fragment creation. `DiagramZoomViewport` passes the pointer event's `ctrlKey` to node, edge, and group completion.\n* `DiagramNodePlacementService.place` and `DiagramEdgeDrawingService.completeTarget` create and select the new object. Without Ctrl they switch to Select; with Ctrl they keep the Add tool active. Neither path requests keyboard focus.\n* Editable nodes render their label through `DiagramInlineNodeControls`. Its `TextField` can edit the label, but has no focus request or input ref, so adding a node leaves focus outside the label.\n* Edges have no inline label input. Their label is edited in `DiagramEdgeDetailsEditor`, whose Label field receives focus only after the details dialog is opened manually.\n* Group drawing already opens `DiagramGroupLabelDialog` before creation. Its required Label field has `autoFocus`; saving that form creates the group. Sequence fragments have operators and region guards, but no label field.\n* Selection and active Add tool are independent view state. Keeping a node or edge Add tool active does not prevent focus from moving to the new object's label.\n\n## implementation details\n\n* Add `DiagramLabelFocusService` in `app/src/services/diagrams/diagram_label_focus_service.ts`. It owns one pending `{ objectId, objectKind }` target for `node` or `edge`, publishes changes through `EventTarget`, and exposes snapshot, subscription, request, and completion operations. A request remains pending until the matching input focuses, so creation and React mounting order cannot lose it. Clear pending state when the edit session changes.\n* Inject the focus service into `DiagramNodePlacementService` and `DiagramEdgeDrawingService`. After successful creation, selection, gesture completion, and any tool transition, request label focus for the returned ID. Request focus for both ordinary clicks and Ctrl-clicks. Ctrl affects only whether the Add tool remains active.\n* In `DiagramInlineNodeControls`, subscribe only to the focus state for its node. When requested, focus the underlying input, select its complete default label, then complete the request. Existing pointer-event isolation remains: typing edits the label while the active node Add tool still determines later surface-click behavior.\n* Add a small edge-focus handler under `com\n[1040390 characters omitted]\nmentConversationSelector()\napp\\src\\components\\actions\\conversation\\state\\action_conversation_chat_selectors.ts:4:/** Keeps acknowledgement data stable while unrelated conversation fields stream. */\napp\\src\\components\\actions\\conversation\\state\\action_conversation_chat_selectors.ts:5:export function createAcknowledgementConversationSelector() {\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.ts:4:import { dialogService } from '../../../../services/dialog_service'\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.ts:8:import { defaultLoadConversation, defaultLoadConversations } from '../../run/popup/action_popup_defaults'\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.ts:84:/** Owns history loading and selection for one popup action/context binding. */\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.ts:149:                    dialogService.error(error, { fallbackMessage: 'Could not load agent conversation' })\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.ts:161:            dialogService.error(error, { fallbackMessage: 'Could not load agent conversations' })\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.ts:194:                dialogService.error(error, { fallbackMessage: 'Could not load agent conversation' })\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.ts:228:            dialogService.error(error, { fallbackMessage: 'Could not update conversation pin' })\napp\\src\\components\\actions\\conversation\\state\\action_conversation_command_service.ts:7:import { defaultConvertPromptToAction } from '../../run/popup/action_popup_defaults'\napp\\src\\components\\actions\\conversation\\state\\action_conversation_command_service.ts:16:    saveAsNewAction(message: AgentConversationMessageEntry, label: string): Promise<void>\napp\\src\\components\\actions\\conversation\\state\\action_conversation_command_service.ts:21:/** Owns transcript mutation commands for one action popup. */\napp\\src\\components\\actions\\conversation\\state\\action_conversation_command_service.ts:37:    async saveAsNewAction(message: AgentConversationMessageEntry, label: string) {\napp\\src\\components\\actions\\conversation\\state\\action_conversation_command_service.ts:44:            label,\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.node.test.ts:9:import { dialogService } from '../../../../services/dialog_service'\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.node.test.ts:169:        const reportError = vi.spyOn(dialogService, 'error')\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.node.test.ts:296:        const reportError = vi.spyOn(dialogService, 'error')\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.node.test.ts:313:        const reportError = vi.spyOn(dialogService, 'error')\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.node.test.ts:330:        const reportError = vi.spyOn(dialogService, 'error')\napp\\src\\components\\actions\\conversation\\state\\action_conversation_store.node.test.ts:402:        const reportError = vi.spyOn(dialogService, 'error')\napp\\src\\components\\actions\\conversation\\state\\action_conversation_command_service.node.test.ts:7:import * as popupDefaults from '../../run/popup/action_popup_defaults'\napp\\src\\components\\actions\\conversation\\state\\action_conversation_command_service.node.test.ts:62:                label: 'Review',\napp\\src\\components\\actions\\conversation\\state\\action_conversation_command_service.node.test.ts:71:        const save = vi.spyOn(popupDefaults, 'defaultConvertPromptToAction').mockResolvedValue({\napp\\src\\components\\actions\\conversation\\state\\action_conversation_command_service.node.test.ts:72:            definition: { description: '', id: 'new', label: 'Saved response', prompt: message.content, type: 'agent' },\napp\\src\\components\\actions\\conversation\\state\\action_conversation_command_service.node.test.ts:83:            label: 'Saved response',\n",
+          "durationMs": 248,
+          "exitCode": 0,
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-event-4",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md'; rg -n \\\"legend|inline|label|connection|edge|dialog|popup\\\" app desktop design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md\"",
+          "providerItemId": "exec-9994f1fe-bcb7-4e85-98d2-4d25266dfdd7",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-11-02T13:33:53.964Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "Selected model is at capacity. Please try a different model.",
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-event-5",
+          "kind": "event",
+          "label": "Turn failure",
+          "providerItemId": "system:01a19c77-16f8-7202-81a8-0a39f6a0cd64:error",
+          "sequence": 5,
+          "status": "failed",
+          "timestamp": "2026-11-02T13:33:54.724Z",
+          "type": "system"
+        },
+        {
+          "content": "Selected model is at capacity. Please try a different model.",
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-event-6",
+          "kind": "event",
+          "label": "Turn failure",
+          "providerItemId": "system:01a19c77-16f8-7202-81a8-0a39f6a0cd64:turn/completed",
+          "sequence": 6,
+          "status": "failed",
+          "timestamp": "2026-11-02T13:33:54.801Z",
+          "type": "system"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-7af1ac6c-3f79-48c1-adaa-4e285cac2d1d",
       "providerSessions": [],
       "startedAt": "2026-11-02T13:33:31.395Z",
-      "status": "running",
+      "status": "waitingForInput",
+      "taskList": {
+        "tasks": [
+          {
+            "id": "0",
+            "subject": "Inspect F_453 and trace node/connection creation and label-edit call sites",
+            "status": "inProgress"
+          },
+          {
+            "id": "1",
+            "subject": "Implement the smallest connection inline-editor fix and add/update regression tests",
+            "status": "pending"
+          },
+          {
+            "id": "2",
+            "subject": "Run targeted tests and lint for affected files",
+            "status": "pending"
+          }
+        ],
+        "updatedAt": "2026-11-02T13:33:45.189Z"
+      },
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-11-02T13:33:31.395Z"
+        "breakdown": {
+          "reasoningMs": 15,
+          "toolMs": 436
+        },
+        "elapsedMs": 23407,
+        "runningStartedAt": null
       },
       "title": "+",
       "usageSchemaVersion": 1,
