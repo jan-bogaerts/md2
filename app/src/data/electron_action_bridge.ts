@@ -61,6 +61,7 @@ export interface HistoricalFileContent {
 
 export interface ActionScheduleRegistrationRequest {
     actionId: string
+    conversationId?: string
     context: ActionContext
     prompt?: string
     trigger: ActionScheduleTrigger

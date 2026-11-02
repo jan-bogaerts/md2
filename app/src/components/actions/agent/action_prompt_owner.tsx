@@ -10,7 +10,10 @@ import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import type { ActionInputLayoutStore } from '../run/popup/action_input_layout_store';
 import type { RestoredAgentQuestions } from './action_agent_question_owner'
-import type { ActionConversationStore } from '../conversation/state/action_conversation_store'
+import {
+    resolveDisplayedConversation,
+    type ActionConversationStore,
+} from '../conversation/state/action_conversation_store'
 import { pendingConversationQuestions } from '../conversation/state/action_conversation_chat_selectors'
 import type { ActionHistoryStore } from '../run/state/action_history_store'
 import {
@@ -61,6 +64,7 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
     const boundRunId = useBoundRunId(bindingStore)
     const sessionActive = useRunSelector(boundRunId, selectSessionActive)
     const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
+    const liveConversation = useRunSelector(boundRunId, (run) => run?.conversation ?? null)
     const interactionReady = useRunSelector(boundRunId, (run) => !!run?.interactionReady)
     const runStatus = useRunSelector(boundRunId, (run) => run?.status ?? 'idle')
     const conversationSnapshot = useSyncExternalStore(
@@ -68,6 +72,7 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
         conversationStore.getSnapshot,
         conversationStore.getSnapshot,
     )
+    const displayedConversation = resolveDisplayedConversation(liveConversation, conversationSnapshot.selectedConversation)
     const inputSnapshot = useSyncExternalStore(inputStore.subscribe, inputStore.getSnapshot, inputStore.getSnapshot)
     const remoteConnection = useSyncExternalStore(
         remoteConnectionService.subscribe,
@@ -159,6 +164,7 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
         <>
             <ActionScheduleOwner
                 action={action}
+                conversationId={displayedConversation?.id ?? null}
                 context={scheduleContext}
                 promptDraft={promptDraft}
                 store={scheduleStore}

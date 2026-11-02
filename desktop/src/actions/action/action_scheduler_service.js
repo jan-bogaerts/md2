@@ -66,6 +66,10 @@ function validateRegistrationRequest(request, now) {
     if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action schedule actionId');
     if (!request.context || typeof request.context !== 'object') throw new Error('Missing action schedule context');
     if (!request.trigger || typeof request.trigger !== 'object') throw new Error('Missing action schedule trigger');
+    if (request.conversationId !== undefined
+        && (typeof request.conversationId !== 'string' || request.conversationId.length === 0)) {
+        throw new Error('Invalid action schedule conversationId');
+    }
     if (request.prompt !== undefined && typeof request.prompt !== 'string') throw new Error('Invalid action schedule prompt');
     if (request.actionId === CUSTOM_PROMPT_ACTION_ID && (request.prompt === undefined || request.prompt.trim().length === 0)) {
         throw new Error('Custom prompt schedule requires a non-empty prompt');
@@ -338,10 +342,41 @@ class ActionSchedulerService {
         return `conversation ${conversationId} is ${conversation.status}`;
     }
 
+    /** Loads and validates one action schedule's persisted continuation before its unattended run starts. */
+    async actionScheduleContinuation(schedule, executionContext = null) {
+        if (!schedule.conversationId) return null;
+        const project = executionContext?.project ?? this.requireCurrentProject();
+        const projectFolder = executionContext?.projectFolder ?? this.projectFolder;
+        const expectedCardInternalId = schedule.context.cardInternalId ?? null;
+        const origin = expectedCardInternalId ? { cardInternalId: expectedCardInternalId, kind: 'card' } : { kind: 'project' };
+        const reference = this.localGitService.activityConversationReference(projectFolder, origin, schedule.conversationId);
+        let conversation;
+        try {
+            conversation = await this.localGitService.loadAgentConversation(project, reference);
+        } catch (error) {
+            throw new Error(`conversation ${schedule.conversationId} could not be loaded: ${errorMessage(error)}`);
+        }
+        if (conversation.id !== schedule.conversationId) {
+            throw new Error(`conversation ${schedule.conversationId} loaded conversation ${conversation.id}`);
+        }
+        if (conversation.actionId !== schedule.actionId) {
+            throw new Error(`conversation ${schedule.conversationId} belongs to action ${conversation.actionId}, not ${schedule.actionId}`);
+        }
+        if ((conversation.cardInternalId ?? null) !== expectedCardInternalId) {
+            throw new Error(`conversation ${schedule.conversationId} belongs to card ${conversation.cardInternalId ?? 'project'}, not ${expectedCardInternalId ?? 'project'}`);
+        }
+        if (!RESUMABLE_CONVERSATION_STATUSES.has(conversation.status)) {
+            throw new Error(`conversation ${schedule.conversationId} is ${conversation.status}`);
+        }
+
+        return reference;
+    }
+
     async registerActionSchedule(request) {
         const registration = validateRegistrationRequest(request, this.now());
         const schedule = {
             actionId: registration.actionId,
+            ...(registration.conversationId === undefined ? {} : { conversationId: registration.conversationId }),
             context: registration.context,
             createdAt: new Date(this.now()).toISOString(),
             failure: null,
@@ -555,9 +590,15 @@ class ActionSchedulerService {
         const interruptedSchedules = schedules.filter((schedule) => schedule.kind === 'action' && schedule.status === 'running');
         let schedulesChanged = false;
         for (const schedule of interruptedSchedules) {
-            const failure = schedule.conversationId
-                ? await this.conversationResumeFailure(schedule.context.cardInternalId, schedule.conversationId)
-                : 'no conversation was recorded';
+            let failure = 'no conversation was recorded';
+            if (schedule.conversationId) {
+                try {
+                    await this.actionScheduleContinuation(schedule);
+                    failure = null;
+                } catch (error) {
+                    failure = errorMessage(error);
+                }
+            }
             if (!failure) continue;
             const error = new Error(`Action schedule ${schedule.id} could not recover its interrupted run (${failure}) and was marked failed`);
             this.reportError(error);
@@ -656,8 +697,19 @@ class ActionSchedulerService {
                 executionControl.resolveStarted(null);
                 return;
             }
+            let continueFrom = null;
+            if (schedule.conversationId) {
+                try {
+                    continueFrom = await this.actionScheduleContinuation(schedule, executionContext);
+                } catch (error) {
+                    const failure = errorMessage(error);
+                    await this.mutateSchedules(executionContext, (schedules) => failActionSchedule(schedules, scheduleId, failure));
+                    executionControl.resolveStarted(null);
+                    return;
+                }
+            }
             const runId = allocateActionRunId();
-            const conversationId = allocateConversationId();
+            const conversationId = schedule.conversationId ?? allocateConversationId();
             this.runIdsByScheduleId.set(scheduleKey, runId);
             const runningSchedule = { ...schedule, conversationId, status: 'running' };
             await this.mutateSchedules(executionContext, (schedules) => replaceScheduleRecord(schedules, runningSchedule));
@@ -666,7 +718,7 @@ class ActionSchedulerService {
                 executionControl.resolveStarted(null);
                 return;
             }
-            await this.startScheduledAction(runningSchedule, runId, executionContext);
+            await this.startScheduledAction(runningSchedule, runId, executionContext, continueFrom);
             executionControl.resolveStarted(runId);
             if (executionControl.cancelRequested) this.actionRunnerService.cancel(runId);
             const result = await this.actionRunnerService.wait(runId);
@@ -705,12 +757,13 @@ class ActionSchedulerService {
         await this.mutateSchedules(executionContext, (schedules) => updateActionScheduleStatus(schedules, scheduleId, status));
     }
 
-    async startScheduledAction(schedule, runId, executionContext) {
+    async startScheduledAction(schedule, runId, executionContext, continueFrom) {
         const context = schedule.context.cardInternalId
             ? { ...await this.resolveCardContext(schedule.context.cardInternalId, executionContext), kind: schedule.context.kind }
             : schedule.context;
         const runInput = {
             conversationId: schedule.conversationId,
+            ...(continueFrom ? { continueFrom } : {}),
             ...(schedule.prompt === undefined ? {} : { prompt: schedule.prompt }),
         };
         const request = { actionId: schedule.actionId, context, runInput };

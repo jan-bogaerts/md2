@@ -31,13 +31,14 @@ function getActiveCards() {
 
 interface ActionScheduleOwnerProps {
     action: ActionDefinition
+    conversationId: string | null
     context: ActionContext
     promptDraft: ActionPromptDraft
     store: ActionScheduleStore
 }
 
 /** Binds service-owned schedule form state to loaded runtime and project data. */
-export function ActionScheduleOwner({ action, context, promptDraft, store }: ActionScheduleOwnerProps) {
+export function ActionScheduleOwner({ action, context, conversationId, promptDraft, store }: ActionScheduleOwnerProps) {
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const activeCards = useSyncExternalStore(subscribeActiveCards, getActiveCards, getActiveCards)
     const claudeState = useClaudeRateLimits()
@@ -64,7 +65,7 @@ export function ActionScheduleOwner({ action, context, promptDraft, store }: Act
             promptDraft.requestFlush()
             const prompt = promptDraft.getSnapshot()
             const trigger = createScheduleTrigger(store.getSnapshot(), sources)
-            await defaultScheduleAction(action, context, trigger, prompt)
+            await defaultScheduleAction(action, context, trigger, prompt, conversationId ?? undefined)
             store.close()
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not register schedule' })

@@ -65,6 +65,7 @@ export type ScheduleAction = (
     context: ActionContext,
     trigger: ActionScheduleTrigger,
     prompt: string,
+    conversationId?: string,
 ) => Promise<void>
 
 export function defaultRunAction(
@@ -184,6 +185,7 @@ export async function defaultScheduleAction(
     context: ActionContext,
     trigger: ActionScheduleTrigger,
     prompt: string,
+    conversationId?: string,
 ) {
     projectAccessService.requireWritable()
     const bridge = getElectronActionBridge()
@@ -194,6 +196,7 @@ export async function defaultScheduleAction(
 
     const request = {
         actionId: action.id,
+        ...(action.type === 'agent' && conversationId ? { conversationId } : {}),
         context,
         ...(action.type === 'agent' ? { prompt } : {}),
         trigger,

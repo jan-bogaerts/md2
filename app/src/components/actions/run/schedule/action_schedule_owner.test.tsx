@@ -33,11 +33,17 @@ function createDateStore() {
     return store
 }
 
-function renderOpenOwner(store = createDateStore(), promptDraft = new ActionPromptDraft('Prepared prompt', false)) {
+function renderOpenOwner(
+    store = createDateStore(),
+    promptDraft = new ActionPromptDraft('Prepared prompt', false),
+    conversationId: string | null = null,
+) {
     render(
         <div data-testid="action-popup-scroll-body">
             <button type="button">Schedule anchor</button>
-            <ActionScheduleOwner action={action} context={context} promptDraft={promptDraft} store={store} />
+            <ActionScheduleOwner
+                action={action} context={context} conversationId={conversationId} promptDraft={promptDraft} store={store}
+            />
         </div>,
     )
     const anchorElement = screen.getByRole('button', { name: 'Schedule anchor' })
@@ -66,6 +72,7 @@ describe('ActionScheduleOwner registration', () => {
             context,
             { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
             'Prepared prompt',
+            undefined,
         ))
         expect(screen.getByRole('dialog', { name: 'Schedule action' })).toBeInTheDocument()
         confirmRegistration()
@@ -87,6 +94,23 @@ describe('ActionScheduleOwner registration', () => {
             context,
             { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
             'Latest prompt',
+            undefined,
+        ))
+    })
+
+    it('registers displayed conversation identity', async () => {
+        configureSources()
+        vi.mocked(defaultScheduleAction).mockResolvedValue(undefined)
+        renderOpenOwner(createDateStore(), new ActionPromptDraft('Continue work', false), 'conversation-1')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
+
+        await waitFor(() => expect(defaultScheduleAction).toHaveBeenCalledWith(
+            action,
+            context,
+            { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
+            'Continue work',
+            'conversation-1',
         ))
     })
 

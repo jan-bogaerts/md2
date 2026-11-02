@@ -504,6 +504,81 @@ describe('ActionSchedulerService', () => {
         }, { interactive: false, runId: expect.stringMatching(/^action-/u) });
     });
 
+    it('continues the registered conversation without allocating a replacement identity', async () => {
+        const localGitService = createLocalGitService([]);
+        const reference = 'design/activity/card__card-022.json#conversation=conversation-1';
+        localGitService.activityConversationReference = vi.fn(() => reference);
+        localGitService.loadAgentConversation = vi.fn(async () => ({
+            actionId: 'implement',
+            cardInternalId: 'card-022',
+            id: 'conversation-1',
+            status: 'waitingForInput',
+        }));
+        const actionRunnerService = {
+            subscribe: vi.fn(),
+            cancel: vi.fn(),
+            start: vi.fn(async (_request, options) => options.runId),
+            startProject: vi.fn(),
+            wait: vi.fn(async (runId) => ({ failure: null, runId, status: 'completed' })),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+        const trigger = { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' };
+
+        const schedule = await scheduler.registerActionSchedule({actionId: 'implement', conversationId: 'conversation-1', context, prompt: 'Continue work', trigger});
+        await scheduler.fireSchedule(schedule.id);
+
+        expect(schedule).toMatchObject({ conversationId: 'conversation-1' });
+        expect(localGitService.activityConversationReference).toHaveBeenCalledWith(
+            scheduler.projectFolder,
+            { cardInternalId: 'card-022', kind: 'card' },
+            'conversation-1',
+        );
+        expect(actionRunnerService.start).toHaveBeenCalledWith({
+            actionId: 'implement',
+            context: expect.objectContaining({ cardInternalId: 'card-022' }),
+            runInput: { conversationId: 'conversation-1', continueFrom: reference, prompt: 'Continue work' },
+        }, { interactive: false, runId: expect.stringMatching(/^action-/u) });
+        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
+    });
+
+    it.each([
+        ['missing', null, 'conversation conversation-1 could not be loaded: Unknown agent conversation'],
+        ['terminal', { actionId: 'implement', cardInternalId: 'card-022', id: 'conversation-1', status: 'completed' }, 'conversation conversation-1 is completed'],
+        ['wrong action', { actionId: 'review', cardInternalId: 'card-022', id: 'conversation-1', status: 'running' }, 'conversation conversation-1 belongs to action review, not implement'],
+        ['wrong card', { actionId: 'implement', cardInternalId: 'card-other', id: 'conversation-1', status: 'running' }, 'conversation conversation-1 belongs to card card-other, not card-022'],
+    ])('fails a continuation schedule with %s conversation state', async (_label, conversation, failure) => {
+        const localGitService = createLocalGitService([]);
+        localGitService.activityConversationReference = vi.fn(() => (
+            'design/activity/card__card-022.json#conversation=conversation-1'
+        ));
+        localGitService.loadAgentConversation = vi.fn(async () => {
+            if (!conversation) throw new Error('Unknown agent conversation');
+
+            return conversation;
+        });
+        const actionRunnerService = {
+            subscribe: vi.fn(),
+            cancel: vi.fn(),
+            start: vi.fn(),
+            startProject: vi.fn(),
+            wait: vi.fn(),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+        const schedule = await scheduler.registerActionSchedule({
+            actionId: 'implement',
+            conversationId: 'conversation-1',
+            context,
+            trigger: { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' },
+        });
+
+        await scheduler.fireSchedule(schedule.id);
+
+        expect(localGitService.schedules()).toEqual([{ ...schedule, failure, status: 'failed' }]);
+        expect(actionRunnerService.start).not.toHaveBeenCalled();
+    });
+
     it('rejects a blank custom prompt schedule', async () => {
         const localGitService = createLocalGitService([]);
         const scheduler = createScheduler(localGitService);
@@ -1271,7 +1346,12 @@ function createRecoveryHarness(schedule, conversationStatus) {
     localGitService.loadAgentConversation = vi.fn(async () => {
         if (!conversationStatus) throw new Error('Unknown agent conversation');
 
-        return { id: schedule.conversationId, status: conversationStatus };
+        return {
+            actionId: schedule.actionId,
+            cardInternalId: schedule.context?.cardInternalId ?? schedule.cardInternalIds?.[schedule.currentIndex] ?? null,
+            id: schedule.conversationId,
+            status: conversationStatus,
+        };
     });
     const runCompletions = new Map();
     const actionRunnerService = {

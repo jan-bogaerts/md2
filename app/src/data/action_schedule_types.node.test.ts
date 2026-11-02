@@ -36,7 +36,12 @@ describe('action schedule types', () => {
 
     it('persists optional action prompt and failure fields without adding them to existing schedules', () => {
         const existingSchedule = createActionSchedule({ timestamp: '2026-07-06T11:00:00.000Z', type: 'at' })
-        const schedule = { ...existingSchedule, failure: 'Action could not start', prompt: 'Edited prompt' }
+        const schedule = {
+            ...existingSchedule,
+            conversationId: 'conversation-1',
+            failure: 'Action could not start',
+            prompt: 'Edited prompt',
+        }
 
         expect(parseActionScheduleFile({ schedules: [schedule] })).toEqual({ schedules: [schedule] })
         expect(createActionScheduleFile([existingSchedule])).toEqual({ schedules: [existingSchedule] })
