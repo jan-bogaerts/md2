@@ -10,8 +10,14 @@ import { DiagramMenuTab } from './diagram_menu_tab';
 const diagram: DiagramData = {
     edges: [],
     groups: [],
-    meta: { description: 'Architecture', title: 'System', type: 'architecture', version: 1 },
-    nodes: [{ id: 'node', label: 'Node', role: 'focal' }],
+    meta: {
+        description: 'Architecture',
+        legend: [{ id: 'focal', label: 'Focal', role: 'focal' }],
+        title: 'System',
+        type: 'architecture',
+        version: 3,
+    },
+    nodes: [{ id: 'node', label: 'Node', legendEntryId: 'focal', role: 'focal' }],
 };
 
 class SourceStub extends EventTarget {
@@ -84,7 +90,7 @@ describe('DiagramMenuTab', () => {
         const session = createSession(source);
         session.start();
         render(<DiagramMenuTab session={session} viewService={source as unknown as DiagramViewService} />);
-        const names = ['Select', 'Pan', 'Add tool', 'Cut', 'Copy', 'Paste', 'Delete', 'Review', 'Metadata', 'Legend'];
+        const names = ['Select', 'Pan', 'Add tool', 'Cut', 'Copy', 'Paste', 'Format Paste', 'Delete', 'Review', 'Metadata', 'Legend'];
         const buttons = screen.getAllByRole('button');
         const indexes = names.map((name) => buttons.indexOf(screen.getByRole('button', { name })));
         expect(indexes).toEqual([...indexes].sort((left, right) => left - right));
@@ -113,7 +119,7 @@ describe('DiagramMenuTab', () => {
         await user.click(screen.getByRole('button', { name: 'Edit diagram' }));
 
         expect(screen.queryByRole('button', { name: 'Edit diagram' })).not.toBeInTheDocument();
-        for (const name of ['Select', 'Pan', 'Cut', 'Copy', 'Paste', 'Delete', 'Review', 'Metadata', 'Legend']) {
+        for (const name of ['Select', 'Pan', 'Cut', 'Copy', 'Paste', 'Format Paste', 'Delete', 'Review', 'Metadata', 'Legend']) {
             expect(screen.getByRole('button', { name })).toBeInTheDocument();
         }
         expect(screen.getByRole('button', { name: 'Choose Add tool' })).toHaveAttribute('aria-expanded', 'false');

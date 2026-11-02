@@ -1,4 +1,5 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render as testingRender, screen, within } from '@testing-library/react'
+import type { ReactElement } from 'react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../data/action_types'
@@ -19,6 +20,9 @@ import { DiagramView } from './diagram_view'
 import { DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import { dataService } from '../../services/data/data_service'
+import { AppThemeProvider } from '../../theme/theme_provider'
+import { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'
+import { workspaceViewService } from '../../services/project/workspace_view_service'
 
 vi.mock('../hooks/use_workspace_view', () => ({ useWorkspaceView: () => ({ selectedPath: null, viewMode: 'diagrams' }) }))
 
@@ -28,6 +32,10 @@ const actions = vi.hoisted(() => [
 ]) as ActionDefinition[]
 
 vi.mock('../hooks/use_actions', () => ({ useActions: () => ({ actions }) }))
+
+function render(element: ReactElement) {
+    return testingRender(<AppThemeProvider>{element}</AppThemeProvider>)
+}
 vi.mock('../actions/run/popup/action_popup', () => ({
     ActionPopup: ({ context, draggable, initialActionId, popupEntryId, popupVisible }: {
         context: { kind: string, type?: string }, draggable?: boolean, initialActionId?: string,
@@ -54,18 +62,27 @@ vi.mock('../actions/run/popup/action_popup', () => ({
 }))
 
 const diagramData: DiagramData = {
-    edges: [{ from: 'customer', id: 'customer-orders', kind: 'connection', label: 'places', to: 'orders' }],
+    edges: [{
+        from: 'customer', id: 'customer-orders', kind: 'connection', label: 'places',
+        legendEntryId: 'connection', to: 'orders',
+    }],
     groups: [{ id: 'domain', label: 'Domain', nodeIds: ['customer', 'orders'] }],
     meta: {
         description: 'Customer ordering flow',
+        legend: [
+            { id: 'focal', label: 'Focal', role: 'focal' },
+            { id: 'backend', label: 'Backend', role: 'backend' },
+            { id: 'optional', label: 'Optional', role: 'optional' },
+            { id: 'connection', kind: 'connection', label: 'Connection', useLabelAsDefault: false },
+        ],
         title: 'Orders',
         type: 'architecture',
-        version: 1,
+        version: 3,
     },
     nodes: [
-        { id: 'customer', label: 'Customer', role: 'focal' },
-        { id: 'orders', label: 'Orders', role: 'backend' },
-        { id: 'audit', label: 'Audit', role: 'optional' },
+        { id: 'customer', label: 'Customer', legendEntryId: 'focal', role: 'focal' },
+        { id: 'orders', label: 'Orders', legendEntryId: 'backend', role: 'backend' },
+        { id: 'audit', label: 'Audit', legendEntryId: 'optional', role: 'optional' },
     ],
 }
 
@@ -403,9 +420,12 @@ describe('DiagramView', () => {
         Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 })
         Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 })
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
+        workspaceViewService.setViewMode('diagrams')
+        keyboardShortcutService.start()
     })
     afterEach(() => {
         cleanup()
+        keyboardShortcutService.stop()
         vi.restoreAllMocks()
     })
 
@@ -498,7 +518,7 @@ describe('DiagramView', () => {
 
         expect(viewport).toContainElement(legend)
         expect(scroller).not.toContainElement(legend)
-        expect(legend).toHaveTextContent('LegendComponentConnection')
+        expect(legend).toHaveTextContent('LegendFocalBackendOptionalConnection')
         expect(legend).toHaveStyle({ position: 'absolute', right: '12px', top: '12px' })
         expect(screen.getByRole('slider', { name: 'Current diagram zoom' })).toHaveAttribute('aria-valuetext', '100%')
         expect(screen.queryByRole('slider', { name: 'New diagram zoom' })).not.toBeInTheDocument()
@@ -510,10 +530,10 @@ describe('DiagramView', () => {
 
         await user.click(screen.getByRole('button', { name: 'Collapse legend' }))
         expect(service.collapseLegend).toHaveBeenCalledTimes(1)
-        expect(screen.queryByText('Component')).not.toBeInTheDocument()
+        expect(screen.queryByText('Focal')).not.toBeInTheDocument()
 
         await user.click(screen.getByRole('button', { name: 'Expand legend' }))
-        expect(screen.getByText('Component')).toBeInTheDocument()
+        expect(screen.getByText('Focal')).toBeInTheDocument()
         expect(getCurrentDiagramSnapshot).toHaveBeenCalledTimes(currentDiagramReadsAfterRender)
     })
 
@@ -596,7 +616,7 @@ describe('DiagramView', () => {
 
         fireEvent.contextMenu(screen.getByRole('button', { name: 'Customer' }))
         await user.click(screen.getByRole('menuitem', { name: 'Emphasize' }))
-        fireEvent.keyDown(window, { key: 'Escape' })
+        await user.keyboard('{Escape}')
         expect(screen.queryByRole('button', { name: 'Exit emphasis' })).not.toBeInTheDocument()
     })
 
@@ -637,7 +657,7 @@ describe('DiagramView', () => {
         expect(within(newRegion).getByRole('button', { name: 'Customer' })).toHaveStyle({ opacity: '0.08' })
         expect(within(newRegion).getByRole('button', { name: 'Audit' })).toHaveStyle({ opacity: '1' })
 
-        fireEvent.keyDown(window, { key: 'Escape' })
+        await user.keyboard('{Escape}')
         expect(within(newRegion).queryByRole('button', { name: 'Exit emphasis' })).not.toBeInTheDocument()
         expect(within(newRegion).getByRole('button', { name: 'Customer' })).toHaveStyle({ opacity: '1' })
     })

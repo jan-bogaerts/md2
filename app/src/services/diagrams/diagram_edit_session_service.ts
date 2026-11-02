@@ -13,6 +13,7 @@ import type { DiagramRecord } from './diagram_index'
 import { DiagramChangeRegistry } from './diagram_change_registry'
 import { DiagramEditContext } from './diagram_edit_context'
 import { DiagramFormattingEditor } from './diagram_formatting_editor'
+import { DiagramFormatPasteEditor } from './diagram_format_paste_editor'
 import { DiagramLegendEditor } from './diagram_legend_editor'
 import { DiagramObjectFieldEditor } from './diagram_object_field_editor'
 import { DiagramFragmentEditor } from './diagram_fragment_editor'
@@ -108,6 +109,7 @@ export class DiagramEditSessionService extends EventTarget {
 
     readonly read = new DiagramEditSessionReadAdapter(this, () => this.getReadState())
     readonly formatting: DiagramFormattingEditor
+    readonly formatPaste: DiagramFormatPasteEditor
     readonly legend: DiagramLegendEditor
     readonly objects: DiagramObjectFieldEditor
     readonly fragments: DiagramFragmentEditor
@@ -175,6 +177,7 @@ export class DiagramEditSessionService extends EventTarget {
             setEntityFieldIndexes: (nodeId, indexes) => { this.entityFieldIndexesByNodeId.set(nodeId, indexes) },
         })
         this.formatting = new DiagramFormattingEditor(this.editContext)
+        this.formatPaste = new DiagramFormatPasteEditor(this.editContext)
         this.legend = new DiagramLegendEditor(this.editContext)
         this.objects = new DiagramObjectFieldEditor(this.editContext)
         this.fragments = new DiagramFragmentEditor(this.editContext)
