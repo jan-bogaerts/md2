@@ -2615,6 +2615,36 @@
       "startedAt": "2026-11-02T10:33:56.578Z",
       "status": "completed",
       "rootConversationId": "agent-041bf4e9-d13b-41c0-81a7-02928cedeb3e"
+    },
+    {
+      "commits": [
+        {
+          "commit": "95c6492313c7673e3a49bb566d31a6e34058489a",
+          "committedAt": "2026-11-02T15:02:57+01:00",
+          "deletions": 22,
+          "filePaths": [
+            "app/src/components/actions/agent/action_prompt_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup_defaults.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_defaults.ts",
+            "app/src/components/actions/run/schedule/action_schedule_owner.test.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_owner.tsx",
+            "app/src/data/action_schedule_types.node.test.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "desktop/src/actions/action/action_scheduler_service.js",
+            "desktop/src/actions/action/action_scheduler_service.test.mjs"
+          ],
+          "filesChanged": 9,
+          "insertions": 210,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-02T15:02:57+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "6414956f-fccd-4086-974d-cd91d67eab99",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

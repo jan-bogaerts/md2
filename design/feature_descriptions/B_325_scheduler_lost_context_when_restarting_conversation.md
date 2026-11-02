@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__6414956f-fccd-4086-974d-cd91d67eab99.json
 policy:
-branch: b_325_scheduler_lost_context_when_restarting_conversation
-worktree: 3
 after: a18b2880-10c9-4ded-b45c-29113f160478
 changedFiles:
   - app/src/components/actions/agent/action_prompt_owner.tsx
