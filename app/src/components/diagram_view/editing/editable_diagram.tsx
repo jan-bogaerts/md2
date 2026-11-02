@@ -48,7 +48,6 @@ import { DiagramChangeReviewDialog } from '../review/diagram_change_review_dialo
 import {
     diagramChangeReviewService, type DiagramChangeReviewService,
 } from '../review/diagram_change_review_service'
-import { DiagramChangeActionPopup } from '../review/diagram_change_action_popup'
 import { useActiveDiagramTool } from './use_diagram_tool'
 import {
     diagramLabelFocusService, type DiagramLabelFocusService,
@@ -270,7 +269,6 @@ export function EditableDiagram({
             <DiagramGroupLabelDialog drawing={groupDrawing} />
             <DiagramFragmentDialog dialog={fragmentDialog} session={session} />
             <DiagramChangeReviewDialog review={review} session={session} />
-            <DiagramChangeActionPopup review={review} />
         </Box>
     )
 }

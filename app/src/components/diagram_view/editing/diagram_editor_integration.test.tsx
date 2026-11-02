@@ -125,36 +125,32 @@ describe('diagram editor integration', () => {
 
         expect(within(current).getByText(currentText)).toBeInTheDocument()
         if (diagramName === 'architecture') expect(within(next).getByRole('textbox', { name: 'Edit One edited label' })).toHaveValue(newText)
-        else expect(within(next).getByText(newText)).toBeInTheDocument()
+        else if (diagramName === 'dependency' || diagramName === 'flowchart' || diagramName === 'state') {
+            expect(within(next).getByRole('button', { name: newText })).toBeInTheDocument()
+        } else expect(within(next).getByText(newText)).toBeInTheDocument()
         expect(JSON.stringify(diagram)).toBe(originalText)
         expect(parseDiagramData(JSON.stringify(session.read.getEditableDiagram()))).toEqual(session.read.getEditableDiagram())
     })
 
-    it('hands off exact reviewed text from current session and rejects later stale reuse', () => {
+    it('keeps user-edited implementation Markdown stable while diagram changes continue', () => {
         const session = createSession(diagrams.architecture)
         const review = new DiagramChangeReviewService(
             session,
             { replace: vi.fn() },
             generateDiagramChangeDescriptions,
             parseDiagramData,
-            () => 'review-1',
-            () => () => undefined,
+            { getConfig: () => null },
         )
         session.objects.setNodeField('one', 'label', 'One edited')
         review.open()
         const reviewedText = review.getGeneratedTextSnapshot()
+        expect(review.markdownDraft.getSnapshot()).toBe(reviewedText)
 
-        expect(review.requestAgentHandoff()).toBe(true)
-        const context = review.getAgentHandoffContextSnapshot()
-        expect(context?.diagramChanges).toBe(reviewedText)
-        expect(context?.diagramId).toBe(record.id)
+        review.markdownDraft.edit('Custom implementation instructions')
 
         session.objects.setNodeField('two', 'label', 'Two edited')
 
-        expect(review.getAgentHandoffContextSnapshot()).toBe(context)
-        expect(review.requestAgentHandoff()).toBe(false)
-        expect(review.getBlockingItemsSnapshot()).toContain(
-            'Diagram changes changed after review. Review them again before sending to an agent.',
-        )
+        expect(review.markdownDraft.getSnapshot()).toBe('Custom implementation instructions')
+        expect(review.getGeneratedTextSnapshot()).toBe(reviewedText)
     })
 })
