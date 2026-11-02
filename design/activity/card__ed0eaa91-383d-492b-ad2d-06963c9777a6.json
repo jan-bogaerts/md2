@@ -2487,6 +2487,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "ed0eaa91-383d-492b-ad2d-06963c9777a6",
+      "cardPath": "design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "we implemented design/feature_descriptions/F_453_diagrams_auto_focus_label_after_adding_items.md, but something strange is now occuring, not certain if it is because of this or another card, but now, when user creates a connection between 2 nodes, the app automatically shows a popup where the user can enter a label and select the legend item. this is not supposed to be the case, for the connections, we should show an inline input editor, like for the nodes.",
+          "id": "submission-3a7c8a91-f1ee-4f89-b525-0e74b6cd0a12",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-02T13:33:31.395Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-7af1ac6c-3f79-48c1-adaa-4e285cac2d1d",
+      "providerSessions": [],
+      "startedAt": "2026-11-02T13:33:31.395Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-02T13:33:31.395Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
