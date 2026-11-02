@@ -2937,7 +2937,7 @@
         "totalTokens": 8639361
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -3012,6 +3012,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "5261f87d7b287bbb06eadc473eebe7990c6ec3e7",
           "committedAt": "2026-11-02T11:34:22+01:00",
           "deletions": 74,
@@ -3036,8 +3037,7 @@
             "shared/project_config_defaults.mjs"
           ],
           "filesChanged": 18,
-          "insertions": 394,
-          "branch": "dev_main"
+          "insertions": 394
         }
       ],
       "completedAt": "2026-11-02T11:34:22+01:00",
