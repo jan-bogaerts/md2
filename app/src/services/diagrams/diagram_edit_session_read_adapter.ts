@@ -6,6 +6,9 @@ import { CHANGE_IDS_CHANGED_EVENT, type DiagramChangeRegistry } from './diagram_
 import type { DeepReadonly, DiagramChange, DiagramChangeField, DiagramCollectionKind, DiagramConnectionEndpoint, DiagramCreationTool, DiagramEditSessionSnapshot, DiagramPersistentTool, DiagramTransientGesture, MutableDiagramLegendEntryField, OriginalDiagramSnapshot, ReadonlyDiagramData } from './diagram_edit_types';
 import { diagramChangeFieldChangedEvent, diagramCollectionMembershipChangedEvent, diagramCollectionMembershipWillChangeEvent, diagramConnectionPointFieldChangedEvent, diagramEntityFieldChangedEvent, diagramEntityFieldMembershipChangedEvent, diagramFormattingCategoryChangedEvent, diagramFormattingScaleChangedEvent, diagramFragmentRegionFieldChangedEvent, diagramFragmentRegionMembershipChangedEvent, diagramGroupMembershipChangedEvent, diagramLegendEntryFieldChangedEvent, diagramLegendMembershipChangedEvent, diagramMetadataFieldChangedEvent, diagramObjectFieldChangedEvent } from './diagram_edit_events';
 import { diagramLegendEntryKey } from './diagram_legend_entry_key';
+
+type DiagramLegendEntryField = 'id' | 'kind' | 'label' | 'nodeKind' | 'role' | 'useLabelAsDefault'
+type DiagramLegendEntryFieldValue<Field extends DiagramLegendEntryField> = Field extends 'useLabelAsDefault' ? boolean : string
 import type { DiagramData, DiagramSequenceFragment as Fragment } from './diagram_data';
 
 export const DIRTY_CHANGED_EVENT = 'dirtyChanged';
@@ -126,26 +129,26 @@ export class DiagramEditSessionReadAdapter {
 
     getHasExplicitLegendSnapshot = () => !!this.getState().editableDiagram
 
-    getLegendEntryFieldSnapshot = <Field extends 'id' | 'kind' | 'label' | 'nodeKind' | 'role'>(
+    getLegendEntryFieldSnapshot = <Field extends DiagramLegendEntryField>(
         entryKey: string,
         field: Field,
-    ): string | null => {
+    ): DiagramLegendEntryFieldValue<Field> | null => {
         const entry = this.getState().editableDiagram?.meta.legend.find((entry) => diagramLegendEntryKey(entry) === entryKey) ?? null
         if (!entry) return null
 
-        return (entry as Record<string, string | undefined>)[field] ?? null
+        return ((entry as Record<string, boolean | string | undefined>)[field] ?? null) as DiagramLegendEntryFieldValue<Field> | null
     }
 
-    getOriginalLegendEntryFieldSnapshot = <Field extends 'id' | 'kind' | 'label' | 'nodeKind' | 'role'>(
+    getOriginalLegendEntryFieldSnapshot = <Field extends DiagramLegendEntryField>(
         entryKey: string,
         field: Field,
-    ): string | null => {
+    ): DiagramLegendEntryFieldValue<Field> | null => {
         const entry = this.getState().originalDiagram?.diagram.meta.legend.find(
             (entry) => diagramLegendEntryKey(entry) === entryKey,
         ) ?? null
         if (!entry) return null
 
-        return (entry as Record<string, string | undefined>)[field] ?? null
+        return ((entry as Record<string, boolean | string | undefined>)[field] ?? null) as DiagramLegendEntryFieldValue<Field> | null
     }
 
     getGroupNodeIdsSnapshot = (groupId: string): readonly string[] | null => this.getState().groupNodeIdsById.get(groupId) ?? null

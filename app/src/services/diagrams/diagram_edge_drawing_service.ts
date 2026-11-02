@@ -4,6 +4,7 @@ import {
     requireDiagramEdgeLabel,
     type DiagramConnectionPoint,
     type DiagramEdgeKind,
+    type DiagramLegendEntryData,
     type DiagramWaypoint,
 } from './diagram_data'
 import {
@@ -255,11 +256,12 @@ export class DiagramEdgeDrawingService extends EventTarget {
         const mindmapDiagram = diagramType === 'mindmap'
         const from = completedPreview.sourceAttachment.nodeId
         const { legendEntryId } = this.edgeClassification(completedPreview.kind, true, completedPreview.legendEntryId)
+        const legendEntry = this.requireConnectionLegendEntry(legendEntryId)
         const edge: NewDiagramEdge = {
             ...defaults,
             kind: completedPreview.kind,
             legendEntryId,
-            ...this.requiredLabel({ ...defaults, kind: completedPreview.kind }, from),
+            ...this.creationLabel({ ...defaults, kind: completedPreview.kind }, legendEntry, from),
             from,
             ...(sequenceDiagram || mindmapDiagram ? {} : { sourceAttachment: { ...completedPreview.sourceAttachment } }),
             ...(sequenceDiagram || mindmapDiagram ? {} : { targetAttachment: { ...targetAttachment } }),
@@ -373,9 +375,14 @@ export class DiagramEdgeDrawingService extends EventTarget {
         return { kind, legendEntryId }
     }
 
-    /** Supplies a placeholder label when the diagram preset and source node make one mandatory. */
-    private requiredLabel(defaults: DiagramEdgeDrawingDefaults, sourceNodeId: string) {
+    /** Applies explicit, legend-default, then required-placeholder label priority. */
+    private creationLabel(
+        defaults: DiagramEdgeDrawingDefaults,
+        legendEntry: Extract<DiagramLegendEntryData, { kind: DiagramEdgeKind }>,
+        sourceNodeId: string,
+    ) {
         if (defaults.label) return {}
+        if (legendEntry.useLabelAsDefault) return { label: legendEntry.label }
 
         const diagramType = this.session.read.getMetadataFieldSnapshot('type')
         if (!diagramType) return {}
@@ -389,6 +396,13 @@ export class DiagramEdgeDrawingService extends EventTarget {
         } catch {
             return { label: REQUIRED_EDGE_LABELS[defaults.kind] ?? 'New label' }
         }
+    }
+
+    private requireConnectionLegendEntry(legendEntryId: string) {
+        const entry = this.session.read.getEditableDiagram()?.meta.legend.find(({ id }) => id === legendEntryId)
+        if (!entry || !('kind' in entry)) throw new Error(`Diagram connection legend entry ${legendEntryId} does not exist`)
+
+        return entry
     }
 
     private clearDrawing() {

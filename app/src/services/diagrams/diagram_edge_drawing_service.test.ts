@@ -169,7 +169,10 @@ describe('diagram edge drawing geometry', () => {
 describe('DiagramEdgeDrawingService', () => {
     it('uses compatible selected connection kind for preview and created edge', () => {
         const source = parseDiagramData(JSON.stringify(architectureDiagram()))
-        source.meta = { ...source.meta, legend: [...source.meta.legend, { id: 'data-entry', kind: 'data', label: 'Data' }] }
+        source.meta = {
+            ...source.meta,
+            legend: [...source.meta.legend, { id: 'data-entry', kind: 'data', label: 'Data', useLabelAsDefault: false }],
+        }
         const { drawing, session } = createHarness(source)
         drawing.activate({ kind: 'connection' })
         expect(session.selectLegendEntry('data-entry')).toBe(true)
@@ -180,6 +183,49 @@ describe('DiagramEdgeDrawingService', () => {
 
         expect(session.read.getEdgeSnapshot('drawn-edge')?.kind).toBe('data')
         expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
+    })
+
+    it('uses default label from the exact selected duplicate-kind entry', () => {
+        const source = parseDiagramData(JSON.stringify(architectureDiagram()))
+        source.meta.legend.push(
+            { id: 'primary-connection', kind: 'connection', label: 'Primary', useLabelAsDefault: true },
+            { id: 'secondary-connection', kind: 'connection', label: 'Secondary', useLabelAsDefault: true },
+        )
+        const { drawing, session } = createHarness(source)
+        drawing.activate({ kind: 'connection' })
+        session.selectLegendEntry('secondary-connection')
+
+        drawing.beginSource('source', { x: 120, y: 40 })
+        drawing.completeTarget('target', { x: 240, y: 40 }, true)
+
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
+            kind: 'connection', label: 'Secondary', legendEntryId: 'secondary-connection',
+        })
+    })
+
+    it('applies renamed defaults only to later edges and disabling leaves later edges unlabelled', () => {
+        const createId = vi.fn().mockReturnValueOnce('first-edge').mockReturnValueOnce('second-edge').mockReturnValueOnce('third-edge')
+        const source = parseDiagramData(JSON.stringify(architectureDiagram()))
+        const connectionEntry = source.meta.legend.find((entry) => 'kind' in entry && entry.kind === 'connection')
+        if (!connectionEntry || !('kind' in connectionEntry)) throw new Error('Expected connection legend entry')
+        connectionEntry.label = 'Calls'
+        connectionEntry.useLabelAsDefault = true
+        const { drawing, session } = createHarness(source, createId)
+        drawing.activate({ kind: 'connection' })
+        session.selectLegendEntry(connectionEntry.id)
+
+        drawing.beginSource('source', { x: 120, y: 40 })
+        drawing.completeTarget('target', { x: 240, y: 40 }, true)
+        session.legend.setLegendEntryLabel(connectionEntry.id, 'Invokes')
+        drawing.beginSource('source', { x: 120, y: 40 })
+        drawing.completeTarget('target', { x: 240, y: 40 }, true)
+        session.legend.setLegendEntryUseLabelAsDefault(connectionEntry.id, false)
+        drawing.beginSource('source', { x: 120, y: 40 })
+        drawing.completeTarget('target', { x: 240, y: 40 }, true)
+
+        expect(session.read.getEdgeFieldSnapshot('first-edge', 'label')).toBe('Calls')
+        expect(session.read.getEdgeFieldSnapshot('second-edge', 'label')).toBe('Invokes')
+        expect(session.read.getEdgeFieldSnapshot('third-edge', 'label')).toBeUndefined()
     })
 
     it('keeps edge default when selected legend entry is a node role', () => {
@@ -399,13 +445,50 @@ describe('DiagramEdgeDrawingService', () => {
     })
 
     it('keeps a tool supplied flow label instead of the placeholder', () => {
-        const { drawing, session } = createHarness(flowchartDiagram())
+        const source = parseDiagramData(JSON.stringify(flowchartDiagram()))
+        const flowEntry = source.meta.legend.find((entry) => 'kind' in entry && entry.kind === 'flow')
+        if (!flowEntry || !('kind' in flowEntry)) throw new Error('Expected flow legend entry')
+        flowEntry.label = 'Legend label'
+        flowEntry.useLabelAsDefault = true
+        const { drawing, session } = createHarness(source)
 
         drawing.activate({ kind: 'flow', label: 'no' })
+        session.selectLegendEntry(flowEntry.id)
         drawing.beginSource('check', { x: 336, y: 48 })
         expect(drawing.completeTarget('done', { x: 480, y: 36 }, true)).toBe('drawn-edge')
 
         expect(session.read.getEdgeFieldSnapshot('drawn-edge', 'label')).toBe('no')
+    })
+
+    it('uses an enabled legend default instead of a required branch placeholder', () => {
+        const source = parseDiagramData(JSON.stringify(flowchartDiagram()))
+        const flowEntry = source.meta.legend.find((entry) => 'kind' in entry && entry.kind === 'flow')
+        if (!flowEntry || !('kind' in flowEntry)) throw new Error('Expected flow legend entry')
+        flowEntry.label = 'Approved'
+        flowEntry.useLabelAsDefault = true
+        const { drawing, session } = createHarness(source)
+        drawing.activate({ kind: 'flow' })
+        session.selectLegendEntry(flowEntry.id)
+
+        drawing.beginSource('check', { x: 336, y: 48 })
+        drawing.completeTarget('done', { x: 480, y: 36 }, true)
+
+        expect(session.read.getEdgeFieldSnapshot('drawn-edge', 'label')).toBe('Approved')
+    })
+
+    it('does not relabel an existing edge when its legend entry changes', () => {
+        const source = parseDiagramData(JSON.stringify(architectureDiagram()))
+        source.edges[0].label = 'Stored label'
+        source.meta.legend.push({
+            id: 'alternate-connection', kind: 'connection', label: 'Alternate', useLabelAsDefault: true,
+        })
+        const { session } = createHarness(source)
+
+        session.objects.setEdgeClassification('existing', { kind: 'connection', legendEntryId: 'alternate-connection' })
+
+        expect(session.read.getEdgeSnapshot('existing')).toMatchObject({
+            label: 'Stored label', legendEntryId: 'alternate-connection',
+        })
     })
 
     it('labels every drawn state transition and keeps shared attachments and routing', () => {

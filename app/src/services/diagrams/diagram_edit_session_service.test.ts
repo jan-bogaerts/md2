@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseDiagramData, serializeDiagramData, type DiagramData } from './diagram_data'
+import { generateDiagramChangeDescription } from './diagram_change_descriptions'
 import type { DiagramRecord } from './diagram_index'
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
@@ -35,8 +36,8 @@ const sequenceDiagram = parseDiagramData(JSON.stringify({
     ],
 }))
 sequenceDiagram.meta.legend.push(
-    { id: 'sequence-async', kind: 'async', label: 'Async' },
-    { id: 'sequence-success', kind: 'success', label: 'Success' },
+    { id: 'sequence-async', kind: 'async', label: 'Async', useLabelAsDefault: false },
+    { id: 'sequence-success', kind: 'success', label: 'Success', useLabelAsDefault: false },
 )
 const entityDiagram = parseDiagramData(JSON.stringify({
     edges: [{ from: 'order', fromCardinality: '1', id: 'order-item', kind: 'relationship', to: 'item', toCardinality: 'N' }],
@@ -1826,6 +1827,7 @@ describe('DiagramEditSessionService', () => {
         expect(service.read.getLegendEntryFieldSnapshot(serviceEntryId, 'label')).toBe('Service')
         expect(service.read.getLegendEntryFieldSnapshot(serviceEntryId, 'role')).toBe('focal')
         expect(service.read.getLegendEntryFieldSnapshot(connectionEntryId, 'kind')).toBe('connection')
+        expect(service.read.getLegendEntryFieldSnapshot(connectionEntryId, 'useLabelAsDefault')).toBe(false)
         expect(service.read.getLegendEntryFieldSnapshot('missing', 'label')).toBeNull()
         expect(service.read.getOriginalLegendEntryFieldSnapshot(serviceEntryId, 'label')).toBe('Service')
     })
@@ -1850,6 +1852,41 @@ describe('DiagramEditSessionService', () => {
         expect(membershipChanged).not.toHaveBeenCalled()
         expect(service.legend.setLegendEntryLabel(serviceEntryId, 'Order service')).toBe(false)
         expect(labelChanged).toHaveBeenCalledOnce()
+    })
+
+    it('assigns default-label state only to the addressed connection entry', () => {
+        const service = legendHarness()
+        const [nodeEntryId, , connectionEntryId] = service.read.getLegendEntryKeysSnapshot()
+        const defaultChanged = vi.fn()
+        const labelChanged = vi.fn()
+        service.read.subscribeLegendEntryField(connectionEntryId, 'useLabelAsDefault', defaultChanged)
+        service.read.subscribeLegendEntryField(connectionEntryId, 'label', labelChanged)
+
+        expect(service.legend.setLegendEntryUseLabelAsDefault(connectionEntryId, true)).toBe(true)
+        expect(service.read.getLegendEntryFieldSnapshot(connectionEntryId, 'useLabelAsDefault')).toBe(true)
+        expect(defaultChanged).toHaveBeenCalledOnce()
+        expect(labelChanged).not.toHaveBeenCalled()
+        expect(service.read.getDirtySnapshot()).toBe(true)
+
+        const changeId = `diagram:legendEntry:${encodeURIComponent(connectionEntryId)}:useLabelAsDefault`
+        expect(service.read.getChange(changeId)).toMatchObject({
+            category: 'field',
+            field: 'useLabelAsDefault',
+            objectId: connectionEntryId,
+            objectKind: 'legendEntry',
+            originalValue: false,
+            value: true,
+        })
+        expect(generateDiagramChangeDescription(changeId, service)).toBe(
+            'Change useLabelAsDefault of legend entry "Calls" for connection kind "connection" from false to true.',
+        )
+        expect(service.legend.setLegendEntryUseLabelAsDefault(connectionEntryId, true)).toBe(false)
+        expect(defaultChanged).toHaveBeenCalledOnce()
+        expect(service.legend.setLegendEntryUseLabelAsDefault(nodeEntryId, true)).toBe(false)
+        expect(service.read.getLegendEntryFieldSnapshot(nodeEntryId, 'useLabelAsDefault')).toBeNull()
+
+        expect(service.legend.setLegendEntryUseLabelAsDefault(connectionEntryId, false)).toBe(true)
+        expect(service.read.getDirtySnapshot()).toBe(false)
     })
 
     it('rejects an empty legend label and keeps the previous value', () => {
@@ -1889,7 +1926,7 @@ describe('DiagramEditSessionService', () => {
         const existingLegend = structuredClone(service.read.getEditableDiagram()?.meta.legend)
 
         const entryId = service.legend.addLegendEntry({ kind: 'data', label: 'Transfers' })
-        const expectedLegend = [...existingLegend ?? [], { id: entryId, kind: 'data', label: 'Transfers' }]
+        const expectedLegend = [...existingLegend ?? [], { id: entryId, kind: 'data', label: 'Transfers', useLabelAsDefault: false }]
         expect(service.read.getEditableDiagram()?.meta.legend).toEqual(expectedLegend)
         const serialized = serializeDiagramData(service.read.getEditableDiagram() as DiagramData)
         expect(parseDiagramData(serialized).meta.legend).toEqual(expectedLegend)

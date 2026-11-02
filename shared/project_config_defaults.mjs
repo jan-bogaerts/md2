@@ -7,12 +7,13 @@ export const DEFAULT_DIAGRAMS_FOLDER = 'diagrams'
 export const DEFAULT_DIAGRAM_FOOTER = `Save exactly one valid JSON object to {{diagram-file}}. Write JSON only: no SVG, markup, Markdown code fence, or explanatory text.
 
 Required root fields:
-- meta: { version: 2, type, title, description, legend }
+- meta: { version: 3, type, title, description, legend }
 - nodes: [{ id, label, role, legendEntryId }]
 - edges: [{ id, from, to, kind, legendEntryId }]
 
 Legend entries:
 - Every entry has a stable opaque id, label, and exactly one of role, nodeKind, or kind
+- Connection entries with kind require useLabelAsDefault; node entries must not include it
 - Multiple entries may use the same role, nodeKind, or kind when their ids differ
 - Every node and edge must reference one compatible legend entry by legendEntryId
 - A node entry is compatible when its role matches the node role or its nodeKind matches the node effective kind

@@ -19,7 +19,12 @@ function sessionEntries(session: SessionLegendSource): DiagramLegendEntry[] {
         const nodeKind = session.read.getLegendEntryFieldSnapshot(entryKey, 'nodeKind')
         if (nodeKind !== null) return { id: entryKey, label, nodeKind: nodeKind as DiagramNodeKind }
         const kind = session.read.getLegendEntryFieldSnapshot(entryKey, 'kind')
-        if (kind !== null) return { id: entryKey, kind: kind as DiagramEdgeKind, label }
+        if (kind !== null) {
+            const useLabelAsDefault = session.read.getLegendEntryFieldSnapshot(entryKey, 'useLabelAsDefault')
+            if (useLabelAsDefault === null) throw new Error(`Connection legend entry ${entryKey} has no default-label state`)
+
+            return { id: entryKey, kind: kind as DiagramEdgeKind, label, useLabelAsDefault }
+        }
         throw new Error(`Legend entry ${entryKey} has no semantic`)
     })
     const nodes = session.read.getNodeIdsSnapshot().map((nodeId) => ({

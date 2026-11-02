@@ -20,9 +20,9 @@ describe('diagramLegendEntries', () => {
         })
 
         expect(diagramLegendEntries(data)).toEqual([
-            { entryType: 'nodeKind', label: 'Component', nodeKind: 'component', roles: ['store', 'focal'] },
-            { entryType: 'connection', kind: 'async', label: 'Async' },
-            { entryType: 'connection', kind: 'data', label: 'Data' },
+            { entryType: 'nodeKind', id: 'nodeKind:component', label: 'Component', nodeKind: 'component', roles: ['store', 'focal'] },
+            { entryType: 'connection', id: 'connection:async', kind: 'async', label: 'Async', useLabelAsDefault: false },
+            { entryType: 'connection', id: 'connection:data', kind: 'data', label: 'Data', useLabelAsDefault: false },
         ])
     })
     it('uses explicit legend entries in stored order instead of deriving them', () => {
@@ -31,7 +31,10 @@ describe('diagramLegendEntries', () => {
             groups: [],
             meta: {
                 description: 'Description',
-                legend: [{ kind: 'async', label: 'Fire and forget' }, { label: 'Order service', role: 'focal' }],
+                legend: [
+                    { id: 'async-entry', kind: 'async', label: 'Fire and forget', useLabelAsDefault: true },
+                    { id: 'service-entry', label: 'Order service', role: 'focal' },
+                ],
                 title: 'Title',
                 type: 'architecture',
                 version: 1,
@@ -43,8 +46,8 @@ describe('diagramLegendEntries', () => {
         })
 
         expect(diagramLegendEntries(data)).toEqual([
-            { entryType: 'connection', kind: 'async', label: 'Fire and forget' },
-            { entryType: 'node', label: 'Order service', role: 'focal' },
+            { entryType: 'connection', id: 'async-entry', kind: 'async', label: 'Fire and forget', useLabelAsDefault: true },
+            { entryType: 'node', id: 'service-entry', label: 'Order service', role: 'focal' },
         ])
     })
 
@@ -76,21 +79,21 @@ describe('diagramLegendEntries', () => {
             edges: [{ from: 'one', id: 'link', kind: 'data', to: 'two' }], groups: [],
             meta: {
                 description: 'Architecture', legend: [
-                    { kind: 'data', label: 'Sends' },
-                    { label: 'Storage', role: 'store' },
-                    { label: 'Module', nodeKind: 'component' },
+                    { id: 'data-entry', kind: 'data', label: 'Sends', useLabelAsDefault: false },
+                    { id: 'storage-entry', label: 'Storage', role: 'store' },
+                    { id: 'module-entry', label: 'Module', nodeKind: 'component' },
                 ], title: 'Architecture', type: 'architecture', version: 1,
             },
             nodes: [
-                { id: 'one', label: 'One', role: 'focal' },
-                { id: 'two', label: 'Two', role: 'store' },
+                { id: 'one', label: 'One', legendEntryId: 'module-entry', role: 'focal' },
+                { id: 'two', label: 'Two', legendEntryId: 'module-entry', role: 'store' },
             ],
         })
 
         expect(diagramLegendEntries(data)).toEqual([
-            { entryType: 'connection', kind: 'data', label: 'Sends' },
-            { entryType: 'node', label: 'Storage', role: 'store' },
-            { entryType: 'nodeKind', label: 'Module', nodeKind: 'component', roles: ['focal', 'store'] },
+            { entryType: 'connection', id: 'data-entry', kind: 'data', label: 'Sends', useLabelAsDefault: false },
+            { entryType: 'node', id: 'storage-entry', label: 'Storage', role: 'store' },
+            { entryType: 'nodeKind', id: 'module-entry', label: 'Module', nodeKind: 'component', roles: ['focal', 'store'] },
         ])
     })
 })

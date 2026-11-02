@@ -3,7 +3,7 @@ import type {
     DiagramFlowPreset,
     DiagramType,
 } from './diagram_data'
-import { parseDiagramData } from './diagram_data'
+import { DIAGRAM_DATA_VERSION, parseDiagramData } from './diagram_data'
 import {
     type DiagramEditSessionAccess,
 } from './diagram_edit_session_service'
@@ -63,14 +63,18 @@ function parseClipboardObjects(root: Record<string, unknown>) {
     if (!Array.isArray(root.nodes)) throw new Error('Malformed diagram clipboard data: nodes has invalid array')
 
     for (const { preset, type } of VALIDATION_CANDIDATES) {
-        const legendEntries = root.legendEntries as Record<string, unknown>[]
+        const legendEntries = (root.legendEntries as Record<string, unknown>[]).map((entry) => (
+            entry.kind === undefined || entry.useLabelAsDefault !== undefined
+                ? entry
+                : { ...entry, useLabelAsDefault: false }
+        ))
         const meta = {
             description: 'Clipboard fragment',
             legend: legendEntries,
             ...(preset ? { preset } : {}),
             title: 'Clipboard fragment',
             type,
-            version: 2 as const,
+            version: DIAGRAM_DATA_VERSION,
         }
         try {
             const nodes = root.nodes as Record<string, unknown>[]

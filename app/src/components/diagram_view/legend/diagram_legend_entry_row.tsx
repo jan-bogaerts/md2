@@ -2,8 +2,8 @@ import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
 import DragIndicatorOutlined from '@mui/icons-material/DragIndicatorOutlined'
 import { useSortable } from '@dnd-kit/sortable'
-import { Box, ButtonBase, IconButton, Menu, MenuItem, TextField, Tooltip, Typography } from '@mui/material'
-import { useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
+import { Box, ButtonBase, Checkbox, FormControlLabel, IconButton, Menu, MenuItem, TextField, Tooltip, Typography } from '@mui/material'
+import { useCallback, useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import type {
     DiagramConnectionKindFormatting,
@@ -30,6 +30,7 @@ export interface DiagramFormattingMutationStore {
 
 function noSelection() { return null }
 function noSelectionSubscription() { return () => {} }
+function disabledDefaultLabel() { return false }
 
 /**
  * One legend semantic category with hover/focus formatting action and scoped sample subscription. With an
@@ -53,6 +54,17 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
         session?.read.getSelectedLegendEntryKeySnapshot ?? noSelection,
         noSelection,
     )
+    const subscribeDefaultLabel = useCallback((listener: () => void) => (
+        entry.entryType === 'connection' && session
+            ? session.read.subscribeLegendEntryField(entryKey, 'useLabelAsDefault', listener)
+            : noSelectionSubscription()
+    ), [entry.entryType, entryKey, session])
+    const getDefaultLabelSnapshot = useCallback(() => (
+        entry.entryType === 'connection'
+            ? session?.read.getLegendEntryFieldSnapshot(entryKey, 'useLabelAsDefault') ?? entry.useLabelAsDefault
+            : false
+    ), [entry, entryKey, session])
+    const useLabelAsDefault = useSyncExternalStore(subscribeDefaultLabel, getDefaultLabelSnapshot, disabledDefaultLabel)
     const handleSelect = () => session?.selectLegendEntry(entryKey)
     const handleLabelChange = (event: ChangeEvent<HTMLInputElement>) => {
         setDraftState({ base: entry.label, value: event.target.value })
@@ -79,6 +91,9 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
     }
     const handleRemove = () => {
         session?.legend.removeLegendEntry(entryKey)
+    }
+    const handleUseLabelAsDefaultChange = (event: ChangeEvent<HTMLInputElement>) => {
+        session?.legend.setLegendEntryUseLabelAsDefault(entryKey, event.target.checked)
     }
     const nodeFormatting = useDiagramNodeFormatting(entry.id, sampleRole ?? 'focal', reader)
     const handleOpen = (event: MouseEvent<HTMLButtonElement>) => {
@@ -153,6 +168,13 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
                     value={draftLabel}
                 />
             ) : <Typography color="text.secondary" sx={{ flex: 1, minWidth: 0 }} variant="caption">{entry.label}</Typography>}
+            {session && entry.entryType === 'connection' ? (
+                <FormControlLabel
+                    control={<Checkbox checked={useLabelAsDefault} onChange={handleUseLabelAsDefaultChange} size="small" />}
+                    label="Use as default label"
+                    sx={{ flexShrink: 0, m: 0 }}
+                />
+            ) : null}
             {session ? (
                 <Tooltip title={`Remove ${entry.label}`}>
                     <IconButton aria-label={`Remove ${entry.label}`} className="diagram-formatting-action" onClick={handleRemove} size="small">

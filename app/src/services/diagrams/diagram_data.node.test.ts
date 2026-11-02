@@ -24,7 +24,7 @@ describe('diagramEdgeKindsForType', () => {
 describe('parseDiagramData', () => {
     it('parses and serializes empty and populated mindmaps', () => {
         const empty: DiagramData = {
-            edges: [], groups: [], meta: { description: 'Ideas', legend: [], title: 'Ideas', type: 'mindmap', version: 2 }, nodes: [],
+            edges: [], groups: [], meta: { description: 'Ideas', legend: [], title: 'Ideas', type: 'mindmap', version: 3 }, nodes: [],
         }
         expect(parseDiagramData(serializeDiagramData(empty))).toEqual(empty)
 
@@ -36,7 +36,7 @@ describe('parseDiagramData', () => {
                 legend: [
                     { id: 'root', label: 'Root', nodeKind: 'root' },
                     { id: 'topic', label: 'Topic', nodeKind: 'topic' },
-                    { id: 'contains', kind: 'connection', label: 'Contains' },
+                    { id: 'contains', kind: 'connection', label: 'Contains', useLabelAsDefault: true },
                 ],
             },
             nodes: [
@@ -132,10 +132,10 @@ describe('parseDiagramData', () => {
     it('parses versioned semantic data and optional geometry', () => {
         const parsed = parseDiagramData(JSON.stringify(validDiagram()))
 
-        expect(parsed.meta.version).toBe(2)
+        expect(parsed.meta.version).toBe(3)
         expect(parsed.meta.legend).toEqual([
             { id: 'legend-entry-1', label: 'Component', nodeKind: 'component' },
-            { id: 'legend-entry-2', kind: 'connection', label: 'Connection' },
+            { id: 'legend-entry-2', kind: 'connection', label: 'Connection', useLabelAsDefault: false },
         ])
         expect(parsed.nodes.every(({ legendEntryId }) => legendEntryId === 'legend-entry-1')).toBe(true)
         expect(parsed.edges[0].legendEntryId).toBe('legend-entry-2')
@@ -220,6 +220,47 @@ describe('parseDiagramData', () => {
         expect(parseDiagramData(serializeDiagramData(parsed))).toEqual(parsed)
     })
 
+    it('migrates version 2 connection defaults to disabled without changing edge labels', () => {
+        const versionTwo = parseDiagramData(JSON.stringify(validDiagram()))
+        const existingLabel = versionTwo.edges[0].label
+        const versionTwoData = {
+            ...versionTwo,
+            meta: {
+                ...versionTwo.meta,
+                legend: versionTwo.meta.legend.map((entry) => {
+                    if (!('kind' in entry)) return entry
+                    const { useLabelAsDefault: _useLabelAsDefault, ...legacyEntry } = entry
+
+                    return legacyEntry
+                }),
+                version: 2,
+            },
+        }
+
+        const migrated = parseDiagramData(JSON.stringify(versionTwoData))
+
+        expect(migrated.meta.version).toBe(3)
+        expect(migrated.meta.legend.find((entry) => 'kind' in entry)).toMatchObject({ useLabelAsDefault: false })
+        expect(migrated.edges[0].label).toBe(existingLabel)
+    })
+
+    it('requires connection default-label state in version 3 and rejects it on node entries', () => {
+        const diagram = parseDiagramData(JSON.stringify(validDiagram()))
+        const connectionEntry = diagram.meta.legend.find((entry) => 'kind' in entry)
+        if (!connectionEntry) throw new Error('Expected connection legend entry')
+        const withoutDefault = { ...connectionEntry } as Partial<typeof connectionEntry>
+        delete withoutDefault.useLabelAsDefault
+
+        expect(() => parseDiagramData(JSON.stringify({
+            ...diagram,
+            meta: { ...diagram.meta, legend: diagram.meta.legend.map((entry) => entry.id === connectionEntry.id ? withoutDefault : entry) },
+        }))).toThrow('meta.legend[1].useLabelAsDefault has invalid boolean')
+        expect(() => parseDiagramData(JSON.stringify({
+            ...diagram,
+            meta: { ...diagram.meta, legend: [{ ...diagram.meta.legend[0], useLabelAsDefault: false }, connectionEntry] },
+        }))).toThrow('meta.legend[0].useLabelAsDefault has value only allowed for connection legend entries')
+    })
+
     it('allows duplicate semantics while rejecting malformed entries', () => {
         const withLegend = (legend: unknown) => {
             const diagram = validDiagram()
@@ -243,7 +284,7 @@ describe('parseDiagramData', () => {
 
     it('round-trips duplicate entries by ID and validates object references', () => {
         const diagram = parseDiagramData(JSON.stringify(validDiagram()))
-        diagram.meta.legend.push({ id: 'connection-secondary', kind: 'connection', label: 'Replication' })
+        diagram.meta.legend.push({ id: 'connection-secondary', kind: 'connection', label: 'Replication', useLabelAsDefault: true })
         diagram.edges[0].legendEntryId = 'connection-secondary'
         diagram.formatting = {
             legendEntries: { 'connection-secondary': { line: { color: '#112233', thickness: 4 } } },
@@ -300,8 +341,8 @@ describe('parseDiagramData', () => {
 
     it('rejects malformed values and references with precise fields', () => {
         expect(() => parseDiagramData('{')).toThrow('Malformed diagram data: invalid JSON')
-        expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), meta: { ...validDiagram().meta, version: 3 } })))
-            .toThrow('meta.version has unsupported value 3')
+        expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), meta: { ...validDiagram().meta, version: 4 } })))
+            .toThrow('meta.version has unsupported value 4')
         expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), nodes: [...validDiagram().nodes, validDiagram().nodes[0]] })))
             .toThrow('nodes has duplicate id api')
         expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), edges: [{ ...validDiagram().edges[0], to: 'missing' }] })))

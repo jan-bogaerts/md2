@@ -164,6 +164,35 @@ describe('DiagramSessionLegendEntries', () => {
         expect(screen.getByRole('textbox', { name: `Legend label for ${callsEntryId}` })).toHaveValue('Calls')
     })
 
+    it('shows and updates default-label state only for editable connection entries', async () => {
+        const session = startSession(legendDiagram)
+        const [, callsEntryId] = session.read.getLegendEntryKeysSnapshot()
+        const otherEntryId = session.legend.addLegendEntry({ kind: 'connection', label: 'Publishes' }) as string
+        const user = userEvent.setup()
+        render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
+
+        const checkboxes = screen.getAllByRole('checkbox', { name: 'Use as default label' })
+        expect(checkboxes).toHaveLength(2)
+        expect(checkboxes[0]).not.toBeChecked()
+        expect(checkboxes[1]).not.toBeChecked()
+
+        await user.click(checkboxes[0])
+
+        expect(session.read.getLegendEntryFieldSnapshot(callsEntryId, 'useLabelAsDefault')).toBe(true)
+        expect(session.read.getLegendEntryFieldSnapshot(otherEntryId, 'useLabelAsDefault')).toBe(false)
+        expect(checkboxes[0]).toBeChecked()
+        expect(checkboxes[1]).not.toBeChecked()
+    })
+
+    it('hides default-label controls from read-only legends', () => {
+        const service = new DiagramViewService()
+        const data = layout(parseDiagramData(JSON.stringify(legendDiagram)))
+
+        render(<ThemeProvider theme={theme}><DiagramLegend data={data} service={service} /></ThemeProvider>)
+
+        expect(screen.queryByRole('checkbox', { name: 'Use as default label' })).not.toBeInTheDocument()
+    })
+
     it('disables formatting for a saved node kind with no used nodes', () => {
         const source: DiagramData = {
             edges: [], groups: [],

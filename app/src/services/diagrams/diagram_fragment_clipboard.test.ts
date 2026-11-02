@@ -20,7 +20,7 @@ const nodes: DiagramNode[] = [
     { id: 'three', kind: 'participant', label: 'Three', legendEntryId: 'participant-store', role: 'store' },
 ]
 const edges: DiagramEdge[] = [
-    { from: 'one', id: 'one-two', kind: 'call', legendEntryId: 'call-entry', to: 'two' },
+    { from: 'one', id: 'one-two', kind: 'call', label: 'Stored call', legendEntryId: 'call-entry', to: 'two' },
     { from: 'two', id: 'two-one', kind: 'return', legendEntryId: 'return-entry', to: 'one' },
     { from: 'one', id: 'one-three', kind: 'async', legendEntryId: 'async-entry', to: 'three' },
 ]
@@ -28,9 +28,9 @@ const legendEntries = [
     { id: 'participant-focal', label: 'Focal', role: 'focal' as const },
     { id: 'participant-backend', label: 'Backend', role: 'backend' as const },
     { id: 'participant-store', label: 'Store', role: 'store' as const },
-    { id: 'call-entry', kind: 'call' as const, label: 'Call' },
-    { id: 'return-entry', kind: 'return' as const, label: 'Return' },
-    { id: 'async-entry', kind: 'async' as const, label: 'Async' },
+    { id: 'call-entry', kind: 'call' as const, label: 'Call', useLabelAsDefault: true },
+    { id: 'return-entry', kind: 'return' as const, label: 'Return', useLabelAsDefault: false },
+    { id: 'async-entry', kind: 'async' as const, label: 'Async', useLabelAsDefault: false },
 ]
 const groups: DiagramGroup[] = [
     { id: 'selected-group', label: 'Selected', nodeIds: ['one', 'two'] },
@@ -72,6 +72,21 @@ describe('diagram fragment clipboard', () => {
         } as const
 
         expect(parseDiagramFragmentClipboardPayload(JSON.stringify(payload))).toEqual(payload)
+    })
+
+    it('migrates connection entries from the existing clipboard version with defaults disabled', () => {
+        const payload = {
+            edges: [edges[0]],
+            format: DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT,
+            fragments: [],
+            groups: [],
+            legendEntries: [legendEntries[0], legendEntries[1], { id: 'call-entry', kind: 'call', label: 'Call' }],
+            nodes: [nodes[0], nodes[1]],
+            version: DIAGRAM_FRAGMENT_CLIPBOARD_VERSION,
+        }
+
+        expect(parseDiagramFragmentClipboardPayload(JSON.stringify(payload)).legendEntries[2])
+            .toMatchObject({ useLabelAsDefault: false })
     })
 
     it('serializes selected objects, connecting edges, and valid relationship subsets', () => {

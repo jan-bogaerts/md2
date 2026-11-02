@@ -1,4 +1,4 @@
-import { requireDiagramString, type DiagramLegendEntryData } from './diagram_data'
+import { requireDiagramBoolean, requireDiagramString, type DiagramLegendEntryData } from './diagram_data'
 import { diagramNodeKindLabel } from './diagram_creation_tool_labels'
 import { DiagramEditContext } from './diagram_edit_context'
 import { diagramLegendEntryFieldChangedEvent, diagramLegendMembershipChangedEvent } from './diagram_edit_events'
@@ -30,7 +30,7 @@ export class DiagramLegendEditor {
         const label = canonicalLegendLabel(entry)
         const added = ('role' in entry ? { id, label, role: entry.role }
             : 'nodeKind' in entry ? { id, label, nodeKind: entry.nodeKind }
-                : { id, kind: entry.kind, label }) as DiagramLegendEntryData
+                : { id, kind: entry.kind, label, useLabelAsDefault: false }) as DiagramLegendEntryData
         const entryKey = diagramLegendEntryKey(added)
         diagram.meta.legend = [...diagram.meta.legend, added]
         this.context.transaction.finishLegendMembershipChange([entryKey], [])
@@ -74,6 +74,27 @@ export class DiagramLegendEditor {
         const eventName = diagramLegendEntryFieldChangedEvent(entryKey, 'label')
         this.context.transaction.finishFieldChange(
             eventName, `legendEntry:${entryKey}`, 'legendEntry', entryKey, 'label', originalValue, previousValue, trimmedValue,
+        )
+
+        return true
+    }
+
+    setLegendEntryUseLabelAsDefault(entryKey: string, value: boolean) {
+        const entry = this.requireLegendEntry(entryKey)
+        if (!this.context.validateOperation('Set legend entry default label', () => {
+            if (!('kind' in entry)) invalidDiagramField(`meta.legend.${entryKey}.useLabelAsDefault`, 'value only allowed for connection legend entries')
+            requireDiagramBoolean(value, `meta.legend.${entryKey}.useLabelAsDefault`)
+        })) return false
+        if (!('kind' in entry) || Object.is(entry.useLabelAsDefault, value)) return false
+
+        const previousValue = entry.useLabelAsDefault
+        entry.useLabelAsDefault = value
+        const baselineEntry = this.findBaselineLegendEntry(entryKey)
+        const originalValue = baselineEntry && 'kind' in baselineEntry ? baselineEntry.useLabelAsDefault : undefined
+        const field = 'useLabelAsDefault'
+        const eventName = diagramLegendEntryFieldChangedEvent(entryKey, field)
+        this.context.transaction.finishFieldChange(
+            eventName, `legendEntry:${entryKey}`, 'legendEntry', entryKey, field, originalValue, previousValue, value,
         )
 
         return true
