@@ -3,7 +3,7 @@ author:
 id: F_437
 internalId: ab1ad841-86e6-43fb-a211-9ce1f1eaf246
 title: add agent account lifecycle service
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,14 @@ policy:
 branch: f_437_add_agent_account_lifecycle_service
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 worktree: 1
+changedFiles:
+  - desktop/main.js
+  - desktop/src/actions/agent/agent_account_environment.js
+  - desktop/src/actions/agent/agent_account_environment.test.mjs
+  - desktop/src/actions/agent/agent_account_service.js
+  - desktop/src/actions/agent/agent_account_service.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/preload.js
 ---
 
 Add the desktop service and narrow bridge operations needed to create, inspect, authenticate, update, and remove configured Codex and Claude accounts. This task does not add the React account editor.
