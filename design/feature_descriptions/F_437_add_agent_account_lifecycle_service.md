@@ -9,7 +9,7 @@ affects:
 agents:
 policy:
 branch: f_437_add_agent_account_lifecycle_service
-after: b09a5f55-9e4f-4329-b6a7-00cec60df2e9
+after: 4a06c2b1-a7db-4f8f-a995-f638b14e6962
 ---
 
 Add the desktop service and narrow bridge operations needed to create, inspect, authenticate, update, and remove configured Codex and Claude accounts. This task does not add the React account editor.

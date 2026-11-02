@@ -3,13 +3,14 @@ author:
 id: F_436
 internalId: b09a5f55-9e4f-4329-b6a7-00cec60df2e9
 title: add agent account model and resolution
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
 branch: f_436_add_agent_account_model_and_resolution
-after: 4a06c2b1-a7db-4f8f-a995-f638b14e6962
+after: 6414956f-fccd-4086-974d-cd91d67eab99
+worktree: 2
 ---
 
 Introduce the shared account model used by the agent-account work in F_422. This task defines configuration and resolution only. It does not add account-management UI, login processes, or account-specific process environments.
