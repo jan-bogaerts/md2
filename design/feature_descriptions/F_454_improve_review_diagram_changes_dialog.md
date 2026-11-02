@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__5b8fe025-448b-453b-a4f4-44d680b4a037.json
 policy:
+branch: f_454_improve_review_diagram_changes_dialog
+worktree: 1
 ---
 
 We have the 'review changes dialog' where the user can see all the changes that were applied to a diagram since it was last changed. If there are any, this list can be sent to an agent with a prompt.
