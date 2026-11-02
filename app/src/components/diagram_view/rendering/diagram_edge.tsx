@@ -20,6 +20,7 @@ interface DiagramEdgeProps {
     nodeLabels: ReadonlyMap<string, string>
     onOpenDetails?: () => void
     onSelect: DiagramSelectHandler
+    renderLabel?: boolean
     selected: boolean
 }
 
@@ -33,7 +34,7 @@ function edgeLabel(edge: PositionedDiagramEdge, nodeLabels: ReadonlyMap<string, 
 /** Themed selectable connection rendered from validated geometry. */
 export function DiagramEdge(props: DiagramEdgeProps) {
     const { curved = false, dimmed = false, edge, formattingStore, nodeLabels } = props
-    const { onOpenDetails, onSelect, selected } = props
+    const { onOpenDetails, onSelect, renderLabel = true, selected } = props
     const theme = useTheme()
     const [focused, setFocused] = useState(false)
     const label = edgeLabel(edge, nodeLabels)
@@ -107,7 +108,7 @@ export function DiagramEdge(props: DiagramEdgeProps) {
                     strokeLinejoin="round"
                     strokeWidth={strokeWidth}
                 />
-                {visibleLabel && labelPoint ? (
+                {renderLabel && visibleLabel && labelPoint ? (
                     <g>
                         <rect
                             fill={theme.palette.custom.projectBackground}

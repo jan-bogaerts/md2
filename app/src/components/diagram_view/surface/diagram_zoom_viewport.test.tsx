@@ -516,7 +516,7 @@ describe('DiagramZoomViewport', () => {
         expect(session.read.getNodeIdsSnapshot()).toHaveLength(4)
     })
 
-    it('opens and selects a Ctrl-added edge label while keeping its Add tool active', async () => {
+    it('focuses and selects a Ctrl-added edge label inline while keeping its Add tool active', async () => {
         const { drawing, geometry, labelFocus, selection, session } = createHarness()
         const details = new DiagramObjectDetailsService()
         const user = userEvent.setup()
@@ -535,8 +535,9 @@ describe('DiagramZoomViewport', () => {
         fireEvent.pointerDown(screen.getByRole('button', { name: 'Orders' }), {button: 0, clientX: 400, clientY: 140, isPrimary: true, pointerId: 47})
         fireEvent.pointerDown(screen.getByRole('button', { name: 'Store' }), {button: 0, clientX: 520, clientY: 140, ctrlKey: true, isPrimary: true, pointerId: 48})
 
-        const label = await screen.findByRole('textbox', { name: 'Label' })
+        const label = await screen.findByRole('textbox', { name: 'Edit New data label' })
         await waitFor(() => expect(label).toHaveFocus())
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         expect(label).toHaveValue('New data')
         expect((label as HTMLInputElement).selectionStart).toBe(0)
         expect((label as HTMLInputElement).selectionEnd).toBe('New data'.length)
@@ -544,14 +545,12 @@ describe('DiagramZoomViewport', () => {
         expect(session.read.getActiveToolSnapshot()).toBe('edge:data')
 
         await user.keyboard('Payload')
-        await user.click(screen.getByRole('button', { name: 'Save' }))
+        fireEvent.blur(label)
         const firstAddedEdgeId = session.read.getEdgeIdsSnapshot().at(-1) as string
         expect(session.read.getEdgeFieldSnapshot(firstAddedEdgeId, 'label')).toBe('Payload')
         expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('Orders')
         expect(session.read.getNodeFieldSnapshot('store', 'label')).toBe('Store')
         expect(session.read.getActiveToolSnapshot()).toBe('edge:data')
-        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-
         fireEvent.pointerDown(screen.getByRole('button', { name: 'Orders' }), {button: 0, clientX: 400, clientY: 140, isPrimary: true, pointerId: 49})
         fireEvent.pointerDown(screen.getByRole('button', { name: 'Store' }), {button: 0, clientX: 520, clientY: 140, isPrimary: true, pointerId: 50})
         expect(session.read.getEdgeIdsSnapshot()).toHaveLength(3)

@@ -87,6 +87,7 @@ export function EditableDiagramEdges({
     details = diagramObjectDetailsService,
     emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
+    labelFocus = diagramLabelFocusService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: SelectableCollectionHostProps) {
@@ -106,6 +107,7 @@ export function EditableDiagramEdges({
                     emphasis={emphasis}
                     geometry={geometry}
                     key={edgeId}
+                    labelFocus={labelFocus}
                     selection={selection}
                     session={session}
                 />

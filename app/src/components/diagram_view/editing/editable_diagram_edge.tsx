@@ -17,6 +17,10 @@ import { useIsDiagramObjectSelected } from './use_diagram_selection'
 import { useEditableDiagramEdgeField, useEditableDiagramMetadataField } from './use_editable_diagram'
 import { diagramEmphasisService, type DiagramEmphasisService } from '../../../services/diagrams/diagram_emphasis_service'
 import { useDiagramObjectDimmed } from '../surface/use_diagram_emphasis'
+import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
+import { DiagramInlineEdgeControls } from './diagram_inline_edge_controls'
 
 const EMPTY_NODE_LABELS: ReadonlyMap<string, string> = new Map()
 
@@ -25,6 +29,7 @@ interface EditableDiagramEdgeProps {
     edgeId: string
     emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
+    labelFocus?: DiagramLabelFocusService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
@@ -37,6 +42,7 @@ function EditableDiagramEdgeLeaf({
     edgeId,
     emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
+    labelFocus = diagramLabelFocusService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: EditableDiagramEdgeProps) {
@@ -84,16 +90,25 @@ function EditableDiagramEdgeLeaf({
     }
 
     return (
-        <DiagramEdge
-            curved={diagramType === 'mindmap'}
-            dimmed={dimmed}
-            edge={edge}
-            formattingStore={session.read}
-            nodeLabels={EMPTY_NODE_LABELS}
-            onOpenDetails={handleOpenDetails}
-            onSelect={handleSelect}
-            selected={selected}
-        />
+        <>
+            <DiagramEdge
+                curved={diagramType === 'mindmap'}
+                dimmed={dimmed}
+                edge={edge}
+                formattingStore={session.read}
+                nodeLabels={EMPTY_NODE_LABELS}
+                onOpenDetails={handleOpenDetails}
+                onSelect={handleSelect}
+                renderLabel={!edge.label}
+                selected={selected}
+            />
+            <DiagramInlineEdgeControls
+                edge={edge}
+                labelFocus={labelFocus}
+                onOpenDetails={handleOpenDetails}
+                session={session}
+            />
+        </>
     )
 }
 

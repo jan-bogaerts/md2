@@ -116,6 +116,7 @@ describe('DiagramSessionLegendEntries', () => {
         const gear = screen.getByRole('button', { name: 'Format Service' })
         expect(gear).toBeInTheDocument()
         await user.click(gear)
+        expect(screen.queryByRole('switch', { name: 'Use as default label' })).not.toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'Font family' })).toBeInTheDocument()
         expect(screen.getByRole('slider', { name: 'Font size' })).toHaveAttribute('aria-valuemin', '1')
         expect(screen.getByRole('button', { name: 'Font color' })).toBeInTheDocument()
@@ -142,6 +143,7 @@ describe('DiagramSessionLegendEntries', () => {
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
         await user.click(screen.getByRole('button', { name: 'Format Calls' }))
+        await user.click(screen.getByRole('switch', { name: 'Use as default label' }))
         const startMarker = screen.getByRole('combobox', { name: 'Start marker' })
         await user.click(startMarker)
         for (const marker of ['None', 'Filled arrow', 'Open arrow', 'Circle', 'Diamond']) {
@@ -151,6 +153,8 @@ describe('DiagramSessionLegendEntries', () => {
         await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
         expect(session.read.getConnectionKindFormattingSnapshot('connection')).toBeUndefined()
+        const callsEntryId = session.read.getLegendEntryKeysSnapshot()[1]
+        expect(session.read.getLegendEntryFieldSnapshot(callsEntryId, 'useLabelAsDefault')).toBe(false)
         expect(session.read.getDirtySnapshot()).toBe(false)
     })
 
@@ -164,33 +168,34 @@ describe('DiagramSessionLegendEntries', () => {
         expect(screen.getByRole('textbox', { name: `Legend label for ${callsEntryId}` })).toHaveValue('Calls')
     })
 
-    it('shows and updates default-label state only for editable connection entries', async () => {
+    it('shows and applies default-label state in editable connection configuration', async () => {
         const session = startSession(legendDiagram)
         const [, callsEntryId] = session.read.getLegendEntryKeysSnapshot()
         const otherEntryId = session.legend.addLegendEntry({ kind: 'connection', label: 'Publishes' }) as string
         const user = userEvent.setup()
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
-        const checkboxes = screen.getAllByRole('checkbox', { name: 'Use as default label' })
-        expect(checkboxes).toHaveLength(2)
-        expect(checkboxes[0]).not.toBeChecked()
-        expect(checkboxes[1]).not.toBeChecked()
+        expect(screen.queryByRole('switch', { name: 'Use as default label' })).not.toBeInTheDocument()
+        await user.click(screen.getByRole('button', { name: 'Format Calls' }))
+        const defaultLabelSwitch = screen.getByRole('switch', { name: 'Use as default label' })
+        expect(defaultLabelSwitch).not.toBeChecked()
 
-        await user.click(checkboxes[0])
+        await user.click(defaultLabelSwitch)
+        await user.click(screen.getByRole('button', { name: 'Apply' }))
 
         expect(session.read.getLegendEntryFieldSnapshot(callsEntryId, 'useLabelAsDefault')).toBe(true)
         expect(session.read.getLegendEntryFieldSnapshot(otherEntryId, 'useLabelAsDefault')).toBe(false)
-        expect(checkboxes[0]).toBeChecked()
-        expect(checkboxes[1]).not.toBeChecked()
     })
 
-    it('hides default-label controls from read-only legends', () => {
+    it('hides default-label control from read-only connection configuration', async () => {
         const service = new DiagramViewService()
         const data = layout(parseDiagramData(JSON.stringify(legendDiagram)))
+        const user = userEvent.setup()
 
         render(<ThemeProvider theme={theme}><DiagramLegend data={data} service={service} /></ThemeProvider>)
+        await user.click(screen.getByRole('button', { name: 'Format Calls' }))
 
-        expect(screen.queryByRole('checkbox', { name: 'Use as default label' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('switch', { name: 'Use as default label' })).not.toBeInTheDocument()
     })
 
     it('disables formatting for a saved node kind with no used nodes', () => {

@@ -19,6 +19,7 @@ import { EditableDiagramNodes } from './editable_diagram_collections'
 import { EditableDiagramNode } from './editable_diagram_node'
 import { DiagramZoomViewport } from '../surface/diagram_zoom_viewport'
 import { DiagramObjectDetailsService } from '../details/diagram_object_details_service'
+import { DiagramLabelFocusService } from '../../../services/diagrams/diagram_label_focus_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 
 function render(element: ReactElement) {
@@ -167,6 +168,49 @@ describe('editable diagram', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Details for Purchases' }))
         expect(details.getTargetSnapshot()).toEqual({ objectId: 'orders', objectKind: 'node' })
+    })
+
+    it('edits a connection label in place without opening details', () => {
+        const { geometry, selection, session } = createHarness()
+        const details = new DiagramObjectDetailsService()
+        render(<EditableDiagram details={details} geometry={geometry} selection={selection} session={session} />)
+        const label = screen.getByRole('textbox', { name: 'Edit writes label' })
+
+        fireEvent.change(label, { target: { value: 'stores' } })
+        fireEvent.blur(label)
+
+        expect(session.read.getEdgeFieldSnapshot('orders-store', 'label')).toBe('stores')
+        expect(details.getTargetSnapshot()).toBeNull()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('expands a connection label editor only while it has focus', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
+        const label = screen.getByRole('textbox', { name: 'Edit writes label' })
+        const editor = label.closest('foreignObject') as SVGForeignObjectElement
+        const restingWidth = Number(editor.getAttribute('width'))
+
+        fireEvent.focus(label)
+        const focusedWidth = Number(editor.getAttribute('width'))
+        fireEvent.blur(label)
+
+        expect(focusedWidth).toBeGreaterThan(restingWidth)
+        expect(Number(editor.getAttribute('width'))).toBe(restingWidth)
+    })
+
+    it('keeps an unlabelled connection editor mounted after accepting its focus request', () => {
+        const unlabelledDiagram = { ...diagram, edges: [{ ...diagram.edges[0], label: undefined }] }
+        const { geometry, selection, session } = createHarness(unlabelledDiagram)
+        const labelFocus = new DiagramLabelFocusService(session)
+        render(<EditableDiagram geometry={geometry} labelFocus={labelFocus} selection={selection} session={session} />)
+
+        act(() => { labelFocus.request({ objectId: 'orders-store', objectKind: 'edge' }) })
+
+        const label = screen.getByRole('textbox', { name: 'Edit connection label' })
+        expect(label).toHaveFocus()
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
+        expect(label).toBeInTheDocument()
     })
 
     it('wraps the inline editor within role inset and switches to one line without changing geometry', () => {

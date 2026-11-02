@@ -29,8 +29,9 @@ interface ConnectionFormattingPopoverProps {
     anchorElement: HTMLElement;
     kind: DiagramEdgeKind;
     label: string;
-    onApply(value: DiagramConnectionKindFormatting): void;
+    onApply(value: DiagramConnectionKindFormatting, useLabelAsDefault?: boolean): void;
     onClose(): void;
+    useLabelAsDefault?: boolean;
     value?: DiagramConnectionKindFormatting;
 }
 
@@ -40,7 +41,7 @@ function optionalString(value: string) {
 
 /** Connection-kind formatting draft with label, line, and endpoint marker inputs. */
 export function ConnectionFormattingPopover(props: ConnectionFormattingPopoverProps) {
-    const { anchorElement, kind, label, onApply, onClose, value } = props;
+    const { anchorElement, kind, label, onApply, onClose, useLabelAsDefault: initialUseLabelAsDefault, value } = props;
     const [fontFamily, setFontFamily] = useState(value?.font?.family ?? '');
     const [fontSize, setFontSize] = useState(value?.font?.size);
     const [fontColor, setFontColor] = useState(value?.font?.color);
@@ -51,11 +52,13 @@ export function ConnectionFormattingPopover(props: ConnectionFormattingPopoverPr
     const [lineThickness, setLineThickness] = useState(value?.line?.thickness);
     const [startMarker, setStartMarker] = useState(value?.startMarker ?? 'none');
     const [endMarker, setEndMarker] = useState(value?.endMarker ?? (kind === 'async' ? 'open-arrow' : 'filled-arrow'));
+    const [useLabelAsDefault, setUseLabelAsDefault] = useState(initialUseLabelAsDefault ?? false);
     const handleStartMarker = (event: ChangeEvent<HTMLInputElement>) => setStartMarker(event.target.value as DiagramConnectionMarker);
     const handleEndMarker = (event: ChangeEvent<HTMLInputElement>) => setEndMarker(event.target.value as DiagramConnectionMarker);
     const handleBold = (event: ChangeEvent<HTMLInputElement>) => setBold(event.target.checked);
     const handleItalic = (event: ChangeEvent<HTMLInputElement>) => setItalic(event.target.checked);
     const handleUnderline = (event: ChangeEvent<HTMLInputElement>) => setUnderline(event.target.checked);
+    const handleUseLabelAsDefault = (event: ChangeEvent<HTMLInputElement>) => setUseLabelAsDefault(event.target.checked);
     const handleSubmit = (event: FormEvent) => {
         event.preventDefault();
         const formatting: DiagramConnectionKindFormatting = {
@@ -65,7 +68,8 @@ export function ConnectionFormattingPopover(props: ConnectionFormattingPopoverPr
             startMarker,
         };
         try {
-            onApply(formatting);
+            if (initialUseLabelAsDefault === undefined) onApply(formatting);
+            else onApply(formatting, useLabelAsDefault);
             onClose();
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Diagram formatting could not be applied' });
@@ -78,6 +82,12 @@ export function ConnectionFormattingPopover(props: ConnectionFormattingPopoverPr
                 <Box sx={{ minHeight: 0, overflowY: 'auto', p: 2 }}>
                     <Stack spacing={1}>
                         <Typography variant="subtitle2">Format {label} connections</Typography>
+                        {initialUseLabelAsDefault !== undefined ? (
+                            <FormControlLabel
+                                control={<Switch checked={useLabelAsDefault} onChange={handleUseLabelAsDefault} />}
+                                label="Use as default label"
+                            />
+                        ) : null}
                         <FormattingGroup id="diagram-connection-label-font" label="Label font">
                             <DiagramFontFamilySelect onChange={setFontFamily} value={fontFamily} />
                             <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>

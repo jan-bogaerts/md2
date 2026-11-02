@@ -54,7 +54,6 @@ import { useActiveDiagramTool } from './use_diagram_tool'
 import {
     diagramLabelFocusService, type DiagramLabelFocusService,
 } from '../../../services/diagrams/diagram_label_focus_service'
-import { DiagramEdgeLabelFocusHandler } from './diagram_edge_label_focus_handler'
 
 interface EditableDiagramProps {
     details?: DiagramObjectDetailsService
@@ -264,7 +263,14 @@ export function EditableDiagram({
                 <EditableDiagramFragments emphasis={emphasis} fragmentDialog={fragmentDialog} geometry={geometry} session={session} />
                 <EditableDiagramLifelines emphasis={emphasis} geometry={geometry} session={session} />
                 <EditableDiagramActivations emphasis={emphasis} geometry={geometry} session={session} />
-                <EditableDiagramEdges details={details} emphasis={emphasis} geometry={geometry} selection={selection} session={session} />
+                <EditableDiagramEdges
+                    details={details}
+                    emphasis={emphasis}
+                    geometry={geometry}
+                    labelFocus={labelFocus}
+                    selection={selection}
+                    session={session}
+                />
                 <DiagramEdgeDrawingPreview drawing={drawing} />
                 <EditableDiagramNodes
                     details={details}
@@ -279,7 +285,6 @@ export function EditableDiagram({
                 <DiagramSelectionBoundary selection={selection} />
                 <DiagramSelectionRectangle selection={selection} />
             </EditableDiagramSurface>
-            <DiagramEdgeLabelFocusHandler details={details} labelFocus={labelFocus} />
             <DiagramObjectDetailsDialog details={details} labelFocus={labelFocus} session={session} />
             <DiagramGroupLabelDialog drawing={groupDrawing} />
             <DiagramFragmentDialog dialog={fragmentDialog} session={session} />

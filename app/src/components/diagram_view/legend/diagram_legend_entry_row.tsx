@@ -2,7 +2,7 @@ import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
 import DragIndicatorOutlined from '@mui/icons-material/DragIndicatorOutlined'
 import { useSortable } from '@dnd-kit/sortable'
-import { Box, ButtonBase, Checkbox, FormControlLabel, IconButton, Menu, MenuItem, TextField, Tooltip, Typography } from '@mui/material'
+import { Box, ButtonBase, IconButton, Menu, MenuItem, TextField, Tooltip, Typography } from '@mui/material'
 import { useCallback, useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import type {
@@ -92,9 +92,6 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
     const handleRemove = () => {
         session?.legend.removeLegendEntry(entryKey)
     }
-    const handleUseLabelAsDefaultChange = (event: ChangeEvent<HTMLInputElement>) => {
-        session?.legend.setLegendEntryUseLabelAsDefault(entryKey, event.target.checked)
-    }
     const nodeFormatting = useDiagramNodeFormatting(entry.id, sampleRole ?? 'focal', reader)
     const handleOpen = (event: MouseEvent<HTMLButtonElement>) => {
         setAnchorElement(event.currentTarget)
@@ -109,8 +106,12 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
     const handleNodeApply = (value: DiagramNodeRoleFormatting) => {
         if (activeRole) store.setLegendEntryFormatting(entry.id, value)
     }
-    const handleConnectionApply = (value: DiagramConnectionKindFormatting) => {
-        if (entry.entryType === 'connection') store.setLegendEntryFormatting(entry.id, value)
+    const handleConnectionApply = (value: DiagramConnectionKindFormatting, nextUseLabelAsDefault?: boolean) => {
+        if (entry.entryType !== 'connection') return
+        store.setLegendEntryFormatting(entry.id, value)
+        if (session && nextUseLabelAsDefault !== undefined && nextUseLabelAsDefault !== useLabelAsDefault) {
+            session.legend.setLegendEntryUseLabelAsDefault(entryKey, nextUseLabelAsDefault)
+        }
     }
     const connectionFormatting = entry.entryType === 'connection'
         ? reader.getConnectionFormattingSnapshot?.(entry.id, entry.kind)
@@ -168,13 +169,6 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
                     value={draftLabel}
                 />
             ) : <Typography color="text.secondary" sx={{ flex: 1, minWidth: 0 }} variant="caption">{entry.label}</Typography>}
-            {session && entry.entryType === 'connection' ? (
-                <FormControlLabel
-                    control={<Checkbox checked={useLabelAsDefault} onChange={handleUseLabelAsDefaultChange} size="small" />}
-                    label="Use as default label"
-                    sx={{ flexShrink: 0, m: 0 }}
-                />
-            ) : null}
             {session ? (
                 <Tooltip title={`Remove ${entry.label}`}>
                     <IconButton aria-label={`Remove ${entry.label}`} className="diagram-formatting-action" onClick={handleRemove} size="small">
@@ -216,6 +210,7 @@ export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store 
                     label={entry.label}
                     onApply={handleConnectionApply}
                     onClose={handleClose}
+                    useLabelAsDefault={session ? useLabelAsDefault : undefined}
                     value={connectionFormatting}
                 />
             ) : null}
