@@ -5,7 +5,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "6414956f-fccd-4086-974d-cd91d67eab99",
       "cardPath": "design/feature_descriptions/B_325_scheduler_lost_context_when_restarting_conversation.md",
-      "completedAt": null,
+      "completedAt": "2026-11-02T08:34:28.769Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 114518
@@ -968,7 +968,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 71,
-          "timestamp": "2026-11-02T08:34:28.403Z"
+          "timestamp": "2026-11-02T08:34:28.769Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -978,12 +978,12 @@
           "agent": "codex",
           "conversationId": "01a18d7c-8abc-7b82-a59e-91e343756f03",
           "createdAt": "2026-10-30T15:47:07.834Z",
-          "lastUsedAt": "2026-11-02T08:34:28.403Z",
+          "lastUsedAt": "2026-11-02T08:34:28.769Z",
           "synchronizedThroughMessageId": "agent-turn-9af2c2ee-05a1-4358-ab92-ed03d8fb1e98-turn-2-assistant-3"
         }
       ],
       "startedAt": "2026-10-30T15:45:11.286Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -1009,8 +1009,8 @@
           "reasoningMs": 460,
           "toolMs": 4325
         },
-        "elapsedMs": 116548,
-        "runningStartedAt": "2026-11-02T08:33:49.642Z"
+        "elapsedMs": 155675,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
