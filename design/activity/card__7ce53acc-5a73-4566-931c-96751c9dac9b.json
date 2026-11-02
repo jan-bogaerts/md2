@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 45142
+        "usedTokens": 45496
       },
       "entries": [
         {
@@ -215,7 +215,7 @@
           "label": "AskUserQuestion",
           "providerItemId": "toolu_01CYSnGrgVwM1afDDE4mZMdx",
           "sequence": 15,
-          "status": "inProgress",
+          "status": "cancelled",
           "timestamp": "2026-11-02T10:38:38.026Z",
           "type": "tool.AskUserQuestion"
         },
