@@ -9,9 +9,7 @@ affects:
 agents:
   - design/activity/card__b09a5f55-9e4f-4329-b6a7-00cec60df2e9.json
 policy:
-branch: f_436_add_agent_account_model_and_resolution
 after: 6414956f-fccd-4086-974d-cd91d67eab99
-worktree: 2
 changedFiles:
   - app/src/data/agent_accounts.node.test.ts
   - app/src/data/agent_accounts.ts

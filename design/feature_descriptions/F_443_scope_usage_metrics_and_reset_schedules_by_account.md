@@ -9,7 +9,7 @@ affects:
 agents:
 policy:
 branch: f_443_scope_usage_metrics_and_reset_schedules_by_account
-after: ab1ad841-86e6-43fb-a211-9ce1f1eaf246
+after: 4a06c2b1-a7db-4f8f-a995-f638b14e6962
 ---
 
 Persist and project usage measurements and account-reset schedules separately for each agent account, using the account-scoped runtime snapshots from F_442.

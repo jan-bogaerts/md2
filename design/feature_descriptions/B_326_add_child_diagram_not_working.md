@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 ---
 
 While in diagram-view mode, editing a mind map, I have a node selected, then want to use the + sign next to the breadcrumbs -bar, but this is disabled. don't know why.&#x20;

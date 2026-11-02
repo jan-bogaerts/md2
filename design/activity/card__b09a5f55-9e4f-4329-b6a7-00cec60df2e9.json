@@ -1769,6 +1769,48 @@
       "startedAt": "2026-11-02T16:21:13.049Z",
       "status": "completed",
       "rootConversationId": "agent-4840b346-c69d-46a3-a332-b1d29fbf2c3d"
+    },
+    {
+      "commits": [
+        {
+          "commit": "ef01536b73cb7be59d063b2a7423dfb0f5fbdc9d",
+          "committedAt": "2026-11-02T19:06:50+01:00",
+          "deletions": 1,
+          "filePaths": [
+            "app/src/components/config/config_page.test.tsx",
+            "app/src/data/agent_accounts.node.test.ts",
+            "app/src/data/agent_accounts.ts",
+            "app/src/data/agent_profiles.node.test.ts",
+            "app/src/data/agent_selection.node.test.ts",
+            "app/src/data/agent_selection.ts",
+            "app/src/services/config/config_entries.ts",
+            "app/src/services/config/config_persistence.service.test.ts",
+            "app/src/services/config/config_service.service.test.ts",
+            "app/src/services/config/config_service.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/project/project_session_service.service.test.ts",
+            "desktop/src/actions/agent/agent_accounts.mjs",
+            "desktop/src/shell/config.js",
+            "desktop/src/shell/config.test.mjs",
+            "shared/agent_accounts.d.mts",
+            "shared/agent_accounts.mjs",
+            "shared/agent_profiles.d.mts",
+            "shared/agent_profiles.mjs",
+            "shared/agent_selection.d.mts",
+            "shared/agent_selection.mjs"
+          ],
+          "filesChanged": 21,
+          "insertions": 454,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-02T19:06:50+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "b09a5f55-9e4f-4329-b6a7-00cec60df2e9",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
