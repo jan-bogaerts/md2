@@ -1756,7 +1756,7 @@
       "actionId": "6e05571a-e93b-4e56-be1a-520efa28fd3f",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-11-02T16:10:07.145Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 46341
@@ -2386,7 +2386,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 47,
-          "timestamp": "2026-11-02T16:01:17.985Z"
+          "timestamp": "2026-11-02T16:10:07.145Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2396,12 +2396,12 @@
           "agent": "codex",
           "conversationId": "01a19cfb-d4df-77a3-bbda-25b5c6146c93",
           "createdAt": "2026-11-02T16:01:17.985Z",
-          "lastUsedAt": "2026-11-02T16:01:17.985Z",
+          "lastUsedAt": "2026-11-02T16:10:07.145Z",
           "synchronizedThroughMessageId": "agent-turn-e2785266-26d6-40d6-a97e-09ef08c5821c-turn-1-assistant-6"
         }
       ],
       "startedAt": "2026-11-02T15:58:31.987Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
