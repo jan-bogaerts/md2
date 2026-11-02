@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__7ce53acc-5a73-4566-931c-96751c9dac9b.json
 policy:
 branch: f_438_add_agent_account_management_ui
 after: 6414956f-fccd-4086-974d-cd91d67eab99
