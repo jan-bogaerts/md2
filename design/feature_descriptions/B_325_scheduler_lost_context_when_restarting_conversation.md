@@ -11,6 +11,7 @@ agents:
 policy:
 branch: b_325_scheduler_lost_context_when_restarting_conversation
 worktree: 3
+after: a18b2880-10c9-4ded-b45c-29113f160478
 ---
 
 I was in the middle of a conversation when the claude user account reached 100%. So I scheduled a next prompt to be sent when the account usage went back to 0.

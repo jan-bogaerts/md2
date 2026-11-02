@@ -3,13 +3,14 @@ author:
 id: F_438
 internalId: 7ce53acc-5a73-4566-931c-96751c9dac9b
 title: add agent account management UI
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
 branch: f_438_add_agent_account_management_ui
-after: 2775052a-2e84-4466-a320-155c8ec05bac
+after: 6414956f-fccd-4086-974d-cd91d67eab99
+worktree: 2
 ---
 
 Add account management to the configuration dialog using the account model from F_436 and lifecycle bridge from F_437.

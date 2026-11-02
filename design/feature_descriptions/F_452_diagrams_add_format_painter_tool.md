@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__a18b2880-10c9-4ded-b45c-29113f160478.json
 policy:
-after: c814173c-590e-47c3-b5cf-b7bcc7ae356e
+after: 733d678c-49a7-4409-9fa2-5fb384821513
 branch: f_452_diagrams_add_format_painter_tool
 worktree: 1
 ---
