@@ -2160,7 +2160,7 @@
         }
       ],
       "startedAt": "2026-11-02T14:52:23.338Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
@@ -2191,8 +2191,8 @@
           "reasoningMs": 258,
           "toolMs": 9889
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-11-02T14:52:23.338Z"
+        "elapsedMs": 101040,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
