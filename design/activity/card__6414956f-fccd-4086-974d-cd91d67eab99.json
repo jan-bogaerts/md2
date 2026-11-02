@@ -766,6 +766,14 @@
           "role": "assistant",
           "sequence": 55,
           "timestamp": "2026-10-30T15:47:07.834Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_325_scheduler_lost_context_when_restarting_conversation.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-0b05ae5f-3ec8-4919-a540-6789fd55836a",
+          "kind": "message",
+          "role": "user",
+          "sequence": 56,
+          "timestamp": "2026-11-02T08:33:49.642Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -780,7 +788,7 @@
         }
       ],
       "startedAt": "2026-10-30T15:45:11.286Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -807,7 +815,7 @@
           "toolMs": 3334
         },
         "elapsedMs": 116548,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-02T08:33:49.642Z"
       },
       "title": "investigate",
       "usage": {
