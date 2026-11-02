@@ -10,6 +10,8 @@ agents:
   - design/activity/card__a18b2880-10c9-4ded-b45c-29113f160478.json
 policy:
 after: c814173c-590e-47c3-b5cf-b7bcc7ae356e
+branch: f_452_diagrams_add_format_painter_tool
+worktree: 1
 ---
 
 * available when something on the diagram has been copied.
