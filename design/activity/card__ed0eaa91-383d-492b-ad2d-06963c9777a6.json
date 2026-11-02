@@ -2486,7 +2486,7 @@
         "totalTokens": 6135348
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -2587,6 +2587,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "db20446badaee9a3a669f1bf6ce016102bc53d68",
           "committedAt": "2026-11-02T11:34:10+01:00",
           "deletions": 36,
@@ -2610,8 +2611,7 @@
             "app/src/services/diagrams/diagram_node_placement_service.ts"
           ],
           "filesChanged": 17,
-          "insertions": 438,
-          "branch": "dev_main"
+          "insertions": 438
         }
       ],
       "completedAt": "2026-11-02T11:34:10+01:00",
