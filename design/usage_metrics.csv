@@ -9512,3 +9512,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-02T10:29:41.971Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,1,0
 2026-11-02T10:33:41.998Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,1,0
 2026-11-02T10:33:59.150Z,account_usage,codex,codex,primary,10080,2026-11-04T10:03:50.000Z,,,,,,10,2
+2026-11-02T10:35:43.111Z,token_usage,codex,,,,,109304,1376512,2970,2309,1491095,,
