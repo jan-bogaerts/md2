@@ -2401,7 +2401,7 @@
         }
       ],
       "startedAt": "2026-11-02T15:58:31.987Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
@@ -2427,8 +2427,8 @@
           "reasoningMs": 191,
           "toolMs": 93316
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-11-02T15:58:31.987Z"
+        "elapsedMs": 165998,
+        "runningStartedAt": null
       },
       "title": "merge",
       "usage": {
@@ -2439,7 +2439,7 @@
         "totalTokens": 744868
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
