@@ -3,7 +3,7 @@ author:
 id: F_436
 internalId: b09a5f55-9e4f-4329-b6a7-00cec60df2e9
 title: add agent account model and resolution
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,14 @@ policy:
 branch: f_436_add_agent_account_model_and_resolution
 after: 6414956f-fccd-4086-974d-cd91d67eab99
 worktree: 2
+changedFiles:
+  - app/src/data/agent_accounts.node.test.ts
+  - app/src/data/agent_accounts.ts
+  - app/src/services/config/config_service.service.test.ts
+  - desktop/src/actions/agent/agent_accounts.mjs
+  - desktop/src/shell/config.test.mjs
+  - shared/agent_accounts.d.mts
+  - shared/agent_accounts.mjs
 ---
 
 Introduce the shared account model used by the agent-account work in F_422. This task defines configuration and resolution only. It does not add account-management UI, login processes, or account-specific process environments.
