@@ -9,6 +9,7 @@ import {
     validateThinkingLevel,
     validateSpeedMode,
 } from './agent_profiles.mjs'
+import { resolveAgentAccount } from './agent_accounts.mjs'
 
 const defaultProfile = findAgentProfile([], DEFAULT_AGENT_PROFILE_NAME)
 if (!defaultProfile) throw new Error(`Missing built-in agent profile: ${DEFAULT_AGENT_PROFILE_NAME}`)
@@ -45,6 +46,7 @@ export function validateAgentSettings(value, source) {
         model: requireString(settings.model, `${source}.model`, true),
         thinkingLevel: validateThinkingLevel(settings.thinkingLevel, `${source}.thinkingLevel`),
         ...(settings.speedMode !== undefined ? { speedMode: validateSpeedMode(settings.speedMode, `${source}.speedMode`) } : {}),
+        ...(settings.accountId !== undefined ? { accountId: requireString(settings.accountId, `${source}.accountId`) } : {}),
     }
 }
 
@@ -102,6 +104,18 @@ export function selectSpeedMode(selection, speedMode) {
     };
 }
 
+/** Remembers the account for the active agent; an invalid explicit account is rejected, never replaced. */
+export function selectAccount(selection, accountId, accounts) {
+    const current = selection.settingsByAgent[selection.activeAgent];
+    if (!current) throw new Error(`Missing settings for active agent: ${selection.activeAgent}`);
+    resolveAgentAccount(accounts, selection.activeAgent, accountId);
+
+    return {
+        ...selection,
+        settingsByAgent: { ...selection.settingsByAgent, [selection.activeAgent]: { ...current, accountId } },
+    };
+}
+
 export function selectAgent(selection, agent, profiles, fallbackSources = []) {
     const next = { ...selection, activeAgent: agent }
 
@@ -147,5 +161,6 @@ export function projectAgentSelection(selection, profiles = []) {
         ...(profile && supportsPermissionMode(profile) ? { permissionMode: selection.permissionMode } : {}),
         thinkingLevel: settings.thinkingLevel,
         ...(settings.speedMode !== undefined ? { speedMode: settings.speedMode } : {}),
+        ...(settings.accountId !== undefined ? { accountId: settings.accountId } : {}),
     }
 }

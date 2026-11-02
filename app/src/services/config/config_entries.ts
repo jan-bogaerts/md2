@@ -19,6 +19,7 @@ import {
     type AgentProfile,
 } from '../../data/agent_profiles'
 import { DEFAULT_AGENT_SELECTION, type AgentSelectionState } from '../../data/agent_selection'
+import { DEFAULT_AGENT_ACCOUNTS, type AgentAccount } from '../../data/agent_accounts'
 import type { ProjectBackgroundShade } from '../../theme/project_background_shade'
 import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from '../../data/card_identifiers'
 
@@ -27,6 +28,7 @@ export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json
 
 export interface ConfigValueTypes {
     'desktop.agentSelection': AgentSelectionState
+    'desktop.agentAccounts': AgentAccount[]
     'desktop.agentProfiles': AgentProfile[]
     'desktop.agentTaskTrackingEnabled': boolean
     'desktop.codexSearchEnabled': boolean
@@ -60,6 +62,7 @@ export type ConfigValue = boolean
     | string
     | string[]
     | AgentProfile[]
+    | AgentAccount[]
     | AgentSelectionState
     | CardTypeConfig[]
     | PinnedConversationLocator[]
@@ -93,6 +96,7 @@ export type ConfigValues = ConfigValueTypes
 
 export interface DesktopConfigValues {
     agentSelection: AgentSelectionState
+    agentAccounts: AgentAccount[]
     agentProfiles: AgentProfile[]
     agentTaskTrackingEnabled?: boolean
     codexSearchEnabled?: boolean
@@ -323,6 +327,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         editable: true,
         key: 'desktop.agentSelection',
         label: 'Desktop agent selection',
+        section: 'desktop',
+        source: 'desktop',
+        type: 'json',
+    },
+    {
+        defaultValue: DEFAULT_AGENT_ACCOUNTS,
+        description: 'Codex and Claude accounts. The initial account uses the CLI login of the inherited environment; additional accounts use their own config directory.',
+        editable: false,
+        key: 'desktop.agentAccounts',
+        label: 'Agent accounts',
         section: 'desktop',
         source: 'desktop',
         type: 'json',

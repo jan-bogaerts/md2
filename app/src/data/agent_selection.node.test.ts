@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { BUILTIN_AGENT_PROFILES } from './agent_profiles'
+import { DEFAULT_AGENT_ACCOUNTS, type AgentAccount } from './agent_accounts'
 import {
     projectAgentSelection,
     resolveAgentSettings,
+    selectAccount,
     selectAgent,
     selectModel,
     selectPermissionMode,
@@ -89,10 +91,40 @@ describe('agent selection', () => {
         expect(customSelection.permissionMode).toBe('full-access')
     })
 
+    it('restores the remembered account of each agent when switching agent', () => {
+        const workAccount: AgentAccount = {
+            id: '0f8fad5b-d9cb-469f-a165-70867728950e',
+            agent: 'codex',
+            kind: 'directory',
+            name: 'Work',
+            configDirectory: 'C:/codex-work',
+        }
+        const accounts = [...DEFAULT_AGENT_ACCOUNTS, workAccount]
+        const withWork = selectAccount(selection, workAccount.id, accounts)
+        const claude = selectAccount(selectAgent(withWork, 'claude', BUILTIN_AGENT_PROFILES), 'claude-initial', accounts)
+        const backToCodex = selectAgent(claude, 'codex', BUILTIN_AGENT_PROFILES)
+
+        expect(projectAgentSelection(withWork).accountId).toBe(workAccount.id)
+        expect(projectAgentSelection(claude).accountId).toBe('claude-initial')
+        expect(projectAgentSelection(backToCodex).accountId).toBe(workAccount.id)
+        expect(projectAgentSelection(selection)).not.toHaveProperty('accountId')
+    })
+
+    it('rejects invalid explicit accounts without falling back to the initial account', () => {
+        const customSelection: AgentSelectionState = { ...selection, activeAgent: 'custom', settingsByAgent: { custom: { model: '', thinkingLevel: 'none' } } }
+
+        expect(() => selectAccount(selection, 'missing', DEFAULT_AGENT_ACCOUNTS)).toThrow('Unknown agent account')
+        expect(() => selectAccount(selection, 'claude-initial', DEFAULT_AGENT_ACCOUNTS)).toThrow('belongs to claude')
+        expect(() => selectAccount(customSelection, 'codex-initial', DEFAULT_AGENT_ACCOUNTS)).toThrow('does not support accounts')
+    })
+
     it('strictly validates persisted shape', () => {
         expect(validateAgentSelectionState(selection, 'test')).toEqual(selection)
         expect(() => validateAgentSelectionState({ ...selection, settingsByAgent: {} }, 'test')).not.toThrow()
         expect(() => validateAgentSelectionState({ ...selection, permissionMode: 'invalid' }, 'test')).toThrow('Invalid permission mode')
         expect(() => validateAgentSelectionState({ ...selection, settingsByAgent: { codex: { model: 'gpt', thinkingLevel: 'extreme' } } }, 'test')).toThrow('Invalid thinking level')
+        const withAccount = { ...selection, settingsByAgent: { codex: { model: 'gpt', thinkingLevel: 'high', accountId: 'codex-initial' } } }
+        expect(validateAgentSelectionState(withAccount, 'test')).toEqual(withAccount)
+        expect(() => validateAgentSelectionState({ ...selection, settingsByAgent: { codex: { model: 'gpt', thinkingLevel: 'high', accountId: '' } } }, 'test')).toThrow('accountId')
     })
 })

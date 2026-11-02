@@ -5,6 +5,7 @@ import { DEFAULT_STATES, defaultColumnAccent } from '../../data/data_types'
 import { ConfigPage } from './config_page'
 import { configService } from '../../services/config/config_service'
 import { BUILTIN_AGENT_PROFILES } from '../../data/agent_profiles'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
 import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
@@ -700,6 +701,7 @@ describe('ConfigPage', () => {
 
         expect(setDesktopConfig).toHaveBeenCalledWith({
             agentSelection: agentSelection('claude'),
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: BUILTIN_AGENT_PROFILES,
             agentTaskTrackingEnabled: true,
             codexSearchEnabled: false,
@@ -840,6 +842,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         const hostConfig: DesktopConfigValues = {
             agentSelection: agentSelection('custom', 'host-model', 'medium'),
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['host-model'], name: 'custom' }],
             agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,
@@ -873,6 +876,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         const hostConfig: DesktopConfigValues = {
             agentSelection: agentSelection('codex'),
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: BUILTIN_AGENT_PROFILES,
             agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,

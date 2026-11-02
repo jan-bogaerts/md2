@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RemoteControlStorageService } from './remote_control_storage_service'
 import { MissingWorkingFolderError } from '../../data/data_types'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
 import type { ActionScheduleRegistrationRequest } from '../../data/electron_action_bridge'
 
 class MockWebSocket extends EventTarget {
@@ -291,6 +292,7 @@ describe('RemoteControlStorageService', () => {
         const service = createService()
         const desktopConfig = {
             agentSelection: { activeAgent: 'custom', permissionMode: 'full-access' as const, settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' as const } } },
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none' as const, models: ['custom-model'], name: 'custom' }],
             codexSearchEnabled: false,
             editorCommand: 'code "{{file}}"',

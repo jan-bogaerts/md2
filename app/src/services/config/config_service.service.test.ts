@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, DEFAULT_DIAGRAM_FOOTER, DEFAULT_STATES, defaultColumnAccent, resolveProjectConfigPaths } from '../../data/data_types'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../../data/agent_profiles'
+import { DEFAULT_AGENT_ACCOUNTS, type AgentAccount } from '../../data/agent_accounts'
 import { CONFIG_ENTRIES, ConfigService } from './config_service'
 
 function agentSelection(activeAgent: string, model = '', thinkingLevel: 'none' | 'high' = 'none') {
@@ -77,6 +78,29 @@ describe('ConfigService', () => {
         expect(service.hasDesktopConfig()).toBe(true)
         expect(service.getDesktopValues()).toMatchObject({ agentSelection: agentSelection('custom', 'custom-model', 'high') })
         expect(service.getProjectConfig()).toMatchObject({ actionsFolder: 'ops', workingFolder: 'docs' })
+    })
+
+    it('defaults desktop agent accounts to the initial accounts when none are stored', () => {
+        service.init({ desktopConfig: { agentSelection: agentSelection('claude') } })
+
+        expect(service.get('desktop.agentAccounts')).toEqual(DEFAULT_AGENT_ACCOUNTS)
+        expect(service.getDesktopValues().agentAccounts).toEqual(DEFAULT_AGENT_ACCOUNTS)
+    })
+
+    it('loads validated desktop agent accounts and rejects invalid collections', () => {
+        const workAccount: AgentAccount = {
+            id: '0f8fad5b-d9cb-469f-a165-70867728950e',
+            agent: 'codex',
+            kind: 'directory',
+            name: 'Work',
+            configDirectory: 'C:\\codex-work',
+        }
+        service.init({ desktopConfig: { agentAccounts: [...DEFAULT_AGENT_ACCOUNTS, workAccount] } })
+
+        expect(service.get('desktop.agentAccounts')[2]).toEqual({ ...workAccount, configDirectory: 'C:/codex-work' })
+        const duplicateId = { ...workAccount, name: 'Other', configDirectory: 'D:/codex-other' }
+        expect(() => service.replaceDesktopConfig({ agentAccounts: [...DEFAULT_AGENT_ACCOUNTS, workAccount, duplicateId] }))
+            .toThrow('Duplicate agent account ID')
     })
 
     it('clears only desktop values and marks them unavailable', () => {
@@ -442,6 +466,7 @@ describe('ConfigService', () => {
 
         expect(service.getDesktopValues()).toEqual({
             agentSelection: agentSelection('claude', '', 'high'),
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: BUILTIN_AGENT_PROFILES,
             agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,

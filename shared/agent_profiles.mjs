@@ -1,3 +1,5 @@
+import { supportsAgentAccounts } from './agent_accounts.mjs';
+
 export const MODEL_PLACEHOLDER = '{{model}}'
 export const SESSION_ID_PLACEHOLDER = '{{sessionId}}'
 export const THINKING_LEVELS = ['none', 'low', 'medium', 'high', 'max']
@@ -207,6 +209,11 @@ export function validateAgentSelection(profiles, selection, source) {
             error.code = 'unsupported-speed-mode';
             throw error;
         }
+    }
+    if (selection.accountId !== undefined && !supportsAgentAccounts(profile.name)) {
+        const error = new Error(`Agent profile does not support accounts: ${profile.name}`);
+        error.code = 'unsupported-account';
+        throw error;
     }
 }
 

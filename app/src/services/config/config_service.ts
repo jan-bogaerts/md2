@@ -8,6 +8,7 @@ import {
 import { LEGACY_CARD_SEPARATOR } from '../../data/card_identifiers'
 import { migrateAgentProfiles, validateAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
 import { validateAgentSelectionState } from '../../data/agent_selection'
+import { validateAgentAccounts } from '../../data/agent_accounts'
 import {
     CONFIG_ENTRIES,
     createDefaultValues,
@@ -231,6 +232,7 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
         return validatePinnedConversations(value) as ConfigValueTypes[K]
     }
     if (entry.type === 'json' && key === 'desktop.agentProfiles') return validateDesktopAgentProfiles(value) as ConfigValueTypes[K]
+    if (entry.type === 'json' && key === 'desktop.agentAccounts') return validateAgentAccounts(value, entry.key) as ConfigValueTypes[K]
     if (entry.type === 'json' && key === 'desktop.agentSelection') {
         return validateAgentSelectionState(value, entry.key) as ConfigValueTypes[K]
     }
@@ -309,6 +311,7 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
 function readDesktopConfig(values: ConfigValues): DesktopConfigValues {
     return {
         agentSelection: values['desktop.agentSelection'],
+        agentAccounts: values['desktop.agentAccounts'],
         agentProfiles: values['desktop.agentProfiles'],
         agentTaskTrackingEnabled: values['desktop.agentTaskTrackingEnabled'],
         codexSearchEnabled: values['desktop.codexSearchEnabled'],
@@ -333,6 +336,7 @@ function replaceDesktopValues(values: ConfigValues, desktopConfig: Partial<Deskt
     if (desktopConfig.agentSelection !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.agentSelection', desktopConfig.agentSelection)
     }
+    if (desktopConfig.agentAccounts !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentAccounts', desktopConfig.agentAccounts)
     if (desktopConfig.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
     if (desktopConfig.agentTaskTrackingEnabled !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.agentTaskTrackingEnabled', desktopConfig.agentTaskTrackingEnabled)

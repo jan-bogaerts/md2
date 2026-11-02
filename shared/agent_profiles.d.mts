@@ -15,6 +15,7 @@ export interface AgentSelection {
     permissionMode?: PermissionMode | ''
     thinkingLevel?: ThinkingLevel
     speedMode?: SpeedMode
+    accountId?: string
 }
 
 export type SpeedMode = 'default' | 'standard' | 'fast';
