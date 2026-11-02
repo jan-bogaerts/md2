@@ -2495,7 +2495,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 112344
+        "usedTokens": 116469
       },
       "entries": [
         {
@@ -3281,6 +3281,104 @@
           "role": "user",
           "sequence": 61,
           "timestamp": "2026-11-02T13:48:49.722Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f2b37be7bc9f64f016ae894d3a2708191ba4cbbeb001afdd6",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-02T13:49:05.746Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. I’ll keep the editor centered on the label, but collapse its unfocused width to the label’s measured placement box. Focus will expand it to the current comfortable editing width, then blur will shrink it again.\n\n",
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 63,
+          "timestamp": "2026-11-02T13:49:43.254Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/components/diagram_view/editing/diagram_inline_edge_controls.tsx'; Get-Content 'app/src/components/diagram_view/editing/editable_diagram.test.tsx' | Select-Object -Skip 160 -First 70\"",
+          "content": "import { TextField } from '@mui/material'\nimport {\n    useCallback, useEffect, useRef, useState, useSyncExternalStore,\n    type ChangeEvent, type KeyboardEvent, type MouseEvent, type PointerEvent,\n} from 'react'\nimport type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'\nimport type { DiagramWaypoint } from '../../../services/diagrams/diagram_data'\nimport {\n    diagramLabelFocusService, type DiagramLabelFocusService,\n} from '../../../services/diagrams/diagram_label_focus_service'\nimport type { PositionedDiagramEdge } from '../../../services/diagrams/diagram_layout'\n\nconst EDGE_EDITOR_HEIGHT = 32\nconst EDGE_EDITOR_MINIMUM_WIDTH = 96\nconst EDGE_EDITOR_HORIZONTAL_OFFSET = 20\nconst EDGE_EDITOR_VERTICAL_OFFSET = 12\n\nfunction midpoint(start: DiagramWaypoint, end: DiagramWaypoint) {\n    return { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }\n}\n\nfunction editorCentre(edge: PositionedDiagramEdge) {\n    if (edge.labelPlacement) {\n        const { height, width, x, y } = edge.labelPlacement\n\n        return { x: x + width / 2, y: y + height / 2 }\n    }\n    if (edge.controlPoint) {\n        const start = edge.points[0]\n        const end = edge.points.at(-1) as DiagramWaypoint\n\n        return {\n            x: (start.x + 2 * edge.controlPoint.x + end.x) / 4,\n            y: (start.y + 2 * edge.controlPoint.y + end.y) / 4,\n        }\n    }\n    const segments = edge.points.slice(1).map((end, index) => {\n        const start = edge.points[index]\n\n        return { end, length: Math.abs(end.x - start.x) + Math.abs(end.y - start.y), start }\n    })\n    const longest = segments.sort((left, right) => right.length - left.length)[0]\n    if (!longest) return midpoint(edge.points[0], edge.points[0])\n    const centre = midpoint(longest.start, longest.end)\n\n    return longest.start.y === longest.end.y\n        ? { x: centre.x, y: centre.y - EDGE_EDITOR_HORIZONTAL_OFFSET }\n        : { x: centre.x + EDGE_EDITOR_VERTICAL_OFFSET + EDGE_EDITOR_MINIMUM_WIDTH / 2, y: centre.y }\n}\n\n/** Inline label editor positioned beside one editable connection. */\nexport function DiagramInlineEdgeControls({\n    edge,\n    labelFocus = diagramLabelFocusService,\n    onOpenDetails,\n    session,\n}: {\n    edge: PositionedDiagramEdge\n    labelFocus?: DiagramLabelFocusService\n    onOpenDetails: () => void\n    session: DiagramEditSessionService\n}) {\n    const inputRef = useRef<HTMLInputElement>(null)\n    const subscribeFocus = useCallback((listener: () => void) => (\n        labelFocus.subscribeFocus('edge', edge.id, listener)\n    ), [edge.id, labelFocus])\n    const getFocusSnapshot = useCallback(() => labelFocus.getFocusSnapshot('edge', edge.id), [edge.id, labelFocus])\n    const focusRequested = useSyncExternalStore(subscribeFocus, getFocusSnapshot, getFocusSnapshot)\n    const label = edge.label ?? ''\n    const [editing, setEditing] = useState(false)\n    const [draftState, setDraftState] = useState({ base: label, value: label })\n    const draft = draftState.base === label ? draftState.value : label\n    const [error, setError] = useState<string | null>(null)\n    const handleChange = (event: ChangeEvent<HTMLInputElement>) => {\n        setDraftState({ base: label, value: event.target.value })\n        setError(null)\n    }\n    const commit = () => {\n        const nextLabel = draft.trim() || undefined\n        if (nextLabel === edge.label) return true\n        const saved = session.objects.setEdgeField(edge.id, 'label', nextLabel)\n        if (!saved) setError('Label could not be saved.')\n\n        return saved\n    }\n    const handleBlur = () => {\n        if (commit() && !draft.trim()) setEditing(false)\n    }\n    const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {\n        if (event.key === 'Escape') {\n            event.stopPropagation()\n            setDraftState({ base: label, value: label })\n            setError(null)\n\n            return\n        }\n        if (event.key !== 'Enter') return\n        event.preventDefault()\n        commit()\n    }\n    const stopPointer = (event: PointerEvent<SVGForeignObjectElement>) => ev\n[1958 characters omitted]\nhases')\r\n        fireEvent.pointerDown(label, { button: 0, clientX: 20, clientY: 20, pointerId: 1 })\r\n        expect(selection.getSelectionSnapshot()).toEqual([])\r\n        fireEvent.change(screen.getByRole('textbox', { name: 'Edit Purchases label' }), { target: { value: '' } })\r\n        fireEvent.blur(screen.getByRole('textbox', { name: 'Edit Purchases label' }))\r\n        expect(screen.getByText('Label is required.')).toBeInTheDocument()\r\n        expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('Purchases')\r\n\r\n        fireEvent.click(screen.getByRole('button', { name: 'Details for Purchases' }))\r\n        expect(details.getTargetSnapshot()).toEqual({ objectId: 'orders', objectKind: 'node' })\r\n    })\r\n\r\n    it('edits a connection label in place without opening details', () => {\r\n        const { geometry, selection, session } = createHarness()\r\n        const details = new DiagramObjectDetailsService()\r\n        render(<EditableDiagram details={details} geometry={geometry} selection={selection} session={session} />)\r\n        const label = screen.getByRole('textbox', { name: 'Edit writes label' })\r\n\r\n        fireEvent.change(label, { target: { value: 'stores' } })\r\n        fireEvent.blur(label)\r\n\r\n        expect(session.read.getEdgeFieldSnapshot('orders-store', 'label')).toBe('stores')\r\n        expect(details.getTargetSnapshot()).toBeNull()\r\n        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()\r\n    })\r\n\r\n    it('keeps an unlabelled connection editor mounted after accepting its focus request', () => {\r\n        const unlabelledDiagram = { ...diagram, edges: [{ ...diagram.edges[0], label: undefined }] }\r\n        const { geometry, selection, session } = createHarness(unlabelledDiagram)\r\n        const labelFocus = new DiagramLabelFocusService(session)\r\n        render(<EditableDiagram geometry={geometry} labelFocus={labelFocus} selection={selection} session={session} />)\r\n\r\n        act(() => { labelFocus.request({ objectId: 'orders-store', objectKind: 'edge' }) })\r\n\r\n        const label = screen.getByRole('textbox', { name: 'Edit connection label' })\r\n        expect(label).toHaveFocus()\r\n        expect(labelFocus.getTargetSnapshot()).toBeNull()\r\n        expect(label).toBeInTheDocument()\r\n    })\r\n\r\n    it('wraps the inline editor within role inset and switches to one line without changing geometry', () => {\r\n        const { geometry, selection, session } = createHarness()\r\n        render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)\r\n        const label = screen.getByRole('textbox', { name: 'Edit Orders label' })\r\n        const field = label.closest('.MuiFormControl-root') as HTMLElement\r\n        const node = screen.getByRole('button', { name: 'Orders' })\r\n        const width = getComputedStyle(node).width\r\n\r\n        expect(label.tagName).toBe('TEXTAREA')\r\n        expect(getComputedStyle(field).left).toBe('4px')\r\n        expect(getComputedStyle(field).right).toBe('4px')\r\n        fireEvent.change(label, { target: { value: 'A longer wrapped order label' } })\r\n        fireEvent.blur(label)\r\n        expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('A longer wrapped order label')\r\n\r\n        act(() => { session.formatting.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 24 } }) })\r\n\r\n        const singleLine = screen.getByRole('textbox', { name: 'Edit A longer wrapped order label label' })\r\n        expect(singleLine.tagName).toBe('INPUT')\r\n        expect(getComputedStyle(singleLine.closest('.MuiFormControl-root') as HTMLElement).left).toBe('24px')\r\n        expect(getComputedStyle(node).width).toBe(width)\r\n    })\r\n\r\n    it('keeps double-click on an inline node label opening details', () => {\r\n        const { geometry, selection, session } = createHarness()\r\n        const details = new DiagramObjectDetailsService()\r\n        render(<EditableDiagram details={details} geometry={geometry} selection={selection} session={session} />)\r\n\r\n        fireEvent.doubleClick(screen.getByRole('textbox', { name: 'Edit Orders label' }))\r\n\r\n",
+          "durationMs": 203,
+          "exitCode": 0,
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-event-64",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/components/diagram_view/editing/diagram_inline_edge_controls.tsx'; Get-Content 'app/src/components/diagram_view/editing/editable_diagram.test.tsx' | Select-Object -Skip 160 -First 70\"",
+          "providerItemId": "exec-3efb6a8d-6e72-45bc-8e67-f7662a634dac",
+          "sequence": 64,
+          "status": "completed",
+          "timestamp": "2026-11-02T13:49:15.210Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-event-65",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f2b37be7bc9f64f016ae894ea81948191afe5b1c6ebd22741",
+          "sequence": 65,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-02T13:49:28.586Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\diagram_view\\editing\\diagram_inline_edge_controls.tsx\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\diagram_view\\editing\\editable_diagram.test.tsx",
+          "deletions": 2,
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-event-66",
+          "insertions": 25,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-f474e299-35e7-4963-b2f7-ab9284987564",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-11-02T13:49:33.802Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-event-67",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f2b37be7bc9f64f016ae894f7e220819180beec730fa6f925",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-02T13:49:41.955Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "Selected model is at capacity. Please try a different model.",
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-event-68",
+          "kind": "event",
+          "label": "Turn failure",
+          "providerItemId": "system:01a19c85-14bc-74e0-a65a-8abb8fe3c2fe:error",
+          "sequence": 68,
+          "status": "failed",
+          "timestamp": "2026-11-02T13:49:43.242Z",
+          "type": "system"
+        },
+        {
+          "content": "Selected model is at capacity. Please try a different model.",
+          "id": "agent-turn-532467c4-cdac-4ca7-ad17-7469be75ea12-event-69",
+          "kind": "event",
+          "label": "Turn failure",
+          "providerItemId": "system:01a19c85-14bc-74e0-a65a-8abb8fe3c2fe:turn/completed",
+          "sequence": 69,
+          "status": "failed",
+          "timestamp": "2026-11-02T13:49:43.253Z",
+          "type": "system"
         }
       ],
       "hasExplicitTitle": true,
@@ -3295,34 +3393,34 @@
         }
       ],
       "startedAt": "2026-11-02T13:33:31.395Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
             "id": "0",
-            "subject": "Inspect F_453 and trace node/connection creation and label-edit call sites",
+            "subject": "Adjust inline connection editor width for focused and resting states",
             "status": "completed"
           },
           {
             "id": "1",
-            "subject": "Implement the smallest connection inline-editor fix and add/update regression tests",
+            "subject": "Add regression coverage for expand-on-focus and collapse-on-blur",
             "status": "completed"
           },
           {
             "id": "2",
-            "subject": "Run targeted tests and lint for affected files",
-            "status": "completed"
+            "subject": "Run focused tests and lint affected files",
+            "status": "inProgress"
           }
         ],
-        "updatedAt": "2026-11-02T13:42:56.583Z"
+        "updatedAt": "2026-11-02T13:49:42.566Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 754,
-          "toolMs": 158260
+          "reasoningMs": 797,
+          "toolMs": 159453
         },
-        "elapsedMs": 488959,
-        "runningStartedAt": "2026-11-02T13:48:49.722Z"
+        "elapsedMs": 542491,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
