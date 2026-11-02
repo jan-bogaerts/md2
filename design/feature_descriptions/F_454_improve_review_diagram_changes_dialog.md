@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__5b8fe025-448b-453b-a4f4-44d680b4a037.json
 policy:
-branch: f_454_improve_review_diagram_changes_dialog
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/editing/diagram_editor_integration.test.tsx
   - app/src/components/diagram_view/editing/editable_diagram.tsx
