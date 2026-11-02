@@ -3,7 +3,7 @@ author:
 id: F_454
 internalId: 5b8fe025-448b-453b-a4f4-44d680b4a037
 title: improve review diagram changes dialog
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,21 @@ agents:
 policy:
 branch: f_454_improve_review_diagram_changes_dialog
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/editing/diagram_editor_integration.test.tsx
+  - app/src/components/diagram_view/editing/editable_diagram.tsx
+  - app/src/components/diagram_view/review/diagram_change_action_popup.tsx
+  - app/src/components/diagram_view/review/diagram_change_review_actions.tsx
+  - app/src/components/diagram_view/review/diagram_change_review_button.test.tsx
+  - app/src/components/diagram_view/review/diagram_change_review_button.tsx
+  - app/src/components/diagram_view/review/diagram_change_review_card_fields.tsx
+  - app/src/components/diagram_view/review/diagram_change_review_dialog.test.tsx
+  - app/src/components/diagram_view/review/diagram_change_review_dialog.tsx
+  - app/src/components/diagram_view/review/diagram_change_review_report.tsx
+  - app/src/components/diagram_view/review/diagram_change_review_service.test.ts
+  - app/src/components/diagram_view/review/diagram_change_review_service.ts
+  - app/src/components/diagram_view/review/diagram_implementation_instructions.test.ts
+  - app/src/components/diagram_view/review/diagram_implementation_instructions.ts
 ---
 
 We have the 'review changes dialog' where the user can see all the changes that were applied to a diagram since it was last changed. If there are any, this list can be sent to an agent with a prompt.
