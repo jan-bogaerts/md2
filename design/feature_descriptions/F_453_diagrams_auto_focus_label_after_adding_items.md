@@ -10,8 +10,6 @@ agents:
   - design/activity/card__ed0eaa91-383d-492b-ad2d-06963c9777a6.json
 policy:
 after: a18b2880-10c9-4ded-b45c-29113f160478
-branch: f_453_diagrams_auto_focus_label_after_adding_items
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/details/diagram_edge_details_editor.tsx
   - app/src/components/diagram_view/details/diagram_object_details_dialog.test.tsx
