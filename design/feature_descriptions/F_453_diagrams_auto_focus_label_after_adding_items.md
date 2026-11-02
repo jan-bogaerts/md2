@@ -15,10 +15,14 @@ changedFiles:
   - app/src/components/diagram_view/details/diagram_object_details_dialog.test.tsx
   - app/src/components/diagram_view/details/diagram_object_details_dialog.tsx
   - app/src/components/diagram_view/editing/diagram_edge_label_focus_handler.tsx
+  - app/src/components/diagram_view/editing/diagram_inline_edge_controls.tsx
   - app/src/components/diagram_view/editing/diagram_inline_node_controls.tsx
+  - app/src/components/diagram_view/editing/editable_diagram.test.tsx
   - app/src/components/diagram_view/editing/editable_diagram.tsx
   - app/src/components/diagram_view/editing/editable_diagram_collections.tsx
+  - app/src/components/diagram_view/editing/editable_diagram_edge.tsx
   - app/src/components/diagram_view/editing/editable_diagram_node.tsx
+  - app/src/components/diagram_view/rendering/diagram_edge.tsx
   - app/src/components/diagram_view/rendering/diagram_node.tsx
   - app/src/components/diagram_view/surface/diagram_zoom_viewport.test.tsx
   - app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx
