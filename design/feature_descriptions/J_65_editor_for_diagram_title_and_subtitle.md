@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__73f5ddab-c096-401a-839f-f327d5415f86.json
 policy:
-branch: j_65_editor_for_diagram_title_and_subtitle
-worktree: 3
 changedFiles:
   - app/src/components/diagram_view/surface/diagram_breadcrumb_bar.test.tsx
   - app/src/components/diagram_view/surface/diagram_breadcrumb_metadata_field.test.tsx
