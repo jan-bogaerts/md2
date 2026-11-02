@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__73f5ddab-c096-401a-839f-f327d5415f86.json
 policy:
+branch: j_65_editor_for_diagram_title_and_subtitle
+worktree: 3
 ---
 
 We currently show the title and subtitle on the diagram in the upper left corner, both in edit as in view mode I believe (if so, both need to be fixed). These 2 should be removed, and instead, the sub title should be shown in the bar where the breadcrumbs are, just below the breadcrumbs. The title is already shown as the last item in the breadcrumbs list.\
