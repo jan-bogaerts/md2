@@ -3273,6 +3273,14 @@
           "role": "assistant",
           "sequence": 60,
           "timestamp": "2026-11-02T13:43:17.631Z"
+        },
+        {
+          "content": "the new inline connection label editor seems a bit wide, for editing, this is ok, but when not editing (not focused), can we keep the component as small as the text? now it can be over the actual line",
+          "id": "submission-ec38aad6-a160-4460-8b7c-30548186d71a",
+          "kind": "message",
+          "role": "user",
+          "sequence": 61,
+          "timestamp": "2026-11-02T13:48:49.722Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3287,7 +3295,7 @@
         }
       ],
       "startedAt": "2026-11-02T13:33:31.395Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -3314,7 +3322,7 @@
           "toolMs": 158260
         },
         "elapsedMs": 488959,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-02T13:48:49.722Z"
       },
       "title": "+",
       "usage": {
