@@ -48,15 +48,12 @@ afterEach(() => {
 })
 
 describe('DiagramCurrentViewport', () => {
-    it('keeps title and subtitle in one sticky header above drawing', () => {
+    it('renders no title or subtitle inside the Current diagram', () => {
         renderCurrentViewport()
-        const title = screen.getByText('Current', { selector: 'h6' })
-        const subtitle = screen.getByText('Current diagram')
-        const header = title.parentElement
 
-        expect(header).toContainElement(subtitle)
-        expect(header).toHaveStyle({ position: 'sticky' })
-        expect((header as HTMLElement).compareDocumentPosition(screen.getByLabelText('Current diagram')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(screen.queryByText('Current', { selector: 'h6' })).not.toBeInTheDocument()
+        expect(screen.queryByText('Current diagram')).not.toBeInTheDocument()
+        expect(screen.getByLabelText('Current diagram')).toBeInTheDocument()
     })
 
     it('scales Current visually, keeps viewport center, and preserves item activation', () => {

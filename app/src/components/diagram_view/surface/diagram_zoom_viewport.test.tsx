@@ -224,16 +224,13 @@ describe('DiagramZoomViewport', () => {
         expect(geometry.getSurfaceFieldSnapshot('height')).toBeGreaterThan(minimumHeight)
     })
 
-    it('keeps editable title and subtitle in one sticky header above drawing', () => {
+    it('renders no metadata header above the New drawing surface', () => {
         const { geometry, session } = createHarness()
         render(<DiagramZoomViewport geometry={geometry} session={session} />)
-        const title = screen.getByRole('textbox', { name: 'Diagram title' })
-        const subtitle = screen.getByRole('textbox', { name: 'Diagram subtitle' })
-        const header = title.closest('.MuiBox-root')
 
-        expect(header).toContainElement(subtitle)
-        expect(window.getComputedStyle(header as Element).position).toBe('sticky')
-        expect((header as HTMLElement).compareDocumentPosition(screen.getByLabelText('New diagram')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(screen.queryByRole('textbox', { name: 'Diagram title' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('textbox', { name: 'Diagram subtitle' })).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('New diagram editor header')).not.toBeInTheDocument()
     })
 
     it('preserves scroller position when a node expands left and top margins at zoom', () => {

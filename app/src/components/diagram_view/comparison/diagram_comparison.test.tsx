@@ -153,7 +153,7 @@ describe('DiagramComparison', () => {
     it.each([
         ['title', 'Overview', 'Updated overview'],
         ['description', 'Orders architecture', 'Updated architecture'],
-    ] as const)('keeps Current fixed and updates only New %s metadata leaf', (field, originalValue, value) => {
+    ] as const)('renders %s metadata in neither Current nor New after an edit', (field, originalValue, value) => {
         const { geometry, session } = createHarness()
         let comparisonRenders = 0
         const Comparison = () => {
@@ -175,9 +175,10 @@ describe('DiagramComparison', () => {
 
         act(() => { session.objects.setMetadataField(field, value) })
 
-        expect(within(current).getByText(originalValue)).toBeInTheDocument()
-        expect(within(next).getByDisplayValue(value)).toBeInTheDocument()
-        expect(within(next).queryByDisplayValue(originalValue)).not.toBeInTheDocument()
+        expect(session.read.getMetadataFieldSnapshot(field)).toBe(value)
+        expect(within(current).queryByText(originalValue)).not.toBeInTheDocument()
+        expect(within(next).queryByDisplayValue(value)).not.toBeInTheDocument()
+        expect(within(next).queryByText(value)).not.toBeInTheDocument()
         expect(current.innerHTML).toBe(currentMarkup)
         expect(comparisonRenders).toBe(1)
     })

@@ -9,12 +9,8 @@ import { DiagramMoveService } from '../../../services/diagrams/diagram_move_serv
 import { DiagramResizeService } from '../../../services/diagrams/diagram_resize_service'
 import { DiagramSelectionService } from '../../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
-import {
-    EditableDiagram,
-    EditableDiagramDescription,
-    EditableDiagramSurface,
-    EditableDiagramTitle,
-} from './editable_diagram'
+import { EditableDiagram, EditableDiagramSurface } from './editable_diagram'
+import { DiagramBreadcrumbMetadataField } from '../surface/diagram_breadcrumb_metadata_field'
 import { EditableDiagramNodes } from './editable_diagram_collections'
 import { EditableDiagramNode } from './editable_diagram_node'
 import { DiagramZoomViewport } from '../surface/diagram_zoom_viewport'
@@ -72,8 +68,8 @@ function MeasuredMetadata({ counts, onRootRender, session }: {
 
     return (
         <>
-            <Counted counts={counts} id="title"><EditableDiagramTitle session={session} /></Counted>
-            <Counted counts={counts} id="description"><EditableDiagramDescription session={session} /></Counted>
+            <Counted counts={counts} id="title"><DiagramBreadcrumbMetadataField field="title" session={session} /></Counted>
+            <Counted counts={counts} id="description"><DiagramBreadcrumbMetadataField field="description" session={session} /></Counted>
         </>
     )
 }
@@ -117,7 +113,7 @@ describe('editable diagram', () => {
                 },
             }
             const { session } = createHarness(sourceDiagram)
-            render(<><EditableDiagramTitle session={session} /><EditableDiagramDescription session={session} /></>)
+            render(<><DiagramBreadcrumbMetadataField field="title" session={session} /><DiagramBreadcrumbMetadataField field="description" session={session} /></>)
 
             const title = screen.getByRole('textbox', { name: 'Diagram title' })
             const subtitle = screen.getByRole('textbox', { name: 'Diagram subtitle' })
@@ -131,23 +127,13 @@ describe('editable diagram', () => {
         },
     )
 
-    it('edits title and subtitle in place and rejects blank title', () => {
+    it('renders no title or subtitle inside the New diagram', () => {
         const { geometry, selection, session } = createHarness()
         render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
-        const title = screen.getByRole('textbox', { name: 'Diagram title' })
-        const subtitle = screen.getByRole('textbox', { name: 'Diagram subtitle' })
 
-        fireEvent.change(title, { target: { value: 'Revised overview' } })
-        fireEvent.blur(title)
-        fireEvent.change(subtitle, { target: { value: 'Revised description' } })
-        fireEvent.blur(subtitle)
-
-        expect(session.read.getMetadataFieldSnapshot('title')).toBe('Revised overview')
-        expect(session.read.getMetadataFieldSnapshot('description')).toBe('Revised description')
-        fireEvent.change(title, { target: { value: ' ' } })
-        fireEvent.blur(title)
-        expect(screen.getByText('Title is required.')).toBeInTheDocument()
-        expect(session.read.getMetadataFieldSnapshot('title')).toBe('Revised overview')
+        expect(screen.queryByRole('textbox', { name: 'Diagram title' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('textbox', { name: 'Diagram subtitle' })).not.toBeInTheDocument()
+        expect(screen.queryByText('Orders architecture')).not.toBeInTheDocument()
     })
 
     it('edits node label in place and opens details from its action', () => {
@@ -246,12 +232,10 @@ describe('editable diagram', () => {
         expect(details.getTargetSnapshot()).toEqual({ objectId: 'orders', objectKind: 'node' })
     })
 
-    it('renders metadata, surface, and every collection from service data alone', () => {
+    it('renders surface and every collection from service data alone', () => {
         const { geometry, selection, session } = createHarness()
         render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
 
-        expect(screen.getByRole('textbox', { name: 'Diagram title' })).toHaveValue('Overview')
-        expect(screen.getByRole('textbox', { name: 'Diagram subtitle' })).toHaveValue('Orders architecture')
         expect(screen.getByLabelText('New diagram')).toBeTruthy()
         expect(screen.getByRole('button', { name: 'Orders' })).toBeTruthy()
         expect(screen.getByRole('button', { name: 'Store' })).toBeTruthy()

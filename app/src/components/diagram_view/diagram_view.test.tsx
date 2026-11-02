@@ -429,16 +429,21 @@ describe('DiagramView', () => {
         vi.restoreAllMocks()
     })
 
-    it('renders icon-only Back and transparent breadcrumb bar over active diagram', async () => {
+    it('renders icon-only Back and breadcrumb bar above diagram content', async () => {
         const service = createService()
         const user = userEvent.setup()
         render(<DiagramView service={service} />)
         const activeDiagram = screen.getByLabelText('Active diagram')
         const breadcrumbBar = screen.getByLabelText('Diagram breadcrumb bar')
+        const content = screen.getByLabelText('Diagram content')
         const back = screen.getByRole('button', { name: 'Back' })
 
         expect(activeDiagram).toContainElement(breadcrumbBar)
-        expect(breadcrumbBar).toHaveStyle({ position: 'absolute' })
+        expect(content).not.toContainElement(breadcrumbBar)
+        expect(breadcrumbBar).not.toHaveStyle({ position: 'absolute' })
+        expect(breadcrumbBar.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(within(breadcrumbBar).getByLabelText('Diagram subtitle')).toHaveTextContent('Customer ordering flow')
+        expect(within(content).queryByText('Customer ordering flow')).not.toBeInTheDocument()
         expect(back).toHaveTextContent('')
         await user.hover(back)
         expect(await screen.findByRole('tooltip', { name: 'Back' })).toBeInTheDocument()
@@ -782,9 +787,28 @@ describe('DiagramView', () => {
 
         act(() => { editSession.objects.setMetadataField('title', 'New title') })
 
-        expect(within(screen.getByLabelText('Diagram breadcrumb')).getByRole('button', { name: 'New title' })).toBeInTheDocument()
+        expect(within(screen.getByLabelText('Diagram breadcrumb')).getByRole('textbox', { name: 'Diagram title' })).toHaveValue('New title')
         expect(service.getIndexSnapshot().diagrams['child-1'].label).toBe('Orders')
     })
+
+    it.each(['horizontal', 'vertical', 'tabbed'] as const)(
+        'keeps title and subtitle out of %s comparison content',
+        (comparisonMode) => {
+            const service = createService()
+            const { editSession, geometry } = createEditHarness()
+            const layoutService = new DiagramComparisonLayoutService()
+            layoutService.setComparisonMode(comparisonMode)
+            render(<DiagramView editSession={editSession} geometry={geometry} layoutService={layoutService} service={service} />)
+            const content = screen.getByLabelText('Diagram content')
+            const breadcrumbBar = screen.getByLabelText('Diagram breadcrumb bar')
+
+            expect(content).not.toContainElement(breadcrumbBar)
+            expect(within(content).queryByRole('textbox', { name: 'Diagram title' })).not.toBeInTheDocument()
+            expect(within(content).queryByRole('textbox', { name: 'Diagram subtitle' })).not.toBeInTheDocument()
+            expect(within(content).queryByText('Customer ordering flow')).not.toBeInTheDocument()
+            expect(within(breadcrumbBar).getByRole('textbox', { name: 'Diagram subtitle' })).toHaveValue('Customer ordering flow')
+        },
+    )
 
     it.each(['horizontal', 'vertical', 'tabbed'] as const)(
         'shows only editable New after restored creation with prior %s comparison selection',

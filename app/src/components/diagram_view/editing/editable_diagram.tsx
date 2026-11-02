@@ -49,7 +49,6 @@ import {
     diagramChangeReviewService, type DiagramChangeReviewService,
 } from '../review/diagram_change_review_service'
 import { DiagramChangeActionPopup } from '../review/diagram_change_action_popup'
-import { DiagramInlineMetadataField } from './diagram_inline_metadata_field'
 import { useActiveDiagramTool } from './use_diagram_tool'
 import {
     diagramLabelFocusService, type DiagramLabelFocusService,
@@ -68,20 +67,6 @@ interface EditableDiagramProps {
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
     viewService?: DiagramViewService
-}
-
-interface MetadataLeafProps {
-    session?: DiagramEditSessionService
-}
-
-/** Title of the New diagram; it observes that one metadata field. */
-export function EditableDiagramTitle({ session = diagramEditSessionService }: MetadataLeafProps) {
-    return <DiagramInlineMetadataField field="title" session={session} />
-}
-
-/** Description of the New diagram; it observes that one metadata field. */
-export function EditableDiagramDescription({ session = diagramEditSessionService }: MetadataLeafProps) {
-    return <DiagramInlineMetadataField field="description" session={session} />
 }
 
 /**
@@ -250,13 +235,9 @@ export function EditableDiagram({
         <Box
             {...{ [DIAGRAM_EDITOR_ROOT_ATTRIBUTE]: 'true' }}
             aria-label="New diagram editor"
-            sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pb: 2 }}
+            sx={{ display: 'flex', flexDirection: 'column', pb: 2 }}
             tabIndex={-1}
         >
-            <Box aria-label="New diagram editor header" sx={{ bgcolor: 'custom.projectBackground', left: 0, position: 'sticky', top: 0, width: 'fit-content', zIndex: 5 }}>
-                <EditableDiagramTitle session={session} />
-                <EditableDiagramDescription session={session} />
-            </Box>
             <EditableDiagramSurface geometry={geometry} selection={selection} session={session} viewService={viewService}>
                 <EditableDiagramGroups details={details} emphasis={emphasis} geometry={geometry} selection={selection} session={session} />
                 <DiagramGroupDrawingPreview drawing={groupDrawing} />

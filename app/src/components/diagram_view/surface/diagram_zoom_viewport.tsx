@@ -247,11 +247,9 @@ export function DiagramZoomViewport({
 
     useLayoutEffect(() => {
         const scroller = scrollerRef.current
-        const header = zoomSurfaceRef.current?.querySelector<HTMLElement>('[aria-label="New diagram editor header"]')
-        if (!scroller || !header) return
+        if (!scroller) return
         const observer = new ResizeObserver(updateViewportMinimum)
         observer.observe(scroller)
-        observer.observe(header)
         updateViewportMinimum()
 
         return () => observer.disconnect()
@@ -533,7 +531,7 @@ export function DiagramZoomViewport({
             onPointerUp={handlePointerUp}
             onScroll={handleScroll}
             ref={scrollerRef}
-            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'scroll', overflowY: 'scroll', px: 2, pb: 2, pt: 7, touchAction: panToolActive ? 'none' : 'pan-x pan-y' }}
+            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'scroll', overflowY: 'scroll', p: 2, touchAction: panToolActive ? 'none' : 'pan-x pan-y' }}
         >
             <Box data-testid="new-diagram-zoom-surface" ref={zoomSurfaceRef} sx={{ transformOrigin: 'top left', zoom: scale }}>
                 <NewDiagram

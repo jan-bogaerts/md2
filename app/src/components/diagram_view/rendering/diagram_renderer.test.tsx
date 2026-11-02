@@ -49,7 +49,9 @@ describe('DiagramRenderer', () => {
     it.each(['architecture', 'dependency', 'sequence', 'flow', 'entity', 'mindmap'] as const)('renders supported %s data', (type) => {
         renderDiagram(diagram(type))
 
-        expect(screen.getByRole('heading', { name: `${type} title` })).toBeInTheDocument()
+        expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+        expect(screen.queryByText(`${type} description`)).not.toBeInTheDocument()
+        expect(screen.getByLabelText(`${type} title diagram`)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'One' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'connects' })).toBeInTheDocument()
         expect(screen.getByRole('group', { name: 'Scope' })).toBeInTheDocument()
