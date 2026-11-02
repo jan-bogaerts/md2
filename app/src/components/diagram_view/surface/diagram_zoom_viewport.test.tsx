@@ -7,6 +7,7 @@ import { DiagramEdgeDrawingService } from '../../../services/diagrams/diagram_ed
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
 import { DiagramGroupDrawingService } from '../../../services/diagrams/diagram_group_drawing_service'
+import { DiagramLabelFocusService } from '../../../services/diagrams/diagram_label_focus_service'
 import { DiagramMoveService } from '../../../services/diagrams/diagram_move_service'
 import { DiagramNodePlacementService } from '../../../services/diagrams/diagram_node_placement_service'
 import { DiagramResizeService } from '../../../services/diagrams/diagram_resize_service'
@@ -27,7 +28,7 @@ function render(element: ReactElement) {
 const diagram: DiagramData = {
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
     groups: [{ height: 160, id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'], width: 480, x: 200, y: 80 }],
-    meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
+    meta: { description: 'Orders architecture', legend: [], title: 'Overview', type: 'architecture', version: 1 },
     nodes: [
         { id: 'orders', label: 'Orders', role: 'focal', x: 240, y: 120 },
         { id: 'store', label: 'Store', role: 'store', x: 480, y: 120 },
@@ -39,7 +40,7 @@ const sequenceDiagram: DiagramData = {
         { from: 'store', id: 'store-orders', kind: 'return', label: 'done', to: 'orders' },
     ],
     groups: [],
-    meta: { description: 'Orders sequence', title: 'Sequence', type: 'sequence', version: 1 },
+    meta: { description: 'Orders sequence', legend: [], title: 'Sequence', type: 'sequence', version: 1 },
     nodes: [
         { id: 'orders', kind: 'participant', label: 'Orders', role: 'focal', x: 40, y: 40 },
         { id: 'store', kind: 'participant', label: 'Store', role: 'store', x: 256, y: 40 },
@@ -71,14 +72,16 @@ function createHarness(sourceDiagram: DiagramData = diagram) {
     session.start()
     const geometry = new DiagramGeometryService(session)
     const selection = new DiagramSelectionService(session, geometry)
-    const placement = new DiagramNodePlacementService(session, selection)
-    const drawing = new DiagramEdgeDrawingService(session, geometry, selection)
+    const labelFocus = new DiagramLabelFocusService(session)
+    const placement = new DiagramNodePlacementService(session, selection, labelFocus)
+    const drawing = new DiagramEdgeDrawingService(session, geometry, selection, labelFocus)
     const groupDrawing = new DiagramGroupDrawingService(session, selection)
 
     return {
         drawing,
         geometry,
         groupDrawing,
+        labelFocus,
         movement: new DiagramMoveService(session, geometry, selection),
         placement,
         resize: new DiagramResizeService(session, geometry, selection),
@@ -155,7 +158,7 @@ afterEach(() => {
 
 describe('DiagramZoomViewport', () => {
     it.each(['empty', 'small'])('keeps a scrollable drawing surface for %s diagrams through resize and zoom', (kind) => {
-        const meta: DiagramData['meta'] = { description: '', title: kind, type: 'architecture', version: 1 }
+        const meta: DiagramData['meta'] = { description: '', legend: [], title: kind, type: 'architecture', version: 1 }
         const nodes: DiagramData['nodes'] = kind === 'small'
             ? [{ id: 'small', label: 'Small', role: 'focal', x: 40, y: 40 }] : []
         const sourceDiagram: DiagramData = { edges: [], groups: [], meta, nodes }
@@ -294,7 +297,7 @@ describe('DiagramZoomViewport', () => {
     it('targets entity field text in preview and completion', () => {
         const source: DiagramData = {
             edges: [], groups: [],
-            meta: { description: 'Entities', title: 'Entities', type: 'entity', version: 1 },
+            meta: { description: 'Entities', legend: [], title: 'Entities', type: 'entity', version: 1 },
             nodes: [
                 { fields: [{ name: 'sourceField' }], id: 'orders', kind: 'entity', label: 'Orders', role: 'focal', x: 40, y: 40 },
                 { fields: [{ name: 'targetField' }], id: 'store', kind: 'entity', label: 'Store', role: 'store', x: 240, y: 40 },
@@ -473,6 +476,85 @@ describe('DiagramZoomViewport', () => {
         await user.click(screen.getByRole('button', { name: 'Save' }))
         expect(session.read.getGroupIdsSnapshot()).toHaveLength(2)
         expect(session.read.getActiveToolSnapshot()).toBe('group')
+    })
+
+    it('focuses and selects a Ctrl-added node label while keeping its Add tool active', async () => {
+        const { geometry, labelFocus, placement, selection, session } = createHarness()
+        const user = userEvent.setup()
+        render(
+            <DiagramZoomViewport
+                geometry={geometry}
+                labelFocus={labelFocus}
+                placement={placement}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        act(() => {
+            placement.activate({ defaults: { height: 72, label: 'New component', role: 'focal', width: 160 }, kind: 'component' })
+        })
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 45 })
+        fireEvent.pointerUp(scroller, { clientX: 100, clientY: 80, ctrlKey: true, pointerId: 45 })
+
+        const label = await screen.findByRole('textbox', { name: 'Edit New component label' })
+        await waitFor(() => expect(label).toHaveFocus())
+        expect(label).toHaveValue('New component')
+        expect((label as HTMLInputElement).selectionStart).toBe(0)
+        expect((label as HTMLInputElement).selectionEnd).toBe('New component'.length)
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
+        expect(session.read.getActiveToolSnapshot()).toBe('node:component')
+
+        await user.keyboard('Payments')
+        fireEvent.blur(label)
+        expect(session.read.getNodeFieldSnapshot(session.read.getNodeIdsSnapshot()[2], 'label')).toBe('Payments')
+        expect(session.read.getNodeIdsSnapshot()).toHaveLength(3)
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 180, clientY: 160, isPrimary: true, pointerId: 46 })
+        fireEvent.pointerUp(scroller, { clientX: 180, clientY: 160, pointerId: 46 })
+        expect(session.read.getNodeIdsSnapshot()).toHaveLength(4)
+    })
+
+    it('opens and selects a Ctrl-added edge label while keeping its Add tool active', async () => {
+        const { drawing, geometry, labelFocus, selection, session } = createHarness()
+        const details = new DiagramObjectDetailsService()
+        const user = userEvent.setup()
+        render(
+            <DiagramZoomViewport
+                details={details}
+                drawing={drawing}
+                geometry={geometry}
+                labelFocus={labelFocus}
+                selection={selection}
+                session={session}
+            />,
+        )
+        act(() => { drawing.activate({ kind: 'data', label: 'New data' }) })
+
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Orders' }), {button: 0, clientX: 400, clientY: 140, isPrimary: true, pointerId: 47})
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Store' }), {button: 0, clientX: 520, clientY: 140, ctrlKey: true, isPrimary: true, pointerId: 48})
+
+        const label = await screen.findByRole('textbox', { name: 'Label' })
+        await waitFor(() => expect(label).toHaveFocus())
+        expect(label).toHaveValue('New data')
+        expect((label as HTMLInputElement).selectionStart).toBe(0)
+        expect((label as HTMLInputElement).selectionEnd).toBe('New data'.length)
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
+        expect(session.read.getActiveToolSnapshot()).toBe('edge:data')
+
+        await user.keyboard('Payload')
+        await user.click(screen.getByRole('button', { name: 'Save' }))
+        const firstAddedEdgeId = session.read.getEdgeIdsSnapshot().at(-1) as string
+        expect(session.read.getEdgeFieldSnapshot(firstAddedEdgeId, 'label')).toBe('Payload')
+        expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('Orders')
+        expect(session.read.getNodeFieldSnapshot('store', 'label')).toBe('Store')
+        expect(session.read.getActiveToolSnapshot()).toBe('edge:data')
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Orders' }), {button: 0, clientX: 400, clientY: 140, isPrimary: true, pointerId: 49})
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Store' }), {button: 0, clientX: 520, clientY: 140, isPrimary: true, pointerId: 50})
+        expect(session.read.getEdgeIdsSnapshot()).toHaveLength(3)
     })
 
     it('uses sequence lifelines to insert a message at the chosen row', () => {

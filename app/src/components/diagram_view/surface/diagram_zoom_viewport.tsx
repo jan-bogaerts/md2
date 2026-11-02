@@ -44,6 +44,9 @@ import { useActiveDiagramTool } from '../editing/use_diagram_tool'
 import { useDiagramSurfaceField } from '../editing/use_diagram_geometry'
 import { useDiagramPinchZoom } from './use_diagram_pinch_zoom'
 import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
+import {
     DIAGRAM_ESCAPE_REQUESTED_EVENT,
     diagramKeyboardShortcutService,
     type DiagramEscapeRequestedDetail,
@@ -55,6 +58,7 @@ interface DiagramZoomViewportProps {
     emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
+    labelFocus?: DiagramLabelFocusService
     movement?: DiagramMoveService
     placement?: DiagramNodePlacementService
     resize?: DiagramResizeService
@@ -115,6 +119,7 @@ export function DiagramZoomViewport({
     emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
+    labelFocus = diagramLabelFocusService,
     movement = diagramMoveService,
     placement = diagramNodePlacementService,
     resize = diagramResizeService,
@@ -537,6 +542,7 @@ export function DiagramZoomViewport({
                     emphasis={emphasis}
                     geometry={geometry}
                     groupDrawing={groupDrawing}
+                    labelFocus={labelFocus}
                     placement={placement}
                     review={review}
                     selection={selection}

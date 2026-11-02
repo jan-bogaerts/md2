@@ -1,17 +1,37 @@
 import MoreHorizOutlined from '@mui/icons-material/MoreHorizOutlined'
 import { Box, IconButton, TextField, Tooltip } from '@mui/material'
-import { useState, type ChangeEvent, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
+import {
+    useCallback, useEffect, useRef, useState, useSyncExternalStore,
+    type ChangeEvent, type KeyboardEvent, type MouseEvent, type PointerEvent,
+} from 'react'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
+import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
 import type { PositionedDiagramNode } from '../../../services/diagrams/diagram_layout'
 
 /** Inline label and details action above one editable node. */
-export function DiagramInlineNodeControls({ autoWrap, contentInset, node, onOpenDetails, session }: {
+export function DiagramInlineNodeControls({
+    autoWrap,
+    contentInset,
+    labelFocus = diagramLabelFocusService,
+    node,
+    onOpenDetails,
+    session,
+}: {
     autoWrap: boolean
     contentInset: number
+    labelFocus?: DiagramLabelFocusService
     node: PositionedDiagramNode
     onOpenDetails: () => void
     session: DiagramEditSessionService
 }) {
+    const inputRef = useRef<HTMLInputElement>(null)
+    const subscribeFocus = useCallback((listener: () => void) => (
+        labelFocus.subscribeFocus('node', node.id, listener)
+    ), [labelFocus, node.id])
+    const getFocusSnapshot = useCallback(() => labelFocus.getFocusSnapshot('node', node.id), [labelFocus, node.id])
+    const focusRequested = useSyncExternalStore(subscribeFocus, getFocusSnapshot, getFocusSnapshot)
     const [draftState, setDraftState] = useState({ base: node.label, value: node.label })
     const draft = draftState.base === node.label ? draftState.value : node.label
     const [error, setError] = useState<string | null>(null)
@@ -50,6 +70,14 @@ export function DiagramInlineNodeControls({ autoWrap, contentInset, node, onOpen
         onOpenDetails()
     }
 
+    useEffect(() => {
+        if (!focusRequested || !inputRef.current) return
+
+        inputRef.current.focus()
+        inputRef.current.select()
+        labelFocus.complete({ objectId: node.id, objectKind: 'node' })
+    }, [focusRequested, labelFocus, node.id])
+
     return (
         <Box
             className="diagram-node-inline-controls"
@@ -68,6 +96,7 @@ export function DiagramInlineNodeControls({ autoWrap, contentInset, node, onOpen
             <TextField
                 error={!!error}
                 helperText={error}
+                inputRef={inputRef}
                 multiline={autoWrap}
                 onBlur={commit}
                 onChange={handleChange}

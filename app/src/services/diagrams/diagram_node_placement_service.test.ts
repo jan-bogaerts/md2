@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { parseDiagramData, type DiagramData, type DiagramNodeKind } from './diagram_data'
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import type { DiagramRecord } from './diagram_index'
+import { DiagramLabelFocusService } from './diagram_label_focus_service'
 import { DiagramNodePlacementService } from './diagram_node_placement_service'
 import { DiagramSelectionService } from './diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
@@ -75,11 +76,12 @@ function createHarness(source = diagram('architecture')) {
         .mockReturnValueOnce('placed-node')
     const session = new DiagramEditSessionService(new DiagramSourceStub(source), createId, vi.fn())
     const selection = new DiagramSelectionService(session, geometryStub)
-    const placement = new DiagramNodePlacementService(session, selection)
+    const labelFocus = new DiagramLabelFocusService(session)
+    const placement = new DiagramNodePlacementService(session, selection, labelFocus)
     session.bindProject({ branch: 'main', id: 'project', rootPath: 'C:/repo' })
     session.start()
 
-    return { createId, placement, selection, session }
+    return { createId, labelFocus, placement, selection, session }
 }
 
 const stepDefinition = {
@@ -135,22 +137,24 @@ const entityDefinition = {
 
 describe('DiagramNodePlacementService', () => {
     it('places two nodes without reselecting their creation tool', () => {
-        const { createId, placement, session } = createHarness()
+        const { createId, labelFocus, placement, session } = createHarness()
         createId.mockReturnValueOnce('second-node')
         placement.activate(componentDefinition)
 
         placement.updatePreview({ x: 32, y: 40 })
         expect(placement.place({ x: 32, y: 40 }, true)).toBe('placed-node')
+        expect(labelFocus.getTargetSnapshot()).toEqual({ objectId: 'placed-node', objectKind: 'node' })
         placement.updatePreview({ x: 80, y: 88 })
         expect(placement.place({ x: 80, y: 88 }, true)).toBe('second-node')
 
         expect(session.read.getNodeIdsSnapshot()).toContain('second-node')
         expect(session.read.getActiveToolSnapshot()).toBe('node:component')
         expect(placement.getPreviewSnapshot()).toBeNull()
+        expect(labelFocus.getTargetSnapshot()).toEqual({ objectId: 'second-node', objectKind: 'node' })
     })
 
     it('returns to Select and keeps the node selected when placed without continuous add', () => {
-        const { placement, selection, session } = createHarness()
+        const { labelFocus, placement, selection, session } = createHarness()
         placement.activate(componentDefinition)
 
         expect(placement.place({ x: 32, y: 40 }, false)).toBe('placed-node')
@@ -159,16 +163,18 @@ describe('DiagramNodePlacementService', () => {
         expect(session.read.getLastSelectedCreationToolSnapshot()).toBe('node:component')
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
         expect(placement.isPlacementActive()).toBe(false)
+        expect(labelFocus.getTargetSnapshot()).toEqual({ objectId: 'placed-node', objectKind: 'node' })
     })
 
     it('keeps the node tool active when a create is rejected', () => {
-        const { placement, session } = createHarness()
+        const { labelFocus, placement, session } = createHarness()
         placement.activate(componentDefinition)
         vi.spyOn(session, 'createNode').mockReturnValue(null)
 
         expect(placement.place({ x: 32, y: 40 }, false)).toBeNull()
 
         expect(session.read.getActiveToolSnapshot()).toBe('node:component')
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
     })
 
     it('switches to Topic after placing the only allowed mindmap root, even without continuous add', () => {
@@ -470,7 +476,7 @@ describe('DiagramNodePlacementService', () => {
     })
 
     it('cancels preview without creating a node and returns to Select', () => {
-        const { placement, session } = createHarness()
+        const { labelFocus, placement, session } = createHarness()
         const nodeIds = session.read.getNodeIdsSnapshot()
         placement.activate(componentDefinition)
         placement.updatePreview({ x: 32, y: 40 })
@@ -481,6 +487,7 @@ describe('DiagramNodePlacementService', () => {
         expect(session.read.getChangeIdsSnapshot()).toEqual([])
         expect(placement.getPreviewSnapshot()).toBeNull()
         expect(session.read.getActiveToolSnapshot()).toBe('node:component')
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
     })
 
     it('clears preview when placement is canceled and keeps its tool available', () => {

@@ -8,6 +8,7 @@ import {
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import { DiagramGeometryService } from './diagram_geometry_service'
 import type { DiagramRecord } from './diagram_index'
+import { DiagramLabelFocusService } from './diagram_label_focus_service'
 import { DiagramSelectionService } from './diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
 
@@ -126,9 +127,10 @@ function createHarness(source: DiagramData = architectureDiagram(), createId: ()
     session.start()
     const geometry = new DiagramGeometryService(session)
     const selection = new DiagramSelectionService(session, geometry)
-    const drawing = new DiagramEdgeDrawingService(session, geometry, selection)
+    const labelFocus = new DiagramLabelFocusService(session)
+    const drawing = new DiagramEdgeDrawingService(session, geometry, selection, labelFocus)
 
-    return { drawing, geometry, selection, session }
+    return { drawing, geometry, labelFocus, selection, session }
 }
 
 describe('diagram edge drawing geometry', () => {
@@ -141,9 +143,7 @@ describe('diagram edge drawing geometry', () => {
         expect(drawing.getPreviewSnapshot()).toMatchObject({ curved: true, targetAttachment: { nodeId: 'target' } })
         expect(drawing.getPreviewSnapshot()?.controlPoint).toBeDefined()
         expect(drawing.completeTarget('target', { x: 280, y: 68 }, true)).toBe('drawn-edge')
-        expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({
-            from: 'source', id: 'drawn-edge', kind: 'connection', legendEntryId: expect.any(String), to: 'target',
-        })
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind: 'connection', legendEntryId: expect.any(String), to: 'target'})
     })
 
     it('resolves the nearest node boundary and relative offset', () => {
@@ -198,16 +198,18 @@ describe('DiagramEdgeDrawingService', () => {
 
     it('draws two connections without reselecting the edge tool', () => {
         const createId = vi.fn().mockReturnValueOnce('first-edge').mockReturnValueOnce('second-edge')
-        const { drawing, session } = createHarness(architectureDiagram(), createId)
+        const { drawing, labelFocus, session } = createHarness(architectureDiagram(), createId)
         drawing.activate({ kind: 'connection' })
 
         drawing.beginSource('source', { x: 120, y: 40 })
         expect(drawing.completeTarget('target', { x: 240, y: 40 }, true)).toBe('first-edge')
+        expect(labelFocus.getTargetSnapshot()).toEqual({ objectId: 'first-edge', objectKind: 'edge' })
         drawing.beginSource('source', { x: 120, y: 40 })
         expect(drawing.completeTarget('target', { x: 240, y: 40 }, true)).toBe('second-edge')
 
         expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
         expect(drawing.getPreviewSnapshot()).toBeNull()
+        expect(labelFocus.getTargetSnapshot()).toEqual({ objectId: 'second-edge', objectKind: 'edge' })
     })
 
     it('creates an entity relationship between persisted connection points', () => {
@@ -279,9 +281,7 @@ describe('DiagramEdgeDrawingService', () => {
             expect(drawing.completeTarget('target', { x: 300, y: 200 }, true)).toBe('drawn-edge')
 
             expect(session.read.getEdgeIdsSnapshot()).toEqual(['call', 'drawn-edge', 'return'])
-            expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({
-                from: 'source', id: 'drawn-edge', kind, legendEntryId: expect.any(String), to: 'target',
-            })
+            expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind, legendEntryId: expect.any(String), to: 'target'})
         },
     )
 
@@ -319,7 +319,7 @@ describe('DiagramEdgeDrawingService', () => {
     })
 
     it('returns to Select and keeps the edge selected when completed without continuous add', () => {
-        const { drawing, selection, session } = createHarness()
+        const { drawing, labelFocus, selection, session } = createHarness()
         drawing.activate({ kind: 'connection' })
         drawing.beginSource('source', { x: 120, y: 40 })
 
@@ -329,10 +329,11 @@ describe('DiagramEdgeDrawingService', () => {
         expect(session.read.getLastSelectedCreationToolSnapshot()).toBe('edge:connection')
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'drawn-edge', objectKind: 'edge' }])
         expect(drawing.getPreviewSnapshot()).toBeNull()
+        expect(labelFocus.getTargetSnapshot()).toEqual({ objectId: 'drawn-edge', objectKind: 'edge' })
     })
 
     it('keeps the edge tool active when a create is rejected', () => {
-        const { drawing, session } = createHarness()
+        const { drawing, labelFocus, session } = createHarness()
         drawing.activate({ kind: 'connection' })
         drawing.beginSource('source', { x: 120, y: 40 })
         vi.spyOn(session, 'createEdge').mockReturnValue(null)
@@ -340,6 +341,7 @@ describe('DiagramEdgeDrawingService', () => {
         expect(drawing.completeTarget('target', { x: 240, y: 40 }, false)).toBeNull()
 
         expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
     })
 
     it('keeps an invalid target recoverable and creates nothing', () => {
@@ -447,7 +449,7 @@ describe('DiagramEdgeDrawingService', () => {
     })
 
     it('clears incomplete drawing on cancellation or tool change', () => {
-        const { drawing, session } = createHarness()
+        const { drawing, labelFocus, session } = createHarness()
         const previewChanged = vi.fn()
         drawing.subscribePreview(previewChanged)
         drawing.activate({ kind: 'connection' })
@@ -462,5 +464,6 @@ describe('DiagramEdgeDrawingService', () => {
         session.setActiveTool('node:component')
         expect(drawing.getPreviewSnapshot()).toBeNull()
         expect(previewChanged).toHaveBeenCalledTimes(4)
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
     })
 })

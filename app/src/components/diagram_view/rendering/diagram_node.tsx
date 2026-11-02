@@ -2,6 +2,7 @@ import { Box, ButtonBase, Typography } from '@mui/material'
 import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { DIAGRAM_CONTENT_INSET_DEFAULT, type DiagramContentPosition, type DiagramFlowPreset, type DiagramType } from '../../../services/diagrams/diagram_data'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
+import type { DiagramLabelFocusService } from '../../../services/diagrams/diagram_label_focus_service'
 import type { PositionedDiagramNode } from '../../../services/diagrams/diagram_layout'
 import { DiagramEntityFieldRow } from './diagram_entity_field'
 import { diagramRoleStyle } from '../formatting/diagram_role_style'
@@ -23,7 +24,7 @@ interface DiagramNodeProps {
     circular?: boolean
     diagramType: DiagramType
     dimmed?: boolean
-    editableLabel?: { session: DiagramEditSessionService }
+    editableLabel?: { labelFocus?: DiagramLabelFocusService, session: DiagramEditSessionService }
     entityFieldSource?: EditableEntityFieldSource
     flowPreset?: DiagramFlowPreset
     formattingStore?: DiagramFormattingStore
@@ -210,6 +211,7 @@ export function DiagramNode(props: DiagramNodeProps) {
                 <DiagramInlineNodeControls
                     autoWrap={autoWrap}
                     contentInset={contentInset}
+                    labelFocus={editableLabel.labelFocus}
                     node={node}
                     onOpenDetails={onOpenDetails}
                     session={editableLabel.session}

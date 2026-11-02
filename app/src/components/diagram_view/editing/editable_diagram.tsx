@@ -51,6 +51,10 @@ import {
 import { DiagramChangeActionPopup } from '../review/diagram_change_action_popup'
 import { DiagramInlineMetadataField } from './diagram_inline_metadata_field'
 import { useActiveDiagramTool } from './use_diagram_tool'
+import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
+import { DiagramEdgeLabelFocusHandler } from './diagram_edge_label_focus_handler'
 
 interface EditableDiagramProps {
     details?: DiagramObjectDetailsService
@@ -59,6 +63,7 @@ interface EditableDiagramProps {
     fragmentDialog?: DiagramFragmentDialogService
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
+    labelFocus?: DiagramLabelFocusService
     placement?: DiagramNodePlacementService
     review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
@@ -234,6 +239,7 @@ export function EditableDiagram({
     fragmentDialog = diagramFragmentDialogService,
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
+    labelFocus = diagramLabelFocusService,
     placement = diagramNodePlacementService,
     review = diagramChangeReviewService,
     selection = diagramSelectionService,
@@ -260,13 +266,21 @@ export function EditableDiagram({
                 <EditableDiagramActivations emphasis={emphasis} geometry={geometry} session={session} />
                 <EditableDiagramEdges details={details} emphasis={emphasis} geometry={geometry} selection={selection} session={session} />
                 <DiagramEdgeDrawingPreview drawing={drawing} />
-                <EditableDiagramNodes details={details} emphasis={emphasis} geometry={geometry} selection={selection} session={session} />
+                <EditableDiagramNodes
+                    details={details}
+                    emphasis={emphasis}
+                    geometry={geometry}
+                    labelFocus={labelFocus}
+                    selection={selection}
+                    session={session}
+                />
                 <DiagramNodePlacementPreview placement={placement} />
                 <DiagramResizeHandles geometry={geometry} selection={selection} session={session} />
                 <DiagramSelectionBoundary selection={selection} />
                 <DiagramSelectionRectangle selection={selection} />
             </EditableDiagramSurface>
-            <DiagramObjectDetailsDialog details={details} session={session} />
+            <DiagramEdgeLabelFocusHandler details={details} labelFocus={labelFocus} />
+            <DiagramObjectDetailsDialog details={details} labelFocus={labelFocus} session={session} />
             <DiagramGroupLabelDialog drawing={groupDrawing} />
             <DiagramFragmentDialog dialog={fragmentDialog} session={session} />
             <DiagramChangeReviewDialog review={review} session={session} />

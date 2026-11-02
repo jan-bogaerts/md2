@@ -20,6 +20,9 @@ import {
 import { diagramEmphasisService, type DiagramEmphasisService } from '../../../services/diagrams/diagram_emphasis_service'
 import { useDiagramActivationIds, useDiagramFragmentIds } from './use_diagram_geometry'
 import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
+import {
     useEditableDiagramEdgeIds, useEditableDiagramGroupIds, useEditableDiagramNodeIds,
 } from './use_editable_diagram'
 
@@ -36,6 +39,7 @@ interface FragmentCollectionHostProps extends CollectionHostProps {
 interface SelectableCollectionHostProps extends CollectionHostProps {
     details?: DiagramObjectDetailsService
     emphasis?: DiagramEmphasisService
+    labelFocus?: DiagramLabelFocusService
     selection?: DiagramSelectionService
 }
 
@@ -47,6 +51,7 @@ export function EditableDiagramNodes({
     details = diagramObjectDetailsService,
     emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
+    labelFocus = diagramLabelFocusService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: SelectableCollectionHostProps) {
@@ -58,6 +63,7 @@ export function EditableDiagramNodes({
             emphasis={emphasis}
             geometry={geometry}
             key={nodeId}
+            labelFocus={labelFocus}
             nodeId={nodeId}
             selection={selection}
             session={session}

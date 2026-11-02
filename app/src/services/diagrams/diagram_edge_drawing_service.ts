@@ -16,6 +16,10 @@ import type {
 import { diagramGeometryService, type DiagramGeometryService } from './diagram_geometry_service'
 import { findCompatibleEdgeLegendEntry } from './diagram_legend_entry_compatibility'
 import {
+    diagramLabelFocusService,
+    type DiagramLabelFocusService,
+} from './diagram_label_focus_service'
+import {
     mindmapConnectionGeometry,
     sequenceMessageInsertionIndexAt,
     sequenceMessageRowY,
@@ -120,6 +124,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
     private defaults: DiagramEdgeDrawingDefaults | null = null
     private preview: DiagramEdgeDrawingPreview | null = null
     private readonly geometry: DiagramEdgeDrawingGeometry
+    private readonly labelFocus: Pick<DiagramLabelFocusService, 'request'>
     private readonly selection: DiagramEdgeDrawingSelection
     private sequenceRowIndex: number | null = null
     private readonly session: DiagramEditSessionService
@@ -128,9 +133,11 @@ export class DiagramEdgeDrawingService extends EventTarget {
         session: DiagramEditSessionService = diagramEditSessionService,
         geometry: DiagramEdgeDrawingGeometry = diagramGeometryService,
         selection: DiagramEdgeDrawingSelection = diagramSelectionService,
+        labelFocus: Pick<DiagramLabelFocusService, 'request'> = diagramLabelFocusService,
     ) {
         super()
         this.geometry = geometry
+        this.labelFocus = labelFocus
         this.selection = selection
         this.session = session
         this.session.read.subscribeActiveTool(this.handleActiveToolChanged)
@@ -268,6 +275,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
         this.setPreview(null)
         this.session.completeTransientGesture()
         if (!continueAdding) this.session.setActiveTool('select')
+        this.labelFocus.request({ objectId: edgeId, objectKind: 'edge' })
 
         return edgeId
     }

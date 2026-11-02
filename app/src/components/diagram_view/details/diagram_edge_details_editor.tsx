@@ -1,5 +1,8 @@
 import { Alert, Button, DialogActions, DialogContent, MenuItem, Stack, TextField } from '@mui/material'
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import {
+    useCallback, useEffect, useRef, useState, useSyncExternalStore,
+    type ChangeEvent, type FormEvent,
+} from 'react'
 import {
     DIAGRAM_CARDINALITIES,
     DIAGRAM_EDGE_KINDS,
@@ -9,6 +12,9 @@ import {
     type DiagramType,
 } from '../../../services/diagrams/diagram_data'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
+import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
 
 interface EdgeDraft {
     from: string
@@ -23,6 +29,7 @@ interface EdgeDraft {
 
 interface DiagramEdgeDetailsEditorProps {
     edgeId: string
+    labelFocus?: DiagramLabelFocusService
     onClose: () => void
     session: DiagramEditSessionService
 }
@@ -57,7 +64,18 @@ function initialDraft(edgeId: string, session: DiagramEditSessionService): EdgeD
     }
 }
 
-export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEdgeDetailsEditorProps) {
+export function DiagramEdgeDetailsEditor({
+    edgeId,
+    labelFocus = diagramLabelFocusService,
+    onClose,
+    session,
+}: DiagramEdgeDetailsEditorProps) {
+    const labelInputRef = useRef<HTMLInputElement>(null)
+    const subscribeFocus = useCallback((listener: () => void) => (
+        labelFocus.subscribeFocus('edge', edgeId, listener)
+    ), [edgeId, labelFocus])
+    const getFocusSnapshot = useCallback(() => labelFocus.getFocusSnapshot('edge', edgeId), [edgeId, labelFocus])
+    const focusRequested = useSyncExternalStore(subscribeFocus, getFocusSnapshot, getFocusSnapshot)
     const [draft, setDraft] = useState(() => initialDraft(edgeId, session))
     const [validationError, setValidationError] = useState<string | null>(null)
     const diagramType = session.read.getMetadataFieldSnapshot('type') ?? 'architecture'
@@ -123,12 +141,20 @@ export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEd
         if (saved) onClose()
     }
 
+    useEffect(() => {
+        if (!focusRequested || !labelInputRef.current) return
+
+        labelInputRef.current.focus()
+        labelInputRef.current.select()
+        labelFocus.complete({ objectId: edgeId, objectKind: 'edge' })
+    }, [edgeId, focusRequested, labelFocus])
+
     return (
         <form onSubmit={handleSubmit}>
             <DialogContent dividers>
                 <Stack spacing={2} sx={{ pt: 0.5 }}>
                     {validationError ? <Alert severity="error">{validationError}</Alert> : null}
-                    <TextField autoFocus label="Label" name="label" onChange={handleFieldChange} size="small" value={draft.label} />
+                    <TextField autoFocus inputRef={labelInputRef} label="Label" name="label" onChange={handleFieldChange} size="small" value={draft.label} />
                     {diagramType === 'architecture' || diagramType === 'sequence' ? (
                         <>
                             <TextField label="From" name="from" onChange={handleFieldChange} select size="small" value={draft.from}>

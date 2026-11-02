@@ -5,6 +5,9 @@ import {
 import { diagramGeometryService, type DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
 import type { PositionedDiagramNode } from '../../../services/diagrams/diagram_layout'
 import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
+import {
     diagramSelectionService, type DiagramSelectionService,
 } from '../../../services/diagrams/diagram_selection_service'
 import { DiagramNode } from '../rendering/diagram_node'
@@ -21,6 +24,7 @@ interface EditableDiagramNodeProps {
     details?: DiagramObjectDetailsService
     emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
+    labelFocus?: DiagramLabelFocusService
     nodeId: string
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
@@ -34,6 +38,7 @@ function EditableDiagramNodeLeaf({
     details = diagramObjectDetailsService,
     emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
+    labelFocus = diagramLabelFocusService,
     nodeId,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
@@ -89,7 +94,7 @@ function EditableDiagramNodeLeaf({
             circular={diagramType === 'mindmap'}
             diagramType={diagramType}
             dimmed={dimmed}
-            editableLabel={{ session }}
+            editableLabel={{ labelFocus, session }}
             entityFieldSource={diagramType === 'entity' ? { nodeId, session } : undefined}
             flowPreset={preset ?? undefined}
             formattingStore={session.read}

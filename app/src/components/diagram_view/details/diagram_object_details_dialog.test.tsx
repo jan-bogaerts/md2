@@ -6,6 +6,7 @@ import { parseDiagramData, type DiagramData, type DiagramFlowPreset, type Diagra
 import { dialogService } from '../../../services/dialog_service'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
+import { DiagramLabelFocusService } from '../../../services/diagrams/diagram_label_focus_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
 import { DiagramSelectionService } from '../../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
@@ -81,13 +82,14 @@ function renderHarness(type: DiagramType = 'architecture', flowPreset: DiagramFl
     const geometry = new DiagramGeometryService(session)
     const selection = new DiagramSelectionService(session, geometry)
     const details = new DiagramObjectDetailsService()
+    const labelFocus = new DiagramLabelFocusService(session)
     render(
         <ThemeProvider theme={theme}>
-            <EditableDiagram details={details} geometry={geometry} selection={selection} session={session} />
+            <EditableDiagram details={details} geometry={geometry} labelFocus={labelFocus} selection={selection} session={session} />
         </ThemeProvider>,
     )
 
-    return { details, selection, session }
+    return { details, labelFocus, selection, session }
 }
 
 afterEach(() => {
@@ -191,6 +193,18 @@ describe('diagram object details dialog', () => {
         expect(screen.getByRole('dialog', { name: dialogTitle })).toBeInTheDocument()
         await user.click(screen.getByRole('button', { name: 'Cancel' }))
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    })
+
+    it('keeps manual edge details focus without creation-driven full-label selection', async () => {
+        const { details, labelFocus } = renderHarness()
+        act(() => { details.open({ objectId: 'orders-store', objectKind: 'edge' }) })
+
+        const label = await screen.findByRole('textbox', { name: 'Label' })
+        await waitFor(() => expect(label).toHaveFocus())
+        expect(label).toHaveValue('writes')
+        expect([(label as HTMLInputElement).selectionStart, (label as HTMLInputElement).selectionEnd])
+            .not.toEqual([0, 'writes'.length])
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
     })
 
     it('saves changed node fields through their scoped operations only', async () => {

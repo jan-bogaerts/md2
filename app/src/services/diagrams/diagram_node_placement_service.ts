@@ -17,6 +17,10 @@ import type {
 import { DIAGRAM_GRID_SIZE, MINDMAP_TOPIC_DIAMETER, type PositionedDiagramNode } from './diagram_layout'
 import { findCompatibleNodeLegendEntry, nodeLegendEntryIsCompatible } from './diagram_legend_entry_compatibility'
 import {
+    diagramLabelFocusService,
+    type DiagramLabelFocusService,
+} from './diagram_label_focus_service'
+import {
     diagramSelectionService,
     type DiagramSelectionService,
 } from './diagram_selection_service'
@@ -88,6 +92,7 @@ function previewSize(definition: DiagramNodePlacementDefinition) {
 /** Owns one node tool from activation through transient preview and one committed placement. */
 export class DiagramNodePlacementService extends EventTarget {
     private definition: DiagramNodePlacementDefinition | null = null
+    private readonly labelFocus: Pick<DiagramLabelFocusService, 'request'>
     private preview: DiagramNodePlacementPreview | null = null
     private readonly selection: Pick<DiagramSelectionService, 'replace'>
     private readonly session: DiagramEditSessionService
@@ -95,8 +100,10 @@ export class DiagramNodePlacementService extends EventTarget {
     constructor(
         session: DiagramEditSessionService = diagramEditSessionService,
         selection: Pick<DiagramSelectionService, 'replace'> = diagramSelectionService,
+        labelFocus: Pick<DiagramLabelFocusService, 'request'> = diagramLabelFocusService,
     ) {
         super()
+        this.labelFocus = labelFocus
         this.selection = selection
         this.session = session
         this.session.read.subscribeActiveTool(this.handleActiveToolChanged)
@@ -203,6 +210,7 @@ export class DiagramNodePlacementService extends EventTarget {
         } else if (!continueAdding) {
             this.session.setActiveTool('select')
         }
+        this.labelFocus.request({ objectId: nodeId, objectKind: 'node' })
 
         return nodeId
     }
