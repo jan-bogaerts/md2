@@ -3,7 +3,7 @@ author:
 id: F_440
 internalId: ca17847c-ab46-4a35-9756-fe5a145ccaf2
 title: run agents with the selected account
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,23 @@ policy:
 branch: f_440_run_agents_with_the_selected_account
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/state/action_run_history.test.tsx
+  - app/src/components/actions/run/state/action_run_history.tsx
+  - desktop/src/actions/action/action_agent_executor.js
+  - desktop/src/actions/action/action_agent_executor.test.mjs
+  - desktop/src/actions/action/action_files.test.mjs
+  - desktop/src/actions/action/action_run.test.mjs
+  - desktop/src/actions/agent/agent_account_environment.js
+  - desktop/src/actions/agent/agent_environment.js
+  - desktop/src/actions/agent/agent_environment.test.mjs
+  - desktop/src/actions/agent/agent_profiles.mjs
+  - desktop/src/actions/agent/agent_profiles.test.mjs
+  - desktop/src/actions/agent/agent_run_state.js
+  - desktop/src/actions/agent/agent_runner_service.js
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
 ---
 
 Use the account selected by F_439 for agent execution and persist which account actually ran. Conversation provider-session ownership is handled separately in F_441.
@@ -46,4 +63,3 @@ Use the account selected by F_439 for agent execution and persist which account 
 * Live runs, retries, completion results, history, and activity details retain the account that actually started the run.
 * Changing a default account while a run is active does not change that run's environment or recorded identity.
 * Immediate, scheduled, chained, and remote-controlled runs use the same execution behavior.
-
