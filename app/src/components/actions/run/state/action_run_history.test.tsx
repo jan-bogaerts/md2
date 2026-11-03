@@ -3,11 +3,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
 import { DialogDisplay } from '../../../dialog_display'
 import { ActionRunHistory } from './action_run_history'
+import { configService } from '../../../../services/config/config_service'
 
 vi.mock('../../conversation/events/diff_view', () => ({DiffView: ({ commitReference }: { commitReference: { commit: string } }) => <div>Diff {commitReference.commit}</div>}))
 
 describe('ActionRunHistory', () => {
-    afterEach(cleanup)
+    afterEach(() => {
+        cleanup()
+        configService.clear()
+    })
 
     it('renders nothing when history is empty', () => {
         render(<ActionRunHistory entries={[]} error={null} />)
@@ -47,6 +51,32 @@ describe('ActionRunHistory', () => {
         expect(screen.getByText(`completed (codex / gpt-5 / high / ask-for-approval) · ${completedAt}`)).toBeInTheDocument()
         expect(screen.queryByText('done')).not.toBeInTheDocument()
         expect(screen.queryByText('run')).not.toBeInTheDocument()
+    })
+
+    it('renders the current account name while retaining the persisted account ID', () => {
+        const accountId = '11111111-1111-4111-8111-111111111111'
+        const desktopConfig = {
+            agentAccounts: [
+                { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' },
+                { agent: 'claude', id: 'claude-initial', kind: 'initial', name: 'Default' },
+                { agent: 'codex', configDirectory: 'C:/accounts/work', id: accountId, kind: 'directory', name: 'Renamed Work' },
+            ],
+        }
+        configService.init({ desktopConfig })
+        const entries: ActionRunHistoryEntry[] = [{
+            accountId,
+            agent: 'codex',
+            completedAt: '2026-07-05T10:00:00.000Z',
+            rootConversationId: 'conversation-1',
+            startedAt: '2026-07-05T09:00:00.000Z',
+            status: 'completed',
+            type: 'agent',
+        }]
+
+        render(<ActionRunHistory entries={entries} error={null} />)
+
+        expect(screen.getByText(/completed \(codex \/ Renamed Work\)/u)).toBeInTheDocument()
+        expect(entries[0]).toMatchObject({ accountId })
     })
 
     it('renders command runs newest first with localized completion times without changing source order', () => {

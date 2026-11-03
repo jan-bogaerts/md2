@@ -247,7 +247,7 @@ describe('ActionAgentExecutor', () => {
         }));
 
         expect(result.accountId).toBe(work.id);
-        expect(agentRunnerService.start.mock.calls[0][1]).not.toHaveProperty('accountId');
+        expect(agentRunnerService.start.mock.calls[0][1].account).toEqual(work);
         const actionResult = await executor.execute(executionInput({ action: { ...action, accountId: personal.id } }));
         expect(actionResult.accountId).toBe(personal.id);
     });
@@ -607,6 +607,8 @@ describe('ActionAgentExecutor', () => {
         await executor.execute(executionInput({ runInput: { continueFrom: 'source.json', extraPrompt: 'next' } }));
 
         expect(agentRunnerService.start).toHaveBeenCalledTimes(2);
+        expect(agentRunnerService.start.mock.calls[1][1].account)
+            .toBe(agentRunnerService.start.mock.calls[0][1].account);
         expect(agentRunnerService.start.mock.calls[1][1]).toMatchObject({
             contextInput: expect.stringContaining('old answer'), conversation: sourceConversation,
             reference: 'producing.json', reuseLastUserMessage: true,

@@ -104,7 +104,7 @@ describe('action-files', () => {
         const record = {
             ...activityRecord('run-agent'),
             conversationIds: ['conversation-1'],
-            details: { agent: 'codex', model: 'gpt-5', thinkingLevel: 'high', type: 'agent' },
+            details: { accountId: 'codex-initial', agent: 'codex', model: 'gpt-5', thinkingLevel: 'high', type: 'agent' },
             rootConversationId: 'conversation-1',
         };
         try {
@@ -114,7 +114,7 @@ describe('action-files', () => {
             const entries = await loadActionRunHistory(project, { actionId: 'implement', context, projectFolder: 'design' });
 
             expect(entries).toEqual([{
-                agent: 'codex', completedAt: '2026-07-20T10:01:00.000Z', model: 'gpt-5', rootConversationId: 'conversation-1',
+                accountId: 'codex-initial', agent: 'codex', completedAt: '2026-07-20T10:01:00.000Z', model: 'gpt-5', rootConversationId: 'conversation-1',
                 startedAt: '2026-07-20T10:00:00.000Z', status: 'completed', thinkingLevel: 'high', type: 'agent',
             }]);
             expect(JSON.stringify(entries)).not.toContain('secret transcript');

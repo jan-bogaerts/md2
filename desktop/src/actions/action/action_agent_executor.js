@@ -125,6 +125,7 @@ class ActionAgentExecutor {
             ? continuationReferencePath(input.runInput.continueFrom)
             : input.conversationReservation?.reference;
         const request = {
+            ...(resolvedAgent.account ? { account: resolvedAgent.account } : {}),
             actionId: input.action.id,
             agent: resolvedAgent.agent,
             agentTaskTrackingEnabled: resolvedAgent.agentTaskTrackingEnabled,
@@ -182,6 +183,7 @@ class ActionAgentExecutor {
             {}, agentTaskTrackingEnabled,
         );
         const request = {
+            ...(resolvedAgent.account ? { account: resolvedAgent.account } : {}),
             actionId: input.action.id, actionRunId: input.runId, activityOrigin: input.activityOrigin,
             activityProject: input.primaryProject, agent: resolvedAgent.agent, agentTaskTrackingEnabled,
             command: executionCommand({ ...resolvedAgent, command }, providerSession, true), compactOnly: true, conversation,
@@ -210,6 +212,7 @@ class ActionAgentExecutor {
     async runAgentProcess(input, request) {
         const { promise, reject, resolve } = Promise.withResolvers();
         const onComplete = (exitCode, run) => resolve({
+            ...(run.accountId ? { accountId: run.accountId } : {}),
             command: request.command,
             changedPaths: run.changedPaths ? [...run.changedPaths] : [],
             conversation: run.conversation,

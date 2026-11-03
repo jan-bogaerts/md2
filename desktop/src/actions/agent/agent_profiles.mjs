@@ -61,7 +61,7 @@ export function resolveAgentConfiguration(config, selection = {}) {
     const account = resolveAgentAccount(resolveAgentAccounts(config.agentAccounts, 'desktop config'), agent, accountId);
 
     return {
-        ...(account ? { accountId: account.id } : {}),
+        ...(account ? { account, accountId: account.id } : {}),
         agent,
         model,
         ...(permissionMode !== undefined ? { permissionMode } : {}),

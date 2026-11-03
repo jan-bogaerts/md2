@@ -36,6 +36,7 @@ describe('agent profile resolution', () => {
         config.agentSelection.settingsByAgent.codex.accountId = work.id;
 
         expect(resolveAgentExecution(config, { accountId: personal.id }).accountId).toBe(personal.id);
+        expect(resolveAgentExecution(config, { accountId: personal.id }).account).toEqual(personal);
         expect(resolveAgentExecution(config).accountId).toBe(work.id);
         delete config.agentSelection.settingsByAgent.codex.accountId;
         expect(resolveAgentExecution(config).accountId).toBe('codex-initial');

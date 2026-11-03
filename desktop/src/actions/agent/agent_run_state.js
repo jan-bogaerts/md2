@@ -41,6 +41,7 @@ function writeJsonLine(stream, message) {
  * and `persistCheckpoint` spreads the whole object into the persistence layer, so the field set is a contract.
  */
 function createRun({
+    accountId,
     agent,
     child,
     conversation,
@@ -63,6 +64,7 @@ function createRun({
         && lastEntry?.kind === 'event' && lastEntry.type === 'agentQuestion' ? lastEntry.questions : null;
 
     return {
+        accountId,
         providerEventEntryIndexes: createProviderEventEntryIndexes(conversation.entries),
         agent,
         assistantItemIndex: 0,
@@ -173,6 +175,7 @@ function attachRunProtocol(run, {
 
 function createRunResult(request, exitCode, run) {
     return {
+        ...(run.accountId ? { accountId: run.accountId } : {}),
         command: request.command,
         conversation: run.conversation,
         exitCode,

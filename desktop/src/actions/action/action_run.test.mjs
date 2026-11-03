@@ -1383,7 +1383,7 @@ describe('ActionRun', () => {
     it('commits successful tracked agent paths before writing explicit history metadata', async () => {
         const agentExecutor = {
             execute: vi.fn(async () => ({
-                agent: 'codex', changedPaths: ['app/a.ts', 'app/b.ts'], conversation: { id: 'conversation' },
+                accountId: 'codex-initial', agent: 'codex', changedPaths: ['app/a.ts', 'app/b.ts'], conversation: { id: 'conversation' },
                 conversationId: 'conversation', exitCode: 0, model: 'gpt', prompt: 'run', reference: 'run.json',
                 stderr: '', stdout: '[wrong wrong123] agent commit', thinkingLevel: 'none',
             })),
@@ -1409,7 +1409,8 @@ describe('ActionRun', () => {
         });
         const record = localGitService.appendAndCommitActionActivity.mock.calls[0][3];
         expect(record).toMatchObject({
-            conversationIds: ['conversation'], details: { agent: 'codex', model: 'gpt', thinkingLevel: 'none', type: 'agent' },
+            conversationIds: ['conversation'],
+            details: { accountId: 'codex-initial', agent: 'codex', model: 'gpt', thinkingLevel: 'none', type: 'agent' },
             rootConversationId: 'conversation',
         });
         expect(record).not.toHaveProperty('history');

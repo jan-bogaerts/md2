@@ -1215,6 +1215,7 @@ describe('createLocalBridgeDispatch', () => {
         expect(agentModelCatalogService.load).not.toHaveBeenCalled();
 
         expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({
+            account: { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' },
             agentTaskTrackingEnabled: false,
             activityOrigin: { kind: 'project' },
             command: [

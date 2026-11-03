@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const path = require('node:path');
 const crossSpawn = require('cross-spawn');
 const { cancelUnfinishedTools } = require('./cancel_unfinished_tools');
@@ -76,6 +77,8 @@ class AgentRunnerService {
             ?? dependencies.persistConversationCheckpoint
             ?? persistConversation;
         this.spawn = dependencies.spawn ?? crossSpawn;
+        this.fileSystem = dependencies.fileSystem ?? fs.promises;
+        this.environment = dependencies.environment ?? process.env;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
         this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
@@ -134,6 +137,7 @@ class AgentRunnerService {
         const streaming = request.streaming === true;
         requireProjectFolder(request?.projectFolder);
         if (cardPath) ensureInsideRoot(rootPath, path.join(rootPath, cardPath));
+        const account = await this.requireAvailableAccount(request.account, agent);
 
         const id = `agent-turn-${crypto.randomUUID()}`;
         const startedAt = new Date().toISOString();
@@ -156,7 +160,7 @@ class AgentRunnerService {
         await this.persistConversationCheckpoint({ conversation: initialConversation, request });
         onConversationSaved?.();
         const [configuredExecutable, ...configuredArguments] = command;
-        const environment = createAgentEnvironment(process.env, agent, request.agentTaskTrackingEnabled === true);
+        const environment = createAgentEnvironment(this.environment, agent, request.agentTaskTrackingEnabled === true, account);
         const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
         if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);
         const providerPrompt = codexOneShotPrompt(prompt, agent, request.agentTaskTrackingEnabled === true);
@@ -179,6 +183,7 @@ class AgentRunnerService {
             startedAt,
         });
         const run = createRun({
+            accountId: account?.id ?? null,
             agent,
             child,
             conversation,
@@ -239,6 +244,23 @@ class AgentRunnerService {
         if (!compactOnly && conversationBeforePrompt) emitRunEvent(run, { type: 'userMessage', userMessage });
 
         return { conversation: initialConversation, reference, runId: id };
+    }
+
+    async requireAvailableAccount(account, agent) {
+        if (!account) return null;
+        if (account.agent !== agent) throw new Error(`Agent account ${account.id} belongs to ${account.agent}, not ${agent}`);
+        if (account.kind === 'initial') return account;
+        if (account.kind !== 'directory') throw new Error(`Invalid agent account kind: ${String(account.kind)}`);
+        try {
+            const directory = path.resolve(account.configDirectory);
+            const stats = await this.fileSystem.stat(directory);
+            if (!stats.isDirectory()) throw new Error('not a directory');
+            await this.fileSystem.access(directory, fs.constants.R_OK | fs.constants.W_OK);
+        } catch (error) {
+            throw new Error(`Agent account directory is unavailable: ${account.configDirectory}`, { cause: error });
+        }
+
+        return account;
     }
 
     /** Historical tools can only be running while this host owns their conversation process. */

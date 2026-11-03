@@ -712,6 +712,7 @@ function createLocalBridgeDispatch(dependencies) {
                 ? `${projectFolder.replace(/[\\/]$/u, '')}/${configuredReleasesFolder.replace(/^[\\/]/u, '')}`
                 : configuredReleasesFolder;
             const request = {
+                ...(resolved.account ? { account: resolved.account } : {}),
                 agent: resolved.agent,
                 agentTaskTrackingEnabled: resolved.agentTaskTrackingEnabled,
                 activityOrigin: { kind: 'project' },

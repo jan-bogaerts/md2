@@ -8,7 +8,7 @@ import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.
 const require = createRequire(import.meta.url);
 const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
 const { CodexRuntimeService } = require('./codex_runtime_service');
-const { createRun } = require('./agent_run_state');
+const { createRun, createRunResult } = require('./agent_run_state');
 const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
@@ -60,6 +60,18 @@ function toolEvent(providerItemId) {
 function emittedStatuses(onEvent, type) {
     return onEvent.mock.calls.filter(([event]) => event.type === type).map(([event]) => event.status);
 }
+
+describe('agent run result', () => {
+    it('returns the account captured by live run state', () => {
+        const request = { command: ['codex'], prompt: 'Run' };
+        const run = {
+            accountId: 'codex-initial', changedPaths: new Set(), conversation: { id: 'conversation-1' },
+            id: 'run-1', missingSession: false, reference: 'activity.json', stderr: '', stdout: 'done', turnStarted: true,
+        };
+
+        expect(createRunResult(request, 0, run)).toMatchObject({ accountId: 'codex-initial', runId: 'run-1' });
+    });
+});
 
 describe('AgentRunnerService published run status', () => {
     it.each([
@@ -589,6 +601,60 @@ describe('AgentRunnerService state handling', () => {
 
         child.emit('close', 0);
         await vi.waitFor(() => expect(persistConversation).toHaveBeenCalledOnce());
+    });
+
+    it('captures a resolved directory account and uses its environment for the process', async () => {
+        const child = new EventEmitter();
+        child.pid = 44;
+        child.stdin = new PassThrough();
+        child.stdout = new PassThrough();
+        child.stderr = new PassThrough();
+        const account = {
+            agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111',
+            kind: 'directory', name: 'Work',
+        };
+        const fileSystem = {
+            access: vi.fn(async () => undefined),
+            stat: vi.fn(async () => ({ isDirectory: () => true })),
+        };
+        const spawn = vi.fn(() => child);
+        const service = new AgentRunnerService({
+            environment: { CODEX_HOME: 'C:/old', Path: 'C:/tools' },
+            executableResolver: { find: vi.fn(async () => '/tools/codex') },
+            fileSystem,
+            persistConversationCheckpoint: vi.fn(async () => undefined),
+            spawn,
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+
+        const request = { account, agent: 'codex', command: ['codex', 'exec'], projectFolder: 'design', prompt: 'Start work' };
+        const started = await service.start(project, request, vi.fn(), vi.fn(), vi.fn());
+
+        const run = service.processes.get(started.runId);
+        expect(run.accountId).toBe(account.id);
+        expect(run.environment).toMatchObject({ CODEX_HOME: resolve(account.configDirectory), Path: 'C:/tools' });
+        expect(spawn).toHaveBeenCalledWith('/tools/codex', ['exec', 'Start work'], expect.objectContaining({ env: run.environment }));
+    });
+
+    it('rejects an unavailable account directory before persistence or process start', async () => {
+        const persistConversationCheckpoint = vi.fn(async () => undefined);
+        const spawn = vi.fn();
+        const service = new AgentRunnerService({
+            fileSystem: { stat: vi.fn(async () => { throw new Error('missing'); }) },
+            persistConversationCheckpoint,
+            spawn,
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const account = {
+            agent: 'codex', configDirectory: 'C:/accounts/missing', id: '11111111-1111-4111-8111-111111111111',
+            kind: 'directory', name: 'Missing',
+        };
+
+        const request = { account, agent: 'codex', command: ['codex'], projectFolder: 'design', prompt: 'Start work' };
+        await expect(service.start(project, request, vi.fn(), vi.fn(), vi.fn()))
+            .rejects.toThrow('Agent account directory is unavailable: C:/accounts/missing');
+        expect(persistConversationCheckpoint).not.toHaveBeenCalled();
+        expect(spawn).not.toHaveBeenCalled();
     });
 
     it('does not require an installed agent when the service is constructed', () => {
