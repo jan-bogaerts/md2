@@ -20,7 +20,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "7ce53acc-5a73-4566-931c-96751c9dac9b",
       "cardPath": "design/feature_descriptions/F_438_add_agent_account_management_ui.md",
-      "completedAt": null,
+      "completedAt": "2026-11-03T09:21:33.465Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 45496
@@ -257,7 +257,7 @@
       "id": "agent-3a442df6-17af-434d-9597-1ab763d0ea43",
       "providerSessions": [],
       "startedAt": "2026-11-02T10:38:15.661Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 7839,
@@ -283,11 +283,11 @@
         "agent-3a442df6-17af-434d-9597-1ab763d0ea43"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-fff7401c-d4c5-46d2-a93f-84418c218d06",
       "origin": {
@@ -296,9 +296,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-3a442df6-17af-434d-9597-1ab763d0ea43",
       "startedAt": "2026-11-02T10:38:14.393Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-3a442df6-17af-434d-9597-1ab763d0ea43"
     }
   ],
   "version": 5

@@ -55,7 +55,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     }, [layoutStore, promptEmpty, questionIdentity]);
     const activeBlockHeight = hasQuestions ? layout.blockHeight : null;
     const effectivePromptHeight = layout.promptHeight;
-    const questionsMaxHeight = layout.questionsMaxHeight;
+    // const questionsMaxHeight = layout.questionsMaxHeight;
     const primaryRegion = layout.primaryRegion;
 
     const handlePromptBlock = useCallback((surface: HTMLElement | null) => {
@@ -102,6 +102,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                         display: 'flex',
                         flexDirection: 'column',
                         flexShrink: 0,
+                        flex: hasQuestions ? '0 0 auto' : 1,
                         height: promptEmpty && activeBlockHeight === null ? 'auto' : effectivePromptHeight,
                         minHeight: hasQuestions ? layout.promptMinHeight : undefined,
                         overflow: 'hidden',
@@ -153,7 +154,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                             height: activeBlockHeight !== null && primaryRegion === 'prompt'
                                 ? layout.questionsMinHeight
                                 : undefined,
-                            maxHeight: activeBlockHeight === null ? questionsMaxHeight : undefined,
+                            maxHeight: 'fit-content',
                             minHeight: activeBlockHeight === null ? 0 : layout.questionsMinHeight,
                             overflowY: 'auto',
                         }}
