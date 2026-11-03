@@ -3,13 +3,15 @@ author:
 id: F_455
 internalId: b498d656-e91c-45ad-8fdc-670525355e02
 title: action agent prompt bad design and layout
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__b498d656-e91c-45ad-8fdc-670525355e02.json
 policy:
-after: 204e1fa2-8e5e-4fd1-b63c-06c9c762c080
+after: 7ce53acc-5a73-4566-931c-96751c9dac9b
+branch: f_455_action_agent_prompt_bad_design_and_layout
+worktree: 2
 ---
 see [action_agent_prompt.tsx](app/src/components/actions/agent/action_agent_prompt.tsx):
 
@@ -24,6 +26,8 @@ see [action_agent_prompt.tsx](app/src/components/actions/agent/action_agent_prom
 
 `ActionPromptOwner` owns prompt preparation, draft selection, attachments, scheduling, execution, phrases, and controls, while `ActionAgentPrompt` receives the resulting data and JSX. This separates the feature behavior from the component that should own it and makes `responsePrompts` and `bottomRow` feature-specific JSX properties.
 
+The stores passed through the popup component tree are not global service references. `createActionPopupBindings()` creates `bindingStore`, `conversationStore`, `historyStore`, `inputStore`, `resultStore`, `scheduleStore`, and the layout stores for one selected action and context. `settingsStore` is also a scoped card/action or session/action store returned by a global service. Passing every scoped store separately exposes runtime wiring and creates large forwarding interfaces. The assignment and base contexts are scoped values rather than services; different open popups can have different contexts.
+
 `ActionPopup` subscribes to the complete project state through `useProjectState()`. Any project snapshot replacement therefore rerenders the popup tree, including changes to unrelated cards. Several prompt consumers also subscribe to complete store snapshots while using only one or two fields.
 
 Question display causes a run-state render followed by layout-store updates from `setInput()` and `ResizeObserver`. Development `StrictMode` doubles render calls. The layout store calculates `questionsMaxHeight`, but the component ignores it and uses `maxHeight: fit-content`; the prompt also uses a fixed allocation while questions are present. The focused prompt test file currently has two failing question-height tests that expose this mismatch.
@@ -32,19 +36,24 @@ Question display causes a run-state render followed by layout-store updates from
 
 1. Delete `ActionPromptOwner` and render `ActionAgentPrompt` directly from `AgentAction` and `CommandAction`.
 2. Move prompt draft selection, preparation, attachment handling, scheduling, run-shortcut handling, phrase buttons, bottom controls, questions, and prompt layout into `ActionAgentPrompt`.
-3. Pass `ActionAgentPrompt` stable feature inputs such as the action, assignment context, schedule context, popup runtime, and whether questions are enabled. Do not pass prepared JSX, the prompt draft, conversion messages, or feature handlers from a wrapper component.
+3. Pass `ActionAgentPrompt` the action, assignment context, base or schedule context, the existing `ActionPopupRuntime`, and whether questions are enabled. `ActionAgentPrompt` must unpack its scoped stores from the runtime instead of receiving each store as a separate property. Do not pass prepared JSX, the prompt draft, conversion messages, or feature handlers from a wrapper component.
 4. Remove `responsePrompts` and `bottomRow`. `ActionAgentPrompt` must render `ActionPhraseButtonsOwner` and `ActionPopupBottomRow` in their required positions itself.
-5. Remove the complete-project subscription from `ActionPopup`. Subscribe separately to the current project reference and the target card fields actually used by the popup: identity, title, worktree assignment, and conversation/activity references. Resolve card subscriptions by `cardInternalId`; paths remain persistence locations and must not become popup identity.
-6. Read persisted action state only when selecting the initial action. Do not retain a project-snapshot subscription for that initialization value. Subscribe to historical activity only for historical contexts.
-7. Replace complete prompt-store snapshots with stable projections for the values that affect prompt rendering: run status, active action type, interaction readiness, question identity, selected conversation, conversation loading state, and conversion message. Event handlers must read current values directly when a value does not affect rendering.
-8. Do not subscribe to schedule card options while the schedule popover is closed. Mount the card-list consumer only while the popover is open.
-9. In automatic question layout, size the questions region to its content up to `layout.questionsMaxHeight`. Let the prompt use the remaining height, with the markdown editor flexing while phrase buttons and the bottom row remain fixed. Keep the existing persisted, explicitly resized layout behavior.
-10. Publish a layout snapshot only when a layout value changes. A question update may cause one render for the relevant run projection and one additional render only when measurement changes the layout snapshot.
+5. Keep runtime stores scoped to their popup session. Do not replace them with imported singletons. Leaf components that do not consume the complete runtime must continue to receive only the specific scoped store they use. Import true global application services directly when appropriate.
+6. Continue passing assignment and base contexts as scoped values. Use `cardInternalId` as card identity; use paths only for loading, persistence, selection references, and continuation inputs.
+7. Remove the complete-project subscription from `ActionPopup`. Subscribe separately to the current project reference and the target card fields actually used by the popup: identity, title, worktree assignment, and conversation/activity references. Resolve card subscriptions by `cardInternalId`; paths remain persistence locations and must not become popup identity.
+8. Read persisted action state only when selecting the initial action. Do not retain a project-snapshot subscription for that initialization value. Subscribe to historical activity only for historical contexts.
+9. Replace complete prompt-store snapshots with stable projections for the values that affect prompt rendering: run status, active action type, interaction readiness, question identity, selected conversation, conversation loading state, and conversion message. Event handlers must read current values directly when a value does not affect rendering.
+10. Do not subscribe to schedule card options while the schedule popover is closed. Mount the card-list consumer only while the popover is open.
+11. In automatic question layout, size the questions region to its content up to `layout.questionsMaxHeight`. Let the prompt use the remaining height, with the markdown editor flexing while phrase buttons and the bottom row remain fixed. Keep the existing persisted, explicitly resized layout behavior.
+12. Publish a layout snapshot only when a layout value changes. A question update may cause one render for the relevant run projection and one additional render only when measurement changes the layout snapshot.
 
 ## Acceptance criteria
 
 * `ActionPromptOwner` and its file are removed, and both agent and command flows render `ActionAgentPrompt` directly.
 * `ActionAgentPrompt` owns the complete prompt feature and has no `ReactNode`, `responsePrompts`, or `bottomRow` properties.
+* `ActionAgentPrompt` receives one `ActionPopupRuntime` instead of separate properties for every runtime store, and no intermediate component forwards those stores individually.
+* Two open popups retain separate runtime-store instances and cannot observe or mutate each other's prompt, conversation, history, schedule, result, binding, or layout state.
+* Assignment and base contexts remain explicit scoped values and retain `cardInternalId` as canonical card identity.
 * Editing, opening, or closing an unrelated card does not render `ActionPopupContent`, `ActionAgentPrompt`, the prompt editor, phrase buttons, or bottom controls in an already open popup.
 * Replacing a project snapshot without changing a popup dependency does not reconfigure the popup session or recreate its runtime stores.
 * Changing the target card title updates only the target display. Changing its worktree updates only worktree-dependent UI. Changing its conversation/activity references updates only conversation or historical-activity consumers.
