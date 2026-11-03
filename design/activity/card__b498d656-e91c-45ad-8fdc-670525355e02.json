@@ -1266,13 +1266,13 @@
         "agent-24836f83-0658-4c3e-8bee-907b5203e7ee"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-f5462354-0490-4204-bbf4-27395bc43e0d",
       "origin": {
@@ -1281,9 +1281,9 @@
       },
       "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "rootActionLabel": "investigate",
-      "rootConversationId": "agent-24836f83-0658-4c3e-8bee-907b5203e7ee",
       "startedAt": "2026-11-03T09:21:29.882Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-24836f83-0658-4c3e-8bee-907b5203e7ee"
     }
   ],
   "version": 5
