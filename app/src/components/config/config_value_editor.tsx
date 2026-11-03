@@ -42,6 +42,7 @@ import {
     type AgentSelectionState,
 } from '../../data/agent_selection'
 import { formatDuration } from '../actions/conversation/status/conversation_duration'
+import { AgentAccountsEditor } from './agent_accounts_editor'
 import { AgentProfilesEditor } from './agent_profiles_editor'
 import { CardTypesEditor } from './card_types_editor'
 import { ColumnsEditor } from './columns_editor'
@@ -365,6 +366,18 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
                         onValidityChange={handleEditorValidityChange}
                         value={value as AgentProfile[]}
                     />
+                </Box>
+                <FormHelperText sx={{ m: 0, mt: 1 }}>{description}</FormHelperText>
+            </FormControl>
+        )
+    }
+
+    if (entry.key === 'desktop.agentAccounts') {
+        return (
+            <FormControl disabled={disabled} fullWidth sx={OUTLINED_FIELD_BLOCK_SX}>
+                <FormLabel>{entry.label}</FormLabel>
+                <Box sx={{ mt: 2 }}>
+                    <AgentAccountsEditor disabled={disabled} />
                 </Box>
                 <FormHelperText sx={{ m: 0, mt: 1 }}>{description}</FormHelperText>
             </FormControl>

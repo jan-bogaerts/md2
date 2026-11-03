@@ -103,6 +103,37 @@ describe('ConfigService', () => {
             .toThrow('Duplicate agent account ID')
     })
 
+    it('applies persisted agent accounts to values and draft and drops selections of removed accounts', () => {
+        const workAccount: AgentAccount = {
+            id: '0f8fad5b-d9cb-469f-a165-70867728950e',
+            agent: 'codex',
+            kind: 'directory',
+            name: 'Work',
+            configDirectory: 'C:/codex-work',
+        }
+        const selection = {
+            activeAgent: 'codex',
+            permissionMode: 'ask-for-approval' as const,
+            settingsByAgent: { codex: { model: '', thinkingLevel: 'none' as const, accountId: workAccount.id } },
+        }
+        service.init({ desktopConfig: { agentAccounts: [...DEFAULT_AGENT_ACCOUNTS, workAccount], agentSelection: selection } })
+        service.loadDraft()
+        service.setDraftValue('desktop.editorCommand', 'code "{{file}}"')
+
+        service.replaceAgentAccounts([...DEFAULT_AGENT_ACCOUNTS, { ...workAccount, name: 'Renamed' }])
+
+        expect(service.get('desktop.agentAccounts')[2]?.name).toBe('Renamed')
+        expect(service.getDraft()?.['desktop.agentAccounts'][2]?.name).toBe('Renamed')
+        expect(service.getDraft()?.['desktop.agentSelection'].settingsByAgent.codex?.accountId).toBe(workAccount.id)
+
+        service.replaceAgentAccounts(DEFAULT_AGENT_ACCOUNTS)
+
+        expect(service.get('desktop.agentSelection').settingsByAgent.codex).toEqual({ model: '', thinkingLevel: 'none' })
+        expect(service.getDraft()?.['desktop.agentSelection'].settingsByAgent.codex).toEqual({ model: '', thinkingLevel: 'none' })
+        expect(service.getDraft()?.['desktop.editorCommand']).toBe('code "{{file}}"')
+        expect(service.hasDraftChangesForSource('desktop')).toBe(true)
+    })
+
     it('clears only desktop values and marks them unavailable', () => {
         service.init({ desktopConfig: { agentSelection: agentSelection('claude') } })
         service.loadProjectConfig({ actionsFolder: 'ops', workingFolder: 'docs' })
