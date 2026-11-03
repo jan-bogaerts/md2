@@ -3,13 +3,14 @@ author:
 id: F_440
 internalId: ca17847c-ab46-4a35-9756-fe5a145ccaf2
 title: run agents with the selected account
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
-branch: f_440_run_agents_with_selected_account
-after: 2775052a-2e84-4466-a320-155c8ec05bac
+branch: f_440_run_agents_with_the_selected_account
+after: 733d678c-49a7-4409-9fa2-5fb384821513
+worktree: 1
 ---
 
 Use the account selected by F_439 for agent execution and persist which account actually ran. Conversation provider-session ownership is handled separately in F_441.
