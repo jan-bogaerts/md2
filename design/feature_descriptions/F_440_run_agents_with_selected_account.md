@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__ca17847c-ab46-4a35-9756-fe5a145ccaf2.json
 policy:
 branch: f_440_run_agents_with_the_selected_account
 after: 733d678c-49a7-4409-9fa2-5fb384821513
