@@ -9628,3 +9628,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-02T20:25:58.997Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,6,0
 2026-11-03T08:37:20.219Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,6,0
 2026-11-03T08:39:20.258Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,6,0
+2026-11-03T09:05:01.287Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,6,0
