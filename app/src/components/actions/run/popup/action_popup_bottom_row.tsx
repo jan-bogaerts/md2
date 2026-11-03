@@ -2,43 +2,25 @@ import { Box, useMediaQuery, useTheme } from '@mui/material';
 import { useSyncExternalStore } from 'react';
 import type { ActionContext } from '../../../../data/action_context';
 import type { ActionDefinition } from '../../../../data/action_types';
-import type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service';
 import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs';
-import type { ActionConversationStore } from '../../conversation/state/action_conversation_store';
-import type { ActionHistoryStore } from '../state/action_history_store';
 import { currentActionPromptDraft } from './action_popup_operations';
-import type { ActionRunInputStore } from '../state/action_run_input_store';
-import type { ActionRunResultStore } from '../state/action_run_result_store';
-import type { ActionScheduleStore } from '../schedule/action_schedule_store';
 import { ActionAgentSelectors } from '../../agent/action_agent_selectors';
 import { ActionPromptMenu } from './action_prompt_menu';
 import { ActionPopupRunControls } from './action_popup_run_controls';
-import type { ActionRunBindingStore } from '../state/action_run_binding_store';
-import type { ActionPopupFocusRequest } from './action_popup_focus_request';
+import type { ActionPopupRuntime } from './action_popup_types';
 
 interface ActionPopupBottomRowProps {
     action: ActionDefinition;
     assignmentContext: ActionContext;
-    bindingStore: ActionRunBindingStore;
-    conversationStore: ActionConversationStore;
-    historyStore: ActionHistoryStore;
     /** Embedded inside idle input surfaces; standalone while a command run is active. */
     embedded?: boolean;
-    focusRequest: ActionPopupFocusRequest;
-    inputStore: ActionRunInputStore;
-    resultStore: ActionRunResultStore;
-    runValidationError: string | null;
-    scheduleStore: ActionScheduleStore;
-    settingsStore: ActionRunSettingsStore;
+    runtime: ActionPopupRuntime;
 }
 
 /** Agent settings and run controls for the popup footer. */
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
-    const {
-        action, assignmentContext, bindingStore, conversationStore, embedded = false, focusRequest, historyStore, inputStore,
-        resultStore,
-        runValidationError, scheduleStore, settingsStore,
-    } = props;
+    const { action, assignmentContext, embedded = false, runtime } = props;
+    const { bindingStore, conversationStore, settingsStore } = runtime;
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const boundRunId = useBoundRunId(bindingStore);
@@ -84,13 +66,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                         </Box>
                     </Box>
                 ) : <Box data-footer-selectors sx={{ flexShrink: 1, minWidth: 158, overflow: 'hidden' }} />}
-                <ActionPopupRunControls
-                    action={action} assignmentContext={assignmentContext} bindingStore={bindingStore}
-                    conversationStore={conversationStore} focusRequest={focusRequest} historyStore={historyStore}
-                    inputStore={inputStore}
-                    resultStore={resultStore} runValidationError={runValidationError}
-                    scheduleStore={scheduleStore} settingsStore={settingsStore}
-                />
+                <ActionPopupRunControls action={action} assignmentContext={assignmentContext} runtime={runtime} />
             </Box>
         </Box>
     );

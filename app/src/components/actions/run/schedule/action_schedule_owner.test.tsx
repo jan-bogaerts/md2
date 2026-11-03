@@ -60,6 +60,23 @@ describe('ActionScheduleOwner registration', () => {
         vi.restoreAllMocks()
     })
 
+    it('does not subscribe to project cards or render while scheduling is closed', () => {
+        configureSources()
+        vi.mocked(useProjectConfig).mockClear()
+        const addEventListener = vi.spyOn(dataService, 'addEventListener')
+        const store = createDateStore()
+        render(
+            <ActionScheduleOwner
+                action={action} context={context} conversationId={null}
+                promptDraft={new ActionPromptDraft('Prepared prompt', false)} store={store}
+            />,
+        )
+
+        expect(addEventListener).not.toHaveBeenCalledWith('changed', expect.any(Function))
+        expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument()
+        expect(useProjectConfig).not.toHaveBeenCalled()
+    })
+
     it('registers selected trigger and closes only schedule popover after refresh', async () => {
         configureSources()
         let confirmRegistration!: () => void

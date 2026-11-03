@@ -13,7 +13,7 @@ import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionConversationStore } from '../../conversation/state/action_conversation_store'
 import { ActionHistoryStore } from '../state/action_history_store'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
-import { ActionPopupFocusRequest } from './action_popup_focus_request'
+import { createTestPopupRuntime } from '../../../../test/action_popup_runtime_fixture'
 import { ActionRunDisabledMessage } from './action_run_disabled_message'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
@@ -86,6 +86,16 @@ function renderBottomRow(
     const resultStore = new ActionRunResultStore()
     const scheduleStore = new ActionScheduleStore()
     const settingsStore = new ActionRunSettingsStore(actionOverride.id, null, 'project')
+    const runtimeStores = {
+        bindingStore: activeConversationStore.bindingStore,
+        conversationStore: activeConversationStore,
+        historyStore,
+        inputStore,
+        resultStore,
+        scheduleStore,
+        settingsStore,
+    }
+    const runtime = createTestPopupRuntime(actionOverride, contextOverride, runtimeStores)
     const unrelatedRender = vi.fn()
 
     function UnrelatedContent() {
@@ -100,16 +110,8 @@ function renderBottomRow(
             <ActionPopupBottomRow
                 action={actionOverride}
                 assignmentContext={contextOverride}
-                bindingStore={activeConversationStore.bindingStore}
-                conversationStore={activeConversationStore}
                 embedded={embedded}
-                focusRequest={new ActionPopupFocusRequest()}
-                historyStore={historyStore}
-                inputStore={inputStore}
-                resultStore={resultStore}
-                runValidationError={null}
-                scheduleStore={scheduleStore}
-                settingsStore={settingsStore}
+                runtime={runtime}
             />
         </AppThemeProvider>,
     )

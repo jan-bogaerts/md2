@@ -35,8 +35,6 @@ export interface ActionPopupContentProps {
     readOnlyMessage: string | null
     stackPosition?: number
     subscribeFocusRequest?: (listener: () => void) => () => void
-    target: string | null
-    targetTitle?: string | null
     titleId: string
 }
 

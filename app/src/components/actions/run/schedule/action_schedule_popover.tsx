@@ -1,0 +1,110 @@
+import { useSyncExternalStore } from 'react'
+import { Popover } from '@mui/material'
+import type { ActionContext } from '../../../../data/action_context'
+import type { ProjectSnapshot } from '../../../../data/data_types'
+import type { ActionDefinition } from '../../../../data/action_types'
+import type { ActionPromptDraft } from '../../../../services/actions/action_prompt_draft_service'
+import { dataService } from '../../../../services/data/data_service'
+import { dialogService } from '../../../../services/dialog_service'
+import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
+import { useCodexRateLimits } from '../../../hooks/use_codex_rate_limits'
+import { useProjectConfig } from '../../../hooks/use_project_config'
+import { defaultScheduleAction } from '../popup/action_popup_defaults'
+import type { ActionScheduleStore } from './action_schedule_store'
+import { ActionScheduleForm, type ActionScheduleFormChange } from './action_schedule_form'
+import { accountTrackerOptions, cardScheduleOptions, scheduleTargetStates } from './action_schedule_options'
+import { canRegisterSchedule, createScheduleTrigger, type ActionScheduleTriggerSources } from './action_schedule_trigger'
+
+const EMPTY_CARDS: ProjectSnapshot['activeCards'] = []
+const SCHEDULE_POPOVER_ELEVATION = 8
+const SCHEDULE_POPOVER_WIDTH = 360
+
+function subscribeActiveCards(listener: () => void) {
+    dataService.addEventListener('changed', listener)
+
+    return () => dataService.removeEventListener('changed', listener)
+}
+
+function getActiveCards() {
+    return dataService.getState().snapshot?.activeCards ?? EMPTY_CARDS
+}
+
+interface ActionSchedulePopoverProps {
+    accountId?: string
+    action: ActionDefinition
+    conversationId: string | null
+    context: ActionContext
+    promptDraft: ActionPromptDraft
+    selectionValidationError?: string | null
+    store: ActionScheduleStore
+}
+
+/** Open schedule popover; subscribes to card, rate-limit, and config sources only while mounted. */
+export function ActionSchedulePopover(
+    { accountId, action, context, conversationId, promptDraft, selectionValidationError, store }: ActionSchedulePopoverProps,
+) {
+    const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
+    const activeCards = useSyncExternalStore(subscribeActiveCards, getActiveCards, getActiveCards)
+    const claudeState = useClaudeRateLimits()
+    const codexState = useCodexRateLimits()
+    const projectConfig = useProjectConfig()
+    const sources: ActionScheduleTriggerSources = {
+        accountTrackers: accountTrackerOptions(claudeState, codexState),
+        cards: cardScheduleOptions(activeCards, context.cardInternalId),
+        targetStates: scheduleTargetStates(projectConfig?.states),
+    }
+    const handleChange = (change: ActionScheduleFormChange) => {
+        if (change.type === 'trigger-type') store.setTriggerType(change.triggerType)
+        else if (change.type === 'timestamp') store.setTimestamp(change.timestamp)
+        else if (change.type === 'agent') store.setAgent(change.agent)
+        else if (change.type === 'tracker') store.setAccountTracker(change.limitId, change.windowId)
+        else if (change.type === 'card') store.setCardInternalId(change.cardInternalId)
+        else store.setTargetState(change.targetState)
+    }
+    const handleRegister = async () => {
+        store.setMessage(null)
+        try {
+            if (selectionValidationError) throw new Error(selectionValidationError)
+            promptDraft.requestFlush()
+            const prompt = promptDraft.getSnapshot()
+            const trigger = createScheduleTrigger(store.getSnapshot(), sources)
+            await defaultScheduleAction(action, context, trigger, prompt, conversationId ?? undefined, accountId)
+            store.close()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not register schedule' })
+        }
+    }
+    const handleClose = () => store.close()
+
+    return (
+        <Popover
+            anchorEl={snapshot.anchorElement}
+            anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
+            onClose={handleClose}
+            open={snapshot.open}
+            slotProps={{
+                paper: {
+                    'aria-label': 'Schedule action',
+                    elevation: SCHEDULE_POPOVER_ELEVATION,
+                    role: 'dialog',
+                    sx: {
+                        bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
+                        maxWidth: (theme) => `calc(100vw - ${theme.spacing(4)})`, p: 2, width: SCHEDULE_POPOVER_WIDTH,
+                    },
+                },
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+            <ActionScheduleForm
+                accountTrackers={sources.accountTrackers}
+                canRegister={canRegisterSchedule(snapshot, sources)}
+                cards={sources.cards}
+                message={snapshot.message}
+                onChange={handleChange}
+                onRegister={handleRegister}
+                snapshot={snapshot}
+                targetStates={sources.targetStates}
+            />
+        </Popover>
+    )
+}

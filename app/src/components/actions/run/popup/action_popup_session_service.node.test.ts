@@ -19,6 +19,24 @@ describe('ActionPopupSessionService', () => {
         vi.restoreAllMocks();
     });
 
+    it('gives two popups of the same action and card separate runtime stores', () => {
+        const otherService = new ActionPopupSessionService();
+        service.select(action, context);
+        otherService.select(action, context);
+        const first = service.getSnapshot()?.runtime;
+        const second = otherService.getSnapshot()?.runtime;
+        if (!first || !second) throw new Error('Missing selected runtime');
+        const storeNames = [
+            'agentLayoutStore', 'bindingStore', 'commandLayoutStore', 'conversationStore', 'historyStore', 'inputStore',
+            'resultStore', 'scheduleStore',
+        ] as const;
+
+        storeNames.forEach((storeName) => expect(first[storeName]).not.toBe(second[storeName]));
+        first.inputStore.setConvertMessage('Only first popup');
+        expect(second.inputStore.getSnapshot().convertMessage).toBeNull();
+        otherService.dispose();
+    });
+
     it('keeps bindings through assignment and path changes for the same card', () => {
         const listener = vi.fn();
         const unsubscribe = service.subscribe(listener);

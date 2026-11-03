@@ -1,29 +1,18 @@
 import { Paper, Slide, useMediaQuery } from '@mui/material'
-import { useRef, useSyncExternalStore } from 'react'
+import { useCallback, useRef, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
-import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
-import type { ActionConversationStore } from '../conversation/state/action_conversation_store'
-import type { ActionHistoryStore } from '../run/state/action_history_store'
 import { currentActionPromptDraft, runPopupAction } from '../run/popup/action_popup_operations'
+import type { ActionPopupRuntime } from '../run/popup/action_popup_types'
 import { ActionPhraseButtons } from './action_phrase_buttons'
-import type { ActionRunInputStore } from '../run/state/action_run_input_store'
-import type { ActionRunResultStore } from '../run/state/action_run_result_store'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
-import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 interface ActionPhraseButtonsOwnerProps {
     action: ActionDefinition
-    bindingStore: ActionRunBindingStore
     context: ActionContext
-    conversationStore: ActionConversationStore
-    historyStore: ActionHistoryStore
-    inputStore: ActionRunInputStore
-    resultStore: ActionRunResultStore
-    runValidationError: string | null
-    settingsStore: ActionRunSettingsStore
+    runtime: ActionPopupRuntime
 }
 
 function selectActiveRunStatus(run: ActionRun | null) {
@@ -34,25 +23,22 @@ function selectActiveRunStatus(run: ActionRun | null) {
 
 /** Owns follow-up visibility and phrase actions. */
 export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
-    const {
-        action, bindingStore, context, conversationStore, historyStore, inputStore, resultStore,
-        runValidationError, settingsStore,
-    } = props
+    const { action, context, runtime } = props
+    const {bindingStore, conversationStore, historyStore, inputStore, resultStore, runValidationError, settingsStore} = runtime
     const pendingInsertionRef = useRef<Promise<void> | null>(null)
     const boundRunId = useBoundRunId(bindingStore)
     const activeRunStatus = useRunSelector(boundRunId, selectActiveRunStatus)
     const hasUnresolvedApprovals = useRunSelector(boundRunId, (run) => !!run?.approvals.length)
-    const conversationSnapshot = useSyncExternalStore(
-        conversationStore.subscribe,
-        conversationStore.getSnapshot,
-        conversationStore.getSnapshot,
-    )
+    const getPersistedWaitingSnapshot = useCallback(() => {
+        const { loading, selectedConversation } = conversationStore.getSnapshot()
+
+        return !loading && selectedConversation?.status === 'waitingForInput'
+    }, [conversationStore])
+    const persistedWaiting = useSyncExternalStore(conversationStore.subscribe, getPersistedWaitingSnapshot, getPersistedWaitingSnapshot)
     const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
     const settings = useActionRunSettings(action, settingsStore)
     const waitingForInput = activeRunStatus === 'waitingForInput'
-        || (activeRunStatus === null
-            && !conversationSnapshot.loading
-            && conversationSnapshot.selectedConversation?.status === 'waitingForInput')
+        || (activeRunStatus === null && persistedWaiting)
     if (action.type !== 'agent' || action.phrases.length === 0) return null
 
     const handleSelect = async (text: string) => {
