@@ -11,6 +11,7 @@ agents:
 policy:
 branch: f_438_add_agent_account_management_ui
 after: 733d678c-49a7-4409-9fa2-5fb384821513
+worktree: 1
 ---
 
 Add account management to the configuration dialog using the account model from F_436 and lifecycle bridge from F_437.
