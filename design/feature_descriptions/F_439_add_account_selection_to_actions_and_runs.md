@@ -3,7 +3,7 @@ author:
 id: F_439
 internalId: 1c16443d-df56-4133-997a-9a4dd0f404a1
 title: add account selection to actions and runs
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,61 @@ policy:
 branch: f_439_add_account_selection_to_actions_and_runs
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 worktree: 1
+changedFiles:
+  - app/src/components/actions/agent/action_agent_capability_fields.grouped.test.tsx
+  - app/src/components/actions/agent/action_agent_capability_fields.tsx
+  - app/src/components/actions/agent/action_agent_selectors.test.tsx
+  - app/src/components/actions/agent/action_agent_selectors.tsx
+  - app/src/components/actions/agent/action_prompt_owner.tsx
+  - app/src/components/actions/editor/action_definition_fields.tsx
+  - app/src/components/actions/run/popup/action_popup_defaults.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_defaults.ts
+  - app/src/components/actions/run/popup/action_popup_operations.ts
+  - app/src/components/actions/run/schedule/action_schedule_owner.test.tsx
+  - app/src/components/actions/run/schedule/action_schedule_owner.tsx
+  - app/src/components/actions/run/sequence/card_sequence_agent_selection.tsx
+  - app/src/components/actions/run/sequence/card_sequence_dialog.tsx
+  - app/src/components/actions/run/sequence/card_sequence_draft_service.node.test.ts
+  - app/src/components/actions/run/sequence/card_sequence_draft_service.ts
+  - app/src/components/actions/shared/use_action_run_settings.ts
+  - app/src/components/shell/menu/agent_menu_controls.tsx
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/data/action_run_types.ts
+  - app/src/data/electron_action_bridge.ts
+  - app/src/services/actions/action_agent_selection_draft_service.ts
+  - app/src/services/actions/action_definition_loader.ts
+  - app/src/services/actions/action_definition_writer.node.test.ts
+  - app/src/services/actions/action_definition_writer.ts
+  - app/src/services/actions/action_run_registry.ts
+  - app/src/services/actions/action_run_settings_service.node.test.ts
+  - app/src/services/actions/action_run_settings_service.ts
+  - app/src/services/actions/action_service_helpers.ts
+  - app/src/services/data/remote_control_storage_service.node.test.ts
+  - desktop/src/actions/action/action_agent_executor.js
+  - desktop/src/actions/action/action_agent_executor.test.mjs
+  - desktop/src/actions/action/action_definition_cache.js
+  - desktop/src/actions/action/action_definition_resolver.js
+  - desktop/src/actions/action/action_definition_resolver.test.mjs
+  - desktop/src/actions/action/action_definitions.test.mjs
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run_history.js
+  - desktop/src/actions/action/action_run_history.test.mjs
+  - desktop/src/actions/action/action_run_request.js
+  - desktop/src/actions/action/action_run_request.test.mjs
+  - desktop/src/actions/action/action_runner_service.js
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/agent/agent_profiles.mjs
+  - desktop/src/actions/agent/agent_profiles.test.mjs
+  - desktop/src/actions/schedule/scheduled_card_sequence_engine.js
+  - shared/action_definitions.d.mts
+  - shared/action_definitions.mjs
+  - shared/action_schedules.d.mts
+  - shared/action_schedules.mjs
+  - shared/agent_selection.d.mts
+  - shared/agent_selection.mjs
+  - shared/card_activity.d.mts
+  - shared/card_activity.mjs
 ---
 
 Carry optional account selection through desktop defaults, action definitions, run-menu settings, schedules, and bridge contracts. This task selects and validates account IDs but does not change spawned process environments.
