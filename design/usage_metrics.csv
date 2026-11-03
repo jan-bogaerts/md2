@@ -9630,3 +9630,6 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-03T08:39:20.258Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,6,0
 2026-11-03T09:05:01.287Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,6,0
 2026-11-03T09:21:31.054Z,account_usage,codex,codex,primary,10080,2026-11-04T10:03:50.000Z,,,,,,13,1
+2026-11-03T09:22:05.548Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,7,1
+2026-11-03T09:23:37.305Z,token_usage,codex,,,,,82652,1069056,3216,2627,1157551,,
+2026-11-03T09:23:39.905Z,token_usage,claude,,,,,33,1033663,8705,0,1042401,,
