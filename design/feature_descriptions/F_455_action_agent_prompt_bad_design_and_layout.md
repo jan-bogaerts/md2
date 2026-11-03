@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__b498d656-e91c-45ad-8fdc-670525355e02.json
 policy:
 ---
 see [action_agent_prompt.tsx](app/src/components/actions/agent/action_agent_prompt.tsx):
