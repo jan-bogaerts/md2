@@ -3,13 +3,14 @@ author:
 id: F_441
 internalId: 45aee390-2708-4b8b-b215-2f7ecabcabe4
 title: scope provider sessions by agent account
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
 branch: f_441_scope_provider_sessions_by_agent_account
-after: 2775052a-2e84-4466-a320-155c8ec05bac
+after: 733d678c-49a7-4409-9fa2-5fb384821513
+worktree: 1
 ---
 
 Make provider conversation ownership account-specific so a provider session is never resumed or compacted under another login.

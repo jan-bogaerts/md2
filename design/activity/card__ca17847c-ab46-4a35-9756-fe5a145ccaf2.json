@@ -2453,6 +2453,43 @@
       "startedAt": "2026-11-03T13:53:03.918Z",
       "status": "completed",
       "rootConversationId": "agent-e3f39642-e547-44d8-8399-8fc3ae1f818a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "96c6b3c8f30232eb3ff2bb81929aed2f1eb451d4",
+          "committedAt": "2026-11-03T16:23:22+01:00",
+          "deletions": 33,
+          "filePaths": [
+            "app/src/components/actions/run/state/action_run_history.test.tsx",
+            "app/src/components/actions/run/state/action_run_history.tsx",
+            "desktop/src/actions/action/action_agent_executor.js",
+            "desktop/src/actions/action/action_agent_executor.test.mjs",
+            "desktop/src/actions/action/action_files.test.mjs",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/agent/agent_account_environment.js",
+            "desktop/src/actions/agent/agent_environment.js",
+            "desktop/src/actions/agent/agent_environment.test.mjs",
+            "desktop/src/actions/agent/agent_profiles.mjs",
+            "desktop/src/actions/agent/agent_profiles.test.mjs",
+            "desktop/src/actions/agent/agent_run_state.js",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs"
+          ],
+          "filesChanged": 16,
+          "insertions": 202,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-03T16:23:22+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "ca17847c-ab46-4a35-9756-fe5a145ccaf2",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

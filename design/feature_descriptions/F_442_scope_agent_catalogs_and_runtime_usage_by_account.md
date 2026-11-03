@@ -9,7 +9,7 @@ affects:
 agents:
 policy:
 branch: f_442_scope_agent_catalogs_and_runtime_usage_by_account
-after: 45aee390-2708-4b8b-b215-2f7ecabcabe4
+after: 2775052a-2e84-4466-a320-155c8ec05bac
 ---
 
 Isolate model discovery and live provider usage snapshots by agent account. Persisted usage metrics and account-reset schedules are handled in F_443.
