@@ -1486,11 +1486,11 @@
         "agent-cd4444f1-fd66-4c81-a1e4-15cd3c35e914"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-69969d2f-1e42-490b-b2a1-8451d9aa43fc",
       "origin": {
@@ -1499,9 +1499,39 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-cd4444f1-fd66-4c81-a1e4-15cd3c35e914",
       "startedAt": "2026-11-02T18:07:24.184Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-cd4444f1-fd66-4c81-a1e4-15cd3c35e914"
+    },
+    {
+      "commits": [
+        {
+          "commit": "fba33b905634b73a9838159bde5300d0cfaef38a",
+          "committedAt": "2026-11-03T09:51:57+01:00",
+          "deletions": 10,
+          "filePaths": [
+            "desktop/main.js",
+            "desktop/src/actions/agent/agent_account_environment.js",
+            "desktop/src/actions/agent/agent_account_environment.test.mjs",
+            "desktop/src/actions/agent/agent_account_service.js",
+            "desktop/src/actions/agent/agent_account_service.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 9,
+          "insertions": 791,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-03T09:51:57+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "ab1ad841-86e6-43fb-a211-9ce1f1eaf246",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

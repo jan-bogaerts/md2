@@ -9,9 +9,7 @@ affects:
 agents:
   - design/activity/card__ab1ad841-86e6-43fb-a211-9ce1f1eaf246.json
 policy:
-branch: f_437_add_agent_account_lifecycle_service
 after: 733d678c-49a7-4409-9fa2-5fb384821513
-worktree: 1
 changedFiles:
   - desktop/main.js
   - desktop/src/actions/agent/agent_account_environment.js
