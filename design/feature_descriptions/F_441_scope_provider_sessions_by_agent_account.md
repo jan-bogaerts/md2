@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__45aee390-2708-4b8b-b215-2f7ecabcabe4.json
 policy:
 branch: f_441_scope_provider_sessions_by_agent_account
 after: 733d678c-49a7-4409-9fa2-5fb384821513
