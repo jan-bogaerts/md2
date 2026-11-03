@@ -1056,6 +1056,14 @@
           "role": "assistant",
           "sequence": 78,
           "timestamp": "2026-11-03T09:34:42.328Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_455_action_agent_prompt_bad_design_and_layout.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-63b55bfe-5bf4-4b44-9396-8ef69c37345c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 79,
+          "timestamp": "2026-11-03T09:45:09.945Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1070,7 +1078,7 @@
         }
       ],
       "startedAt": "2026-11-03T09:21:29.886Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -1097,7 +1105,7 @@
           "toolMs": 10669
         },
         "elapsedMs": 259185,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-03T09:45:09.945Z"
       },
       "title": "investigate",
       "usage": {
