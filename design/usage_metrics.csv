@@ -9640,3 +9640,6 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-03T09:53:01.574Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,7,0
 2026-11-03T09:55:17.900Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,8,1
 2026-11-03T09:59:07.832Z,token_usage,claude,,,,,57,2644644,17876,0,2662577,,
+2026-11-03T09:59:01.629Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,8,0
+2026-11-03T10:01:01.641Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,8,0
+2026-11-03T10:03:30.228Z,token_usage,claude,,,,,80,4810956,35098,0,4846134,,

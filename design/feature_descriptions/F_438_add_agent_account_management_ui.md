@@ -3,7 +3,7 @@ author:
 id: F_438
 internalId: 7ce53acc-5a73-4566-931c-96751c9dac9b
 title: add agent account management UI
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,20 @@ policy:
 branch: f_438_add_agent_account_management_ui
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 worktree: 1
+changedFiles:
+  - app/src/components/config/agent_account_remove_dialog.tsx
+  - app/src/components/config/agent_account_row.tsx
+  - app/src/components/config/agent_account_status_actions.tsx
+  - app/src/components/config/agent_accounts_editor.grouped.test.tsx
+  - app/src/components/config/agent_accounts_editor.tsx
+  - app/src/components/config/agent_accounts_section.tsx
+  - app/src/components/config/config_value_editor.tsx
+  - app/src/components/hooks/use_agent_accounts.ts
+  - app/src/data/electron_agent_account_bridge.ts
+  - app/src/services/agents/agent_account_service.service.test.ts
+  - app/src/services/agents/agent_account_service.ts
+  - app/src/services/config/config_service.service.test.ts
+  - app/src/services/config/config_service.ts
 ---
 
 Add account management to the configuration dialog using the account model from F_436 and lifecycle bridge from F_437.
