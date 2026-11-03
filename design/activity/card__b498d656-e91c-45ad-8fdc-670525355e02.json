@@ -4613,6 +4613,52 @@
       "startedAt": "2026-11-03T12:15:07.207Z",
       "status": "completed",
       "rootConversationId": "agent-6abc79ae-7161-4ac4-b4a1-3a53aea4deb8"
+    },
+    {
+      "commits": [
+        {
+          "commit": "53a8bea2abf1bb0f37f99c66336730762fa515dc",
+          "committedAt": "2026-11-03T14:49:50+01:00",
+          "deletions": 778,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/actions/agent/action_agent_prompt.tsx",
+            "app/src/components/actions/agent/action_agent_question.grouped.test.tsx",
+            "app/src/components/actions/agent/action_prompt_owner.tsx",
+            "app/src/components/actions/editor/action_phrase_buttons_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/actions/run/popup/action_popup_frame.tsx",
+            "app/src/components/actions/run/popup/action_popup_run_controls.tsx",
+            "app/src/components/actions/run/popup/action_popup_session_service.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_target_badge.tsx",
+            "app/src/components/actions/run/popup/action_popup_title.tsx",
+            "app/src/components/actions/run/popup/action_popup_types.ts",
+            "app/src/components/actions/run/popup/agent_action.tsx",
+            "app/src/components/actions/run/popup/card_action_popup_host_entry.test.tsx",
+            "app/src/components/actions/run/popup/card_action_popup_host_entry.tsx",
+            "app/src/components/actions/run/popup/command_action.tsx",
+            "app/src/components/actions/run/popup/use_historical_activity_key.ts",
+            "app/src/components/actions/run/popup/use_popup_target.ts",
+            "app/src/components/actions/run/schedule/action_schedule_owner.test.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_owner.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_popover.tsx",
+            "app/src/test/action_popup_runtime_fixture.ts"
+          ],
+          "filesChanged": 25,
+          "insertions": 963,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-03T14:49:50+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "b498d656-e91c-45ad-8fdc-670525355e02",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
