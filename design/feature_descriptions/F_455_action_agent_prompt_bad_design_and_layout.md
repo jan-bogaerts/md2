@@ -14,4 +14,4 @@ see [action_agent_prompt.tsx](app/src/components/actions/agent/action_agent_prom
 * why is it receiving responsePrompts and bottomRow as properties? There must be a very good reason why you wrote the code like this since it is an explicit rule not to do this in the code base.
 * when there are 'questions':
   * the component rerenders 8 times, why? can't we improve this
-  * the layout is wrong:&#x20;
+  * the layout is wrong: the questions box always takes up all the available space except for the fixed height of the&#x20;
