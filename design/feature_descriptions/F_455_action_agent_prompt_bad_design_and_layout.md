@@ -15,3 +15,4 @@ see [action_agent_prompt.tsx](app/src/components/actions/agent/action_agent_prom
 * when there are 'questions':
   * the component rerenders 8 times, why? can't we improve this
   * the layout is wrong: the questions box always takes up all the available space except for the fixed height of the 'Prompt' box. the way it should work: the prompt box should be minimum size as long as the questions box has not reached the min-content (max-height), the prompt box should fill the remainder of the space,&#x20;
+* after any edit, for instance in a card, when we switch
