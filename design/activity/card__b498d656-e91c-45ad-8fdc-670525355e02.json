@@ -1070,7 +1070,7 @@
         }
       ],
       "startedAt": "2026-11-03T09:21:29.886Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
@@ -1096,8 +1096,8 @@
           "reasoningMs": 662,
           "toolMs": 10669
         },
-        "elapsedMs": 127419,
-        "runningStartedAt": "2026-11-03T09:32:30.562Z"
+        "elapsedMs": 259185,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
