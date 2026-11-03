@@ -9689,3 +9689,6 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-03T14:53:27.850Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,12,0
 2026-11-03T14:55:27.860Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,12,0
 2026-11-03T14:57:51.784Z,token_usage,codex,,,,,68821,7875840,11601,6030,7962292,,
+2026-11-03T14:59:27.874Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,12,0
+2026-11-03T15:15:27.972Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,12,0
+2026-11-03T15:17:27.975Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,12,0
