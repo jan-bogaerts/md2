@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__b498d656-e91c-45ad-8fdc-670525355e02.json
 policy:
-after: 7ce53acc-5a73-4566-931c-96751c9dac9b
+after: 1c16443d-df56-4133-997a-9a4dd0f404a1
 branch: f_455_action_agent_prompt_bad_design_and_layout
 worktree: 2
 ---

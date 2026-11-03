@@ -9,7 +9,7 @@ affects:
 agents:
 policy:
 branch: f_440_run_agents_with_selected_account
-after: 1c16443d-df56-4133-997a-9a4dd0f404a1
+after: 2775052a-2e84-4466-a320-155c8ec05bac
 ---
 
 Use the account selected by F_439 for agent execution and persist which account actually ran. Conversation provider-session ownership is handled separately in F_441.

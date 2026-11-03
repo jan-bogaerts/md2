@@ -3,13 +3,14 @@ author:
 id: F_439
 internalId: 1c16443d-df56-4133-997a-9a4dd0f404a1
 title: add account selection to actions and runs
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
 branch: f_439_add_account_selection_to_actions_and_runs
-after: 2775052a-2e84-4466-a320-155c8ec05bac
+after: 733d678c-49a7-4409-9fa2-5fb384821513
+worktree: 1
 ---
 
 Carry optional account selection through desktop defaults, action definitions, run-menu settings, schedules, and bridge contracts. This task selects and validates account IDs but does not change spawned process environments.
