@@ -3,7 +3,7 @@ author:
 id: F_455
 internalId: b498d656-e91c-45ad-8fdc-670525355e02
 title: action agent prompt bad design and layout
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,14 @@ policy:
 after: 1c16443d-df56-4133-997a-9a4dd0f404a1
 branch: f_455_action_agent_prompt_bad_design_and_layout
 worktree: 2
+changedFiles:
+  - app/src/components/actions/agent/action_agent_prompt.test.tsx
+  - app/src/components/actions/agent/action_agent_prompt.tsx
+  - app/src/components/actions/run/popup/action_popup_types.ts
+  - app/src/components/actions/run/popup/agent_action.tsx
+  - app/src/components/actions/run/popup/command_action.tsx
+  - app/src/components/actions/run/popup/use_popup_target.ts
+  - app/src/test/action_popup_runtime_fixture.ts
 ---
 see [action_agent_prompt.tsx](app/src/components/actions/agent/action_agent_prompt.tsx):
 
