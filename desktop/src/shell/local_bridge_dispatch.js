@@ -58,6 +58,7 @@ function createLocalBridgeDispatch(dependencies) {
         actionRunnerService,
         actionSchedulerService,
         actionWorktreeRunService,
+        agentAccountService,
         agentExecutableAvailability,
         agentModelCatalogService,
         agentRunnerService,
@@ -778,21 +779,43 @@ function createLocalBridgeDispatch(dependencies) {
         },
     };
 
+    const agentAccountBridge = {
+        addAgentAccount: (agent) => requireAgentAccountService(agentAccountService).addAccount(agent),
+        listAgentAccounts: () => requireAgentAccountService(agentAccountService).listAccounts(),
+        loadAgentAccountStatus: (accountId) => requireAgentAccountService(agentAccountService).loadStatus(accountId),
+        loginAgentAccount: (accountId) => requireAgentAccountService(agentAccountService).login(accountId),
+        removeAgentAccount: (accountId) => requireAgentAccountService(agentAccountService).removeAccount(accountId),
+        renameAgentAccount: (accountId, name) => requireAgentAccountService(agentAccountService).renameAccount(accountId, name),
+        reselectAgentAccountDirectory: (accountId) => requireAgentAccountService(agentAccountService).reselectDirectory(accountId),
+    };
+
     const methods = { ...dataBridge, ...actionBridge, ...claudeRuntimeBridge, ...codexRuntimeBridge };
+    // Account operations open desktop dialogs and login windows, so only the local renderer may call them.
+    const localMethods = { ...methods, ...agentAccountBridge };
 
     return {
         actionBridge,
+        agentAccountBridge,
         claudeRuntimeBridge,
         codexRuntimeBridge,
         dataBridge,
-        invoke: (method, params = []) => {
-            const handler = methods[method];
-            if (!handler) throw new Error(`Unknown remote-control method: ${method}`);
-            if (!Array.isArray(params)) throw new Error('Remote-control params must be an array');
-
-            return handler(...params);
-        },
+        invoke: (method, params = []) => invokeMethod(methods, method, params),
+        invokeLocal: (method, params = []) => invokeMethod(localMethods, method, params),
     };
+}
+
+function requireAgentAccountService(agentAccountService) {
+    if (!agentAccountService) throw new Error('Agent account service is not available');
+
+    return agentAccountService;
+}
+
+function invokeMethod(methods, method, params) {
+    const handler = methods[method];
+    if (!handler) throw new Error(`Unknown remote-control method: ${method}`);
+    if (!Array.isArray(params)) throw new Error('Remote-control params must be an array');
+
+    return handler(...params);
 }
 
 module.exports = { createLocalBridgeDispatch };

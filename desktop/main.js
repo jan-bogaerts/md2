@@ -17,6 +17,7 @@ const {
 const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
 const { AgentModelCatalogService } = require('./src/actions/agent/agent_model_catalog_service');
+const { AgentAccountService } = require('./src/actions/agent/agent_account_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
 const { ClaudeRuntimeService } = require('./src/actions/agent/claude_runtime_service');
 const { UsageMetricsService } = require('./src/actions/agent/usage_metrics_service');
@@ -155,7 +156,14 @@ const actionSchedulerService = new ActionSchedulerService({
     localGitService,
 });
 const projectStatsWorkerService = new ProjectStatsWorkerService();
+const agentAccountService = new AgentAccountService({
+    executableResolver: agentExecutableResolver,
+    loadConfig: () => readDesktopConfig(store),
+    saveConfig: (values) => saveDesktopConfig(store, values),
+    selectFolder: () => openAgentAccountFolder(BrowserWindow.getFocusedWindow()),
+});
 const localBridgeDispatch = createLocalBridgeDispatch({
+    agentAccountService,
     agentModelCatalogService,
     actionRunnerService,
     actionSchedulerService,
@@ -234,6 +242,17 @@ async function openWorktreeFolder(window) {
     return result.filePaths[0];
 }
 
+async function openAgentAccountFolder(window) {
+    const result = await dialog.showOpenDialog(window, {
+        properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
+        title: 'Choose agent account folder',
+    });
+
+    if (result.canceled || result.filePaths.length === 0) return null;
+
+    return result.filePaths[0];
+}
+
 function subscriptionKey(webContents, subscriptionId) {
     return `${webContents.id}:${subscriptionId}`;
 }
@@ -252,9 +271,9 @@ function registerLocalBridge() {
         const { eventId, method, params } = request;
 
         return invokeWithErrorEnvelope(() => {
-            if (!EVENT_METHODS.has(method)) return localBridgeDispatch.invoke(method, params);
+            if (!EVENT_METHODS.has(method)) return localBridgeDispatch.invokeLocal(method, params);
 
-            return localBridgeDispatch.invoke(method, [
+            return localBridgeDispatch.invokeLocal(method, [
                 ...params,
                 (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId, payload }),
             ]);
@@ -403,6 +422,7 @@ async function stopAndQuit() {
         actionSchedulerService.stop();
         await actionRunnerService.suspend();
         await agentRunnerService.stopAll();
+        await agentAccountService.stop();
         await agentModelCatalogService.stop();
         await trackEvent('electron_stop');
         await flush();

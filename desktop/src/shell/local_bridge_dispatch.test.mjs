@@ -185,7 +185,17 @@ function createDispatch(options = {}) {
     const uncommittedProjectWrites = options.uncommittedProjectWrites
         ?? { commit: vi.fn(async () => null) };
     const usageMetricsService = options.usageMetricsService ?? { repositoryPath: vi.fn(() => null) };
+    const agentAccountService = {
+        addAccount: vi.fn(async (agent) => ({ id: 'account-1', agent, kind: 'directory', name: 'work', configDirectory: 'C:/accounts/work' })),
+        listAccounts: vi.fn(() => [{ id: 'codex-initial', agent: 'codex', kind: 'initial', name: 'Default' }]),
+        loadStatus: vi.fn(async () => 'available'),
+        login: vi.fn(async () => 'loginRequired'),
+        removeAccount: vi.fn(),
+        renameAccount: vi.fn((id, name) => ({ id, agent: 'codex', kind: 'initial', name })),
+        reselectDirectory: vi.fn(async () => null),
+    };
     const dispatch = createLocalBridgeDispatch({
+        agentAccountService,
         agentModelCatalogService,
         actionRunnerService,
         actionSchedulerService,
@@ -213,6 +223,7 @@ function createDispatch(options = {}) {
     });
 
     return {
+        agentAccountService,
         agentModelCatalogService,
         actionRunnerService,
         actionSchedulerService,
@@ -1212,6 +1223,35 @@ describe('createLocalBridgeDispatch', () => {
             ],
             prompt: expect.stringContaining('find beta cards'),
         }), expect.any(Function));
+    });
+
+    it('routes agent account operations to the account service for the local renderer only', async () => {
+        const { agentAccountService, dispatch } = createDispatch();
+
+        expect(dispatch.invokeLocal('listAgentAccounts')).toEqual([{ id: 'codex-initial', agent: 'codex', kind: 'initial', name: 'Default' }]);
+        await expect(dispatch.invokeLocal('addAgentAccount', ['claude'])).resolves.toMatchObject({ agent: 'claude', id: 'account-1' });
+        await expect(dispatch.invokeLocal('loginAgentAccount', ['account-1'])).resolves.toBe('loginRequired');
+        await expect(dispatch.invokeLocal('loadAgentAccountStatus', ['account-1'])).resolves.toBe('available');
+        expect(dispatch.invokeLocal('renameAgentAccount', ['codex-initial', 'Main'])).toMatchObject({ name: 'Main' });
+        await expect(dispatch.invokeLocal('reselectAgentAccountDirectory', ['account-1'])).resolves.toBeNull();
+        dispatch.invokeLocal('removeAgentAccount', ['account-1']);
+
+        expect(agentAccountService.addAccount).toHaveBeenCalledWith('claude');
+        expect(agentAccountService.login).toHaveBeenCalledWith('account-1');
+        expect(agentAccountService.renameAccount).toHaveBeenCalledWith('codex-initial', 'Main');
+        expect(agentAccountService.reselectDirectory).toHaveBeenCalledWith('account-1');
+        expect(agentAccountService.removeAccount).toHaveBeenCalledWith('account-1');
+        expect(() => dispatch.invoke('loginAgentAccount', ['account-1'])).toThrow('Unknown remote-control method: loginAgentAccount');
+        expect(() => dispatch.invoke('addAgentAccount', ['codex'])).toThrow('Unknown remote-control method');
+    });
+
+    it('keeps the shared method table available to the local renderer', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        await dispatch.invokeLocal('loadProjectRoot', [project, 'design']);
+
+        expect(localGitService.loadProjectRoot).toHaveBeenCalledWith(project, 'design');
     });
 
     it('invokes shared method table for remote control', async () => {

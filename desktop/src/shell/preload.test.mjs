@@ -75,9 +75,10 @@ describe('preload desktop agent bridge', () => {
     it('exposes only the named desktop bridges through contextBridge', () => {
         const { electron, exposed, window } = createPreloadHarness();
 
-        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(14);
+        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(15);
         expect(Object.keys(exposed).sort()).toEqual([
             'md2Actions',
+            'md2AgentAccounts',
             'md2ApplicationState',
             'md2ClaudeRuntime',
             'md2Clipboard',
@@ -154,6 +155,25 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Updates.install).toEqual(expect.any(Function));
         expect(exposed.md2Updates.onChanged).toEqual(expect.any(Function));
         expect(exposed.md2Sentry.request).toEqual(expect.any(Function));
+    });
+
+    it('exposes agent account operations through the local bridge invoke channel', async () => {
+        const { electron, exposed } = createPreloadHarness();
+        const account = { id: 'account-1', agent: 'codex', kind: 'directory', name: 'work', configDirectory: 'C:/accounts/work' };
+        electron.ipcRenderer.invoke.mockResolvedValueOnce(account);
+
+        await expect(exposed.md2AgentAccounts.addAgentAccount('codex')).resolves.toEqual(account);
+
+        expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith('md2-local-bridge:invoke', { eventId: null, method: 'addAgentAccount', params: ['codex'] });
+        expect(Object.keys(exposed.md2AgentAccounts).sort()).toEqual([
+            'addAgentAccount',
+            'listAgentAccounts',
+            'loadAgentAccountStatus',
+            'loginAgentAccount',
+            'removeAgentAccount',
+            'renameAgentAccount',
+            'reselectAgentAccountDirectory',
+        ]);
     });
 
     it('exposes application state only through scoped IPC methods', async () => {
