@@ -1,6 +1,6 @@
 const { validateSpeedMode } = require('../../../../shared/agent_profiles.mjs');
 const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'conversationReservation', 'runInput']);
-const ALLOWED_RUN_INPUT_FIELDS = new Set(['agent', 'command', 'conversationId', 'continueFrom', 'diagramPath', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'submissionId', 'thinkingLevel', 'speedMode', 'version']);
+const ALLOWED_RUN_INPUT_FIELDS = new Set(['accountId', 'agent', 'command', 'conversationId', 'continueFrom', 'diagramPath', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'submissionId', 'thinkingLevel', 'speedMode', 'version']);
 const CONTEXT_KINDS = new Set(['card', 'diagram', 'file', 'folder', 'merge-conflict', 'project']);
 
 function readOptionalString(value, fieldName) {
@@ -35,6 +35,7 @@ function validateRunInput(runInput = {}) {
     if (unsupportedField) throw new Error(`Unsupported action runInput field: ${unsupportedField}`);
 
     return {
+        accountId: readOptionalString(runInput.accountId, 'accountId'),
         agent: readOptionalString(runInput.agent, 'agent'),
         command: readOptionalString(runInput.command, 'command'),
         conversationId: readOptionalString(runInput.conversationId, 'conversationId'),

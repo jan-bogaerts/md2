@@ -41,6 +41,9 @@ class ActionAgentExecutor {
         const speedMode = input.runInput.speedMode ?? input.action.speedMode;
         const streaming = input.action.streaming;
         const resolvedAgent = resolveAgentExecution(config, {
+            ...(input.runInput.accountId
+                ? { accountId: input.runInput.accountId }
+                : (input.action.accountId ? { accountId: input.action.accountId } : {})),
             ...(input.runInput.agent ? { agent: input.runInput.agent } : (input.action.agent ? { agent: input.action.agent } : {})),
             ...(input.runInput.model ? { model: input.runInput.model } : (input.action.model ? { model: input.action.model } : {})),
             ...(permissionMode ? { permissionMode } : {}),
@@ -154,6 +157,7 @@ class ActionAgentExecutor {
 
         return {
             ...executionResult,
+            ...(resolvedAgent.accountId !== undefined ? { accountId: resolvedAgent.accountId } : {}),
             agent: resolvedAgent.agent,
             model: resolvedAgent.model,
             permissionMode: resolvedAgent.permissionMode,

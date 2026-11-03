@@ -60,6 +60,7 @@ export interface HistoricalFileContent {
 }
 
 export interface ActionScheduleRegistrationRequest {
+    accountId?: string
     actionId: string
     conversationId?: string
     context: ActionContext
@@ -98,6 +99,7 @@ interface ActionRunHistoryEntryBase {
 }
 
 export interface AgentActionRunHistoryEntry extends ActionRunHistoryEntryBase {
+    accountId?: string
     agent?: string | null
     model?: string
     permissionMode?: PermissionMode

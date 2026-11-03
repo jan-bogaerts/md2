@@ -105,6 +105,7 @@ export function editableActionDefinition(action: ActionDefinition): RawActionDef
     if (action.builtin) throw new Error(`Built-in action cannot be edited: ${action.id}`)
 
     return {
+        ...(action.accountId !== null ? { accountId: action.accountId } : {}),
         id: action.id,
         label: action.label,
         description: action.description,

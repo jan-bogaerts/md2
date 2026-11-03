@@ -24,11 +24,13 @@ import {
 } from '../../../data/agent_profiles'
 import {
     selectAgent,
+    selectAccount,
     selectModel,
     selectPermissionMode,
     selectThinkingLevel,
     selectSpeedMode,
 } from '../../../data/agent_selection'
+import { supportsAgentAccounts } from '../../../data/agent_accounts'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
@@ -55,7 +57,7 @@ const COMPACT_THINKING_LEVEL_LABELS: Record<ThinkingLevel, string> = {
     none: 'none',
 }
 
-type AgentSettingsSubmenu = 'agent' | 'model' | 'thinkingLevel' | 'speedMode';
+type AgentSettingsSubmenu = 'account' | 'agent' | 'model' | 'thinkingLevel' | 'speedMode';
 
 function selectRunStatus(run: ActionRun | null) {
     return run?.status ?? null
@@ -82,6 +84,8 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
         ? permissionOption?.label ?? 'Security'
         : 'Permission controls are unsupported by this agent'
     const selectedProfile = settings.agentProfiles.find(({ name }) => name === settings.agent) ?? null
+    const selectedAgentAccounts = settings.accounts.filter(({ agent, kind }) => agent === settings.agent && kind !== 'initial')
+    const accountAvailable = !settings.accountId || selectedAgentAccounts.some(({ id }) => id === settings.accountId)
     const selectedModel = settings.modelOptions.find(({ id }) => id === settings.model);
 
     const handleOpenModelMenu = (event: MouseEvent<HTMLButtonElement>) => setModelMenuAnchor(event.currentTarget)
@@ -133,6 +137,12 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
         const model = event.currentTarget.dataset.model
         if (model === undefined) throw new Error('Model menu item is missing its model')
         settingsStore.setSettings(selectModel(settings.selection, model), changedWhileWaiting)
+        handleCloseModelMenu()
+    }
+
+    const handleAccountChange = (event: MouseEvent<HTMLElement>) => {
+        const accountId = event.currentTarget.dataset.accountId || undefined
+        settingsStore.setSettings(selectAccount(settings.selection, accountId, settings.accounts), changedWhileWaiting)
         handleCloseModelMenu()
     }
 
@@ -235,6 +245,17 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                     <ListItemText>Agent</ListItemText>
                     <ChevronRight fontSize="small" />
                 </MenuItem>
+                {supportsAgentAccounts(settings.agent) ? (
+                    <MenuItem
+                        aria-haspopup="menu"
+                        data-submenu="account"
+                        onClick={handleOpenSubmenu}
+                        onKeyDown={handleSubmenuKeyDown}
+                    >
+                        <ListItemText>Account</ListItemText>
+                        <ChevronRight fontSize="small" />
+                    </MenuItem>
+                ) : null}
                 <MenuItem
                     aria-haspopup="menu"
                     data-submenu="model"
@@ -262,6 +283,26 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                 {settings.modelCatalog.error ? <MenuItem disabled>{settings.modelCatalog.error}</MenuItem> : null}
                 <Divider />
                 <MenuItem disabled={settings.modelCatalog.loading} onClick={settings.modelCatalog.refresh}>Refresh models</MenuItem>
+            </Menu>
+            <Menu
+                anchorEl={submenuAnchor}
+                anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
+                onClose={handleCloseSubmenu}
+                open={submenu === 'account'}
+                slotProps={{ list: { 'aria-label': 'Account choices', onKeyDown: handleNestedMenuKeyDown } }}
+                transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+            >
+                <MenuItem data-account-id="" onClick={handleAccountChange} selected={!settings.accountId}>Initial</MenuItem>
+                {!accountAvailable ? (
+                    <MenuItem data-account-id={settings.accountId} disabled selected>
+                        {settings.accountId} — unavailable
+                    </MenuItem>
+                ) : null}
+                {selectedAgentAccounts.map(({ id, name }) => (
+                    <MenuItem data-account-id={id} key={id} onClick={handleAccountChange} selected={id === settings.accountId}>
+                        {name}
+                    </MenuItem>
+                ))}
             </Menu>
             <Menu
                 anchorEl={submenuAnchor}

@@ -9,7 +9,7 @@ describe('validateStartRequest', () => {
         expect(validateStartRequest({ actionId: 'main', context: { kind } })).toEqual({
             actionId: 'main',
             context: { kind },
-            runInput: { agent: undefined, command: undefined, continueFrom: undefined, diagramPath: undefined, extraPrompt: '', model: undefined, permissionMode: undefined, thinkingLevel: undefined, version: undefined },
+            runInput: { accountId: undefined, agent: undefined, command: undefined, conversationId: undefined, continueFrom: undefined, diagramPath: undefined, extraPrompt: '', model: undefined, permissionMode: undefined, submissionId: undefined, thinkingLevel: undefined, version: undefined },
         });
     });
 
@@ -29,7 +29,7 @@ describe('validateStartRequest', () => {
 
     it('preserves accepted optional strings', () => {
         const runInput = {
-            agent: 'codex', command: 'npm test', conversationId: 'agent-1', continueFrom: 'log.json',
+            accountId: '11111111-1111-4111-8111-111111111111', agent: 'codex', command: 'npm test', conversationId: 'agent-1', continueFrom: 'log.json',
             diagramPath: 'design/diagrams/output.json', extraPrompt: 'next', model: 'gpt',
             permissionMode: 'approve-for-me', prompt: '', submissionId: 'submission-1', thinkingLevel: 'high',
         };
@@ -55,7 +55,7 @@ describe('validateStartRequest', () => {
             .toMatchObject({ conversationReservation });
     });
 
-    it.each(['agent', 'command', 'conversationId', 'continueFrom', 'diagramPath', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'submissionId', 'thinkingLevel'])('rejects non-string %s', (fieldName) => {
+    it.each(['accountId', 'agent', 'command', 'conversationId', 'continueFrom', 'diagramPath', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'submissionId', 'thinkingLevel'])('rejects non-string %s', (fieldName) => {
         const request = { actionId: 'main', context: { kind: 'project' }, runInput: { [fieldName]: 1 } };
 
         expect(() => validateStartRequest(request)).toThrow(`Invalid action run input ${fieldName}`);

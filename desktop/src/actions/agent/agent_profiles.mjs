@@ -3,6 +3,7 @@ import {
     resolveAgentSelectionState,
     resolveAgentSettings,
 } from '../../../../shared/agent_selection.mjs';
+import { resolveAgentAccount, resolveAgentAccounts } from '../../../../shared/agent_accounts.mjs';
 
 export const {
     BUILTIN_AGENT_PROFILES,
@@ -40,6 +41,7 @@ export function resolveAgentConfiguration(config, selection = {}) {
     const profile = findAgentProfile(profiles, agent);
     if (!profile) throw new Error(`Unknown agent profile: ${agent}`);
     const remembered = resolveAgentSettings(agent, profiles, [configuredSelection]);
+    const accountId = selection.accountId ?? remembered.accountId;
     const model = (selection.model ?? remembered.model) || defaultModelForProfile(profile);
     const thinkingLevel = selection.thinkingLevel ?? remembered.thinkingLevel;
     const speedMode = selection.speedMode === undefined ? remembered.speedMode : selection.speedMode;
@@ -50,14 +52,21 @@ export function resolveAgentConfiguration(config, selection = {}) {
             : undefined;
     validateAgentSelection(profiles, {
         agent,
+        ...(accountId !== undefined ? { accountId } : {}),
         model,
         ...(permissionMode !== undefined ? { permissionMode } : {}),
         thinkingLevel,
         ...(speedMode !== undefined ? { speedMode } : {}),
     }, 'desktop config');
+    const account = resolveAgentAccount(resolveAgentAccounts(config.agentAccounts, 'desktop config'), agent, accountId);
 
     return {
-        agent, model, ...(permissionMode !== undefined ? { permissionMode } : {}), profile, thinkingLevel,
+        ...(account ? { accountId: account.id } : {}),
+        agent,
+        model,
+        ...(permissionMode !== undefined ? { permissionMode } : {}),
+        profile,
+        thinkingLevel,
         ...(speedMode !== undefined ? { speedMode } : {}),
     };
 }

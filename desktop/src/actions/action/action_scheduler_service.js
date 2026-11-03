@@ -64,6 +64,9 @@ function validateFutureTimestamp(timestamp, fieldName, now) {
 function validateRegistrationRequest(request, now) {
     if (!request || typeof request !== 'object') throw new Error('Missing action schedule registration request');
     if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action schedule actionId');
+    if (request.accountId !== undefined && (typeof request.accountId !== 'string' || request.accountId.length === 0)) {
+        throw new Error('Invalid action schedule accountId');
+    }
     if (!request.context || typeof request.context !== 'object') throw new Error('Missing action schedule context');
     if (!request.trigger || typeof request.trigger !== 'object') throw new Error('Missing action schedule trigger');
     if (request.conversationId !== undefined
@@ -375,6 +378,7 @@ class ActionSchedulerService {
     async registerActionSchedule(request) {
         const registration = validateRegistrationRequest(request, this.now());
         const schedule = {
+            ...(registration.accountId === undefined ? {} : { accountId: registration.accountId }),
             actionId: registration.actionId,
             ...(registration.conversationId === undefined ? {} : { conversationId: registration.conversationId }),
             context: registration.context,
@@ -762,6 +766,7 @@ class ActionSchedulerService {
             ? { ...await this.resolveCardContext(schedule.context.cardInternalId, executionContext), kind: schedule.context.kind }
             : schedule.context;
         const runInput = {
+            ...(schedule.accountId === undefined ? {} : { accountId: schedule.accountId }),
             conversationId: schedule.conversationId,
             ...(continueFrom ? { continueFrom } : {}),
             ...(schedule.prompt === undefined ? {} : { prompt: schedule.prompt }),

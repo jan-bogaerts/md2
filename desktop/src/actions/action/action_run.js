@@ -524,6 +524,7 @@ class ActionRun {
             const acknowledgedSettings = result.acknowledgedSettings;
             if (this.controller.signal.aborted) {
                 this.publish(action, phase, 'cancelled', {
+                    ...(result.accountId !== undefined ? { accountId: result.accountId } : {}),
                     command: Array.isArray(result.command) ? result.command.join(' ') : result.command,
                     runWorktree: result.runWorktree,
                     message: 'Action cancelled',
@@ -546,6 +547,7 @@ class ActionRun {
             const status = result.exitCode === 0 ? 'completed' : 'failed';
             const output = combineOutput(result);
             this.publish(action, phase, status, {
+                ...(result.accountId !== undefined ? { accountId: result.accountId } : {}),
                 command: Array.isArray(result.command) ? result.command.join(' ') : result.command,
                 runWorktree: result.runWorktree,
                 message: status === 'completed' ? `${action.label} completed` : `${action.label} failed with exit code ${result.exitCode}`,

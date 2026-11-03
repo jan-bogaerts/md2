@@ -243,7 +243,7 @@ describe('ActionSchedulerService', () => {
         const scheduler = createScheduler(localGitService, { actionRunnerService });
         await startProject(scheduler, localGitService);
         const base = { actionId: 'implement', cardInternalIds: ['card-022'], readyState: 'ready', trigger: { type: 'now' } };
-        const agentSelection = { agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval', speedMode: 'fast', thinkingLevel: 'high' };
+        const agentSelection = { accountId: 'codex-initial', agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval', speedMode: 'fast', thinkingLevel: 'high' };
         await expect(scheduler.registerSequenceSchedule({ ...base, agentSelection: { agent: 'codex' } })).rejects.toThrow('Missing sequence execution model');
 
         const schedule = await scheduler.registerSequenceSchedule({ ...base, agentSelection });
@@ -493,14 +493,14 @@ describe('ActionSchedulerService', () => {
         await startProject(scheduler, localGitService);
         const trigger = { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' };
 
-        const schedule = await scheduler.registerActionSchedule({ actionId: 'implement', context, prompt: 'Edited prompt', trigger });
+        const schedule = await scheduler.registerActionSchedule({ accountId: 'codex-initial', actionId: 'implement', context, prompt: 'Edited prompt', trigger });
         await scheduler.fireSchedule(schedule.id);
 
-        expect(schedule).toMatchObject({ failure: null, prompt: 'Edited prompt' });
+        expect(schedule).toMatchObject({ accountId: 'codex-initial', failure: null, prompt: 'Edited prompt' });
         expect(actionRunnerService.start).toHaveBeenCalledWith({
             actionId: 'implement',
             context: expect.objectContaining({ cardInternalId: context.cardInternalId }),
-            runInput: { conversationId: expect.stringMatching(/^agent-/u), prompt: 'Edited prompt' },
+            runInput: { accountId: 'codex-initial', conversationId: expect.stringMatching(/^agent-/u), prompt: 'Edited prompt' },
         }, { interactive: false, runId: expect.stringMatching(/^action-/u) });
     });
 
@@ -933,7 +933,7 @@ describe('ActionSchedulerService', () => {
         expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({
             command: [
                 'codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--sandbox', 'workspace-write',
-                '--ask-for-approval', 'on-request', '--search', 'exec', '--json',
+                '--ask-for-approval', 'on-request', '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json',
             ],
         }), expect.any(Function));
         expect(localGitService.histories[0]).toMatchObject({
@@ -957,7 +957,7 @@ describe('ActionSchedulerService', () => {
         expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({
             command: [
                 'codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request',
-                '--search', 'exec', '--json',
+                '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json',
             ],
         }), expect.any(Function));
         expect(localGitService.histories[0].entry).toMatchObject({ thinkingLevel: 'none' });
@@ -980,8 +980,8 @@ describe('ActionSchedulerService', () => {
         await scheduler.fireSchedule('schedule-1');
 
         expect(agentRunner.mock.calls.map((call) => call[1].command)).toEqual([
-            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=low', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '--search', 'exec', '--json'],
-            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '--search', 'exec', '--json'],
+            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=low', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json'],
+            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json'],
         ]);
         expect(localGitService.histories.map(({ entry }) => entry.thinkingLevel)).toEqual(['high']);
     });

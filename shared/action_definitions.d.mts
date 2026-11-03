@@ -1,4 +1,5 @@
 import type { AgentProfile } from './agent_profiles.mjs'
+import type { AgentAccount } from './agent_accounts.mjs'
 
 export type ActionType = 'agent' | 'command'
 export type ActionAppliesToField = 'kind' | 'type' | 'state' | 'file' | 'folder' | 'worktree' | 'worktreeError'
@@ -36,6 +37,7 @@ export interface ActionPhrase {
 }
 
 export interface RawActionDefinition {
+    accountId?: string
     agent?: string
     appliesTo?: ActionAppliesTo
     autoFinish?: ActionAutoFinish
@@ -79,6 +81,7 @@ export interface OnRule extends RawOnRule {
 }
 
 export interface ActionDefinition {
+    accountId?: string | null
     agent: string | null
     appliesTo: ActionAppliesTo | null
     autoFinish?: ActionAutoFinish | null
@@ -109,6 +112,7 @@ export interface ActionDefinition {
 }
 
 export interface ActionDefinitionLoaderDependencies {
+    accounts?: AgentAccount[]
     profiles?: AgentProfile[]
     states?: string[]
     validateAgentCapabilities?: boolean

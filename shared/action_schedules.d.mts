@@ -41,6 +41,7 @@ interface ScheduleBase {
 }
 
 export interface ActionSchedule extends ScheduleBase {
+    accountId?: string
     actionId: string
     context: ActionContext
     conversationId?: string | null

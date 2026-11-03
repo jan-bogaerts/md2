@@ -90,9 +90,12 @@ describe('defaultScheduleAction', () => {
         const context = { cardInternalId: 'card-1', kind: 'card' as const }
         const trigger = { timestamp: '2026-09-19T10:00:00.000Z', type: 'at' as const }
 
-        await defaultScheduleAction(action, context, trigger, 'Review latest changes', 'conversation-1')
+        await defaultScheduleAction(
+            action, context, trigger, 'Review latest changes', 'conversation-1', '11111111-1111-4111-8111-111111111111',
+        )
 
         expect(registerActionSchedule).toHaveBeenCalledWith({
+            accountId: '11111111-1111-4111-8111-111111111111',
             actionId: 'implement',
             conversationId: 'conversation-1',
             context,

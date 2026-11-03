@@ -21,11 +21,11 @@ describe('history entries', () => {
 
     it('preserves agent fields without commit ownership', () => {
         const result = {
-            agent: 'codex', exitCode: 0, model: 'gpt', permissionMode: 'ask-for-approval',
+            accountId: 'codex-initial', agent: 'codex', exitCode: 0, model: 'gpt', permissionMode: 'ask-for-approval',
             prompt: 'review', stderr: '', stdout: 'done', thinkingLevel: 'high',
         };
 
-        expect(createAgentDetails({ action, completedAt, result })).toEqual({agent: 'codex', model: 'gpt', permissionMode: 'ask-for-approval', thinkingLevel: 'high', type: 'agent'});
+        expect(createAgentDetails({ action, completedAt, result })).toEqual({accountId: 'codex-initial', agent: 'codex', model: 'gpt', permissionMode: 'ask-for-approval', thinkingLevel: 'high', type: 'agent'});
     });
 });
 

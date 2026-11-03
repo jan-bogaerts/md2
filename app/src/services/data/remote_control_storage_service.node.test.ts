@@ -972,7 +972,7 @@ describe('RemoteControlStorageService', () => {
         const service = createService()
         const actionRequest = {
             ...actionStartRequest(),
-            runInput: { permissionMode: 'approve-for-me' as const },
+            runInput: { accountId: 'codex-initial', permissionMode: 'approve-for-me' as const },
         }
         const request = service.startAction(actionRequest)
         const socket = lastSocket()

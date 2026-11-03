@@ -30,15 +30,19 @@ function getActiveCards() {
 }
 
 interface ActionScheduleOwnerProps {
+    accountId?: string
     action: ActionDefinition
     conversationId: string | null
     context: ActionContext
     promptDraft: ActionPromptDraft
+    selectionValidationError?: string | null
     store: ActionScheduleStore
 }
 
 /** Binds service-owned schedule form state to loaded runtime and project data. */
-export function ActionScheduleOwner({ action, context, conversationId, promptDraft, store }: ActionScheduleOwnerProps) {
+export function ActionScheduleOwner(
+    { accountId, action, context, conversationId, promptDraft, selectionValidationError, store }: ActionScheduleOwnerProps,
+) {
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const activeCards = useSyncExternalStore(subscribeActiveCards, getActiveCards, getActiveCards)
     const claudeState = useClaudeRateLimits()
@@ -62,10 +66,11 @@ export function ActionScheduleOwner({ action, context, conversationId, promptDra
     const handleRegister = async () => {
         store.setMessage(null)
         try {
+            if (selectionValidationError) throw new Error(selectionValidationError)
             promptDraft.requestFlush()
             const prompt = promptDraft.getSnapshot()
             const trigger = createScheduleTrigger(store.getSnapshot(), sources)
-            await defaultScheduleAction(action, context, trigger, prompt, conversationId ?? undefined)
+            await defaultScheduleAction(action, context, trigger, prompt, conversationId ?? undefined, accountId)
             store.close()
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not register schedule' })

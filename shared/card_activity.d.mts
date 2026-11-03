@@ -20,6 +20,7 @@ export interface ActivityCommitReference {
 }
 
 export interface AgentActivityDetails {
+    accountId?: string
     agent?: string | null
     model?: string
     permissionMode?: string

@@ -10,6 +10,7 @@ import { dialogService } from '../dialog_service'
 import { register } from '../service_injector'
 
 export interface ResolvedActionRunSettings {
+    accountId?: string
     agent: string
     model: string
     permissionMode?: PermissionMode | ''

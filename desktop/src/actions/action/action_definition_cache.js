@@ -91,23 +91,23 @@ class ActionDefinitionCache {
     }
 
     /** Resolve one current definition, reading only it and its linked definitions from disk. */
-    async resolve(actionId, profiles, states) {
+    async resolve(actionId, accounts, profiles, states) {
         if (!this.project || this.actionsFolder === null) throw new Error('Action definition cache has no project');
 
         try {
-            return await this.resolveCurrent(actionId, profiles, states, true);
+            return await this.resolveCurrent(actionId, accounts, profiles, states, true);
         } catch (error) {
             if (!(error instanceof ActionPathRefreshRequired) && error?.code !== 'ENOENT') throw error;
         }
 
         await this.refreshActionPaths();
 
-        return this.resolveCurrent(actionId, profiles, states, false);
+        return this.resolveCurrent(actionId, accounts, profiles, states, false);
     }
 
-    async resolveCurrent(actionId, profiles, states, refreshMissingPaths) {
+    async resolveCurrent(actionId, accounts, profiles, states, refreshMissingPaths) {
         const files = await this.loadDefinitionFiles(actionId, refreshMissingPaths);
-        const { actions, issues } = loadTolerantActionDefinitionGraph(files, { profiles, states });
+        const { actions, issues } = loadTolerantActionDefinitionGraph(files, { accounts, profiles, states });
         const action = actions.find((candidate) => candidate.id === actionId);
         if (!action) {
             const issueDetails = issues.length > 0 ? `. ${issues.map(({ message }) => message).join(' ')}` : '';

@@ -229,6 +229,29 @@ describe('ActionAgentExecutor', () => {
         ]);
     });
 
+    it('resolves run account before action and desktop defaults without changing process request', async () => {
+        const work = { agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111', kind: 'directory', name: 'Work' };
+        const personal = { agent: 'codex', configDirectory: 'C:/accounts/personal', id: '22222222-2222-4222-8222-222222222222', kind: 'directory', name: 'Personal' };
+        const config = agentConfig();
+        config.agentAccounts = [
+            { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' },
+            { agent: 'claude', id: 'claude-initial', kind: 'initial', name: 'Default' },
+            work, personal,
+        ];
+        config.agentSelection.settingsByAgent.codex.accountId = work.id;
+        const { agentRunnerService, executor } = createExecutor({ agentConfigProvider: () => config });
+
+        const result = await executor.execute(executionInput({
+            action: { ...action, accountId: personal.id },
+            runInput: { accountId: work.id, extraPrompt: '' },
+        }));
+
+        expect(result.accountId).toBe(work.id);
+        expect(agentRunnerService.start.mock.calls[0][1]).not.toHaveProperty('accountId');
+        const actionResult = await executor.execute(executionInput({ action: { ...action, accountId: personal.id } }));
+        expect(actionResult.accountId).toBe(personal.id);
+    });
+
     it('rejects stale permission overrides before process start', async () => {
         const { agentRunnerService, executor } = createExecutor();
 

@@ -15,9 +15,11 @@ import type {
     RawActionDefinitionEntry,
 } from '../../data/action_types'
 import type { AgentProfile } from '../../data/agent_profiles'
+import type { AgentAccount } from '../../data/agent_accounts'
 import { configService } from '../config/config_service'
 
 interface ActionDefinitionLoaderDependencies {
+    accounts?: AgentAccount[]
     profiles?: AgentProfile[]
     states?: string[]
     validateAgentCapabilities?: boolean
@@ -29,6 +31,7 @@ function defaultLoaderDependencies(): ActionDefinitionLoaderDependencies {
     if (!configService.isInitialized()) return {}
 
     return {
+        accounts: configService.get('desktop.agentAccounts'),
         profiles: configService.get('desktop.agentProfiles'),
         states: configService.getProjectConfig().states.map(({ state }) => state),
     }

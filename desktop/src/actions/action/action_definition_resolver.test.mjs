@@ -8,9 +8,10 @@ describe('resolveActionDefinition', () => {
     it('hides cache-backed resolution from callers', async () => {
         const action = { id: 'test' };
         const actionDefinitionCache = { resolve: vi.fn(async () => action) };
+        const accounts = [{ agent: 'codex', id: 'codex-initial' }];
         const profiles = [{ name: 'codex' }];
 
-        await expect(resolveActionDefinition(actionDefinitionCache, profiles, 'test')).resolves.toBe(action);
-        expect(actionDefinitionCache.resolve).toHaveBeenCalledWith('test', profiles, undefined);
+        await expect(resolveActionDefinition(actionDefinitionCache, accounts, profiles, 'test')).resolves.toBe(action);
+        expect(actionDefinitionCache.resolve).toHaveBeenCalledWith('test', accounts, profiles, undefined);
     });
 });

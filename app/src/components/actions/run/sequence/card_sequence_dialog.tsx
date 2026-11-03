@@ -15,6 +15,7 @@ import { useAgentCapabilities } from '../../../hooks/use_agent_capabilities';
 import { useAgentModelCatalog } from '../../../hooks/use_agent_model_catalog';
 import { useConfigValueOrFallback } from '../../../hooks/use_config_value';
 import { DEFAULT_AGENT_SELECTION } from '../../../../data/agent_selection';
+import { DEFAULT_AGENT_ACCOUNTS } from '../../../../data/agent_accounts';
 import { mergeAgentProfiles } from '../../../../data/agent_profiles';
 import { agentModelOptions } from '../../../../data/agent_model_options';
 import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
@@ -82,6 +83,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
     const activeCards = useSyncExternalStore(subscribeActiveCards, getActiveCards, getActiveCards)
     const { actions } = useActions()
     const desktopSelection = useConfigValueOrFallback('desktop.agentSelection', DEFAULT_AGENT_SELECTION);
+    const accounts = useConfigValueOrFallback('desktop.agentAccounts', DEFAULT_AGENT_ACCOUNTS);
     const configuredProfiles = useConfigValueOrFallback('desktop.agentProfiles', []);
     const profiles = useMemo(() => mergeAgentProfiles(configuredProfiles), [configuredProfiles]);
     const capabilities = useAgentCapabilities();
@@ -142,6 +144,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
 
     useEffect(() => {
         service.updateSources({
+            accounts,
             actionIds: availableActions.map(({ id }) => id),
             actions: availableActions,
             agentProfiles: profiles,
@@ -156,7 +159,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
             readyStates,
             triggerSources: { accountTrackers, cards: triggerCards, targetStates: readyStates },
         })
-    }, [accountTrackers, availableActions, capabilities.availability, desktopSelection, modelCatalog.catalog,
+    }, [accounts, accountTrackers, availableActions, capabilities.availability, desktopSelection, modelCatalog.catalog,
         modelCatalog.error, modelCatalog.loading, profiles, readyStates, selectedCards.length, service,
         snapshot.cardInternalIds.length, triggerCards])
 
@@ -273,8 +276,10 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
                     </Box>
                 </Stack>
                 <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
-                    {snapshot.executionSelection ? <CardSequenceAgentSelection availability={capabilities.availability.values}
-                        modelOptions={modelOptions} profiles={profiles} selection={snapshot.executionSelection} service={service} /> : null}
+                    {snapshot.executionSelection ? (
+                        <CardSequenceAgentSelection accounts={accounts} availability={capabilities.availability.values}
+                            modelOptions={modelOptions} profiles={profiles} selection={snapshot.executionSelection} service={service} />
+                    ) : null}
                     <Typography color="text.secondary" variant="caption">Worktree</Typography>
                     <Select inputProps={{ 'aria-label': 'Sequence worktree' }} onChange={handleWorktreeChange} size="small" value={snapshot.worktreeBranch}>
                         <MenuItem value="">Unassigned</MenuItem>

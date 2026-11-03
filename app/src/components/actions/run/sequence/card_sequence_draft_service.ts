@@ -6,6 +6,9 @@ import type { ActionDefinition } from '../../../../data/action_types';
 import type { AgentProfile, AgentSelection, PermissionMode, SpeedMode, ThinkingLevel } from '../../../../data/agent_profiles';
 import { validateAgentSelection, validateThinkingLevel } from '../../../../data/agent_profiles';
 import { projectAgentSelection, resolveAgentSelectionState, resolveAgentSettings, selectAgent, selectModel, selectPermissionMode, selectSpeedMode, selectThinkingLevel, type AgentSelectionState } from '../../../../data/agent_selection';
+import { resolveAgentAccount, resolveAgentAccounts } from '../../../../data/agent_accounts';
+import type { AgentAccount } from '../../../../data/agent_accounts';
+import { selectAccount } from '../../../../data/agent_selection';
 import type { ScheduleTrigger } from '../../../../data/action_schedule_types'
 import type { ActionScheduleTriggerSources } from '../schedule/action_schedule_trigger'
 import { createScheduleTrigger } from '../schedule/action_schedule_trigger'
@@ -45,6 +48,7 @@ export interface CardSequenceDraftSnapshot {
 }
 
 interface CardSequenceValidationSources {
+    accounts?: AgentAccount[];
     actionIds: readonly string[]
     actions?: readonly ActionDefinition[];
     agentProfiles?: AgentProfile[];
@@ -139,6 +143,7 @@ function validationMessage(snapshot: CardSequenceDraftSnapshot, sources: CardSeq
         const selection = projectAgentSelection(snapshot.executionSelection, sources.agentProfiles);
         try {
             validateAgentSelection(sources.agentProfiles ?? [], selection, 'sequence execution settings');
+            resolveAgentAccount(resolveAgentAccounts(sources.accounts, 'sequence execution settings'), selection.agent, selection.accountId);
         } catch (error) {
             return error instanceof Error ? error.message : 'Invalid sequence execution settings';
         }
@@ -176,6 +181,7 @@ function initialExecutionSelection(action: ActionDefinition, sources: CardSequen
             ...desktopSelection.settingsByAgent,
             [agent]: {
                 ...settings,
+                ...(action.accountId ? { accountId: action.accountId } : {}),
                 model: action.model ?? settings.model,
                 thinkingLevel: validateThinkingLevel(action.thinkingLevel ?? settings.thinkingLevel, 'sequence action'),
                 speedMode: action.speedMode ?? settings.speedMode ?? 'default',
@@ -316,6 +322,14 @@ export class CardSequenceDraftService extends EventTarget {
         this.publishValidated({ ...this.snapshot, executionSelection });
     }
 
+    setExecutionAccount(accountId: string | undefined) {
+        const selection = this.snapshot.executionSelection;
+        if (selection) this.publishValidated({
+            ...this.snapshot,
+            executionSelection: selectAccount(selection, accountId, this.sources.accounts ?? []),
+        });
+    }
+
     setExecutionModel(model: string) {
         const selection = this.snapshot.executionSelection;
         if (selection) this.publishValidated({ ...this.snapshot, executionSelection: selectModel(selection, model) });
@@ -377,6 +391,7 @@ export class CardSequenceDraftService extends EventTarget {
             : null;
         const agentSelection: AgentSelection | null = selection
             ? {
+                ...(selection.accountId ? { accountId: selection.accountId } : {}),
                 agent: selection.agent, model: selection.model, thinkingLevel: selection.thinkingLevel,
                 ...(selection.permissionMode ? { permissionMode: selection.permissionMode } : {}),
                 ...(selection.speedMode !== undefined ? { speedMode: selection.speedMode } : {}),

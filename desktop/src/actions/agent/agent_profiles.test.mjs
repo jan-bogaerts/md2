@@ -17,6 +17,7 @@ const {
     validateThinkingLevel,
 } = require('./agent_profiles.mjs');
 const { resolveAgentExecution } = require('./agent_execution');
+const { DEFAULT_AGENT_ACCOUNTS } = require('../../../../shared/agent_accounts.mjs');
 
 function agentConfig(activeAgent, model, agentProfiles, thinkingLevel = 'none', permissionMode = 'ask-for-approval', agentTaskTrackingEnabled = true) {
     return {
@@ -27,6 +28,19 @@ function agentConfig(activeAgent, model, agentProfiles, thinkingLevel = 'none', 
 }
 
 describe('agent profile resolution', () => {
+    it('resolves account precedence from run selection, remembered desktop default, then initial account', () => {
+        const work = { agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111', kind: 'directory', name: 'Work' };
+        const personal = { agent: 'codex', configDirectory: 'C:/accounts/personal', id: '22222222-2222-4222-8222-222222222222', kind: 'directory', name: 'Personal' };
+        const config = agentConfig('codex', 'gpt-5.5', BUILTIN_AGENT_PROFILES);
+        config.agentAccounts = [...DEFAULT_AGENT_ACCOUNTS, work, personal];
+        config.agentSelection.settingsByAgent.codex.accountId = work.id;
+
+        expect(resolveAgentExecution(config, { accountId: personal.id }).accountId).toBe(personal.id);
+        expect(resolveAgentExecution(config).accountId).toBe(work.id);
+        delete config.agentSelection.settingsByAgent.codex.accountId;
+        expect(resolveAgentExecution(config).accountId).toBe('codex-initial');
+    });
+
     it('uses profile default model when config model is empty', () => {
         const profiles = [{ command: ['codex'], defaultModel: 'gpt-5', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }];
         const result = resolveAgentExecution(agentConfig('codex', '', profiles));

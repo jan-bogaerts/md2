@@ -108,11 +108,14 @@ export function selectSpeedMode(selection, speedMode) {
 export function selectAccount(selection, accountId, accounts) {
     const current = selection.settingsByAgent[selection.activeAgent];
     if (!current) throw new Error(`Missing settings for active agent: ${selection.activeAgent}`);
-    resolveAgentAccount(accounts, selection.activeAgent, accountId);
+    if (accountId !== undefined) resolveAgentAccount(accounts, selection.activeAgent, accountId);
+    const nextSettings = { ...current };
+    if (accountId === undefined) delete nextSettings.accountId;
+    else nextSettings.accountId = accountId;
 
     return {
         ...selection,
-        settingsByAgent: { ...selection.settingsByAgent, [selection.activeAgent]: { ...current, accountId } },
+        settingsByAgent: { ...selection.settingsByAgent, [selection.activeAgent]: nextSettings },
     };
 }
 

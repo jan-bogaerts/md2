@@ -37,12 +37,14 @@ function renderOpenOwner(
     store = createDateStore(),
     promptDraft = new ActionPromptDraft('Prepared prompt', false),
     conversationId: string | null = null,
+    accountId?: string,
 ) {
     render(
         <div data-testid="action-popup-scroll-body">
             <button type="button">Schedule anchor</button>
             <ActionScheduleOwner
-                action={action} context={context} conversationId={conversationId} promptDraft={promptDraft} store={store}
+                accountId={accountId} action={action} context={context} conversationId={conversationId}
+                promptDraft={promptDraft} store={store}
             />
         </div>,
     )
@@ -63,7 +65,7 @@ describe('ActionScheduleOwner registration', () => {
         let confirmRegistration!: () => void
         const registration = new Promise<void>((resolve) => { confirmRegistration = resolve })
         vi.mocked(defaultScheduleAction).mockReturnValue(registration)
-        renderOpenOwner()
+        renderOpenOwner(undefined, undefined, null, '11111111-1111-4111-8111-111111111111')
 
         fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
 
@@ -73,6 +75,7 @@ describe('ActionScheduleOwner registration', () => {
             { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
             'Prepared prompt',
             undefined,
+            '11111111-1111-4111-8111-111111111111',
         ))
         expect(screen.getByRole('dialog', { name: 'Schedule action' })).toBeInTheDocument()
         confirmRegistration()
@@ -95,6 +98,7 @@ describe('ActionScheduleOwner registration', () => {
             { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
             'Latest prompt',
             undefined,
+            undefined,
         ))
     })
 
@@ -111,6 +115,7 @@ describe('ActionScheduleOwner registration', () => {
             { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
             'Continue work',
             'conversation-1',
+            undefined,
         ))
     })
 

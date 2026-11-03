@@ -29,7 +29,7 @@ export function validateAgentSettings(value: unknown, source: string): AgentSett
 export function validateAgentSelectionState(value: unknown, source: string, allowEmptyPermissionMode?: boolean): AgentSelectionState
 export function resolveAgentSettings(agent: string, profiles: AgentProfile[], sources?: AgentSelectionState[]): AgentSettings
 export function resolveAgentSelectionState(selection: AgentSelectionState, profiles: AgentProfile[], fallbackSources?: AgentSelectionState[]): AgentSelectionState
-export function selectAccount(selection: AgentSelectionState, accountId: string, accounts: AgentAccount[]): AgentSelectionState
+export function selectAccount(selection: AgentSelectionState, accountId: string | undefined, accounts: AgentAccount[]): AgentSelectionState
 export function selectAgent(selection: AgentSelectionState, agent: string, profiles: AgentProfile[], fallbackSources?: AgentSelectionState[]): AgentSelectionState
 export function selectModel(selection: AgentSelectionState, model: string): AgentSelectionState
 export function selectThinkingLevel(selection: AgentSelectionState, thinkingLevel: ThinkingLevel): AgentSelectionState

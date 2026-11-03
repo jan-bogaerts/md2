@@ -163,10 +163,12 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
     return (
         <>
             <ActionScheduleOwner
+                accountId={settings.accountId}
                 action={action}
                 conversationId={displayedConversation?.id ?? null}
                 context={scheduleContext}
                 promptDraft={promptDraft}
+                selectionValidationError={settings.selectionValidationError}
                 store={scheduleStore}
             />
             <ActionAgentPrompt

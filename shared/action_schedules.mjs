@@ -137,6 +137,7 @@ function parseActionSchedule(schedule, base) {
     }
 
     return {
+        ...parseOptionalString(schedule, 'accountId'),
         actionId: requireString(schedule.actionId, 'actionId'),
         context,
         ...parseOptionalConversationId(schedule),
@@ -188,6 +189,7 @@ export function parseSequenceAgentSelection(value) {
     if (typeof value.model !== 'string' || !value.model) throw new Error('Missing sequence execution model');
     const thinkingLevel = validateThinkingLevel(value.thinkingLevel, 'sequence agent selection');
     const selection = { agent: value.agent, model: value.model, thinkingLevel };
+    if (value.accountId !== undefined) selection.accountId = requireString(value.accountId, 'agentSelection.accountId');
     if (value.permissionMode !== undefined) selection.permissionMode = validatePermissionMode(value.permissionMode, 'sequence agent selection');
     if (value.speedMode !== undefined) selection.speedMode = validateSpeedMode(value.speedMode, 'sequence agent selection');
     return selection;

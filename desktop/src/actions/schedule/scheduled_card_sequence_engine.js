@@ -1,4 +1,5 @@
 const { validateAgentSelection } = require('../../../../shared/agent_profiles.mjs');
+const { resolveAgentAccount, resolveAgentAccounts } = require('../../../../shared/agent_accounts.mjs');
 
 /** A failed wait on a run the action runner still lists as active is retried once before giving up. */
 const RUN_WAIT_ATTEMPTS = 2;
@@ -415,8 +416,9 @@ class ScheduledCardSequenceEngine {
             return;
         }
         if (!schedule.agentSelection) throw new Error('Missing sequence execution agent settings');
-        const { agentProfiles } = this.actionRunnerService.agentConfigProvider();
+        const { agentAccounts, agentProfiles } = this.actionRunnerService.agentConfigProvider();
         validateAgentSelection(agentProfiles, schedule.agentSelection, 'sequence execution');
+        resolveAgentAccount(resolveAgentAccounts(agentAccounts, 'desktop config'), schedule.agentSelection.agent, schedule.agentSelection.accountId);
     }
 
     validateReadyState(schedule) {
