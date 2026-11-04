@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "ad646cb9-3521-4a35-ae1b-7fdaa2701547",
       "cardPath": "design/feature_descriptions/J_67_project_folders_dialog_redesign.md",
-      "completedAt": null,
+      "completedAt": "2026-11-04T08:45:34.194Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 75337
@@ -716,7 +716,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 52,
-          "timestamp": "2026-11-04T08:45:33.915Z"
+          "timestamp": "2026-11-04T08:45:34.194Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -726,12 +726,12 @@
           "agent": "codex",
           "conversationId": "01a1a5b9-6a8a-7e40-b4a6-b7744001c0b3",
           "createdAt": "2026-11-04T08:45:33.915Z",
-          "lastUsedAt": "2026-11-04T08:45:33.915Z",
+          "lastUsedAt": "2026-11-04T08:45:34.194Z",
           "synchronizedThroughMessageId": "agent-turn-df9270c7-283a-462b-80a2-2ed0da91ace3-turn-1-assistant-4"
         }
       ],
       "startedAt": "2026-11-04T08:42:34.087Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -762,8 +762,8 @@
           "reasoningMs": 235,
           "toolMs": 5275
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-11-04T08:42:34.087Z"
+        "elapsedMs": 180107,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
