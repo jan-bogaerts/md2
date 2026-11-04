@@ -3,7 +3,7 @@ author:
 id: B_328
 internalId: 9b59a42b-9d2e-4dfd-96b1-cbdb7b51fa05
 title: stopping a conversation fails
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,9 @@ policy:
 after: c9a462cf-7874-4ada-a2f3-df08cf1793b2
 branch: b_328_stopping_a_conversation_fails
 worktree: 2
+changedFiles:
+  - desktop/src/actions/agent/agent_runner_service.js
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
 ---
 
 I have a conversation that is currently in the 'waitingForInput' state. But when I press the `finish conversation` button, nothing happens.
