@@ -8,7 +8,7 @@ import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.
 const require = createRequire(import.meta.url);
 const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
 const { CodexRuntimeService } = require('./codex_runtime_service');
-const { createRun, createRunResult } = require('./agent_run_state');
+const { attachRunProtocol, createRun, createRunResult } = require('./agent_run_state');
 const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
@@ -70,6 +70,43 @@ describe('agent run result', () => {
         };
 
         expect(createRunResult(request, 0, run)).toMatchObject({ accountId: 'codex-initial', runId: 'run-1' });
+    });
+});
+
+describe('attachRunProtocol', () => {
+    it('restores the Claude usage baseline from the provider session of the run account', () => {
+        const initialBaseline = { costUsd: 0.10, resultId: 'result-initial' };
+        const accountBaseline = { costUsd: 0.20, resultId: 'result-account' };
+        const session = { agent: 'claude', createdAt: 'before', lastUsedAt: 'before', synchronizedThroughMessageId: 'message-1' };
+        const run = createRun({
+            accountId: 'account-2',
+            agent: 'claude',
+            child: null,
+            conversation: {
+                entries: [],
+                providerSessions: [
+                    { ...session, conversationId: 'session-1', usageBaseline: initialBaseline },
+                    { ...session, accountId: 'account-2', conversationId: 'session-2', usageBaseline: accountBaseline },
+                ],
+                status: 'running',
+            },
+            environment: {},
+            executable: '/tools/claude',
+            id: 'run-1',
+            nextSequence: 1,
+            onComplete: null,
+            onCompletionError: null,
+            onEvent: null,
+            reference: 'run.json',
+            request: { agent: 'claude', command: ['claude'], prompt: 'run' },
+            rootPath: 'C:/repo',
+            startedAt: '2026-07-20T10:00:00.000Z',
+            streaming: false,
+        });
+
+        attachRunProtocol(run, { providerConversationId: 'session-2', rootPath: 'C:/repo' });
+
+        expect(run.claudeUsageTracker.usageBaseline).toEqual(accountBaseline);
     });
 });
 

@@ -29,6 +29,22 @@ describe('parseAgentConversationLog', () => {
         expect(saved.usage).toMatchObject({ costUsd: 0.35, totalTokens: 120 })
     })
 
+    it('keeps provider session account IDs and leaves legacy sessions without one', () => {
+        const session = {
+            agent: 'codex', conversationId: 'session-1', createdAt: '2026-10-04T00:00:00.000Z',
+            lastUsedAt: '2026-10-04T00:00:01.000Z', synchronizedThroughMessageId: 'assistant-1',
+        }
+        const source = {
+            entries: [], id: 'conversation-1', startedAt: '2026-10-04T00:00:00.000Z', status: 'completed',
+            providerSessions: [session, { ...session, accountId: 'account-2', conversationId: 'session-2' }],
+        }
+
+        const saved = parseAgentConversationLog(JSON.stringify(source), 'activity.json')
+
+        expect(saved.providerSessions[0]).not.toHaveProperty('accountId')
+        expect(saved.providerSessions[1]).toMatchObject({ accountId: 'account-2', agent: 'codex', conversationId: 'session-2' })
+    })
+
     it.each([
         null,
         { costUsd: -1 },

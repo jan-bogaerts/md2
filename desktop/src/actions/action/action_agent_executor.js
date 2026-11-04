@@ -1,3 +1,5 @@
+const { findAgentAccount, resolveAgentAccounts } = require('../../../../shared/agent_accounts.mjs');
+const { findProviderSession, providerSessionAccountId } = require('../agent/agent_conversation');
 const { resolveAgentExecution } = require('../agent/agent_execution');
 const { buildResumeAgentCommand, buildAgentStreamingCommand, resolveAgentConfiguration } = require('../agent/agent_profiles.mjs');
 const { normalizeConversationContext } = require('../agent/agent_transcript');
@@ -15,6 +17,12 @@ function withoutProviderConversationId(request) {
 
 function withoutConversation(result) {
     return Object.fromEntries(Object.entries(result).filter(([fieldName]) => fieldName !== 'conversation'));
+}
+
+/** The most recently used provider session of an agent, matching the session the compact menu selects. */
+function latestProviderSession(sessions, agent) {
+    return sessions.filter((session) => session.agent === agent)
+        .reduce((latest, candidate) => (!latest || candidate.lastUsedAt > latest.lastUsedAt ? candidate : latest), null);
 }
 
 function executionCommand(resolvedAgent, providerSession, streaming) {
@@ -64,8 +72,9 @@ class ActionAgentExecutor {
             throw new Error(`Agent conversation belongs to ${sourceConversation.cardInternalId}, not ${expectedCardInternalId}`);
         }
 
-        const providerSession = sourceConversation?.providerSessions
-            ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null;
+        const providerSession = sourceConversation
+            ? findProviderSession(sourceConversation.providerSessions, resolvedAgent.agent, resolvedAgent.accountId)
+            : null;
         const hasPromptOverride = Object.hasOwn(input.runInput, 'prompt');
         const basePrompt = hasPromptOverride
             ? input.action.output?.kind === 'diagram' && !input.runInput.diagramPath
@@ -173,10 +182,14 @@ class ActionAgentExecutor {
         const expectedCardInternalId = input.activityOrigin.kind === 'card' ? input.activityOrigin.cardInternalId : null;
         if (conversation.id !== input.runInput.conversationId || (conversation.cardInternalId ?? null) !== expectedCardInternalId
             || conversation.actionId !== input.action.id) throw new Error('Compact conversation identity or ownership changed');
-        const providerSession = conversation.providerSessions.find(({ agent }) => agent === input.runInput.agent);
+        const providerSession = latestProviderSession(conversation.providerSessions, input.runInput.agent);
         if (!providerSession?.conversationId) throw new Error('Missing provider session for compact');
         const config = this.agentConfigProvider();
-        const resolvedAgent = resolveAgentConfiguration(config, { agent: providerSession.agent });
+        const accountId = providerSessionAccountId(providerSession);
+        if (accountId && !findAgentAccount(resolveAgentAccounts(config.agentAccounts, 'desktop config'), accountId)) {
+            throw new Error(`Provider session account is unavailable for ${providerSession.agent}: ${accountId}`);
+        }
+        const resolvedAgent = resolveAgentConfiguration(config, { ...(accountId ? { accountId } : {}), agent: providerSession.agent });
         const agentTaskTrackingEnabled = config.agentTaskTrackingEnabled ?? false;
         const command = buildAgentStreamingCommand(
             resolvedAgent.profile, resolvedAgent.model, resolvedAgent.thinkingLevel, resolvedAgent.permissionMode,

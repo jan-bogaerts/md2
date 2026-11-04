@@ -350,6 +350,8 @@ export interface AgentProviderUsageBaseline {
 }
 
 export interface AgentProviderSession {
+    /** Missing means the agent's initial account. */
+    accountId?: string
     agent: string
     conversationId: string
     createdAt: string

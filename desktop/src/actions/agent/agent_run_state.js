@@ -3,6 +3,7 @@ const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 const { createPhaseTracker } = require('./agent_conversation_phases');
+const { findProviderSession } = require('./agent_conversation');
 const { createProviderEventEntryIndexes } = require('./agent_run_transcript');
 
 /**
@@ -139,10 +140,11 @@ function attachRunProtocol(run, {
     rootPath,
 }) {
     const writeLine = (message) => writeJsonLine(run.child.stdin, message);
-    const providerSession = run.conversation.providerSessions.find(({ agent, conversationId }) =>
-        agent === run.agent && conversationId === providerConversationId);
+    const providerSession = findProviderSession(run.conversation.providerSessions, run.agent, run.accountId);
+    const usageBaseline = providerSession && providerSession.conversationId === providerConversationId
+        ? providerSession.usageBaseline : undefined;
     run.claudeUsageTracker = run.agent === 'claude'
-        ? new ClaudeUsageTracker(providerConversationId, providerSession?.usageBaseline)
+        ? new ClaudeUsageTracker(providerConversationId, usageBaseline)
         : null;
     run.streamingAdapter = run.streaming
         ? createAgentStreamingAdapter(

@@ -9,6 +9,7 @@ const {
     createConversation,
     createEventEntry,
     createMessageEntry,
+    findProviderSession,
     snapshotConversation,
     transitionConversationStatus,
     updateProviderSession,
@@ -221,5 +222,63 @@ describe('agent conversation', () => {
         const runWithoutConversationId = { ...run, conversation: { providerSessions: [] }, providerConversationId: null };
         updateProviderSession(runWithoutConversationId, 'message-2', 'later');
         expect(runWithoutConversationId.conversation.providerSessions).toEqual([]);
+    });
+
+    it('keeps separate provider sessions per account and updates only the matching one', () => {
+        const initialSession = {agent: 'codex', conversationId: 'thread-initial', createdAt: 'before', lastUsedAt: 'before', synchronizedThroughMessageId: 'message-0'};
+        const run = {
+            accountId: 'account-2',
+            agent: 'codex',
+            conversation: { providerSessions: [initialSession] },
+            providerConversationId: 'thread-2',
+            request: {},
+        };
+
+        updateProviderSession(run, 'message-1', 'now');
+        updateProviderSession({ ...run, providerConversationId: 'thread-2' }, 'message-2', 'later');
+
+        expect(run.conversation.providerSessions).toEqual([initialSession, {
+            accountId: 'account-2',
+            agent: 'codex',
+            conversationId: 'thread-2',
+            createdAt: 'now',
+            lastUsedAt: 'later',
+            synchronizedThroughMessageId: 'message-2',
+        }]);
+    });
+
+    it('updates a legacy provider session under the initial account and persists that account', () => {
+        const legacySession = {agent: 'claude', conversationId: 'session-1', createdAt: 'before', lastUsedAt: 'before', synchronizedThroughMessageId: 'message-0'};
+        const run = {
+            accountId: 'claude-initial',
+            agent: 'claude',
+            conversation: { providerSessions: [legacySession] },
+            providerConversationId: 'session-1',
+            request: {},
+        };
+
+        updateProviderSession(run, 'message-1', 'now');
+
+        expect(run.conversation.providerSessions).toEqual([{
+            accountId: 'claude-initial',
+            agent: 'claude',
+            conversationId: 'session-1',
+            createdAt: 'before',
+            lastUsedAt: 'now',
+            synchronizedThroughMessageId: 'message-1',
+        }]);
+    });
+
+    it('finds provider sessions by agent and account, treating a missing account as the initial one', () => {
+        const legacySession = { agent: 'codex', conversationId: 'thread-1' };
+        const accountSession = { accountId: 'account-2', agent: 'codex', conversationId: 'thread-2' };
+        const genericSession = { agent: 'generic', conversationId: 'generic-1' };
+        const sessions = [legacySession, accountSession, genericSession];
+
+        expect(findProviderSession(sessions, 'codex', 'codex-initial')).toBe(legacySession);
+        expect(findProviderSession(sessions, 'codex', 'account-2')).toBe(accountSession);
+        expect(findProviderSession(sessions, 'codex', 'account-3')).toBeNull();
+        expect(findProviderSession(sessions, 'claude', 'account-2')).toBeNull();
+        expect(findProviderSession(sessions, 'generic', null)).toBe(genericSession);
     });
 });

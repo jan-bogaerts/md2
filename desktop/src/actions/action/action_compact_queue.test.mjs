@@ -69,7 +69,10 @@ describe('compact scheduling', () => {
                 return { exitCode: 0, reference: request.reference, stdout: '', stderr: warning };
             }),
         };
-        run.actionWorktreeRunService = { resolve: vi.fn(async () => ({ runProject: project })) };
+        run.actionWorktreeRunService = {
+            resolve: vi.fn(async () => ({ runProject: project })),
+            runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
+        };
         await run.run();
         expect(service.compact).toHaveBeenCalledTimes(1);
         expect(compactStates(events)).toEqual(['queued', 'running', 'completed']);
@@ -164,7 +167,10 @@ describe('compact scheduling', () => {
                 return { exitCode: 0, reference: request.reference, stdout: '', stderr: '' };
             }),
         };
-        run.actionWorktreeRunService = { resolve: vi.fn(async () => ({ runProject: project })) };
+        run.actionWorktreeRunService = {
+            resolve: vi.fn(async () => ({ runProject: project })),
+            runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
+        };
         run.localGitService = { appendAndCommitActionActivity: vi.fn() };
         run.rootAction = { ...action, onBefore: [{ type: 'command' }], onAfter: [{ type: 'command' }] };
         await expect(run.run()).resolves.toMatchObject({ status: 'completed' });
