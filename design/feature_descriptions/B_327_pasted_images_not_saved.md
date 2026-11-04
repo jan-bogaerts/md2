@@ -10,8 +10,6 @@ agents:
   - design/activity/card__c406d6e4-8d5d-4036-8b27-264485b2fbe3.json
 policy:
 after: 2abaa832-8652-4464-aca4-963549cdbac2
-branch: b_327_pasted_images_not_saved
-worktree: 2
 changedFiles:
   - app/src/components/editor/markdown_editor_reliability.real.test.tsx
   - app/src/components/editor/plain_markdown_realm_plugin.ts
