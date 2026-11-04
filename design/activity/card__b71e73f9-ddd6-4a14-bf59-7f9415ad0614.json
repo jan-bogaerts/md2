@@ -522,6 +522,14 @@
           "role": "assistant",
           "sequence": 37,
           "timestamp": "2026-11-04T15:03:22.420Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_329_changing_appearence_not_applied.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-24daf2b5-2aca-4818-8701-435ca2ddfb83",
+          "kind": "message",
+          "role": "user",
+          "sequence": 38,
+          "timestamp": "2026-11-04T15:05:09.818Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -536,7 +544,7 @@
         }
       ],
       "startedAt": "2026-11-04T15:02:06.057Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -563,7 +571,7 @@
           "toolMs": 2065
         },
         "elapsedMs": 76363,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-04T15:05:09.818Z"
       },
       "title": "investigate",
       "usage": {
@@ -574,7 +582,7 @@
         "totalTokens": 407555
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
