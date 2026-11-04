@@ -12,6 +12,13 @@ policy:
 branch: f_443_scope_usage_metrics_and_reset_schedules_by_account
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 worktree: 1
+changedFiles:
+  - app/src/services/agents/project_usage_metrics_service.node.test.ts
+  - app/src/services/agents/project_usage_metrics_service.ts
+  - app/src/services/stats/project_stats_types.ts
+  - desktop/src/actions/agent/agent_runner_service.js
+  - desktop/src/actions/agent/usage_metrics_service.js
+  - desktop/src/actions/agent/usage_metrics_service.test.mjs
 ---
 
 Persist and project usage measurements and account-reset schedules separately for each agent account, using the account-scoped runtime snapshots from F_442.
