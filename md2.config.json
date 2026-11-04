@@ -42,7 +42,7 @@
       "conversationId": "agent-574c9b12-c5e8-43f1-8488-8cf70ce7c261"
     },
     {
-      "activityPath": "design/activity/project.json",
+      "activityPath": "design/releases/0.10.0/project.json",
       "contextKind": "project",
       "conversationId": "agent-c7688fbb-3a4a-482f-8326-f08f00bb615f"
     }
