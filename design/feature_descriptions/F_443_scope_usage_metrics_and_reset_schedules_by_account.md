@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__d2d5c693-62b3-4e7f-b957-728a5c468cb0.json
 policy:
 branch: f_443_scope_usage_metrics_and_reset_schedules_by_account
 after: 733d678c-49a7-4409-9fa2-5fb384821513
