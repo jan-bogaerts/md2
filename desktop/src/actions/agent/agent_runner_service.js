@@ -350,7 +350,7 @@ class AgentRunnerService {
     finish(runId) {
         const run = this.requireStreamingRun(runId);
         run.finishing = true;
-        if (!run.turnActive || run.waitingForQuestion) this.beginFinishShutdown(run);
+        if (!run.turnActive || hasPendingInteraction(run)) this.beginFinishShutdown(run);
     }
 
     beginFinishShutdown(run) {

@@ -1513,6 +1513,27 @@ describe('AgentRunnerService state handling', () => {
         expect(service.processes.get('run-1').finishForced).toBe(true);
     });
 
+    it('starts graceful Finish during an active turn with a pending approval', () => {
+        const setTimeout = vi.fn(() => 7);
+        const child = { stdin: { end: vi.fn() } };
+        const service = new AgentRunnerService({ setTimeout });
+        service.processes.set('run-1', {
+            child,
+            finishTimeout: null,
+            finishing: false,
+            id: 'run-1',
+            pendingApprovals: new Map([[41, {}]]),
+            streaming: true,
+            turnActive: true,
+            waitingForQuestion: false,
+        });
+
+        service.finish('run-1');
+
+        expect(child.stdin.end).toHaveBeenCalledOnce();
+        expect(setTimeout).toHaveBeenCalledWith(service.handleFinishTimeout, AGENT_FINISH_GRACE_MS, 'run-1');
+    });
+
     it('starts graceful Finish only after the active turn completes', async () => {
         const setTimeout = vi.fn(() => 7);
         const child = { stdin: { end: vi.fn() } };
@@ -1527,7 +1548,7 @@ describe('AgentRunnerService state handling', () => {
             },
             currentAssistantMessageId: 'assistant-1',
             finishTimeout: null,
-            finishing: true,
+            finishing: false,
             id: 'run-1',
             missingSession: false,
             nextSequence: 2,
@@ -1541,6 +1562,11 @@ describe('AgentRunnerService state handling', () => {
             turnIndex: 1,
             waitingForQuestion: false,
         });
+
+        service.finish('run-1');
+
+        expect(child.stdin.end).not.toHaveBeenCalled();
+        expect(setTimeout).not.toHaveBeenCalled();
 
         await service.handleStreamingEvent('run-1', { type: 'turnCompleted' });
 
