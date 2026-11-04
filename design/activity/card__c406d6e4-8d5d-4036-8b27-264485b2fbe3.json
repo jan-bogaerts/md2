@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 91685
+        "usedTokens": 100676
       },
       "entries": [
         {
@@ -869,6 +869,108 @@
           "role": "user",
           "sequence": 61,
           "timestamp": "2026-11-04T14:29:10.027Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8c6d9e1d-d6a8-46c3-aa18-6365e85a657a-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_094f6622a1b92893016aeb413c7e2087d2b9240c60a46854e8",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T14:29:15.079Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. The clean approach is to preserve resizing but add selective image-tag handling, while keeping all other raw HTML suppressed. I’m checking the editor’s visitor ordering to identify the smallest safe integration point.\n\n",
+          "id": "agent-turn-8c6d9e1d-d6a8-46c3-aa18-6365e85a657a-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 63,
+          "timestamp": "2026-11-04T14:29:16.044Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"suppressHtmlProcessing|html.*Visitor|MdastHtml|GenericHTML|html\\\" app/node_modules/@mdxeditor/editor/dist/plugins/core app/node_modules/@mdxeditor/editor/dist --glob '*.js' | Select-Object -First 120\"",
+          "content": "app/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:5:const TYPE_NAME = \"generic-html\";\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:6:class GenericHTMLNode extends ElementNode {\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:8:   * Constructs a new {@link GenericHTMLNode} with the specified MDAST HTML node as the object to edit.\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:28:    return new GenericHTMLNode(node.__tag, node.__nodeType, node.__attributes, node.__key);\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:69:    const node = $createGenericHTMLNode(serializedNode.tag, serializedNode.mdxType, serializedNode.attributes);\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:87:    insertNewAfter(selection?: RangeSelection, restoreSelection = true): ParagraphNode | GenericHTMLNode {\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:111:function $createGenericHTMLNode(tag, type, attributes) {\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:112:  return $applyNodeReplacement(new GenericHTMLNode(tag, type, attributes));\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:114:function $isGenericHTMLNode(node) {\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:115:  return node instanceof GenericHTMLNode;\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:118:  $createGenericHTMLNode,\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:119:  $isGenericHTMLNode,\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\GenericHTMLNode.js:120:  GenericHTMLNode,\r\napp/node_modules/@mdxeditor/editor/dist\\exportMarkdownFromLexical.js:201:        newChildren.push(...[{ type: \"html\", value: \"<u>\" }, ...child.children, { type: \"html\", value: \"</u>\" }]);\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\index.js:20:import { GenericHTMLNode } from \"./GenericHTMLNode.js\";\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\index.js:21:import { $createGenericHTMLNode, $isGenericHTMLNode, TYPE_NAME } from \"./GenericHTMLNode.js\";\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\index.js:22:import { LexicalGenericHTMLVisitor } from \"./LexicalGenericHTMLNodeVisitor.js\";\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\index.js:546:      [addLexicalNode$]: [ParagraphNode, TextNode, GenericHTMLNode],\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\index.js:552:        LexicalGenericHTMLVisitor\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\index.js:572:    if (!(params == null ? void 0 : params.suppressHtmlProcessing)) {\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\index.js:631:  $createGenericHTMLNode,\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\index.js:633:  $isGenericHTMLNode,\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\index.js:635:  GenericHTMLNode,\r\napp/node_modules/@mdxeditor/editor/dist\\MDXEditor.js:249:          suppressHtmlProcessing: props.suppressHtmlProcessing ?? false,\r\napp/node_modules/@mdxeditor/editor/dist\\index.js:69:import { $createGenericHTMLNode, $isGenericHTMLNode, GenericHTMLNode, TYPE_NAME } from \"./plugins/core/GenericHTMLNode.js\";\r\napp/node_modules/@mdxeditor/editor/dist\\index.js:71:import { htmlTags, isMdastHTMLNode } from \"./plugins/core/MdastHTMLNode.js\";\r\napp/node_modules/@mdxeditor/editor/dist\\index.js:78:  $createGenericHTMLNode,\r\napp/node_modules/@mdxeditor/editor/dist\\index.js:85:  $isGenericHTMLNode,\r\napp/node_modules/@mdxeditor/editor/dist\\index.js:114:  GenericHTMLNode,\r\napp/node_modules/@mdxeditor/editor/dist\\index.js:254:  htmlTags,\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\MdastHTMLVisitor.js:1:import { $createGenericHTMLNode } from \"./GenericHTMLNode.js\";\r\napp/node_modules/@mdxeditor/editor/dist/plugins/core\\MdastHTMLVisitor.js:10:      actions.addAndStepInto($createGenericHTMLNode(mdastNode.name, mdastNode.type, mdastNode.attributes));\r\napp/no\n[7085 characters omitted]\nd }, /* @__PURE__ */ React__default.createElement(\"label\", { htmlFor: \"alt\" }, t(\"uploadImage.alt\", \"Alt:\")), /* @__PURE__ */ React__default.createElement(\"input\", { type: \"text\", ...register(\"altText\"), className: styles.textInput })),\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\image\\ImageDialog.js:75:        /* @__PURE__ */ React__default.createElement(\"div\", { className: styles.formField }, /* @__PURE__ */ React__default.createElement(\"label\", { htmlFor: \"title\" }, t(\"uploadImage.title\", \"Title:\")), /* @__PURE__ */ React__default.createElement(\"input\", { type: \"text\", ...register(\"title\"), className: styles.textInput })),\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\image\\ImageDialog.js:76:        allowSetImageDimensions && /* @__PURE__ */ React__default.createElement(\"div\", { className: styles.imageDimensionsContainer }, /* @__PURE__ */ React__default.createElement(\"div\", { className: styles.formField }, /* @__PURE__ */ React__default.createElement(\"label\", { htmlFor: \"width\" }, t(\"uploadImage.width\", \"Width:\")), /* @__PURE__ */ React__default.createElement(\"input\", { type: \"number\", min: 0, ...register(\"width\"), className: styles.textInput })), /* @__PURE__ */ React__default.createElement(\"div\", { className: styles.formField }, /* @__PURE__ */ React__default.createElement(\"label\", { htmlFor: \"height\" }, t(\"uploadImage.height\", \"Height:\")), /* @__PURE__ */ React__default.createElement(\"input\", { type: \"number\", min: 0, ...register(\"height\"), className: styles.textInput }))),\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\link-dialog\\LinkDialog.js:57:    /* @__PURE__ */ React__default.createElement(\"div\", { className: styles.formField }, /* @__PURE__ */ React__default.createElement(\"label\", { htmlFor: \"link-url\" }, t(\"createLink.url\", \"URL\")), /* @__PURE__ */ React__default.createElement(\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\link-dialog\\LinkDialog.js:70:    showAnchorTextField ? /* @__PURE__ */ React__default.createElement(\"div\", { className: styles.formField }, /* @__PURE__ */ React__default.createElement(\"label\", { htmlFor: \"link-text\", title: t(\"createLink.textTooltip\", \"The text to be displayed for the link\") }, t(\"createLink.text\", \"Anchor text\")), /* @__PURE__ */ React__default.createElement(\"input\", { id: \"link-text\", className: styles.textInput, size: 40, ...register(\"text\") })) : null,\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\link-dialog\\LinkDialog.js:71:    showLinkTitleField ? /* @__PURE__ */ React__default.createElement(\"div\", { className: styles.formField }, /* @__PURE__ */ React__default.createElement(\"label\", { htmlFor: \"link-title\", title: t(\"createLink.titleTooltip\", \"The link's title attribute, shown on hover\") }, t(\"createLink.title\", \"Link title\")), /* @__PURE__ */ React__default.createElement(\"input\", { id: \"link-title\", className: styles.textInput, size: 40, ...register(\"title\") })) : null,\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\jsx\\LexicalMdxExpressionNode.js:10:   * Constructs a new {@link GenericHTMLNode} with the specified MDAST HTML node as the object to edit.\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\jsx\\LexicalMdxExpressionNode.js:67:    insertNewAfter(selection?: RangeSelection, restoreSelection = true): ParagraphNode | GenericHTMLNode {\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\image\\index.js:12:import { MdastImageVisitor, MdastHtmlImageVisitor, MdastJsxImageVisitor } from \"./MdastImageVisitor.js\";\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\image\\index.js:194:      [addImportVisitor$]: [MdastImageVisitor, MdastHtmlImageVisitor, MdastJsxImageVisitor],\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\image\\LexicalImageVisitor.js:27:        type: \"html\",\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\image\\MdastImageVisitor.js:15:const MdastHtmlImageVisitor = {\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\image\\MdastImageVisitor.js:17:    return node.type === \"html\" && node.value.trim().startsWith(\"<img\");\r\napp/node_modules/@mdxeditor/editor/dist\\plugins\\image\\MdastImageVisitor.js:88:  MdastHtmlImageVisitor,\r\n",
+          "durationMs": 62,
+          "exitCode": 0,
+          "id": "agent-turn-8c6d9e1d-d6a8-46c3-aa18-6365e85a657a-event-64",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"suppressHtmlProcessing|html.*Visitor|MdastHtml|GenericHTML|html\\\" app/node_modules/@mdxeditor/editor/dist/plugins/core app/node_modules/@mdxeditor/editor/dist --glob '*.js' | Select-Object -First 120\"",
+          "providerItemId": "exec-53e05154-83b7-4a9c-91c9-937e92fab831",
+          "sequence": 64,
+          "status": "completed",
+          "timestamp": "2026-11-04T14:29:18.437Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app/node_modules/@mdxeditor/editor/dist/plugins/core/index.js'; \"'$lines[535..590]'",
+          "content": "  init(r, params) {\r\n    const initialMarkdown = (params == null ? void 0 : params.initialMarkdown) ?? \"\";\r\n    r.register(createRootEditorSubscription$);\r\n    r.register(createActiveEditorSubscription$);\r\n    r.register(markdownSignal$);\r\n    r.register(markdownSourceEditorValue$);\r\n    r.pubIn({\r\n      [initialMarkdown$]: (params == null ? void 0 : params.trim) ? initialMarkdown.trim() : initialMarkdown,\r\n      [iconComponentFor$]: params == null ? void 0 : params.iconComponentFor,\r\n      [addImportVisitor$]: [MdastRootVisitor, MdastParagraphVisitor, MdastTextVisitor, MdastBreakVisitor, ...formattingVisitors],\r\n      [addLexicalNode$]: [ParagraphNode, TextNode, GenericHTMLNode],\r\n      [addExportVisitor$]: [\r\n        LexicalRootVisitor,\r\n        LexicalParagraphVisitor,\r\n        LexicalTextVisitor,\r\n        LexicalLinebreakVisitor,\r\n        LexicalGenericHTMLVisitor\r\n      ],\r\n      [contentEditableClassName$]: params == null ? void 0 : params.contentEditableClassName,\r\n      [spellCheck$]: params == null ? void 0 : params.spellCheck,\r\n      [toMarkdownOptions$]: params == null ? void 0 : params.toMarkdownOptions,\r\n      [autoFocus$]: params == null ? void 0 : params.autoFocus,\r\n      [placeholder$]: params == null ? void 0 : params.placeholder,\r\n      [readOnly$]: params == null ? void 0 : params.readOnly,\r\n      [translation$]: params == null ? void 0 : params.translation,\r\n      [historyState$]: createEmptyHistoryState(),\r\n      [addMdastExtension$]: [gfmStrikethroughFromMarkdown(), highlightMarkFromMarkdown],\r\n      [addSyntaxExtension$]: [gfmStrikethrough(), highlightMark()],\r\n      [addToMarkdownExtension$]: [mdxJsxToMarkdown(), gfmStrikethroughToMarkdown(), highlightMarkToMarkdown],\r\n      [lexicalTheme$]: (params == null ? void 0 : params.lexicalTheme) ?? lexicalTheme\r\n    });\r\n    r.singletonSub(markdownErrorSignal$, params == null ? void 0 : params.onError);\r\n    r.singletonSub(mutableMarkdownSignal$, (value) => {\r\n      params == null ? void 0 : params.onChange(value, r.getValue(initialMarkdownNormalize$));\r\n    });\r\n    r.singletonSub(onBlur$, params == null ? void 0 : params.onBlur);\r\n    if (!(params == null ? void 0 : params.suppressHtmlProcessing)) {\r\n      r.pubIn({\r\n        [addMdastExtension$]: [mdxJsxFromMarkdown(), commentFromMarkdown()],\r\n        [addSyntaxExtension$]: [mdxJsx(), mdxMd(), comment],\r\n        [addImportVisitor$]: MdastHTMLVisitor\r\n      });\r\n    }\r\n  },\r\n  postInit(r, params) {\r\n    const newEditor = createExtensionEditor({\r\n      name: \"@mdxeditor/root\",\r\n      editable: (params == null ? void 0 : params.readOnly) !== true,\r\n      namespace: (params == null ? void 0 : params.lexicalEditorNamespace) ?? \"MDXEditor\",\r\n      nodes: [...r.getValue(usedLexicalNodes$), ...(params == null ? void 0 : params.additionalLexicalNodes) ?? []],\r\n      theme: r.getValue(lexicalTheme$),\r\n      historyMode: (params == null ? void 0 : params.suppressSharedHistory) ? \"none\" : \"root-shared\",\r\n      historyState: r.getValue(historyState$),\r\n      initialEditorState: (params == null ? void 0 : params.editorState) === null ? null : () => {\r\n        const markdown = (params == null ? void 0 : params.initialMarkdown.trim()) ?? \"\";\r\n        tryImportingMarkdown(r, $getRoot(), markdown);\r\n",
+          "durationMs": 47,
+          "exitCode": 0,
+          "id": "agent-turn-8c6d9e1d-d6a8-46c3-aa18-6365e85a657a-event-65",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app/node_modules/@mdxeditor/editor/dist/plugins/core/index.js'; \"'$lines[535..590]'",
+          "providerItemId": "exec-4fbde7d6-12e2-4ead-a4cb-37610bee98a8",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-11-04T14:29:21.572Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8c6d9e1d-d6a8-46c3-aa18-6365e85a657a-event-66",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_094f6622a1b92893016aeb4145914487d2b4a2105ad426b9f0",
+          "sequence": 66,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T14:29:24.155Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/components/editor/plain_markdown_realm_plugin.ts'\"",
+          "content": "import { addImportVisitor$, realmPlugin, type MdastImportVisitor } from '@mdxeditor/editor';\nimport type { Html, PhrasingContent } from 'mdast';\nimport { $createLineBreakNode, $isElementNode } from 'lexical';\n\nconst LITERAL_HTML_IMPORT_PRIORITY = 1;\n\nconst htmlImportVisitor: MdastImportVisitor<Html> = {\n    // Override MDXEditor's default HTML image and formatting visitors too.\n    priority: LITERAL_HTML_IMPORT_PRIORITY,\n    testNode: 'html',\n    visitNode({ mdastNode, mdastParent, lexicalParent, actions }) {\n        const children: PhrasingContent[] = [];\n        const lines = mdastNode.value.split('\\n');\n        for (const [index, line] of lines.entries()) {\n            if (index > 0) children.push({ type: 'break' });\n            children.push({ type: 'text', value: line });\n        }\n        const block = mdastParent?.type === 'root' || mdastParent?.type === 'blockquote' || mdastParent?.type === 'listItem';\n        const index = mdastParent?.children.indexOf(mdastNode) ?? -1;\n        const previousSibling = index > 0 ? mdastParent?.children[index - 1] : undefined;\n        if (block && $isElementNode(lexicalParent) && lexicalParent.getType() === 'listitem' && previousSibling?.type === 'paragraph') {\n            lexicalParent.append($createLineBreakNode(), $createLineBreakNode());\n        }\n        // Delegate paragraph placement to the same visitor used for ordinary Markdown, including list items.\n        actions.visitChildren({ type: 'root', children: block ? [{ type: 'paragraph', children }] : children }, lexicalParent);\n    },\n};\n\n/** Imports HTML as editable literal text while supported Markdown keeps its formatting. */\nexport const plainMarkdownPlugin = realmPlugin({\n    init(realm) {\n        realm.pub(addImportVisitor$, htmlImportVisitor);\n    },\n});\n\r\n",
+          "durationMs": 27,
+          "exitCode": 0,
+          "id": "agent-turn-8c6d9e1d-d6a8-46c3-aa18-6365e85a657a-event-67",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/components/editor/plain_markdown_realm_plugin.ts'\"",
+          "providerItemId": "exec-fc6908af-d4e4-423e-996a-f7eeae9e6f3d",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-11-04T14:29:25.888Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8c6d9e1d-d6a8-46c3-aa18-6365e85a657a-event-68",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_094f6622a1b92893016aeb4152762c87d29bc79a668bbf68a1",
+          "sequence": 68,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T14:29:37.061Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. Keep resizing enabled and selectively deserialize MDXEditor-generated `<img>` tags.\n\nThe existing `plainMarkdownPlugin` intentionally overrides MDXEditor’s image importer and converts every HTML node into literal text. Change that importer so:\n\n- Safe `<img>` tags containing only `src`, `alt`, `title`, `width`, and `height` become MDXEditor image nodes.\n- Relative `src` values remain unchanged.\n- All other HTML remains literal text as today.\n- The image node retains its dimensions, so resizing survives save and reopen.\n\nThis is preferable to enabling general HTML processing because it preserves the current HTML-safety policy. It also repairs already affected cards automatically when reopened. Add regression tests for resized images reopening correctly and arbitrary HTML remaining literal.\n\n",
+          "id": "agent-turn-8c6d9e1d-d6a8-46c3-aa18-6365e85a657a-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 69,
+          "timestamp": "2026-11-04T14:29:40.200Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -878,8 +980,8 @@
           "agent": "codex",
           "conversationId": "01a1a6f3-3cdc-7990-beb0-5ecf8c68bb21",
           "createdAt": "2026-11-04T14:27:17.707Z",
-          "lastUsedAt": "2026-11-04T14:27:17.707Z",
-          "synchronizedThroughMessageId": "agent-turn-8c6d9e1d-d6a8-46c3-aa18-6365e85a657a-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-04T14:29:40.200Z",
+          "synchronizedThroughMessageId": "agent-turn-8c6d9e1d-d6a8-46c3-aa18-6365e85a657a-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-11-04T14:25:20.723Z",
@@ -906,19 +1008,19 @@
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 127,
-          "toolMs": 5305
+          "reasoningMs": 161,
+          "toolMs": 5473
         },
         "elapsedMs": 116984,
         "runningStartedAt": "2026-11-04T14:29:10.027Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 881920,
-        "inputTokens": 90667,
-        "outputTokens": 2624,
-        "reasoningTokens": 962,
-        "totalTokens": 976173
+        "cachedInputTokens": 1265536,
+        "inputTokens": 99071,
+        "outputTokens": 3103,
+        "reasoningTokens": 1730,
+        "totalTokens": 1369440
       },
       "usageSchemaVersion": 1,
       "viewed": true
