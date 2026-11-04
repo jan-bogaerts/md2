@@ -1,5 +1,6 @@
 import type { StatsConversationFact } from '../../../../shared/project_stats.mjs';
 import { findAgentProfile } from '../../data/agent_profiles';
+import { findAgentAccount } from '../../data/agent_accounts';
 import {
     TERMINAL_CONVERSATION_STATUSES,
     type StatsAccountSeriesOption,
@@ -235,6 +236,8 @@ function accountSeries(source: StatsDatasetSource, controls: StatsControls) {
     for (const row of source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls))) {
         const identity = accountSeriesIdentity(row);
         seriesByIdentity.set(identity, {
+            accountId: row.accountId,
+            accountName: findAgentAccount(source.agentAccounts, row.accountId)?.name ?? row.accountId,
             identity,
             limitId: row.limitId,
             provider: row.provider,
@@ -262,7 +265,7 @@ function providerRates(source: StatsDatasetSource, controls: StatsControls) {
     for (const [provider, series] of longestWindowSeriesByProvider(activeSeries)) {
         const denominator = denominatorsBySeries.get(series.identity)!;
         const numerator = tokenRows
-            .filter((row) => row.provider === provider)
+            .filter((row) => row.provider === provider && row.accountId === series.accountId)
             .reduce((total, row) => total + row.totalTokens, 0);
         const profile = findAgentProfile(source.agentProfiles, provider);
         const monthlySubscriptionCostUsd = profile?.monthlySubscriptionCostUsd;

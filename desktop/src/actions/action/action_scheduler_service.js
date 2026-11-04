@@ -83,6 +83,10 @@ function validateRegistrationRequest(request, now) {
         return request;
     }
     if (request.trigger.type === 'account-reset') {
+        if (request.trigger.accountId !== undefined
+            && (typeof request.trigger.accountId !== 'string' || request.trigger.accountId.length === 0)) {
+            throw new Error('Invalid action schedule trigger accountId');
+        }
         validateFutureTimestamp(request.trigger.expectedResetAt, 'expectedResetAt', now);
         return request;
     }
@@ -119,8 +123,6 @@ class ActionSchedulerService {
         this.actionRunnerService = dependencies?.actionRunnerService;
         this.confirmCardStateScheduleContinuation = dependencies?.confirmCardStateScheduleContinuation ?? null;
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
-        // Account-reset triggers name no account yet, so they follow the selected default account of their agent.
-        this.selectedAgentAccountId = dependencies?.selectedAgentAccountId ?? initialAgentAccountId;
         this.clearTimeout = dependencies?.clearTimeout ?? clearTimeout;
         this.localGitService = dependencies?.localGitService;
         this.worktreeService = dependencies?.worktreeService;
@@ -241,7 +243,6 @@ class ActionSchedulerService {
     subscribeToAccountUsage(agent, runtimeService) {
         if (!runtimeService) return;
         const unsubscribe = runtimeService.subscribe((snapshot) => {
-            if (snapshot.accountId !== this.selectedAgentAccountId(agent)) return;
             void this.handleAccountUsageChange(agent, snapshot).catch((error) => this.errorReporter(error));
         });
         this.accountUsageUnsubscribers.push(unsubscribe);
@@ -517,7 +518,7 @@ class ActionSchedulerService {
         const generation = this.projectGeneration;
         for (const observation of observations) {
             this.accountResetObservations.set(
-                trackerKey(observation.agent, observation.limitId, observation.windowId),
+                trackerKey(observation.agent, observation.accountId, observation.limitId, observation.windowId),
                 observation.resetsAt,
             );
         }
@@ -527,8 +528,10 @@ class ActionSchedulerService {
         for (const schedule of schedules) {
             if (schedule.status !== 'pending' || schedule.trigger.type !== 'account-reset') continue;
             const { agent: triggerAgent, expectedResetAt, limitId, windowId } = schedule.trigger;
+            const triggerAccountId = schedule.trigger.accountId ?? initialAgentAccountId(triggerAgent);
             const hasMatchingObservation = observations.some((observation) => (
                 observation.agent === triggerAgent
+                && observation.accountId === triggerAccountId
                 && observation.limitId === limitId
                 && observation.windowId === windowId
             ));

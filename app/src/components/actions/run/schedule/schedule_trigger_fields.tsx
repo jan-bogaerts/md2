@@ -4,10 +4,12 @@ import {
 import type { ChangeEvent } from 'react'
 import type { ActionScheduleAccountTracker, ActionScheduleCardOption } from './action_schedule_options'
 import type { ActionScheduleSnapshot, ActionScheduleTriggerType } from './action_schedule_store'
+import type { AgentAccount } from '../../../../data/agent_accounts'
 
 export type ScheduleTriggerType = ActionScheduleTriggerType | 'now'
 export type ScheduleTriggerSnapshot = ActionScheduleSnapshot | { triggerType: 'now' }
 export type ScheduleTriggerFieldsChange =
+    | { accountId: string; type: 'account' }
     | { agent: string; type: 'agent' }
     | { cardInternalId: string; type: 'card' }
     | { limitId: string; type: 'tracker'; windowId: string }
@@ -16,6 +18,7 @@ export type ScheduleTriggerFieldsChange =
     | { triggerType: ScheduleTriggerType; type: 'trigger-type' }
 
 interface ScheduleTriggerFieldsProps {
+    accounts: AgentAccount[]
     accountTrackers: ActionScheduleAccountTracker[]
     cards: ActionScheduleCardOption[]
     includeNow?: boolean
@@ -38,9 +41,12 @@ function formattedReset(timestamp: string | null) {
 
 /** Shared schedule trigger radio group and trigger-specific fields. */
 export function ScheduleTriggerFields(props: ScheduleTriggerFieldsProps) {
-    const { accountTrackers, cards, includeNow = false, onChange, snapshot, targetStates } = props
+    const { accounts, accountTrackers, cards, includeNow = false, onChange, snapshot, targetStates } = props
+    const selectedAgentAccounts = snapshot.triggerType === 'account-reset'
+        ? accounts.filter(({ agent }) => agent === snapshot.agent)
+        : []
     const selectedAgentTrackers = snapshot.triggerType === 'account-reset'
-        ? accountTrackers.filter(({ agent }) => agent === snapshot.agent)
+        ? accountTrackers.filter(({ accountId, agent }) => agent === snapshot.agent && accountId === snapshot.accountId)
         : []
     const selectedTrackerValue = snapshot.triggerType === 'account-reset' && snapshot.limitId && snapshot.windowId
         ? trackerValue(snapshot.limitId, snapshot.windowId)
@@ -50,6 +56,9 @@ export function ScheduleTriggerFields(props: ScheduleTriggerFieldsProps) {
     }
     const handleTimestampChange = (event: ChangeEvent<HTMLInputElement>) => onChange({ timestamp: event.target.value, type: 'timestamp' })
     const handleAgentChange = (event: { target: { value: unknown } }) => onChange({ agent: event.target.value as string, type: 'agent' })
+    const handleAccountChange = (event: { target: { value: unknown } }) => {
+        onChange({ accountId: event.target.value as string, type: 'account' })
+    }
     const handleTrackerChange = (event: { target: { value: unknown } }) => {
         const [limitId, windowId] = JSON.parse(event.target.value as string) as [string, string]
         onChange({ limitId, type: 'tracker', windowId })
@@ -83,6 +92,20 @@ export function ScheduleTriggerFields(props: ScheduleTriggerFieldsProps) {
                         {AGENTS.map(({ label, value }) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
                     </Select>
                     {snapshot.agent ? (
+                        <>
+                            <Typography color="text.secondary" variant="caption">Account</Typography>
+                            <Select
+                                displayEmpty
+                                inputProps={{ 'aria-label': 'Account' }}
+                                onChange={handleAccountChange}
+                                size="small"
+                                value={snapshot.accountId}
+                            >
+                                {selectedAgentAccounts.map(({ id, name }) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
+                            </Select>
+                        </>
+                    ) : null}
+                    {snapshot.agent && snapshot.accountId ? (
                         <>
                             <Typography color="text.secondary" variant="caption">Limit and window</Typography>
                             <Select

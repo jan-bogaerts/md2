@@ -23,13 +23,16 @@ function createAccountResetScheduleTrigger(
     accountTrackers: ActionScheduleAccountTracker[],
 ): ActionScheduleTrigger {
     if (!snapshot.agent) throw new Error('Agent is required for account reset schedules')
-    const tracker = accountTrackers.find(({ agent, limitId, windowId }) => (
-        agent === snapshot.agent && limitId === snapshot.limitId && windowId === snapshot.windowId
+    if (!snapshot.accountId) throw new Error('Account is required for account reset schedules')
+    const tracker = accountTrackers.find(({ accountId, agent, limitId, windowId }) => (
+        accountId === snapshot.accountId && agent === snapshot.agent
+        && limitId === snapshot.limitId && windowId === snapshot.windowId
     ))
     if (!tracker) throw new Error('Selected account tracker is unavailable')
     if (!tracker.expectedResetAt) throw new Error('Selected account tracker has no reset time')
 
     return {
+        accountId: tracker.accountId,
         agent: tracker.agent,
         expectedResetAt: tracker.expectedResetAt,
         limitId: tracker.limitId,

@@ -419,6 +419,7 @@ class AgentRunnerService {
 
         return this.usageMetricsService.recordTokenUsage(
             run.agent,
+            usageAccountId(run.agent, run.accountId),
             usage,
             Date.parse(recordedAt),
         );

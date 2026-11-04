@@ -89,6 +89,7 @@ function parseTrigger(value) {
     if (type === 'at') return { timestamp: requireTimestamp(trigger.timestamp, 'trigger.timestamp'), type };
     if (type === 'account-reset') {
         return {
+            ...parseOptionalString(trigger, 'accountId'),
             agent: requireString(trigger.agent, 'trigger.agent'),
             expectedResetAt: requireTimestamp(trigger.expectedResetAt, 'trigger.expectedResetAt'),
             limitId: requireString(trigger.limitId, 'trigger.limitId'),

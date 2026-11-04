@@ -155,6 +155,7 @@ function createLocalGitService(
 
 function codexSnapshot(limitId, primaryResetsAt, secondaryResetsAt = null) {
     return {
+        accountId: 'codex-initial',
         available: true,
         buckets: [{
             limitId,
@@ -169,6 +170,7 @@ function codexSnapshot(limitId, primaryResetsAt, secondaryResetsAt = null) {
 
 function claudeSnapshot(fiveHourResetsAt, weeklyResetsAt) {
     return {
+        accountId: 'claude-initial',
         available: true,
         observedAt: now,
         windows: [
@@ -753,10 +755,10 @@ describe('ActionSchedulerService', () => {
         expect(actionRunnerService.start).toHaveBeenCalledOnce();
     });
 
-    it('observes account resets only from the selected default account of the trigger agent', async () => {
+    it('fires an account reset only from the account persisted on the trigger', async () => {
         const expectedResetAt = now + 5000;
         const trigger = {
-            agent: 'codex', expectedResetAt: new Date(expectedResetAt).toISOString(),
+            accountId: 'work-account', agent: 'codex', expectedResetAt: new Date(expectedResetAt).toISOString(),
             limitId: 'codex,pro', type: 'account-reset', windowId: 'primary',
         };
         const localGitService = createLocalGitService([createSchedule('schedule-1', 'implement', trigger)]);
@@ -767,23 +769,18 @@ describe('ActionSchedulerService', () => {
             startProject: vi.fn(),
             wait: vi.fn(async () => ({ failure: null, runId: 'action-1', status: 'completed' })),
         };
-        const listeners = [];
-        const codexRuntimeService = { subscribe: vi.fn((listener) => listeners.push(listener)) };
         const scheduler = createScheduler(localGitService, {
             actionRunnerService,
-            codexRuntimeService,
             now: () => expectedResetAt,
-            selectedAgentAccountId: () => 'work-account',
         });
         await startProject(scheduler, localGitService);
         const dueSnapshot = codexSnapshot('codex,pro', expectedResetAt / 1000);
 
-        listeners[0]({ ...dueSnapshot, accountId: 'codex-initial' });
-        await Promise.resolve();
+        await scheduler.handleAccountUsageChange('codex', { ...dueSnapshot, accountId: 'codex-initial' });
         expect(actionRunnerService.start).not.toHaveBeenCalled();
-        listeners[0]({ ...dueSnapshot, accountId: 'work-account' });
+        await scheduler.handleAccountUsageChange('codex', { ...dueSnapshot, accountId: 'work-account' });
 
-        await vi.waitFor(() => expect(actionRunnerService.start).toHaveBeenCalledOnce());
+        expect(actionRunnerService.start).toHaveBeenCalledOnce();
     });
 
     it('keeps persisted account reset deadline when later snapshots estimate another reset', async () => {

@@ -103,6 +103,17 @@ describe('action schedule types', () => {
             type: 'account-reset',
             windowId: 'primary',
         })
+        const explicitAccountSchedule = {
+            ...createActionSchedule({
+                accountId: 'work-account',
+                agent: 'codex',
+                expectedResetAt: '2026-07-06T12:00:00.000Z',
+                limitId: 'weekly',
+                type: 'account-reset',
+                windowId: 'primary',
+            }),
+            id: 'schedule-explicit-account',
+        }
         const cardSchedule = createActionSchedule({
             cardInternalId: 'card-trigger',
             registrationState: 'todo',
@@ -110,7 +121,7 @@ describe('action schedule types', () => {
             type: 'card-state',
         })
 
-        const schedules = [accountSchedule, cardSchedule]
+        const schedules = [accountSchedule, explicitAccountSchedule, cardSchedule]
 
         expect(parseActionScheduleFile({ schedules })).toEqual({ schedules })
     })

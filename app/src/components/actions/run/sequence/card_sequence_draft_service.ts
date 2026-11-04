@@ -29,6 +29,7 @@ interface CardSequenceCardSource {
 export interface CardSequenceDraftSnapshot {
     cardSources: readonly CardSequenceCardSource[];
     actionId: string
+    accountId: string
     executionSelection: AgentSelectionState | null;
     agent: string
     canSubmit: boolean
@@ -76,6 +77,7 @@ function initialSnapshot(): CardSequenceDraftSnapshot {
     return {
         cardSources: [],
         actionId: '',
+        accountId: '',
         executionSelection: null,
         agent: '',
         canSubmit: false,
@@ -103,6 +105,7 @@ function scheduleSnapshot(snapshot: CardSequenceDraftSnapshot): ActionScheduleSn
     if (snapshot.triggerType === 'account-reset') {
         return {
             ...common,
+            accountId: snapshot.accountId,
             agent: snapshot.agent,
             limitId: snapshot.limitId,
             triggerType: 'account-reset',
@@ -363,7 +366,11 @@ export class CardSequenceDraftService extends EventTarget {
     }
 
     setAgent(agent: string) {
-        this.publishValidated({ ...this.snapshot, agent, limitId: '', windowId: '' })
+        this.publishValidated({ ...this.snapshot, accountId: '', agent, limitId: '', windowId: '' })
+    }
+
+    setAccountId(accountId: string) {
+        this.publishValidated({ ...this.snapshot, accountId, limitId: '', windowId: '' })
     }
 
     setAccountTracker(limitId: string, windowId: string) {
@@ -389,9 +396,12 @@ export class CardSequenceDraftService extends EventTarget {
         const selection = this.snapshot.executionSelection
             ? projectAgentSelection(this.snapshot.executionSelection, this.sources.agentProfiles)
             : null;
+        const selectedAccount = selection
+            ? resolveAgentAccount(resolveAgentAccounts(this.sources.accounts, 'sequence execution settings'), selection.agent, selection.accountId)
+            : null;
         const agentSelection: AgentSelection | null = selection
             ? {
-                ...(selection.accountId ? { accountId: selection.accountId } : {}),
+                ...(selectedAccount ? { accountId: selectedAccount.id } : {}),
                 agent: selection.agent, model: selection.model, thinkingLevel: selection.thinkingLevel,
                 ...(selection.permissionMode ? { permissionMode: selection.permissionMode } : {}),
                 ...(selection.speedMode !== undefined ? { speedMode: selection.speedMode } : {}),

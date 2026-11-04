@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { StatsConversationFact } from '../../../../shared/project_stats.mjs'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
 import { INITIAL_CONTROLS, type StatsChartRow, type StatsControls, type StatsDatasetSource } from './project_stats_types'
 import { eligibleSamples, performanceRows } from './stats_performance_dataset'
 import { totalsRows } from './stats_totals_dataset'
@@ -30,6 +31,7 @@ function conversationFact(overrides: Partial<StatsConversationFact> = {}): Stats
 function source(conversations: StatsConversationFact[]): StatsDatasetSource {
     return {
         accountRows: [],
+        agentAccounts: DEFAULT_AGENT_ACCOUNTS,
         agentProfiles: [],
         cards: [{ internalId: 'card-1', path: 'design/active/F_1.md', title: 'First', visibleId: 'F_1' }],
         stats: { actions: [], conversations },

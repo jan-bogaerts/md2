@@ -1,13 +1,16 @@
+import { initialAgentAccountId } from '../../data/agent_accounts'
 import type { ProjectReference, StorageService } from '../../data/data_types'
 import { register } from '../service_injector'
 
 export interface UsageMetricsTokenRow {
+    accountId: string
     provider: string
     recordedAt: string
     totalTokens: number
 }
 
 export interface UsageMetricsAccountRow {
+    accountId: string
     limitId: string
     provider: string
     recordedAt: string
@@ -43,7 +46,10 @@ const METRICS_COLUMNS = [
     'total_tokens',
     'used_percent',
     'used_percent_delta',
+    'account_id',
 ]
+// Files written before account switching lack the trailing account column; their rows belong to the initial account.
+const LEGACY_METRICS_COLUMNS = METRICS_COLUMNS.slice(0, -1)
 const TOKEN_COLUMNS = ['input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_tokens', 'total_tokens']
 const EMPTY_SNAPSHOT: ProjectUsageMetricsSnapshot = { accountRows: [], available: false, tokenRows: [], warnings: [] }
 
@@ -62,8 +68,27 @@ function joinPath(folder: string, fileName: string) {
     return normalizedFolder ? `${normalizedFolder}/${fileName}` : fileName
 }
 
-function accountUsageKey(provider: string, limitId: string, windowId: string) {
-    return `${provider}\u0000${limitId}\u0000${windowId}`
+function accountUsageKey(provider: string, accountId: string, limitId: string, windowId: string) {
+    return `${provider}\u0000${accountId}\u0000${limitId}\u0000${windowId}`
+}
+
+function isMetricsHeader(header: string[] | undefined) {
+    if (!header) return false
+    const columns = header.length === METRICS_COLUMNS.length ? METRICS_COLUMNS : LEGACY_METRICS_COLUMNS
+
+    return header.length === columns.length && header.every((value, index) => value === columns[index])
+}
+
+/** Maps one record onto the current columns; a legacy-length record has an empty `account_id`. */
+function metricsRecord(fields: string[]): Record<string, string> | null {
+    if (fields.length !== METRICS_COLUMNS.length && fields.length !== LEGACY_METRICS_COLUMNS.length) return null
+
+    return Object.fromEntries(METRICS_COLUMNS.map((column, columnIndex) => [column, fields[columnIndex] ?? '']))
+}
+
+/** A row without an account identity belongs to the provider's initial account. */
+function recordAccountId(record: Record<string, string>) {
+    return record.account_id === '' ? initialAgentAccountId(record.provider) : record.account_id
 }
 
 function sameAccountWindow(leftResetTimestamp: string, rightResetTimestamp: string) {
@@ -161,10 +186,7 @@ function isValidAccountUsageRecord(record: Record<string, string>) {
 
 export function parseUsageMetrics(content: string): Omit<ProjectUsageMetricsSnapshot, 'available'> {
     const records = parseCsvRecords(content)
-    const header = records[0]
-    if (!header || header.length !== METRICS_COLUMNS.length || header.some((value, index) => value !== METRICS_COLUMNS[index])) {
-        throw new Error('Invalid usage metrics CSV header')
-    }
+    if (!isMetricsHeader(records[0])) throw new Error('Invalid usage metrics CSV header')
 
     const tokenRows: UsageMetricsTokenRow[] = []
     const accountRows: UsageMetricsAccountRow[] = []
@@ -174,24 +196,24 @@ export function parseUsageMetrics(content: string): Omit<ProjectUsageMetricsSnap
         const rowNumber = index + 2
         const recordType = fields[1]
         if (recordType === 'account_usage') {
-            const record = fields.length === METRICS_COLUMNS.length
-                ? Object.fromEntries(METRICS_COLUMNS.map((column, columnIndex) => [column, fields[columnIndex]]))
-                : null
+            const record = metricsRecord(fields)
             if (!record || !isValidAccountUsageRecord(record)) {
                 warnings.push(`Malformed account_usage row ${rowNumber} was skipped.`)
                 continue
             }
+            const accountId = recordAccountId(record)
             const limitId = record.limit_id
             const provider = record.provider
             const resetsAt = record.resets_at
             const usedPercent = Number(record.used_percent)
-            const key = accountUsageKey(provider, limitId, record.window_id)
+            const key = accountUsageKey(provider, accountId, limitId, record.window_id)
             const baseline = accountBaselines.get(key)
             const persistedDelta = record.used_percent_delta === '' ? null : Number(record.used_percent_delta)
             const usedPercentDelta = baseline && sameAccountWindow(baseline.resetsAt, resetsAt)
                 ? usedPercent - baseline.usedPercent
                 : persistedDelta
             accountRows.push({
+                accountId,
                 limitId,
                 provider,
                 recordedAt: record.recorded_at,
@@ -204,8 +226,8 @@ export function parseUsageMetrics(content: string): Omit<ProjectUsageMetricsSnap
             accountBaselines.set(key, { resetsAt, usedPercent })
             continue
         }
-        if (fields.length !== METRICS_COLUMNS.length) throw new Error(`Invalid usage metrics column count at row ${rowNumber}`)
-        const record = Object.fromEntries(METRICS_COLUMNS.map((column, columnIndex) => [column, fields[columnIndex]]))
+        const record = metricsRecord(fields)
+        if (!record) throw new Error(`Invalid usage metrics column count at row ${rowNumber}`)
         if (!isValidIsoTimestamp(record.recorded_at)) throw new Error(`Invalid usage metrics recorded_at at row ${rowNumber}`)
         if (record.record_type !== 'token_usage') throw new Error(`Invalid usage metrics record_type at row ${rowNumber}`)
         if (!SUPPORTED_PROVIDERS.has(record.provider)) throw new Error(`Invalid usage metrics provider at row ${rowNumber}`)
@@ -217,7 +239,7 @@ export function parseUsageMetrics(content: string): Omit<ProjectUsageMetricsSnap
         if (inputTokens + cachedInputTokens + outputTokens + reasoningTokens !== totalTokens) {
             throw new Error(`Inconsistent usage metrics total_tokens at row ${rowNumber}`)
         }
-        tokenRows.push({ provider: record.provider, recordedAt: record.recorded_at, totalTokens })
+        tokenRows.push({ accountId: recordAccountId(record), provider: record.provider, recordedAt: record.recorded_at, totalTokens })
     }
 
     return { accountRows, tokenRows, warnings }

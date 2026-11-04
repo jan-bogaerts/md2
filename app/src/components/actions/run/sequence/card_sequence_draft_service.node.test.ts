@@ -10,6 +10,8 @@ import { CardSequenceDraftService } from './card_sequence_draft_service'
 
 const triggerSources: ActionScheduleTriggerSources = {
     accountTrackers: [{
+        accountId: 'codex-initial',
+        accountName: 'Default',
         agent: 'codex',
         agentLabel: 'Codex',
         expectedResetAt: '2030-01-01T00:00:00.000Z',
@@ -50,10 +52,11 @@ describe('CardSequenceDraftService', () => {
         };
         service.updateSources(sources);
         service.setActionId('build');
-        expect(service.createRegistrationRequest().agentSelection).toEqual({agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', speedMode: 'default', thinkingLevel: 'high'});
+        expect(service.createRegistrationRequest().agentSelection).toEqual({accountId: 'codex-initial', agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', speedMode: 'default', thinkingLevel: 'high'});
         service.setExecutionModel('gpt-6-sol');
         service.setTriggerType('account-reset');
         service.setAgent('codex');
+        service.setAccountId('codex-initial');
         service.setAccountTracker('credits', 'primary');
         expect(service.createRegistrationRequest()).toMatchObject({agentSelection: { model: 'gpt-6-sol' }, trigger: { agent: 'codex', type: 'account-reset' }});
         service.setActionId('check');
@@ -125,6 +128,7 @@ describe('CardSequenceDraftService', () => {
         service.setTriggerType('account-reset')
         expect(service.getSnapshot().canSubmit).toBe(false)
         service.setAgent('codex')
+        service.setAccountId('codex-initial')
         service.setAccountTracker('credits', 'primary')
         expect(service.getSnapshot().canSubmit).toBe(true)
     })
@@ -162,8 +166,10 @@ describe('CardSequenceDraftService', () => {
 
         service.setTriggerType('account-reset')
         service.setAgent('codex')
+        service.setAccountId('codex-initial')
         service.setAccountTracker('credits', 'primary')
         expect(service.createRegistrationRequest().trigger).toEqual({
+            accountId: 'codex-initial',
             agent: 'codex',
             expectedResetAt: '2030-01-01T00:00:00.000Z',
             limitId: 'credits',

@@ -426,7 +426,7 @@ describe('AgentRunnerService state handling', () => {
 
         expect(run.conversation.usage).toMatchObject(run.turnUsage);
         expect(recordTokenUsage).toHaveBeenCalledOnce();
-        expect(recordTokenUsage).toHaveBeenCalledWith('codex', run.turnUsage, expect.any(Number));
+        expect(recordTokenUsage).toHaveBeenCalledWith('codex', 'codex-initial', run.turnUsage, expect.any(Number));
         const closedConversation = expect.objectContaining({ usage: run.turnUsage });
         expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({conversation: closedConversation, persisted: true, type: 'closed'}));
     });
@@ -985,6 +985,7 @@ describe('AgentRunnerService state handling', () => {
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expectedConversation }));
         expect(usageMetricsService.recordTokenUsage).toHaveBeenCalledWith(
             'codex',
+            'codex-initial',
             latestSnapshot,
             expect.any(Number),
         );
@@ -1363,6 +1364,7 @@ describe('AgentRunnerService state handling', () => {
 
         expect(usageMetricsService.recordTokenUsage).toHaveBeenCalledWith(
             'claude',
+            'claude-initial',
             turnUsage,
             expect.any(Number),
         );

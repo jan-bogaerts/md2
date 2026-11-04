@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { CSV_COLUMNS, CSV_HEADER, UsageMetricsService, parseCsv } = require('./usage_metrics_service');
+const { CSV_COLUMNS, CSV_HEADER, LEGACY_CSV_HEADER, UsageMetricsService, parseCsv } = require('./usage_metrics_service');
 const { ProjectOperationCoordinator } = require('../../project/project_operation_coordinator');
 
 const temporaryFolders = [];
@@ -42,8 +42,9 @@ function deferred() {
     return { promise, resolve };
 }
 
-function codexSnapshot(usedPercent, resetsAt = 1_800_000_000, limitId = 'codex,pro') {
+function codexSnapshot(usedPercent, resetsAt = 1_800_000_000, limitId = 'codex,pro', accountId = 'codex-initial') {
     return {
+        accountId,
         available: true,
         buckets: [{
             limitId,
@@ -56,6 +57,7 @@ function codexSnapshot(usedPercent, resetsAt = 1_800_000_000, limitId = 'codex,p
 
 function claudeSnapshot(fiveHourPercent, weeklyPercent, resetsAt = Date.parse('2026-08-17T15:00:00.000Z')) {
     return {
+        accountId: 'claude-initial',
         available: true,
         observedAt: Date.parse('2026-08-17T10:00:00.000Z'),
         windows: [
@@ -75,8 +77,8 @@ describe('UsageMetricsService', () => {
         const service = new UsageMetricsService();
         startProject(service, destination);
 
-        await service.recordTokenUsage('codex', TOKEN_USAGE, Date.parse('2026-08-17T10:11:12.000Z'));
-        await service.recordTokenUsage('claude', TOKEN_USAGE, Date.parse('2026-08-17T10:12:13.000Z'));
+        await service.recordTokenUsage('codex', 'codex-initial', TOKEN_USAGE, Date.parse('2026-08-17T10:11:12.000Z'));
+        await service.recordTokenUsage('claude', 'claude-initial', TOKEN_USAGE, Date.parse('2026-08-17T10:12:13.000Z'));
 
         const content = await readFile(filePath, 'utf8');
         expect(content.split(CSV_HEADER)).toHaveLength(2);
@@ -86,6 +88,7 @@ describe('UsageMetricsService', () => {
             cached_input_tokens: '2',
             input_tokens: '5',
             limit_id: '',
+            account_id: 'codex-initial',
             provider: 'codex',
             recorded_at: '2026-08-17T10:11:12.000Z',
             record_type: 'token_usage',
@@ -94,8 +97,60 @@ describe('UsageMetricsService', () => {
         });
     });
 
+    it('calculates deltas only against the baseline of the same account', async () => {
+        const { destination, filePath } = await createDestination();
+        const service = new UsageMetricsService();
+        startProject(service, destination);
+
+        await service.recordAccountUsage('codex', codexSnapshot(20));
+        await service.recordAccountUsage('codex', codexSnapshot(70, 1_800_000_000, 'codex,pro', 'work'));
+        await service.recordAccountUsage('codex', codexSnapshot(25));
+        await service.recordAccountUsage('codex', codexSnapshot(72, 1_800_000_000, 'codex,pro', 'work'));
+
+        const records = parsedObjects(await readFile(filePath, 'utf8'));
+        expect(records.map(({ account_id: accountId, used_percent_delta: delta }) => ({ accountId, delta }))).toEqual([
+            { accountId: 'codex-initial', delta: '' },
+            { accountId: 'work', delta: '' },
+            { accountId: 'codex-initial', delta: '5' },
+            { accountId: 'work', delta: '2' },
+        ]);
+    });
+
+    it('extends a legacy header before the first append and keeps its rows as the initial account', async () => {
+        const { destination, filePath } = await createDestination();
+        const legacyRow = '2026-08-17T09:00:00.000Z,account_usage,codex,"codex,pro",primary,300,2027-01-15T08:00:00.000Z,,,,,,20,';
+        await writeFile(filePath, `${LEGACY_CSV_HEADER}\r\n${legacyRow}\r\n`, 'utf8');
+        const service = new UsageMetricsService();
+        startProject(service, destination);
+
+        await service.recordAccountUsage('codex', codexSnapshot(26));
+        await service.recordAccountUsage('codex', codexSnapshot(50, 1_800_000_000, 'codex,pro', 'work'));
+
+        const content = await readFile(filePath, 'utf8');
+        expect(content.startsWith(`${CSV_HEADER}\r\n${legacyRow}\r\n`)).toBe(true);
+        const records = parsedObjects(content);
+        expect(records.map(({ account_id: accountId, used_percent_delta: delta }) => ({ accountId, delta }))).toEqual([
+            { accountId: undefined, delta: '' },
+            { accountId: 'codex-initial', delta: '6' },
+            { accountId: 'work', delta: '' },
+        ]);
+    });
+
+    it('restores legacy rows below an extended header as initial-account baselines', async () => {
+        const { destination, filePath } = await createDestination();
+        const legacyRow = '2026-08-17T09:00:00.000Z,account_usage,codex,"codex,pro",primary,300,2027-01-15T08:00:00.000Z,,,,,,20,';
+        await writeFile(filePath, `${CSV_HEADER}\r\n${legacyRow}\r\n`, 'utf8');
+        const service = new UsageMetricsService();
+        startProject(service, destination);
+
+        expect(await service.recordAccountUsage('codex', codexSnapshot(20))).toBe(false);
+        expect(await service.recordAccountUsage('codex', codexSnapshot(24))).toBe(true);
+
+        expect(parsedObjects(await readFile(filePath, 'utf8')).at(-1).used_percent_delta).toBe('4');
+    });
+
     it('uses RFC 4180 escaping for commas, quotes, and newlines', () => {
-        const content = `${CSV_HEADER}\r\n2026-08-17T10:00:00.000Z,account_usage,codex,"pro,""team""",primary,300,2026-08-17T15:00:00.000Z,,,,,,10,\r\n`;
+        const content = `${CSV_HEADER}\r\n2026-08-17T10:00:00.000Z,account_usage,codex,"pro,""team""",primary,300,2026-08-17T15:00:00.000Z,,,,,,10,,codex-initial\r\n`;
         const records = parseCsv(content);
 
         expect(records[1]).toEqual(expect.objectContaining({ valid: true }));
@@ -133,7 +188,7 @@ describe('UsageMetricsService', () => {
         startProject(service, destination);
 
         await Promise.all(Array.from({ length: 5 }, (_, index) => (
-            service.recordTokenUsage('codex', TOKEN_USAGE, Date.parse('2026-08-17T10:00:00.000Z') + index)
+            service.recordTokenUsage('codex', 'codex-initial', TOKEN_USAGE, Date.parse('2026-08-17T10:00:00.000Z') + index)
         )));
 
         expect(maximumActiveWrites).toBe(1);
@@ -154,7 +209,7 @@ describe('UsageMetricsService', () => {
         });
         await operationStarted.promise;
 
-        const recording = service.recordTokenUsage('codex', TOKEN_USAGE, Date.parse('2026-08-17T10:00:00.000Z'));
+        const recording = service.recordTokenUsage('codex', 'codex-initial', TOKEN_USAGE, Date.parse('2026-08-17T10:00:00.000Z'));
         await Promise.resolve();
         expect(appendMetric).not.toHaveBeenCalled();
 
@@ -169,7 +224,7 @@ describe('UsageMetricsService', () => {
         const service = new UsageMetricsService({ uncommittedProjectWrites });
         startProject(service, destination);
 
-        await service.recordTokenUsage('codex', TOKEN_USAGE, Date.parse('2026-08-17T10:00:00.000Z'));
+        await service.recordTokenUsage('codex', 'codex-initial', TOKEN_USAGE, Date.parse('2026-08-17T10:00:00.000Z'));
 
         expect(uncommittedProjectWrites.mark).toHaveBeenCalledWith(destination.rootPath, [filePath]);
     });
@@ -251,14 +306,16 @@ describe('UsageMetricsService', () => {
         const { destination, filePath } = await createDestination();
         const service = new UsageMetricsService();
 
-        await expect(service.recordTokenUsage('codex', TOKEN_USAGE, Date.now()))
+        await expect(service.recordTokenUsage('codex', 'codex-initial', TOKEN_USAGE, Date.now()))
             .rejects.toThrow('Usage metrics project is not active');
         expect(() => service.startProject(destination, '..')).toThrow('Invalid usage metrics project');
         startProject(service, destination);
-        expect(await service.recordTokenUsage('codex', { ...TOKEN_USAGE, inputTokens: -1 }, Date.now())).toBe(false);
-        expect(await service.recordTokenUsage('codex', { ...TOKEN_USAGE, totalTokens: 12 }, Date.now())).toBe(false);
+        expect(await service.recordTokenUsage('codex', 'codex-initial', { ...TOKEN_USAGE, inputTokens: -1 }, Date.now())).toBe(false);
+        expect(await service.recordTokenUsage('codex', 'codex-initial', { ...TOKEN_USAGE, totalTokens: 12 }, Date.now())).toBe(false);
         expect(await service.recordAccountUsage('claude', { ...claudeSnapshot(10, 20), available: false })).toBe(false);
         expect(await service.recordAccountUsage('codex', codexSnapshot(Number.NaN))).toBe(false);
+        expect(await service.recordAccountUsage('codex', codexSnapshot(10, 1_800_000_000, 'codex,pro', ''))).toBe(false);
+        expect(await service.recordTokenUsage('codex', '', TOKEN_USAGE, Date.now())).toBe(false);
         await expect(readFile(filePath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
     });
 
@@ -291,8 +348,8 @@ describe('UsageMetricsService', () => {
         });
         startProject(service, destination);
 
-        expect(await service.recordTokenUsage('codex', TOKEN_USAGE, Date.now())).toBe(false);
-        expect(await service.recordTokenUsage('codex', TOKEN_USAGE, Date.now())).toBe(true);
+        expect(await service.recordTokenUsage('codex', 'codex-initial', TOKEN_USAGE, Date.now())).toBe(false);
+        expect(await service.recordTokenUsage('codex', 'codex-initial', TOKEN_USAGE, Date.now())).toBe(true);
         expect(errorReporter).toHaveBeenCalledWith(appendFailure);
         expect(appendMetric).toHaveBeenCalledTimes(2);
         expect(appendMetric.mock.calls[1][1]).toMatch(/^recorded_at,/u);

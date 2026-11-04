@@ -16,6 +16,7 @@ export interface AtScheduleTrigger {
 }
 
 export interface AccountResetScheduleTrigger {
+    accountId?: string
     agent: string
     expectedResetAt: string
     limitId: string

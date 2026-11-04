@@ -87,7 +87,6 @@ function createHarness() {
         getActionsFolder: () => 'design/actions',
         getBridge: () => bridge as never,
         getProject: () => project,
-        getSelectedAccountId: (agent) => selectedAccountIds[agent],
         selectionEvents,
     })
 
@@ -362,24 +361,28 @@ describe('ActiveScheduleService', () => {
         service.stop()
     })
 
-    it('projects account resets from the selected default account and follows a changed selection', async () => {
-        const { codexEvents, codexRateLimits, selectedAccountIds, selectionEvents, service } = createHarness()
+    it('projects account resets from the persisted account and ignores later default changes', async () => {
+        const { bridge, codexEvents, codexRateLimits, selectedAccountIds, selectionEvents, service } = createHarness()
+        bridge.listActiveSchedules.mockResolvedValueOnce([{
+            ...schedule(),
+            trigger: {
+                accountId: 'other-account', agent: 'codex', expectedResetAt: '2026-09-19T10:00:00.000Z',
+                limitId: 'codex,pro', type: 'account-reset', windowId: 'primary',
+            },
+        }])
         const published = vi.fn()
         service.start()
         await vi.waitFor(() => expect(service.getSnapshot().items).toHaveLength(1))
         service.subscribe(published)
 
-        expect(codexRateLimits.requestSnapshot).toHaveBeenCalledWith('codex-initial')
-        codexEvents.dispatchEvent(new Event('changed:other-account'))
-        expect(codexRateLimits.getState).not.toHaveBeenCalledWith('other-account')
+        expect(codexRateLimits.requestSnapshot).toHaveBeenCalledWith('other-account')
+        codexEvents.dispatchEvent(new Event('changed:codex-initial'))
+        expect(codexRateLimits.getState).not.toHaveBeenCalledWith('codex-initial')
 
         selectedAccountIds.codex = 'other-account'
         selectionEvents.dispatchEvent(new Event('changed'))
-        expect(codexRateLimits.requestSnapshot).toHaveBeenLastCalledWith('other-account')
         expect(codexRateLimits.getState).toHaveBeenLastCalledWith('other-account')
         vi.mocked(codexRateLimits.getState).mockClear()
-        codexEvents.dispatchEvent(new Event('changed:codex-initial'))
-        expect(codexRateLimits.getState).not.toHaveBeenCalled()
         codexEvents.dispatchEvent(new Event('changed:other-account'))
         expect(codexRateLimits.getState).toHaveBeenCalledWith('other-account')
 

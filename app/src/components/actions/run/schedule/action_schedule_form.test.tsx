@@ -2,8 +2,11 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ActionScheduleForm } from './action_schedule_form'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../../../data/agent_accounts'
 
 const tracker = {
+    accountId: 'codex-initial',
+    accountName: 'Default',
     agent: 'codex' as const,
     agentLabel: 'Codex',
     expectedResetAt: '2099-07-07T12:00:00.000Z',
@@ -21,6 +24,7 @@ describe('ActionScheduleForm controls', () => {
         const onChange = vi.fn()
         render(
             <ActionScheduleForm
+                accounts={DEFAULT_AGENT_ACCOUNTS}
                 accountTrackers={[]}
                 canRegister
                 cards={[]}
@@ -44,13 +48,14 @@ describe('ActionScheduleForm controls', () => {
         const onChange = vi.fn()
         render(
             <ActionScheduleForm
+                accounts={DEFAULT_AGENT_ACCOUNTS}
                 accountTrackers={[tracker]}
                 canRegister
                 cards={[]}
                 message={null}
                 onChange={onChange}
                 onRegister={vi.fn()}
-                snapshot={{agent: 'codex', limitId: '', message: null, open: true, triggerType: 'account-reset', windowId: ''}}
+                snapshot={{accountId: 'codex-initial', agent: 'codex', limitId: '', message: null, open: true, triggerType: 'account-reset', windowId: ''}}
                 targetStates={[]}
             />,
         )
@@ -68,6 +73,7 @@ describe('ActionScheduleForm controls', () => {
         const onChange = vi.fn()
         render(
             <ActionScheduleForm
+                accounts={DEFAULT_AGENT_ACCOUNTS}
                 accountTrackers={[]}
                 canRegister={false}
                 cards={[card]}

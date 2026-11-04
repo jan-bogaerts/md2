@@ -8,6 +8,7 @@ import type { StatsCardDescriptor } from './project_stats_types'
 import { parseProjectStatsFile } from '../../../../shared/project_stats.mjs'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../../data/agent_profiles'
 import { completedReleaseIdentity } from './stats_options'
+import { DEFAULT_AGENT_ACCOUNTS, type AgentAccount } from '../../data/agent_accounts'
 
 const project: ProjectReference = { branch: 'main', id: 'project' }
 const config: ProjectConfig = {
@@ -130,9 +131,10 @@ async function openService(
     statsStorage: StorageService,
     loadedCards = cards,
     agentProfiles: AgentProfile[] = BUILTIN_AGENT_PROFILES,
+    agentAccounts: AgentAccount[] = DEFAULT_AGENT_ACCOUNTS,
 ) {
     service.bindProject({ config, project, storage: statsStorage })
-    await service.open(loadedCards, agentProfiles)
+    await service.open(loadedCards, agentProfiles, agentAccounts)
 }
 
 describe('ProjectStatsService view mode', () => {
@@ -1031,11 +1033,11 @@ describe('ProjectStatsService aggregation', () => {
 
         expect(service.getSnapshot().options.accountSeries).toHaveLength(2)
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'accountUsage')).toMatchObject([{
-            seriesLabel: 'codex / weekly / window-b',
+            seriesLabel: 'codex / Default / weekly / window-b',
             value: 9,
         }])
         const accountTooltip = service.getSnapshot().rows.find(({ chartRole }) => chartRole === 'accountUsage')?.tooltip ?? ''
-        expect(accountTooltip).toContain('\nProvider: codex · Limit: weekly · Window: window-b (7 days)')
+        expect(accountTooltip).toContain('\nProvider: codex · Account: Default · Limit: weekly · Window: window-b (7 days)')
         expect(accountTooltip).toContain('\nUsed this period: 9% of window-b limit')
         expect(accountTooltip).toContain('(+1 more)')
         expect(accountTooltip).not.toMatch(/T\d{2}:\d{2}:\d{2}/u)
@@ -1108,6 +1110,38 @@ describe('ProjectStatsService aggregation', () => {
         ])
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'activity')
             .every(({ seriesLabel }) => !seriesLabel?.includes('internal'))).toBe(true)
+    })
+
+    it('keeps token and account-usage summaries separate for accounts of the same provider', async () => {
+        const workAccount = {
+            agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111',
+            kind: 'directory' as const, name: 'Work',
+        }
+        const metrics = [
+            `${metricsHeader},account_id`,
+            '2026-08-12T09:00:00.000Z,token_usage,codex,,,,,7,1,1,1,10,,,codex-initial',
+            `2026-08-12T09:30:00.000Z,token_usage,codex,,,,,27,1,1,1,30,,,${workAccount.id}`,
+            '2026-08-12T13:00:00.000Z,account_usage,codex,weekly,codex-window,10080,2026-08-17T00:00:00.000Z,,,,,,50,2,codex-initial',
+            `2026-08-12T13:30:00.000Z,account_usage,codex,weekly,codex-window,10080,2026-08-17T00:00:00.000Z,,,,,,40,5,${workAccount.id}`,
+        ].join('\r\n')
+        const service = new ProjectStatsService()
+        await openService(
+            service,
+            storage({ 'design/usage_metrics.csv': metrics }),
+            cards,
+            BUILTIN_AGENT_PROFILES,
+            [...DEFAULT_AGENT_ACCOUNTS, workAccount],
+        )
+        service.setControls({ dataset: 'usageComparison' })
+
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'tokensPerAccountUsage')).toMatchObject([
+            { denominator: 5, numerator: 30, seriesLabel: 'codex / Work / weekly / codex-window', value: 6 },
+            { denominator: 2, numerator: 10, seriesLabel: 'codex / Default / weekly / codex-window', value: 5 },
+        ])
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'projectTokensTotal')).toMatchObject([
+            { provider: 'codex', seriesLabel: 'codex / Work', value: 30 },
+            { provider: 'codex', seriesLabel: 'codex / Default', value: 10 },
+        ])
     })
 
     it('reports project token totals and per-action averages as two separate charts', async () => {

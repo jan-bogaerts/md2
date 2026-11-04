@@ -12,6 +12,7 @@ export interface AtActionScheduleSnapshot extends ActionScheduleSnapshotBase {
 }
 
 export interface AccountResetActionScheduleSnapshot extends ActionScheduleSnapshotBase {
+    accountId: string
     agent: string
     limitId: string
     triggerType: 'account-reset'
@@ -32,6 +33,7 @@ export type ActionScheduleSnapshot =
 export type ActionScheduleStoreSnapshot = ActionScheduleSnapshot & { anchorElement: HTMLElement | null }
 
 interface AccountResetDraft {
+    accountId: string
     agent: string
     limitId: string
     windowId: string
@@ -52,7 +54,7 @@ const INITIAL_SNAPSHOT: ActionScheduleStoreSnapshot = {
 
 /** Owns trigger-specific schedule form state at schedule-section boundary. */
 export class ActionScheduleStore extends EventTarget {
-    private readonly accountResetDraft: AccountResetDraft = { agent: '', limitId: '', windowId: '' }
+    private readonly accountResetDraft: AccountResetDraft = { accountId: '', agent: '', limitId: '', windowId: '' }
     private readonly cardStateDraft: CardStateDraft = { cardInternalId: '', targetState: '' }
     private snapshot: ActionScheduleStoreSnapshot = INITIAL_SNAPSHOT
     private timestamp = ''
@@ -105,6 +107,16 @@ export class ActionScheduleStore extends EventTarget {
 
     setAgent(agent: string) {
         this.accountResetDraft.agent = agent
+        this.accountResetDraft.accountId = ''
+        this.accountResetDraft.limitId = ''
+        this.accountResetDraft.windowId = ''
+        if (this.snapshot.triggerType === 'account-reset') {
+            this.publish({ ...this.snapshot, ...this.accountResetDraft, message: null })
+        }
+    }
+
+    setAccountId(accountId: string) {
+        this.accountResetDraft.accountId = accountId
         this.accountResetDraft.limitId = ''
         this.accountResetDraft.windowId = ''
         if (this.snapshot.triggerType === 'account-reset') {

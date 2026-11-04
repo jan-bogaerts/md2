@@ -20,7 +20,7 @@ import { mergeAgentProfiles } from '../../../../data/agent_profiles';
 import { agentModelOptions } from '../../../../data/agent_model_options';
 import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
 import { useCodexRateLimits } from '../../../hooks/use_codex_rate_limits'
-import { useSelectedAgentAccountId } from '../../../hooks/use_selected_agent_account_id'
+import { initialAgentAccountId } from '../../../../data/agent_accounts'
 import { useProjectConfig } from '../../../hooks/use_project_config'
 import { useWorktrees } from '../../../hooks/use_worktrees';
 import { accountTrackerOptions, cardScheduleOptions, scheduleTargetStates } from '../schedule/action_schedule_options'
@@ -96,9 +96,13 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
     const modelOptions = useMemo(() => agentModelOptions(modelCatalog.catalog, selectedModel), [modelCatalog.catalog, selectedModel]);
     const projectConfig = useProjectConfig()
     const worktrees = useWorktrees();
-    // Account-reset trackers name no account yet, so they follow the selected default account of each agent.
-    const claudeState = useClaudeRateLimits(useSelectedAgentAccountId('claude'))
-    const codexState = useCodexRateLimits(useSelectedAgentAccountId('codex'))
+    const triggerAccount = snapshot.triggerType === 'account-reset'
+        ? accounts.find(({ id }) => id === snapshot.accountId) ?? null
+        : null
+    const claudeTriggerAccount = triggerAccount?.agent === 'claude' ? triggerAccount : null
+    const codexTriggerAccount = triggerAccount?.agent === 'codex' ? triggerAccount : null
+    const claudeState = useClaudeRateLimits(claudeTriggerAccount?.id ?? initialAgentAccountId('claude'))
+    const codexState = useCodexRateLimits(codexTriggerAccount?.id ?? initialAgentAccountId('codex'))
     const handleCardSourcesChange = useCallback(() => service.refreshCardSources(), [service]);
     useEffect(() => {
         if (!snapshot.open) return;
@@ -128,7 +132,10 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
         [actions, projectConfig?.cardTypes, selectedCards, worktrees, snapshot.worktreeBranch],
     )
     const readyStates = useMemo(() => scheduleTargetStates(projectConfig?.states), [projectConfig?.states])
-    const accountTrackers = useMemo(() => accountTrackerOptions(claudeState, codexState), [claudeState, codexState])
+    const accountTrackers = useMemo(
+        () => accountTrackerOptions(claudeTriggerAccount, claudeState, codexTriggerAccount, codexState),
+        [claudeState, claudeTriggerAccount, codexState, codexTriggerAccount],
+    )
     const triggerCards = useMemo(
         () => cardScheduleOptions(activeCards.filter(({ header }) => (
             snapshot.cardSources.some(({ cardInternalId }) => cardInternalId === header.internalId)
@@ -180,6 +187,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
         if (change.type === 'trigger-type') service.setTriggerType(change.triggerType)
         else if (change.type === 'timestamp') service.setTimestamp(change.timestamp)
         else if (change.type === 'agent') service.setAgent(change.agent)
+        else if (change.type === 'account') service.setAccountId(change.accountId)
         else if (change.type === 'tracker') service.setAccountTracker(change.limitId, change.windowId)
         else if (change.type === 'card') service.setTriggerCard(change.cardInternalId)
         else service.setTargetState(change.targetState)
@@ -301,6 +309,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
                         {readyStates.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
                     </Select>
                     <ScheduleTriggerFields
+                        accounts={accounts}
                         accountTrackers={accountTrackers}
                         cards={triggerCards}
                         includeNow

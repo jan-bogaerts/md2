@@ -8,7 +8,8 @@ import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
 import { useCodexRateLimits } from '../../../hooks/use_codex_rate_limits'
-import { useSelectedAgentAccountId } from '../../../hooks/use_selected_agent_account_id'
+import { useConfigValueOrFallback } from '../../../hooks/use_config_value'
+import { DEFAULT_AGENT_ACCOUNTS, initialAgentAccountId } from '../../../../data/agent_accounts'
 import { useProjectConfig } from '../../../hooks/use_project_config'
 import { defaultScheduleAction } from '../popup/action_popup_defaults'
 import type { ActionScheduleStore } from './action_schedule_store'
@@ -46,12 +47,17 @@ export function ActionSchedulePopover(
 ) {
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const activeCards = useSyncExternalStore(subscribeActiveCards, getActiveCards, getActiveCards)
-    // Account-reset trackers name no account yet, so they follow the selected default account of each agent.
-    const claudeState = useClaudeRateLimits(useSelectedAgentAccountId('claude'))
-    const codexState = useCodexRateLimits(useSelectedAgentAccountId('codex'))
+    const accounts = useConfigValueOrFallback('desktop.agentAccounts', DEFAULT_AGENT_ACCOUNTS)
+    const selectedAccount = snapshot.triggerType === 'account-reset'
+        ? accounts.find(({ id }) => id === snapshot.accountId) ?? null
+        : null
+    const claudeAccount = selectedAccount?.agent === 'claude' ? selectedAccount : null
+    const codexAccount = selectedAccount?.agent === 'codex' ? selectedAccount : null
+    const claudeState = useClaudeRateLimits(claudeAccount?.id ?? initialAgentAccountId('claude'))
+    const codexState = useCodexRateLimits(codexAccount?.id ?? initialAgentAccountId('codex'))
     const projectConfig = useProjectConfig()
     const sources: ActionScheduleTriggerSources = {
-        accountTrackers: accountTrackerOptions(claudeState, codexState),
+        accountTrackers: accountTrackerOptions(claudeAccount, claudeState, codexAccount, codexState),
         cards: cardScheduleOptions(activeCards, context.cardInternalId),
         targetStates: scheduleTargetStates(projectConfig?.states),
     }
@@ -59,6 +65,7 @@ export function ActionSchedulePopover(
         if (change.type === 'trigger-type') store.setTriggerType(change.triggerType)
         else if (change.type === 'timestamp') store.setTimestamp(change.timestamp)
         else if (change.type === 'agent') store.setAgent(change.agent)
+        else if (change.type === 'account') store.setAccountId(change.accountId)
         else if (change.type === 'tracker') store.setAccountTracker(change.limitId, change.windowId)
         else if (change.type === 'card') store.setCardInternalId(change.cardInternalId)
         else store.setTargetState(change.targetState)
@@ -98,6 +105,7 @@ export function ActionSchedulePopover(
             transformOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         >
             <ActionScheduleForm
+                accounts={accounts}
                 accountTrackers={sources.accountTrackers}
                 canRegister={canRegisterSchedule(snapshot, sources)}
                 cards={sources.cards}

@@ -2,6 +2,7 @@ import type { ReleaseStats } from '../../../../shared/project_stats.mjs';
 import type { ProjectConfig, ProjectReference, StorageService } from '../../data/data_types';
 import type { UsageMetricsAccountRow, UsageMetricsTokenRow } from '../agents/project_usage_metrics_service';
 import type { AgentProfile } from '../../data/agent_profiles';
+import type { AgentAccount } from '../../data/agent_accounts';
 
 export type StatsDataset = 'activityOverTime' | 'agentPerformance' | 'usageComparison' | 'totals';
 export type StatsGranularity = 'day' | 'week' | 'month';
@@ -119,6 +120,8 @@ export interface StatsReleaseOption extends StatsOption {
 }
 
 export interface StatsAccountSeriesOption {
+    accountId: string;
+    accountName: string;
     identity: string;
     limitId: string;
     provider: string;
@@ -150,6 +153,7 @@ export interface ProjectStatsSnapshot {
 /** Fully loaded, immutable input every dataset aggregator reads. */
 export interface LoadedStatsSource {
     accountRows: UsageMetricsAccountRow[];
+    agentAccounts: AgentAccount[];
     agentProfiles: AgentProfile[];
     cards: StatsCardDescriptor[];
     currentStats: ReleaseStats;

@@ -8,19 +8,20 @@ function resetTimestampMilliseconds(agent, resetsAt) {
     return resetsAt;
 }
 
-function trackerKey(agent, limitId, windowId) {
-    return `${agent}\u0000${limitId}\u0000${windowId}`;
+function trackerKey(agent, accountId, limitId, windowId) {
+    return `${agent}\u0000${accountId}\u0000${limitId}\u0000${windowId}`;
 }
 
 function codexAccountResetObservations(snapshot) {
-    if (!snapshot || snapshot.available !== true || !Array.isArray(snapshot.buckets)) return [];
+    if (!snapshot || snapshot.available !== true || typeof snapshot.accountId !== 'string' || !snapshot.accountId
+        || !Array.isArray(snapshot.buckets)) return [];
     const observations = [];
     for (const bucket of snapshot.buckets) {
         if (!bucket || typeof bucket.limitId !== 'string' || bucket.limitId.length === 0) continue;
         for (const windowId of ['primary', 'secondary']) {
             const resetsAt = resetTimestampMilliseconds('codex', bucket[windowId]?.resetsAt);
             if (resetsAt === null) continue;
-            observations.push({ agent: 'codex', limitId: bucket.limitId, resetsAt, windowId });
+            observations.push({ accountId: snapshot.accountId, agent: 'codex', limitId: bucket.limitId, resetsAt, windowId });
         }
     }
 
@@ -28,14 +29,15 @@ function codexAccountResetObservations(snapshot) {
 }
 
 function claudeAccountResetObservations(snapshot) {
-    if (!snapshot || snapshot.available !== true || !Array.isArray(snapshot.windows)) return [];
+    if (!snapshot || snapshot.available !== true || typeof snapshot.accountId !== 'string' || !snapshot.accountId
+        || !Array.isArray(snapshot.windows)) return [];
 
     return snapshot.windows.flatMap((window) => {
         if (!window || typeof window.id !== 'string' || window.id.length === 0) return [];
         const resetsAt = resetTimestampMilliseconds('claude', window.resetsAt);
         if (resetsAt === null) return [];
 
-        return [{ agent: 'claude', limitId: CLAUDE_LIMIT_ID, resetsAt, windowId: window.id }];
+        return [{ accountId: snapshot.accountId, agent: 'claude', limitId: CLAUDE_LIMIT_ID, resetsAt, windowId: window.id }];
     });
 }
 

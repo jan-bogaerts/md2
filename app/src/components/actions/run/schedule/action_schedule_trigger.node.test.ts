@@ -4,6 +4,8 @@ import type { ActionScheduleSnapshot } from './action_schedule_store'
 import { canRegisterSchedule, createScheduleTrigger, type ActionScheduleTriggerSources } from './action_schedule_trigger'
 
 const accountTracker: ActionScheduleAccountTracker = {
+    accountId: 'codex-initial',
+    accountName: 'Default',
     agent: 'codex',
     agentLabel: 'Codex',
     expectedResetAt: '2099-07-07T12:00:00.000Z',
@@ -48,9 +50,10 @@ describe('createScheduleTrigger', () => {
     })
 
     it('captures exact selected account tracker occurrence', () => {
-        const snapshot: ActionScheduleSnapshot = {agent: 'codex', limitId: 'codex,pro', message: null, open: true, triggerType: 'account-reset', windowId: 'primary'}
+        const snapshot: ActionScheduleSnapshot = {accountId: 'codex-initial', agent: 'codex', limitId: 'codex,pro', message: null, open: true, triggerType: 'account-reset', windowId: 'primary'}
 
         expect(createScheduleTrigger(snapshot, sources)).toEqual({
+            accountId: 'codex-initial',
             agent: 'codex',
             expectedResetAt: accountTracker.expectedResetAt,
             limitId: 'codex,pro',
@@ -60,7 +63,7 @@ describe('createScheduleTrigger', () => {
     })
 
     it('rejects unavailable and reset-less account trackers', () => {
-        const snapshot: ActionScheduleSnapshot = {agent: 'codex', limitId: 'codex,pro', message: null, open: true, triggerType: 'account-reset', windowId: 'primary'}
+        const snapshot: ActionScheduleSnapshot = {accountId: 'codex-initial', agent: 'codex', limitId: 'codex,pro', message: null, open: true, triggerType: 'account-reset', windowId: 'primary'}
 
         expect(() => createScheduleTrigger(snapshot, { ...sources, accountTrackers: [] }))
             .toThrow('Selected account tracker is unavailable')
