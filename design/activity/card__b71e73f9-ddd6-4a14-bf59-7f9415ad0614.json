@@ -829,7 +829,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 56435
+        "usedTokens": 66955
       },
       "entries": [
         {
@@ -1045,6 +1045,339 @@
           "role": "user",
           "sequence": 18,
           "timestamp": "2026-11-04T15:24:18.131Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\theme\\theme_provider.tsx",
+          "deletions": 1,
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-19",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\theme\\theme_provider.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01DyBmr85cJVWajpuAqbg99h",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-11-04T15:24:22.319Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\theme\\theme_provider.tsx",
+          "deletions": 2,
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-20",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\theme\\theme_provider.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01C6yS4D6EPzd9NLjz9D4UFQ",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-11-04T15:24:22.327Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-21",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgi7sm1VkS6zPVFPXhRA4:thinking:0",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T15:24:23.766Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src; cat components/hooks/use_project_config.ts | head -30",
+          "content": "import { useSyncExternalStore } from 'react'\nimport type { ProjectConfig } from '../../data/data_types'\nimport { dataService, type DataService } from '../../services/data/data_service'\n\nconst snapshots = new WeakMap<DataService, ProjectConfig | null>()\n\nfunction isSameProjectConfig(first: ProjectConfig | null, second: ProjectConfig | null) {\n    return first?.actionsFolder === second?.actionsFolder\n        && first?.archivedFolder === second?.archivedFolder\n        && first?.backgroundShade === second?.backgroundShade\n        && first?.cardTypes === second?.cardTypes\n        && first?.diffCommand === second?.diffCommand\n        && first?.projectFolder === second?.projectFolder\n        && first?.pushMode === second?.pushMode\n        && first?.releasesFolder === second?.releasesFolder\n        && first?.states === second?.states\n        && first?.workingFolder === second?.workingFolder\n}\n\nfunction getProjectConfigSnapshot(service: DataService): ProjectConfig | null {\n    const nextSnapshot = service.getConfig()\n    const currentSnapshot = snapshots.get(service)\n    if (snapshots.has(service) && isSameProjectConfig(currentSnapshot ?? null, nextSnapshot)) return currentSnapshot ?? null\n\n    snapshots.set(service, nextSnapshot)\n\n    return nextSnapshot\n}\n\n/** Subscribe to project config exposed through the data service. */",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-22",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src; cat components/hooks/use_project_config.ts | head -30",
+          "providerItemId": "toolu_01Kay1Rw6ocFGPXMZFQADwjw",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-11-04T15:24:24.771Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-23",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgi7swMMNthkHQzWKFMSJ:thinking:0",
+          "sequence": 23,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T15:24:28.619Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/theme; python - <<'EOF'\np='theme_provider.test.tsx'\ns=open(p,encoding='utf-8',newline='').read()\ns=s.replace(\"\"\"import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react'\nimport { StrictMode, type ReactNode } from 'react'\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport { dialogService } from '../services/dialog_service'\n\"\"\",\"\"\"import { useTheme } from '@mui/material'\nimport { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react'\nimport { StrictMode, type ReactNode } from 'react'\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport { configService } from '../services/config/config_service'\nimport { dataService } from '../services/data/data_service'\nimport { dialogService } from '../services/dialog_service'\nimport { createAppTheme } from './app_theme'\n\"\"\")\ns=s.replace(\"\"\"import { MARKDOWN_STYLE_PRESETS } from './theme_config'\n\"\"\",\"\"\"import { DEFAULT_COLOR_SCHEME, MARKDOWN_STYLE_PRESETS } from './theme_config'\n\"\"\")\ns=s.replace(\"\"\"        </div>\n    )\n}\n\"\"\",\"\"\"        </div>\n    )\n}\n\nconst themeWrapper = ({ children }: { children: ReactNode }) => <AppThemeProvider>{children}</AppThemeProvider>\n\nfunction projectBackgroundFor(shade: 'blue' | 'neutral') {\n    return createAppTheme('light', DEFAULT_COLOR_SCHEME, shade).palette.custom.projectBackground\n}\n\"\"\",1)\ns=s.replace(\"\"\"        cleanup()\n        window.localStorage.clear()\"\"\",\"\"\"        cleanup()\n        configService.clear()\n        window.localStorage.clear()\"\"\")\ns=s.rstrip()\nassert s.endswith(\"})\")\ns=s[:-2]+\"\"\"\n    describe('project background shade', () => {\n        it('uses the neutral shade when project config is unavailable', () => {\n            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })\n\n            expect(result.current.palette.custom.projectBackground).toBe(projectBackgroundFor('neutral'))\n        })\n\n        it('applies a saved background shade without a project-wide data event', () => {\n            configService.init()\n            configService.loadProjectConfig({ backgroundShade: 'neutral' })\n            const dataServiceDispatch = vi.spyOn(dataService, 'dispatchEvent')\n            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })\n\n            act(() => {\n                configService.loadDraft()\n                configService.setDraftValue('project.backgroundShade', 'blue')\n                configService.saveDraft()\n            })\n\n            expect(result.current.palette.custom.projectBackground).toBe(projectBackgroundFor('blue'))\n            expect(dataServiceDispatch).not.toHaveBeenCalled()\n        })\n\n        it('keeps the current shade while the change is only drafted', () => {\n            configService.init()\n            configService.loadProjectConfig({ backgroundShade: 'neutral' })\n            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })\n\n            act(() => {\n                configService.loadDraft()\n                configService.setDraftValue('project.backgroundShade', 'blue')\n            })\n\n            expect(result.current.palette.custom.projectBackground).toBe(projectBackgroundFor('neutral'))\n        })\n\n        it('keeps the theme instance when an unrelated config value changes', () => {\n            configService.init()\n            configService.loadProjectConfig({ backgroundShade: 'blue' })\n            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })\n            const initialTheme = result.current\n\n            act(() => configService.set('project.deleteBranchAfterIntegration', true))\n\n            expect(result.current).toBe(initialTheme)\n        })\n    })\n})\n\"\"\"\nopen(p,'w',encoding='utf-8',newline='').write(s)\nEOF\nhead -c 300 theme_provider.test.tsx | od -c | grep -c '\\\\r'",
+          "content": "15",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-24",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/theme; python - <<'EOF'\np='theme_provider.test.tsx'\ns=open(p,encoding='utf-8',newline='').read()\ns=s.replace(\"\"\"import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react'\nimport { StrictMode, type ReactNode } from 'react'\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport { dialogService } from '../services/dialog_service'\n\"\"\",\"\"\"import { useTheme } from '@mui/material'\nimport { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react'\nimport { StrictMode, type ReactNode } from 'react'\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport { configService } from '../services/config/config_service'\nimport { dataService } from '../services/data/data_service'\nimport { dialogService } from '../services/dialog_service'\nimport { createAppTheme } from './app_theme'\n\"\"\")\ns=s.replace(\"\"\"import { MARKDOWN_STYLE_PRESETS } from './theme_config'\n\"\"\",\"\"\"import { DEFAULT_COLOR_SCHEME, MARKDOWN_STYLE_PRESETS } from './theme_config'\n\"\"\")\ns=s.replace(\"\"\"        </div>\n    )\n}\n\"\"\",\"\"\"        </div>\n    )\n}\n\nconst themeWrapper = ({ children }: { children: ReactNode }) => <AppThemeProvider>{children}</AppThemeProvider>\n\nfunction projectBackgroundFor(shade: 'blue' | 'neutral') {\n    return createAppTheme('light', DEFAULT_COLOR_SCHEME, shade).palette.custom.projectBackground\n}\n\"\"\",1)\ns=s.replace(\"\"\"        cleanup()\n        window.localStorage.clear()\"\"\",\"\"\"        cleanup()\n        configService.clear()\n        window.localStorage.clear()\"\"\")\ns=s.rstrip()\nassert s.endswith(\"})\")\ns=s[:-2]+\"\"\"\n    describe('project background shade', () => {\n        it('uses the neutral shade when project config is unavailable', () => {\n            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })\n\n            expect(result.current.palette.custom.projectBackground).toBe(projectBackgroundFor('neutral'))\n        })\n\n        it('applies a saved background shade without a project-wide data event', () => {\n            configService.init()\n            configService.loadProjectConfig({ backgroundShade: 'neutral' })\n            const dataServiceDispatch = vi.spyOn(dataService, 'dispatchEvent')\n            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })\n\n            act(() => {\n                configService.loadDraft()\n                configService.setDraftValue('project.backgroundShade', 'blue')\n                configService.saveDraft()\n            })\n\n            expect(result.current.palette.custom.projectBackground).toBe(projectBackgroundFor('blue'))\n            expect(dataServiceDispatch).not.toHaveBeenCalled()\n        })\n\n        it('keeps the current shade while the change is only drafted', () => {\n            configService.init()\n            configService.loadProjectConfig({ backgroundShade: 'neutral' })\n            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })\n\n            act(() => {\n                configService.loadDraft()\n                configService.setDraftValue('project.backgroundShade', 'blue')\n            })\n\n            expect(result.current.palette.custom.projectBackground).toBe(projectBackgroundFor('neutral'))\n        })\n\n        it('keeps the theme instance when an unrelated config value changes', () => {\n            configService.init()\n            configService.loadProjectConfig({ backgroundShade: 'blue' })\n            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })\n            const initialTheme = result.current\n\n            act(() => configService.set('project.deleteBranchAfterIntegration', true))\n\n            expect(result.current).toBe(initialTheme)\n        })\n    })\n})\n\"\"\"\nopen(p,'w',encoding='utf-8',newline='').write(s)\nEOF\nhead -c 300 theme_provider.test.tsx | od -c | grep -c '\\\\r'",
+          "providerItemId": "toolu_017wbb3Y6TEdyMNSeC45CffV",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-11-04T15:24:40.676Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-25",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgi7u7XZfEQYEbXPPxR2f:thinking:0",
+          "sequence": 25,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T15:24:42.907Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "File uses CRLF line endings, so my `\\n`-based edits may not have matched. Checking.",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 26,
+          "timestamp": "2026-11-04T15:24:42.909Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/theme; git diff --stat .; grep -c $'\\r$' theme_provider.test.tsx; wc -l theme_provider.test.tsx; grep -c $'\\r$' theme_provider.tsx; wc -l theme_provider.tsx",
+          "content": " app/src/theme/theme_provider.test.tsx | 61 ++++++++++++++++++++++++++++++++++-\n app/src/theme/theme_provider.tsx      |  5 ++-\n 2 files changed, 62 insertions(+), 4 deletions(-)\n0\n147 theme_provider.test.tsx\n0\n66 theme_provider.tsx",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-27",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/theme; git diff --stat .; grep -c $'\\r$' theme_provider.test.tsx; wc -l theme_provider.test.tsx; grep -c $'\\r$' theme_provider.tsx; wc -l theme_provider.tsx",
+          "providerItemId": "toolu_018UcRVWyJhyhkn6gMCRJMCh",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-11-04T15:24:44.584Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-28",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgi7uQHs1APdi6ERziAmc:thinking:0",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T15:24:46.743Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nFiles are LF; OK. Verify import replacements applied.",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 29,
+          "timestamp": "2026-11-04T15:24:46.744Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/theme; git diff theme_provider.test.tsx | head -50",
+          "content": "diff --git a/app/src/theme/theme_provider.test.tsx b/app/src/theme/theme_provider.test.tsx\nindex c3b38a51c..a9013cde8 100644\n--- a/app/src/theme/theme_provider.test.tsx\n+++ b/app/src/theme/theme_provider.test.tsx\n@@ -1,10 +1,14 @@\n+import { useTheme } from '@mui/material'\n import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react'\n import { StrictMode, type ReactNode } from 'react'\n import { afterEach, describe, expect, it, vi } from 'vitest'\n+import { configService } from '../services/config/config_service'\n+import { dataService } from '../services/data/data_service'\n import { dialogService } from '../services/dialog_service'\n+import { createAppTheme } from './app_theme'\n import { useAppTheme } from './use_app_theme'\n import { AppThemeProvider } from './theme_provider'\n-import { MARKDOWN_STYLE_PRESETS } from './theme_config'\n+import { DEFAULT_COLOR_SCHEME, MARKDOWN_STYLE_PRESETS } from './theme_config'\n \n function ThemeProbe() {\n     const { mode, markdownStyle, markdownStyleConfig } = useAppTheme()\n@@ -17,9 +21,16 @@ function ThemeProbe() {\n     )\n }\n \n+const themeWrapper = ({ children }: { children: ReactNode }) => <AppThemeProvider>{children}</AppThemeProvider>\n+\n+function projectBackgroundFor(shade: 'blue' | 'neutral') {\n+    return createAppTheme('light', DEFAULT_COLOR_SCHEME, shade).palette.custom.projectBackground\n+}\n+\n describe('AppThemeProvider', () => {\n     afterEach(() => {\n         cleanup()\n+        configService.clear()\n         window.localStorage.clear()\n         delete window.md2Theme\n         vi.restoreAllMocks()\n@@ -85,4 +96,52 @@ describe('AppThemeProvider', () => {\n \n         expect(setThemeMode).toHaveBeenCalledWith('light')\n     })\n+\n+    describe('project background shade', () => {\n+        it('uses the neutral shade when project config is unavailable', () => {\n+            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })\n+\n+            expect(result.current.palette.custom.projectBackground).toBe(projectBackgroundFor('neutral'))\n+        })\n+\n+        it('applies a saved background shade without a project-wide data event', () => {",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-30",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/theme; git diff theme_provider.test.tsx | head -50",
+          "providerItemId": "toolu_01Einahn6QuG13R6LsYZwESm",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-11-04T15:24:48.003Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"command\":\"Set-Location C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app; npm run test -- src/theme/theme_provider.test.tsx 2>&1 | Select-Object -Last 25\",\"description\":\"Run focused theme provider tests\",\"timeout\":300000}",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-31",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.9.2 test\r\n> vitest run src/theme/theme_provider.test.tsx\r\n\r\n\r\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\r\n\r\n\r\n Test Files  1 passed (1)\r\n      Tests  9 passed (9)\r\n   Start at  16:24:51\r\n   Duration  2.80s (transform 680ms, setup 89ms, import 1.80s, tests 102ms, environment 699ms)",
+          "providerItemId": "toolu_01Qjf4t2u18XeQmTGmehUAJf",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-11-04T15:24:54.094Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-32",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgi7v71pVpHBDkm4khdHr:thinking:0",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T15:24:55.943Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nPass. Confirm regression test fails on old provider.",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 33,
+          "timestamp": "2026-11-04T15:24:55.943Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; cp src/theme/theme_provider.tsx /tmp/tp_new.tsx; git show HEAD:app/src/theme/theme_provider.tsx > src/theme/theme_provider.tsx; npx vitest run src/theme/theme_provider.test.tsx 2>&1 | grep -E \"✗|×|FAIL|Tests \" | head; cp /tmp/tp_new.tsx src/theme/theme_provider.tsx; git diff --stat",
+          "content": "       × applies a saved background shade without a project-wide data event 8ms\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n FAIL  |ui| src/theme/theme_provider.test.tsx > AppThemeProvider > project background shade > applies a saved background shade without a project-wide data event\n      Tests  1 failed | 8 passed (9)\n app/src/theme/theme_provider.test.tsx | 61 ++++++++++++++++++++++++++++++++++-\n app/src/theme/theme_provider.tsx      |  5 ++-\n 2 files changed, 62 insertions(+), 4 deletions(-)",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-34",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; cp src/theme/theme_provider.tsx /tmp/tp_new.tsx; git show HEAD:app/src/theme/theme_provider.tsx > src/theme/theme_provider.tsx; npx vitest run src/theme/theme_provider.test.tsx 2>&1 | grep -E \"✗|×|FAIL|Tests \" | head; cp /tmp/tp_new.tsx src/theme/theme_provider.tsx; git diff --stat",
+          "providerItemId": "toolu_01Mr8m2TVLbXtuuSyCsuamem",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-11-04T15:25:03.133Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRegression test fails on old code, passes with fix. Typecheck + lint.",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 35,
+          "timestamp": "2026-11-04T15:25:04.071Z"
+        },
+        {
+          "content": "{\"command\":\"npm run typecheck 2>&1 | Select-Object -Last 10\",\"description\":\"Run app typecheck\",\"timeout\":300000}",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-36",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "Exit code 2\nsrc/services/diagrams/diagram_resize_service.test.ts(41,68): error TS2322: Type '1' is not assignable to type '3'.\r\nsrc/services/diagrams/diagram_resize_service.test.ts(42,13): error TS2741: Property 'legendEntryId' is missing in type '{ height: number; id: string; kind: \"root\"; label: string; role: \"focal\"; width: number; x: number; y: number; }' but required in type 'DiagramNode'.\r\nsrc/services/diagrams/diagram_save_service.test.ts(13,83): error TS2322: Type '1' is not assignable to type '3'.\r\nsrc/services/diagrams/diagram_save_service.test.ts(14,13): error TS2741: Property 'legendEntryId' is missing in type '{ id: string; label: string; role: \"focal\"; }' but required in type 'DiagramNode'.\r\nsrc/services/diagrams/diagram_selection_service.test.ts(10,13): error TS2741: Property 'legendEntryId' is missing in type '{ from: string; id: string; kind: \"connection\"; to: string; }' but required in type 'DiagramEdge'.\r\nsrc/services/diagrams/diagram_selection_service.test.ts(12,90): error TS2322: Type '1' is not assignable to type '3'.\r\nsrc/services/diagrams/diagram_selection_service.test.ts(14,9): error TS2741: Property 'legendEntryId' is missing in type '{ id: string; label: string; role: \"focal\"; }' but required in type 'DiagramNode'.\r\nsrc/services/diagrams/diagram_selection_service.test.ts(15,9): error TS2741: Property 'legendEntryId' is missing in type '{ id: string; label: string; role: \"store\"; }' but required in type 'DiagramNode'.\r\nsrc/services/diagrams/diagram_selection_service.test.ts(107,17): error TS2741: Property 'legendEntryId' is missing in type '{ id: string; label: string; role: \"focal\"; width: number; height: number; x: number; y: number; }' but required in type 'DiagramNode'.\r\nsrc/services/diagrams/diagram_selection_service.test.ts(108,17): error TS2741: Property 'legendEntryId' is missing in type '{ id: string; label: string; role: \"store\"; width: number; height: number; x: number; y: number; }' but required in type 'DiagramNode'.",
+          "providerItemId": "toolu_01E5R8SwpYjhRmexxANdjhXf",
+          "sequence": 36,
+          "status": "failed",
+          "timestamp": "2026-11-04T15:25:23.599Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "{\"command\":\"npx eslint src/theme/theme_provider.tsx src/theme/theme_provider.test.tsx 2>&1 | Select-Object -Last 15\",\"description\":\"Lint changed files\",\"timeout\":300000}",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-37",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "(PowerShell completed with no output)",
+          "providerItemId": "toolu_01HA4585Vj8e7Fnkxuzx4ACT",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-11-04T15:25:26.221Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgi7xUELWLK7zVW2ECMhd:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T15:25:27.517Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nTypecheck has errors in diagram test files. Checking whether any touch theme files.",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-11-04T15:25:27.518Z"
+        },
+        {
+          "content": "{\"command\":\"$out = npm run typecheck 2>&1 | Out-String; ($out -split \\\"`n\\\" | Where-Object { $_ -match 'error TS' } | ForEach-Object { ($_ -split '\\\\(')[0] } | Sort-Object -Unique)\",\"description\":\"List files with typecheck errors\",\"timeout\":300000}",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-40",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "Exit code 2\nsrc/components/actions/run/state/action_run_history.test.tsx\r\nsrc/components/diagram_view/commands/diagram_cut_button.test.tsx\r\nsrc/components/diagram_view/commands/diagram_save_button.test.tsx\r\nsrc/components/diagram_view/comparison/diagram_comparison.test.tsx\r\nsrc/components/diagram_view/comparison/tabbed_diagram_comparison.test.tsx\r\nsrc/components/diagram_view/comparison/vertical_diagram_comparison.test.tsx\r\nsrc/components/diagram_view/creation_tools/diagram_add_control.test.tsx\r\nsrc/components/diagram_view/details/diagram_group_membership_editor.test.tsx\r\nsrc/components/diagram_view/details/diagram_object_details_dialog.test.tsx\r\nsrc/components/diagram_view/editing/diagram_edge_drawing_preview.test.tsx\r\nsrc/components/diagram_view/editing/diagram_editor_integration.test.tsx\r\nsrc/components/diagram_view/editing/diagram_editor_rendering.test.tsx\r\nsrc/components/diagram_view/editing/editable_diagram.test.tsx\r\nsrc/components/diagram_view/editing/editable_diagram_leaves.test.tsx\r\nsrc/components/diagram_view/editing/editable_diagram_selection.test.tsx\r\nsrc/components/diagram_view/editing/use_diagram_geometry.test.tsx\r\nsrc/components/diagram_view/editing/use_diagram_tool.test.tsx\r\nsrc/components/diagram_view/editing/use_editable_diagram.test.tsx\r\nsrc/components/diagram_view/legend/diagram_legend_details_editor.test.tsx\r\nsrc/components/diagram_view/legend/diagram_legend_entries.node.test.ts\r\nsrc/components/diagram_view/legend/diagram_session_legend_entries.test.tsx\r\nsrc/components/diagram_view/rendering/diagram_renderer.test.tsx\r\nsrc/components/diagram_view/surface/diagram_current_viewport.test.tsx\r\nsrc/components/diagram_view/surface/diagram_emphasis_presentation.test.tsx\r\nsrc/components/diagram_view/surface/diagram_zoom_viewport.test.tsx\r\nsrc/services/diagrams/diagram_change_descriptions.node.test.ts\r\nsrc/services/diagrams/diagram_change_registry.test.ts\r\nsrc/services/diagrams/diagram_cut.test.ts\r\nsrc/services/diagrams/diagram_derived_legend.ts\r\nsrc/services/diagrams/diagram_edge_drawing_service.test.ts\r\nsrc/services/diagrams/diagram_edge_reconnection_plan.test.ts\r\nsrc/services/diagrams/diagram_edit_session_service.test.ts\r\nsrc/services/diagrams/diagram_emphasis_service.test.ts\r\nsrc/services/diagrams/diagram_fragment_clipboard.test.ts\r\nsrc/services/diagrams/diagram_geometry_service.test.ts\r\nsrc/services/diagrams/diagram_group_drawing_service.test.ts\r\nsrc/services/diagrams/diagram_layout.node.test.ts\r\nsrc/services/diagrams/diagram_move_service.test.ts\r\nsrc/services/diagrams/diagram_node_placement_service.test.ts\r\nsrc/services/diagrams/diagram_removal_plan.test.ts\r\nsrc/services/diagrams/diagram_resize_service.test.ts\r\nsrc/services/diagrams/diagram_save_service.test.ts\r\nsrc/services/diagrams/diagram_selection_service.test.ts",
+          "providerItemId": "toolu_01PwkN8eHKxaW9dxYAGzTH65",
+          "sequence": 40,
+          "status": "failed",
+          "timestamp": "2026-11-04T15:25:45.217Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-41",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgi7ysdmae2bmvipoWTmV:thinking:0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T15:25:47.476Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nTheme files are type-clean. Those errors are in diagram and action-history files I didn't touch, so I'll report them rather than fix them. Moving to Block 3.",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 42,
+          "timestamp": "2026-11-04T15:25:47.476Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_329_changing_appearence_not_applied.md",
+          "deletions": 1,
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-43",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_329_changing_appearence_not_applied.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01JhJr8KGdtpf4G3W1friMmD",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-11-04T15:25:49.462Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-event-44",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgi7zBeEz8hiNwNsVLggu:thinking:0",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T15:25:57.334Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nB_329 is fixed: saving a new background shade in the config dialog now updates the app theme right away. The focused tests pass (9 of 9), but the app-wide `npm run typecheck` fails in files this change didn't touch (details at the end).\n\n**The fix:** in `app/src/theme/theme_provider.tsx`, `AppThemeProvider` now gets the shade from `useConfigValueOrFallback('project.backgroundShade', 'neutral')` instead of `useProjectConfig`.\n- **Saving applies the shade:** `saveDraft()` fires `ConfigService`'s own `changed` event, so React re-reads the shade immediately. Before, the theme only refreshed on the project-wide `DataService` event, which saving never fires.\n- **Unrelated changes don't rebuild the theme:** the hook returns the shade as a plain string. A change to any other config key gives the same string back, so `useMemo` keeps the existing theme object.\n- **No project open:** while `ConfigService` is not initialized, the hook returns `neutral`, as before.\n\n**Tests:** I added four tests to `app/src/theme/theme_provider.test.tsx`:\n1. Without project config, the theme uses the neutral shade.\n2. A saved shade is applied, and `DataService` fires no event. This is the regression test: I ran it against the old provider and it failed, and it passes with the fix.\n3. A shade edited in the draft but not saved leaves the theme unchanged.\n4. Changing an unrelated config value keeps the same theme object.\n\n`afterEach` now calls `configService.clear()` so the tests don't share config state.\n\n**Checks:**\n- ESLint on the two changed files reports nothing.\n- `npm run typecheck` reports no errors in the theme files. It does fail in about 40 other files, almost all diagram tests (`legendEntryId` missing, schema version `1` not assignable to `3`), plus `action_run_history.test.tsx` and one non-test file, `diagram_derived_legend.ts`. This change doesn't touch any of them. AGENTS.md says to fix existing failures I run into, but that would be a large diagram-schema change outside B_329, so I haven't touched them. Should I fix them separately?\n\nThe spec's `status` in the main repo copy is now `ready`. Nothing is committed.",
+          "id": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-turn-2-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 45,
+          "timestamp": "2026-11-04T15:25:57.710Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1054,17 +1387,17 @@
           "agent": "claude",
           "conversationId": "cc44f15d-80b2-4e64-960d-4e1cf4e2f02a",
           "createdAt": "2026-11-04T15:10:33.584Z",
-          "lastUsedAt": "2026-11-04T15:10:33.584Z",
-          "synchronizedThroughMessageId": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-turn-1-assistant-2",
+          "lastUsedAt": "2026-11-04T15:25:57.710Z",
+          "synchronizedThroughMessageId": "agent-turn-95a5924a-4fcb-4c88-87ea-0e4ae9e47b4e-turn-2-assistant-7",
           "usageBaseline": {
-            "costUsd": 0.4516085999999999,
-            "resultId": "7baf48a8-5b9e-42ff-b01b-dcda863608c4",
+            "costUsd": 0.779924,
+            "resultId": "b9d49759-a5e1-468d-a5ac-ca35f00cda17",
             "tokens": {
-              "cachedInputTokens": 423893,
-              "inputTokens": 19,
-              "outputTokens": 2765,
+              "cachedInputTokens": 1099133,
+              "inputTokens": 43,
+              "outputTokens": 8304,
               "reasoningTokens": 0,
-              "totalTokens": 426677
+              "totalTokens": 1107480
             }
           }
         }
@@ -1076,37 +1409,37 @@
           {
             "id": "1",
             "subject": "Block 1: theme provider reads shade from ConfigService",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 2: regression tests in theme_provider.test.tsx",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Block 3: set spec status to ready",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-04T15:10:25.363Z"
+        "updatedAt": "2026-11-04T15:25:49.065Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 9974,
-          "toolMs": 10704
+          "reasoningMs": 27022,
+          "toolMs": 82254
         },
         "elapsedMs": 33734,
         "runningStartedAt": "2026-11-04T15:24:18.131Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 423893,
-        "inputTokens": 19,
-        "outputTokens": 2765,
+        "cachedInputTokens": 1099133,
+        "inputTokens": 43,
+        "outputTokens": 8304,
         "reasoningTokens": 0,
-        "totalTokens": 426677,
-        "costUsd": 0.4516085999999999
+        "totalTokens": 1107480,
+        "costUsd": 0.779924
       },
       "usageSchemaVersion": 1,
       "viewed": true
