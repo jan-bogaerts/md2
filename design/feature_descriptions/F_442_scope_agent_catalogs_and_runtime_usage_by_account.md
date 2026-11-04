@@ -3,7 +3,7 @@ author:
 id: F_442
 internalId: 4a06c2b1-a7db-4f8f-a995-f638b14e6962
 title: scope agent catalogs and runtime usage by account
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,17 @@ policy:
 branch: f_442_scope_agent_catalogs_and_runtime_usage_by_account
 after: ad646cb9-3521-4a35-ae1b-7fdaa2701547
 worktree: 1
+changedFiles:
+  - app/src/components/hooks/use_agent_model_catalog.ts
+  - app/src/data/agent_model_catalog.ts
+  - app/src/services/agents/agent_capabilities_service.ts
+  - app/src/services/agents/claude_rate_limit_service.ts
+  - app/src/services/agents/codex_rate_limit_service.ts
+  - desktop/src/actions/agent/agent_runtime_usage.js
+  - desktop/src/actions/agent/agent_usage_poll_context.js
+  - desktop/src/actions/agent/agent_usage_poll_service.js
+  - desktop/src/actions/agent/agent_usage_poll_service.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
 ---
 
 Isolate model discovery and live provider usage snapshots by agent account. Persisted usage metrics and account-reset schedules are handled in F_443.
