@@ -456,6 +456,14 @@
           "role": "assistant",
           "sequence": 33,
           "timestamp": "2026-11-04T10:31:28.010Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_328_stopping_a_conversation_fails.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-c8f83d2d-d034-41c4-9ab6-d8ffcb249185",
+          "kind": "message",
+          "role": "user",
+          "sequence": 34,
+          "timestamp": "2026-11-04T10:38:50.306Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -470,7 +478,7 @@
         }
       ],
       "startedAt": "2026-11-04T10:29:52.264Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -497,7 +505,7 @@
           "toolMs": 4115
         },
         "elapsedMs": 95746,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-04T10:38:50.306Z"
       },
       "title": "investigate",
       "usage": {
