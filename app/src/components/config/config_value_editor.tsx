@@ -102,7 +102,7 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     const desktopAgentSelection = (entry.key === 'desktop.agentSelection' ? value : null) as AgentSelectionState | null;
     const selectedAgentProfile = findAgentProfile(agentProfiles, desktopAgentSelection?.activeAgent ?? '')
     const selectedSettings = desktopAgentSelection?.settingsByAgent[desktopAgentSelection.activeAgent];
-    const modelCatalog = useAgentModelCatalog(selectedAgentProfile);
+    const modelCatalog = useAgentModelCatalog(selectedAgentProfile, selectedSettings?.accountId);
     const selectedAgentModels = agentModelOptions(modelCatalog.catalog, selectedSettings?.model ?? '');
     const stringValue = value as string
     const selectOptions = entry.type === 'select' ? entry.options ?? [] : null

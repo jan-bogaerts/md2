@@ -20,6 +20,7 @@ import { mergeAgentProfiles } from '../../../../data/agent_profiles';
 import { agentModelOptions } from '../../../../data/agent_model_options';
 import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
 import { useCodexRateLimits } from '../../../hooks/use_codex_rate_limits'
+import { useSelectedAgentAccountId } from '../../../hooks/use_selected_agent_account_id'
 import { useProjectConfig } from '../../../hooks/use_project_config'
 import { useWorktrees } from '../../../hooks/use_worktrees';
 import { accountTrackerOptions, cardScheduleOptions, scheduleTargetStates } from '../schedule/action_schedule_options'
@@ -89,13 +90,15 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
     const capabilities = useAgentCapabilities();
     const executionAgent = snapshot.executionSelection?.activeAgent ?? '';
     const executionProfile = profiles.find(({ name }) => name === executionAgent) ?? null;
-    const modelCatalog = useAgentModelCatalog(executionProfile);
+    const executionAccountId = snapshot.executionSelection?.settingsByAgent[executionAgent]?.accountId;
+    const modelCatalog = useAgentModelCatalog(executionProfile, executionAccountId);
     const selectedModel = snapshot.executionSelection?.settingsByAgent[executionAgent]?.model ?? '';
     const modelOptions = useMemo(() => agentModelOptions(modelCatalog.catalog, selectedModel), [modelCatalog.catalog, selectedModel]);
     const projectConfig = useProjectConfig()
     const worktrees = useWorktrees();
-    const claudeState = useClaudeRateLimits()
-    const codexState = useCodexRateLimits()
+    // Account-reset trackers name no account yet, so they follow the selected default account of each agent.
+    const claudeState = useClaudeRateLimits(useSelectedAgentAccountId('claude'))
+    const codexState = useCodexRateLimits(useSelectedAgentAccountId('codex'))
     const handleCardSourcesChange = useCallback(() => service.refreshCardSources(), [service]);
     useEffect(() => {
         if (!snapshot.open) return;

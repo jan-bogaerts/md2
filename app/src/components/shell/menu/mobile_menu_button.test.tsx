@@ -28,6 +28,7 @@ function setCodexUsage(usedPercent: number) {
     state.codex = {
         receivedAt: Date.now(),
         snapshot: {
+            accountId: 'codex-initial',
             available: true,
             buckets: [{
                 credits: null,

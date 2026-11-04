@@ -6,14 +6,16 @@ import {
     type ElectronCodexRuntimeBridge,
 } from '../../data/electron_codex_runtime_bridge'
 import { codexRateLimitService } from '../../services/agents/codex_rate_limit_service'
+import { configService } from '../../services/config/config_service'
 import { CodexRateLimitStatus } from './codex_rate_limit_status'
 
 function snapshot(
     buckets: CodexRateLimitSnapshot['buckets'],
     available = true,
     observedAt = Date.now(),
+    accountId = 'codex-initial',
 ): CodexRateLimitSnapshot {
-    return { available, buckets, observedAt, rateLimitResetCredits: null }
+    return { accountId, available, buckets, observedAt, rateLimitResetCredits: null }
 }
 
 function bucket(
@@ -177,5 +179,26 @@ describe('CodexRateLimitStatus', () => {
         })
 
         expect(screen.getByText(new RegExp(`Resets ${localResetTime} \\(60 min\\)`, 'u'))).toBeInTheDocument()
+    })
+
+    it('follows the selected default account and ignores updates of other accounts', async () => {
+        const workAccountId = '11111111-1111-4111-8111-111111111111'
+        configService.init({ desktopConfig: {} })
+        const runtime = await renderStatus(snapshot([bucket('codex', 10)]))
+        expect(screen.getByText('Codex 10% used')).toBeInTheDocument()
+
+        act(() => {
+            runtime.emit(snapshot([bucket('codex', 70)], true, Date.now(), workAccountId))
+        })
+        expect(screen.getByText('Codex 10% used')).toBeInTheDocument()
+
+        act(() => {
+            const selection = configService.get('desktop.agentSelection')
+            const settingsByAgent = { ...selection.settingsByAgent, codex: { model: '', thinkingLevel: 'none' as const, accountId: workAccountId } }
+            configService.replaceDesktopConfig({ agentSelection: { ...selection, settingsByAgent } })
+        })
+
+        expect(screen.getByText('Codex 70% used')).toBeInTheDocument()
+        configService.clear()
     })
 })

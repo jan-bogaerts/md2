@@ -1,4 +1,5 @@
 const { resolveAgentExecution } = require('../actions/agent/agent_execution');
+const { resolveAgentAccount, resolveAgentAccounts } = require('../actions/agent/agent_accounts.mjs');
 const { findAgentProfile } = require('../actions/agent/agent_profiles.mjs');
 const { CardStateTracker } = require('../actions/card/card_state_tracker');
 const { ConversationViewEvents } = require('../actions/activity/conversation_view_events');
@@ -46,11 +47,29 @@ async function loadAgentModelCatalog(dependencies, request) {
     if (!agentModelCatalogService) throw new Error('Agent model catalog service is not available');
     if (!request || typeof request.agent !== 'string' || request.agent.length === 0) throw new Error('Missing catalog agent');
     if (request.refresh !== undefined && typeof request.refresh !== 'boolean') throw new Error('Invalid catalog refresh value');
-    const { agentProfiles } = readDesktopConfig(desktopConfigStore);
+    if (request.accountId !== undefined && typeof request.accountId !== 'string') throw new Error('Invalid catalog account ID');
+    const { agentAccounts, agentProfiles } = readDesktopConfig(desktopConfigStore);
     const profile = request.profile === undefined ? findAgentProfile(agentProfiles, request.agent) : request.profile;
     if (!profile || profile.name !== request.agent) throw new Error('Catalog profile does not match its agent');
+    const account = resolveAgentAccount(resolveAgentAccounts(agentAccounts, 'desktop config'), request.agent, request.accountId);
 
-    return await agentModelCatalogService.load(profile, request.refresh === true);
+    return await agentModelCatalogService.load(profile, account, request.refresh === true);
+}
+
+/** Aligns usage polling with the configured accounts once an account was added, removed, or moved. */
+function reconcileUsageAccounts(dependencies) {
+    const { agentUsagePollService, desktopConfigStore, readDesktopConfig } = dependencies;
+    if (!agentUsagePollService) return;
+    const { agentAccounts, agentProfiles } = readDesktopConfig(desktopConfigStore);
+    agentUsagePollService.reconcileAccounts(agentProfiles, agentAccounts);
+}
+
+/** Runs an account operation, then lets usage polling follow the resulting account configuration. */
+async function changeAgentAccounts(dependencies, operation) {
+    const result = await operation(requireAgentAccountService(dependencies.agentAccountService));
+    reconcileUsageAccounts(dependencies);
+
+    return result;
 }
 
 function createLocalBridgeDispatch(dependencies) {
@@ -62,6 +81,7 @@ function createLocalBridgeDispatch(dependencies) {
         agentExecutableAvailability,
         agentModelCatalogService,
         agentRunnerService,
+        agentUsagePollService,
         claudeRuntimeService,
         codexRuntimeService,
         desktopConfigStore,
@@ -181,9 +201,9 @@ function createLocalBridgeDispatch(dependencies) {
         if (actionSchedulerService) await actionSchedulerService.startProject(project, projectPaths, projectConfig);
         // Account usage polls run in this folder: Claude's per-folder trust question blocks a poll
         // started anywhere it has never run, which is why the poll waits for a project at all.
-        if (agentRunnerService) {
-            const { agentProfiles } = readDesktopConfig(desktopConfigStore);
-            agentRunnerService.requestProjectUsageRefresh(project, agentProfiles);
+        if (agentUsagePollService) {
+            const { agentAccounts, agentProfiles } = readDesktopConfig(desktopConfigStore);
+            agentUsagePollService.startProject(project, agentProfiles, agentAccounts);
         }
         projectServicesReady = true;
     }
@@ -753,7 +773,7 @@ function createLocalBridgeDispatch(dependencies) {
     };
 
     const codexRuntimeBridge = {
-        getCodexRateLimits: () => codexRuntimeService?.getSnapshot() ?? null,
+        getCodexRateLimits: (accountId) => codexRuntimeService?.getSnapshot(accountId) ?? null,
         onCodexRateLimits: (callback) => {
             if (!codexRuntimeService) throw new Error('Codex runtime service is not available');
 
@@ -772,7 +792,7 @@ function createLocalBridgeDispatch(dependencies) {
     };
 
     const claudeRuntimeBridge = {
-        getClaudeRateLimits: () => claudeRuntimeService?.getSnapshot() ?? null,
+        getClaudeRateLimits: (accountId) => claudeRuntimeService?.getSnapshot(accountId) ?? null,
         onClaudeRateLimits: (callback) => {
             if (!claudeRuntimeService) throw new Error('Claude runtime service is not available');
 
@@ -781,13 +801,15 @@ function createLocalBridgeDispatch(dependencies) {
     };
 
     const agentAccountBridge = {
-        addAgentAccount: (agent) => requireAgentAccountService(agentAccountService).addAccount(agent),
+        addAgentAccount: (agent) => changeAgentAccounts(dependencies, (service) => service.addAccount(agent)),
         listAgentAccounts: () => requireAgentAccountService(agentAccountService).listAccounts(),
         loadAgentAccountStatus: (accountId) => requireAgentAccountService(agentAccountService).loadStatus(accountId),
         loginAgentAccount: (accountId) => requireAgentAccountService(agentAccountService).login(accountId),
-        removeAgentAccount: (accountId) => requireAgentAccountService(agentAccountService).removeAccount(accountId),
+        removeAgentAccount: (accountId) => changeAgentAccounts(dependencies, (service) => service.removeAccount(accountId)),
         renameAgentAccount: (accountId, name) => requireAgentAccountService(agentAccountService).renameAccount(accountId, name),
-        reselectAgentAccountDirectory: (accountId) => requireAgentAccountService(agentAccountService).reselectDirectory(accountId),
+        reselectAgentAccountDirectory: (accountId) => (
+            changeAgentAccounts(dependencies, (service) => service.reselectDirectory(accountId))
+        ),
     };
 
     const methods = { ...dataBridge, ...actionBridge, ...claudeRuntimeBridge, ...codexRuntimeBridge };

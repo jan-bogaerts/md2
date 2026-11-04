@@ -1,6 +1,7 @@
 const { normalizeFolderPath } = require('../../../../shared/project_config_defaults.mjs');
 const { parseSequenceAgentSelection } = require('../../../../shared/action_schedules.mjs');
 const { CUSTOM_PROMPT_ACTION_ID } = require('../../../../shared/action_definitions.mjs');
+const { initialAgentAccountId } = require('../../../../shared/agent_accounts.mjs');
 const {
     activeSchedules,
     appendActionSchedule,
@@ -118,6 +119,8 @@ class ActionSchedulerService {
         this.actionRunnerService = dependencies?.actionRunnerService;
         this.confirmCardStateScheduleContinuation = dependencies?.confirmCardStateScheduleContinuation ?? null;
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
+        // Account-reset triggers name no account yet, so they follow the selected default account of their agent.
+        this.selectedAgentAccountId = dependencies?.selectedAgentAccountId ?? initialAgentAccountId;
         this.clearTimeout = dependencies?.clearTimeout ?? clearTimeout;
         this.localGitService = dependencies?.localGitService;
         this.worktreeService = dependencies?.worktreeService;
@@ -238,6 +241,7 @@ class ActionSchedulerService {
     subscribeToAccountUsage(agent, runtimeService) {
         if (!runtimeService) return;
         const unsubscribe = runtimeService.subscribe((snapshot) => {
+            if (snapshot.accountId !== this.selectedAgentAccountId(agent)) return;
             void this.handleAccountUsageChange(agent, snapshot).catch((error) => this.errorReporter(error));
         });
         this.accountUsageUnsubscribers.push(unsubscribe);

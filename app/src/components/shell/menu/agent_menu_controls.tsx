@@ -71,7 +71,7 @@ export function AgentMenuControls() {
     const selectedPermissionMode = agentSelection.permissionMode
     const desktopAvailable = useHasDesktopConfig()
     const selectedModel = activeAgentSettings?.model ?? ''
-    const modelCatalog = useAgentModelCatalog(selectedProfile);
+    const modelCatalog = useAgentModelCatalog(selectedProfile, activeAgentSettings?.accountId);
     const selectedModels = agentModelOptions(modelCatalog.catalog, selectedModel);
     const selectedSpeedMode = activeAgentSettings?.speedMode ?? 'default';
     const selectedAccountId = activeAgentSettings?.accountId ?? ''

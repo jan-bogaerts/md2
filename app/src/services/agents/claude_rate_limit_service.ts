@@ -14,6 +14,11 @@ export interface ClaudeRateLimitState {
 const INITIAL_STATE: ClaudeRateLimitState = { receivedAt: null, snapshot: null, stale: false }
 const WINDOW_IDS = new Set(['five_hour', 'weekly'])
 
+/** Scoped change event of the Claude rate limits of one agent account. */
+export function claudeRateLimitsChangedEvent(accountId: string) {
+    return `changed:${accountId}`
+}
+
 function firstResetTime(snapshot: ClaudeRateLimitSnapshot) {
     // A window Claude has not started carries no reset time and cannot be the next one to reset.
     const resetTimes = snapshot.windows.map(({ resetsAt }) => resetsAt).filter((resetsAt) => resetsAt !== null)
@@ -22,6 +27,7 @@ function firstResetTime(snapshot: ClaudeRateLimitSnapshot) {
 }
 
 function validSnapshot(snapshot: ClaudeRateLimitSnapshot) {
+    if (typeof snapshot.accountId !== 'string' || snapshot.accountId.length === 0) return false
     if (!Number.isFinite(snapshot.observedAt)) return false
     if (!snapshot.available) return snapshot.windows.length === 0
     if (snapshot.windows.length !== WINDOW_IDS.size) return false
@@ -36,11 +42,12 @@ function validSnapshot(snapshot: ClaudeRateLimitSnapshot) {
     ))
 }
 
-/** Owns current account-wide Claude rate limits for this renderer process only. */
+/** Owns the current Claude rate limits of each agent account for this renderer process only. */
 export class ClaudeRateLimitService extends EventTarget {
     private bridge: ElectronClaudeRuntimeBridge | null = null
-    private expirationTimer: ReturnType<typeof setTimeout> | null = null
-    private state: ClaudeRateLimitState = INITIAL_STATE
+    private readonly expirationTimers = new Map<string, ReturnType<typeof setTimeout>>()
+    private readonly requestedAccountIds = new Set<string>()
+    private readonly states = new Map<string, ClaudeRateLimitState>()
     private unsubscribeConnection: (() => void) | null = null
     private unsubscribeRateLimits: (() => void) | null = null
 
@@ -49,8 +56,14 @@ export class ClaudeRateLimitService extends EventTarget {
         register('claudeRateLimitService', this)
     }
 
-    getState() {
-        return this.state
+    getState(accountId: string) {
+        return this.states.get(accountId) ?? INITIAL_STATE
+    }
+
+    /** Reads the snapshot of an account a consumer displays, unless the host already published it. */
+    requestSnapshot(accountId: string) {
+        this.requestedAccountIds.add(accountId)
+        if (this.bridge && !this.states.has(accountId)) void this.refresh(this.bridge, accountId)
     }
 
     start() {
@@ -59,68 +72,79 @@ export class ClaudeRateLimitService extends EventTarget {
 
         this.unsubscribe()
         this.bridge = bridge
-        this.setState(INITIAL_STATE)
+        this.clearStates()
         if (!bridge) return
 
         this.unsubscribeRateLimits = bridge.onClaudeRateLimits((snapshot) => this.acceptSnapshot(bridge, snapshot))
         this.unsubscribeConnection = bridge.onConnectionChanged?.((connected) => this.handleConnectionChange(bridge, connected)) ?? null
-        void this.refresh(bridge)
+        this.refreshRequested(bridge)
     }
 
     stop() {
         this.unsubscribe()
         this.bridge = null
-        this.setState(INITIAL_STATE)
+        this.clearStates()
     }
 
     private acceptSnapshot(bridge: ElectronClaudeRuntimeBridge, snapshot: ClaudeRateLimitSnapshot) {
         if (bridge !== this.bridge || !validSnapshot(snapshot)) return
-        const currentObservedAt = this.state.snapshot?.observedAt
+        const { accountId } = snapshot
+        const currentObservedAt = this.states.get(accountId)?.snapshot?.observedAt
         if (currentObservedAt !== undefined && snapshot.observedAt < currentObservedAt) return
 
         const receivedAt = Date.now()
-        this.setState({ receivedAt, snapshot, stale: false })
-        this.scheduleExpiration(snapshot, receivedAt)
+        this.setState(accountId, { receivedAt, snapshot, stale: false })
+        this.scheduleExpiration(accountId, snapshot, receivedAt)
     }
 
-    private async refresh(bridge: ElectronClaudeRuntimeBridge) {
+    private refreshRequested(bridge: ElectronClaudeRuntimeBridge) {
+        for (const accountId of this.requestedAccountIds) void this.refresh(bridge, accountId)
+    }
+
+    private async refresh(bridge: ElectronClaudeRuntimeBridge, accountId: string) {
         try {
-            const snapshot = await bridge.getClaudeRateLimits()
+            const snapshot = await bridge.getClaudeRateLimits(accountId)
             if (snapshot) this.acceptSnapshot(bridge, snapshot)
         } catch {
-            if (bridge === this.bridge) this.markStale()
+            if (bridge === this.bridge) this.markStale(accountId)
         }
     }
 
     private handleConnectionChange(bridge: ElectronClaudeRuntimeBridge, connected: boolean) {
         if (bridge !== this.bridge) return
         if (!connected) {
-            this.markStale()
+            for (const accountId of this.states.keys()) this.markStale(accountId)
             return
         }
 
-        void this.refresh(bridge)
+        this.refreshRequested(bridge)
     }
 
-    private scheduleExpiration(snapshot: ClaudeRateLimitSnapshot, receivedAt: number) {
-        if (this.expirationTimer) clearTimeout(this.expirationTimer)
-        this.expirationTimer = null
+    private scheduleExpiration(accountId: string, snapshot: ClaudeRateLimitSnapshot, receivedAt: number) {
+        this.clearExpiration(accountId)
         if (!snapshot.available) return
         const resetTime = firstResetTime(snapshot)
         if (resetTime === null) return
         const localResetTime = receivedAt + resetTime - snapshot.observedAt
         const delay = Math.max(0, localResetTime - Date.now())
         if (delay === 0) {
-            this.markStale()
+            this.markStale(accountId)
             return
         }
-        this.expirationTimer = setTimeout(() => this.markStale(), delay)
+        this.expirationTimers.set(accountId, setTimeout(() => this.markStale(accountId), delay))
     }
 
-    private markStale() {
-        if (!this.state.snapshot || this.state.stale) return
+    private clearExpiration(accountId: string) {
+        const timer = this.expirationTimers.get(accountId)
+        if (timer) clearTimeout(timer)
+        this.expirationTimers.delete(accountId)
+    }
 
-        this.setState({ ...this.state, stale: true })
+    private markStale(accountId: string) {
+        const state = this.getState(accountId)
+        if (!state.snapshot || state.stale) return
+
+        this.setState(accountId, { ...state, stale: true })
     }
 
     private unsubscribe() {
@@ -128,19 +152,27 @@ export class ClaudeRateLimitService extends EventTarget {
         this.unsubscribeConnection?.()
         this.unsubscribeRateLimits = null
         this.unsubscribeConnection = null
-        if (this.expirationTimer) clearTimeout(this.expirationTimer)
-        this.expirationTimer = null
     }
 
-    private setState(state: ClaudeRateLimitState) {
+    /** Drops every account state, announcing only accounts that had one. */
+    private clearStates() {
+        for (const accountId of [...this.states.keys()]) {
+            this.clearExpiration(accountId)
+            this.setState(accountId, INITIAL_STATE)
+        }
+        this.states.clear()
+    }
+
+    private setState(accountId: string, state: ClaudeRateLimitState) {
+        const current = this.getState(accountId)
         if (
-            state.receivedAt === this.state.receivedAt
-            && state.snapshot === this.state.snapshot
-            && state.stale === this.state.stale
+            state.receivedAt === current.receivedAt
+            && state.snapshot === current.snapshot
+            && state.stale === current.stale
         ) return
 
-        this.state = state
-        this.dispatchEvent(new CustomEvent('changed'))
+        this.states.set(accountId, state)
+        this.dispatchEvent(new CustomEvent(claudeRateLimitsChangedEvent(accountId)))
     }
 }
 

@@ -59,8 +59,16 @@ function createHarness() {
     let cards = [{ header: { id: 'F-1', internalId: 'card-1', title: 'First' }, path: 'design/F-1.md' } as Card]
     const rateLimitState = { receivedAt: null, snapshot: null, stale: false }
     const actionService = Object.assign(actionEvents, { getActions: () => [] }) as unknown as ActionService
-    const claudeRateLimits = Object.assign(claudeEvents, { getState: () => rateLimitState }) as unknown as ClaudeRateLimitService
-    const codexRateLimits = Object.assign(codexEvents, { getState: () => rateLimitState }) as unknown as CodexRateLimitService
+    const claudeRateLimits = Object.assign(
+        claudeEvents,
+        { getState: vi.fn(() => rateLimitState), requestSnapshot: vi.fn() },
+    ) as unknown as ClaudeRateLimitService
+    const codexRateLimits = Object.assign(
+        codexEvents,
+        { getState: vi.fn(() => rateLimitState), requestSnapshot: vi.fn() },
+    ) as unknown as CodexRateLimitService
+    const selectionEvents = new EventTarget()
+    const selectedAccountIds = { claude: 'claude-initial', codex: 'codex-initial' }
     const serviceData = Object.assign(
         dataEvents,
         {
@@ -79,11 +87,18 @@ function createHarness() {
         getActionsFolder: () => 'design/actions',
         getBridge: () => bridge as never,
         getProject: () => project,
+        getSelectedAccountId: (agent) => selectedAccountIds[agent],
+        selectionEvents,
     })
 
     return {
         bridge,
+        claudeRateLimits,
+        codexEvents,
+        codexRateLimits,
         dataEvents,
+        selectedAccountIds,
+        selectionEvents,
         service,
         setCards: (nextCards: Card[]) => { cards = nextCards },
         setProject: (nextProject: typeof project) => { project = nextProject },
@@ -344,6 +359,30 @@ describe('ActiveScheduleService', () => {
         expect(service.hasPendingActionForCard('card-1')).toBe(false)
         await vi.waitFor(() => expect(service.getSnapshot().loading).toBe(false))
         expect(service.hasPendingActionForCard('card-1')).toBe(false)
+        service.stop()
+    })
+
+    it('projects account resets from the selected default account and follows a changed selection', async () => {
+        const { codexEvents, codexRateLimits, selectedAccountIds, selectionEvents, service } = createHarness()
+        const published = vi.fn()
+        service.start()
+        await vi.waitFor(() => expect(service.getSnapshot().items).toHaveLength(1))
+        service.subscribe(published)
+
+        expect(codexRateLimits.requestSnapshot).toHaveBeenCalledWith('codex-initial')
+        codexEvents.dispatchEvent(new Event('changed:other-account'))
+        expect(codexRateLimits.getState).not.toHaveBeenCalledWith('other-account')
+
+        selectedAccountIds.codex = 'other-account'
+        selectionEvents.dispatchEvent(new Event('changed'))
+        expect(codexRateLimits.requestSnapshot).toHaveBeenLastCalledWith('other-account')
+        expect(codexRateLimits.getState).toHaveBeenLastCalledWith('other-account')
+        vi.mocked(codexRateLimits.getState).mockClear()
+        codexEvents.dispatchEvent(new Event('changed:codex-initial'))
+        expect(codexRateLimits.getState).not.toHaveBeenCalled()
+        codexEvents.dispatchEvent(new Event('changed:other-account'))
+        expect(codexRateLimits.getState).toHaveBeenCalledWith('other-account')
+
         service.stop()
     })
 })

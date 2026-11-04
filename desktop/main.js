@@ -20,6 +20,8 @@ const { AgentModelCatalogService } = require('./src/actions/agent/agent_model_ca
 const { AgentAccountService } = require('./src/actions/agent/agent_account_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
 const { ClaudeRuntimeService } = require('./src/actions/agent/claude_runtime_service');
+const { AgentUsagePollService } = require('./src/actions/agent/agent_usage_poll_service');
+const { selectedAgentAccountId } = require('./src/actions/agent/agent_selection.mjs');
 const { UsageMetricsService } = require('./src/actions/agent/usage_metrics_service');
 const { projectOperationCoordinator } = require('./src/project/project_operation_coordinator');
 const { uncommittedProjectWrites } = require('./src/project/uncommitted_project_writes');
@@ -95,11 +97,18 @@ const agentModelCatalogService = new AgentModelCatalogService({ executableResolv
 const claudeRuntimeService = new ClaudeRuntimeService();
 const codexRuntimeService = new CodexRuntimeService();
 const usageMetricsService = new UsageMetricsService({ errorReporter: captureError, projectOperationCoordinator });
+const agentUsagePollService = new AgentUsagePollService({
+    claudeRuntimeService,
+    codexRuntimeService,
+    executableResolver: agentExecutableResolver,
+    usageMetricsService,
+});
 const agentRunnerService = new AgentRunnerService({
     claudeRuntimeService,
     codexRuntimeService,
     executableResolver: agentExecutableResolver,
     usageMetricsService,
+    usagePollService: agentUsagePollService,
 });
 const mergeConflictService = new MergeConflictService({
     configProvider: () => readDesktopConfig(store),
@@ -154,6 +163,7 @@ const actionSchedulerService = new ActionSchedulerService({
     confirmCardStateScheduleContinuation,
     errorReporter: captureError,
     localGitService,
+    selectedAgentAccountId: (agent) => selectedAgentAccountId(readDesktopConfig(store).agentSelection, agent),
 });
 const projectStatsWorkerService = new ProjectStatsWorkerService();
 const agentAccountService = new AgentAccountService({
@@ -170,6 +180,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     actionWorktreeRunService,
     agentExecutableAvailability: (profiles) => loadAgentExecutableAvailability(profiles, { resolver: agentExecutableResolver }),
     agentRunnerService,
+    agentUsagePollService,
     claudeRuntimeService,
     codexRuntimeService,
     desktopConfigStore: store,
@@ -422,6 +433,7 @@ async function stopAndQuit() {
         actionSchedulerService.stop();
         await actionRunnerService.suspend();
         await agentRunnerService.stopAll();
+        await agentUsagePollService.stop();
         await agentAccountService.stop();
         await agentModelCatalogService.stop();
         await trackEvent('electron_stop');

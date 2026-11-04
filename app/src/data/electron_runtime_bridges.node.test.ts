@@ -16,7 +16,7 @@ describe('getElectronCodexRuntimeBridge', () => {
         const envelope = bridgeErrorEnvelope<CodexRateLimitSnapshot>('Codex runtime is not available')
         window.md2CodexRuntime = { getCodexRateLimits: vi.fn(async () => envelope), onCodexRateLimits: vi.fn(() => () => {}) }
 
-        await expect(getElectronCodexRuntimeBridge()?.getCodexRateLimits()).rejects.toThrow('Codex runtime is not available')
+        await expect(getElectronCodexRuntimeBridge()?.getCodexRateLimits('codex-initial')).rejects.toThrow('Codex runtime is not available')
     })
 
     it('keeps one stable bridge identity across lookups', () => {
@@ -35,13 +35,13 @@ describe('getElectronClaudeRuntimeBridge', () => {
         const envelope = bridgeErrorEnvelope<ClaudeRateLimitSnapshot>('Claude runtime is not available')
         window.md2ClaudeRuntime = { getClaudeRateLimits: vi.fn(async () => envelope), onClaudeRateLimits: vi.fn(() => () => {}) }
 
-        await expect(getElectronClaudeRuntimeBridge()?.getClaudeRateLimits()).rejects.toThrow('Claude runtime is not available')
+        await expect(getElectronClaudeRuntimeBridge()?.getClaudeRateLimits('claude-initial')).rejects.toThrow('Claude runtime is not available')
     })
 
     it('passes ordinary results through unchanged', async () => {
-        const snapshot = { available: true, observedAt: 1, windows: [] }
+        const snapshot: ClaudeRateLimitSnapshot = { accountId: 'claude-initial', available: true, observedAt: 1, windows: [] }
         window.md2ClaudeRuntime = { getClaudeRateLimits: vi.fn(async () => snapshot), onClaudeRateLimits: vi.fn(() => () => {}) }
 
-        await expect(getElectronClaudeRuntimeBridge()?.getClaudeRateLimits()).resolves.toEqual(snapshot)
+        await expect(getElectronClaudeRuntimeBridge()?.getClaudeRateLimits('claude-initial')).resolves.toEqual(snapshot)
     })
 })

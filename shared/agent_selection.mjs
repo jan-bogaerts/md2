@@ -9,7 +9,7 @@ import {
     validateThinkingLevel,
     validateSpeedMode,
 } from './agent_profiles.mjs'
-import { resolveAgentAccount } from './agent_accounts.mjs'
+import { initialAgentAccountId, resolveAgentAccount } from './agent_accounts.mjs'
 
 const defaultProfile = findAgentProfile([], DEFAULT_AGENT_PROFILE_NAME)
 if (!defaultProfile) throw new Error(`Missing built-in agent profile: ${DEFAULT_AGENT_PROFILE_NAME}`)
@@ -105,6 +105,11 @@ export function selectSpeedMode(selection, speedMode) {
 }
 
 /** Remembers the account for the active agent; an invalid explicit account is rejected, never replaced. */
+/** The account an account-capable agent remembers in a selection; a missing account ID means its initial account. */
+export function selectedAgentAccountId(selection, agent) {
+    return selection.settingsByAgent[agent]?.accountId ?? initialAgentAccountId(agent)
+}
+
 export function selectAccount(selection, accountId, accounts) {
     const current = selection.settingsByAgent[selection.activeAgent];
     if (!current) throw new Error(`Missing settings for active agent: ${selection.activeAgent}`);

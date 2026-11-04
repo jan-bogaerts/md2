@@ -4,6 +4,7 @@ import type { AgentProfile } from './agent_profiles';
 
 export interface AgentModelCatalogRequest {
     agent: string;
+    accountId?: string;
     profile?: AgentProfile;
     refresh?: boolean;
 }

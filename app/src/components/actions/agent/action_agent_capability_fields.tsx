@@ -51,7 +51,7 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
     const selectedProfile = definition.agent ? findAgentProfile(profiles, definition.agent) : null
     const selectedAgentAccounts = accounts.filter(({ agent, kind }) => agent === definition.agent && kind !== 'initial')
     const accountAvailable = !definition.accountId || selectedAgentAccounts.some(({ id }) => id === definition.accountId)
-    const models = useAgentModelCatalog(selectedProfile, service);
+    const models = useAgentModelCatalog(selectedProfile, definition.accountId, service);
     const modelOptions = agentModelOptions(models.catalog, definition.model ?? '');
     const configuredThinkingLevels: string[] = THINKING_LEVELS
         .filter((level) => level === 'none' || (!!selectedProfile && supportsThinkingLevel(selectedProfile, level)));

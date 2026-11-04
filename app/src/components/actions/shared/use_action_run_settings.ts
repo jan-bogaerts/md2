@@ -82,7 +82,7 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
     const { accountId, agent, permissionMode, thinkingLevel, speedMode } = projectedSelection
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
     const model = projectedSelection.model || (selectedAgentProfile ? defaultModelForProfile(selectedAgentProfile) : '');
-    const modelCatalog = useAgentModelCatalog(action.type === 'agent' ? selectedAgentProfile : null);
+    const modelCatalog = useAgentModelCatalog(action.type === 'agent' ? selectedAgentProfile : null, accountId);
     const modelOptions = agentModelOptions(modelCatalog.catalog, model);
     const thinkingLevelOptions = THINKING_LEVELS
         .filter((level) => !!selectedAgentProfile && supportsThinkingLevel(selectedAgentProfile, level));

@@ -159,7 +159,7 @@ describe('ActionPopupBottomRow', () => {
     });
 
     it.each([null, 'Discovery failed'])('keeps Send enabled for an unadvertised model with catalog error %s', (error) => {
-        vi.mocked(agentCapabilitiesService.getCatalogSnapshot).mockReturnValue({catalog: { agent: 'codex', models: [] }, error, loading: false});
+        vi.mocked(agentCapabilitiesService.getCatalogSnapshot).mockReturnValue({catalog: { agent: 'codex', accountId: 'codex-initial', models: [] }, error, loading: false});
         const selectedAction = { ...action, agent: 'codex', model: 'unlisted-model', thinkingLevel: 'high', speedMode: 'fast' } as ActionDefinition;
         actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan');
         renderBottomRow(selectedAction);

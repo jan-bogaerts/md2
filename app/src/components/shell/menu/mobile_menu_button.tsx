@@ -4,6 +4,7 @@ import Menu from 'mdi-material-ui/Menu'
 import { useCodexRateLimits } from '../../hooks/use_codex_rate_limits'
 import { useProjectPersistence } from '../../hooks/use_project_persistence'
 import { useProjectSession } from '../../hooks/use_project_session'
+import { useSelectedAgentAccountId } from '../../hooks/use_selected_agent_account_id'
 import { codexRateLimitPresentation } from '../codex_rate_limit_status_data'
 import { NO_DRAG_REGION } from '../drag_region'
 import { useRemoteControlStatus } from '../use_remote_control_status'
@@ -16,7 +17,7 @@ interface MobileMenuButtonProps {
 export function MobileMenuButton({ onOpenMenu }: MobileMenuButtonProps) {
     const { hasPendingPush, hasPendingSave, localSaveState } = useProjectPersistence()
     const { isPushing } = useProjectSession()
-    const codexPresentation = codexRateLimitPresentation(useCodexRateLimits())
+    const codexPresentation = codexRateLimitPresentation(useCodexRateLimits(useSelectedAgentAccountId('codex')))
     const { status: remoteControlStatus } = useRemoteControlStatus()
     const needsAttention = hasPendingSave
         || localSaveState !== 'saved'

@@ -10,6 +10,7 @@ function requiredText(value, field, source) {
 export function validateAgentModelCatalog(value, source = 'agent model catalog') {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Invalid catalog in ${source}`);
     requiredText(value.agent, 'agent', source);
+    if (value.accountId !== null) requiredText(value.accountId, 'account ID', source);
     if (!Array.isArray(value.models)) throw new Error(`Invalid model list in ${source}`);
     for (const model of value.models) {
         if (!model || typeof model !== 'object' || Array.isArray(model)) throw new Error(`Invalid model in ${source}`);

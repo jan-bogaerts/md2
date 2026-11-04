@@ -777,12 +777,12 @@ export class RemoteControlStorageService implements
         return this.request<ActionRunRecoverySnapshot>('loadActionRunRecoverySnapshot', [rendererRunIds])
     }
 
-    async getCodexRateLimits(): Promise<CodexRateLimitSnapshot | null> {
-        return this.request<CodexRateLimitSnapshot | null>('getCodexRateLimits', [])
+    async getCodexRateLimits(accountId: string): Promise<CodexRateLimitSnapshot | null> {
+        return this.request<CodexRateLimitSnapshot | null>('getCodexRateLimits', [accountId])
     }
 
-    async getClaudeRateLimits(): Promise<ClaudeRateLimitSnapshot | null> {
-        return this.request<ClaudeRateLimitSnapshot | null>('getClaudeRateLimits', [])
+    async getClaudeRateLimits(accountId: string): Promise<ClaudeRateLimitSnapshot | null> {
+        return this.request<ClaudeRateLimitSnapshot | null>('getClaudeRateLimits', [accountId])
     }
 
     async loadCardActivity(request: CardActivityRequest): Promise<CardActivityFile> {

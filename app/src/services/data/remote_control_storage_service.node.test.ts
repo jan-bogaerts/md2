@@ -317,17 +317,17 @@ describe('RemoteControlStorageService', () => {
         await expect(save).resolves.toEqual(desktopConfig)
     })
 
-    it('reads current Claude rate limits through remote control', async () => {
+    it('reads the current Claude rate limits of one account through remote control', async () => {
         installWebSocket()
         const service = createService()
-        const load = service.getClaudeRateLimits()
+        const load = service.getClaudeRateLimits('claude-initial')
         const socket = lastSocket()
-        const snapshot = { available: true, observedAt: 10, windows: [] }
+        const snapshot = { accountId: 'claude-initial', available: true, observedAt: 10, windows: [] }
 
         socket.open()
         await flushPromises()
         const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(request).toMatchObject({ method: 'getClaudeRateLimits', params: [] })
+        expect(request).toMatchObject({ method: 'getClaudeRateLimits', params: ['claude-initial'] })
         socket.receive({ id: request.id, result: snapshot })
 
         await expect(load).resolves.toEqual(snapshot)

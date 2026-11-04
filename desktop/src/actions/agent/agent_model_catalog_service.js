@@ -7,7 +7,12 @@ const { AgentCatalogProcess } = require('./agent_catalog_process');
 const { readCodexModelCatalog } = require('./codex_model_catalog');
 const { CLAUDE_CATALOG_ARGUMENTS, readClaudeModelCatalog } = require('./claude_model_catalog');
 
-/** Own the shared model list for each agent, independent of projects and connections. */
+/** Cache key of one catalog: an agent's model list depends on the account it is discovered with. */
+function catalogKey(agent, accountId) {
+    return `${agent}/${accountId ?? ''}`;
+}
+
+/** Own the shared model list for each agent account, independent of projects and connections. */
 class AgentModelCatalogService extends EventTarget {
     constructor(dependencies = {}) {
         super();
@@ -20,30 +25,35 @@ class AgentModelCatalogService extends EventTarget {
         this.activeProbes = new Set();
     }
 
-    async load(profileValue, refresh = false) {
+    /**
+     * Loads the catalog of one agent account. `account` is the resolved account record, or `null`
+     * for an agent without accounts; discovery runs in that account's configuration directory.
+     */
+    async load(profileValue, account, refresh = false) {
         const [profile] = validateAgentProfiles([profileValue]);
-        const pending = this.pending.get(profile.name);
+        const accountId = account?.id ?? null;
+        const key = catalogKey(profile.name, accountId);
+        const pending = this.pending.get(key);
         if (pending) return await pending;
         if (!refresh || !supportsModelDiscovery(profile)) {
-            const catalog = this.catalogs.get(profile.name);
+            const catalog = this.catalogs.get(key);
             if (catalog && !refresh) return catalog;
+            const configuredModels = profile.models.map((id) => ({ id, displayName: id, hidden: false }));
+            const configuredCatalog = { agent: profile.name, accountId, models: configuredModels };
 
-            return this.publish({
-                agent: profile.name,
-                models: profile.models.map((id) => ({ id, displayName: id, hidden: false })),
-            });
+            return this.publish(configuredCatalog);
         }
-        const request = this.discover(profile);
-        this.pending.set(profile.name, request);
+        const request = this.discover(profile, account);
+        this.pending.set(key, request);
         try {
             return await request;
         } finally {
-            this.pending.delete(profile.name);
+            this.pending.delete(key);
         }
     }
 
-    async discover(profile) {
-        const environment = createAgentEnvironment(this.environment, profile.name);
+    async discover(profile, account) {
+        const environment = createAgentEnvironment(this.environment, profile.name, false, account);
         const command = buildAgentCommand(profile, defaultModelForProfile(profile));
         const cwd = this.workingDirectory;
         const executable = await this.executableResolver.find(command[0], { cwd, env: environment });
@@ -56,8 +66,9 @@ class AgentModelCatalogService extends EventTarget {
             const result = profile.name === 'codex'
                 ? await readCodexModelCatalog(probe)
                 : await readClaudeModelCatalog(probe);
+            const discoveredCatalog = { agent: profile.name, accountId: account?.id ?? null, models: result.models };
 
-            return this.publish({ agent: profile.name, models: result.models });
+            return this.publish(discoveredCatalog);
         } finally {
             try {
                 await probe.close();
@@ -69,7 +80,7 @@ class AgentModelCatalogService extends EventTarget {
 
     publish(value) {
         const catalog = validateAgentModelCatalog(value);
-        this.catalogs.set(catalog.agent, catalog);
+        this.catalogs.set(catalogKey(catalog.agent, catalog.accountId), catalog);
         this.dispatchEvent(new CustomEvent('catalog', { detail: catalog }));
 
         return catalog;

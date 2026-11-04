@@ -8,6 +8,7 @@ import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
 import { useCodexRateLimits } from '../../../hooks/use_codex_rate_limits'
+import { useSelectedAgentAccountId } from '../../../hooks/use_selected_agent_account_id'
 import { useProjectConfig } from '../../../hooks/use_project_config'
 import { defaultScheduleAction } from '../popup/action_popup_defaults'
 import type { ActionScheduleStore } from './action_schedule_store'
@@ -45,8 +46,9 @@ export function ActionSchedulePopover(
 ) {
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     const activeCards = useSyncExternalStore(subscribeActiveCards, getActiveCards, getActiveCards)
-    const claudeState = useClaudeRateLimits()
-    const codexState = useCodexRateLimits()
+    // Account-reset trackers name no account yet, so they follow the selected default account of each agent.
+    const claudeState = useClaudeRateLimits(useSelectedAgentAccountId('claude'))
+    const codexState = useCodexRateLimits(useSelectedAgentAccountId('codex'))
     const projectConfig = useProjectConfig()
     const sources: ActionScheduleTriggerSources = {
         accountTrackers: accountTrackerOptions(claudeState, codexState),

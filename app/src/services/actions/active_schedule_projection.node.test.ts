@@ -54,7 +54,7 @@ describe('projectActiveSchedules', () => {
         const [item] = projectActiveSchedules([sequenceSchedule()], {
             actions: [action],
             cards: [card],
-            claudeSnapshot: { available: true, observedAt: 1, windows: [{ id: 'weekly', resetsAt: 2, usedPercent: 10 }] },
+            claudeSnapshot: { accountId: 'claude-initial', available: true, observedAt: 1, windows: [{ id: 'weekly', resetsAt: 2, usedPercent: 10 }] },
             codexSnapshot: null,
         })
 

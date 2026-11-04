@@ -9,6 +9,7 @@ describe('action schedule options', () => {
                 receivedAt: 1,
                 stale: false,
                 snapshot: {
+                    accountId: 'claude-initial',
                     available: true,
                     observedAt: 1,
                     windows: [{ id: 'five_hour', resetsAt: null, usedPercent: 20 }],
@@ -18,6 +19,7 @@ describe('action schedule options', () => {
                 receivedAt: 1,
                 stale: false,
                 snapshot: {
+                    accountId: 'codex-initial',
                     available: true,
                     buckets: [{
                         credits: null,

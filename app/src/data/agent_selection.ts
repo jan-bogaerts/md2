@@ -5,6 +5,7 @@ export {
     resolveAgentSelectionState,
     resolveAgentSettings,
     selectAccount,
+    selectedAgentAccountId,
     selectAgent,
     selectModel,
     selectPermissionMode,

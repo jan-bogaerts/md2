@@ -5,6 +5,11 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { createLocalBridgeDispatch } = require('./local_bridge_dispatch');
 
+const INITIAL_ACCOUNTS = [
+    { id: 'codex-initial', agent: 'codex', kind: 'initial', name: 'Default' },
+    { id: 'claude-initial', agent: 'claude', kind: 'initial', name: 'Default' },
+];
+
 function createDispatch(options = {}) {
     const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }));
     const actionRunnerService = {
@@ -46,18 +51,17 @@ function createDispatch(options = {}) {
     };
     const agentRunnerService = {
         resolveHistoricalConversation: vi.fn((conversation) => conversation),
-        requestProjectUsageRefresh: vi.fn(),
         run: vi.fn(async () => ({ runId: 'run-1' })),
         start: vi.fn(async () => ({ runId: 'run-2' })),
         stop: vi.fn(),
     };
     const codexRuntimeService = {
-        getSnapshot: vi.fn(() => ({ available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null })),
+        getSnapshot: vi.fn((accountId) => ({ accountId, available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null })),
         subscribe: vi.fn(() => vi.fn()),
         subscribeUpdateRequired: vi.fn(() => vi.fn()),
     };
     const claudeRuntimeService = {
-        getSnapshot: vi.fn(() => ({ available: true, observedAt: 11, windows: [] })),
+        getSnapshot: vi.fn((accountId) => ({ accountId, available: true, observedAt: 11, windows: [] })),
         subscribe: vi.fn(() => vi.fn()),
     };
     const updateCodexCli = vi.fn(async () => undefined);
@@ -166,6 +170,7 @@ function createDispatch(options = {}) {
         verify: vi.fn(async () => null),
     };
     const desktopConfig = options.desktopConfig ?? {
+        agentAccounts: INITIAL_ACCOUNTS,
         agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
         agentSelection: {
             activeAgent: 'codex', permissionMode: 'ask-for-approval',
@@ -194,9 +199,11 @@ function createDispatch(options = {}) {
         renameAccount: vi.fn((id, name) => ({ id, agent: 'codex', kind: 'initial', name })),
         reselectDirectory: vi.fn(async () => null),
     };
+    const agentUsagePollService = { reconcileAccounts: vi.fn(), startProject: vi.fn() };
     const dispatch = createLocalBridgeDispatch({
         agentAccountService,
         agentModelCatalogService,
+        agentUsagePollService,
         actionRunnerService,
         actionSchedulerService,
         actionWorktreeRunService,
@@ -225,6 +232,7 @@ function createDispatch(options = {}) {
     return {
         agentAccountService,
         agentModelCatalogService,
+        agentUsagePollService,
         actionRunnerService,
         actionSchedulerService,
         agentExecutableAvailability,
@@ -278,8 +286,29 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.dataBridge.loadAgentModelCatalog(request);
         await dispatch.actionBridge.loadAgentModelCatalog(request);
 
-        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(1, profile, true);
-        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(2, profile, true);
+        const initialAccount = { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' };
+        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(1, profile, initialAccount, true);
+        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(2, profile, initialAccount, true);
+    });
+
+    it('resolves the requested account for catalog discovery and rejects unknown accounts', async () => {
+        const workAccount = { id: '11111111-1111-4111-8111-111111111111', agent: 'codex', kind: 'directory', name: 'work', configDirectory: 'C:/accounts/work' };
+        const desktopConfig = {
+            agentAccounts: [
+                { id: 'codex-initial', agent: 'codex', kind: 'initial', name: 'Default' },
+                { id: 'claude-initial', agent: 'claude', kind: 'initial', name: 'Default' },
+                workAccount,
+            ],
+            agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
+        };
+        const { dispatch, agentModelCatalogService } = createDispatch({ desktopConfig });
+
+        const catalog = await dispatch.dataBridge.loadAgentModelCatalog({ agent: 'codex', accountId: workAccount.id });
+
+        expect(agentModelCatalogService.load).toHaveBeenCalledWith(desktopConfig.agentProfiles[0], workAccount, false);
+        expect(catalog.accountId).toBe(workAccount.id);
+        await expect(dispatch.dataBridge.loadAgentModelCatalog({ agent: 'codex', accountId: 'missing' }))
+            .rejects.toThrow('Unknown agent account');
     });
 
     it('shares refreshed model lists between subscribed bridge surfaces', () => {
@@ -288,7 +317,7 @@ describe('createLocalBridgeDispatch', () => {
         const remote = vi.fn();
         const unsubscribe = dispatch.dataBridge.onAgentModelCatalogChanged(local);
         dispatch.actionBridge.onAgentModelCatalogChanged(remote);
-        const catalog = { agent: 'codex', models: [{ id: 'shared-model', displayName: 'Shared', hidden: false }] };
+        const catalog = { agent: 'codex', accountId: 'codex-initial', models: [{ id: 'shared-model', displayName: 'Shared', hidden: false }] };
         agentModelCatalogService.publish(catalog);
         expect(local).toHaveBeenCalledWith(catalog);
         expect(remote).toHaveBeenCalledWith(catalog);
@@ -386,12 +415,13 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.appendSystemActivityNow).not.toHaveBeenCalled();
     });
 
-    it('exposes account-wide Codex runtime state without execution context', async () => {
+    it('exposes the Codex runtime state of the requested account without execution context', async () => {
         const { codexRuntimeService, dispatch, updateCodexCli } = createDispatch();
         const callback = vi.fn();
         const updateCallback = vi.fn();
 
-        expect(dispatch.codexRuntimeBridge.getCodexRateLimits()).toEqual({
+        expect(dispatch.codexRuntimeBridge.getCodexRateLimits('codex-initial')).toEqual({
+            accountId: 'codex-initial',
             available: true,
             buckets: [],
             observedAt: 10,
@@ -405,11 +435,12 @@ describe('createLocalBridgeDispatch', () => {
         expect(updateCodexCli).toHaveBeenCalledOnce();
     });
 
-    it('exposes account-wide Claude runtime state without execution context', () => {
+    it('exposes the Claude runtime state of the requested account without execution context', () => {
         const { claudeRuntimeService, dispatch } = createDispatch();
         const callback = vi.fn();
 
-        expect(dispatch.claudeRuntimeBridge.getClaudeRateLimits()).toEqual({ available: true, observedAt: 11, windows: [] });
+        expect(dispatch.claudeRuntimeBridge.getClaudeRateLimits('claude-initial'))
+            .toEqual({ accountId: 'claude-initial', available: true, observedAt: 11, windows: [] });
         dispatch.claudeRuntimeBridge.onClaudeRateLimits(callback);
 
         expect(claudeRuntimeService.subscribe).toHaveBeenCalledWith(callback);
@@ -592,32 +623,54 @@ describe('createLocalBridgeDispatch', () => {
             .toBeLessThan(actionSchedulerService.startProject.mock.invocationCallOrder[0]);
     });
 
-    it('starts the account usage refresh in the activated project folder, and only then', async () => {
-        const { agentRunnerService, dispatch } = createDispatch();
+    it('starts account usage polling in the activated project folder, and only then', async () => {
+        const { agentUsagePollService, dispatch } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
 
         // Creating the dispatch is the whole of app start; no project has been activated yet.
-        expect(agentRunnerService.requestProjectUsageRefresh).not.toHaveBeenCalled();
+        expect(agentUsagePollService.startProject).not.toHaveBeenCalled();
 
         await dispatch.dataBridge.loadProject(project, 'design');
 
-        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenCalledOnce();
-        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenCalledWith(
+        expect(agentUsagePollService.startProject).toHaveBeenCalledExactlyOnceWith(
             project,
             [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
+            INITIAL_ACCOUNTS,
         );
     });
 
-    it('moves the account usage refresh to the newly activated project', async () => {
-        const { agentRunnerService, dispatch } = createDispatch();
+    it('moves account usage polling to the newly activated project', async () => {
+        const { agentUsagePollService, dispatch } = createDispatch();
         const first = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         const second = { branch: 'main', id: 'other', rootPath: 'C:/other' };
 
         await dispatch.dataBridge.loadProject(first, 'design');
         await dispatch.dataBridge.loadProject(second, 'design');
 
-        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenCalledTimes(2);
-        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenLastCalledWith(second, expect.any(Array));
+        expect(agentUsagePollService.startProject).toHaveBeenCalledTimes(2);
+        expect(agentUsagePollService.startProject).toHaveBeenLastCalledWith(second, expect.any(Array), INITIAL_ACCOUNTS);
+    });
+
+    it('aligns account usage polling after an account is added, moved, or removed, but not after a rename', async () => {
+        const { agentUsagePollService, dispatch } = createDispatch();
+
+        await dispatch.invokeLocal('addAgentAccount', ['claude']);
+        await dispatch.invokeLocal('reselectAgentAccountDirectory', ['account-1']);
+        await dispatch.invokeLocal('removeAgentAccount', ['account-1']);
+        dispatch.invokeLocal('renameAgentAccount', ['codex-initial', 'Main']);
+
+        expect(agentUsagePollService.reconcileAccounts).toHaveBeenCalledTimes(3);
+        expect(agentUsagePollService.reconcileAccounts)
+            .toHaveBeenLastCalledWith([{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], INITIAL_ACCOUNTS);
+    });
+
+    it('does not align usage polling when an account operation fails', async () => {
+        const { agentAccountService, agentUsagePollService, dispatch } = createDispatch();
+        agentAccountService.removeAccount.mockImplementation(() => { throw new Error('Agent account login is already running'); });
+
+        await expect(dispatch.invokeLocal('removeAgentAccount', ['account-1'])).rejects.toThrow('login is already running');
+
+        expect(agentUsagePollService.reconcileAccounts).not.toHaveBeenCalled();
     });
 
     it('selects a worktree folder without mutating Git', async () => {
@@ -1235,7 +1288,7 @@ describe('createLocalBridgeDispatch', () => {
         await expect(dispatch.invokeLocal('loadAgentAccountStatus', ['account-1'])).resolves.toBe('available');
         expect(dispatch.invokeLocal('renameAgentAccount', ['codex-initial', 'Main'])).toMatchObject({ name: 'Main' });
         await expect(dispatch.invokeLocal('reselectAgentAccountDirectory', ['account-1'])).resolves.toBeNull();
-        dispatch.invokeLocal('removeAgentAccount', ['account-1']);
+        await dispatch.invokeLocal('removeAgentAccount', ['account-1']);
 
         expect(agentAccountService.addAccount).toHaveBeenCalledWith('claude');
         expect(agentAccountService.login).toHaveBeenCalledWith('account-1');

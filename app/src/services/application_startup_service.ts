@@ -67,11 +67,19 @@ function initializeServices() {
     keyboardShortcutService.start()
 }
 
+/** The account each agent remembers in the desktop selection; a missing one means the initial account. */
+function selectedAgentAccountIds() {
+    const { settingsByAgent } = configService.get('desktop.agentSelection')
+
+    return Object.fromEntries(Object.entries(settingsByAgent).map(([agent, { accountId }]) => [agent, accountId]))
+}
+
 const DEFAULT_DEPENDENCIES: ApplicationStartupDependencies = {
     getGithubAccessToken: () => githubAuthService.getAccessToken(),
     initializeAgentCapabilities: () => agentCapabilitiesService.initialize(),
     refreshStartupModelCatalogs: () => agentCapabilitiesService.refreshStartupCatalogs(
         mergeAgentProfiles(configService.get('desktop.agentProfiles')),
+        selectedAgentAccountIds(),
     ),
     initializeServices,
     openStartupProject: (rootPath) => projectOpenFlowService.openStartupProject(rootPath),
