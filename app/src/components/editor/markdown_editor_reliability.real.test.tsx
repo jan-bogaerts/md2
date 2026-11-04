@@ -1,5 +1,5 @@
 import { EditorView } from '@codemirror/view';
-import { addImportVisitor$, realmPlugin, UnrecognizedMarkdownConstructError } from '@mdxeditor/editor';
+import { addImportVisitor$, ImageNode, realmPlugin, UnrecognizedMarkdownConstructError } from '@mdxeditor/editor';
 import { LinkNode } from '@lexical/link';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -76,6 +76,14 @@ function selectRichText(anchor: number, focus = anchor) {
         if (!$isTextNode(text)) throw new Error('Expected a text node for selection');
         text.select(anchor, focus);
     }, { discrete: true }));
+}
+
+function describeImage(image: ImageNode) {
+    return { src: image.getSrc(), altText: image.getAltText(), width: image.getWidth(), height: image.getHeight() };
+}
+
+function richImages() {
+    return richEditor().getEditorState().read(() => $nodesOfType(ImageNode).map(describeImage));
 }
 
 /** Simulates a real visitor failure after earlier nodes have already imported. */
@@ -432,7 +440,7 @@ describe('Markdown reliability with installed MDXEditor', () => {
     });
 
     it('keeps HTML image and formatting tags visible instead of creating elements or dropping tags', () => {
-        const markdown = '**bold** <u>underlined</u> <code>literal</code> <sup>super</sup> <img src="raw.png" alt="raw">';
+        const markdown = '**bold** <u>underlined</u> <code>literal</code> <sup>super</sup> <img src="raw.png" class="raw">';
         const { handle } = renderEditor(markdown);
         expect(richText()).toBe(markdown.replace('**bold**', 'bold'));
         expect(document.querySelector('.mdxeditor-content img, .mdxeditor-content u, .mdxeditor-content code, .mdxeditor-content sup'))
@@ -441,9 +449,47 @@ describe('Markdown reliability with installed MDXEditor', () => {
         const saved = handle.current?.getMarkdown() ?? '';
         cleanup();
         renderEditor(saved);
-        expect(richText()).toContain('<img src="raw.png" alt="raw">');
+        expect(richText()).toContain('<img src="raw.png" class="raw">');
         expect(richText()).toContain('<u>underlined</u> <code>literal</code> <sup>super</sup>');
         expect(document.querySelector('.mdxeditor-content strong')).toHaveTextContent('bold');
+    });
+
+    it('reopens a resized image as an image with its relative source and dimensions', () => {
+        const markdown = 'Before\n\n<img height="472" width="410" alt="pasted image" src="pasted-image-1.png" />\n\nAfter';
+        const { handle } = renderEditor(markdown);
+        expect(richImages()).toEqual([{ src: 'pasted-image-1.png', altText: 'pasted image', width: 410, height: 472 }]);
+        appendRichParagraph();
+        const saved = handle.current?.getMarkdown() ?? '';
+        expect(saved).toContain('<img height="472" width="410" alt="pasted image" src="pasted-image-1.png" />');
+        expect(saved).not.toContain('data:');
+        cleanup();
+        renderEditor(saved);
+        expect(richImages()).toEqual([{ src: 'pasted-image-1.png', altText: 'pasted image', width: 410, height: 472 }]);
+        expect(richText()).not.toContain('<img');
+    });
+
+    it('keeps an image that was not resized as a Markdown image reference', () => {
+        const { handle } = renderEditor('![pasted image](pasted-image-1.png)');
+        expect(richImages()).toEqual([{ src: 'pasted-image-1.png', altText: 'pasted image', width: 'inherit', height: 'inherit' }]);
+        appendRichParagraph();
+        expect(handle.current?.getMarkdown()).toContain('![pasted image](pasted-image-1.png)');
+    });
+
+    it.each([
+        '<img src="a.png" class="raw" />',
+        '<img src="" width="10" />',
+        '<img src="a.png" width="wide" />',
+        '<p><img src="a.png" /></p>',
+    ])('keeps unsupported image HTML as literal text after reopen: %s', (markdown) => {
+        const { handle } = renderEditor(markdown);
+        expect(richImages()).toHaveLength(0);
+        expect(richText()).toContain(markdown);
+        appendRichParagraph();
+        const saved = handle.current?.getMarkdown() ?? '';
+        cleanup();
+        renderEditor(saved);
+        expect(richImages()).toHaveLength(0);
+        expect(richText()).toContain(markdown);
     });
 
     it('keeps Ctrl+Shift+V as whole-fragment literal paste', async () => {
