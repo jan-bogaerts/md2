@@ -5,7 +5,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "9b59a42b-9d2e-4dfd-96b1-cbdb7b51fa05",
       "cardPath": "design/feature_descriptions/B_328_stopping_a_conversation_fails.md",
-      "completedAt": null,
+      "completedAt": "2026-11-04T10:39:27.944Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 62639
@@ -628,7 +628,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 47,
-          "timestamp": "2026-11-04T10:39:27.647Z"
+          "timestamp": "2026-11-04T10:39:27.944Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -638,12 +638,12 @@
           "agent": "codex",
           "conversationId": "01a1a61b-a79b-7d51-85f9-e0af8ef8b3e1",
           "createdAt": "2026-11-04T10:31:28.010Z",
-          "lastUsedAt": "2026-11-04T10:39:27.647Z",
+          "lastUsedAt": "2026-11-04T10:39:27.944Z",
           "synchronizedThroughMessageId": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-turn-2-assistant-3"
         }
       ],
       "startedAt": "2026-11-04T10:29:52.264Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -669,8 +669,8 @@
           "reasoningMs": 337,
           "toolMs": 4730
         },
-        "elapsedMs": 95746,
-        "runningStartedAt": "2026-11-04T10:38:50.306Z"
+        "elapsedMs": 133384,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
