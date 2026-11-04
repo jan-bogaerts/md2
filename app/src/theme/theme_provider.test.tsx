@@ -1,10 +1,14 @@
+import { useTheme } from '@mui/material'
 import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { StrictMode, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { configService } from '../services/config/config_service'
+import { dataService } from '../services/data/data_service'
 import { dialogService } from '../services/dialog_service'
+import { createAppTheme } from './app_theme'
 import { useAppTheme } from './use_app_theme'
 import { AppThemeProvider } from './theme_provider'
-import { MARKDOWN_STYLE_PRESETS } from './theme_config'
+import { DEFAULT_COLOR_SCHEME, MARKDOWN_STYLE_PRESETS } from './theme_config'
 
 function ThemeProbe() {
     const { mode, markdownStyle, markdownStyleConfig } = useAppTheme()
@@ -17,9 +21,16 @@ function ThemeProbe() {
     )
 }
 
+const themeWrapper = ({ children }: { children: ReactNode }) => <AppThemeProvider>{children}</AppThemeProvider>
+
+function projectBackgroundFor(shade: 'blue' | 'neutral') {
+    return createAppTheme('light', DEFAULT_COLOR_SCHEME, shade).palette.custom.projectBackground
+}
+
 describe('AppThemeProvider', () => {
     afterEach(() => {
         cleanup()
+        configService.clear()
         window.localStorage.clear()
         delete window.md2Theme
         vi.restoreAllMocks()
@@ -84,5 +95,53 @@ describe('AppThemeProvider', () => {
         )
 
         expect(setThemeMode).toHaveBeenCalledWith('light')
+    })
+
+    describe('project background shade', () => {
+        it('uses the neutral shade when project config is unavailable', () => {
+            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })
+
+            expect(result.current.palette.custom.projectBackground).toBe(projectBackgroundFor('neutral'))
+        })
+
+        it('applies a saved background shade without a project-wide data event', () => {
+            configService.init()
+            configService.loadProjectConfig({ backgroundShade: 'neutral' })
+            const dataServiceDispatch = vi.spyOn(dataService, 'dispatchEvent')
+            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })
+
+            act(() => {
+                configService.loadDraft()
+                configService.setDraftValue('project.backgroundShade', 'blue')
+                configService.saveDraft()
+            })
+
+            expect(result.current.palette.custom.projectBackground).toBe(projectBackgroundFor('blue'))
+            expect(dataServiceDispatch).not.toHaveBeenCalled()
+        })
+
+        it('keeps the current shade while the change is only drafted', () => {
+            configService.init()
+            configService.loadProjectConfig({ backgroundShade: 'neutral' })
+            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })
+
+            act(() => {
+                configService.loadDraft()
+                configService.setDraftValue('project.backgroundShade', 'blue')
+            })
+
+            expect(result.current.palette.custom.projectBackground).toBe(projectBackgroundFor('neutral'))
+        })
+
+        it('keeps the theme instance when an unrelated config value changes', () => {
+            configService.init()
+            configService.loadProjectConfig({ backgroundShade: 'blue' })
+            const { result } = renderHook(() => useTheme(), { wrapper: themeWrapper })
+            const initialTheme = result.current
+
+            act(() => configService.set('project.deleteBranchAfterIntegration', true))
+
+            expect(result.current).toBe(initialTheme)
+        })
     })
 })
