@@ -3,13 +3,13 @@ author:
 id: F_443
 internalId: d2d5c693-62b3-4e7f-b957-728a5c468cb0
 title: scope usage metrics and reset schedules by account
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
 branch: f_443_scope_usage_metrics_and_reset_schedules_by_account
-after: 2775052a-2e84-4466-a320-155c8ec05bac
+after: 733d678c-49a7-4409-9fa2-5fb384821513
 ---
 
 Persist and project usage measurements and account-reset schedules separately for each agent account, using the account-scoped runtime snapshots from F_442.

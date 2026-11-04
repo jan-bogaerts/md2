@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__9b59a42b-9d2e-4dfd-96b1-cbdb7b51fa05.json
 policy:
+after: c9a462cf-7874-4ada-a2f3-df08cf1793b2
 ---
 
 I have a conversation that is currently in the 'waitingForInput' state. But when I press the `finish conversation` button, nothing happens.

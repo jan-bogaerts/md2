@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: d2d5c693-62b3-4e7f-b957-728a5c468cb0
+after: 2775052a-2e84-4466-a320-155c8ec05bac
 ---
 
 it uses a drop down with 'role'. this should contain the legend items, not the internal definitions

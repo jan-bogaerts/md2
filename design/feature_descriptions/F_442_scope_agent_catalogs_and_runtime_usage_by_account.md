@@ -9,9 +9,7 @@ affects:
 agents:
   - design/activity/card__4a06c2b1-a7db-4f8f-a995-f638b14e6962.json
 policy:
-branch: f_442_scope_agent_catalogs_and_runtime_usage_by_account
 after: ad646cb9-3521-4a35-ae1b-7fdaa2701547
-worktree: 1
 changedFiles:
   - app/src/components/hooks/use_agent_model_catalog.ts
   - app/src/data/agent_model_catalog.ts
