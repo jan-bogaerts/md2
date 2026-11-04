@@ -971,6 +971,14 @@
           "role": "assistant",
           "sequence": 69,
           "timestamp": "2026-11-04T14:29:40.200Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_327_pasted_images_not_saved.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-adb7b15c-3213-41c2-8d93-574c48e6a68e",
+          "kind": "message",
+          "role": "user",
+          "sequence": 70,
+          "timestamp": "2026-11-04T15:03:01.198Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -985,7 +993,7 @@
         }
       ],
       "startedAt": "2026-11-04T14:25:20.723Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -1012,7 +1020,7 @@
           "toolMs": 5473
         },
         "elapsedMs": 147157,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-04T15:03:01.198Z"
       },
       "title": "investigate",
       "usage": {
