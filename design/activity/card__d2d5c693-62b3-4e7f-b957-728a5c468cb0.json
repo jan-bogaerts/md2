@@ -20,7 +20,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "d2d5c693-62b3-4e7f-b957-728a5c468cb0",
       "cardPath": "design/feature_descriptions/F_443_scope_usage_metrics_and_reset_schedules_by_account.md",
-      "completedAt": null,
+      "completedAt": "2026-11-04T13:44:45.599Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 226899
@@ -2063,7 +2063,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 159,
-          "timestamp": "2026-11-04T10:41:24.041Z"
+          "timestamp": "2026-11-04T13:44:45.599Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2089,7 +2089,7 @@
         }
       ],
       "startedAt": "2026-11-04T10:31:21.737Z",
-      "status": "waitingForInput",
+      "status": "failed",
       "taskList": {
         "tasks": [
           {
