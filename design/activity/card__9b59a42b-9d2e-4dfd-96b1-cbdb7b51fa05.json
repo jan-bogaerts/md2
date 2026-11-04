@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "9b59a42b-9d2e-4dfd-96b1-cbdb7b51fa05",
+      "cardPath": "design/feature_descriptions/B_328_stopping_a_conversation_fails.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_328_stopping_a_conversation_fails.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-b2d4ca94-8a5f-4c13-84e1-ab31d524dd2c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-04T10:29:52.264Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-17ffe57e-f3bf-40ee-8091-7f851742cfa7",
+      "providerSessions": [],
+      "startedAt": "2026-11-04T10:29:52.264Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-04T10:29:52.264Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "9b59a42b-9d2e-4dfd-96b1-cbdb7b51fa05",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
