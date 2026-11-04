@@ -2959,7 +2959,7 @@
       "actionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "cardInternalId": "733d678c-49a7-4409-9fa2-5fb384821513",
       "cardPath": "design/feature_descriptions/F_422_check_if_possible_to_switch_agent_accounts.md",
-      "completedAt": null,
+      "completedAt": "2026-11-04T15:04:44.968Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 126109
@@ -6995,7 +6995,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 297,
-          "timestamp": "2026-11-04T14:44:00.206Z"
+          "timestamp": "2026-11-04T15:04:44.968Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -7005,12 +7005,12 @@
           "agent": "codex",
           "conversationId": "01a1a6de-3213-72d1-b340-bae4b4a1db5c",
           "createdAt": "2026-11-04T14:08:16.269Z",
-          "lastUsedAt": "2026-11-04T14:44:00.206Z",
+          "lastUsedAt": "2026-11-04T15:04:44.968Z",
           "synchronizedThroughMessageId": "agent-turn-1d22ce76-430d-4f03-b40b-d1abf4bcd817-turn-3-assistant-5"
         }
       ],
       "startedAt": "2026-11-04T14:02:21.667Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -7058,7 +7058,7 @@
         "totalTokens": 15243645
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
