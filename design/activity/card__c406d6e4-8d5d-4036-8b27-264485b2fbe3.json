@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "c406d6e4-8d5d-4036-8b27-264485b2fbe3",
+      "cardPath": "design/feature_descriptions/B_327_pasted_images_not_saved.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_327_pasted_images_not_saved.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-4e7646fe-0326-4163-adca-b4136a055032",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-04T14:25:20.723Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-040d2491-9684-4815-b181-7b46e253cf57",
+      "providerSessions": [],
+      "startedAt": "2026-11-04T14:25:20.723Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-04T14:25:20.723Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "c406d6e4-8d5d-4036-8b27-264485b2fbe3",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
