@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__c814173c-590e-47c3-b5cf-b7bcc7ae356e.json
 policy:
-after: 41d340e6-afae-44bd-82e7-41ab673c94e0
+after: 5ee8aecb-2f88-4c84-ad76-2b7126529159
 changedFiles:
   - app/src/components/diagram_view/legend/diagram_legend_entries.node.test.ts
   - app/src/components/diagram_view/legend/diagram_legend_entries.ts

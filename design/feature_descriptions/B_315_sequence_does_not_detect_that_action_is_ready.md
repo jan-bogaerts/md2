@@ -14,6 +14,7 @@ changedFiles:
   - desktop/src/actions/action/action_scheduler_service.test.mjs
   - desktop/src/actions/schedule/scheduled_card_sequence_engine.js
   - desktop/src/actions/schedule/scheduled_card_sequence_engine.test.mjs
+after: c198a211-ff9a-41ec-b20d-5d300cac7035
 ---
 
 The first card in a sequence is ready. The 'ready' state was correctly detected. the action is also done, but the sequence runner did not detect that the action was ready. this is a problem. Now the sequence is stuck. what caused this?

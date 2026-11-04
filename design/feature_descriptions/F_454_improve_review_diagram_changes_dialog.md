@@ -24,6 +24,7 @@ changedFiles:
   - app/src/components/diagram_view/review/diagram_change_review_service.ts
   - app/src/components/diagram_view/review/diagram_implementation_instructions.test.ts
   - app/src/components/diagram_view/review/diagram_implementation_instructions.ts
+after: ed0eaa91-383d-492b-ad2d-06963c9777a6
 ---
 
 We have the 'review changes dialog' where the user can see all the changes that were applied to a diagram since it was last changed. If there are any, this list can be sent to an agent with a prompt.

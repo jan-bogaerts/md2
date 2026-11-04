@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__0744fffe-c0d8-4265-b945-ab88ba279702.json
 policy:
-after: 733d678c-49a7-4409-9fa2-5fb384821513
+after: dbff8fd6-e09c-4ab4-909b-a2a15429e374
 branch: b_324_legend_does_not_allow_multiple_entires_of_same_type
 changedFiles:
   - app/src/components/diagram_view/details/diagram_edge_details_editor.tsx

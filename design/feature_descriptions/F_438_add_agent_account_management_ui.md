@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__7ce53acc-5a73-4566-931c-96751c9dac9b.json
 policy:
-after: 733d678c-49a7-4409-9fa2-5fb384821513
+after: ab1ad841-86e6-43fb-a211-9ce1f1eaf246
 changedFiles:
   - app/src/components/config/agent_account_remove_dialog.tsx
   - app/src/components/config/agent_account_row.tsx

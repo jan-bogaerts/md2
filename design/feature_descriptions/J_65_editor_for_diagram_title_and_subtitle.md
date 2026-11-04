@@ -15,6 +15,7 @@ changedFiles:
   - app/src/components/diagram_view/surface/diagram_breadcrumb_metadata_field.tsx
   - app/src/components/diagram_view/surface/diagram_current_subtitle.tsx
   - app/src/components/diagram_view/surface/diagram_root_menu_dropdown_button.tsx
+after: e3024124-3c82-4b0d-9af0-e50cb93cf995
 ---
 
 We currently show the title and subtitle on the diagram in the upper left corner, both in edit as in view mode I believe (if so, both need to be fixed). These 2 should be removed, and instead, the sub title should be shown in the bar where the breadcrumbs are, just below the breadcrumbs. The title is already shown as the last item in the breadcrumbs list.\

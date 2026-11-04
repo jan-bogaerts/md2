@@ -12,6 +12,7 @@ policy:
 changedFiles:
   - desktop/src/git/worktree_service.js
   - desktop/src/git/worktree_service.test.mjs
+after: 594d4ee7-d414-4c2e-9257-09c64c0404bd
 ---
 
 while trying to remove a worktree from a card that tried to do some work, we got a dialog with this request:

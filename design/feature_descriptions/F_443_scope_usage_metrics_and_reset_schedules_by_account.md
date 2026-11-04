@@ -3,15 +3,13 @@ author:
 id: F_443
 internalId: d2d5c693-62b3-4e7f-b957-728a5c468cb0
 title: scope usage metrics and reset schedules by account
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__d2d5c693-62b3-4e7f-b957-728a5c468cb0.json
 policy:
-branch: f_443_scope_usage_metrics_and_reset_schedules_by_account
-after: 733d678c-49a7-4409-9fa2-5fb384821513
-worktree: 1
+after: 9b59a42b-9d2e-4dfd-96b1-cbdb7b51fa05
 changedFiles:
   - app/src/components/actions/run/schedule/action_schedule_form.test.tsx
   - app/src/components/actions/run/schedule/action_schedule_form.tsx

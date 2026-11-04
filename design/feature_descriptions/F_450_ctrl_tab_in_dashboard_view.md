@@ -14,6 +14,7 @@ changedFiles:
   - app/src/services/card_popup_service.test.ts
   - app/src/services/shortcuts/cards_keyboard_shortcut_service.node.test.ts
   - app/src/services/shortcuts/cards_keyboard_shortcut_service.ts
+after: 32e1c957-8aac-429b-b8ce-8d01738f9418
 ---
 
 ctrl tab in dashboard view should switch between topmost popup.

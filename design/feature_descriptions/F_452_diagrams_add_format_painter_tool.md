@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__a18b2880-10c9-4ded-b45c-29113f160478.json
 policy:
-after: 733d678c-49a7-4409-9fa2-5fb384821513
+after: c814173c-590e-47c3-b5cf-b7bcc7ae356e
 changedFiles:
   - app/src/components/diagram_view/commands/diagram_format_paste_button.test.tsx
   - app/src/components/diagram_view/commands/diagram_format_paste_button.tsx

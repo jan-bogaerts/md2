@@ -17,6 +17,7 @@ changedFiles:
   - app/src/components/color_picker_palette.ts
   - app/src/components/diagram_view/formatting/diagram_formatting_popover.test.tsx
   - app/src/components/diagram_view/formatting/diagram_formatting_popover.tsx
+after: 5b8fe025-448b-453b-a4f4-44d680b4a037
 ---
 
 The legend on the diagrams allows for configuration. one of the configs that can be changed, is the background. Currently however, the color picker component proposes a set of hard colors which are not ideal for backgrounds. Can we replace them with their softer counter parts?

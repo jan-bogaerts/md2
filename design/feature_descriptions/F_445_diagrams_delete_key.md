@@ -13,7 +13,7 @@ changedFiles:
   - app/src/services/shortcuts/diagram_keyboard_shortcut_service.test.ts
   - app/src/services/shortcuts/diagram_keyboard_shortcut_service.ts
   - design/feature_descriptions/J_63_keyboard_service_owns_shortcuts.md
-after: 223f749a-dd16-4a42-b8de-3ce63eab686d
+after: 7ce53acc-5a73-4566-931c-96751c9dac9b
 ---
 
 When user has 1 or more items selected on a diagram and presses the delete key, the items should be removed

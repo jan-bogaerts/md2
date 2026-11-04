@@ -6215,13 +6215,13 @@
         "agent-97fe7320-3759-4051-9219-977233af051e"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-655da514-3616-4b75-9826-9f983f00cd92",
       "origin": {
@@ -6230,9 +6230,71 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-97fe7320-3759-4051-9219-977233af051e",
       "startedAt": "2026-11-04T13:30:00.050Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-97fe7320-3759-4051-9219-977233af051e"
+    },
+    {
+      "commits": [
+        {
+          "commit": "2099cfb78c2bd3fa303c024108e754a36c3bfd49",
+          "committedAt": "2026-11-04T15:00:37+01:00",
+          "deletions": 207,
+          "filePaths": [
+            "app/src/components/actions/run/schedule/action_schedule_form.test.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_form.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_options.node.test.ts",
+            "app/src/components/actions/run/schedule/action_schedule_options.ts",
+            "app/src/components/actions/run/schedule/action_schedule_popover.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_store.node.test.ts",
+            "app/src/components/actions/run/schedule/action_schedule_store.ts",
+            "app/src/components/actions/run/schedule/action_schedule_trigger.node.test.ts",
+            "app/src/components/actions/run/schedule/action_schedule_trigger.ts",
+            "app/src/components/actions/run/schedule/schedule_trigger_fields.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_dialog.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_draft_service.node.test.ts",
+            "app/src/components/actions/run/sequence/card_sequence_draft_service.ts",
+            "app/src/data/action_schedule_types.node.test.ts",
+            "app/src/services/actions/active_schedule_projection.node.test.ts",
+            "app/src/services/actions/active_schedule_projection.ts",
+            "app/src/services/actions/active_schedule_service.node.test.ts",
+            "app/src/services/actions/active_schedule_service.ts",
+            "app/src/services/agents/project_usage_metrics_service.node.test.ts",
+            "app/src/services/agents/project_usage_metrics_service.ts",
+            "app/src/services/stats/project_stats_loader.ts",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_service.ts",
+            "app/src/services/stats/project_stats_types.ts",
+            "app/src/services/stats/stats_duration_split.node.test.ts",
+            "app/src/services/stats/stats_identities.ts",
+            "app/src/services/stats/stats_options.node.test.ts",
+            "app/src/services/stats/stats_options.ts",
+            "app/src/services/stats/stats_totals_dataset.ts",
+            "app/src/services/stats/stats_usage_comparison_dataset.ts",
+            "desktop/src/actions/action/action_scheduler_service.js",
+            "desktop/src/actions/action/action_scheduler_service.test.mjs",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/usage_metrics_service.js",
+            "desktop/src/actions/agent/usage_metrics_service.test.mjs",
+            "desktop/src/actions/schedule/schedule_account_snapshots.js",
+            "desktop/src/actions/schedule/schedule_account_snapshots.test.mjs",
+            "shared/action_schedules.d.mts",
+            "shared/action_schedules.mjs"
+          ],
+          "filesChanged": 41,
+          "insertions": 661,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-04T15:00:37+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d2d5c693-62b3-4e7f-b957-728a5c468cb0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
