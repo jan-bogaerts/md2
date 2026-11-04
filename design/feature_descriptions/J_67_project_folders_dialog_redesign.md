@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__ad646cb9-3521-4a35-ae1b-7fdaa2701547.json
 policy:
-branch: j_67_project_folders_dialog_redesign
-worktree: 2
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 changedFiles:
   - app/src/components/shell/project/project_folder_setup_fields.tsx

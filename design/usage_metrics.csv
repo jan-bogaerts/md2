@@ -9820,3 +9820,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-04T09:45:36.848Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,14,0
 2026-11-04T09:47:36.853Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,14,0
 2026-11-04T09:59:25.943Z,token_usage,codex,,,,,6202,1011200,5240,1936,1024578,,
+2026-11-04T09:59:36.934Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,15,1
