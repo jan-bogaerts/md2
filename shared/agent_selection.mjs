@@ -9,6 +9,7 @@ import {
     validateThinkingLevel,
     validateSpeedMode,
 } from './agent_profiles.mjs'
+import { findAgentAccount, initialAgentAccountId, resolveAgentAccount } from './agent_accounts.mjs'
 
 const defaultProfile = findAgentProfile([], DEFAULT_AGENT_PROFILE_NAME)
 if (!defaultProfile) throw new Error(`Missing built-in agent profile: ${DEFAULT_AGENT_PROFILE_NAME}`)
@@ -45,6 +46,7 @@ export function validateAgentSettings(value, source) {
         model: requireString(settings.model, `${source}.model`, true),
         thinkingLevel: validateThinkingLevel(settings.thinkingLevel, `${source}.thinkingLevel`),
         ...(settings.speedMode !== undefined ? { speedMode: validateSpeedMode(settings.speedMode, `${source}.speedMode`) } : {}),
+        ...(settings.accountId !== undefined ? { accountId: requireString(settings.accountId, `${source}.accountId`) } : {}),
     }
 }
 
@@ -102,6 +104,26 @@ export function selectSpeedMode(selection, speedMode) {
     };
 }
 
+/** The account an account-capable agent remembers in a selection; a missing account ID means its initial account. */
+export function selectedAgentAccountId(selection, agent) {
+    return selection.settingsByAgent[agent]?.accountId ?? initialAgentAccountId(agent)
+}
+
+export function selectAccount(selection, accountId, accounts) {
+    const current = selection.settingsByAgent[selection.activeAgent];
+    if (!current) throw new Error(`Missing settings for active agent: ${selection.activeAgent}`);
+    if (accountId !== undefined && !findAgentAccount(accounts, accountId)) throw new Error(`Unknown agent account: ${accountId}`);
+    if (accountId !== undefined) resolveAgentAccount(accounts, selection.activeAgent, accountId);
+    const nextSettings = { ...current };
+    if (accountId === undefined) delete nextSettings.accountId;
+    else nextSettings.accountId = accountId;
+
+    return {
+        ...selection,
+        settingsByAgent: { ...selection.settingsByAgent, [selection.activeAgent]: nextSettings },
+    };
+}
+
 export function selectAgent(selection, agent, profiles, fallbackSources = []) {
     const next = { ...selection, activeAgent: agent }
 
@@ -147,5 +169,6 @@ export function projectAgentSelection(selection, profiles = []) {
         ...(profile && supportsPermissionMode(profile) ? { permissionMode: selection.permissionMode } : {}),
         thinkingLevel: settings.thinkingLevel,
         ...(settings.speedMode !== undefined ? { speedMode: settings.speedMode } : {}),
+        ...(settings.accountId !== undefined ? { accountId: settings.accountId } : {}),
     }
 }

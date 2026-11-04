@@ -1,5 +1,8 @@
 import { Alert, Button, DialogActions, DialogContent, MenuItem, Stack, TextField } from '@mui/material'
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import {
+    useCallback, useEffect, useRef, useState, useSyncExternalStore,
+    type ChangeEvent, type FormEvent,
+} from 'react'
 import {
     DIAGRAM_CARDINALITIES,
     DIAGRAM_EDGE_KINDS,
@@ -9,12 +12,16 @@ import {
     type DiagramType,
 } from '../../../services/diagrams/diagram_data'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
+import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
 
 interface EdgeDraft {
     from: string
     fromCardinality: DiagramCardinality | ''
     kind: DiagramEdgeKind
     label: string
+    legendEntryId: string
     row: string
     to: string
     toCardinality: DiagramCardinality | ''
@@ -22,6 +29,7 @@ interface EdgeDraft {
 
 interface DiagramEdgeDetailsEditorProps {
     edgeId: string
+    labelFocus?: DiagramLabelFocusService
     onClose: () => void
     session: DiagramEditSessionService
 }
@@ -49,25 +57,48 @@ function initialDraft(edgeId: string, session: DiagramEditSessionService): EdgeD
         fromCardinality: edge?.fromCardinality ?? '',
         kind: edge?.kind ?? 'connection',
         label: edge?.label ?? '',
+        legendEntryId: edge?.legendEntryId ?? '',
         row: String(Math.max(session.read.getEdgeIdsSnapshot().indexOf(edgeId), 0) + 1),
         to: edge?.to ?? '',
         toCardinality: edge?.toCardinality ?? '',
     }
 }
 
-export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEdgeDetailsEditorProps) {
+export function DiagramEdgeDetailsEditor({
+    edgeId,
+    labelFocus = diagramLabelFocusService,
+    onClose,
+    session,
+}: DiagramEdgeDetailsEditorProps) {
+    const labelInputRef = useRef<HTMLInputElement>(null)
+    const subscribeFocus = useCallback((listener: () => void) => (
+        labelFocus.subscribeFocus('edge', edgeId, listener)
+    ), [edgeId, labelFocus])
+    const getFocusSnapshot = useCallback(() => labelFocus.getFocusSnapshot('edge', edgeId), [edgeId, labelFocus])
+    const focusRequested = useSyncExternalStore(subscribeFocus, getFocusSnapshot, getFocusSnapshot)
     const [draft, setDraft] = useState(() => initialDraft(edgeId, session))
     const [validationError, setValidationError] = useState<string | null>(null)
     const diagramType = session.read.getMetadataFieldSnapshot('type') ?? 'architecture'
     const preset = session.read.getMetadataFieldSnapshot('preset')
     const kindOptions = edgeKindOptions(diagramType)
+    const legendEntries = session.read.getEditableDiagram()?.meta.legend.filter((entry) => 'kind' in entry) ?? []
     const nodeOptions = session.read.getNodeIdsSnapshot().map((nodeId) => ({
         id: nodeId,
         label: session.read.getNodeFieldSnapshot(nodeId, 'label') ?? nodeId,
     }))
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target
-        setDraft((current) => ({ ...current, [name]: value }))
+        setDraft((current) => {
+            if (name !== 'kind') return { ...current, [name]: value }
+            const entry = legendEntries.find((candidate) => candidate.kind === value)
+
+            return { ...current, kind: value as DiagramEdgeKind, legendEntryId: entry?.id ?? '' }
+        })
+    }
+    const handleLegendEntryChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const entry = legendEntries.find(({ id }) => id === event.target.value)
+        if (!entry) return
+        setDraft((current) => ({ ...current, kind: entry.kind, legendEntryId: entry.id }))
     }
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
@@ -84,7 +115,11 @@ export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEd
         const nextLabel = optionalText(draft.label)
         const nextFromCardinality = draft.fromCardinality || undefined
         const nextToCardinality = draft.toCardinality || undefined
-        if (edge.kind !== draft.kind) saved = session.objects.setEdgeField(edgeId, 'kind', draft.kind) && saved
+        if (edge.kind !== draft.kind || edge.legendEntryId !== draft.legendEntryId) {
+            const legendEntryId = draft.legendEntryId || session.legend.addLegendEntry({ kind: draft.kind })
+            if (!legendEntryId) return
+            saved = session.objects.setEdgeClassification(edgeId, {kind: draft.kind, legendEntryId}) && saved
+        }
         if (edge.label !== nextLabel) saved = session.objects.setEdgeField(edgeId, 'label', nextLabel) && saved
         if ((diagramType === 'architecture' || diagramType === 'sequence') && edge.from !== draft.from) {
             saved = session.objects.reconnectEdgeEndpoint(edgeId, 'sourceAttachment', draft.from) && saved
@@ -106,12 +141,20 @@ export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEd
         if (saved) onClose()
     }
 
+    useEffect(() => {
+        if (!focusRequested || !labelInputRef.current) return
+
+        labelInputRef.current.focus()
+        labelInputRef.current.select()
+        labelFocus.complete({ objectId: edgeId, objectKind: 'edge' })
+    }, [edgeId, focusRequested, labelFocus])
+
     return (
         <form onSubmit={handleSubmit}>
             <DialogContent dividers>
                 <Stack spacing={2} sx={{ pt: 0.5 }}>
                     {validationError ? <Alert severity="error">{validationError}</Alert> : null}
-                    <TextField autoFocus label="Label" name="label" onChange={handleFieldChange} size="small" value={draft.label} />
+                    <TextField autoFocus inputRef={labelInputRef} label="Label" name="label" onChange={handleFieldChange} size="small" value={draft.label} />
                     {diagramType === 'architecture' || diagramType === 'sequence' ? (
                         <>
                             <TextField label="From" name="from" onChange={handleFieldChange} select size="small" value={draft.from}>
@@ -134,6 +177,9 @@ export function DiagramEdgeDetailsEditor({ edgeId, onClose, session }: DiagramEd
                             {kindOptions.map((kind) => <MenuItem key={kind} value={kind}>{kind}</MenuItem>)}
                         </TextField>
                     ) : null}
+                    <TextField label="Legend entry" name="legendEntryId" onChange={handleLegendEntryChange} select size="small" value={draft.legendEntryId}>
+                        {legendEntries.map((entry) => <MenuItem key={entry.id} value={entry.id}>{entry.label}</MenuItem>)}
+                    </TextField>
                     {diagramType === 'entity' ? (
                         <>
                             <TextField label="From cardinality" name="fromCardinality" onChange={handleFieldChange} select size="small" value={draft.fromCardinality}>

@@ -10,13 +10,15 @@ const PICKER_WIDTH = 260
 interface ColorPickerButtonProps {
     label: string
     onChange: (value: string | undefined) => void
+    /** Preset swatches; defaults to the picker's standard palette. */
+    palette?: readonly string[]
     /** `undefined` means the default colour is selected. */
     value: string | undefined
 }
 
 /** Compact colour control: a box showing the current colour that opens the colour picker, including a Default box. */
 export function ColorPickerButton(props: ColorPickerButtonProps) {
-    const { label, onChange, value } = props
+    const { label, onChange, palette, value } = props
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const isDefault = value === undefined
 
@@ -55,7 +57,7 @@ export function ColorPickerButton(props: ColorPickerButtonProps) {
             </Tooltip>
             <Popover anchorEl={anchorElement} onClose={handleClose} open={!!anchorElement}>
                 <Box sx={{ p: 1, width: PICKER_WIDTH }}>
-                    <ColorPickerField label={label} onChange={onChange} showDefault value={value} />
+                    <ColorPickerField label={label} onChange={onChange} palette={palette} showDefault value={value} />
                 </Box>
             </Popover>
         </>

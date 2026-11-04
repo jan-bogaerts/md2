@@ -3,11 +3,20 @@
   "id": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
   "label": "investigate",
   "streaming": true,
-  "phrases": [],
+  "phrases": [
+    {
+      "text": "Add `Current state`, `implementation details`, `acceptance criteria` for `{{this-card}}`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+      "title": "update card"
+    }
+  ],
   "prompt": "read {{this-card}}. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
   "type": "agent",
   "appliesTo": {
     "kind": "card",
     "state": "design"
+  },
+  "autoFinish": {
+    "state": "ready for implementation",
+    "when": "card-state"
   }
 }

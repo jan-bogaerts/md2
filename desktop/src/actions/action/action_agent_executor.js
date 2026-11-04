@@ -1,3 +1,4 @@
+const { findProviderSession, providerSessionAccountId } = require('../agent/agent_conversation');
 const { resolveAgentExecution } = require('../agent/agent_execution');
 const { buildResumeAgentCommand, buildAgentStreamingCommand, resolveAgentConfiguration } = require('../agent/agent_profiles.mjs');
 const { normalizeConversationContext } = require('../agent/agent_transcript');
@@ -15,6 +16,12 @@ function withoutProviderConversationId(request) {
 
 function withoutConversation(result) {
     return Object.fromEntries(Object.entries(result).filter(([fieldName]) => fieldName !== 'conversation'));
+}
+
+/** The most recently used provider session of an agent, matching the session the compact menu selects. */
+function latestProviderSession(sessions, agent) {
+    return sessions.filter((session) => session.agent === agent)
+        .reduce((latest, candidate) => (!latest || candidate.lastUsedAt > latest.lastUsedAt ? candidate : latest), null);
 }
 
 function executionCommand(resolvedAgent, providerSession, streaming) {
@@ -41,6 +48,9 @@ class ActionAgentExecutor {
         const speedMode = input.runInput.speedMode ?? input.action.speedMode;
         const streaming = input.action.streaming;
         const resolvedAgent = resolveAgentExecution(config, {
+            ...(input.runInput.accountId
+                ? { accountId: input.runInput.accountId }
+                : (input.action.accountId ? { accountId: input.action.accountId } : {})),
             ...(input.runInput.agent ? { agent: input.runInput.agent } : (input.action.agent ? { agent: input.action.agent } : {})),
             ...(input.runInput.model ? { model: input.runInput.model } : (input.action.model ? { model: input.action.model } : {})),
             ...(permissionMode ? { permissionMode } : {}),
@@ -61,8 +71,9 @@ class ActionAgentExecutor {
             throw new Error(`Agent conversation belongs to ${sourceConversation.cardInternalId}, not ${expectedCardInternalId}`);
         }
 
-        const providerSession = sourceConversation?.providerSessions
-            ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null;
+        const providerSession = sourceConversation
+            ? findProviderSession(sourceConversation.providerSessions, resolvedAgent.agent, resolvedAgent.accountId)
+            : null;
         const hasPromptOverride = Object.hasOwn(input.runInput, 'prompt');
         const basePrompt = hasPromptOverride
             ? input.action.output?.kind === 'diagram' && !input.runInput.diagramPath
@@ -73,6 +84,7 @@ class ActionAgentExecutor {
                     input.primaryProject,
                     input.projectFolder,
                     input.releasesFolder,
+                    input.actionsFolder,
                     input.activeCardsFolder,
                     '',
                     input.diagramFooter,
@@ -86,6 +98,7 @@ class ActionAgentExecutor {
                     input.primaryProject,
                     input.projectFolder,
                     input.releasesFolder,
+                    input.actionsFolder,
                     input.activeCardsFolder,
                     input.diagramFile,
                     input.version,
@@ -99,6 +112,7 @@ class ActionAgentExecutor {
                     input.primaryProject,
                     input.projectFolder,
                     input.releasesFolder,
+                    input.actionsFolder,
                     input.activeCardsFolder,
                     input.runInput.extraPrompt,
                     input.diagramFooter,
@@ -119,6 +133,7 @@ class ActionAgentExecutor {
             ? continuationReferencePath(input.runInput.continueFrom)
             : input.conversationReservation?.reference;
         const request = {
+            ...(resolvedAgent.account ? { account: resolvedAgent.account } : {}),
             actionId: input.action.id,
             agent: resolvedAgent.agent,
             agentTaskTrackingEnabled: resolvedAgent.agentTaskTrackingEnabled,
@@ -151,6 +166,7 @@ class ActionAgentExecutor {
 
         return {
             ...executionResult,
+            ...(resolvedAgent.accountId !== undefined ? { accountId: resolvedAgent.accountId } : {}),
             agent: resolvedAgent.agent,
             model: resolvedAgent.model,
             permissionMode: resolvedAgent.permissionMode,
@@ -165,16 +181,18 @@ class ActionAgentExecutor {
         const expectedCardInternalId = input.activityOrigin.kind === 'card' ? input.activityOrigin.cardInternalId : null;
         if (conversation.id !== input.runInput.conversationId || (conversation.cardInternalId ?? null) !== expectedCardInternalId
             || conversation.actionId !== input.action.id) throw new Error('Compact conversation identity or ownership changed');
-        const providerSession = conversation.providerSessions.find(({ agent }) => agent === input.runInput.agent);
+        const providerSession = latestProviderSession(conversation.providerSessions, input.runInput.agent);
         if (!providerSession?.conversationId) throw new Error('Missing provider session for compact');
         const config = this.agentConfigProvider();
-        const resolvedAgent = resolveAgentConfiguration(config, { agent: providerSession.agent });
+        const accountId = providerSessionAccountId(providerSession);
+        const resolvedAgent = resolveAgentConfiguration(config, { ...(accountId ? { accountId } : {}), agent: providerSession.agent });
         const agentTaskTrackingEnabled = config.agentTaskTrackingEnabled ?? false;
         const command = buildAgentStreamingCommand(
             resolvedAgent.profile, resolvedAgent.model, resolvedAgent.thinkingLevel, resolvedAgent.permissionMode,
             {}, agentTaskTrackingEnabled,
         );
         const request = {
+            ...(resolvedAgent.account ? { account: resolvedAgent.account } : {}),
             actionId: input.action.id, actionRunId: input.runId, activityOrigin: input.activityOrigin,
             activityProject: input.primaryProject, agent: resolvedAgent.agent, agentTaskTrackingEnabled,
             command: executionCommand({ ...resolvedAgent, command }, providerSession, true), compactOnly: true, conversation,
@@ -203,6 +221,7 @@ class ActionAgentExecutor {
     async runAgentProcess(input, request) {
         const { promise, reject, resolve } = Promise.withResolvers();
         const onComplete = (exitCode, run) => resolve({
+            ...(run.accountId ? { accountId: run.accountId } : {}),
             command: request.command,
             changedPaths: run.changedPaths ? [...run.changedPaths] : [],
             conversation: run.conversation,

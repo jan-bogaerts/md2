@@ -3,6 +3,7 @@ import { useGithubAuth } from './auth/use_github_auth'
 import { useAppBootstrap } from './app/use_app_bootstrap'
 import { DialogDisplay } from './components/dialog_display'
 import { MergeConflictDialog } from './components/merge_conflict_dialog'
+import { PrimaryChangesDialog } from './components/primary_changes_dialog'
 import { ProjectWindowTitle } from './components/project_window_title'
 import { MainWindow } from './components/shell/main_window'
 import { StartupSplash } from './components/shell/startup_splash'
@@ -50,6 +51,7 @@ export function App({ startupService }: AppProps = {}) {
             <ProjectWindowTitle />
             <UpdateNotification />
             <MergeConflictDialog />
+            <PrimaryChangesDialog />
             <SentryImportConfirmationDialog />
             {bootstrap.phase === 'starting' ? (
                 <StartupSplash />

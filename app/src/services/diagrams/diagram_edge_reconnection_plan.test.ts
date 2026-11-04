@@ -3,6 +3,7 @@ import type { DiagramEdge } from './diagram_data';
 import { planEdgeReconnection } from './diagram_edge_reconnection_plan';
 
 const edge: DiagramEdge = {
+    legendEntryId: 'connection',
     id: 'connection', from: 'source', to: 'target', kind: 'connection',
     sourceAttachment: { nodeId: 'source', side: 'right', offset: 0.5 },
 };

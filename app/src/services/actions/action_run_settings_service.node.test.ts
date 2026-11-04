@@ -7,7 +7,7 @@ import {
     ActionRunSettingsStore,
 } from './action_run_settings_service'
 
-const firstSettings: AgentSelectionState = {activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: {codex: {model: 'gpt-5.5', thinkingLevel: 'high'}}}
+const firstSettings: AgentSelectionState = {activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: {codex: {accountId: 'codex-initial', model: 'gpt-5.5', thinkingLevel: 'high'}}}
 const secondSettings: AgentSelectionState = {activeAgent: 'claude', permissionMode: 'approve-for-me', settingsByAgent: {claude: {model: 'sonnet', thinkingLevel: 'none'}}}
 
 afterEach(() => setActionBridgeOverride(null))
@@ -117,7 +117,7 @@ describe('ActionRunSettingsStore', () => {
     it('loads version-4 card settings through the production bridge boundary', async () => {
         setActionBridgeOverride({
             loadCardActivity: vi.fn(async () => ({
-                actionSettings: {review: { agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' }},
+                actionSettings: {review: { accountId: 'codex-initial', agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' }},
                 conversations: [],
                 origin: { cardInternalId: 'card-1', kind: 'card' },
                 records: [],

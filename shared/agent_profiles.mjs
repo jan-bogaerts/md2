@@ -1,3 +1,5 @@
+import { supportsAgentAccounts } from './agent_accounts.mjs';
+
 export const MODEL_PLACEHOLDER = '{{model}}'
 export const SESSION_ID_PLACEHOLDER = '{{sessionId}}'
 export const THINKING_LEVELS = ['none', 'low', 'medium', 'high', 'max']
@@ -208,6 +210,11 @@ export function validateAgentSelection(profiles, selection, source) {
             throw error;
         }
     }
+    if (selection.accountId !== undefined && !supportsAgentAccounts(profile.name)) {
+        const error = new Error(`Agent profile does not support accounts: ${profile.name}`);
+        error.code = 'unsupported-account';
+        throw error;
+    }
 }
 
 export const SPEED_MODES = ['default', 'standard', 'fast'];
@@ -362,9 +369,9 @@ function buildSpeedCommand(command, profile, settings) {
 }
 
 function buildAgentTaskTrackingCommand(command, profile, agentTaskTrackingEnabled) {
-    if (profile.name !== 'codex' || agentTaskTrackingEnabled) return command;
+    if (profile.name !== 'codex') return command;
 
-    return [...command, '-c', 'tools.update_plan.enabled=false'];
+    return [...command, '-c', `tools.update_plan.enabled=${agentTaskTrackingEnabled}`];
 }
 
 export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined, speedSettings = {}, agentTaskTrackingEnabled = true) {

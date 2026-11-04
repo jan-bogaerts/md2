@@ -14,6 +14,7 @@ function accountingHarness(mode, conversation = null, providerConversationId = n
     const onEvent = vi.fn();
     const writeLine = vi.fn(completeWrite);
     const run = {
+        accountId: 'claude-initial',
         agent: 'claude',
         child: { stdin: { write: writeLine } },
         conversation: conversation ?? {entries: [], id: 'conversation-1', providerSessions: [], startedAt: '2026-10-04T00:00:00.000Z', status: 'running'},

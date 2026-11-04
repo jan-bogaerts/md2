@@ -6,6 +6,7 @@ import { generateUuid } from '../../data/uuid'
 const ACTION_FILE_EXTENSION = '.json'
 
 export interface ConvertPromptToActionInput {
+    accountId?: string
     agent?: string
     context: ActionContext
     description?: string
@@ -37,6 +38,7 @@ export function createActionDefinition(input: ConvertPromptToActionInput): RawAc
     const description = input.description?.trim()
 
     return {
+        ...(input.accountId ? { accountId: input.accountId } : {}),
         ...(input.agent ? { agent: input.agent } : {}),
         appliesTo: input.context.type ? { type: input.context.type } : undefined,
         description: description && description.length > 0 ? description : `Custom prompt action: ${input.label.trim()}`,

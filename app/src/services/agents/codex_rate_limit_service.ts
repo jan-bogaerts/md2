@@ -14,6 +14,11 @@ export interface CodexRateLimitState {
 const INITIAL_STATE: CodexRateLimitState = { receivedAt: null, snapshot: null, stale: false }
 const UNIX_MILLISECONDS_THRESHOLD = 1_000_000_000_000
 
+/** Scoped change event of the Codex rate limits of one agent account. */
+export function codexRateLimitsChangedEvent(accountId: string) {
+    return `changed:${accountId}`
+}
+
 function resetTimeMilliseconds(resetTime: number) {
     return resetTime < UNIX_MILLISECONDS_THRESHOLD ? resetTime * 1000 : resetTime
 }
@@ -29,7 +34,9 @@ function firstResetTime(snapshot: CodexRateLimitSnapshot) {
 }
 
 function validSnapshot(snapshot: CodexRateLimitSnapshot) {
-    return Number.isFinite(snapshot.observedAt)
+    return typeof snapshot.accountId === 'string'
+        && snapshot.accountId.length > 0
+        && Number.isFinite(snapshot.observedAt)
         && (!snapshot.available || snapshot.buckets.length > 0)
         && snapshot.buckets.every(({ primary, secondary }) => (
             (!primary || Number.isFinite(primary.usedPercent))
@@ -37,11 +44,12 @@ function validSnapshot(snapshot: CodexRateLimitSnapshot) {
         ))
 }
 
-/** Owns current account-wide Codex rate limits for this renderer process only. */
+/** Owns the current Codex rate limits of each agent account for this renderer process only. */
 export class CodexRateLimitService extends EventTarget {
     private bridge: ElectronCodexRuntimeBridge | null = null
-    private expirationTimer: ReturnType<typeof setTimeout> | null = null
-    private state: CodexRateLimitState = INITIAL_STATE
+    private readonly expirationTimers = new Map<string, ReturnType<typeof setTimeout>>()
+    private readonly requestedAccountIds = new Set<string>()
+    private readonly states = new Map<string, CodexRateLimitState>()
     private unsubscribeConnection: (() => void) | null = null
     private unsubscribeRateLimits: (() => void) | null = null
 
@@ -50,8 +58,14 @@ export class CodexRateLimitService extends EventTarget {
         register('codexRateLimitService', this)
     }
 
-    getState() {
-        return this.state
+    getState(accountId: string) {
+        return this.states.get(accountId) ?? INITIAL_STATE
+    }
+
+    /** Reads the snapshot of an account a consumer displays, unless the host already published it. */
+    requestSnapshot(accountId: string) {
+        this.requestedAccountIds.add(accountId)
+        if (this.bridge && !this.states.has(accountId)) void this.refresh(this.bridge, accountId)
     }
 
     start() {
@@ -60,68 +74,79 @@ export class CodexRateLimitService extends EventTarget {
 
         this.unsubscribe()
         this.bridge = bridge
-        this.setState(INITIAL_STATE)
+        this.clearStates()
         if (!bridge) return
 
         this.unsubscribeRateLimits = bridge.onCodexRateLimits((snapshot) => this.acceptSnapshot(bridge, snapshot))
         this.unsubscribeConnection = bridge.onConnectionChanged?.((connected) => this.handleConnectionChange(bridge, connected)) ?? null
-        void this.refresh(bridge)
+        this.refreshRequested(bridge)
     }
 
     stop() {
         this.unsubscribe()
         this.bridge = null
-        this.setState(INITIAL_STATE)
+        this.clearStates()
     }
 
     private acceptSnapshot(bridge: ElectronCodexRuntimeBridge, snapshot: CodexRateLimitSnapshot) {
         if (bridge !== this.bridge || !validSnapshot(snapshot)) return
-        const currentObservedAt = this.state.snapshot?.observedAt
+        const { accountId } = snapshot
+        const currentObservedAt = this.states.get(accountId)?.snapshot?.observedAt
         if (currentObservedAt !== undefined && snapshot.observedAt < currentObservedAt) return
 
         const receivedAt = Date.now()
-        this.setState({ receivedAt, snapshot, stale: false })
-        this.scheduleExpiration(snapshot, receivedAt)
+        this.setState(accountId, { receivedAt, snapshot, stale: false })
+        this.scheduleExpiration(accountId, snapshot, receivedAt)
     }
 
-    private async refresh(bridge: ElectronCodexRuntimeBridge) {
+    private refreshRequested(bridge: ElectronCodexRuntimeBridge) {
+        for (const accountId of this.requestedAccountIds) void this.refresh(bridge, accountId)
+    }
+
+    private async refresh(bridge: ElectronCodexRuntimeBridge, accountId: string) {
         try {
-            const snapshot = await bridge.getCodexRateLimits()
+            const snapshot = await bridge.getCodexRateLimits(accountId)
             if (snapshot) this.acceptSnapshot(bridge, snapshot)
         } catch {
-            if (bridge === this.bridge) this.markStale()
+            if (bridge === this.bridge) this.markStale(accountId)
         }
     }
 
     private handleConnectionChange(bridge: ElectronCodexRuntimeBridge, connected: boolean) {
         if (bridge !== this.bridge) return
         if (!connected) {
-            this.markStale()
+            for (const accountId of this.states.keys()) this.markStale(accountId)
             return
         }
 
-        void this.refresh(bridge)
+        this.refreshRequested(bridge)
     }
 
-    private scheduleExpiration(snapshot: CodexRateLimitSnapshot, receivedAt: number) {
-        if (this.expirationTimer) clearTimeout(this.expirationTimer)
-        this.expirationTimer = null
+    private scheduleExpiration(accountId: string, snapshot: CodexRateLimitSnapshot, receivedAt: number) {
+        this.clearExpiration(accountId)
         if (!snapshot.available) return
         const resetTime = firstResetTime(snapshot)
         if (resetTime === null) return
         const localResetTime = receivedAt + resetTime - snapshot.observedAt
         const delay = Math.max(0, localResetTime - Date.now())
         if (delay === 0) {
-            this.markStale()
+            this.markStale(accountId)
             return
         }
-        this.expirationTimer = setTimeout(() => this.markStale(), delay)
+        this.expirationTimers.set(accountId, setTimeout(() => this.markStale(accountId), delay))
     }
 
-    private markStale() {
-        if (!this.state.snapshot || this.state.stale) return
+    private clearExpiration(accountId: string) {
+        const timer = this.expirationTimers.get(accountId)
+        if (timer) clearTimeout(timer)
+        this.expirationTimers.delete(accountId)
+    }
 
-        this.setState({ ...this.state, stale: true })
+    private markStale(accountId: string) {
+        const state = this.getState(accountId)
+        if (!state.snapshot || state.stale) return
+
+        this.setState(accountId, { ...state, stale: true })
     }
 
     private unsubscribe() {
@@ -129,19 +154,27 @@ export class CodexRateLimitService extends EventTarget {
         this.unsubscribeConnection?.()
         this.unsubscribeRateLimits = null
         this.unsubscribeConnection = null
-        if (this.expirationTimer) clearTimeout(this.expirationTimer)
-        this.expirationTimer = null
     }
 
-    private setState(state: CodexRateLimitState) {
+    /** Drops every account state, announcing only accounts that had one. */
+    private clearStates() {
+        for (const accountId of [...this.states.keys()]) {
+            this.clearExpiration(accountId)
+            this.setState(accountId, INITIAL_STATE)
+        }
+        this.states.clear()
+    }
+
+    private setState(accountId: string, state: CodexRateLimitState) {
+        const current = this.getState(accountId)
         if (
-            state.receivedAt === this.state.receivedAt
-            && state.snapshot === this.state.snapshot
-            && state.stale === this.state.stale
+            state.receivedAt === current.receivedAt
+            && state.snapshot === current.snapshot
+            && state.stale === current.stale
         ) return
 
-        this.state = state
-        this.dispatchEvent(new CustomEvent('changed'))
+        this.states.set(accountId, state)
+        this.dispatchEvent(new CustomEvent(codexRateLimitsChangedEvent(accountId)))
     }
 }
 

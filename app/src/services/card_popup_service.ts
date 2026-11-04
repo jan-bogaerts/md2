@@ -12,6 +12,7 @@ import { cardSequenceDraftService } from '../components/actions/run/sequence/car
 import { register } from './service_injector'
 
 const CARD_POPUPS_CHANGED_EVENT = 'changed'
+const CARD_POPUP_FOCUS_REQUESTED_EVENT_PREFIX = 'focusRequested:'
 const MOBILE_BACK_DISMISS_REGISTRATION_PREFIX = 'card-popup-back-dismiss'
 
 interface CardPopupEntryBase {
@@ -318,6 +319,21 @@ export class CardPopupService extends EventTarget {
         this.setEntries([...this.entries.filter((candidate) => candidate.id !== id), entry])
     }
 
+    /** Rotates the popup stack and requests focus for the new top popup; returns false with fewer than two popups. */
+    cycle(offset: 1 | -1) {
+        if (this.entries.length < 2) return false
+
+        const [firstEntry, ...remainingEntries] = this.entries
+        const lastEntry = this.entries[this.entries.length - 1]
+        this.setEntries(offset === 1
+            ? [...remainingEntries, firstEntry]
+            : [lastEntry, ...this.entries.slice(0, -1)])
+        const topEntry = this.entries[this.entries.length - 1]
+        this.dispatchEvent(new Event(`${CARD_POPUP_FOCUS_REQUESTED_EVENT_PREFIX}${topEntry.id}`))
+
+        return true
+    }
+
     clear() {
         this.removeEntries(() => true)
     }
@@ -415,4 +431,12 @@ export function subscribeCardPopups(onStoreChange: () => void) {
     cardPopupService.addEventListener(CARD_POPUPS_CHANGED_EVENT, onStoreChange)
 
     return () => cardPopupService.removeEventListener(CARD_POPUPS_CHANGED_EVENT, onStoreChange)
+}
+
+/** Subscribes to focus requests for one popup entry. */
+export function subscribeCardPopupFocusRequest(entryId: string, listener: () => void) {
+    const eventType = `${CARD_POPUP_FOCUS_REQUESTED_EVENT_PREFIX}${entryId}`
+    cardPopupService.addEventListener(eventType, listener)
+
+    return () => cardPopupService.removeEventListener(eventType, listener)
 }

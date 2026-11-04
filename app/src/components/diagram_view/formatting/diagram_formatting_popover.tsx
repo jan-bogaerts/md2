@@ -1,5 +1,5 @@
 import {
-    Box, Button, FormControlLabel, MenuItem, Popover, Stack, Switch, TextField, Typography,
+    Box, Button, FormControlLabel, MenuItem, Popover, Stack, Switch, TextField, Typography, useTheme,
 } from '@mui/material';
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import {
@@ -13,6 +13,7 @@ import {
 } from '../../../services/diagrams/diagram_data';
 import { dialogService } from '../../../services/dialog_service';
 import { ColorPickerButton } from '../../color_picker_button';
+import { COLOR_PICKER_SOFT_DARK_PALETTE, COLOR_PICKER_SOFT_LIGHT_PALETTE } from '../../color_picker_palette';
 import { FormattingGroup } from '../../formatting_group';
 import { DiagramFontFamilySelect } from './diagram_font_family_select';
 import { OptionalSliderField } from './optional_slider_field';
@@ -57,6 +58,8 @@ function reportFormattingError(error: unknown) {
 
 /** Node-role formatting draft. Apply is one service transaction; closing discards draft. */
 export function NodeFormattingPopover({ anchorElement, label, onApply, onClose, value }: NodeFormattingPopoverProps) {
+    const theme = useTheme();
+    const fillPalette = theme.palette.mode === 'dark' ? COLOR_PICKER_SOFT_DARK_PALETTE : COLOR_PICKER_SOFT_LIGHT_PALETTE;
     const [fontFamily, setFontFamily] = useState(value?.font?.family ?? '');
     const [fontSize, setFontSize] = useState(value?.font?.size);
     const [fontColor, setFontColor] = useState(value?.font?.color);
@@ -124,7 +127,7 @@ export function NodeFormattingPopover({ anchorElement, label, onApply, onClose, 
                             <FormControlLabel control={<Switch checked={autoWrap} onChange={handleAutoWrap} />} label="Auto wrap" />
                             <OptionalSliderField initialCustomValue={DIAGRAM_CONTENT_INSET_DEFAULT} label="Content inset" maximum={DIAGRAM_CONTENT_INSET_MAXIMUM} minimum={0} onChange={setContentInset} unit="px" value={contentInset} />
                             <Stack direction="row" spacing={1}>
-                                <Box sx={HALF_WIDTH_SX}><ColorPickerButton label="Fill color" onChange={setFillColor} value={fillColor} /></Box>
+                                <Box sx={HALF_WIDTH_SX}><ColorPickerButton label="Fill color" onChange={setFillColor} palette={fillPalette} value={fillColor} /></Box>
                                 <Box sx={HALF_WIDTH_SX}><ColorPickerButton label="Border color" onChange={setBorderColor} value={borderColor} /></Box>
                             </Stack>
                             <TextField fullWidth label="Content position" onChange={handleContentPosition} select size="small" value={contentPosition}>

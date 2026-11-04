@@ -23,6 +23,7 @@ import { DiagramMetadataButton } from './diagram_metadata_button';
 import { DiagramPasteButton } from './diagram_paste_button';
 import { DiagramSaveButton } from './diagram_save_button';
 import { DiagramFormattingControls } from '../formatting/diagram_formatting_controls';
+import { DiagramFormatPasteButton } from './diagram_format_paste_button';
 
 /** Diagram app-menu content. Changing diagram state rerenders only subscribed leaf controls. */
 export function DiagramMenuTab({
@@ -58,6 +59,7 @@ export function DiagramMenuTab({
                         <DiagramCutButton session={session} />
                         <DiagramCopyButton session={session} />
                         <DiagramPasteButton />
+                        <DiagramFormatPasteButton session={session} />
                         <DiagramDeleteButton />
                     </Section>
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />

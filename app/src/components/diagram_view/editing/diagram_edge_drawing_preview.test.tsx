@@ -9,6 +9,7 @@ afterEach(cleanup)
 describe('DiagramEdgeDrawingPreview', () => {
     it('renders explicit curved preview geometry', () => {
         const preview = {
+            legendEntryId: 'legend-entry',
             controlPoint: { x: 60, y: 20 },
             curved: true,
             kind: 'connection' as const,

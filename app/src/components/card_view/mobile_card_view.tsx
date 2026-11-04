@@ -196,7 +196,7 @@ export function MobileCardView(props: MobileCardViewProps) {
         <Box
             aria-label="Mobile card board"
             ref={rootElementRef}
-            sx={{ bgcolor: 'background.default', display: 'flex', flex: 1, minHeight: 0, overflowX: 'hidden', overflowY: 'auto' }}
+            sx={{ bgcolor: 'custom.projectBackground', display: 'flex', flex: 1, minHeight: 0, overflowX: 'hidden', overflowY: 'auto' }}
         >
             <DndContext
                 collisionDetection={cardSequenceCollision}

@@ -21,6 +21,7 @@ import type {
     MergeConflictSessionRequest,
     WorktreeOperationOutcome,
 } from './merge_conflict_types'
+import type { DirtyPrimaryOutcome, PrimaryChange } from './primary_change_types'
 
 export {
     DEFAULT_ACTIONS_FOLDER,
@@ -222,6 +223,17 @@ export interface CommitWorktreeRequest extends WorktreeOperationRequest {
     message: string
 }
 
+export interface CommitPrimaryChangesRequest {
+    message: string
+    paths: string[]
+    project: ProjectReference
+}
+
+export interface TrashPrimaryChangeRequest {
+    path: string
+    project: ProjectReference
+}
+
 export interface RepositoryReference extends ProjectReference {
     owner: string
     repository: string
@@ -338,6 +350,8 @@ export interface AgentProviderUsageBaseline {
 }
 
 export interface AgentProviderSession {
+    /** Missing means the agent's initial account. */
+    accountId?: string
     agent: string
     conversationId: string
     createdAt: string
@@ -498,6 +512,7 @@ export interface StorageService {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
     commitWorktree?(request: CommitWorktreeRequest): Promise<void>
+    commitPrimaryChanges?(request: CommitPrimaryChangesRequest): Promise<void>
     createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
@@ -529,7 +544,8 @@ export interface StorageService {
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     loadPendingPush?(project: ProjectReference): Promise<void>
-    integrateWorktree?(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome>
+    integrateWorktree?(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome | DirtyPrimaryOutcome>
+    trashPrimaryChange?(request: TrashPrimaryChangeRequest): Promise<PrimaryChange[]>
     abortMergeConflict?(request: MergeConflictSessionRequest): Promise<void>
     continueMergeConflict?(request: MergeConflictSessionRequest): Promise<WorktreeOperationOutcome>
     getMergeConflictSession?(): Promise<MergeConflictSession | null>

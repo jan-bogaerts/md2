@@ -30,10 +30,11 @@ export class ActionAgentSelectionDraftService {
             ? definition.thinkingLevel as ThinkingLevel
             : 'none'
         const rememberedSettings = resolveAgentSettings(activeAgent, profiles, [desktopSelection]);
-        const definitionSettings = definition.agent || definition.speedMode !== undefined
+        const definitionSettings = definition.agent || definition.accountId || definition.speedMode !== undefined
             ? {
                 [activeAgent]: {
                     ...rememberedSettings,
+                    ...(definition.accountId ? { accountId: definition.accountId } : {}),
                     model: definition.model ?? rememberedSettings.model,
                     thinkingLevel: definition.thinkingLevel === undefined ? rememberedSettings.thinkingLevel : definitionThinkingLevel,
                     ...(definition.speedMode !== undefined ? { speedMode: definition.speedMode } : {}),

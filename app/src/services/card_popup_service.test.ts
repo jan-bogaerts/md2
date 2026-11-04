@@ -429,6 +429,65 @@ describe('CardPopupService', () => {
     })
 })
 
+describe('CardPopupService cycle', () => {
+    function createThreePopups() {
+        const context = createService()
+        context.service.toggleAction(actionContext('card-1'), anchor())
+        context.service.toggleCardDetails('card-2', anchor())
+        context.service.openSequence(anchor())
+
+        return { ...context, entries: context.service.getSnapshot() }
+    }
+
+    it('moves the bottom popup to the top when cycling forward', () => {
+        const { entries, service } = createThreePopups()
+        const [actionEntry, detailsEntry, sequenceEntry] = entries
+
+        expect(service.cycle(1)).toBe(true)
+        expect(service.getSnapshot()).toEqual([detailsEntry, sequenceEntry, actionEntry])
+
+        service.cycle(1)
+        service.cycle(1)
+        expect(service.getSnapshot()).toEqual(entries)
+    })
+
+    it('moves the top popup to the bottom when cycling backward', () => {
+        const { entries, service } = createThreePopups()
+        const [actionEntry, detailsEntry, sequenceEntry] = entries
+
+        expect(service.cycle(-1)).toBe(true)
+        expect(service.getSnapshot()).toEqual([sequenceEntry, actionEntry, detailsEntry])
+    })
+
+    it('requests focus for the new top popup only, after announcing the reorder', () => {
+        const { entries, service } = createThreePopups()
+        const events: string[] = []
+        const recordChanged = () => events.push('changed')
+        service.addEventListener('changed', recordChanged)
+        entries.forEach(({ id }) => service.addEventListener(`focusRequested:${id}`, () => events.push(id)))
+
+        service.cycle(1)
+
+        expect(events).toEqual(['changed', entries[0].id])
+    })
+
+    it('does nothing with fewer than two popups', () => {
+        const { service } = createService()
+        const listener = vi.fn()
+        service.addEventListener('changed', listener)
+
+        expect(service.cycle(1)).toBe(false)
+
+        service.toggleCardDetails('card-1', anchor())
+        const [entry] = service.getSnapshot()
+        listener.mockClear()
+        service.addEventListener(`focusRequested:${entry.id}`, listener)
+
+        expect(service.cycle(-1)).toBe(false)
+        expect(listener).not.toHaveBeenCalled()
+    })
+})
+
 describe('sequence popup stack', () => {
     it('preserves draft across activation and clears it on dismissal and project change', () => {
         const { owner, service } = createService();

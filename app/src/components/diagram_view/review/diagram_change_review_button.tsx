@@ -13,9 +13,9 @@ export function DiagramChangeReviewButton({review = diagramChangeReviewService}:
 
     return (
         <DiagramToolboxActionButton
-            label="Review"
+            label="Add card to implement diagram"
             onActivate={handleActivate}
-            tooltip="Review diagram changes"
+            tooltip="Add card to implement diagram"
         ><RateReviewOutlined fontSize="small" /></DiagramToolboxActionButton>
     )
 }

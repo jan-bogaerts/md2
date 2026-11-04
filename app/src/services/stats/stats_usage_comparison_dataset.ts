@@ -1,5 +1,6 @@
 import type { StatsActionFact } from '../../../../shared/project_stats.mjs';
 import { findAgentProfile, type AgentProfile } from '../../data/agent_profiles';
+import { findAgentAccount, type AgentAccount } from '../../data/agent_accounts';
 import type { UsageMetricsAccountRow, UsageMetricsTokenRow } from '../agents/project_usage_metrics_service';
 import type {
     StatsAccountSeriesOption,
@@ -59,8 +60,14 @@ interface ComparisonIndexes {
     agentActionsByBucketProvider: Map<string, StatsActionFact[]>;
     /** Account rows carrying a non-negative delta, keyed by bucket and series identity. */
     positiveAccountByBucketSeries: Map<string, UsageMetricsAccountRow[]>;
-    providers: string[];
-    tokensByBucketProvider: Map<string, UsageMetricsTokenRow[]>;
+    tokenAccounts: TokenAccount[];
+    tokensByBucketAccount: Map<string, UsageMetricsTokenRow[]>;
+}
+
+interface TokenAccount {
+    accountId: string;
+    accountName: string;
+    provider: string;
 }
 
 interface ActivityCount {
@@ -81,8 +88,12 @@ function hasPositiveDelta(row: UsageMetricsAccountRow) {
     return row.usedPercentDelta !== null && row.usedPercentDelta >= 0;
 }
 
+function accountProviderIdentity(provider: string, accountId: string) {
+    return `${provider}${IDENTITY_SEPARATOR}${accountId}`;
+}
+
 function accountSeriesDescription(series: StatsAccountSeriesOption) {
-    return `${series.provider} · Limit: ${series.limitId} · Window: ${series.windowId}`;
+    return `${series.provider} · Account: ${series.accountName} · Limit: ${series.limitId} · Window: ${series.windowId}`;
 }
 
 function accountSeriesWindowDescription(series: StatsAccountSeriesOption) {
@@ -167,21 +178,22 @@ function projectTokenRows(
     indexes: ComparisonIndexes,
 ): StatsChartRow[] {
     return TOKEN_VARIANTS.flatMap(({ aggregation, role, valueLabel }) => contexts.flatMap((context) => {
-        if (indexes.providers.length === 0) {
+        if (indexes.tokenAccounts.length === 0) {
             return tokenTimeAvailable
                 ? [emptyTimeRow(context, granularity, role, 'tokens', 'tokens')]
                 : [unavailableTimeRow(context, granularity, role, 'tokens', 'tokens', 'project token usage')];
         }
 
-        return indexes.providers.map((provider) => {
+        return indexes.tokenAccounts.map(({ accountId, accountName, provider }) => {
             const providerKey = bucketIdentityKey(context.start, provider);
-            const rows = indexes.tokensByBucketProvider.get(providerKey) ?? [];
+            const accountIdentity = accountProviderIdentity(provider, accountId);
+            const rows = indexes.tokensByBucketAccount.get(bucketIdentityKey(context.start, accountIdentity)) ?? [];
             const tokenTotal = rows.reduce((total, row) => total + row.totalTokens, 0);
             const actionCount = (indexes.agentActionsByBucketProvider.get(providerKey) ?? []).length;
             const value = aggregation === 'total' ? tokenTotal : actionCount === 0 ? 0 : tokenTotal / actionCount;
             const tooltip = statsTooltip([
                 { label: null, value: formatBucketRange(context) },
-                { label: 'Provider', value: provider },
+                { label: 'Provider', value: `${provider} / ${accountName}` },
                 { label: valueLabel, value: formatCount(value) },
             ]);
 
@@ -190,11 +202,11 @@ function projectTokenRows(
                 accessibleLabel: accessibleStatsTooltip(tooltip),
                 aggregation,
                 denominator: aggregation === 'average' ? actionCount : null,
-                identity: provider,
+                identity: accountIdentity,
                 numerator: aggregation === 'average' ? tokenTotal : null,
                 provider,
-                seriesIdentity: provider,
-                seriesLabel: provider,
+                seriesIdentity: accountIdentity,
+                seriesLabel: `${provider} / ${accountName}`,
                 tooltip,
                 value,
             };
@@ -219,6 +231,20 @@ export function longestWindowSeriesByProvider(seriesOptions: StatsAccountSeriesO
     return seriesByProvider;
 }
 
+export function longestWindowSeriesByAccount(seriesOptions: StatsAccountSeriesOption[]) {
+    const seriesByAccount = new Map<string, StatsAccountSeriesOption>();
+    for (const series of seriesOptions) {
+        const accountIdentity = accountProviderIdentity(series.provider, series.accountId);
+        const current = seriesByAccount.get(accountIdentity);
+        const wins = !current
+            || series.windowDurationMinutes > current.windowDurationMinutes
+            || (series.windowDurationMinutes === current.windowDurationMinutes && series.identity < current.identity);
+        if (wins) seriesByAccount.set(accountIdentity, series);
+    }
+
+    return seriesByAccount;
+}
+
 function unavailableCostRow(
     context: StatsBucketContext,
     granularity: StatsGranularity,
@@ -228,11 +254,11 @@ function unavailableCostRow(
 ): StatsChartRow {
     return {
         ...unavailableTimeRow(context, granularity, role, role, 'dollars', unavailableLabel),
-        identity: series.provider,
+        identity: accountProviderIdentity(series.provider, series.accountId),
         limitId: series.limitId,
         provider: series.provider,
-        seriesIdentity: series.provider,
-        seriesLabel: series.provider,
+        seriesIdentity: accountProviderIdentity(series.provider, series.accountId),
+        seriesLabel: `${series.provider} / ${series.accountName}`,
         windowId: series.windowId,
     };
 }
@@ -283,12 +309,12 @@ function costProviderRow(
         accessibleLabel: accessibleStatsTooltip(tooltip),
         // Both inputs stay in the CSV: the account points consumed, and the rate or action count they meet.
         denominator: role === 'costPerAgent' ? monthlySubscriptionCostUsd : pointsUsed,
-        identity: series.provider,
+        identity: accountProviderIdentity(series.provider, series.accountId),
         limitId: series.limitId,
         numerator: role === 'costPerAgent' ? pointsUsed : actionCount,
         provider: series.provider,
-        seriesIdentity: series.provider,
-        seriesLabel: series.provider,
+        seriesIdentity: accountProviderIdentity(series.provider, series.accountId),
+        seriesLabel: `${series.provider} / ${series.accountName}`,
         tooltip,
         value,
         windowId: series.windowId,
@@ -302,15 +328,21 @@ function costRows(
     seriesOptions: StatsAccountSeriesOption[],
     indexes: ComparisonIndexes,
 ): StatsChartRow[] {
-    const seriesByProvider = longestWindowSeriesByProvider(seriesOptions);
-    const providers = [...seriesByProvider.keys()].sort();
+    const seriesByAccount = longestWindowSeriesByAccount(seriesOptions);
+    const accountIdentities = [...seriesByAccount.keys()].sort();
 
     return contexts.flatMap((context) => {
-        if (providers.length === 0) {
+        if (accountIdentities.length === 0) {
             return [unavailableTimeRow(context, granularity, role, role, 'dollars', 'account usage priced by a subscription')];
         }
 
-        return providers.map((provider) => costProviderRow(context, granularity, role, seriesByProvider.get(provider)!, indexes));
+        return accountIdentities.map((identity) => costProviderRow(
+            context,
+            granularity,
+            role,
+            seriesByAccount.get(identity)!,
+            indexes,
+        ));
     });
 }
 
@@ -330,9 +362,10 @@ function ratioSeriesRow(
         .reduce((total, row) => total + row.usedPercentDelta!, 0);
     if (denominator <= 0) return [];
     const providerKey = bucketIdentityKey(context.start, series.provider);
+    const accountKey = bucketIdentityKey(context.start, accountProviderIdentity(series.provider, series.accountId));
     const numerator = isActionRatio
         ? (indexes.agentActionsByBucketProvider.get(providerKey) ?? []).length
-        : (indexes.tokensByBucketProvider.get(providerKey) ?? []).reduce((total, row) => total + row.totalTokens, 0);
+        : (indexes.tokensByBucketAccount.get(accountKey) ?? []).reduce((total, row) => total + row.totalTokens, 0);
     const seriesLabel = accountSeriesLabel(series);
     const profile = findAgentProfile(indexes.agentProfiles, series.provider);
     const monthlySubscriptionCostUsd = profile?.monthlySubscriptionCostUsd;
@@ -464,6 +497,7 @@ function activityCountRows(
 
 function buildComparisonIndexes(
     accountRows: UsageMetricsAccountRow[],
+    agentAccounts: AgentAccount[],
     agentProfiles: AgentProfile[],
     tokenRows: UsageMetricsTokenRow[],
     actions: StatsActionFact[],
@@ -488,8 +522,18 @@ function buildComparisonIndexes(
             recordedAt,
             accountSeriesIdentity,
         ),
-        providers: [...new Set(tokenRows.map(({ provider }) => provider))].sort(),
-        tokensByBucketProvider: indexByBucketAndIdentity(tokenRows, granularity, recordedAt, ({ provider }) => provider),
+        tokenAccounts: [...new Map(tokenRows.map(({ accountId, provider }) => [
+            accountProviderIdentity(provider, accountId),
+            { accountId, accountName: findAgentAccount(agentAccounts, accountId)?.name ?? accountId, provider },
+        ])).values()].sort((left, right) => (
+            accountProviderIdentity(left.provider, left.accountId).localeCompare(accountProviderIdentity(right.provider, right.accountId))
+        )),
+        tokensByBucketAccount: indexByBucketAndIdentity(
+            tokenRows,
+            granularity,
+            recordedAt,
+            ({ accountId, provider }) => accountProviderIdentity(provider, accountId),
+        ),
     };
 }
 
@@ -509,7 +553,7 @@ export function usageComparisonRows(source: StatsDatasetSource, controls: StatsC
         )),
     ];
     const contexts = bucketContexts(bucketDomain(timestamps, granularity, controls), granularity);
-    const indexes = buildComparisonIndexes(accountRows, source.agentProfiles, tokenRows, actions, granularity);
+    const indexes = buildComparisonIndexes(accountRows, source.agentAccounts, source.agentProfiles, tokenRows, actions, granularity);
 
     return [
         ...comparisonAccountRows(contexts, granularity, seriesOptions, indexes),

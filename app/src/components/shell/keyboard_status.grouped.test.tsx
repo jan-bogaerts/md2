@@ -1,6 +1,7 @@
 ﻿import { cleanup, render, screen } from '@testing-library/react'
 import { act } from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'
 import { KeyboardStatus } from './keyboard_status'
 
 function dispatchKeyDown(init: KeyboardEventInit, capsLock = false) {
@@ -12,7 +13,11 @@ function dispatchKeyDown(init: KeyboardEventInit, capsLock = false) {
 }
 
 describe('KeyboardStatus', () => {
-    afterEach(cleanup)
+    beforeEach(() => keyboardShortcutService.start())
+    afterEach(() => {
+        cleanup()
+        keyboardShortcutService.stop()
+    })
 
     it('does not show a keyboard indicator by default', () => {
         render(<KeyboardStatus />)

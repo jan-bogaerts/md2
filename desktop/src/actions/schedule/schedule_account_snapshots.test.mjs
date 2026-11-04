@@ -7,6 +7,7 @@ const { accountResetObservations, trackerKey } = require('./schedule_account_sna
 describe('schedule account snapshots', () => {
     it('normalizes Codex tracker identity and seconds-based reset timestamps', () => {
         const snapshot = {
+            accountId: 'codex-initial',
             available: true,
             buckets: [{
                 limitId: 'codex,pro',
@@ -15,12 +16,13 @@ describe('schedule account snapshots', () => {
             }],
         };
 
-        expect(accountResetObservations('codex', snapshot)).toEqual([{agent: 'codex', limitId: 'codex,pro', resetsAt: 1800000000000, windowId: 'primary'}]);
-        expect(trackerKey('codex', 'codex,pro', 'primary')).toBe('codex\u0000codex,pro\u0000primary');
+        expect(accountResetObservations('codex', snapshot)).toEqual([{accountId: 'codex-initial', agent: 'codex', limitId: 'codex,pro', resetsAt: 1800000000000, windowId: 'primary'}]);
+        expect(trackerKey('codex', 'codex-initial', 'codex,pro', 'primary')).toBe('codex\u0000codex-initial\u0000codex,pro\u0000primary');
     });
 
     it('normalizes every Claude window under its default limit identity', () => {
         const snapshot = {
+            accountId: 'claude-initial',
             available: true,
             windows: [
                 { id: 'five_hour', resetsAt: 1800000000000, usedPercent: 10 },
@@ -29,8 +31,8 @@ describe('schedule account snapshots', () => {
         };
 
         expect(accountResetObservations('claude', snapshot)).toEqual([
-            { agent: 'claude', limitId: 'default', resetsAt: 1800000000000, windowId: 'five_hour' },
-            { agent: 'claude', limitId: 'default', resetsAt: 1800600000000, windowId: 'weekly' },
+            { accountId: 'claude-initial', agent: 'claude', limitId: 'default', resetsAt: 1800000000000, windowId: 'five_hour' },
+            { accountId: 'claude-initial', agent: 'claude', limitId: 'default', resetsAt: 1800600000000, windowId: 'weekly' },
         ]);
     });
 

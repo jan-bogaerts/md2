@@ -2,6 +2,7 @@ import SpeedOutlined from '@mui/icons-material/SpeedOutlined'
 import { Button } from '@mui/material'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { useClaudeRateLimits } from '../hooks/use_claude_rate_limits'
+import { useSelectedAgentAccountId } from '../hooks/use_selected_agent_account_id'
 import { ClaudeRateLimitDetails } from './claude_rate_limit_details'
 import { claudeRateLimitPresentation } from './claude_rate_limit_status_data'
 import { MobileStatusRow } from './mobile_status_row'
@@ -15,7 +16,7 @@ interface ClaudeRateLimitStatusProps {
 
 /** Account-wide Claude rate-limit status. Own subscription stays at this leaf boundary. */
 export function ClaudeRateLimitStatus({ mobile = false }: ClaudeRateLimitStatusProps) {
-    const rateLimitState = useClaudeRateLimits()
+    const rateLimitState = useClaudeRateLimits(useSelectedAgentAccountId('claude'))
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const [currentTime, setCurrentTime] = useState(Date.now)
 

@@ -2,6 +2,7 @@ import type { ActionFile } from '../../data/action_types'
 import type { AnySchedule } from '../../data/action_schedule_types'
 import type {
     BranchReference,
+    CommitPrimaryChangesRequest,
     CommitWorktreeRequest,
     CommitResult,
     CommitRequest,
@@ -19,6 +20,7 @@ import type {
     StorageProjectFiles,
     StorageService,
     TopLevelFolderReference,
+    TrashPrimaryChangeRequest,
     WorktreeOperationRequest,
     WorktreeRemovalMode,
     WorktreeState,
@@ -32,6 +34,7 @@ import type {
     MergeConflictSessionRequest,
     WorktreeOperationOutcome,
 } from '../../data/merge_conflict_types'
+import type { DirtyPrimaryOutcome, PrimaryChange } from '../../data/primary_change_types'
 
 interface LocalGitStorageDependencies {
     bridge?: ElectronDataBridge
@@ -212,7 +215,7 @@ export class LocalGitStorageService implements StorageService {
         else this.pendingPushBranches.delete(project.branch)
     }
 
-    async integrateWorktree(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome> {
+    async integrateWorktree(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome | DirtyPrimaryOutcome> {
         const bridge = this.requireBridge()
         if (!bridge.integrateWorktree) throw new Error('Electron local Git bridge cannot integrate worktrees')
 
@@ -220,6 +223,21 @@ export class LocalGitStorageService implements StorageService {
         this.pendingPushBranches.add(request.project.branch)
 
         return outcome
+    }
+
+    async commitPrimaryChanges(request: CommitPrimaryChangesRequest): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.commitPrimaryChanges) throw new Error('Electron local Git bridge cannot commit primary worktree changes')
+
+        await bridge.commitPrimaryChanges(request)
+        this.pendingPushBranches.add(request.project.branch)
+    }
+
+    async trashPrimaryChange(request: TrashPrimaryChangeRequest): Promise<PrimaryChange[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.trashPrimaryChange) throw new Error('Electron local Git bridge cannot move primary worktree files to the trash')
+
+        return bridge.trashPrimaryChange(request)
     }
 
     async abortMergeConflict(request: MergeConflictSessionRequest): Promise<void> {

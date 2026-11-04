@@ -3,7 +3,7 @@ import type {
     DiagramFlowPreset,
     DiagramType,
 } from './diagram_data'
-import { parseDiagramData } from './diagram_data'
+import { DIAGRAM_DATA_VERSION, parseDiagramData } from './diagram_data'
 import {
     type DiagramEditSessionAccess,
 } from './diagram_edit_session_service'
@@ -13,20 +13,21 @@ import type {
 import type { DiagramSelectionIdentity } from './diagram_selection_service'
 
 export const DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT = 'md2-diagram-fragment'
-export const DIAGRAM_FRAGMENT_CLIPBOARD_VERSION = 1
+export const DIAGRAM_FRAGMENT_CLIPBOARD_VERSION = 2
 
 type ReadonlyDiagramNode = ReadonlyDiagramData['nodes'][number]
 type ReadonlyDiagramEdge = ReadonlyDiagramData['edges'][number]
 type ReadonlyDiagramGroup = ReadonlyDiagramData['groups'][number]
 type ReadonlyDiagramFragment = NonNullable<ReadonlyDiagramData['fragments']>[number]
 
-export type DiagramFragmentReader = DiagramEditSessionAccess<'getEdgeIdsSnapshot' | 'getEdgeSnapshot' | 'getFragmentIdsSnapshot' | 'getFragmentSnapshot' | 'getGroupSnapshot' | 'getNodeIdsSnapshot' | 'getNodeSnapshot', never>
+export type DiagramFragmentReader = DiagramEditSessionAccess<'getEdgeIdsSnapshot' | 'getEdgeSnapshot' | 'getEditableDiagram' | 'getFragmentIdsSnapshot' | 'getFragmentSnapshot' | 'getGroupSnapshot' | 'getNodeIdsSnapshot' | 'getNodeSnapshot', never>
 
 export interface DiagramFragmentClipboardPayload {
     edges: readonly ReadonlyDiagramEdge[]
     format: typeof DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT
     fragments: readonly ReadonlyDiagramFragment[]
     groups: readonly ReadonlyDiagramGroup[]
+    legendEntries: readonly (ReadonlyDiagramData['meta']['legend'][number])[]
     nodes: readonly ReadonlyDiagramNode[]
     version: typeof DIAGRAM_FRAGMENT_CLIPBOARD_VERSION
 }
@@ -58,15 +59,22 @@ function parseClipboardObjects(root: Record<string, unknown>) {
     if (!Array.isArray(root.edges)) throw new Error('Malformed diagram clipboard data: edges has invalid array')
     if (!Array.isArray(root.fragments)) throw new Error('Malformed diagram clipboard data: fragments has invalid array')
     if (!Array.isArray(root.groups)) throw new Error('Malformed diagram clipboard data: groups has invalid array')
+    if (!Array.isArray(root.legendEntries)) throw new Error('Malformed diagram clipboard data: legendEntries has invalid array')
     if (!Array.isArray(root.nodes)) throw new Error('Malformed diagram clipboard data: nodes has invalid array')
 
     for (const { preset, type } of VALIDATION_CANDIDATES) {
+        const legendEntries = (root.legendEntries as Record<string, unknown>[]).map((entry) => (
+            entry.kind === undefined || entry.useLabelAsDefault !== undefined
+                ? entry
+                : { ...entry, useLabelAsDefault: false }
+        ))
         const meta = {
             description: 'Clipboard fragment',
+            legend: legendEntries,
             ...(preset ? { preset } : {}),
             title: 'Clipboard fragment',
             type,
-            version: 1 as const,
+            version: DIAGRAM_DATA_VERSION,
         }
         try {
             const nodes = root.nodes as Record<string, unknown>[]
@@ -75,18 +83,31 @@ function parseClipboardObjects(root: Record<string, unknown>) {
                 ? Array.from({ length: nodes.length + 1 }, (_unused, index) => `mindmap-validation-root-${index}`)
                     .find((id) => !nodes.some((node) => node.id === id))
                 : undefined
+            const validationLegendEntryId = 'mindmap-validation-root-legend-entry'
             const validationNodes = validationRootId ? [
                 ...nodes,
-                { id: validationRootId, kind: 'root', label: 'Validation root', role: 'focal' },
+                {
+                    id: validationRootId, kind: 'root', label: 'Validation root',
+                    legendEntryId: validationLegendEntryId, role: 'focal',
+                },
             ] : nodes
             const parsed = parseDiagramData(JSON.stringify({
                 edges: root.edges,
                 fragments: root.fragments,
                 groups: root.groups,
-                meta,
+                meta: validationRootId ? {
+                    ...meta,
+                    legend: [
+                        ...legendEntries,
+                        { id: validationLegendEntryId, label: 'Root', nodeKind: 'root' },
+                    ],
+                } : meta,
                 nodes: validationNodes,
             }))
-            if (validationRootId) parsed.nodes = parsed.nodes.filter(({ id }) => id !== validationRootId)
+            if (validationRootId) {
+                parsed.nodes = parsed.nodes.filter(({ id }) => id !== validationRootId)
+                parsed.meta.legend = parsed.meta.legend.filter(({ id }) => id !== validationLegendEntryId)
+            }
 
             return parsed
         } catch {
@@ -189,12 +210,21 @@ export function buildDiagramFragmentClipboardPayload(
     if (!selectedEdgesAreSupported(selectedEdgeIds, includedEdgeIds)) return null
     const groups = selectedGroups(groupIds, nodeIds, reader)
     if (!groups) return null
+    const diagram = reader.read.getEditableDiagram()
+    if (!diagram) return null
+    const legendEntryIds = new Set([
+        ...nodes.map(({ legendEntryId }) => legendEntryId),
+        ...edges.map(({ legendEntryId }) => legendEntryId),
+    ])
+    const legendEntries = diagram.meta.legend.filter(({ id }) => legendEntryIds.has(id))
+    if (legendEntries.length !== legendEntryIds.size) return null
 
     return {
         edges,
         format: DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT,
         fragments: relevantFragments(includedEdgeIds, reader),
         groups,
+        legendEntries,
         nodes,
         version: DIAGRAM_FRAGMENT_CLIPBOARD_VERSION,
     }
@@ -227,6 +257,7 @@ export function parseDiagramFragmentClipboardPayload(content: string): DiagramFr
         format: DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT,
         fragments: diagram.fragments ?? [],
         groups: diagram.groups,
+        legendEntries: diagram.meta.legend,
         nodes: diagram.nodes,
         version: DIAGRAM_FRAGMENT_CLIPBOARD_VERSION,
     }

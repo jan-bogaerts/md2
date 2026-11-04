@@ -155,6 +155,7 @@ function createLocalGitService(
 
 function codexSnapshot(limitId, primaryResetsAt, secondaryResetsAt = null) {
     return {
+        accountId: 'codex-initial',
         available: true,
         buckets: [{
             limitId,
@@ -169,6 +170,7 @@ function codexSnapshot(limitId, primaryResetsAt, secondaryResetsAt = null) {
 
 function claudeSnapshot(fiveHourResetsAt, weeklyResetsAt) {
     return {
+        accountId: 'claude-initial',
         available: true,
         observedAt: now,
         windows: [
@@ -243,7 +245,7 @@ describe('ActionSchedulerService', () => {
         const scheduler = createScheduler(localGitService, { actionRunnerService });
         await startProject(scheduler, localGitService);
         const base = { actionId: 'implement', cardInternalIds: ['card-022'], readyState: 'ready', trigger: { type: 'now' } };
-        const agentSelection = { agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval', speedMode: 'fast', thinkingLevel: 'high' };
+        const agentSelection = { accountId: 'codex-initial', agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval', speedMode: 'fast', thinkingLevel: 'high' };
         await expect(scheduler.registerSequenceSchedule({ ...base, agentSelection: { agent: 'codex' } })).rejects.toThrow('Missing sequence execution model');
 
         const schedule = await scheduler.registerSequenceSchedule({ ...base, agentSelection });
@@ -493,15 +495,90 @@ describe('ActionSchedulerService', () => {
         await startProject(scheduler, localGitService);
         const trigger = { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' };
 
-        const schedule = await scheduler.registerActionSchedule({ actionId: 'implement', context, prompt: 'Edited prompt', trigger });
+        const schedule = await scheduler.registerActionSchedule({ accountId: 'codex-initial', actionId: 'implement', context, prompt: 'Edited prompt', trigger });
         await scheduler.fireSchedule(schedule.id);
 
-        expect(schedule).toMatchObject({ failure: null, prompt: 'Edited prompt' });
+        expect(schedule).toMatchObject({ accountId: 'codex-initial', failure: null, prompt: 'Edited prompt' });
         expect(actionRunnerService.start).toHaveBeenCalledWith({
             actionId: 'implement',
             context: expect.objectContaining({ cardInternalId: context.cardInternalId }),
-            runInput: { conversationId: expect.stringMatching(/^agent-/u), prompt: 'Edited prompt' },
+            runInput: { accountId: 'codex-initial', conversationId: expect.stringMatching(/^agent-/u), prompt: 'Edited prompt' },
         }, { interactive: false, runId: expect.stringMatching(/^action-/u) });
+    });
+
+    it('continues the registered conversation without allocating a replacement identity', async () => {
+        const localGitService = createLocalGitService([]);
+        const reference = 'design/activity/card__card-022.json#conversation=conversation-1';
+        localGitService.activityConversationReference = vi.fn(() => reference);
+        localGitService.loadAgentConversation = vi.fn(async () => ({
+            actionId: 'implement',
+            cardInternalId: 'card-022',
+            id: 'conversation-1',
+            status: 'waitingForInput',
+        }));
+        const actionRunnerService = {
+            subscribe: vi.fn(),
+            cancel: vi.fn(),
+            start: vi.fn(async (_request, options) => options.runId),
+            startProject: vi.fn(),
+            wait: vi.fn(async (runId) => ({ failure: null, runId, status: 'completed' })),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+        const trigger = { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' };
+
+        const schedule = await scheduler.registerActionSchedule({actionId: 'implement', conversationId: 'conversation-1', context, prompt: 'Continue work', trigger});
+        await scheduler.fireSchedule(schedule.id);
+
+        expect(schedule).toMatchObject({ conversationId: 'conversation-1' });
+        expect(localGitService.activityConversationReference).toHaveBeenCalledWith(
+            scheduler.projectFolder,
+            { cardInternalId: 'card-022', kind: 'card' },
+            'conversation-1',
+        );
+        expect(actionRunnerService.start).toHaveBeenCalledWith({
+            actionId: 'implement',
+            context: expect.objectContaining({ cardInternalId: 'card-022' }),
+            runInput: { conversationId: 'conversation-1', continueFrom: reference, prompt: 'Continue work' },
+        }, { interactive: false, runId: expect.stringMatching(/^action-/u) });
+        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
+    });
+
+    it.each([
+        ['missing', null, 'conversation conversation-1 could not be loaded: Unknown agent conversation'],
+        ['terminal', { actionId: 'implement', cardInternalId: 'card-022', id: 'conversation-1', status: 'completed' }, 'conversation conversation-1 is completed'],
+        ['wrong action', { actionId: 'review', cardInternalId: 'card-022', id: 'conversation-1', status: 'running' }, 'conversation conversation-1 belongs to action review, not implement'],
+        ['wrong card', { actionId: 'implement', cardInternalId: 'card-other', id: 'conversation-1', status: 'running' }, 'conversation conversation-1 belongs to card card-other, not card-022'],
+    ])('fails a continuation schedule with %s conversation state', async (_label, conversation, failure) => {
+        const localGitService = createLocalGitService([]);
+        localGitService.activityConversationReference = vi.fn(() => (
+            'design/activity/card__card-022.json#conversation=conversation-1'
+        ));
+        localGitService.loadAgentConversation = vi.fn(async () => {
+            if (!conversation) throw new Error('Unknown agent conversation');
+
+            return conversation;
+        });
+        const actionRunnerService = {
+            subscribe: vi.fn(),
+            cancel: vi.fn(),
+            start: vi.fn(),
+            startProject: vi.fn(),
+            wait: vi.fn(),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+        const schedule = await scheduler.registerActionSchedule({
+            actionId: 'implement',
+            conversationId: 'conversation-1',
+            context,
+            trigger: { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' },
+        });
+
+        await scheduler.fireSchedule(schedule.id);
+
+        expect(localGitService.schedules()).toEqual([{ ...schedule, failure, status: 'failed' }]);
+        expect(actionRunnerService.start).not.toHaveBeenCalled();
     });
 
     it('rejects a blank custom prompt schedule', async () => {
@@ -674,6 +751,40 @@ describe('ActionSchedulerService', () => {
         await scheduler.handleAccountUsageChange('codex', codexSnapshot('codex,pro', null, expectedResetAt / 1000));
         expect(actionRunnerService.start).not.toHaveBeenCalled();
         await scheduler.handleAccountUsageChange('codex', codexSnapshot('codex,pro', expectedResetAt / 1000));
+
+        expect(actionRunnerService.start).toHaveBeenCalledOnce();
+    });
+
+    it('fires an account reset only from the account persisted on the trigger', async () => {
+        const expectedResetAt = now + 5000;
+        const workAccountId = '11111111-1111-4111-8111-111111111111';
+        const trigger = {
+            accountId: workAccountId, agent: 'codex', expectedResetAt: new Date(expectedResetAt).toISOString(),
+            limitId: 'codex,pro', type: 'account-reset', windowId: 'primary',
+        };
+        const localGitService = createLocalGitService([createSchedule('schedule-1', 'implement', trigger)]);
+        const actionRunnerService = {
+            subscribe: vi.fn(),
+            cancel: vi.fn(),
+            start: vi.fn(async () => 'action-1'),
+            startProject: vi.fn(),
+            wait: vi.fn(async () => ({ failure: null, runId: 'action-1', status: 'completed' })),
+        };
+        const scheduler = createScheduler(localGitService, {
+            agentAccountsProvider: () => [
+                { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' },
+                { agent: 'claude', id: 'claude-initial', kind: 'initial', name: 'Default' },
+                { agent: 'codex', configDirectory: 'C:/accounts/work', id: workAccountId, kind: 'directory', name: 'Work' },
+            ],
+            actionRunnerService,
+            now: () => expectedResetAt,
+        });
+        await startProject(scheduler, localGitService);
+        const dueSnapshot = codexSnapshot('codex,pro', expectedResetAt / 1000);
+
+        await scheduler.handleAccountUsageChange('codex', { ...dueSnapshot, accountId: 'codex-initial' });
+        expect(actionRunnerService.start).not.toHaveBeenCalled();
+        await scheduler.handleAccountUsageChange('codex', { ...dueSnapshot, accountId: workAccountId });
 
         expect(actionRunnerService.start).toHaveBeenCalledOnce();
     });
@@ -858,7 +969,7 @@ describe('ActionSchedulerService', () => {
         expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({
             command: [
                 'codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--sandbox', 'workspace-write',
-                '--ask-for-approval', 'on-request', '--search', 'exec', '--json',
+                '--ask-for-approval', 'on-request', '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json',
             ],
         }), expect.any(Function));
         expect(localGitService.histories[0]).toMatchObject({
@@ -882,7 +993,7 @@ describe('ActionSchedulerService', () => {
         expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({
             command: [
                 'codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request',
-                '--search', 'exec', '--json',
+                '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json',
             ],
         }), expect.any(Function));
         expect(localGitService.histories[0].entry).toMatchObject({ thinkingLevel: 'none' });
@@ -905,8 +1016,8 @@ describe('ActionSchedulerService', () => {
         await scheduler.fireSchedule('schedule-1');
 
         expect(agentRunner.mock.calls.map((call) => call[1].command)).toEqual([
-            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=low', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '--search', 'exec', '--json'],
-            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '--search', 'exec', '--json'],
+            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=low', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json'],
+            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json'],
         ]);
         expect(localGitService.histories.map(({ entry }) => entry.thinkingLevel)).toEqual(['high']);
     });
@@ -1271,7 +1382,12 @@ function createRecoveryHarness(schedule, conversationStatus) {
     localGitService.loadAgentConversation = vi.fn(async () => {
         if (!conversationStatus) throw new Error('Unknown agent conversation');
 
-        return { id: schedule.conversationId, status: conversationStatus };
+        return {
+            actionId: schedule.actionId,
+            cardInternalId: schedule.context?.cardInternalId ?? schedule.cardInternalIds?.[schedule.currentIndex] ?? null,
+            id: schedule.conversationId,
+            status: conversationStatus,
+        };
     });
     const runCompletions = new Map();
     const actionRunnerService = {
@@ -1363,5 +1479,33 @@ describe('ActionSchedulerService conversation recovery', () => {
         await harness.scheduler.handleConversationClosed('agent-waiting', status);
 
         expect(harness.localGitService.schedules()).toEqual([{ ...schedule, status }]);
+    });
+
+    it('finishes a waiting sequence step with the result of an unadopted run on its conversation', async () => {
+        const schedule = {
+            actionCompleted: false, actionId: 'implement', cardInternalIds: ['card-022'], conversationId: 'agent-waiting',
+            createdAt: '2026-07-06T09:00:00.000Z', currentIndex: 0, currentRunId: 'original-run', failure: null, id: 'sequence-1',
+            kind: 'sequence', readyState: 'ready', readyStateMet: true, status: 'running', trigger: { type: 'now' },
+        };
+        const harness = createRecoveryHarness(schedule, 'running');
+        harness.actionRunnerService.listActiveRuns = vi.fn(() => []);
+        harness.actionRunnerService.loadRootAction = vi.fn(async () => ({ type: 'command' }));
+        let rejectWait = () => undefined;
+        const waitFailure = new Promise((_resolve, reject) => {
+            rejectWait = reject;
+        });
+        harness.actionRunnerService.wait.mockReturnValueOnce(waitFailure);
+        await startProject(harness.scheduler, harness.localGitService);
+        await vi.waitFor(() => expect(harness.actionRunnerService.wait).toHaveBeenCalledWith('original-run'));
+
+        harness.publishRunEvent(agentStartedEvent('agent-waiting', 'original-run'));
+        rejectWait(new Error('Unknown action run: original-run'));
+        await vi.waitFor(() => expect(harness.localGitService.schedules()[0].currentRunId).toBeNull());
+        harness.publishRunEvent({ message: null, runId: 'other-run', status: 'completed', type: 'run' });
+        expect(harness.localGitService.schedules()[0]).toMatchObject({ actionCompleted: false, status: 'running' });
+        harness.publishRunEvent({ message: null, runId: 'original-run', status: 'completed', type: 'run' });
+
+        await vi.waitFor(() => expect(harness.localGitService.schedules()[0]).toMatchObject({ actionCompleted: true, status: 'completed' }));
+        expect(harness.actionRunnerService.wait).toHaveBeenCalledOnce();
     });
 });

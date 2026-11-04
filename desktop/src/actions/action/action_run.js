@@ -524,6 +524,7 @@ class ActionRun {
             const acknowledgedSettings = result.acknowledgedSettings;
             if (this.controller.signal.aborted) {
                 this.publish(action, phase, 'cancelled', {
+                    ...(result.accountId !== undefined ? { accountId: result.accountId } : {}),
                     command: Array.isArray(result.command) ? result.command.join(' ') : result.command,
                     runWorktree: result.runWorktree,
                     message: 'Action cancelled',
@@ -546,6 +547,7 @@ class ActionRun {
             const status = result.exitCode === 0 ? 'completed' : 'failed';
             const output = combineOutput(result);
             this.publish(action, phase, status, {
+                ...(result.accountId !== undefined ? { accountId: result.accountId } : {}),
                 command: Array.isArray(result.command) ? result.command.join(' ') : result.command,
                 runWorktree: result.runWorktree,
                 message: status === 'completed' ? `${action.label} completed` : `${action.label} failed with exit code ${result.exitCode}`,
@@ -709,6 +711,7 @@ class ActionRun {
 
         return executeCommandAction({
             action,
+            actionsFolder: this.actionsFolder,
             activeCardsFolder: this.activeCardsFolder,
             command: isRoot ? this.runInput.command ?? action.command : action.command,
             commandRunner: this.commandRunner,
@@ -887,6 +890,7 @@ class ActionRun {
         const input = {
             compactOnly: this.compactOnly,
             action,
+            actionsFolder: this.actionsFolder,
             activeCardsFolder: this.activeCardsFolder,
             activityOrigin: this.activityOrigin,
             context: this.context,
@@ -966,6 +970,7 @@ class ActionRun {
             this.project,
             this.projectFolder,
             this.releasesFolder,
+            this.actionsFolder,
             this.activeCardsFolder,
             this.diagramPath ? resolveDiagramFile(this.activeAgentProject, this.diagramsFolder, this.diagramPath) : null,
             this.version,

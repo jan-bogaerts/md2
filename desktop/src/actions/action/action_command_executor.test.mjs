@@ -167,8 +167,9 @@ describe('executeCommandAction', () => {
         const onOutput = vi.fn();
         const input = {
             action: { showCommandWindow: false },
+            actionsFolder: 'design/actions',
             activeCardsFolder: 'design/feature_descriptions',
-            command: 'run {{active-cards-folder}} {{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{this-card}} {{card-prompt}}',
+            command: 'run {{active-cards-folder}} {{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{actions-folder}} {{card-file}} {{this-card}} {{card-prompt}}',
             commandRunner,
             context: { file: 'design/card.md' },
             onOutput,
@@ -179,7 +180,7 @@ describe('executeCommandAction', () => {
             signal: new AbortController().signal,
         };
 
-        const command = `run ${resolve('C:/repo', 'design/feature_descriptions')} C:/worktree C:/repo ${resolve('C:/repo', 'design')} ${resolve('C:/repo', 'design/releases')} design/card.md design/card.md `;
+        const command = `run ${resolve('C:/repo', 'design/feature_descriptions')} C:/worktree C:/repo ${resolve('C:/repo', 'design')} ${resolve('C:/repo', 'design/releases')} ${resolve('C:/repo', 'design/actions')} design/card.md design/card.md `;
 
         await expect(executeCommandAction(input)).resolves.toMatchObject({ command });
         expect(onOutput).toHaveBeenCalledWith({ command, stderr: '', stdout: 'chunk' });

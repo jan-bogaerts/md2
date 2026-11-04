@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from '../../data/electron_data_bridge'
 import { DEFAULT_PROJECT_CONFIG, MissingWorkingFolderError } from '../../data/data_types'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
 import { beforeEach } from 'vitest'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { rehydratedPreloadBridge } from '../../data/bridge_error_rehydration'
@@ -106,6 +107,7 @@ describe('ProjectSessionService storage activation', () => {
         vi.spyOn(claudeRateLimitService, 'start')
         vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue({
             agentSelection: { activeAgent: 'custom', permissionMode: 'ask-for-approval', settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' } } },
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['custom-model'], name: 'custom' }],
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
@@ -236,6 +238,7 @@ describe('ProjectSessionService storage activation', () => {
         mockProjectOpen()
         const desktopConfig = {
             agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval' as const, settingsByAgent: { codex: { model: 'gpt-5', thinkingLevel: 'high' as const } } },
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: [{ command: ['codex'], defaultThinkingLevel: 'none' as const, models: ['gpt-5'], name: 'codex' }],
             agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,

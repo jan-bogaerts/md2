@@ -3,6 +3,7 @@ const { appendBoundedAgentResult } = require('../../../../shared/agent_conversat
 const { ClaudeStreamingAdapter } = require('./agent_claude_streaming_adapter');
 const { diagnosticEvent, normalizeCodexEvent, systemEvent } = require('./agent_codex_event');
 const { isMissingSession } = require('./agent_provider_protocol');
+const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');
 
 const CODEX_CLIENT_NAME = 'md2';
 const CODEX_CLIENT_VERSION = '1';
@@ -13,7 +14,7 @@ const CODEX_APPROVAL_METHODS = new Map([
 ]);
 const CODEX_COMMAND_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
 const CODEX_FILE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
-const CODEX_NON_EVENT_ITEM_TYPES = new Set(['agentMessage', 'hookPrompt', 'userMessage']);
+const CODEX_NON_EVENT_ITEM_TYPES = new Set(['agentMessage', 'hookPrompt', 'subAgentActivity', 'userMessage']);
 
 function requireMessage(content) {
     if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Streaming agent message is required');
@@ -150,9 +151,10 @@ function codexOwnedEvent(event, parentItemId) {
     return parentItemId ? { ...event, parentItemId } : event;
 }
 
-/** Namespaces an id this adapter invents, so a child thread's row cannot collide with a root one. */
+/** Namespaces provider item identity, so equal item ids from different threads cannot collide. */
 function codexGeneratedEvent(context, event) {
     if (!context.isChild) return event;
+    if (event.providerItemId.startsWith(`${context.threadId}:`)) return event;
 
     return { ...event, providerItemId: `${context.threadId}:${event.providerItemId}` };
 }
@@ -163,24 +165,44 @@ function codexReceiverThreadIds(item) {
     return item.receiverThreadIds.filter((threadId) => typeof threadId === 'string' && threadId.length > 0);
 }
 
+function logChildThreadReadFailure(threadId, error) {
+    console.warn('[agent:child-thread-read]', {
+        error: error instanceof Error ? error.message : String(error),
+        threadId,
+    });
+}
+
 class CodexStreamingAdapter {
-    constructor(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent, executionSettings = {}) {
+    constructor(
+        writeLine,
+        onEvent,
+        rootPath,
+        providerConversationId,
+        onRuntimeEvent,
+        executionSettings = {},
+        taskTrackingEnabled = false,
+    ) {
         this.writeLine = writeLine;
         this.onEvent = onEvent;
         this.onRuntimeEvent = onRuntimeEvent;
         this.providerConversationId = providerConversationId;
         this.rootPath = rootPath;
         this.executionSettings = executionSettings;
+        this.taskTrackingEnabled = taskTrackingEnabled;
         this.resolvedSettings = null;
         // Child thread id to the collaboration item that started it. Entries live for the run, because a
         // child thread keeps reporting after that collaboration item has completed.
         this.childThreads = new Map();
+        this.completedEventIds = new Set();
+        this.deferredRootCompletion = null;
         this.diagnosticSequence = 1;
         this.initialPrompt = null;
         this.nextRequestId = 1;
         this.pendingRequests = new Map();
         this.pendingApprovals = new Map();
         this.pendingQuestions = new Map();
+        this.pendingChildThreadReads = new Set();
+        this.requestedChildThreadReads = new Set();
         this.subAgentLabels = new Map();
         // One turn record per thread, so a child turn cannot clear the root turn's items or end it early.
         this.threadStates = new Map();
@@ -385,6 +407,10 @@ class CodexStreamingAdapter {
             return;
         }
         this.pendingRequests.delete(message.id);
+        if (purpose.kind === 'childThreadRead') {
+            await this.handleChildThreadReadResponse(purpose, message);
+            return;
+        }
         if (message.error) {
             const content = message.error.message ?? `Codex ${purpose} failed`;
             if (purpose === 'compact') {
@@ -454,6 +480,7 @@ class CodexStreamingAdapter {
         const { model, effort, serviceTier } = this.executionSettings;
 
         return {
+            ...(this.taskTrackingEnabled ? { developerInstructions: CODEX_TASK_TRACKING_INSTRUCTIONS } : {}),
             ...(model !== undefined ? { model } : {}),
             ...(serviceTier !== undefined ? { serviceTier } : {}),
             ...(effort !== undefined ? { config: { model_reasoning_effort: effort } } : {}),
@@ -493,6 +520,10 @@ class CodexStreamingAdapter {
         rootState.turnContextWindowUsage = undefined;
         rootState.turnUsage = null;
         rootState.turnUsageBaseline = null;
+        this.completedEventIds.clear();
+        this.deferredRootCompletion = null;
+        this.pendingChildThreadReads.clear();
+        this.requestedChildThreadReads.clear();
     }
 
     async handleNotification(method, params) {
@@ -675,6 +706,18 @@ class CodexStreamingAdapter {
         await this.resolveApprovalsForTurn(context.threadId, completedTurnId);
         state.activeTurnId = null;
         if (isChild) return;
+        if (this.pendingChildThreadReads.size > 0) {
+            this.deferredRootCompletion = { context, params };
+            return;
+        }
+        await this.publishRootTurnCompletion(context, params);
+    }
+
+    async publishRootTurnCompletion(context, params) {
+        const { state } = context;
+        const error = params.turn?.status === 'failed'
+            ? params.turn.error?.message ?? 'Codex turn failed'
+            : null;
         this.pendingQuestions.clear();
         const contextWindowUsage = state.turnContextWindowUsage;
         const usage = this.turnUsageTotal();
@@ -688,6 +731,13 @@ class CodexStreamingAdapter {
             usage,
         });
         this.resetRootTurnState();
+    }
+
+    async publishDeferredRootCompletion() {
+        if (!this.deferredRootCompletion || this.pendingChildThreadReads.size > 0) return;
+        const { context, params } = this.deferredRootCompletion;
+        this.deferredRootCompletion = null;
+        await this.publishRootTurnCompletion(context, params);
     }
 
     async handleApprovalResolved(context, params) {
@@ -711,16 +761,72 @@ class CodexStreamingAdapter {
     }
 
     /**
-     * Remembers the threads a collaboration call started so their notifications are accepted and tagged
-     * with that call. A collaboration call made inside a child thread registers against its own item id,
-     * which makes ownership recursive.
+     * Remembers threads reported by collaboration calls and sub-agent activities, so their live
+     * notifications are accepted and tagged. Parent ids are thread-scoped, preserving nested ownership.
      */
-    registerChildThreads(item) {
-        if (item?.type !== 'collabAgentToolCall' || typeof item.id !== 'string') return;
+    registerChildThreads(context, item) {
+        if (!item || typeof item.id !== 'string') return;
+        const parentItemId = codexGeneratedEvent(context, { providerItemId: item.id }).providerItemId;
+        if (item.type === 'subAgentActivity') {
+            const label = typeof item.agentPath === 'string' && item.agentPath.length > 0
+                ? item.agentPath
+                : DEFAULT_CODEX_SUB_AGENT_LABEL;
+            this.subAgentLabels.set(parentItemId, label);
+            if (typeof item.agentThreadId === 'string' && item.agentThreadId !== this.threadId) {
+                this.childThreads.set(item.agentThreadId, parentItemId);
+            }
+            return;
+        }
+        if (item.type !== 'collabAgentToolCall') return;
         const label = typeof item.tool === 'string' && item.tool.length > 0 ? item.tool : DEFAULT_CODEX_SUB_AGENT_LABEL;
-        this.subAgentLabels.set(item.id, label);
+        this.subAgentLabels.set(parentItemId, label);
         for (const threadId of codexReceiverThreadIds(item)) {
-            if (threadId !== this.threadId) this.childThreads.set(threadId, item.id);
+            if (threadId !== this.threadId) this.childThreads.set(threadId, parentItemId);
+        }
+    }
+
+    async requestChildThreadRead(item) {
+        if (item.type !== 'subAgentActivity' || typeof item.agentThreadId !== 'string') return;
+        const threadId = item.agentThreadId;
+        if (threadId === this.threadId || this.requestedChildThreadReads.has(threadId)) return;
+        this.requestedChildThreadReads.add(threadId);
+        this.pendingChildThreadReads.add(threadId);
+        try {
+            await this.sendRequest('thread/read', { includeTurns: true, threadId }, { kind: 'childThreadRead', threadId });
+        } catch (error) {
+            logChildThreadReadFailure(threadId, error);
+            this.pendingChildThreadReads.delete(threadId);
+            await this.publishDeferredRootCompletion();
+        }
+    }
+
+    async handleChildThreadReadResponse(purpose, message) {
+        const { threadId } = purpose;
+        try {
+            if (message.error) throw new Error(message.error.message ?? 'Codex child thread read failed');
+            const thread = message.result?.thread;
+            if (!thread || thread.id !== threadId || !Array.isArray(thread.turns)) {
+                throw new Error('Codex child thread read returned malformed history');
+            }
+            const context = this.resolveNotificationContext({ threadId });
+            if (!context) throw new Error('Codex child thread read lost its owning activity');
+            for (const turn of thread.turns) {
+                if (!Array.isArray(turn?.items)) continue;
+                for (const item of turn.items) {
+                    if (item?.type === 'subAgentActivity') {
+                        this.registerChildThreads(context, item);
+                        await this.requestChildThreadRead(item);
+                    }
+                    if (item?.type !== 'fileChange' || item.status !== 'completed') continue;
+                    const event = normalizeCodexEvent(item, 'completed', this.rootPath);
+                    if (event) await this.emitEvent(context, event);
+                }
+            }
+        } catch (error) {
+            logChildThreadReadFailure(threadId, error);
+        } finally {
+            this.pendingChildThreadReads.delete(threadId);
+            await this.publishDeferredRootCompletion();
         }
     }
 
@@ -745,7 +851,7 @@ class CodexStreamingAdapter {
             await this.emitDiagnostic(context, method, item.type, item.id);
             return;
         }
-        this.registerChildThreads(item);
+        this.registerChildThreads(context, item);
         const isSubAgentMessage = isChild && item.type === 'agentMessage';
         const startedText = typeof item.text === 'string' ? item.text : '';
         const event = isSubAgentMessage
@@ -794,7 +900,8 @@ class CodexStreamingAdapter {
             await this.emitDiagnostic(context, method, item.type, item.id);
             return;
         }
-        this.registerChildThreads(item);
+        this.registerChildThreads(context, item);
+        await this.requestChildThreadRead(item);
         if (item.type === 'agentMessage' && trackedItem && !isChild) {
             trackedItem.assistantCompleted = true;
             await this.flushAssistantStreams(state);
@@ -865,7 +972,10 @@ class CodexStreamingAdapter {
     }
 
     async emitEvent(context, event) {
-        await this.onEvent({ event: codexOwnedEvent(event, context.parentItemId), type: 'event' });
+        const namespacedEvent = codexGeneratedEvent(context, event);
+        if (namespacedEvent.status === 'completed' && this.completedEventIds.has(namespacedEvent.providerItemId)) return;
+        await this.onEvent({ event: codexOwnedEvent(namespacedEvent, context.parentItemId), type: 'event' });
+        if (namespacedEvent.status === 'completed') this.completedEventIds.add(namespacedEvent.providerItemId);
     }
 
     async emitDiagnostic(context, method, itemType, itemId) {
@@ -884,10 +994,22 @@ function createAgentStreamingAdapter(
     onRuntimeEvent = async () => undefined,
     executionSettings = {},
     claudeUsageTracker = null,
+    taskTrackingEnabled = false,
+    initialTaskList = null,
 ) {
-    if (agent === 'claude') return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, claudeUsageTracker);
+    if (agent === 'claude') {
+        return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, claudeUsageTracker, initialTaskList);
+    }
     if (agent === 'codex') {
-        return new CodexStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent, executionSettings);
+        return new CodexStreamingAdapter(
+            writeLine,
+            onEvent,
+            rootPath,
+            providerConversationId,
+            onRuntimeEvent,
+            executionSettings,
+            taskTrackingEnabled,
+        );
     }
 
     throw new Error(`Agent profile does not support streaming: ${agent}`);

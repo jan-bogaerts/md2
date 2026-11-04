@@ -26,6 +26,7 @@ import { DialogDisplay } from '../../dialog_display'
 import { AppMenu } from './app_menu'
 import { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../../shared/agent_token_usage_summary.mjs'
 import { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'
+import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
 
 const auth: UseGithubAuthResult = {
     accessToken: null,
@@ -197,6 +198,7 @@ describe('AppMenu', () => {
         workspaceViewService.setViewMode('cards')
         const { selectedPath } = workspaceViewService.getSnapshot()
         if (selectedPath) workspaceViewService.clearSelectedPath(selectedPath)
+        keyboardShortcutService.start()
     })
 
     afterEach(() => {
@@ -208,6 +210,7 @@ describe('AppMenu', () => {
         delete window.md2Data
         setActionBridgeOverride(null)
         cardSequenceDraftService.close()
+        keyboardShortcutService.stop()
         vi.restoreAllMocks()
     })
 
@@ -382,7 +385,7 @@ describe('AppMenu', () => {
         expect(commit).not.toHaveBeenCalled()
     })
 
-    it('removes the Ctrl+S listener when AppMenu unmounts', async () => {
+    it('keeps app-wide Ctrl+S ownership after AppMenu unmounts', async () => {
         const { renderResult } = await renderProjectWithPendingChanges()
         const commit = vi.spyOn(projectSessionService, 'commit').mockResolvedValue()
         renderResult.unmount()
@@ -390,8 +393,8 @@ describe('AppMenu', () => {
 
         fireEvent(window, shortcutEvent)
 
-        expect(shortcutEvent.defaultPrevented).toBe(false)
-        expect(commit).not.toHaveBeenCalled()
+        expect(shortcutEvent.defaultPrevented).toBe(true)
+        expect(commit).toHaveBeenCalledOnce()
     })
 
     it('keeps search text and mobile actions at intermediate workspace widths', () => {
@@ -709,6 +712,11 @@ describe('AppMenu', () => {
         configService.clear()
         configService.init({
             desktopConfig: {
+                agentAccounts: [
+                    { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' },
+                    { agent: 'claude', id: 'claude-initial', kind: 'initial', name: 'Default' },
+                    { agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111', kind: 'directory', name: 'Work' },
+                ],
                 agentProfiles: [
                     { command: ['codex'], defaultThinkingLevel: 'none', modelArgument: '--model', models: ['gpt-5'], name: 'codex' },
                     { command: ['local-agent'], defaultThinkingLevel: 'none', modelArgument: '--model', models: ['local-model'], name: 'local' },
@@ -727,9 +735,15 @@ describe('AppMenu', () => {
         fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
 
         expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('codex')
+        expect(screen.getByRole('combobox', { name: 'Default account' })).toHaveTextContent('Initial')
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('gpt-5')
         expect(screen.getByRole('combobox', { name: 'Default reasoning level' })).toHaveTextContent('high')
         expect(screen.getByRole('combobox', { name: 'Default permission mode' })).toHaveTextContent('Ask for approval')
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Default account' }))
+        fireEvent.click(screen.getByRole('option', { name: 'Work' }))
+        expect(configService.get('desktop.agentSelection').settingsByAgent.codex.accountId)
+            .toBe('11111111-1111-4111-8111-111111111111')
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Default permission mode' }))
         fireEvent.click(screen.getByRole('option', { name: 'Full access — disables approvals' }))
@@ -750,6 +764,7 @@ describe('AppMenu', () => {
         await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('local'))
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('local-model')
         expect(screen.getByRole('combobox', { name: 'Default reasoning level' })).toHaveTextContent('low')
+        expect(screen.queryByRole('combobox', { name: 'Default account' })).not.toBeInTheDocument()
         expect(screen.getByDisplayValue('Permissions unsupported')).toBeDisabled()
     })
 

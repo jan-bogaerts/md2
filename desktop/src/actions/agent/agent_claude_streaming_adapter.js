@@ -228,7 +228,7 @@ function createStreamState() {
 }
 
 class ClaudeStreamingAdapter {
-    constructor(writeLine, onEvent, rootPath, providerConversationId, claudeUsageTracker) {
+    constructor(writeLine, onEvent, rootPath, providerConversationId, claudeUsageTracker, initialTaskList) {
         this.writeLine = writeLine;
         this.onEvent = onEvent;
         this.pendingApprovals = new Map();
@@ -247,7 +247,7 @@ class ClaudeStreamingAdapter {
         this.pendingContextUsage = null;
         this.pendingLiveContextUsage = null;
         this.fileResultDecoder = new ClaudeFileResultDecoder(rootPath);
-        this.taskListDecoder = new ClaudeTaskListDecoder();
+        this.taskListDecoder = new ClaudeTaskListDecoder(initialTaskList);
         this.messageUsages = new Map();
         this.claudeUsageTracker = claudeUsageTracker ?? new ClaudeUsageTracker(providerConversationId);
         this.turnStarted = false;

@@ -60,7 +60,9 @@ export interface HistoricalFileContent {
 }
 
 export interface ActionScheduleRegistrationRequest {
+    accountId?: string
     actionId: string
+    conversationId?: string
     context: ActionContext
     prompt?: string
     trigger: ActionScheduleTrigger
@@ -97,6 +99,7 @@ interface ActionRunHistoryEntryBase {
 }
 
 export interface AgentActionRunHistoryEntry extends ActionRunHistoryEntryBase {
+    accountId?: string
     agent?: string | null
     model?: string
     permissionMode?: PermissionMode
@@ -118,6 +121,7 @@ export type ActionRunHistoryEntry = AgentActionRunHistoryEntry | CommandActionRu
 
 /** Request to render a commit's diff through the configured Electron command template. */
 export interface DiffRequest {
+    actionsFolder: string
     branch: string
     commit: string
     filePath: string

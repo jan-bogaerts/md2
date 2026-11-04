@@ -3,6 +3,7 @@ import type { ActionDefinition } from '../../data/action_types'
 import type { AnySchedule } from '../../data/action_schedule_types'
 import type { Card } from '../../data/data_types'
 import { projectActiveSchedules } from './active_schedule_projection'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
 
 const action = { id: 'implement', label: 'Implement' } as ActionDefinition
 const card = {
@@ -42,7 +43,11 @@ function sequenceSchedule(): AnySchedule {
 
 describe('projectActiveSchedules', () => {
     it('resolves a current card path by internal ID instead of persisted context path', () => {
-        const sources = { actions: [action], cards: [card], claudeSnapshot: null, codexSnapshot: null }
+        const sources = {
+            actions: [action], agentAccounts: DEFAULT_AGENT_ACCOUNTS, cards: [card],
+            claudeSnapshots: new Map(), codexSnapshots: new Map(),
+            defaultAccountId: () => 'claude-initial',
+        }
         const [item] = projectActiveSchedules([actionSchedule()], sources)
 
         expect(item.target).toEqual({ available: true, id: 'card-1', label: 'F-1 — First card', path: 'design/F-1.md' })
@@ -53,17 +58,39 @@ describe('projectActiveSchedules', () => {
     it('projects exact sequence progress target and retains missing identities', () => {
         const [item] = projectActiveSchedules([sequenceSchedule()], {
             actions: [action],
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             cards: [card],
-            claudeSnapshot: { available: true, observedAt: 1, windows: [{ id: 'weekly', resetsAt: 2, usedPercent: 10 }] },
-            codexSnapshot: null,
+            claudeSnapshots: new Map([['claude-initial', { accountId: 'claude-initial', available: true, observedAt: 1, windows: [{ id: 'weekly', resetsAt: 2, usedPercent: 10 }] }]]),
+            codexSnapshots: new Map(),
+            defaultAccountId: () => 'claude-initial',
         })
 
         expect(item.actionLabel).toBe('missing-action')
         expect(item.target).toEqual({ available: false, id: 'missing-card', label: 'missing-card', path: null })
-        expect(item.tracker).toEqual({ available: true, label: 'Claude / default / weekly' })
+        expect(item.tracker).toEqual({ available: true, label: 'Claude / Default / default / weekly' })
         expect(item.unavailableReasons).toEqual([
             'Action unavailable: missing-action',
             'Target card unavailable: missing-card',
         ])
+    })
+
+    it('falls back from a removed explicit account to the configured default account', () => {
+        const scheduled = sequenceSchedule()
+        if (scheduled.trigger.type !== 'account-reset') throw new Error('Expected account-reset trigger')
+        scheduled.trigger = { ...scheduled.trigger, accountId: 'removed-account' }
+        const [item] = projectActiveSchedules([scheduled], {
+            actions: [action],
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
+            cards: [card],
+            claudeSnapshots: new Map([['claude-initial', {
+                accountId: 'claude-initial', available: true, observedAt: 1,
+                windows: [{ id: 'weekly', resetsAt: 2, usedPercent: 10 }],
+            }]]),
+            codexSnapshots: new Map(),
+            defaultAccountId: () => 'claude-initial',
+        })
+
+        expect(item.tracker).toEqual({ available: true, label: 'Claude / Default / default / weekly' })
+        expect(item.unavailableReasons).not.toContain(expect.stringContaining('Account tracker unavailable'))
     })
 })

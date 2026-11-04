@@ -1,5 +1,6 @@
 import { supportsModelDiscovery, type AgentProfile } from '../../data/agent_profiles';
 import { validateAgentModelCatalog, type AgentModelCatalog } from '../../data/agent_model_catalog';
+import { initialAgentAccountId, supportsAgentAccounts } from '../../data/agent_accounts';
 import { getElectronDataBridge, type AgentAvailability } from '../../data/electron_data_bridge';
 import { getElectronActionBridge } from '../../data/electron_action_bridge';
 import { register } from '../service_injector';
@@ -22,7 +23,7 @@ export interface AgentCatalogSnapshot {
 
 export interface AgentCapabilitiesProvider {
     getAgentAvailability(): Promise<Record<string, AgentAvailability>>;
-    getModelCatalog(profile: AgentProfile, refresh: boolean): Promise<AgentModelCatalog>;
+    getModelCatalog(profile: AgentProfile, accountId: string | undefined, refresh: boolean): Promise<AgentModelCatalog>;
     getConnectionIdentity(): unknown;
     onModelCatalogChanged?(callback: (catalog: AgentModelCatalog) => void): () => void;
 }
@@ -32,6 +33,22 @@ const EMPTY_SNAPSHOT: AgentCapabilitiesSnapshot = { availability: { error: null,
 
 function errorMessage(error: unknown) {
     return error instanceof Error ? error.message : 'Agent capability request failed';
+}
+
+/** A missing account ID means the agent's initial account; agents without accounts have none. */
+function resolveCatalogAccountId(agent: string, accountId: string | undefined) {
+    if (!supportsAgentAccounts(agent)) return null;
+
+    return accountId ?? initialAgentAccountId(agent);
+}
+
+function catalogKey(agent: string, accountId: string | null) {
+    return `${agent}:${accountId ?? ''}`;
+}
+
+/** Scoped change event of one agent account catalog. */
+export function agentCatalogChangedEvent(agent: string, accountId: string | undefined) {
+    return `catalog:${catalogKey(agent, resolveCatalogAccountId(agent, accountId))}`;
 }
 
 function currentBridge() {
@@ -46,11 +63,12 @@ const hostProvider: AgentCapabilitiesProvider = {
 
         return bridge.loadAgentAvailability();
     },
-    async getModelCatalog(profile, refresh) {
+    async getModelCatalog(profile, accountId, refresh) {
         const bridge = currentBridge();
         if (!bridge?.loadAgentModelCatalog) throw new Error('Model discovery requires the desktop host');
+        const request = { agent: profile.name, ...(accountId ? { accountId } : {}), profile, refresh };
 
-        return bridge.loadAgentModelCatalog({ agent: profile.name, profile, refresh });
+        return bridge.loadAgentModelCatalog(request);
     },
     onModelCatalogChanged(callback) {
         const bridge = currentBridge();
@@ -59,7 +77,7 @@ const hostProvider: AgentCapabilitiesProvider = {
     },
 };
 
-/** Displays the host's global model lists; no project, connection or freshness cache. */
+/** Displays the host's global model lists per agent account; no project, connection or freshness cache. */
 export class AgentCapabilitiesService extends EventTarget {
     private availabilityPromise: Promise<void> | null = null;
     private availabilityRequest: object | null = null;
@@ -80,8 +98,8 @@ export class AgentCapabilitiesService extends EventTarget {
         return this.snapshot;
     }
 
-    getCatalogSnapshot(agent: string) {
-        return this.catalogs.get(agent) ?? EMPTY_CATALOG;
+    getCatalogSnapshot(agent: string, accountId?: string) {
+        return this.catalogs.get(catalogKey(agent, resolveCatalogAccountId(agent, accountId))) ?? EMPTY_CATALOG;
     }
 
     initialize() {
@@ -93,12 +111,12 @@ export class AgentCapabilitiesService extends EventTarget {
         return this.availabilityPromise;
     }
 
-    /** Discover available built-in agents once during application startup. */
-    async refreshStartupCatalogs(profiles: AgentProfile[]) {
+    /** Discover available built-in agents once during application startup, each for its selected account. */
+    async refreshStartupCatalogs(profiles: AgentProfile[], selectedAccountIds: Record<string, string | undefined>) {
         await this.initialize();
         for (const profile of profiles) {
             if (!supportsModelDiscovery(profile) || !this.snapshot.availability.values[profile.name]?.available) continue;
-            await this.loadCatalog(profile, true);
+            await this.loadCatalog(profile, selectedAccountIds[profile.name], true);
         }
     }
 
@@ -110,14 +128,16 @@ export class AgentCapabilitiesService extends EventTarget {
         return this.availabilityPromise;
     }
 
-    loadCatalog(profile: AgentProfile, refresh = false) {
-        const pending = this.pendingCatalogs.get(profile.name);
+    /** Loads one agent account catalog; a missing account ID means the agent's initial account. */
+    loadCatalog(profile: AgentProfile, accountId?: string, refresh = false) {
+        const key = catalogKey(profile.name, resolveCatalogAccountId(profile.name, accountId));
+        const pending = this.pendingCatalogs.get(key);
         if (pending) return pending;
-        const previous = this.getCatalogSnapshot(profile.name);
-        this.catalogs.set(profile.name, { ...previous, error: null, loading: true });
-        const request = this.readCatalog(profile, refresh);
-        this.pendingCatalogs.set(profile.name, request);
-        this.dispatchEvent(new Event(`catalog:${profile.name}`));
+        const previous = this.catalogs.get(key) ?? EMPTY_CATALOG;
+        this.catalogs.set(key, { ...previous, error: null, loading: true });
+        const request = this.readCatalog(profile, accountId, key, refresh);
+        this.pendingCatalogs.set(key, request);
+        this.dispatchEvent(new Event(`catalog:${key}`));
 
         return request;
     }
@@ -128,26 +148,24 @@ export class AgentCapabilitiesService extends EventTarget {
     }
 
     private applyCatalog(catalog: AgentModelCatalog) {
-        this.catalogs.set(catalog.agent, { catalog, error: null, loading: this.pendingCatalogs.has(catalog.agent) });
-        this.dispatchEvent(new Event(`catalog:${catalog.agent}`));
+        const key = catalogKey(catalog.agent, catalog.accountId);
+        this.catalogs.set(key, { catalog, error: null, loading: this.pendingCatalogs.has(key) });
+        this.dispatchEvent(new Event(`catalog:${key}`));
     }
 
-    private async readCatalog(profile: AgentProfile, refresh: boolean) {
+    private async readCatalog(profile: AgentProfile, accountId: string | undefined, key: string, refresh: boolean) {
         await Promise.resolve();
         try {
-            const catalog = validateAgentModelCatalog(await this.provider.getModelCatalog(profile, refresh));
+            const catalog = validateAgentModelCatalog(await this.provider.getModelCatalog(profile, accountId, refresh));
             if (catalog.agent !== profile.name) throw new Error('Model catalog belongs to a different agent');
-            this.catalogs.set(profile.name, { catalog, error: null, loading: false });
+            if (catalogKey(catalog.agent, catalog.accountId) !== key) throw new Error('Model catalog belongs to a different account');
+            this.catalogs.set(key, { catalog, error: null, loading: false });
         } catch (error) {
-            this.catalogs.set(profile.name, {
-                catalog: this.getCatalogSnapshot(profile.name).catalog,
-                error: errorMessage(error),
-                loading: false,
-            });
+            this.catalogs.set(key, { catalog: this.catalogs.get(key)?.catalog ?? null, error: errorMessage(error), loading: false });
         } finally {
-            this.pendingCatalogs.delete(profile.name);
+            this.pendingCatalogs.delete(key);
         }
-        this.dispatchEvent(new Event(`catalog:${profile.name}`));
+        this.dispatchEvent(new Event(`catalog:${key}`));
     }
 
     private async loadAvailability() {

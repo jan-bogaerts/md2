@@ -5,6 +5,9 @@ import {
     diagramEditSessionService, type DiagramEditSessionService,
 } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramEdgeDetailsEditor } from './diagram_edge_details_editor'
+import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
 import { DiagramGroupDetailsEditor } from './diagram_group_details_editor'
 import { DiagramLegendDetailsEditor } from '../legend/diagram_legend_details_editor'
 import { DiagramMetadataDetailsEditor } from './diagram_metadata_details_editor'
@@ -17,6 +20,7 @@ import {
 
 interface DiagramObjectDetailsDialogProps {
     details?: DiagramObjectDetailsService
+    labelFocus?: DiagramLabelFocusService
     session?: DiagramEditSessionService
 }
 
@@ -35,10 +39,11 @@ function targetExists(target: DiagramObjectDetailsTarget | null, session: Diagra
     return session.read.getGroupSnapshot(target.objectId) !== null
 }
 
-const SINGLETON_TITLES: Record<'legend' | 'meta', string> = { legend: 'Diagram legend', meta: 'Diagram metadata' }
+const SINGLETON_TITLES: Record<'legend' | 'meta', string> = { legend: 'Add legend entry', meta: 'Diagram metadata' }
 
 export function DiagramObjectDetailsDialog({
     details = diagramObjectDetailsService,
+    labelFocus = diagramLabelFocusService,
     session = diagramEditSessionService,
 }: DiagramObjectDetailsDialogProps) {
     const target = useSyncExternalStore(details.subscribeTarget, details.getTargetSnapshot, details.getTargetSnapshot)
@@ -75,7 +80,7 @@ export function DiagramObjectDetailsDialog({
                 <DiagramNodeDetailsEditor key={`node:${target.objectId}`} nodeId={target.objectId} onClose={handleClose} session={session} />
             ) : null}
             {exists && target?.objectKind === 'edge' ? (
-                <DiagramEdgeDetailsEditor edgeId={target.objectId} key={`edge:${target.objectId}`} onClose={handleClose} session={session} />
+                <DiagramEdgeDetailsEditor edgeId={target.objectId} key={`edge:${target.objectId}`} labelFocus={labelFocus} onClose={handleClose} session={session} />
             ) : null}
             {exists && target?.objectKind === 'group' ? (
                 <DiagramGroupDetailsEditor groupId={target.objectId} key={`group:${target.objectId}`} onClose={handleClose} session={session} />

@@ -29,15 +29,19 @@ import {
     type DiagramData,
     type DiagramEdgeKind,
     type DiagramFormatting,
+    type DiagramLegendEntryFormatting,
     type DiagramNodeRoleFormatting,
     type DiagramRole,
 } from './diagram_data'
 import {
     diagramScale,
+    resolvedConnectionFormatting,
+    resolvedNodeFormatting,
     type DiagramFormattingCategory,
     type DiagramScaleField,
     withConnectionKindFormatting,
     withDiagramScale,
+    withLegendEntryFormatting,
     withNodeRoleFormatting,
 } from './diagram_formatting'
 import { layout, type PositionedDiagramData } from './diagram_layout'
@@ -400,6 +404,14 @@ export class DiagramViewService extends EventTarget {
 
     getConnectionKindFormattingSnapshot = (kind: DiagramEdgeKind) => this.getFormattingSnapshot()?.connectionKinds?.[kind]
 
+    getNodeFormattingSnapshot = (legendEntryId: string, role: DiagramRole) => (
+        resolvedNodeFormatting(this.sourceSnapshot?.diagram, legendEntryId, role)
+    )
+
+    getConnectionFormattingSnapshot = (legendEntryId: string, kind: DiagramEdgeKind) => (
+        resolvedConnectionFormatting(this.sourceSnapshot?.diagram, legendEntryId, kind)
+    )
+
     subscribeCurrentDiagram = (listener: () => void) => {
         this.addEventListener(CURRENT_DIAGRAM_CHANGED_EVENT, listener)
 
@@ -500,6 +512,20 @@ export class DiagramViewService extends EventTarget {
     subscribeConnectionKindFormatting = (kind: DiagramEdgeKind, listener: () => void) => (
         this.subscribe(formattingCategoryChangedEvent('connectionKind', kind), listener)
     )
+
+    subscribeNodeFormatting = (legendEntryId: string, role: DiagramRole, listener: () => void) => {
+        const unsubscribeEntry = this.subscribe(formattingCategoryChangedEvent('legendEntry', legendEntryId), listener)
+        const unsubscribeDefault = this.subscribe(formattingCategoryChangedEvent('nodeRole', role), listener)
+
+        return () => { unsubscribeEntry(); unsubscribeDefault() }
+    }
+
+    subscribeConnectionFormatting = (legendEntryId: string, kind: DiagramEdgeKind, listener: () => void) => {
+        const unsubscribeEntry = this.subscribe(formattingCategoryChangedEvent('legendEntry', legendEntryId), listener)
+        const unsubscribeDefault = this.subscribe(formattingCategoryChangedEvent('connectionKind', kind), listener)
+
+        return () => { unsubscribeEntry(); unsubscribeDefault() }
+    }
 
     bindProject(binding: DiagramProjectBinding) {
         const projectKey = `${binding.project.id}:${binding.project.branch}`
@@ -706,6 +732,13 @@ export class DiagramViewService extends EventTarget {
         const source = this.requireFormattingSource()
         source.diagram.formatting = withConnectionKindFormatting(source.diagram, kind, value)
         this.dispatchEvent(new Event(formattingCategoryChangedEvent('connectionKind', kind)))
+        this.scheduleCurrentFormatting(source)
+    }
+
+    setLegendEntryFormatting(legendEntryId: string, value: DiagramLegendEntryFormatting) {
+        const source = this.requireFormattingSource()
+        source.diagram.formatting = withLegendEntryFormatting(source.diagram, legendEntryId, value)
+        this.dispatchEvent(new Event(formattingCategoryChangedEvent('legendEntry', legendEntryId)))
         this.scheduleCurrentFormatting(source)
     }
 

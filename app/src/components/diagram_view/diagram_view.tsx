@@ -35,6 +35,7 @@ import { VerticalDiagramComparison } from './comparison/vertical_diagram_compari
 import { DiagramCurrentViewport } from './surface/diagram_current_viewport'
 import { DiagramNewPane } from './surface/diagram_new_pane'
 import { DiagramBreadcrumbBar } from './surface/diagram_breadcrumb_bar'
+import { DiagramFormatPasteDialog } from './commands/diagram_format_paste_dialog'
 
 const ROOT_DIAGRAM_CONTEXT = diagramContext('root')
 
@@ -144,8 +145,9 @@ export function DiagramView({
     ) : currentDiagramError ? (
         <Alert severity="warning">Diagram unavailable: {currentDiagramError}</Alert>
     ) : (
-        <Box aria-label="Active diagram" sx={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
-            <Box aria-label="Diagram content" sx={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+        <Box aria-label="Active diagram" sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+            <DiagramBreadcrumbBar service={service} session={editSession} />
+            <Box aria-label="Diagram content" sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
                 {currentDiagram ? (
                     editSessionSnapshot?.creationSourceDiagramId ? (
                         <DiagramNewPane
@@ -217,20 +219,20 @@ export function DiagramView({
                     session={editSessionSnapshot ? editSession : null}
                 />
             ) : null}
-            <DiagramBreadcrumbBar service={service} session={editSession} />
         </Box>
     )
 
     return (
         <Box
             aria-label="Diagram view"
-            sx={{ bgcolor: 'background.default', display: viewMode === 'diagrams' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
+            sx={{ bgcolor: 'custom.projectBackground', display: viewMode === 'diagrams' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
         >
             {content}
             {status === 'ready' ? (
                 <DiagramAgentFab diagramActionIds={diagramActionIds} rootActionIds={rootActionIds} service={service} />
             ) : null}
             <DiagramItemMenu emphasis={emphasis} service={service} />
+            <DiagramFormatPasteDialog selection={selection} session={editSession} />
             <DiagramActionPopup service={service} visible={viewMode === 'diagrams'} />
         </Box>
     )

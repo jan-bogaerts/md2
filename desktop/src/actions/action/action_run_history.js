@@ -16,6 +16,7 @@ function createCommandDetails(input) {
 function createAgentDetails(input) {
     const acknowledgedSettings = input.result.acknowledgedSettings;
     return {
+        ...(input.result.accountId !== undefined ? { accountId: input.result.accountId } : {}),
         ...(input.result.agent !== undefined ? { agent: input.result.agent } : {}),
         ...(input.result.model !== undefined ? { model: input.result.model } : {}),
         ...(input.result.permissionMode !== undefined ? { permissionMode: input.result.permissionMode } : {}),

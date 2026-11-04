@@ -1,17 +1,17 @@
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
 import { useActiveDiagramTool, useDiagramTransientGesture } from './use_diagram_tool'
 
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [],
     groups: [],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
     nodes: [],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'diagram.json' }
 
 class DiagramSourceStub extends EventTarget {

@@ -3,6 +3,7 @@ const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 const { createPhaseTracker } = require('./agent_conversation_phases');
+const { findProviderSession } = require('./agent_conversation');
 const { createProviderEventEntryIndexes } = require('./agent_run_transcript');
 
 /**
@@ -41,6 +42,7 @@ function writeJsonLine(stream, message) {
  * and `persistCheckpoint` spreads the whole object into the persistence layer, so the field set is a contract.
  */
 function createRun({
+    accountId,
     agent,
     child,
     conversation,
@@ -63,6 +65,7 @@ function createRun({
         && lastEntry?.kind === 'event' && lastEntry.type === 'agentQuestion' ? lastEntry.questions : null;
 
     return {
+        accountId,
         providerEventEntryIndexes: createProviderEventEntryIndexes(conversation.entries),
         agent,
         assistantItemIndex: 0,
@@ -137,10 +140,11 @@ function attachRunProtocol(run, {
     rootPath,
 }) {
     const writeLine = (message) => writeJsonLine(run.child.stdin, message);
-    const providerSession = run.conversation.providerSessions.find(({ agent, conversationId }) =>
-        agent === run.agent && conversationId === providerConversationId);
+    const providerSession = findProviderSession(run.conversation.providerSessions, run.agent, run.accountId);
+    const usageBaseline = providerSession && providerSession.conversationId === providerConversationId
+        ? providerSession.usageBaseline : undefined;
     run.claudeUsageTracker = run.agent === 'claude'
-        ? new ClaudeUsageTracker(providerConversationId, providerSession?.usageBaseline)
+        ? new ClaudeUsageTracker(providerConversationId, usageBaseline)
         : null;
     run.streamingAdapter = run.streaming
         ? createAgentStreamingAdapter(
@@ -152,18 +156,28 @@ function attachRunProtocol(run, {
             onCodexRuntimeEvent,
             run.request.executionSettings,
             run.claudeUsageTracker,
+            run.request.agentTaskTrackingEnabled === true,
+            run.conversation.taskList,
         )
         : null;
     run.protocolLines = run.streaming ? new JsonLineBuffer(run.id, onStreamingLine) : null;
     run.parser = run.streaming
         ? null
-        : createAgentProviderProtocolParser(run.agent, onProviderEvent, onMalformedOutput, rootPath, run.claudeUsageTracker);
+        : createAgentProviderProtocolParser(
+            run.agent,
+            onProviderEvent,
+            onMalformedOutput,
+            rootPath,
+            run.claudeUsageTracker,
+            run.conversation.taskList,
+        );
 
     return run;
 }
 
 function createRunResult(request, exitCode, run) {
     return {
+        ...(run.accountId ? { accountId: run.accountId } : {}),
         command: request.command,
         conversation: run.conversation,
         exitCode,

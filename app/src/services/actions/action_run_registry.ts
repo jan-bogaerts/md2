@@ -137,6 +137,7 @@ function applyTerminalCardChangedFiles(context: ActionContext, changedPaths: str
 
 function createLog(event: ActionRunEvent): ActionRunLogEntry {
     return {
+        ...(event.type === 'action' && event.accountId ? { accountId: event.accountId } : {}),
         actionId: event.actionId,
         actionName: actionName(event.actionId),
         command: event.type === 'action' ? event.command ?? null : null,
@@ -183,6 +184,7 @@ function updateActionLogs(logs: ActionRunLogEntry[], event: Extract<ActionRunEve
     const next = [...logs]
     next[currentIndex] = {
         ...current,
+        ...(event.accountId ? { accountId: event.accountId } : {}),
         command: event.command ?? current.command,
         message: event.message ?? `${actionName(event.actionId)} ${event.status}`,
         ...(event.permissionMode ? { permissionMode: event.permissionMode } : {}),

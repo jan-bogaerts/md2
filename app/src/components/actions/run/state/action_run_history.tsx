@@ -1,11 +1,15 @@
 import { Box, Stack, Typography } from '@mui/material'
 import { useEffect, useRef } from 'react'
 import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
+import type { AgentAccount } from '../../../../data/agent_accounts'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../../../data/agent_accounts'
 import { dialogService } from '../../../../services/dialog_service'
 import { CommitReferenceRow } from '../../conversation/events/commit_reference_row'
 import { agentSpeedLabel } from '../../../../data/agent_speed_label';
+import { useConfigValueOrFallback } from '../../../hooks/use_config_value'
 
 interface HistoryEntryRowProps {
+    accounts: AgentAccount[]
     entry: ActionRunHistoryEntry
 }
 
@@ -35,9 +39,13 @@ function newestFirstHistoryEntries(entries: ActionRunHistoryEntry[]) {
 
 /** One run history line with commits produced across its action chain. */
 function HistoryEntryRow(props: HistoryEntryRowProps) {
-    const { entry } = props
+    const { accounts, entry } = props
+    const accountName = entry.type === 'agent' && entry.accountId
+        ? accounts.find(({ id }) => id === entry.accountId)?.name ?? `${entry.accountId} — unavailable`
+        : null
     const configuration = entry.type === 'agent'
-        ? [entry.agent, entry.model, entry.thinkingLevel, entry.permissionMode, agentSpeedLabel(entry)].filter((value) => !!value).join(' / ')
+        ? [entry.agent, accountName, entry.model, entry.thinkingLevel, entry.permissionMode, agentSpeedLabel(entry)]
+            .filter((value) => !!value).join(' / ')
         : ''
     const agentLabel = configuration ? ` (${configuration})` : ''
     const completedAt = new Date(entry.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
@@ -63,6 +71,7 @@ function HistoryEntryRow(props: HistoryEntryRowProps) {
 /** Presentation-only list of previous action runs. */
 export function ActionRunHistory(props: ActionRunHistoryProps) {
     const { compact = false, entries, error } = props
+    const accounts = useConfigValueOrFallback('desktop.agentAccounts', DEFAULT_AGENT_ACCOUNTS)
     const reportedErrorRef = useRef<string | null>(null)
     const displayEntries = newestFirstHistoryEntries(entries);
 
@@ -93,7 +102,7 @@ export function ActionRunHistory(props: ActionRunHistoryProps) {
             ) : null}
             <Stack spacing={0.5} sx={{ mt: 0.5 }}>
                 {displayEntries.map(({ entry, sourceIndex }) => (
-                    <HistoryEntryRow entry={entry} key={`${entry.completedAt}-${entry.status}-${sourceIndex}`} />
+                    <HistoryEntryRow accounts={accounts} entry={entry} key={`${entry.completedAt}-${entry.status}-${sourceIndex}`} />
                 ))}
             </Stack>
         </Box>

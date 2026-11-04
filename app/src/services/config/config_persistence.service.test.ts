@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BUILTIN_AGENT_PROFILES } from '../../data/agent_profiles'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
 import type { DesktopConfigValues } from './config_entries'
 import {
     readDesktopConfigFromBridge,
@@ -15,6 +16,7 @@ describe('config persistence', () => {
     it('reads and writes desktop config through the bridge', () => {
         const desktopConfig: DesktopConfigValues = {
             agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: '', thinkingLevel: 'none' } } },
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: BUILTIN_AGENT_PROFILES,
             editorCommand: 'code -g "{{file}}:{{line}}"',
             mergeConflictResolverCommand: '',

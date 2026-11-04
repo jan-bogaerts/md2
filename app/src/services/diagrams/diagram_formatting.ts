@@ -6,6 +6,7 @@ import {
     type DiagramData,
     type DiagramEdgeKind,
     type DiagramFormatting,
+    type DiagramLegendEntryFormatting,
     type DiagramNodeRoleFormatting,
     type DiagramRole,
 } from './diagram_data'
@@ -13,7 +14,7 @@ import {
 export const DIAGRAM_FORMATTING_SCALE_DEFAULT = 100
 export const DIAGRAM_FORMATTING_SCALE_STEP = 10
 export type DiagramScaleField = 'boxScalePercent' | 'fontScalePercent' | 'spacingScalePercent'
-export type DiagramFormattingCategory = 'connectionKind' | 'nodeRole'
+export type DiagramFormattingCategory = 'connectionKind' | 'legendEntry' | 'nodeRole'
 
 export function diagramScale(formatting: DiagramFormatting | undefined, field: DiagramScaleField) {
     return formatting?.[field] ?? DIAGRAM_FORMATTING_SCALE_DEFAULT
@@ -66,6 +67,27 @@ export function withConnectionKindFormatting(
         ...diagram.formatting,
         connectionKinds: { ...diagram.formatting?.connectionKinds, [kind]: value },
     })
+}
+
+export function withLegendEntryFormatting(
+    diagram: DiagramData,
+    legendEntryId: string,
+    value: DiagramLegendEntryFormatting,
+) {
+    return canonicalFormatting(diagram, {
+        ...diagram.formatting,
+        legendEntries: { ...diagram.formatting?.legendEntries, [legendEntryId]: value },
+    })
+}
+
+export function resolvedNodeFormatting(diagram: DiagramData | undefined, legendEntryId: string, role: DiagramRole) {
+    return (diagram?.formatting?.legendEntries?.[legendEntryId] as DiagramNodeRoleFormatting | undefined)
+        ?? diagram?.formatting?.nodeRoles?.[role]
+}
+
+export function resolvedConnectionFormatting(diagram: DiagramData | undefined, legendEntryId: string, kind: DiagramEdgeKind) {
+    return (diagram?.formatting?.legendEntries?.[legendEntryId] as DiagramConnectionKindFormatting | undefined)
+        ?? diagram?.formatting?.connectionKinds?.[kind]
 }
 
 export function sameFormattingValue(left: unknown, right: unknown) {

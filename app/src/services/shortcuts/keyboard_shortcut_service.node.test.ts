@@ -1,150 +1,138 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { KeyboardShortcutService, type KeyboardShortcutBinding } from './keyboard_shortcut_service'
+import type { WorkspaceViewMode, WorkspaceViewService } from '../project/workspace_view_service'
+import {
+    KeyboardShortcutService,
+    type KeyboardShortcutHandler,
+    type ViewKeyboardShortcutServices,
+} from './keyboard_shortcut_service'
 
-function setPlatform(platform: string) {
-    vi.stubGlobal('navigator', { userAgent: platform, userAgentData: { platform } })
+class WorkspaceViewStub extends EventTarget {
+    private viewMode: WorkspaceViewMode = 'cards';
+
+    getSnapshot() {
+        return { selectedPath: null, viewMode: this.viewMode };
+    }
+
+    setViewMode(viewMode: WorkspaceViewMode) {
+        this.viewMode = viewMode;
+        this.dispatchEvent(new Event('changed'));
+    }
 }
 
-function createKeyboardEvent(key: string, modifiers: Partial<Pick<KeyboardEvent, 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey'>> = {}) {
-    const event = new Event('keydown', { cancelable: true })
-    const keyboardValues = { altKey: false, ctrlKey: false, key, metaKey: false, shiftKey: false, ...modifiers }
-    Object.defineProperties(event, Object.fromEntries(
-        Object.entries(keyboardValues).map(([name, value]) => [name, { configurable: true, value }]),
-    ))
-
-    return event as KeyboardEvent
+function createHandler(result = false): KeyboardShortcutHandler & { handleKeyDown: ReturnType<typeof vi.fn> } {
+    return { handleKeyDown: vi.fn(() => result) };
 }
 
-function createBinding(run = vi.fn()): KeyboardShortcutBinding {
-    return { alt: false, ctrl: false, id: 'global-search', key: 'f', mod: true, run, shift: true }
+function createKeyboardEvent(type = 'keydown', capsLock = false) {
+    const event = new Event(type, { cancelable: true });
+    Object.defineProperties(event, {
+        altKey: { value: false },
+        ctrlKey: { value: false },
+        getModifierState: { value: (modifier: string) => modifier === 'CapsLock' && capsLock },
+        key: { value: 'x' },
+        metaKey: { value: false },
+        shiftKey: { value: false },
+    });
+
+    return event as KeyboardEvent;
+}
+
+function createService() {
+    const workspaceView = new WorkspaceViewStub();
+    const global = createHandler();
+    const markdownLocalSearch = createHandler();
+    const views: ViewKeyboardShortcutServices = {
+        cards: createHandler(),
+        diagrams: createHandler(),
+        stats: createHandler(),
+        text: createHandler(),
+    };
+    const service = new KeyboardShortcutService({
+        global,
+        markdownLocalSearch,
+        views,
+        workspaceView: workspaceView as unknown as WorkspaceViewService,
+    });
+
+    return { global, markdownLocalSearch, service, views, workspaceView };
 }
 
 describe('KeyboardShortcutService', () => {
-    afterEach(() => vi.unstubAllGlobals())
+    afterEach(() => vi.restoreAllMocks());
 
-    it('attaches on first registration and detaches after last unregister', () => {
-        setPlatform('Windows')
-        const target = new EventTarget()
-        const addEventListener = vi.spyOn(target, 'addEventListener')
-        const removeEventListener = vi.spyOn(target, 'removeEventListener')
-        vi.stubGlobal('window', target)
-        const service = new KeyboardShortcutService()
+    it('owns one keydown and keyup listener while started', () => {
+        const target = new EventTarget();
+        const addEventListener = vi.spyOn(target, 'addEventListener');
+        const removeEventListener = vi.spyOn(target, 'removeEventListener');
+        const { service } = createService();
 
-        const unregisterFirst = service.register(createBinding())
-        const unregisterSecond = service.register({ ...createBinding(), id: 'other' })
-        expect(addEventListener).toHaveBeenCalledTimes(1)
+        service.start(target as unknown as Window);
+        service.start(target as unknown as Window);
+        service.stop();
 
-        unregisterFirst()
-        expect(removeEventListener).not.toHaveBeenCalled()
-        unregisterSecond()
-        expect(removeEventListener).toHaveBeenCalledTimes(1)
-    })
+        expect(addEventListener).toHaveBeenCalledTimes(2);
+        expect(removeEventListener).toHaveBeenCalledTimes(2);
+    });
 
-    it('maps mod to Ctrl on Windows and compares keys case-insensitively', () => {
-        setPlatform('Windows')
-        const target = new EventTarget()
-        vi.stubGlobal('window', target)
-        const run = vi.fn()
-        const service = new KeyboardShortcutService()
-        service.register(createBinding(run))
-        const event = createKeyboardEvent('F', { ctrlKey: true, shiftKey: true })
+    it('routes an unhandled key only to active view and Markdown local search', () => {
+        const target = new EventTarget();
+        const { global, markdownLocalSearch, service, views } = createService();
+        service.start(target as unknown as Window);
 
-        target.dispatchEvent(event)
+        target.dispatchEvent(createKeyboardEvent());
 
-        expect(event.defaultPrevented).toBe(true)
-        expect(run).toHaveBeenCalledOnce()
-    })
+        expect(global.handleKeyDown).toHaveBeenCalledOnce();
+        expect(views.cards.handleKeyDown).toHaveBeenCalledOnce();
+        expect(views.text.handleKeyDown).not.toHaveBeenCalled();
+        expect(markdownLocalSearch.handleKeyDown).toHaveBeenCalledOnce();
+    });
 
-    it('maps mod to Meta on Apple platforms', () => {
-        setPlatform('macOS')
-        const target = new EventTarget()
-        vi.stubGlobal('window', target)
-        const run = vi.fn()
-        const service = new KeyboardShortcutService()
-        service.register(createBinding(run))
+    it('switches active subservice when workspace view changes', () => {
+        const target = new EventTarget();
+        const { service, views, workspaceView } = createService();
+        service.start(target as unknown as Window);
+        workspaceView.setViewMode('diagrams');
 
-        target.dispatchEvent(createKeyboardEvent('f', { ctrlKey: true, shiftKey: true }))
-        const metaEvent = createKeyboardEvent('f', { metaKey: true, shiftKey: true })
-        target.dispatchEvent(metaEvent)
+        target.dispatchEvent(createKeyboardEvent());
 
-        expect(metaEvent.defaultPrevented).toBe(true)
-        expect(run).toHaveBeenCalledOnce()
-    })
+        expect(views.cards.handleKeyDown).not.toHaveBeenCalled();
+        expect(views.diagrams.handleKeyDown).toHaveBeenCalledOnce();
+    });
 
-    it('matches a ctrl binding with the Control key on Windows and macOS but not with Meta on macOS', () => {
-        const run = vi.fn()
-        const binding: KeyboardShortcutBinding = { alt: false, ctrl: true, id: 'next-tab', key: 'Tab', mod: false, run, shift: false }
+    it('stops routing after service stops', () => {
+        const target = new EventTarget();
+        const { global, service } = createService();
+        service.start(target as unknown as Window);
+        service.stop();
 
-        setPlatform('Windows')
-        const windowsTarget = new EventTarget()
-        vi.stubGlobal('window', windowsTarget)
-        const windowsService = new KeyboardShortcutService()
-        const unregisterWindows = windowsService.register(binding)
-        const windowsEvent = createKeyboardEvent('Tab', { ctrlKey: true })
-        windowsTarget.dispatchEvent(windowsEvent)
-        unregisterWindows()
+        target.dispatchEvent(createKeyboardEvent());
 
-        setPlatform('macOS')
-        const appleTarget = new EventTarget()
-        vi.stubGlobal('window', appleTarget)
-        const appleService = new KeyboardShortcutService()
-        appleService.register(binding)
-        const metaEvent = createKeyboardEvent('Tab', { metaKey: true })
-        appleTarget.dispatchEvent(metaEvent)
-        const appleEvent = createKeyboardEvent('Tab', { ctrlKey: true })
-        appleTarget.dispatchEvent(appleEvent)
+        expect(global.handleKeyDown).not.toHaveBeenCalled();
+    });
 
-        expect(windowsEvent.defaultPrevented).toBe(true)
-        expect(metaEvent.defaultPrevented).toBe(false)
-        expect(appleEvent.defaultPrevented).toBe(true)
-        expect(run).toHaveBeenCalledTimes(2)
-    })
+    it('prevents browser action when handler owns key', () => {
+        const target = new EventTarget();
+        const { service, views } = createService();
+        vi.mocked(views.cards.handleKeyDown).mockReturnValue(true);
+        service.start(target as unknown as Window);
+        const event = createKeyboardEvent();
 
-    it('requires the exact modifier set', () => {
-        setPlatform('Windows')
-        const target = new EventTarget()
-        vi.stubGlobal('window', target)
-        const run = vi.fn()
-        const service = new KeyboardShortcutService()
-        service.register(createBinding(run))
-        const events = [
-            createKeyboardEvent('f', { ctrlKey: true }),
-            createKeyboardEvent('f', { altKey: true, ctrlKey: true, shiftKey: true }),
-            createKeyboardEvent('f', { ctrlKey: true, metaKey: true, shiftKey: true }),
-        ]
+        target.dispatchEvent(event);
 
-        events.forEach((event) => target.dispatchEvent(event))
+        expect(event.defaultPrevented).toBe(true);
+    });
 
-        expect(events.every((event) => !event.defaultPrevented)).toBe(true)
-        expect(run).not.toHaveBeenCalled()
-    })
+    it('publishes Caps Lock changes from keydown and keyup', () => {
+        const target = new EventTarget();
+        const { service } = createService();
+        const listener = vi.fn();
+        service.subscribeCapsLock(listener);
+        service.start(target as unknown as Window);
 
-    it('does not listen before registration or after unregister', () => {
-        setPlatform('Windows')
-        const target = new EventTarget()
-        vi.stubGlobal('window', target)
-        const run = vi.fn()
-        const service = new KeyboardShortcutService()
-        const initialEvent = createKeyboardEvent('f', { ctrlKey: true, shiftKey: true })
-        target.dispatchEvent(initialEvent)
-        const unregister = service.register(createBinding(run))
-        unregister()
-        const removedEvent = createKeyboardEvent('f', { ctrlKey: true, shiftKey: true })
+        target.dispatchEvent(createKeyboardEvent('keydown', true));
+        target.dispatchEvent(createKeyboardEvent('keyup', false));
 
-        target.dispatchEvent(removedEvent)
-
-        expect(initialEvent.defaultPrevented).toBe(false)
-        expect(removedEvent.defaultPrevented).toBe(false)
-        expect(run).not.toHaveBeenCalled()
-    })
-
-    it('rejects duplicate binding IDs', () => {
-        setPlatform('Windows')
-        vi.stubGlobal('window', new EventTarget())
-        const service = new KeyboardShortcutService()
-        const unregister = service.register(createBinding())
-
-        expect(() => service.register(createBinding())).toThrow('Keyboard shortcut already registered: global-search')
-        unregister()
-    })
-})
+        expect(listener).toHaveBeenCalledTimes(2);
+        expect(service.getCapsLockSnapshot()).toBe(false);
+    });
+});

@@ -1,37 +1,58 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { ActionContext } from '../../../data/action_context'
-import type { ActionRunEvent, ActionRunStatus } from '../../../data/action_run_types'
+import { DEFAULT_PROJECT_CONFIG } from '../../../data/data_types'
 import type { DiagramData } from '../../../services/diagrams/diagram_data'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
-import {
-    DiagramEditSessionService,
-} from '../../../services/diagrams/diagram_edit_session_service'
-import type {
-    DiagramChange,
-} from '../../../services/diagrams/diagram_edit_types'
+import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
+import type { DiagramChange } from '../../../services/diagrams/diagram_edit_types'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
 import {
     affectedDiagramObjects,
-    type DiagramAgentHandoffRequestDetail,
     DiagramChangeReviewService,
     groupDiagramChangeIds,
 } from './diagram_change_review_service'
 
 const diagram: DiagramData = {
-    edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' }],
+    edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', legendEntryId: 'connection', to: 'store' }],
     groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
-    meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
+    meta: {
+        description: 'Orders architecture',
+        legend: [
+            { id: 'focal', label: 'Focal', role: 'focal' },
+            { id: 'store', label: 'Store', role: 'store' },
+            { id: 'connection', kind: 'connection', label: 'Connection', useLabelAsDefault: false },
+        ],
+        title: 'Overview',
+        type: 'architecture',
+        version: 3,
+    },
     nodes: [
-        { id: 'orders', label: 'Orders', role: 'focal' },
-        { id: 'store', label: 'Store', role: 'store' },
+        { id: 'orders', label: 'Orders', legendEntryId: 'focal', role: 'focal' },
+        { id: 'store', label: 'Store', legendEntryId: 'store', role: 'store' },
     ],
 }
 const record: DiagramRecord = {actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json'}
+const config = {
+    ...DEFAULT_PROJECT_CONFIG,
+    cardTypes: [
+        { color: '#123456', idPrefix: 'J', label: 'Job', type: 'job' as const },
+        { color: '#654321', idPrefix: 'F', label: 'Feature', type: 'feature' as const },
+    ],
+    states: [
+        { alwaysVisible: true, color: '#123456', state: 'new' },
+        { alwaysVisible: true, color: '#654321', state: 'ready' },
+    ],
+    workingFolder: 'design/feature_descriptions',
+}
 
 class DiagramSourceStub extends EventTarget {
-    private source: DiagramViewSourceSnapshot | null = { diagram, record }
+    private readonly source: DiagramViewSourceSnapshot
 
-    getSourceSnapshot = () => this.source
+    constructor(source: DiagramViewSourceSnapshot) {
+        super()
+        this.source = source
+    }
+
+    getSourceSnapshot = (): DiagramViewSourceSnapshot => this.source
 
     subscribeSource = (listener: () => void) => {
         this.addEventListener('sourceChanged', listener)
@@ -40,47 +61,27 @@ class DiagramSourceStub extends EventTarget {
     }
 }
 
-function createSession() {
-    const session = new DiagramEditSessionService(new DiagramSourceStub())
+function createSession(sourceRecord: DiagramRecord = record, savedRecord: DiagramRecord | null = null) {
+    const session = new DiagramEditSessionService(new DiagramSourceStub({ diagram, record: sourceRecord }))
     session.bindProject({ branch: 'main', id: 'project', rootPath: 'C:/repo' })
-    session.start()
+    if (sourceRecord.pendingImplementation) session.restoreCreation(sourceRecord.id, savedRecord ? diagram : null, savedRecord)
+    else session.start()
 
     return session
 }
 
-function createRunEvents() {
-    let listener: ((event: ActionRunEvent) => void) | null = null
-    const subscribe = vi.fn((nextListener: (event: ActionRunEvent) => void) => {
-        listener = nextListener
-
-        return () => {
-            listener = null
-        }
-    })
-    const emit = (event: ActionRunEvent) => {
-        if (!listener) throw new Error('Run event listener is not active')
-
-        listener(event)
-    }
-
-    return { emit, subscribe }
-}
-
-function implementationRunEvent(
-    context: ActionContext,
-    status: ActionRunStatus,
-    overrides: Partial<Extract<ActionRunEvent, { type: 'run' }>> = {},
-): ActionRunEvent {
-    return {
-        actionId: 'implement',
-        context,
-        phase: 'main',
-        rootActionId: 'implement',
-        runId: 'run-1',
-        status,
-        type: 'run',
-        ...overrides,
-    }
+function createReview(
+    session: DiagramEditSessionService,
+    generate: () => string = () => '',
+    validate: (content: string) => DiagramData = () => diagram,
+) {
+    return new DiagramChangeReviewService(
+        session,
+        { replace: vi.fn(() => true) },
+        generate,
+        validate,
+        { getConfig: () => config },
+    )
 }
 
 function change(overrides: Partial<DiagramChange>): DiagramChange {
@@ -99,249 +100,67 @@ function change(overrides: Partial<DiagramChange>): DiagramChange {
 }
 
 describe('DiagramChangeReviewService', () => {
-    it('generates and validates only at explicit review and handoff boundaries', () => {
+    it('initializes configured card draft once per open and retains edits while open', () => {
         const session = createSession()
         session.objects.setNodeField('orders', 'label', 'Purchases')
-        const selection = { replace: vi.fn(() => true) }
-        const generate = vi.fn(() => 'generated report')
-        const validate = vi.fn(() => diagram)
-        const review = new DiagramChangeReviewService(session, selection, generate, validate)
+        const review = createReview(session, () => '- Change orders.')
+
+        expect(review.open()).toBe(true)
+        expect(review.getCardTitleSnapshot()).toBe('implement Overview')
+        expect(review.getCardTypeSnapshot()).toBe('job')
+        expect(review.getTargetColumnSnapshot()).toBe('new')
+        expect(review.markdownDraft.getSnapshot()).toBe('- Change orders.')
+
+        review.setCardTitle('Custom title')
+        review.setCardType('feature')
+        review.setTargetColumn('ready')
+        review.markdownDraft.edit('Custom Markdown')
+
+        expect(review.open()).toBe(false)
+        expect(review.getCardTitleSnapshot()).toBe('Custom title')
+        expect(review.getCardTypeSnapshot()).toBe('feature')
+        expect(review.getTargetColumnSnapshot()).toBe('ready')
+        expect(review.markdownDraft.getSnapshot()).toBe('Custom Markdown')
+    })
+
+    it('links pending source diagram when no saved copy or semantic changes exist', () => {
+        const pendingRecord = { ...record, pendingImplementation: true as const }
+        const review = createReview(createSession(pendingRecord))
 
         review.open()
-        session.objects.setNodeField('orders', 'label', 'Sales')
 
-        expect(generate).toHaveBeenCalledTimes(1)
-        expect(validate).toHaveBeenCalledTimes(1)
-        expect(review.getGeneratedTextSnapshot()).toBe('generated report')
+        expect(review.markdownDraft.getSnapshot()).toBe(
+            'Implement diagram [Overview](<../diagrams/overview.json>).',
+        )
         expect(review.getBlockingItemsSnapshot()).toEqual([])
-
-        review.requestAgentHandoff()
-
-        expect(generate).toHaveBeenCalledTimes(2)
-        expect(validate).toHaveBeenCalledTimes(2)
     })
 
-    it('publishes exact reviewed text and IDs for valid handoff', () => {
-        const session = createSession()
+    it('links latest saved copy and appends semantic changes', () => {
+        const pendingRecord = { ...record, pendingImplementation: true as const }
+        const savedRecord = {
+            ...record,
+            id: 'copy',
+            path: 'design/diagrams/overview-edited.json',
+            sourceDiagramId: record.id,
+        }
+        const session = createSession(pendingRecord, savedRecord)
         session.objects.setNodeField('orders', 'label', 'Purchases')
-        const review = new DiagramChangeReviewService(
-            session,
-            { replace: vi.fn(() => true) },
-            () => 'agent text',
-            undefined,
-            () => 'review-1',
+        const review = createReview(session, () => '- Change orders.')
+
+        review.open()
+
+        expect(review.markdownDraft.getSnapshot()).toBe(
+            'Implement diagram [Overview](<../diagrams/overview-edited.json>).\n\n- Change orders.',
         )
-        const listener = vi.fn()
-        review.subscribeAgentHandoffRequested(listener)
-        review.open()
-
-        expect(review.requestAgentHandoff()).toBe(true)
-        const detail = (listener.mock.calls[0][0] as CustomEvent<DiagramAgentHandoffRequestDetail>).detail
-        expect(detail.generatedText).toBe('agent text')
-        expect(detail.changeIds).toEqual(session.read.getChangeIdsSnapshot())
-        expect(detail.reviewedChangeSetId).toBe('review-1')
-        expect(review.getAgentHandoffContextSnapshot()).toEqual({
-            diagramChanges: 'agent text', diagramChangeSetId: 'review-1', diagramId: 'diagram-1',
-            kind: 'diagram', type: 'root',
-        })
-        expect(review.getOpenSnapshot()).toBe(false)
-
-        session.objects.setNodeField('orders', 'label', 'Sales')
-
-        expect(review.getAgentHandoffContextSnapshot()?.diagramChanges).toBe('agent text')
     })
 
-    it.each(['failed', 'cancelled'] as const)(
-        'retains reviewed changes for retry after a %s run',
-        (terminalStatus) => {
-            const session = createSession()
-            session.objects.setNodeField('orders', 'label', 'Purchases')
-            const runEvents = createRunEvents()
-            const review = new DiagramChangeReviewService(
-                session,
-                { replace: vi.fn(() => true) },
-                () => 'agent text',
-                undefined,
-                () => 'review-1',
-                runEvents.subscribe,
-            )
-            review.open()
-            review.requestAgentHandoff()
-            const context = review.getAgentHandoffContextSnapshot()
-            if (!context) throw new Error('Missing agent handoff context')
-            const editableDiagram = session.read.getEditableDiagram()
-            const changeIds = session.read.getChangeIdsSnapshot()
-
-            runEvents.emit(implementationRunEvent(context, 'running'))
-            runEvents.emit(implementationRunEvent(context, terminalStatus))
-
-            expect(review.getImplementationRunStatusSnapshot('run-1')).toBe(terminalStatus)
-            expect(review.getReviewedChangeSetDeliveredSnapshot('review-1')).toBe(false)
-            expect(session.read.getEditableDiagram()).toBe(editableDiagram)
-            expect(session.read.getChangeIdsSnapshot()).toBe(changeIds)
-
-            review.closeAgentHandoff()
-            review.open()
-            review.requestAgentHandoff()
-            expect(review.getAgentHandoffContextSnapshot()?.diagramChangeSetId).toBe('review-1')
-        },
-    )
-
-    it('treats authoritative recovery failure as an interrupted retryable run', () => {
+    it('shows exact parser failure and refuses save', () => {
         const session = createSession()
         session.objects.setNodeField('orders', 'label', 'Purchases')
-        const runEvents = createRunEvents()
-        const review = new DiagramChangeReviewService(
-            session,
-            { replace: vi.fn(() => true) },
-            () => 'agent text',
-            undefined,
-            () => 'review-1',
-            runEvents.subscribe,
-        )
-        review.open()
-        review.requestAgentHandoff()
-        const context = review.getAgentHandoffContextSnapshot()
-        if (!context) throw new Error('Missing agent handoff context')
-
-        runEvents.emit(implementationRunEvent(context, 'running'))
-        runEvents.emit(implementationRunEvent(context, 'failed'))
-
-        expect(review.getImplementationRunStatusSnapshot('run-1')).toBe('failed')
-        expect(review.getReviewedChangeSetDeliveredSnapshot('review-1')).toBe(false)
-    })
-
-    it.each(['completed', 'okButNotAfter'] as const)(
-        'marks only the exact %s implementation run review as delivered',
-        (terminalStatus) => {
-            const session = createSession()
-            session.objects.setNodeField('orders', 'label', 'Purchases')
-            const runEvents = createRunEvents()
-            const review = new DiagramChangeReviewService(
-                session,
-                { replace: vi.fn(() => true) },
-                () => 'agent text',
-                undefined,
-                () => 'review-1',
-                runEvents.subscribe,
-            )
-            const runStatusListener = vi.fn()
-            const deliveryListener = vi.fn()
-            const reportListener = vi.fn()
-            const changeIdsListener = vi.fn()
-            review.open()
-            review.requestAgentHandoff()
-            const context = review.getAgentHandoffContextSnapshot()
-            if (!context) throw new Error('Missing agent handoff context')
-            const editableDiagram = session.read.getEditableDiagram()
-            const changeIds = session.read.getChangeIdsSnapshot()
-            review.subscribeImplementationRunStatus('run-1', runStatusListener)
-            review.subscribeReviewedChangeSetDelivered('review-1', deliveryListener)
-            review.subscribeGeneratedText(reportListener)
-            session.read.subscribeChangeIds(changeIdsListener)
-
-            runEvents.emit(implementationRunEvent(context, 'running'))
-            runEvents.emit(implementationRunEvent(context, terminalStatus))
-
-            expect(review.getImplementationRunStatusSnapshot('run-1')).toBe(terminalStatus)
-            expect(review.getReviewedChangeSetDeliveredSnapshot('review-1')).toBe(true)
-            expect(runStatusListener).toHaveBeenCalledTimes(2)
-            expect(deliveryListener).toHaveBeenCalledOnce()
-            expect(reportListener).not.toHaveBeenCalled()
-            expect(changeIdsListener).not.toHaveBeenCalled()
-            expect(session.read.getEditableDiagram()).toBe(editableDiagram)
-            expect(session.read.getChangeIdsSnapshot()).toBe(changeIds)
-        },
-    )
-
-    it('ignores results whose canonical action, run, diagram, or reviewed change-set identity changed', () => {
-        const session = createSession()
-        session.objects.setNodeField('orders', 'label', 'Purchases')
-        const runEvents = createRunEvents()
-        const review = new DiagramChangeReviewService(
-            session,
-            { replace: vi.fn(() => true) },
-            () => 'agent text',
-            undefined,
-            () => 'review-1',
-            runEvents.subscribe,
-        )
-        review.open()
-        review.requestAgentHandoff()
-        const context = review.getAgentHandoffContextSnapshot()
-        if (!context) throw new Error('Missing agent handoff context')
-        runEvents.emit(implementationRunEvent(context, 'running'))
-
-        runEvents.emit(implementationRunEvent(context, 'completed', { actionId: 'other', rootActionId: 'other' }))
-        runEvents.emit(implementationRunEvent({ ...context, diagramId: 'diagram-2' }, 'completed'))
-        runEvents.emit(implementationRunEvent({ ...context, diagramChangeSetId: 'review-2' }, 'completed'))
-
-        expect(review.getImplementationRunStatusSnapshot('run-1')).toBe('running')
-        expect(review.getReviewedChangeSetDeliveredSnapshot('review-1')).toBe(false)
-    })
-
-    it('creates an undelivered review identity after later edits', () => {
-        const session = createSession()
-        session.objects.setNodeField('orders', 'label', 'Purchases')
-        const runEvents = createRunEvents()
-        const reviewIds = ['review-1', 'review-2']
-        const review = new DiagramChangeReviewService(
-            session,
-            { replace: vi.fn(() => true) },
-            () => `agent text ${session.read.getNodeFieldSnapshot('orders', 'label')}`,
-            undefined,
-            () => reviewIds.shift() ?? 'unexpected-review',
-            runEvents.subscribe,
-        )
-        review.open()
-        review.requestAgentHandoff()
-        const firstContext = review.getAgentHandoffContextSnapshot()
-        if (!firstContext) throw new Error('Missing first handoff context')
-        runEvents.emit(implementationRunEvent(firstContext, 'completed'))
-
-        session.objects.setNodeField('orders', 'label', 'Sales')
-        review.closeAgentHandoff()
-        review.open()
-        review.requestAgentHandoff()
-
-        expect(review.getAgentHandoffContextSnapshot()?.diagramChangeSetId).toBe('review-2')
-        expect(review.getReviewedChangeSetDeliveredSnapshot('review-1')).toBe(true)
-        expect(review.getReviewedChangeSetDeliveredSnapshot('review-2')).toBe(false)
-    })
-
-    it('rejects a reviewed set changed before handoff', () => {
-        const session = createSession()
-        session.objects.setNodeField('orders', 'label', 'Purchases')
-        const review = new DiagramChangeReviewService(session, { replace: vi.fn(() => true) })
-        review.open()
-
-        session.objects.setNodeField('orders', 'label', 'Sales')
-
-        expect(review.requestAgentHandoff()).toBe(false)
-        expect(review.getBlockingItemsSnapshot()).toEqual([
-            'Diagram changes changed after review. Review them again before sending to an agent.',
-        ])
-        expect(review.getAgentHandoffContextSnapshot()).toBeNull()
-        expect(review.getOpenSnapshot()).toBe(true)
-    })
-
-    it('rejects handoff without an active reviewed change set', () => {
-        const review = new DiagramChangeReviewService(createSession(), { replace: vi.fn(() => true) })
-
-        expect(review.requestAgentHandoff()).toBe(false)
-        expect(review.getBlockingItemsSnapshot()).toEqual(['No reviewed diagram changes are active.'])
-    })
-
-    it('shows parser failure as blocker and refuses save and handoff', () => {
-        const session = createSession()
-        session.objects.setNodeField('orders', 'label', 'Purchases')
-        const validate = vi.fn(() => {
+        const review = createReview(session, () => 'text', () => {
             throw new Error('Malformed diagram data: nodes.orders.label has empty string')
         })
-        const review = new DiagramChangeReviewService(session, { replace: vi.fn(() => true) }, () => 'text', validate)
-        const handoffListener = vi.fn()
         const saveListener = vi.fn()
-        review.subscribeAgentHandoffRequested(handoffListener)
         review.subscribeSaveRequested(saveListener)
 
         review.open()
@@ -349,9 +168,7 @@ describe('DiagramChangeReviewService', () => {
         expect(review.getBlockingItemsSnapshot()).toEqual([
             'Malformed diagram data: nodes.orders.label has empty string',
         ])
-        expect(review.requestAgentHandoff()).toBe(false)
         expect(review.requestSave()).toBe(false)
-        expect(handoffListener).not.toHaveBeenCalled()
         expect(saveListener).not.toHaveBeenCalled()
     })
 
@@ -359,7 +176,7 @@ describe('DiagramChangeReviewService', () => {
         const session = createSession()
         session.objects.setNodeField('orders', 'label', 'Purchases')
         const changeIds = session.read.getChangeIdsSnapshot()
-        const review = new DiagramChangeReviewService(session, { replace: vi.fn(() => true) })
+        const review = createReview(session)
 
         review.open()
         review.close()

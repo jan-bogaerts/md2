@@ -15,6 +15,11 @@ const {
     resolveAgentSelectionState,
     validateAgentSelectionState,
 } = require('../actions/agent/agent_selection.mjs');
+const {
+    DEFAULT_AGENT_ACCOUNTS,
+    resolveAgentAccount,
+    validateAgentAccounts,
+} = require('../actions/agent/agent_accounts.mjs');
 
 const DEFAULT_DESKTOP_AGENT_SELECTION = DEFAULT_AGENT_SELECTION;
 const DEFAULT_DESKTOP_AGENT = DEFAULT_AGENT_SELECTION.activeAgent;
@@ -28,6 +33,13 @@ function requireString(value, fieldName, allowEmpty = false) {
     }
 
     return value;
+}
+
+/** Rejects remembered account selections that are unknown, cross-agent, or set on a custom profile. */
+function validateSelectedAccounts(agentSelection, agentAccounts) {
+    for (const [agent, { accountId }] of Object.entries(agentSelection.settingsByAgent)) {
+        resolveAgentAccount(agentAccounts, agent, accountId);
+    }
 }
 
 function validateDesktopConfig(values) {
@@ -44,8 +56,13 @@ function validateDesktopConfig(values) {
         throw new Error('Config field desktop.remoteControlPort must be an integer from 1 through 65535');
     }
 
+    const agentSelection = validateAgentSelectionState(values.agentSelection, 'desktop.agentSelection');
+    const agentAccounts = validateAgentAccounts(values.agentAccounts, 'desktop.agentAccounts');
+    validateSelectedAccounts(agentSelection, agentAccounts);
+
     return {
-        agentSelection: validateAgentSelectionState(values.agentSelection, 'desktop.agentSelection'),
+        agentSelection,
+        agentAccounts,
         agentProfiles: validateAgentProfiles(migrateAgentProfiles(values.agentProfiles)),
         agentTaskTrackingEnabled: values.agentTaskTrackingEnabled,
         codexSearchEnabled: values.codexSearchEnabled,
@@ -90,6 +107,7 @@ function resolveDesktopConfig(env = process.env) {
 
     return {
         agentSelection: structuredClone(DEFAULT_DESKTOP_AGENT_SELECTION),
+        agentAccounts: structuredClone(DEFAULT_AGENT_ACCOUNTS),
         agentProfiles,
         agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
         codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,

@@ -3,13 +3,19 @@ import type { DiagramEdgeKind } from '../../../services/diagrams/diagram_data'
 import { diagramEdgeStyle } from '../rendering/diagram_edge_style'
 import { DiagramConnectionMarkerShape } from '../rendering/diagram_connection_marker'
 import {
-    type DiagramFormattingStore, useDiagramConnectionKindFormatting,
+    type DiagramFormattingStore, useDiagramConnectionFormatting, useDiagramConnectionKindFormatting,
 } from '../formatting/use_diagram_formatting'
 
 /** Compact connection sample using same visual rules as rendered diagram edges. */
-export function DiagramLegendConnectionSample({ kind, store }: { kind: DiagramEdgeKind, store?: DiagramFormattingStore }) {
+export function DiagramLegendConnectionSample({ kind, legendEntryId, store }: {
+    kind: DiagramEdgeKind
+    legendEntryId?: string
+    store?: DiagramFormattingStore
+}) {
     const theme = useTheme()
-    const formatting = useDiagramConnectionKindFormatting(kind, store)
+    const entryFormatting = useDiagramConnectionFormatting(legendEntryId ?? '', kind, store)
+    const kindFormatting = useDiagramConnectionKindFormatting(kind, store)
+    const formatting = legendEntryId ? entryFormatting : kindFormatting
     const { arrowhead, color, endMarker, startMarker, strokeDasharray, strokeWidth } = diagramEdgeStyle(kind, theme, false, formatting)
 
     return (

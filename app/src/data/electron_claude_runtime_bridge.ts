@@ -10,13 +10,15 @@ export interface ClaudeRateLimitWindow {
 }
 
 export interface ClaudeRateLimitSnapshot {
+    /** Agent account whose usage this snapshot describes. */
+    accountId: string
     available: boolean
     observedAt: number
     windows: ClaudeRateLimitWindow[]
 }
 
 export interface ElectronClaudeRuntimeBridge {
-    getClaudeRateLimits(): Promise<ClaudeRateLimitSnapshot | null>
+    getClaudeRateLimits(accountId: string): Promise<ClaudeRateLimitSnapshot | null>
     onClaudeRateLimits(callback: (snapshot: ClaudeRateLimitSnapshot) => void): () => void
     onConnectionChanged?(callback: (connected: boolean) => void): () => void
 }

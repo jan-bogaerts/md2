@@ -8,6 +8,7 @@ import {
     type StatsReleaseSelection,
 } from './project_stats_types';
 import { accountSeriesIdentity, modelIdentity } from './stats_identities';
+import { findAgentAccount } from '../../data/agent_accounts';
 
 function optionList(entries: Array<[string, string]>) {
     return [...new Map(entries).entries()]
@@ -40,6 +41,8 @@ export function buildOptions(source: StatsDatasetSource, releases: StatsReleaseO
     const agents = optionList(attributed.map(({ agent }) => [agent!, agent!]));
     const models = optionList(attributed.map(({ agent, model }) => [modelIdentity(agent!, model!), `${agent} - ${model}`]));
     const accountSeries = [...new Map(source.accountRows.map((row) => [accountSeriesIdentity(row), {
+        accountId: row.accountId,
+        accountName: findAgentAccount(source.agentAccounts, row.accountId)?.name ?? row.accountId,
         identity: accountSeriesIdentity(row),
         limitId: row.limitId,
         provider: row.provider,

@@ -1,6 +1,7 @@
 import { projectUsageMetricsService } from '../agents/project_usage_metrics_service';
 import { configService } from '../config/config_service';
 import type { AgentProfile } from '../../data/agent_profiles';
+import { DEFAULT_AGENT_ACCOUNTS, type AgentAccount } from '../../data/agent_accounts';
 import { register } from '../service_injector';
 import { ProjectStatsLoader, type StatsCalculator } from './project_stats_loader';
 import {
@@ -101,13 +102,19 @@ export class ProjectStatsService extends EventTarget {
         }
     }
 
-    async open(cards: StatsCardDescriptor[], agentProfiles: AgentProfile[] = configService.get('desktop.agentProfiles')) {
+    async open(
+        cards: StatsCardDescriptor[],
+        agentProfiles: AgentProfile[] = configService.get('desktop.agentProfiles'),
+        agentAccounts: AgentAccount[] = configService.isInitialized()
+            ? configService.get('desktop.agentAccounts')
+            : DEFAULT_AGENT_ACCOUNTS,
+    ) {
         if (!this.binding) throw new Error('Project stats are not bound to a project');
         if (this.isOpen) return;
         this.cards = cards;
         this.isOpen = true;
         this.abortController = new AbortController();
-        await this.load(this.binding, agentProfiles, this.abortController.signal);
+        await this.load(this.binding, agentAccounts, agentProfiles, this.abortController.signal);
     }
 
     close() {
@@ -141,14 +148,19 @@ export class ProjectStatsService extends EventTarget {
         this.publish(buildSnapshot(this.source, controls));
     }
 
-    private async load(binding: StatsProjectBinding, agentProfiles: AgentProfile[], signal: AbortSignal) {
+    private async load(
+        binding: StatsProjectBinding,
+        agentAccounts: AgentAccount[],
+        agentProfiles: AgentProfile[],
+        signal: AbortSignal,
+    ) {
         const revision = ++this.loadRevision;
         const isCurrent = () => this.isCurrentLoad(revision, binding, signal);
         this.publish({ ...this.snapshot, error: null, rows: [], status: 'loading' });
         try {
             const source = await this.loader.loadSource(binding, this.cards, signal, isCurrent);
             if (!source) return;
-            this.source = { ...source, agentProfiles };
+            this.source = { ...source, agentAccounts, agentProfiles };
             this.publish(buildSnapshot(this.source, this.snapshot.controls));
         } catch (error) {
             if (!isCurrent()) return;

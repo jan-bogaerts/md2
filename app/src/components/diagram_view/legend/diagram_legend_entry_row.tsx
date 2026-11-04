@@ -1,11 +1,14 @@
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
+import DragIndicatorOutlined from '@mui/icons-material/DragIndicatorOutlined'
+import { useSortable } from '@dnd-kit/sortable'
 import { Box, ButtonBase, IconButton, Menu, MenuItem, TextField, Tooltip, Typography } from '@mui/material'
-import { useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
+import { useCallback, useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import type {
     DiagramConnectionKindFormatting,
     DiagramEdgeKind,
+    DiagramLegendEntryFormatting,
     DiagramNodeRoleFormatting,
     DiagramRole,
 } from '../../../services/diagrams/diagram_data'
@@ -16,28 +19,34 @@ import type { DiagramLegendEntry } from './diagram_legend_entries'
 import { diagramRoleStyle } from '../formatting/diagram_role_style'
 import {
     type DiagramFormattingStore,
-    useDiagramNodeRoleFormatting,
+    useDiagramNodeFormatting,
 } from '../formatting/use_diagram_formatting'
 
 export interface DiagramFormattingMutationStore {
     setConnectionKindFormatting(kind: DiagramEdgeKind, value: DiagramConnectionKindFormatting): void
     setNodeRoleFormatting(role: DiagramRole, value: DiagramNodeRoleFormatting): void
+    setLegendEntryFormatting(legendEntryId: string, value: DiagramLegendEntryFormatting): void
 }
 
 function noSelection() { return null }
 function noSelectionSubscription() { return () => {} }
+function disabledDefaultLabel() { return false }
 
-/** One legend semantic category with hover/focus formatting action and scoped sample subscription. */
-export function DiagramLegendEntryRow({ entry, reader, session, store }: {
-    entry: DiagramLegendEntry, reader: DiagramFormattingStore, session?: DiagramEditSessionService, store: DiagramFormattingMutationStore,
+/**
+ * One legend semantic category with hover/focus formatting action and scoped sample subscription. With an
+ * edit session it is sortable through its drag handle.
+ */
+export function DiagramLegendEntryRow({ entry, entryKey, reader, session, store }: {
+    entry: DiagramLegendEntry, entryKey: string, reader: DiagramFormattingStore, session?: DiagramEditSessionService,
+    store: DiagramFormattingMutationStore,
 }) {
+    const sortable = useSortable({ disabled: !session, id: entryKey })
+    const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition } = sortable
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const [activeRole, setActiveRole] = useState<DiagramRole | null>(null)
     const [draftState, setDraftState] = useState({ base: entry.label, value: entry.label })
     const draftLabel = draftState.base === entry.label ? draftState.value : entry.label
     const [labelError, setLabelError] = useState<string | null>(null)
-    const entryKey = entry.entryType === 'node' ? `node:${entry.role}`
-        : entry.entryType === 'nodeKind' ? `nodeKind:${entry.nodeKind}` : `connection:${entry.kind}`
     const sampleRole = entry.entryType === 'node' ? entry.role
         : entry.entryType === 'nodeKind' ? entry.roles[0] : undefined
     const selectedKey = useSyncExternalStore(
@@ -45,6 +54,17 @@ export function DiagramLegendEntryRow({ entry, reader, session, store }: {
         session?.read.getSelectedLegendEntryKeySnapshot ?? noSelection,
         noSelection,
     )
+    const subscribeDefaultLabel = useCallback((listener: () => void) => (
+        entry.entryType === 'connection' && session
+            ? session.read.subscribeLegendEntryField(entryKey, 'useLabelAsDefault', listener)
+            : noSelectionSubscription()
+    ), [entry.entryType, entryKey, session])
+    const getDefaultLabelSnapshot = useCallback(() => (
+        entry.entryType === 'connection'
+            ? session?.read.getLegendEntryFieldSnapshot(entryKey, 'useLabelAsDefault') ?? entry.useLabelAsDefault
+            : false
+    ), [entry, entryKey, session])
+    const useLabelAsDefault = useSyncExternalStore(subscribeDefaultLabel, getDefaultLabelSnapshot, disabledDefaultLabel)
     const handleSelect = () => session?.selectLegendEntry(entryKey)
     const handleLabelChange = (event: ChangeEvent<HTMLInputElement>) => {
         setDraftState({ base: entry.label, value: event.target.value })
@@ -57,7 +77,6 @@ export function DiagramLegendEntryRow({ entry, reader, session, store }: {
 
             return
         }
-        session.legend.materializeDerivedLegend()
         if (!session.legend.setLegendEntryLabel(entryKey, draftLabel)) setLabelError('Label could not be saved.')
     }
     const handleLabelKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -71,10 +90,9 @@ export function DiagramLegendEntryRow({ entry, reader, session, store }: {
         }
     }
     const handleRemove = () => {
-        session?.legend.materializeDerivedLegend()
         session?.legend.removeLegendEntry(entryKey)
     }
-    const nodeFormatting = useDiagramNodeRoleFormatting(sampleRole ?? 'focal', reader)
+    const nodeFormatting = useDiagramNodeFormatting(entry.id, sampleRole ?? 'focal', reader)
     const handleOpen = (event: MouseEvent<HTMLButtonElement>) => {
         setAnchorElement(event.currentTarget)
         setActiveRole(entry.entryType === 'node' ? entry.role
@@ -86,14 +104,26 @@ export function DiagramLegendEntryRow({ entry, reader, session, store }: {
     }
     const handleRoleChoice = (event: MouseEvent<HTMLLIElement>) => setActiveRole(event.currentTarget.dataset.role as DiagramRole)
     const handleNodeApply = (value: DiagramNodeRoleFormatting) => {
-        if (activeRole) store.setNodeRoleFormatting(activeRole, value)
+        if (activeRole) store.setLegendEntryFormatting(entry.id, value)
     }
-    const handleConnectionApply = (value: DiagramConnectionKindFormatting) => {
-        if (entry.entryType === 'connection') store.setConnectionKindFormatting(entry.kind, value)
+    const handleConnectionApply = (value: DiagramConnectionKindFormatting, nextUseLabelAsDefault?: boolean) => {
+        if (entry.entryType !== 'connection') return
+        store.setLegendEntryFormatting(entry.id, value)
+        if (session && nextUseLabelAsDefault !== undefined && nextUseLabelAsDefault !== useLabelAsDefault) {
+            session.legend.setLegendEntryUseLabelAsDefault(entryKey, nextUseLabelAsDefault)
+        }
     }
+    const connectionFormatting = entry.entryType === 'connection'
+        ? reader.getConnectionFormattingSnapshot?.(entry.id, entry.kind)
+            ?? reader.getConnectionKindFormattingSnapshot(entry.kind)
+        : undefined
+
+    const sortableStyle = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, transition } : { transition }
 
     return (
         <Box
+            ref={setNodeRef}
+            style={sortableStyle}
             sx={{
                 alignItems: 'center', bgcolor: selectedKey === entryKey ? 'custom.primaryBg' : undefined,
                 borderRadius: 1, display: 'flex', gap: 1,
@@ -103,14 +133,28 @@ export function DiagramLegendEntryRow({ entry, reader, session, store }: {
             }}
         >
             {session ? (
+                <Tooltip title="Drag to reorder">
+                    <IconButton
+                        {...attributes}
+                        {...listeners}
+                        aria-label={`Reorder ${entry.label}`}
+                        ref={setActivatorNodeRef}
+                        size="small"
+                        sx={{ cursor: 'grab' }}
+                    >
+                        <DragIndicatorOutlined fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+            ) : null}
+            {session ? (
                 <ButtonBase aria-label={`Select ${entry.label}`} aria-pressed={selectedKey === entryKey} onClick={handleSelect} sx={{ borderRadius: 0.5, p: 0.5 }}>
                     {entry.entryType !== 'connection' ? (
                         <Box data-role={sampleRole} sx={{ border: '1px solid', borderRadius: 0.5, height: 12, width: 20, ...(sampleRole ? diagramRoleStyle(sampleRole, nodeFormatting) : {}) }} />
-                    ) : <DiagramLegendConnectionSample kind={entry.kind} store={reader} />}
+                    ) : <DiagramLegendConnectionSample kind={entry.kind} legendEntryId={entry.id} store={reader} />}
                 </ButtonBase>
             ) : entry.entryType !== 'connection' ? (
                 <Box data-role={sampleRole} sx={{ border: '1px solid', borderRadius: 0.5, flexShrink: 0, height: 12, width: 20, ...(sampleRole ? diagramRoleStyle(sampleRole, nodeFormatting) : {}) }} />
-            ) : <DiagramLegendConnectionSample kind={entry.kind} store={reader} />}
+            ) : <DiagramLegendConnectionSample kind={entry.kind} legendEntryId={entry.id} store={reader} />}
             {session ? (
                 <TextField
                     error={!!labelError}
@@ -156,7 +200,7 @@ export function DiagramLegendEntryRow({ entry, reader, session, store }: {
                     label={entry.entryType === 'nodeKind' ? `${entry.label} (${activeRole})` : entry.label}
                     onApply={handleNodeApply}
                     onClose={handleClose}
-                    value={reader.getNodeRoleFormattingSnapshot(activeRole)}
+                    value={reader.getNodeFormattingSnapshot?.(entry.id, activeRole) ?? reader.getNodeRoleFormattingSnapshot(activeRole)}
                 />
             ) : null}
             {anchorElement && entry.entryType === 'connection' ? (
@@ -166,7 +210,8 @@ export function DiagramLegendEntryRow({ entry, reader, session, store }: {
                     label={entry.label}
                     onApply={handleConnectionApply}
                     onClose={handleClose}
-                    value={reader.getConnectionKindFormattingSnapshot(entry.kind)}
+                    useLabelAsDefault={session ? useLabelAsDefault : undefined}
+                    value={connectionFormatting}
                 />
             ) : null}
         </Box>

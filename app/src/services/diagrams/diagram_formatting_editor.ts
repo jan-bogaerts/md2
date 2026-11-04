@@ -1,5 +1,5 @@
-import type { DiagramConnectionKindFormatting, DiagramEdgeKind, DiagramNodeRoleFormatting, DiagramRole } from './diagram_data'
-import { diagramScale, sameFormattingValue, type DiagramScaleField, withConnectionKindFormatting, withDiagramScale, withNodeRoleFormatting } from './diagram_formatting'
+import type { DiagramConnectionKindFormatting, DiagramEdgeKind, DiagramLegendEntryFormatting, DiagramNodeRoleFormatting, DiagramRole } from './diagram_data'
+import { diagramScale, sameFormattingValue, type DiagramScaleField, withConnectionKindFormatting, withDiagramScale, withLegendEntryFormatting, withNodeRoleFormatting } from './diagram_formatting'
 import { DiagramEditContext } from './diagram_edit_context'
 import { diagramFormattingCategoryChangedEvent, diagramFormattingScaleChangedEvent } from './diagram_edit_events'
 
@@ -48,6 +48,20 @@ export class DiagramFormattingEditor {
         this.context.transaction.finishFormattingChange(
             diagramFormattingCategoryChangedEvent('connectionKind', kind), kind, 'connectionKind',
             this.context.changeRegistry.baseline?.formatting?.connectionKinds?.[kind], previousValue, nextValue,
+        )
+    }
+
+    setLegendEntryFormatting(legendEntryId: string, value: DiagramLegendEntryFormatting) {
+        const diagram = this.context.diagram
+        const previousValue = diagram.formatting?.legendEntries?.[legendEntryId]
+        const formatting = withLegendEntryFormatting(diagram, legendEntryId, value)
+        const nextValue = formatting.legendEntries?.[legendEntryId]
+        if (sameFormattingValue(previousValue, nextValue)) return
+
+        diagram.formatting = formatting
+        this.context.transaction.finishFormattingChange(
+            diagramFormattingCategoryChangedEvent('legendEntry', legendEntryId), legendEntryId, 'legendEntry',
+            this.context.changeRegistry.baseline?.formatting?.legendEntries?.[legendEntryId], previousValue, nextValue,
         )
     }
 

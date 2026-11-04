@@ -242,9 +242,18 @@ function normalizeProviderSession(value) {
     const synchronizedThroughMessageId = optionalString(value.synchronizedThroughMessageId);
     if (!agent || !conversationId || !createdAt || !lastUsedAt || !synchronizedThroughMessageId) return null;
 
+    const accountId = optionalString(value.accountId);
     const usageBaseline = value.usageBaseline !== undefined ? normalizeProviderUsageBaseline(value.usageBaseline) : undefined;
 
-    return { agent, conversationId, createdAt, lastUsedAt, synchronizedThroughMessageId, ...(usageBaseline ? { usageBaseline } : {}) };
+    return {
+        ...(accountId ? { accountId } : {}),
+        agent,
+        conversationId,
+        createdAt,
+        lastUsedAt,
+        synchronizedThroughMessageId,
+        ...(usageBaseline ? { usageBaseline } : {}),
+    };
 }
 
 function normalizeContextWindowUsage(value) {

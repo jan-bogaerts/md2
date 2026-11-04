@@ -7,8 +7,9 @@ const { AgentModelCatalogService } = require('../actions/agent/agent_model_catal
 /** Mock model catalog reads without launching external provider processes. */
 export function createAgentModelCatalogStub() {
     const service = new AgentModelCatalogService();
-    service.load = vi.fn(async (profile) => ({
+    service.load = vi.fn(async (profile, account) => ({
         agent: profile.name,
+        accountId: account?.id ?? null,
         models: profile.models.map((id) => ({displayName: id, hidden: false, id})),
     }));
 

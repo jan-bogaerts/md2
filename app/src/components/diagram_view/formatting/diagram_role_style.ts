@@ -2,7 +2,7 @@ import type { DiagramNodeRoleFormatting, DiagramRole } from '../../../services/d
 
 const DIAGRAM_ROLE_STYLES = {
     backend: { bgcolor: 'background.paper', borderColor: 'text.primary' },
-    boundary: { bgcolor: 'background.default', borderColor: 'custom.borderStrong', borderStyle: 'dashed' },
+    boundary: { bgcolor: 'custom.projectBackground', borderColor: 'custom.borderStrong', borderStyle: 'dashed' },
     external: { bgcolor: 'action.hover', borderColor: 'divider' },
     focal: { bgcolor: 'custom.primaryBg', borderColor: 'primary.main' },
     input: { bgcolor: 'custom.primaryBg', borderColor: 'text.secondary' },

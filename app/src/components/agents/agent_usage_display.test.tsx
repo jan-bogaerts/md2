@@ -22,7 +22,7 @@ describe('AgentUsageDisplay', () => {
         summary.focus()
 
         expect(await screen.findByRole('tooltip')).toHaveTextContent(
-            'total: 1,284, input: 1,000, cached input: 234, output: 40, reasoning: 10, reported cost: $0.0125',
+            'total: 1,284, input: 1,000, cached input: 234, output: 40, reasoning: 10, cost: $0.0125',
         )
     })
 

@@ -1,11 +1,14 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render as testingRender, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ReactElement } from 'react'
+import { parseDiagramData } from '../../../services/diagrams/diagram_data'
 import type { DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEdgeDrawingService } from '../../../services/diagrams/diagram_edge_drawing_service'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
 import { DiagramGroupDrawingService } from '../../../services/diagrams/diagram_group_drawing_service'
+import { DiagramLabelFocusService } from '../../../services/diagrams/diagram_label_focus_service'
 import { DiagramMoveService } from '../../../services/diagrams/diagram_move_service'
 import { DiagramNodePlacementService } from '../../../services/diagrams/diagram_node_placement_service'
 import { DiagramResizeService } from '../../../services/diagrams/diagram_resize_service'
@@ -15,28 +18,35 @@ import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagr
 import { DEFAULT_DIAGRAM_ZOOM, DIAGRAM_ZOOM_STEP } from '../../../services/diagrams/diagram_zoom'
 import { DiagramZoomViewport } from './diagram_zoom_viewport'
 import { DiagramObjectDetailsService } from '../details/diagram_object_details_service'
+import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
+import { workspaceViewService } from '../../../services/project/workspace_view_service'
+import { AppThemeProvider } from '../../../theme/theme_provider'
 
-const diagram: DiagramData = {
+function render(element: ReactElement) {
+    return testingRender(<AppThemeProvider>{element}</AppThemeProvider>);
+}
+
+const diagram = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
     groups: [{ height: 160, id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'], width: 480, x: 200, y: 80 }],
-    meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
+    meta: { description: 'Orders architecture', legend: [], title: 'Overview', type: 'architecture', version: 1 },
     nodes: [
         { id: 'orders', label: 'Orders', role: 'focal', x: 240, y: 120 },
         { id: 'store', label: 'Store', role: 'store', x: 480, y: 120 },
     ],
-}
-const sequenceDiagram: DiagramData = {
+}))
+const sequenceDiagram = parseDiagramData(JSON.stringify({
     edges: [
         { from: 'orders', id: 'orders-store', kind: 'call', label: 'writes', to: 'store' },
         { from: 'store', id: 'store-orders', kind: 'return', label: 'done', to: 'orders' },
     ],
     groups: [],
-    meta: { description: 'Orders sequence', title: 'Sequence', type: 'sequence', version: 1 },
+    meta: { description: 'Orders sequence', legend: [], title: 'Sequence', type: 'sequence', version: 1 },
     nodes: [
         { id: 'orders', kind: 'participant', label: 'Orders', role: 'focal', x: 40, y: 40 },
         { id: 'store', kind: 'participant', label: 'Store', role: 'store', x: 256, y: 40 },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
@@ -63,14 +73,16 @@ function createHarness(sourceDiagram: DiagramData = diagram) {
     session.start()
     const geometry = new DiagramGeometryService(session)
     const selection = new DiagramSelectionService(session, geometry)
-    const placement = new DiagramNodePlacementService(session, selection)
-    const drawing = new DiagramEdgeDrawingService(session, geometry, selection)
+    const labelFocus = new DiagramLabelFocusService(session)
+    const placement = new DiagramNodePlacementService(session, selection, labelFocus)
+    const drawing = new DiagramEdgeDrawingService(session, geometry, selection, labelFocus)
     const groupDrawing = new DiagramGroupDrawingService(session, selection)
 
     return {
         drawing,
         geometry,
         groupDrawing,
+        labelFocus,
         movement: new DiagramMoveService(session, geometry, selection),
         placement,
         resize: new DiagramResizeService(session, geometry, selection),
@@ -134,17 +146,23 @@ function expectViewportScrollRange(
     })
 }
 
+beforeEach(() => {
+    workspaceViewService.setViewMode('diagrams')
+    keyboardShortcutService.start()
+})
+
 afterEach(() => {
     cleanup()
+    keyboardShortcutService.stop()
     vi.unstubAllGlobals()
 })
 
 describe('DiagramZoomViewport', () => {
     it.each(['empty', 'small'])('keeps a scrollable drawing surface for %s diagrams through resize and zoom', (kind) => {
-        const meta: DiagramData['meta'] = { description: '', title: kind, type: 'architecture', version: 1 }
+        const meta = { description: 'Diagram', title: kind, type: 'architecture', version: 1 } as const
         const nodes: DiagramData['nodes'] = kind === 'small'
-            ? [{ id: 'small', label: 'Small', role: 'focal', x: 40, y: 40 }] : []
-        const sourceDiagram: DiagramData = { edges: [], groups: [], meta, nodes }
+            ? [{ legendEntryId: 'focal', id: 'small', label: 'Small', role: 'focal', x: 40, y: 40 }] : []
+        const sourceDiagram = parseDiagramData(JSON.stringify({ edges: [], groups: [], meta, nodes }))
         const { geometry, groupDrawing, placement, selection, session } = createHarness(sourceDiagram)
         const originalJson = JSON.stringify(session.read.getEditableDiagram())
         viewportResizeCallback = null
@@ -207,16 +225,13 @@ describe('DiagramZoomViewport', () => {
         expect(geometry.getSurfaceFieldSnapshot('height')).toBeGreaterThan(minimumHeight)
     })
 
-    it('keeps editable title and subtitle in one sticky header above drawing', () => {
+    it('renders no metadata header above the New drawing surface', () => {
         const { geometry, session } = createHarness()
         render(<DiagramZoomViewport geometry={geometry} session={session} />)
-        const title = screen.getByRole('textbox', { name: 'Diagram title' })
-        const subtitle = screen.getByRole('textbox', { name: 'Diagram subtitle' })
-        const header = title.closest('.MuiBox-root')
 
-        expect(header).toContainElement(subtitle)
-        expect(window.getComputedStyle(header as Element).position).toBe('sticky')
-        expect((header as HTMLElement).compareDocumentPosition(screen.getByLabelText('New diagram')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(screen.queryByRole('textbox', { name: 'Diagram title' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('textbox', { name: 'Diagram subtitle' })).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('New diagram editor header')).not.toBeInTheDocument()
     })
 
     it('preserves scroller position when a node expands left and top margins at zoom', () => {
@@ -278,14 +293,14 @@ describe('DiagramZoomViewport', () => {
     })
 
     it('targets entity field text in preview and completion', () => {
-        const source: DiagramData = {
+        const source = parseDiagramData(JSON.stringify({
             edges: [], groups: [],
-            meta: { description: 'Entities', title: 'Entities', type: 'entity', version: 1 },
+            meta: { description: 'Entities', legend: [], title: 'Entities', type: 'entity', version: 1 },
             nodes: [
                 { fields: [{ name: 'sourceField' }], id: 'orders', kind: 'entity', label: 'Orders', role: 'focal', x: 40, y: 40 },
                 { fields: [{ name: 'targetField' }], id: 'store', kind: 'entity', label: 'Store', role: 'store', x: 240, y: 40 },
             ],
-        }
+        }))
         const { drawing, geometry, session } = createHarness(source)
         render(<DiagramZoomViewport drawing={drawing} geometry={geometry} session={session} />)
         act(() => { drawing.activate({ kind: 'relationship' }) })
@@ -354,6 +369,7 @@ describe('DiagramZoomViewport', () => {
 
         const edgeId = session.read.getEdgeIdsSnapshot().at(-1) as string
         expect(session.read.getEdgeSnapshot(edgeId)).toMatchObject({
+            legendEntryId: expect.any(String),
             from: 'orders',
             kind: 'data',
             sourceAttachment: { nodeId: 'orders', offset: 0.25, side: 'right' },
@@ -365,7 +381,7 @@ describe('DiagramZoomViewport', () => {
         expect(screen.queryByTestId('diagram-edge-drawing-preview')).not.toBeInTheDocument()
     })
 
-    it('keeps an invalid edge target recoverable until Escape cancels it', () => {
+    it('keeps an invalid edge target recoverable until Select replaces the edge tool', () => {
         const { drawing, geometry, selection, session } = createHarness()
         render(
             <DiagramZoomViewport drawing={drawing} geometry={geometry} selection={selection} session={session} />,
@@ -381,50 +397,45 @@ describe('DiagramZoomViewport', () => {
         expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
         expect(drawing.getPreviewSnapshot()).not.toBeNull()
 
-        fireEvent.keyDown(window, { key: 'Escape' })
+        act(() => { session.setActiveTool('select') })
 
         expect(session.read.getEdgeIdsSnapshot()).toEqual(['orders-store'])
         expect(session.read.getActiveToolSnapshot()).toBe('select')
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
 
-    it('keeps node and group Add tools active on Escape', () => {
-        const { geometry, groupDrawing, placement, selection, session } = createHarness()
-        render(
-            <DiagramZoomViewport
-                geometry={geometry}
-                groupDrawing={groupDrawing}
-                placement={placement}
-                selection={selection}
-                session={session}
-            />,
-        )
+    it('creates no node when Select replaces a held node placement', () => {
+        const { geometry, placement, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} placement={placement} selection={selection} session={session} />)
         const scroller = screen.getByLabelText('New diagram scroller')
         act(() => {
             placement.activate({ defaults: { height: 72, label: 'New component', role: 'focal', width: 160 }, kind: 'component' })
         })
 
-        fireEvent.keyDown(window, { key: 'Escape' })
-        expect(session.read.getActiveToolSnapshot()).toBe('node:component')
-
         fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 27 })
-        fireEvent.keyDown(window, { key: 'Escape' })
+        act(() => { session.setActiveTool('select') })
         fireEvent.pointerUp(scroller, { clientX: 100, clientY: 80, pointerId: 27 })
-        expect(session.read.getNodeIdsSnapshot()).toHaveLength(3)
 
-        act(() => { groupDrawing.activate() })
-        fireEvent.keyDown(window, { key: 'Escape' })
-        expect(session.read.getActiveToolSnapshot()).toBe('group')
+        expect(session.read.getNodeIdsSnapshot()).toEqual(['orders', 'store'])
+        expect(session.read.getActiveToolSnapshot()).toBe('select')
+        expect(screen.queryByText('New component')).not.toBeInTheDocument()
     })
 
-    it('keeps an edge Add tool without a chosen source active on Escape', () => {
-        const { drawing, geometry, selection, session } = createHarness()
-        render(<DiagramZoomViewport drawing={drawing} geometry={geometry} selection={selection} session={session} />)
-        act(() => { drawing.activate({ kind: 'connection' }) })
+    it('creates no group or label box when Select replaces a held group drag', () => {
+        const { geometry, groupDrawing, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} groupDrawing={groupDrawing} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        act(() => { groupDrawing.activate() })
 
-        fireEvent.keyDown(window, { key: 'Escape' })
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 28 })
+        fireEvent.pointerMove(scroller, { clientX: 220, clientY: 180, pointerId: 28 })
+        act(() => { session.setActiveTool('select') })
+        fireEvent.pointerUp(scroller, { clientX: 220, clientY: 180, pointerId: 28 })
 
-        expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(session.read.getGroupIdsSnapshot()).toEqual(['backend'])
+        expect(session.read.getActiveToolSnapshot()).toBe('select')
+        expect(screen.queryByRole('dialog', { name: 'New group' })).not.toBeInTheDocument()
+        expect(screen.queryByTestId('diagram-group-drawing-preview')).not.toBeInTheDocument()
     })
 
     it('keeps node, edge, and group Add tools active when Ctrl is held as the add commits', async () => {
@@ -466,6 +477,84 @@ describe('DiagramZoomViewport', () => {
         expect(session.read.getActiveToolSnapshot()).toBe('group')
     })
 
+    it('focuses and selects a Ctrl-added node label while keeping its Add tool active', async () => {
+        const { geometry, labelFocus, placement, selection, session } = createHarness()
+        const user = userEvent.setup()
+        render(
+            <DiagramZoomViewport
+                geometry={geometry}
+                labelFocus={labelFocus}
+                placement={placement}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        act(() => {
+            placement.activate({ defaults: { height: 72, label: 'New component', role: 'focal', width: 160 }, kind: 'component' })
+        })
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 45 })
+        fireEvent.pointerUp(scroller, { clientX: 100, clientY: 80, ctrlKey: true, pointerId: 45 })
+
+        const label = await screen.findByRole('textbox', { name: 'Edit New component label' })
+        await waitFor(() => expect(label).toHaveFocus())
+        expect(label).toHaveValue('New component')
+        expect((label as HTMLInputElement).selectionStart).toBe(0)
+        expect((label as HTMLInputElement).selectionEnd).toBe('New component'.length)
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
+        expect(session.read.getActiveToolSnapshot()).toBe('node:component')
+
+        await user.keyboard('Payments')
+        fireEvent.blur(label)
+        expect(session.read.getNodeFieldSnapshot(session.read.getNodeIdsSnapshot()[2], 'label')).toBe('Payments')
+        expect(session.read.getNodeIdsSnapshot()).toHaveLength(3)
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 180, clientY: 160, isPrimary: true, pointerId: 46 })
+        fireEvent.pointerUp(scroller, { clientX: 180, clientY: 160, pointerId: 46 })
+        expect(session.read.getNodeIdsSnapshot()).toHaveLength(4)
+    })
+
+    it('focuses and selects a Ctrl-added edge label inline while keeping its Add tool active', async () => {
+        const { drawing, geometry, labelFocus, selection, session } = createHarness()
+        const details = new DiagramObjectDetailsService()
+        const user = userEvent.setup()
+        render(
+            <DiagramZoomViewport
+                details={details}
+                drawing={drawing}
+                geometry={geometry}
+                labelFocus={labelFocus}
+                selection={selection}
+                session={session}
+            />,
+        )
+        act(() => { drawing.activate({ kind: 'data', label: 'New data' }) })
+
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Orders' }), {button: 0, clientX: 400, clientY: 140, isPrimary: true, pointerId: 47})
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Store' }), {button: 0, clientX: 520, clientY: 140, ctrlKey: true, isPrimary: true, pointerId: 48})
+
+        const label = await screen.findByRole('textbox', { name: 'Edit New data label' })
+        await waitFor(() => expect(label).toHaveFocus())
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(label).toHaveValue('New data')
+        expect((label as HTMLInputElement).selectionStart).toBe(0)
+        expect((label as HTMLInputElement).selectionEnd).toBe('New data'.length)
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
+        expect(session.read.getActiveToolSnapshot()).toBe('edge:data')
+
+        await user.keyboard('Payload')
+        fireEvent.blur(label)
+        const firstAddedEdgeId = session.read.getEdgeIdsSnapshot().at(-1) as string
+        expect(session.read.getEdgeFieldSnapshot(firstAddedEdgeId, 'label')).toBe('Payload')
+        expect(session.read.getNodeFieldSnapshot('orders', 'label')).toBe('Orders')
+        expect(session.read.getNodeFieldSnapshot('store', 'label')).toBe('Store')
+        expect(session.read.getActiveToolSnapshot()).toBe('edge:data')
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Orders' }), {button: 0, clientX: 400, clientY: 140, isPrimary: true, pointerId: 49})
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Store' }), {button: 0, clientX: 520, clientY: 140, isPrimary: true, pointerId: 50})
+        expect(session.read.getEdgeIdsSnapshot()).toHaveLength(3)
+    })
+
     it('uses sequence lifelines to insert a message at the chosen row', () => {
         const { drawing, geometry, selection, session } = createHarness(sequenceDiagram)
         render(<DiagramZoomViewport drawing={drawing} geometry={geometry} selection={selection} session={session} />)
@@ -481,7 +570,7 @@ describe('DiagramZoomViewport', () => {
 
         expect(session.read.getEdgeIdsSnapshot()).toHaveLength(3)
         const insertedId = session.read.getEdgeIdsSnapshot()[1]
-        expect(session.read.getEdgeSnapshot(insertedId)).toMatchObject({ from: 'orders', kind: 'async', to: 'store' })
+        expect(session.read.getEdgeSnapshot(insertedId)).toMatchObject({ legendEntryId: expect.any(String), from: 'orders', kind: 'async', to: 'store' })
         expect(session.read.getEdgeSnapshot(insertedId)?.sourceAttachment).toBeUndefined()
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: insertedId, objectKind: 'edge' }])
     })
@@ -750,6 +839,55 @@ describe('DiagramZoomViewport', () => {
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders', objectKind: 'node' }])
     })
 
+    it.each([
+        ['node', 'Store', 'store', 'node'],
+        ['edge', 'writes', 'orders-store', 'edge'],
+        ['group', 'Backend', 'backend', 'group'],
+    ] as const)('adds and removes a %s with Ctrl-click without starting a transient gesture', (
+        _description,
+        label,
+        objectId,
+        objectKind,
+    ) => {
+        const { geometry, movement, resize, selection, session } = createHarness()
+        render(
+            <DiagramZoomViewport
+                geometry={geometry}
+                movement={movement}
+                resize={resize}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const target = screen.getByRole('button', { name: label })
+        const editableDiagram = session.read.getEditableDiagram()
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+
+        fireEvent.pointerDown(target, { button: 0, clientX: 100, clientY: 100, ctrlKey: true, isPrimary: true, pointerId: 11 })
+        fireEvent.pointerMove(scroller, { clientX: 132, clientY: 124, ctrlKey: true, pointerId: 11 })
+        expect(movement.getMoveActiveSnapshot()).toBe(false)
+        expect(resize.getResizeActiveSnapshot()).toBe(false)
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
+        fireEvent.pointerUp(scroller, { clientX: 132, clientY: 124, ctrlKey: true, pointerId: 11 })
+        fireEvent.click(target, { ctrlKey: true })
+
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId, objectKind },
+        ])
+
+        fireEvent.pointerDown(target, { button: 0, clientX: 132, clientY: 124, ctrlKey: true, isPrimary: true, pointerId: 12 })
+        fireEvent.pointerUp(scroller, { clientX: 132, clientY: 124, ctrlKey: true, pointerId: 12 })
+        fireEvent.click(target, { ctrlKey: true })
+
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders', objectKind: 'node' }])
+        expect(session.read.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.read.getDirtySnapshot()).toBe(false)
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(session.read.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
+    })
+
     it('keeps rectangle diagram coordinates stable through viewport scroll and zoom', () => {
         const { geometry, selection, session } = createHarness()
         render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
@@ -782,6 +920,111 @@ describe('DiagramZoomViewport', () => {
             left: `${75 / (DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)}px`,
             top: `${37.5 / (DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)}px`,
         })
+    })
+
+    it('adds every mixed rectangle intersection at Ctrl-modified pointer release without changing diagram state', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const surface = screen.getByLabelText('New diagram')
+        const editableDiagram = session.read.getEditableDiagram()
+        const ordersNode = session.read.getNodeSnapshot('orders')
+        const edgeRoute = geometry.getEdgeRouteSnapshot('orders-store')
+        act(() => { selection.replace([{ objectId: 'store', objectKind: 'node' }]) })
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 21 })
+        fireEvent.pointerMove(surface, { clientX: 800, clientY: 400, pointerId: 21 })
+        fireEvent.pointerUp(surface, { clientX: 800, clientY: 400, ctrlKey: true, pointerId: 21 })
+
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'store', objectKind: 'node' },
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'orders-store', objectKind: 'edge' },
+            { objectId: 'backend', objectKind: 'group' },
+        ])
+        expect(session.read.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.read.getNodeSnapshot('orders')).toBe(ordersNode)
+        expect(geometry.getEdgeRouteSnapshot('orders-store')).toBe(edgeRoute)
+        expect(session.read.getTransientGestureSnapshot()).toBeNull()
+        expect(session.read.getDirtySnapshot()).toBe(false)
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(session.read.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
+    })
+
+    it('uses Ctrl state at rectangle release and keeps plain replacement behavior', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const surface = screen.getByLabelText('New diagram')
+        act(() => { selection.replace([{ objectId: 'store', objectKind: 'node' }]) })
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 235, clientY: 115, ctrlKey: true, pointerId: 22 })
+        fireEvent.pointerMove(surface, { clientX: 410, clientY: 205, ctrlKey: true, pointerId: 22 })
+        fireEvent.pointerUp(surface, { clientX: 410, clientY: 205, pointerId: 22 })
+
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'orders-store', objectKind: 'edge' },
+            { objectId: 'backend', objectKind: 'group' },
+        ])
+    })
+
+    it('preserves selection for additive empty rectangles and clears it for plain empty rectangles', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const surface = screen.getByLabelText('New diagram')
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+        const selectionSnapshot = selection.getSelectionSnapshot()
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 20, clientY: 20, pointerId: 23 })
+        fireEvent.pointerUp(surface, { clientX: 20, clientY: 20, ctrlKey: true, pointerId: 23 })
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 24 })
+        fireEvent.pointerMove(surface, { clientX: 10, clientY: 10, pointerId: 24 })
+        fireEvent.pointerUp(surface, { clientX: 10, clientY: 10, ctrlKey: true, pointerId: 24 })
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 25 })
+        fireEvent.pointerMove(surface, { clientX: 10, clientY: 10, pointerId: 25 })
+        fireEvent.pointerUp(surface, { clientX: 10, clientY: 10, pointerId: 25 })
+        expect(selection.getSelectionSnapshot()).toEqual([])
+
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+        fireEvent.pointerDown(surface, { button: 0, clientX: 20, clientY: 20, pointerId: 26 })
+        fireEvent.pointerUp(surface, { clientX: 20, clientY: 20, pointerId: 26 })
+        expect(selection.getSelectionSnapshot()).toEqual([])
+    })
+
+    it('cancels rectangle selection on pointer cancellation, lost capture, or tool change', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const surface = screen.getByLabelText('New diagram')
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+        const selectionSnapshot = selection.getSelectionSnapshot()
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 27 })
+        fireEvent.pointerMove(surface, { clientX: 100, clientY: 100, pointerId: 27 })
+        fireEvent.pointerCancel(surface, { pointerId: 27 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 28 })
+        fireEvent.pointerMove(surface, { clientX: 100, clientY: 100, pointerId: 28 })
+        fireEvent.lostPointerCapture(surface, { pointerId: 28 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 29 })
+        fireEvent.pointerMove(surface, { clientX: 100, clientY: 100, pointerId: 29 })
+        act(() => { session.setActiveTool('pan') })
+        fireEvent.pointerUp(surface, { clientX: 100, clientY: 100, ctrlKey: true, pointerId: 29 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 30 })
+        fireEvent.pointerMove(surface, { clientX: 100, clientY: 100, pointerId: 30 })
+        fireEvent.pointerUp(surface, { clientX: 100, clientY: 100, ctrlKey: true, pointerId: 30 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
     })
 
     it('moves complete selection through scrolled, zoomed viewport coordinates and preserves it after click', () => {

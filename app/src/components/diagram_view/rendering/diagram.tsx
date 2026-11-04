@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/material'
+import { Box } from '@mui/material'
 import { useRef, type MouseEvent } from 'react'
 import type { PositionedDiagramData } from '../../../services/diagrams/diagram_layout'
 import { DiagramGroup } from './diagram_group'
@@ -10,8 +10,6 @@ import { CurrentDiagramEdge } from './current_diagram_edge'
 import { CurrentDiagramNode } from './current_diagram_node'
 import { diagramEmphasisService, type DiagramEmphasisService } from '../../../services/diagrams/diagram_emphasis_service'
 import { SequenceLifeline } from './sequence_lifeline'
-import { diagramFontStyle } from '../formatting/diagram_font_style'
-import { useDiagramFormattingScale } from '../formatting/use_diagram_formatting'
 
 export interface DiagramProps {
     circularNodes?: boolean
@@ -31,7 +29,6 @@ export function Diagram(props: DiagramProps) {
     const {circularNodes = false, curvedEdges = false, data, emphasis = diagramEmphasisService} = props
     const {onContextMenu = ignoreContextMenu} = props
     const {onSelect, service = diagramViewService} = props
-    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', service as DiagramViewService)
     const surfaceRef = useRef<HTMLDivElement>(null)
     const nodeLabels = new Map(data.nodes.map((node) => [node.id, node.label]))
     const handleSelect: DiagramSelectHandler = (selection) => {
@@ -48,17 +45,7 @@ export function Diagram(props: DiagramProps) {
         onContextMenu(event.currentTarget, { id, label, left: event.clientX, objectKind, top: event.clientY })
     }
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: data.width }}>
-            <Box sx={{ bgcolor: 'background.default', left: 0, position: 'sticky', top: 0, width: 'fit-content', zIndex: 5 }}>
-                <Typography sx={diagramFontStyle(undefined, fontScalePercent, 'h6')} variant="h6">{data.meta.title}</Typography>
-                <Typography
-                    color="text.secondary"
-                    sx={diagramFontStyle(undefined, fontScalePercent, 'body2')}
-                    variant="body2"
-                >
-                    {data.meta.description}
-                </Typography>
-            </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: data.width }}>
             <Box
                 aria-label={`${data.meta.title} diagram`}
                 onContextMenu={handleContextMenu}

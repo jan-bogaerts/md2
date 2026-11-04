@@ -1,15 +1,21 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render as testingRender, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactElement } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
 import { DiagramSelectionService } from '../../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
+import { AppThemeProvider } from '../../../theme/theme_provider'
 import { EditableDiagram } from './editable_diagram'
 
-const diagram: DiagramData = {
+function render(element: ReactElement) {
+    return testingRender(<AppThemeProvider>{element}</AppThemeProvider>)
+}
+
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
     groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
@@ -17,7 +23,7 @@ const diagram: DiagramData = {
         { drilldown: false, id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 

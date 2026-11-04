@@ -1,6 +1,6 @@
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
@@ -14,7 +14,7 @@ import {
     useEditableDiagramNodeIds,
 } from './use_editable_diagram'
 
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' }],
     groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
@@ -22,7 +22,7 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
-}
+}))
 
 interface ChangeTreeProps {
     collectionCounter: ReturnType<typeof vi.fn<(...values: unknown[]) => void>>

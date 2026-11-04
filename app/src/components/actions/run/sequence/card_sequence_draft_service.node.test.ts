@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { WorktreeRecord } from '../../../../data/data_types'
 import { DEFAULT_AGENT_SELECTION } from '../../../../data/agent_selection';
 import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles';
+import { DEFAULT_AGENT_ACCOUNTS } from '../../../../data/agent_accounts';
 import type { ActionDefinition } from '../../../../data/action_types';
 import { worktreeService } from '../../../../services/project/worktree_service'
 import type { ActionScheduleTriggerSources } from '../schedule/action_schedule_trigger'
@@ -9,6 +10,8 @@ import { CardSequenceDraftService } from './card_sequence_draft_service'
 
 const triggerSources: ActionScheduleTriggerSources = {
     accountTrackers: [{
+        accountId: 'codex-initial',
+        accountName: 'Default',
         agent: 'codex',
         agentLabel: 'Codex',
         expectedResetAt: '2030-01-01T00:00:00.000Z',
@@ -43,20 +46,45 @@ describe('CardSequenceDraftService', () => {
             { id: 'check', label: 'Check', type: 'command' },
         ] as ActionDefinition[];
         const sources = {
-            actionIds: ['build', 'check'], actions, agentProfiles: BUILTIN_AGENT_PROFILES,
+            accounts: DEFAULT_AGENT_ACCOUNTS, actionIds: ['build', 'check'], actions, agentProfiles: BUILTIN_AGENT_PROFILES,
             agentAvailability: { codex: { available: true } }, cardsAvailable: true,
             desktopSelection: DEFAULT_AGENT_SELECTION, modelIds: ['gpt-5.5', 'gpt-6-sol'], readyStates: ['ready'], triggerSources,
         };
         service.updateSources(sources);
         service.setActionId('build');
-        expect(service.createRegistrationRequest().agentSelection).toEqual({agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', speedMode: 'default', thinkingLevel: 'high'});
+        expect(service.createRegistrationRequest().agentSelection).toEqual({accountId: 'codex-initial', agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', speedMode: 'default', thinkingLevel: 'high'});
         service.setExecutionModel('gpt-6-sol');
         service.setTriggerType('account-reset');
         service.setAgent('codex');
+        service.setAccountId('codex-initial');
         service.setAccountTracker('credits', 'primary');
         expect(service.createRegistrationRequest()).toMatchObject({agentSelection: { model: 'gpt-6-sol' }, trigger: { agent: 'codex', type: 'account-reset' }});
         service.setActionId('check');
         expect(service.createRegistrationRequest()).not.toHaveProperty('agentSelection');
+    });
+
+    it('persists sequence account selection and allows removed accounts to use runtime fallback', () => {
+        const service = readyService();
+        const workAccount = {
+            agent: 'codex', configDirectory: 'C:/accounts/work',
+            id: '11111111-1111-4111-8111-111111111111', kind: 'directory' as const, name: 'Work',
+        };
+        const sources = {
+            accounts: [...DEFAULT_AGENT_ACCOUNTS, workAccount],
+            actionIds: ['build'], actions: [
+                { agent: 'codex', id: 'build', label: 'Build', model: 'gpt-5.5', thinkingLevel: 'high', type: 'agent' },
+            ] as ActionDefinition[],
+            agentProfiles: BUILTIN_AGENT_PROFILES, agentAvailability: { codex: { available: true } },
+            cardsAvailable: true, desktopSelection: DEFAULT_AGENT_SELECTION, modelIds: ['gpt-5.5'],
+            readyStates: ['ready'], triggerSources,
+        };
+        service.updateSources(sources);
+        service.setActionId('build');
+        service.setExecutionAccount(workAccount.id);
+        expect(service.createRegistrationRequest().agentSelection).toMatchObject({ accountId: workAccount.id });
+
+        service.updateSources({ ...sources, accounts: DEFAULT_AGENT_ACCOUNTS });
+        expect(service.getSnapshot()).toMatchObject({ canSubmit: true, validationMessage: null });
     });
 
     it('blocks unavailable agents and unsupported models with specific reasons', () => {
@@ -100,6 +128,7 @@ describe('CardSequenceDraftService', () => {
         service.setTriggerType('account-reset')
         expect(service.getSnapshot().canSubmit).toBe(false)
         service.setAgent('codex')
+        service.setAccountId('codex-initial')
         service.setAccountTracker('credits', 'primary')
         expect(service.getSnapshot().canSubmit).toBe(true)
     })
@@ -137,8 +166,10 @@ describe('CardSequenceDraftService', () => {
 
         service.setTriggerType('account-reset')
         service.setAgent('codex')
+        service.setAccountId('codex-initial')
         service.setAccountTracker('credits', 'primary')
         expect(service.createRegistrationRequest().trigger).toEqual({
+            accountId: 'codex-initial',
             agent: 'codex',
             expectedResetAt: '2030-01-01T00:00:00.000Z',
             limitId: 'credits',

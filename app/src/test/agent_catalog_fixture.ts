@@ -1,4 +1,5 @@
 import type { AgentModelCatalog } from '../data/agent_model_catalog';
+import { initialAgentAccountId, supportsAgentAccounts } from '../data/agent_accounts';
 import { mergeAgentProfiles, type AgentProfile } from '../data/agent_profiles';
 import type { AgentCatalogSnapshot } from '../services/agents/agent_capabilities_service';
 
@@ -6,9 +7,14 @@ const snapshots = new Map<string, AgentCatalogSnapshot>();
 const EMPTY_SNAPSHOT: AgentCatalogSnapshot = { catalog: null, error: null, loading: false };
 
 /** Model discovery is mocked at the host boundary; no test launches a client. */
-export function agentCatalogFixture(profile: AgentProfile, identifiers: string[] = profile.models): AgentModelCatalog {
+export function agentCatalogFixture(
+    profile: AgentProfile,
+    identifiers: string[] = profile.models,
+    accountId: string | null = supportsAgentAccounts(profile.name) ? initialAgentAccountId(profile.name) : null,
+): AgentModelCatalog {
     return {
         agent: profile.name,
+        accountId,
         models: identifiers.map((id) => ({
             displayName: id,
             hidden: false,

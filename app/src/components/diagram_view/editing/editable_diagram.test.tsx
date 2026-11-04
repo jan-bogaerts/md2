@@ -1,7 +1,7 @@
-import { Profiler, type ReactNode } from 'react'
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { Profiler, type ReactElement, type ReactNode } from 'react'
+import { act, cleanup, fireEvent, render as testingRender, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData, DiagramType } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData, type DiagramType } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
@@ -9,18 +9,20 @@ import { DiagramMoveService } from '../../../services/diagrams/diagram_move_serv
 import { DiagramResizeService } from '../../../services/diagrams/diagram_resize_service'
 import { DiagramSelectionService } from '../../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
-import {
-    EditableDiagram,
-    EditableDiagramDescription,
-    EditableDiagramSurface,
-    EditableDiagramTitle,
-} from './editable_diagram'
+import { EditableDiagram, EditableDiagramSurface } from './editable_diagram'
+import { DiagramBreadcrumbMetadataField } from '../surface/diagram_breadcrumb_metadata_field'
 import { EditableDiagramNodes } from './editable_diagram_collections'
 import { EditableDiagramNode } from './editable_diagram_node'
 import { DiagramZoomViewport } from '../surface/diagram_zoom_viewport'
 import { DiagramObjectDetailsService } from '../details/diagram_object_details_service'
+import { DiagramLabelFocusService } from '../../../services/diagrams/diagram_label_focus_service'
+import { AppThemeProvider } from '../../../theme/theme_provider'
 
-const diagram: DiagramData = {
+function render(element: ReactElement) {
+    return testingRender(<AppThemeProvider>{element}</AppThemeProvider>);
+}
+
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
     groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
@@ -28,7 +30,7 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
@@ -66,14 +68,14 @@ function MeasuredMetadata({ counts, onRootRender, session }: {
 
     return (
         <>
-            <Counted counts={counts} id="title"><EditableDiagramTitle session={session} /></Counted>
-            <Counted counts={counts} id="description"><EditableDiagramDescription session={session} /></Counted>
+            <Counted counts={counts} id="title"><DiagramBreadcrumbMetadataField field="title" session={session} /></Counted>
+            <Counted counts={counts} id="description"><DiagramBreadcrumbMetadataField field="description" session={session} /></Counted>
         </>
     )
 }
 
 function createHarness(sourceDiagram: DiagramData = diagram) {
-    const session = new DiagramEditSessionService(new DiagramSourceStub(sourceDiagram))
+    const session = new DiagramEditSessionService(new DiagramSourceStub(parseDiagramData(JSON.stringify(sourceDiagram))))
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
@@ -103,15 +105,15 @@ afterEach(cleanup)
 describe('editable diagram', () => {
     it.each(['architecture', 'dependency', 'entity', 'flow', 'mindmap', 'sequence'] as DiagramType[])(
         'edits title and subtitle on a %s diagram', (type) => {
-            const sourceDiagram: DiagramData = {
+            const sourceDiagram: DiagramData = parseDiagramData(JSON.stringify({
                 edges: [], groups: [], nodes: [],
                 meta: {
                     description: 'Original subtitle', title: 'Original title', type, version: 1,
                     ...(type === 'flow' ? { preset: 'flowchart' as const } : {}),
                 },
-            }
+            }))
             const { session } = createHarness(sourceDiagram)
-            render(<><EditableDiagramTitle session={session} /><EditableDiagramDescription session={session} /></>)
+            render(<><DiagramBreadcrumbMetadataField field="title" session={session} /><DiagramBreadcrumbMetadataField field="description" session={session} /></>)
 
             const title = screen.getByRole('textbox', { name: 'Diagram title' })
             const subtitle = screen.getByRole('textbox', { name: 'Diagram subtitle' })
@@ -125,23 +127,13 @@ describe('editable diagram', () => {
         },
     )
 
-    it('edits title and subtitle in place and rejects blank title', () => {
+    it('renders no title or subtitle inside the New diagram', () => {
         const { geometry, selection, session } = createHarness()
         render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
-        const title = screen.getByRole('textbox', { name: 'Diagram title' })
-        const subtitle = screen.getByRole('textbox', { name: 'Diagram subtitle' })
 
-        fireEvent.change(title, { target: { value: 'Revised overview' } })
-        fireEvent.blur(title)
-        fireEvent.change(subtitle, { target: { value: 'Revised description' } })
-        fireEvent.blur(subtitle)
-
-        expect(session.read.getMetadataFieldSnapshot('title')).toBe('Revised overview')
-        expect(session.read.getMetadataFieldSnapshot('description')).toBe('Revised description')
-        fireEvent.change(title, { target: { value: ' ' } })
-        fireEvent.blur(title)
-        expect(screen.getByText('Title is required.')).toBeInTheDocument()
-        expect(session.read.getMetadataFieldSnapshot('title')).toBe('Revised overview')
+        expect(screen.queryByRole('textbox', { name: 'Diagram title' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('textbox', { name: 'Diagram subtitle' })).not.toBeInTheDocument()
+        expect(screen.queryByText('Orders architecture')).not.toBeInTheDocument()
     })
 
     it('edits node label in place and opens details from its action', () => {
@@ -162,6 +154,50 @@ describe('editable diagram', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Details for Purchases' }))
         expect(details.getTargetSnapshot()).toEqual({ objectId: 'orders', objectKind: 'node' })
+    })
+
+    it('edits a connection label in place without opening details', () => {
+        const { geometry, selection, session } = createHarness()
+        const details = new DiagramObjectDetailsService()
+        render(<EditableDiagram details={details} geometry={geometry} selection={selection} session={session} />)
+        const label = screen.getByRole('textbox', { name: 'Edit writes label' })
+
+        fireEvent.change(label, { target: { value: 'stores' } })
+        fireEvent.blur(label)
+
+        expect(session.read.getEdgeFieldSnapshot('orders-store', 'label')).toBe('stores')
+        expect(details.getTargetSnapshot()).toBeNull()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('expands a connection label editor only while it has focus', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
+        const label = screen.getByRole('textbox', { name: 'Edit writes label' })
+        const editor = label.closest('svg')?.querySelector('foreignObject')
+        if (!editor) throw new Error('Missing connection label editor container')
+        const restingWidth = Number(editor.getAttribute('width'))
+
+        fireEvent.focus(label)
+        const focusedWidth = Number(editor.getAttribute('width'))
+        fireEvent.blur(label)
+
+        expect(focusedWidth).toBeGreaterThan(restingWidth)
+        expect(Number(editor.getAttribute('width'))).toBe(restingWidth)
+    })
+
+    it('keeps an unlabelled connection editor mounted after accepting its focus request', () => {
+        const unlabelledDiagram = { ...diagram, edges: [{ ...diagram.edges[0], label: undefined }] }
+        const { geometry, selection, session } = createHarness(unlabelledDiagram)
+        const labelFocus = new DiagramLabelFocusService(session)
+        render(<EditableDiagram geometry={geometry} labelFocus={labelFocus} selection={selection} session={session} />)
+
+        act(() => { labelFocus.request({ objectId: 'orders-store', objectKind: 'edge' }) })
+
+        const label = screen.getByRole('textbox', { name: 'Edit connection label' })
+        expect(label).toHaveFocus()
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
+        expect(label).toBeInTheDocument()
     })
 
     it('wraps the inline editor within role inset and switches to one line without changing geometry', () => {
@@ -197,12 +233,10 @@ describe('editable diagram', () => {
         expect(details.getTargetSnapshot()).toEqual({ objectId: 'orders', objectKind: 'node' })
     })
 
-    it('renders metadata, surface, and every collection from service data alone', () => {
+    it('renders surface and every collection from service data alone', () => {
         const { geometry, selection, session } = createHarness()
         render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
 
-        expect(screen.getByRole('textbox', { name: 'Diagram title' })).toHaveValue('Overview')
-        expect(screen.getByRole('textbox', { name: 'Diagram subtitle' })).toHaveValue('Orders architecture')
         expect(screen.getByLabelText('New diagram')).toBeTruthy()
         expect(screen.getByRole('button', { name: 'Orders' })).toBeTruthy()
         expect(screen.getByRole('button', { name: 'Store' })).toBeTruthy()
@@ -258,7 +292,8 @@ describe('editable diagram', () => {
         const before = new Map(counts)
         const nodeIds = session.read.getNodeIdsSnapshot()
 
-        act(() => { session.createNode({ label: 'Mail', role: 'external' }) })
+        const legendEntryId = session.legend.addLegendEntry({ label: 'External', role: 'external' }) as string
+        act(() => { session.createNode({ label: 'Mail', legendEntryId, role: 'external' }) })
 
         expect(session.read.getNodeIdsSnapshot()).not.toBe(nodeIds)
         expect(screen.getByRole('button', { name: 'Mail' })).toBeTruthy()

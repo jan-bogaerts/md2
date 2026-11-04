@@ -33,6 +33,7 @@ const DATA_METHODS = [
     'cancelActivityStatsCalculation',
     'checkoutBranch',
     'commit',
+    'commitPrimaryChanges',
     'commitWorktree',
     'continueMergeConflict',
     'createProject',
@@ -81,6 +82,7 @@ const DATA_METHODS = [
     'selectWorktreeFolder',
     'showInFileExplorer',
     'stopAgent',
+    'trashPrimaryChange',
     'writeFiles',
 ];
 const ACTION_METHODS = [
@@ -122,6 +124,15 @@ const ACTION_METHODS = [
     'startUnattendedAction',
     'updateActionConversationViewed',
     'updateCardActionSettings',
+];
+const AGENT_ACCOUNT_METHODS = [
+    'addAgentAccount',
+    'listAgentAccounts',
+    'loadAgentAccountStatus',
+    'loginAgentAccount',
+    'removeAgentAccount',
+    'renameAgentAccount',
+    'reselectAgentAccountDirectory',
 ];
 const EVENT_METHODS = new Set(['runSearchRegexpAgent']);
 const CODEX_RUNTIME_METHODS = ['getCodexRateLimits'];
@@ -311,6 +322,7 @@ if (!isAllowedOrigin()) {
         ...createBridge(CLAUDE_RUNTIME_METHODS),
         onClaudeRateLimits: (callback) => subscribeBridge('onClaudeRateLimits', [], callback),
     };
+    const agentAccountBridge = createBridge(AGENT_ACCOUNT_METHODS);
     const updatesBridge = {
         dismiss: () => ipcRenderer.invoke(UPDATE_DISMISS_CHANNEL),
         getSnapshot: () => ipcRenderer.invoke(UPDATE_GET_SNAPSHOT_CHANNEL),
@@ -334,6 +346,7 @@ if (!isAllowedOrigin()) {
     contextBridge.exposeInMainWorld('md2Files', fileBridge);
     contextBridge.exposeInMainWorld('md2Data', dataBridge);
     contextBridge.exposeInMainWorld('md2Actions', actionBridge);
+    contextBridge.exposeInMainWorld('md2AgentAccounts', agentAccountBridge);
     contextBridge.exposeInMainWorld('md2ClaudeRuntime', claudeRuntimeBridge);
     contextBridge.exposeInMainWorld('md2CodexRuntime', codexRuntimeBridge);
     contextBridge.exposeInMainWorld('md2Updates', updatesBridge);

@@ -7,7 +7,8 @@ import {
 } from '../../data/data_types'
 import { LEGACY_CARD_SEPARATOR } from '../../data/card_identifiers'
 import { migrateAgentProfiles, validateAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
-import { validateAgentSelectionState } from '../../data/agent_selection'
+import { validateAgentSelectionState, type AgentSelectionState } from '../../data/agent_selection'
+import { validateAgentAccounts, type AgentAccount } from '../../data/agent_accounts'
 import {
     CONFIG_ENTRIES,
     createDefaultValues,
@@ -231,6 +232,7 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
         return validatePinnedConversations(value) as ConfigValueTypes[K]
     }
     if (entry.type === 'json' && key === 'desktop.agentProfiles') return validateDesktopAgentProfiles(value) as ConfigValueTypes[K]
+    if (entry.type === 'json' && key === 'desktop.agentAccounts') return validateAgentAccounts(value, entry.key) as ConfigValueTypes[K]
     if (entry.type === 'json' && key === 'desktop.agentSelection') {
         return validateAgentSelectionState(value, entry.key) as ConfigValueTypes[K]
     }
@@ -309,6 +311,7 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
 function readDesktopConfig(values: ConfigValues): DesktopConfigValues {
     return {
         agentSelection: values['desktop.agentSelection'],
+        agentAccounts: values['desktop.agentAccounts'],
         agentProfiles: values['desktop.agentProfiles'],
         agentTaskTrackingEnabled: values['desktop.agentTaskTrackingEnabled'],
         codexSearchEnabled: values['desktop.codexSearchEnabled'],
@@ -324,6 +327,25 @@ function isConfigValueEqual(first: ConfigValue, second: ConfigValue) {
     return JSON.stringify(first) === JSON.stringify(second)
 }
 
+/** Drops remembered account selections that no longer exist; a missing account ID resolves to the initial account. */
+function withoutRemovedAccountSelections(selection: AgentSelectionState, accounts: AgentAccount[]): AgentSelectionState {
+    const settingsByAgent = Object.fromEntries(Object.entries(selection.settingsByAgent).map(([agent, settings]) => {
+        const { accountId, ...remainingSettings } = settings
+        if (accountId === undefined || accounts.some(({ id }) => id === accountId)) return [agent, settings]
+
+        return [agent, remainingSettings]
+    }))
+
+    return { ...selection, settingsByAgent }
+}
+
+function replaceAccountValues(values: ConfigValues, accounts: AgentAccount[]) {
+    const selection = withoutRemovedAccountSelections(values['desktop.agentSelection'], accounts)
+    const nextValues = mergeValue(values, 'desktop.agentAccounts', accounts)
+
+    return mergeValue(nextValues, 'desktop.agentSelection', selection)
+}
+
 function replaceDesktopValues(values: ConfigValues, desktopConfig: Partial<DesktopConfigValues> | null) {
     const defaults = createDefaultValues()
     let nextValues = values
@@ -333,6 +355,7 @@ function replaceDesktopValues(values: ConfigValues, desktopConfig: Partial<Deskt
     if (desktopConfig.agentSelection !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.agentSelection', desktopConfig.agentSelection)
     }
+    if (desktopConfig.agentAccounts !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentAccounts', desktopConfig.agentAccounts)
     if (desktopConfig.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
     if (desktopConfig.agentTaskTrackingEnabled !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.agentTaskTrackingEnabled', desktopConfig.agentTaskTrackingEnabled)
@@ -470,6 +493,14 @@ export class ConfigService extends EventTarget {
         this.values = replaceDesktopValues(this.values, desktopConfig)
         if (this.draftValues) this.draftValues = replaceDesktopValues(this.draftValues, desktopConfig)
         this.desktopAvailable = true
+        this.dispatchChanged()
+    }
+
+    /** Applies accounts already persisted by the desktop account service to the canonical values and the open draft. */
+    replaceAgentAccounts(accounts: AgentAccount[]) {
+        this.requireInitialized()
+        this.values = replaceAccountValues(this.values, accounts)
+        if (this.draftValues) this.draftValues = replaceAccountValues(this.draftValues, accounts)
         this.dispatchChanged()
     }
 

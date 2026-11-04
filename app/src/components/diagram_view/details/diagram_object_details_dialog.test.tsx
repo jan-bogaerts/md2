@@ -1,18 +1,22 @@
+import { ThemeProvider } from '@mui/material'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData, DiagramFlowPreset, DiagramType } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData, type DiagramFlowPreset, type DiagramType } from '../../../services/diagrams/diagram_data'
 import { dialogService } from '../../../services/dialog_service'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
+import { DiagramLabelFocusService } from '../../../services/diagrams/diagram_label_focus_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
 import { DiagramSelectionService } from '../../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
+import { createAppTheme } from '../../../theme/app_theme'
 import { EditableDiagram } from '../editing/editable_diagram'
 import { DiagramObjectDetailsService } from './diagram_object_details_service'
 
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
+const theme = createAppTheme('dark')
 
 function diagram(type: DiagramType = 'architecture', flowPreset: DiagramFlowPreset = 'flowchart'): DiagramData {
     const nodeKind = type === 'flow' ? flowPreset === 'state' ? 'state' : 'step'
@@ -20,7 +24,7 @@ function diagram(type: DiagramType = 'architecture', flowPreset: DiagramFlowPres
     const edgeKind = type === 'flow' ? flowPreset === 'state' ? 'transition' : 'flow'
         : type === 'entity' ? 'relationship' : type === 'sequence' ? 'call' : 'connection'
 
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{
             from: 'orders',
             id: 'orders-store',
@@ -50,7 +54,7 @@ function diagram(type: DiagramType = 'architecture', flowPreset: DiagramFlowPres
             },
             { ...(nodeKind ? { kind: nodeKind } : {}), id: 'store', label: 'Store', role: 'store' },
         ],
-    }
+    }))
 }
 
 class DiagramSourceStub extends EventTarget {
@@ -71,16 +75,21 @@ class DiagramSourceStub extends EventTarget {
 }
 
 function renderHarness(type: DiagramType = 'architecture', flowPreset: DiagramFlowPreset = 'flowchart') {
-    const source = { diagram: diagram(type, flowPreset), record }
+    const source = { diagram: parseDiagramData(JSON.stringify(diagram(type, flowPreset))), record }
     const session = new DiagramEditSessionService(new DiagramSourceStub(source))
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
     const selection = new DiagramSelectionService(session, geometry)
     const details = new DiagramObjectDetailsService()
-    render(<EditableDiagram details={details} geometry={geometry} selection={selection} session={session} />)
+    const labelFocus = new DiagramLabelFocusService(session)
+    render(
+        <ThemeProvider theme={theme}>
+            <EditableDiagram details={details} geometry={geometry} labelFocus={labelFocus} selection={selection} session={session} />
+        </ThemeProvider>,
+    )
 
-    return { details, selection, session }
+    return { details, labelFocus, selection, session }
 }
 
 afterEach(() => {
@@ -97,7 +106,7 @@ describe('diagram object details dialog', () => {
         expect(screen.getByRole('dialog', { name: 'Diagram metadata' })).toBeInTheDocument()
         expect(screen.getByRole('textbox', { name: 'Type' })).toHaveValue('architecture')
         expect(screen.getByRole('textbox', { name: 'Type' })).toHaveAttribute('readonly')
-        expect(screen.getByRole('textbox', { name: 'Schema version' })).toHaveValue('1')
+        expect(screen.getByRole('textbox', { name: 'Schema version' })).toHaveValue('3')
         expect(screen.getByRole('textbox', { name: 'Schema version' })).toHaveAttribute('readonly')
         expect(screen.queryByRole('textbox', { name: 'Flow preset' })).toBeNull()
         await user.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -184,6 +193,18 @@ describe('diagram object details dialog', () => {
         expect(screen.getByRole('dialog', { name: dialogTitle })).toBeInTheDocument()
         await user.click(screen.getByRole('button', { name: 'Cancel' }))
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    })
+
+    it('keeps manual edge details focus without creation-driven full-label selection', async () => {
+        const { details, labelFocus } = renderHarness()
+        act(() => { details.open({ objectId: 'orders-store', objectKind: 'edge' }) })
+
+        const label = await screen.findByRole('textbox', { name: 'Label' })
+        await waitFor(() => expect(label).toHaveFocus())
+        expect(label).toHaveValue('writes')
+        expect([(label as HTMLInputElement).selectionStart, (label as HTMLInputElement).selectionEnd])
+            .not.toEqual([0, 'writes'.length])
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
     })
 
     it('saves changed node fields through their scoped operations only', async () => {

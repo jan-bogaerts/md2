@@ -13,7 +13,7 @@ describe('ActionScheduleStore', () => {
         store.setTriggerType('account-reset')
 
         expect(listener).toHaveBeenCalledTimes(3)
-        expect(store.getSnapshot()).toEqual({agent: '', anchorElement, limitId: '', message: null, open: true, triggerType: 'account-reset', windowId: ''})
+        expect(store.getSnapshot()).toEqual({accountId: '', agent: '', anchorElement, limitId: '', message: null, open: true, triggerType: 'account-reset', windowId: ''})
         expect(store.getSnapshot()).not.toHaveProperty('timestamp')
     })
 
@@ -50,6 +50,7 @@ describe('ActionScheduleStore', () => {
         store.setTimestamp('2099-07-07T10:30')
         store.setTriggerType('account-reset')
         store.setAgent('codex')
+        store.setAccountId('codex-initial')
         store.setAccountTracker('codex,pro', 'primary')
         store.setTriggerType('card-state')
         store.setCardInternalId('card-2')
@@ -58,7 +59,7 @@ describe('ActionScheduleStore', () => {
         store.setTriggerType('at')
         expect(store.getSnapshot()).toMatchObject({ timestamp: '2099-07-07T10:30', triggerType: 'at' })
         store.setTriggerType('account-reset')
-        expect(store.getSnapshot()).toMatchObject({ agent: 'codex', limitId: 'codex,pro', windowId: 'primary' })
+        expect(store.getSnapshot()).toMatchObject({ accountId: 'codex-initial', agent: 'codex', limitId: 'codex,pro', windowId: 'primary' })
         store.setTriggerType('card-state')
         expect(store.getSnapshot()).toMatchObject({ cardInternalId: 'card-2', targetState: 'ready' })
     })

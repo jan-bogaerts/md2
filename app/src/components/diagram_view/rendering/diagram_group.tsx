@@ -69,7 +69,7 @@ export function DiagramGroup({
             }}
             type={interactive ? 'button' : undefined}
         >
-            <Typography color="custom.text3" sx={{ ...diagramFontStyle(undefined, fontScalePercent, 'overline'), bgcolor: 'background.default', left: 1, px: 0.5, position: 'absolute', top: 0.5 }} variant="overline">
+            <Typography color="custom.text3" sx={{ ...diagramFontStyle(undefined, fontScalePercent, 'overline'), bgcolor: 'custom.projectBackground', left: 1, px: 0.5, position: 'absolute', top: 0.5 }} variant="overline">
                 {group.label}
             </Typography>
         </Box>

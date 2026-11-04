@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseDiagramData, serializeDiagramData, type DiagramData } from './diagram_data'
+import { generateDiagramChangeDescription } from './diagram_change_descriptions'
 import type { DiagramRecord } from './diagram_index'
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
 import { DEFAULT_DIAGRAM_ZOOM, MAXIMUM_DIAGRAM_ZOOM, MINIMUM_DIAGRAM_ZOOM } from './diagram_zoom'
 
-const diagram: DiagramData = {
+const diagram = parseDiagramData(JSON.stringify({
     edges: [{
         from: 'orders',
         id: 'orders-store',
@@ -20,8 +21,8 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
-}
-const sequenceDiagram: DiagramData = {
+}))
+const sequenceDiagram = parseDiagramData(JSON.stringify({
     edges: [
         { from: 'user', id: 'user-orders', kind: 'call', to: 'orders' },
         { from: 'orders', id: 'orders-user', kind: 'return', to: 'user' },
@@ -33,8 +34,12 @@ const sequenceDiagram: DiagramData = {
         { id: 'user', kind: 'participant', label: 'User', role: 'external' },
         { id: 'orders', kind: 'participant', label: 'Orders', role: 'focal' },
     ],
-}
-const entityDiagram: DiagramData = {
+}))
+sequenceDiagram.meta.legend.push(
+    { id: 'sequence-async', kind: 'async', label: 'Async', useLabelAsDefault: false },
+    { id: 'sequence-success', kind: 'success', label: 'Success', useLabelAsDefault: false },
+)
+const entityDiagram = parseDiagramData(JSON.stringify({
     edges: [{ from: 'order', fromCardinality: '1', id: 'order-item', kind: 'relationship', to: 'item', toCardinality: 'N' }],
     groups: [],
     meta: { description: 'Order entities', title: 'Entities', type: 'entity', version: 1 },
@@ -42,8 +47,8 @@ const entityDiagram: DiagramData = {
         { fields: [{ key: 'primary', name: 'id', type: 'uuid' }], id: 'order', kind: 'entity', label: 'Order', role: 'focal' },
         { fields: [{ name: 'orderId', type: 'uuid' }], id: 'item', kind: 'entity', label: 'Item', role: 'store' },
     ],
-}
-const flowchartDiagram: DiagramData = {
+}))
+const flowchartDiagram = parseDiagramData(JSON.stringify({
     edges: [{ from: 'check', id: 'check-done', kind: 'flow', label: 'yes', to: 'done' }],
     groups: [],
     meta: { description: 'Decision flow', preset: 'flowchart', title: 'Flow', type: 'flow', version: 1 },
@@ -51,8 +56,8 @@ const flowchartDiagram: DiagramData = {
         { id: 'check', kind: 'decision', label: 'Check', role: 'focal' },
         { id: 'done', kind: 'end', label: 'Done', role: 'backend' },
     ],
-}
-const stateDiagram: DiagramData = {
+}))
+const stateDiagram = parseDiagramData(JSON.stringify({
     edges: [{ from: 'idle', id: 'start-work', kind: 'transition', label: 'start', to: 'working' }],
     groups: [],
     meta: { description: 'Work states', preset: 'state', title: 'States', type: 'flow', version: 1 },
@@ -60,8 +65,8 @@ const stateDiagram: DiagramData = {
         { id: 'idle', kind: 'state', label: 'Idle', role: 'focal' },
         { id: 'working', kind: 'state', label: 'Working', role: 'backend' },
     ],
-}
-const mindmapDiagram: DiagramData = {
+}))
+const mindmapDiagram = parseDiagramData(JSON.stringify({
     edges: [{ from: 'root', id: 'root-topic', kind: 'connection', to: 'topic' }],
     groups: [],
     meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
@@ -69,13 +74,28 @@ const mindmapDiagram: DiagramData = {
         { height: 128, id: 'root', kind: 'root', label: 'Root', role: 'focal', width: 128 },
         { height: 96, id: 'topic', kind: 'topic', label: 'Topic', role: 'backend', width: 96 },
     ],
-}
-const legendDiagram: DiagramData = {
+}))
+const legendDiagram = parseDiagramData(JSON.stringify({
     ...diagram,
     meta: {
         ...diagram.meta,
         legend: [{ label: 'Service', role: 'focal' }, { label: 'Database', role: 'store' }, { kind: 'connection', label: 'Calls' }],
+        version: 1,
     },
+}))
+
+function nodeKindLegendId(source: DiagramData, nodeKind: string) {
+    const entry = source.meta.legend.find((candidate) => 'nodeKind' in candidate && candidate.nodeKind === nodeKind)
+    if (!entry) throw new Error(`Missing ${nodeKind} legend entry`)
+
+    return entry.id
+}
+
+function edgeKindLegendId(source: DiagramData, kind: string) {
+    const entry = source.meta.legend.find((candidate) => 'kind' in candidate && candidate.kind === kind)
+    if (!entry) throw new Error(`Missing ${kind} legend entry`)
+
+    return entry.id
 }
 const firstRecord: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
@@ -104,7 +124,8 @@ function createHarness(options: {
 } = {}) {
     const sourceService = new DiagramSourceStub()
     const service = new DiagramEditSessionService(sourceService, options.createId, options.reportValidationError)
-    sourceService.setSource({ diagram: options.source ?? diagram, record: firstRecord })
+    const source = options.source ?? diagram
+    sourceService.setSource({ diagram: source, record: firstRecord })
     service.bindProject(project)
 
     return { service, sourceService }
@@ -134,7 +155,7 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness({ reportValidationError, source: mindmapDiagram })
         service.start()
 
-        expect(service.createNode({ height: 128, kind: 'root', label: 'Second', role: 'focal', width: 128 })).toBeNull()
+        expect(service.createNode({ height: 128, kind: 'root', label: 'Second', legendEntryId: nodeKindLegendId(mindmapDiagram, 'root'), role: 'focal', width: 128 })).toBeNull()
         expect(service.removeObjects([{ objectId: 'root', objectKind: 'node' }])).toBe(false)
         expect(service.removeObjects([{ objectId: 'root', objectKind: 'node' }])).toBe(false)
         expect(service.objects.setNodeField('topic', 'width', undefined)).toBe(false)
@@ -152,9 +173,9 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness({ createId: () => ids.shift() ?? 'unused', source: emptyMindmap })
         service.start()
 
-        expect(service.createNode({ height: 96, kind: 'topic', label: 'Early', role: 'backend', width: 96 })).toBeNull()
-        expect(service.createNode({ height: 128, kind: 'root', label: 'Root', role: 'focal', width: 128 })).toBe('created-root')
-        expect(service.createNode({ height: 96, kind: 'topic', label: 'Topic', role: 'backend', width: 96 })).toBe('created-topic')
+        expect(service.createNode({ height: 96, kind: 'topic', label: 'Early', legendEntryId: nodeKindLegendId(emptyMindmap, 'topic'), role: 'backend', width: 96 })).toBeNull()
+        expect(service.createNode({ height: 128, kind: 'root', label: 'Root', legendEntryId: nodeKindLegendId(emptyMindmap, 'root'), role: 'focal', width: 128 })).toBe('created-root')
+        expect(service.createNode({ height: 96, kind: 'topic', label: 'Topic', legendEntryId: nodeKindLegendId(emptyMindmap, 'topic'), role: 'backend', width: 96 })).toBe('created-topic')
     })
 
     it('tracks New formatting independently as scoped semantic changes', () => {
@@ -925,7 +946,7 @@ describe('DiagramEditSessionService', () => {
         service.read.subscribeSession(sessionChanged)
         service.read.subscribeDirty(dirtyChanged)
 
-        const createdId = service.createNode({ label: 'Billing', role: 'backend' })
+        const createdId = service.createNode({ label: 'Billing', legendEntryId: nodeKindLegendId(diagram, 'component'), role: 'backend' })
 
         expect(createdId).toBe('node-1')
         expect(createId).toHaveBeenCalledTimes(3)
@@ -982,12 +1003,19 @@ describe('DiagramEditSessionService', () => {
         service.read.subscribeNodeField('user', 'label', existingNodeChanged)
         service.read.subscribeGroupMembership('backend', existingGroupMembershipChanged)
         service.read.subscribeFragmentRegionMembership('transaction', 0, existingFragmentMembershipChanged)
+        const userLegendEntryId = sequenceDiagram.nodes.find(({ id }) => id === 'user')?.legendEntryId
+        const ordersLegendEntryId = sequenceDiagram.nodes.find(({ id }) => id === 'orders')?.legendEntryId
+        const userLegendEntry = sequenceDiagram.meta.legend.find(({ id }) => id === userLegendEntryId)
+        const ordersLegendEntry = sequenceDiagram.meta.legend.find(({ id }) => id === ordersLegendEntryId)
+        const callLegendEntry = sequenceDiagram.meta.legend.find((entry) => 'kind' in entry && entry.kind === 'call')
+        if (!userLegendEntry || !ordersLegendEntry || !callLegendEntry) throw new Error('Missing paste legend entries')
 
         const result = service.pasteFragment({
             edges: [{
                 from: 'source-user',
                 id: 'source-call',
                 kind: 'call',
+                legendEntryId: callLegendEntry.id,
                 sourceAttachment: { nodeId: 'source-user', offset: 0.5, side: 'right' },
                 targetAttachment: { nodeId: 'source-orders', offset: 0.5, side: 'left' },
                 to: 'source-orders',
@@ -999,9 +1027,10 @@ describe('DiagramEditSessionService', () => {
                 regions: [{ edgeIds: ['source-call'], guard: 'requested' }],
             }],
             groups: [{ id: 'source-group', label: 'Pair', nodeIds: ['source-user', 'source-orders'], x: 4, y: 8 }],
+            legendEntries: [userLegendEntry, ordersLegendEntry, callLegendEntry],
             nodes: [
-                { id: 'source-user', kind: 'participant', label: 'User copy', role: 'external', x: 8, y: 12 },
-                { id: 'source-orders', kind: 'participant', label: 'Orders copy', role: 'focal', x: 32, y: 12 },
+                { id: 'source-user', kind: 'participant', label: 'User copy', legendEntryId: userLegendEntry.id, role: 'external', x: 8, y: 12 },
+                { id: 'source-orders', kind: 'participant', label: 'Orders copy', legendEntryId: ordersLegendEntry.id, role: 'focal', x: 32, y: 12 },
             ],
         }, 4)
 
@@ -1059,7 +1088,8 @@ describe('DiagramEditSessionService', () => {
             edges: [],
             fragments: [],
             groups: [],
-            nodes: [{ id: 'participant', kind: 'participant', label: 'Participant', role: 'external', x: 4, y: 4 }],
+            legendEntries: [],
+            nodes: [{ legendEntryId: 'participant', id: 'participant', kind: 'participant', label: 'Participant', role: 'external', x: 4, y: 4 }],
         }, 4)
 
         expect(result).toBeNull()
@@ -1225,12 +1255,12 @@ describe('DiagramEditSessionService', () => {
     })
 
     it('rejects a batch that would remove every node without partial mutation', () => {
-        const source: DiagramData = {
+        const source = parseDiagramData(JSON.stringify({
             edges: [],
             groups: [],
             meta: { description: 'Single node', title: 'Single', type: 'architecture', version: 1 },
             nodes: [{ id: 'only', label: 'Only', role: 'focal' }],
-        }
+        }))
         const reportValidationError = vi.fn()
         const { service } = createHarness({ reportValidationError, source })
         service.start()
@@ -1258,7 +1288,7 @@ describe('DiagramEditSessionService', () => {
         service.read.subscribeCollectionMembership('edge', edgeMembershipChanged)
         service.read.subscribeFragmentRegionMembership('transaction', 0, regionMembershipChanged)
 
-        const createdId = service.createEdge({ from: 'orders', kind: 'async', to: 'user' })
+        const createdId = service.createEdge({ from: 'orders', kind: 'async', legendEntryId: 'sequence-async', to: 'user' })
 
         expect(createdId).toBe('edge-1')
         expect(service.read.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user', 'edge-1'])
@@ -1282,7 +1312,7 @@ describe('DiagramEditSessionService', () => {
         const initialEdgeIds = service.read.getEdgeIdsSnapshot()
         service.read.subscribeCollectionMembership('edge', edgeMembershipChanged)
 
-        expect(service.createSequenceEdge({ from: 'orders', kind: 'success', to: 'user' }, 1)).toBe('edge-1')
+        expect(service.createSequenceEdge({ from: 'orders', kind: 'success', legendEntryId: 'sequence-success', to: 'user' }, 1)).toBe('edge-1')
         expect(service.read.getEdgeIdsSnapshot()).toEqual(['user-orders', 'edge-1', 'orders-user'])
         expect(service.read.getEdgeIdsSnapshot()).not.toBe(initialEdgeIds)
         const insertedEdgeIds = service.read.getEdgeIdsSnapshot()
@@ -1305,13 +1335,13 @@ describe('DiagramEditSessionService', () => {
         const reportValidationError = vi.fn()
         const sequence = sequenceHarness(vi.fn().mockReturnValue('edge-1'), reportValidationError)
 
-        expect(sequence.createSequenceEdge({ from: 'orders', kind: 'success', to: 'user' }, 3)).toBeNull()
+        expect(sequence.createSequenceEdge({ from: 'orders', kind: 'success', legendEntryId: 'sequence-success', to: 'user' }, 3)).toBeNull()
         expect(sequence.objects.moveSequenceEdge('orders-user', -1)).toBe(false)
         expect(sequence.read.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user'])
 
         const { service: architecture } = createHarness({ reportValidationError })
         architecture.start()
-        expect(architecture.createSequenceEdge({ from: 'orders', kind: 'connection', to: 'store' }, 0)).toBeNull()
+        expect(architecture.createSequenceEdge({ from: 'orders', kind: 'connection', legendEntryId: edgeKindLegendId(diagram, 'connection'), to: 'store' }, 0)).toBeNull()
         expect(architecture.objects.moveSequenceEdge('orders-store', 0)).toBe(false)
         expect(reportValidationError).toHaveBeenCalledTimes(4)
     })
@@ -1509,8 +1539,8 @@ describe('DiagramEditSessionService', () => {
         service.read.subscribeCollectionMembership('node', listener)
         service.read.subscribeDirty(listener)
 
-        expect(service.createEdge({ from: 'missing', kind: 'call', to: 'user' })).toBeNull()
-        expect(service.createNode({ label: '  ', role: 'focal' })).toBeNull()
+        expect(service.createEdge({ from: 'missing', kind: 'call', legendEntryId: edgeKindLegendId(sequenceDiagram, 'call'), to: 'user' })).toBeNull()
+        expect(service.createNode({ label: '  ', legendEntryId: nodeKindLegendId(sequenceDiagram, 'participant'), role: 'focal' })).toBeNull()
         expect(service.createGroup({ label: 'Twice', nodeIds: ['user', 'user'] })).toBeNull()
         expect(service.fragments.createFragment({ operator: 'alt', regions: [{ edgeIds: [], guard: 'only' }] })).toBeNull()
         expect(service.fragments.createFragment({
@@ -1557,6 +1587,7 @@ describe('DiagramEditSessionService', () => {
         expect(service.createEdge({
             from: 'orders',
             kind: 'connection',
+            legendEntryId: edgeKindLegendId(diagram, 'connection'),
             to: 'store',
             waypoints: [{ x: 0, y: 0 }, { x: 4, y: 4 }],
         })).toBeNull()
@@ -1584,19 +1615,19 @@ describe('DiagramEditSessionService', () => {
         expect(architecture.objects.setEdgeField('orders-store', 'from', 'missing')).toBe(false)
         expect(architecture.objects.setEdgeField('orders-store', 'kind', 'relationship')).toBe(false)
         expect(architecture.objects.setEdgeField('orders-store', 'fromCardinality', '1')).toBe(false)
-        expect(architecture.createNode({ fields: [{ name: 'id' }], label: 'Wrong', role: 'focal' })).toBeNull()
+        expect(architecture.createNode({ fields: [{ name: 'id' }], label: 'Wrong', legendEntryId: nodeKindLegendId(diagram, 'component'), role: 'focal' })).toBeNull()
 
         const flowchartReporter = vi.fn()
         const { service: flowchart } = createHarness({ reportValidationError: flowchartReporter, source: flowchartDiagram })
         flowchart.start()
         expect(flowchart.objects.setEdgeField('check-done', 'label', undefined)).toBe(false)
-        expect(flowchart.createEdge({ from: 'check', kind: 'flow', to: 'done' })).toBeNull()
+        expect(flowchart.createEdge({ from: 'check', kind: 'flow', legendEntryId: edgeKindLegendId(flowchartDiagram, 'flow'), to: 'done' })).toBeNull()
 
         const stateReporter = vi.fn()
         const { service: state } = createHarness({ reportValidationError: stateReporter, source: stateDiagram })
         state.start()
         expect(state.objects.setEdgeField('start-work', 'label', undefined)).toBe(false)
-        expect(state.createNode({ kind: 'decision', label: 'Wrong', role: 'focal' })).toBeNull()
+        expect(state.createNode({ kind: 'decision', label: 'Wrong', legendEntryId: nodeKindLegendId(stateDiagram, 'state'), role: 'focal' })).toBeNull()
 
         const sequenceReporter = vi.fn()
         const sequence = sequenceHarness(undefined, sequenceReporter)
@@ -1609,7 +1640,7 @@ describe('DiagramEditSessionService', () => {
         expect(entity.entityFields.setEntityField('order', 0, 'key', 'invalid' as never)).toBe(false)
         const relationship = entity.read.getEdgeSnapshot('order-item')
         expect(entity.objects.setEdgeField('order-item', 'fromCardinality', 'many' as never)).toBe(false)
-        expect(entity.createEdge({ from: 'order', kind: 'relationship', to: 'missing' })).toBeNull()
+        expect(entity.createEdge({ from: 'order', kind: 'relationship', legendEntryId: edgeKindLegendId(entityDiagram, 'relationship'), to: 'missing' })).toBeNull()
         expect(entity.read.getEdgeSnapshot('order-item')).toBe(relationship)
         expect(entity.read.getEdgeFieldSnapshot('order-item', 'fromCardinality')).toBe('1')
 
@@ -1650,7 +1681,7 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness({ createId: vi.fn().mockReturnValue('node-1') })
         service.start()
 
-        const createdId = service.createNode({ label: 'Billing', role: 'backend' })
+        const createdId = service.createNode({ label: 'Billing', legendEntryId: nodeKindLegendId(diagram, 'component'), role: 'backend' })
         if (!createdId) throw new Error('Expected node creation to succeed')
         service.objects.setNodeField(createdId, 'label', 'Billing API')
         expect(service.read.getDirtySnapshot()).toBe(true)
@@ -1725,7 +1756,7 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness({ createId: vi.fn().mockReturnValue('node-1') })
         service.start()
 
-        const createdId = service.createNode({ label: 'Billing', role: 'backend' })
+        const createdId = service.createNode({ label: 'Billing', legendEntryId: nodeKindLegendId(diagram, 'component'), role: 'backend' })
         if (!createdId) throw new Error('Expected node creation to succeed')
         const [additionId] = service.read.getChangeIdsSnapshot()
         expect(service.read.getChange(additionId)).toMatchObject({
@@ -1791,225 +1822,204 @@ describe('DiagramEditSessionService', () => {
 
     it('exposes explicit legend membership and per-entry labels from the source diagram', () => {
         const service = legendHarness()
+        const [serviceEntryId, databaseEntryId, connectionEntryId] = service.read.getLegendEntryKeysSnapshot()
 
-        expect(service.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'node:store', 'connection:connection'])
-        expect(service.read.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
-        expect(service.read.getLegendEntryFieldSnapshot('node:focal', 'role')).toBe('focal')
-        expect(service.read.getLegendEntryFieldSnapshot('connection:connection', 'kind')).toBe('connection')
-        expect(service.read.getLegendEntryFieldSnapshot('node:external', 'label')).toBeNull()
-        expect(service.read.getOriginalLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
-    })
-
-    it('reports an empty legend for a diagram without explicit entries', () => {
-        const { service } = createHarness()
-        service.start()
-
-        expect(service.read.getLegendEntryKeysSnapshot()).toEqual([])
+        expect(service.read.getLegendEntryKeysSnapshot()).toEqual([serviceEntryId, databaseEntryId, connectionEntryId])
+        expect(service.read.getLegendEntryFieldSnapshot(serviceEntryId, 'label')).toBe('Service')
+        expect(service.read.getLegendEntryFieldSnapshot(serviceEntryId, 'role')).toBe('focal')
+        expect(service.read.getLegendEntryFieldSnapshot(connectionEntryId, 'kind')).toBe('connection')
+        expect(service.read.getLegendEntryFieldSnapshot(connectionEntryId, 'useLabelAsDefault')).toBe(false)
+        expect(service.read.getLegendEntryFieldSnapshot('missing', 'label')).toBeNull()
+        expect(service.read.getOriginalLegendEntryFieldSnapshot(serviceEntryId, 'label')).toBe('Service')
     })
 
     it('assigns only the label of the addressed legend entry', () => {
         const service = legendHarness()
+        const [serviceEntryId, databaseEntryId] = service.read.getLegendEntryKeysSnapshot()
         const labelChanged = vi.fn()
         const otherLabelChanged = vi.fn()
         const membershipChanged = vi.fn()
-        service.read.subscribeLegendEntryField('node:focal', 'label', labelChanged)
-        service.read.subscribeLegendEntryField('node:store', 'label', otherLabelChanged)
+        service.read.subscribeLegendEntryField(serviceEntryId, 'label', labelChanged)
+        service.read.subscribeLegendEntryField(databaseEntryId, 'label', otherLabelChanged)
         service.read.subscribeLegendMembership(membershipChanged)
         const entryKeys = service.read.getLegendEntryKeysSnapshot()
 
-        expect(service.legend.setLegendEntryLabel('node:focal', '  Order service  ')).toBe(true)
-        expect(service.read.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Order service')
-        expect(service.read.getLegendEntryFieldSnapshot('node:store', 'label')).toBe('Database')
+        expect(service.legend.setLegendEntryLabel(serviceEntryId, '  Order service  ')).toBe(true)
+        expect(service.read.getLegendEntryFieldSnapshot(serviceEntryId, 'label')).toBe('Order service')
+        expect(service.read.getLegendEntryFieldSnapshot(databaseEntryId, 'label')).toBe('Database')
         expect(service.read.getLegendEntryKeysSnapshot()).toBe(entryKeys)
         expect(labelChanged).toHaveBeenCalledOnce()
         expect(otherLabelChanged).not.toHaveBeenCalled()
         expect(membershipChanged).not.toHaveBeenCalled()
-        expect(service.legend.setLegendEntryLabel('node:focal', 'Order service')).toBe(false)
+        expect(service.legend.setLegendEntryLabel(serviceEntryId, 'Order service')).toBe(false)
         expect(labelChanged).toHaveBeenCalledOnce()
+    })
+
+    it('assigns default-label state only to the addressed connection entry', () => {
+        const service = legendHarness()
+        const [nodeEntryId, , connectionEntryId] = service.read.getLegendEntryKeysSnapshot()
+        const defaultChanged = vi.fn()
+        const labelChanged = vi.fn()
+        service.read.subscribeLegendEntryField(connectionEntryId, 'useLabelAsDefault', defaultChanged)
+        service.read.subscribeLegendEntryField(connectionEntryId, 'label', labelChanged)
+
+        expect(service.legend.setLegendEntryUseLabelAsDefault(connectionEntryId, true)).toBe(true)
+        expect(service.read.getLegendEntryFieldSnapshot(connectionEntryId, 'useLabelAsDefault')).toBe(true)
+        expect(defaultChanged).toHaveBeenCalledOnce()
+        expect(labelChanged).not.toHaveBeenCalled()
+        expect(service.read.getDirtySnapshot()).toBe(true)
+
+        const changeId = `diagram:legendEntry:${encodeURIComponent(connectionEntryId)}:useLabelAsDefault`
+        expect(service.read.getChange(changeId)).toMatchObject({
+            category: 'field',
+            field: 'useLabelAsDefault',
+            objectId: connectionEntryId,
+            objectKind: 'legendEntry',
+            originalValue: false,
+            value: true,
+        })
+        expect(generateDiagramChangeDescription(changeId, service)).toBe(
+            'Change useLabelAsDefault of legend entry "Calls" for connection kind "connection" from false to true.',
+        )
+        expect(service.legend.setLegendEntryUseLabelAsDefault(connectionEntryId, true)).toBe(false)
+        expect(defaultChanged).toHaveBeenCalledOnce()
+        expect(service.legend.setLegendEntryUseLabelAsDefault(nodeEntryId, true)).toBe(false)
+        expect(service.read.getLegendEntryFieldSnapshot(nodeEntryId, 'useLabelAsDefault')).toBeNull()
+
+        expect(service.legend.setLegendEntryUseLabelAsDefault(connectionEntryId, false)).toBe(true)
+        expect(service.read.getDirtySnapshot()).toBe(false)
     })
 
     it('rejects an empty legend label and keeps the previous value', () => {
         const reportValidationError = vi.fn()
         const service = legendHarness(reportValidationError)
+        const [serviceEntryId] = service.read.getLegendEntryKeysSnapshot()
 
-        expect(service.legend.setLegendEntryLabel('node:focal', '   ')).toBe(false)
-        expect(service.read.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
+        expect(service.legend.setLegendEntryLabel(serviceEntryId, '   ')).toBe(false)
+        expect(service.read.getLegendEntryFieldSnapshot(serviceEntryId, 'label')).toBe('Service')
         expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('Set legend entry label rejected'))
         expect(service.read.getDirtySnapshot()).toBe(false)
     })
 
-    it('adds an entry with a canonical label and rejects a duplicate semantic', () => {
+    it('adds duplicate semantic entries with separate opaque identities', () => {
         const reportValidationError = vi.fn()
         const service = legendHarness(reportValidationError)
         const membershipChanged = vi.fn()
         service.read.subscribeLegendMembership(membershipChanged)
 
-        expect(service.legend.addLegendEntry({ role: 'external' })).toBe('node:external')
-        expect(service.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'node:store', 'connection:connection', 'node:external'])
-        expect(service.read.getLegendEntryFieldSnapshot('node:external', 'label')).toBe('external')
-        expect(membershipDetail(membershipChanged)).toEqual({ addedKeys: ['node:external'], removedKeys: [] })
+        const firstEntryId = service.legend.addLegendEntry({ label: 'Partner', role: 'external' })
+        const secondEntryId = service.legend.addLegendEntry({ label: 'Vendor', role: 'external' })
 
-        expect(service.legend.addLegendEntry({ label: 'Again', role: 'focal' })).toBeNull()
-        expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('duplicate entry for node:focal'))
+        expect(firstEntryId).toEqual(expect.any(String))
+        expect(secondEntryId).toEqual(expect.any(String))
+        expect(secondEntryId).not.toBe(firstEntryId)
+        expect(service.read.getLegendEntryFieldSnapshot(firstEntryId as string, 'label')).toBe('Partner')
+        expect(service.read.getLegendEntryFieldSnapshot(secondEntryId as string, 'label')).toBe('Vendor')
+        expect(membershipDetail(membershipChanged, 0)).toEqual({ addedKeys: [firstEntryId], removedKeys: [] })
+        expect(membershipDetail(membershipChanged, 1)).toEqual({ addedKeys: [secondEntryId], removedKeys: [] })
         expect(service.legend.addLegendEntry({ role: 'nope' } as never)).toBeNull()
-        expect(membershipChanged).toHaveBeenCalledOnce()
+        expect(membershipChanged).toHaveBeenCalledTimes(2)
     })
 
-    it('preserves derived entries before the first added entry and saves their order', () => {
+    it('preserves migrated entries before the first added entry and saves their order', () => {
         const { service } = createHarness()
         service.start()
+        const existingLegend = structuredClone(service.read.getEditableDiagram()?.meta.legend)
 
-        expect(service.legend.addLegendEntry({ kind: 'data', label: 'Transfers' })).toBe('connection:data')
-        const expectedLegend = [
-            { label: 'Component', nodeKind: 'component' },
-            { kind: 'connection', label: 'Connection' },
-            { kind: 'data', label: 'Transfers' },
-        ]
+        const entryId = service.legend.addLegendEntry({ kind: 'data', label: 'Transfers' })
+        const expectedLegend = [...existingLegend ?? [], { id: entryId, kind: 'data', label: 'Transfers', useLabelAsDefault: false }]
         expect(service.read.getEditableDiagram()?.meta.legend).toEqual(expectedLegend)
         const serialized = serializeDiagramData(service.read.getEditableDiagram() as DiagramData)
         expect(parseDiagramData(serialized).meta.legend).toEqual(expectedLegend)
     })
 
-    it('saves separate custom labels for node kinds sharing one role and reloads them', () => {
-        const source: DiagramData = {
-            ...flowchartDiagram,
-            edges: [],
-            nodes: [
-                { id: 'start', kind: 'start', label: 'Begin', role: 'focal' },
-                { id: 'step', kind: 'step', label: 'Work', role: 'focal' },
-                { id: 'decision', kind: 'decision', label: 'Check', role: 'focal' },
-                { id: 'end', kind: 'end', label: 'Finish', role: 'focal' },
-            ],
-        }
-        const { service } = createHarness({ source })
-        service.start()
-
-        expect(service.selectLegendEntry('nodeKind:step')).toBe(true)
-        expect(service.legend.materializeDerivedLegend()).toBe(true)
-        expect(service.read.getSelectedLegendEntryKeySnapshot()).toBe('nodeKind:step')
-        expect(service.legend.setLegendEntryLabel('nodeKind:step', 'Process')).toBe(true)
-        expect(service.legend.setLegendEntryLabel('nodeKind:decision', 'Branch')).toBe(true)
-        const saved = parseDiagramData(serializeDiagramData(service.read.getEditableDiagram() as DiagramData))
-        const { service: reloaded } = createHarness({ source: saved })
-        reloaded.start()
-
-        expect(reloaded.read.getLegendEntryKeysSnapshot()).toEqual([
-            'nodeKind:start', 'nodeKind:step', 'nodeKind:decision', 'nodeKind:end',
-        ])
-        expect(reloaded.read.getLegendEntryFieldSnapshot('nodeKind:step', 'label')).toBe('Process')
-        expect(reloaded.read.getLegendEntryFieldSnapshot('nodeKind:decision', 'label')).toBe('Branch')
-    })
-
-    it('rejects a derived duplicate and an incompatible connection kind before changing the legend', () => {
+    it('accepts a duplicate and rejects an incompatible connection kind', () => {
         const reportValidationError = vi.fn()
         const { service } = createHarness({ reportValidationError })
         service.start()
 
-        expect(service.legend.addLegendEntry({ kind: 'connection' })).toBeNull()
+        expect(service.legend.addLegendEntry({ kind: 'connection' })).toEqual(expect.any(String))
         expect(service.legend.addLegendEntry({ kind: 'call' })).toBeNull()
-        expect(service.read.getEditableDiagram()?.meta.legend).toBeUndefined()
-        expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('duplicate entry for connection:connection'))
         expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('unsupported value call for architecture'))
     })
 
-    it('removes a legend entry without touching nodes or edges', () => {
-        const service = legendHarness()
+    it('rejects removal of a referenced entry and removes an unreferenced duplicate', () => {
+        const reportValidationError = vi.fn()
+        const service = legendHarness(reportValidationError)
+        const [referencedEntryId] = service.read.getLegendEntryKeysSnapshot()
+        const duplicateEntryId = service.legend.addLegendEntry({ label: 'Alternate service', role: 'focal' }) as string
         const membershipChanged = vi.fn()
         service.read.subscribeLegendMembership(membershipChanged)
-        const nodes = service.read.getEditableDiagram()?.nodes
-        const edges = service.read.getEditableDiagram()?.edges
-        const nodeIds = service.read.getNodeIdsSnapshot()
-        const edgeIds = service.read.getEdgeIdsSnapshot()
 
-        expect(service.legend.removeLegendEntry('node:store')).toBe(true)
-        expect(service.read.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
-        expect(service.read.getEditableDiagram()?.nodes).toBe(nodes)
-        expect(service.read.getEditableDiagram()?.edges).toBe(edges)
-        expect(service.read.getNodeIdsSnapshot()).toBe(nodeIds)
-        expect(service.read.getEdgeIdsSnapshot()).toBe(edgeIds)
-        expect(membershipDetail(membershipChanged)).toEqual({ addedKeys: [], removedKeys: ['node:store'] })
-        expect(service.legend.removeLegendEntry('node:store')).toBe(false)
+        expect(service.legend.removeLegendEntry(referencedEntryId)).toBe(false)
+        expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('referenced by a node'))
+        expect(service.legend.removeLegendEntry(duplicateEntryId)).toBe(true)
+        expect(membershipDetail(membershipChanged)).toEqual({ addedKeys: [], removedKeys: [duplicateEntryId] })
+        expect(service.legend.removeLegendEntry(duplicateEntryId)).toBe(false)
         expect(membershipChanged).toHaveBeenCalledOnce()
-    })
-
-    it('keeps an explicit empty legend once the last entry is removed', () => {
-        const service = legendHarness()
-
-        for (const entryKey of [...service.read.getLegendEntryKeysSnapshot()]) service.legend.removeLegendEntry(entryKey)
-
-        expect(service.read.getLegendEntryKeysSnapshot()).toEqual([])
-        expect(service.read.getEditableDiagram()?.meta.legend).toEqual([])
-    })
-
-    it('materializes derived entries and persists removal of the last one after reload', () => {
-        const { service } = createHarness()
-        service.start()
-
-        expect(service.legend.materializeDerivedLegend()).toBe(true)
-        for (const entryKey of [...service.read.getLegendEntryKeysSnapshot()]) service.legend.removeLegendEntry(entryKey)
-
-        expect(service.read.getDirtySnapshot()).toBe(true)
-        const serialized = serializeDiagramData(service.read.getEditableDiagram() as DiagramData)
-        expect(parseDiagramData(serialized).meta.legend).toEqual([])
     })
 
     it('reorders legend membership without changing any entry label', () => {
         const service = legendHarness()
+        const [serviceEntryId, databaseEntryId, connectionEntryId] = service.read.getLegendEntryKeysSnapshot()
         const membershipChanged = vi.fn()
         const labelChanged = vi.fn()
         service.read.subscribeLegendMembership(membershipChanged)
-        service.read.subscribeLegendEntryField('connection:connection', 'label', labelChanged)
+        service.read.subscribeLegendEntryField(connectionEntryId, 'label', labelChanged)
 
-        expect(service.legend.moveLegendEntry('connection:connection', 0)).toBe(true)
-        expect(service.read.getLegendEntryKeysSnapshot()).toEqual(['connection:connection', 'node:focal', 'node:store'])
-        expect(service.read.getLegendEntryFieldSnapshot('connection:connection', 'label')).toBe('Calls')
+        expect(service.legend.moveLegendEntry(connectionEntryId, 0)).toBe(true)
+        expect(service.read.getLegendEntryKeysSnapshot()).toEqual([connectionEntryId, serviceEntryId, databaseEntryId])
+        expect(service.read.getLegendEntryFieldSnapshot(connectionEntryId, 'label')).toBe('Calls')
         expect(membershipChanged).toHaveBeenCalledOnce()
         expect(labelChanged).not.toHaveBeenCalled()
-        expect(service.legend.moveLegendEntry('connection:connection', 0)).toBe(false)
-        expect(() => service.legend.moveLegendEntry('node:external', 0)).toThrow('legend entry node:external does not exist')
+        expect(service.legend.moveLegendEntry(connectionEntryId, 0)).toBe(false)
+        expect(() => service.legend.moveLegendEntry('missing', 0)).toThrow('legend entry missing does not exist')
     })
 
     it('records legend label, membership, and order edits in the semantic change set', () => {
         const service = legendHarness()
+        const [serviceEntryId, databaseEntryId, connectionEntryId] = service.read.getLegendEntryKeysSnapshot()
 
-        service.legend.setLegendEntryLabel('node:focal', 'Order service')
-        expect(service.read.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:node%3Afocal:label'])
-        expect(service.read.getChange('diagram:legendEntry:node%3Afocal:label')).toMatchObject({
+        service.legend.setLegendEntryLabel(serviceEntryId, 'Order service')
+        const labelChangeId = `diagram:legendEntry:${encodeURIComponent(serviceEntryId)}:label`
+        expect(service.read.getChangeIdsSnapshot()).toEqual([labelChangeId])
+        expect(service.read.getChange(labelChangeId)).toMatchObject({
             category: 'field',
             field: 'label',
-            objectId: 'node:focal',
+            objectId: serviceEntryId,
             objectKind: 'legendEntry',
             originalValue: 'Service',
             value: 'Order service',
         })
         expect(service.read.getDirtySnapshot()).toBe(true)
 
-        service.legend.setLegendEntryLabel('node:focal', 'Service')
+        service.legend.setLegendEntryLabel(serviceEntryId, 'Service')
         expect(service.read.getChangeIdsSnapshot()).toEqual([])
         expect(service.read.getDirtySnapshot()).toBe(false)
 
-        service.legend.addLegendEntry({ role: 'external' })
-        expect(service.read.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:membership:node%3Aexternal'])
-        expect(service.read.getChange('diagram:legendEntry:membership:node%3Aexternal')).toMatchObject({
+        const addedEntryId = service.legend.addLegendEntry({ role: 'external' }) as string
+        const membershipChangeId = `diagram:legendEntry:membership:${encodeURIComponent(addedEntryId)}`
+        expect(service.read.getChangeIdsSnapshot()).toEqual([membershipChangeId])
+        expect(service.read.getChange(membershipChangeId)).toMatchObject({
             category: 'membership',
             field: 'legend',
-            objectId: 'node:external',
+            objectId: addedEntryId,
             objectKind: 'legendEntry',
             originalValue: false,
             ownerId: 'diagram',
             value: true,
         })
 
-        service.legend.removeLegendEntry('node:external')
+        service.legend.removeLegendEntry(addedEntryId)
         expect(service.read.getChangeIdsSnapshot()).toEqual([])
 
-        service.legend.moveLegendEntry('connection:connection', 0)
+        service.legend.moveLegendEntry(connectionEntryId, 0)
         expect(service.read.getChangeIdsSnapshot()).toEqual([
-            'diagram:legendEntry:node%3Afocal:order',
-            'diagram:legendEntry:node%3Astore:order',
-            'diagram:legendEntry:connection%3Aconnection:order',
+            `diagram:legendEntry:${encodeURIComponent(serviceEntryId)}:order`,
+            `diagram:legendEntry:${encodeURIComponent(databaseEntryId)}:order`,
+            `diagram:legendEntry:${encodeURIComponent(connectionEntryId)}:order`,
         ])
-        expect(service.read.getChange('diagram:legendEntry:connection%3Aconnection:order')).toMatchObject({
+        expect(service.read.getChange(`diagram:legendEntry:${encodeURIComponent(connectionEntryId)}:order`)).toMatchObject({
             category: 'field',
             field: 'order',
             originalValue: 2,
@@ -2017,17 +2027,22 @@ describe('DiagramEditSessionService', () => {
         })
     })
 
-    it('treats removing one entry as membership only, not as reordering the rest', () => {
-        const service = legendHarness()
+    it('treats removing one unreferenced entry as membership only, not as reordering the rest', () => {
+        const entryId = 'unused-entry'
+        const source = structuredClone(legendDiagram)
+        source.meta.legend.push({ id: entryId, label: 'Unused', role: 'focal' })
+        const { service } = createHarness({ source })
+        service.start()
 
-        service.legend.removeLegendEntry('node:focal')
+        service.legend.removeLegendEntry(entryId)
 
-        expect(service.read.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:membership:node%3Afocal'])
+        expect(service.read.getChangeIdsSnapshot()).toEqual([`diagram:legendEntry:membership:${encodeURIComponent(entryId)}`])
     })
 
     it('discards legend state and its changes when the session ends', () => {
         const service = legendHarness()
-        service.legend.setLegendEntryLabel('node:focal', 'Order service')
+        const [serviceEntryId] = service.read.getLegendEntryKeysSnapshot()
+        service.legend.setLegendEntryLabel(serviceEntryId, 'Order service')
 
         service.discard()
 
@@ -2103,7 +2118,7 @@ describe('DiagramEditSessionService', () => {
         const diagramBefore = service.read.getEditableDiagram()
         const nodeIdsBefore = service.read.getNodeIdsSnapshot()
 
-        expect(() => service.createNode({ label: 'Billing', role: 'backend' })).toThrow(
+        expect(() => service.createNode({ label: 'Billing', legendEntryId: nodeKindLegendId(diagram, 'component'), role: 'backend' })).toThrow(
             'Could not generate a collision-free diagram object id',
         )
         expect(service.read.getEditableDiagram()).toBe(diagramBefore)

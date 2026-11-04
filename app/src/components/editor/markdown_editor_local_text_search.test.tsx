@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ComponentProps } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import type { CardOpenDocument } from '../../services/open_files_service'
 import { MarkdownEditor } from './markdown_editor'
@@ -90,7 +91,11 @@ function capturedSearchPopperProps() {
 
 // Keep this module isolated: its MUI Popper mock must be installed before MarkdownEditor is imported.
 describe('MarkdownEditor local text search', () => {
-    afterEach(cleanup)
+    beforeEach(() => keyboardShortcutService.start())
+    afterEach(() => {
+        cleanup()
+        keyboardShortcutService.stop()
+    })
 
     it('opens from the shared toolbar search button', () => {
         renderSearchEditor('Find this')

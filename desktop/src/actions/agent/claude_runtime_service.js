@@ -29,49 +29,62 @@ function sameWindows(left, right) {
     ));
 }
 
-/** Owns latest account-wide Claude rate-limit snapshot in desktop process. */
+function requireAccountId(accountId) {
+    if (typeof accountId !== 'string' || accountId.length === 0) throw new Error('Claude rate limits require an account ID');
+
+    return accountId;
+}
+
+/** Owns the latest Claude rate-limit snapshot of each agent account in the desktop process. */
 class ClaudeRuntimeService {
     constructor() {
         this.events = new EventTarget();
-        this.snapshot = null;
+        this.snapshots = new Map();
     }
 
-    getSnapshot() {
-        return this.snapshot ? structuredClone(this.snapshot) : null;
+    getSnapshot(accountId) {
+        const snapshot = this.snapshots.get(accountId);
+
+        return snapshot ? structuredClone(snapshot) : null;
     }
 
+    /** Streams every account snapshot; each one names the account it belongs to. */
     subscribe(listener) {
         const handleRateLimits = (event) => listener(event.detail);
         this.events.addEventListener(RATE_LIMIT_EVENT, handleRateLimits);
-        if (this.snapshot) listener(this.getSnapshot());
+        for (const accountId of this.snapshots.keys()) listener(this.getSnapshot(accountId));
 
         return () => this.events.removeEventListener(RATE_LIMIT_EVENT, handleRateLimits);
     }
 
-    publishRateLimits(payload, observedAt) {
+    publishRateLimits(accountIdValue, payload, observedAt) {
+        const accountId = requireAccountId(accountIdValue);
         if (!Number.isFinite(observedAt)) throw new Error('Invalid Claude rate-limit observation time');
-        if (this.snapshot && observedAt < this.snapshot.observedAt) return false;
+        const current = this.snapshots.get(accountId);
+        if (current && observedAt < current.observedAt) return false;
         const windows = normalizeWindows(payload);
         if (!windows) return false;
-        const changed = !this.snapshot || !this.snapshot.available || !sameWindows(this.snapshot.windows, windows);
-        this.snapshot = { available: true, observedAt, windows };
-        if (changed) this.notify();
+        const changed = !current || !current.available || !sameWindows(current.windows, windows);
+        this.snapshots.set(accountId, { accountId, available: true, observedAt, windows });
+        if (changed) this.notify(accountId);
 
         return true;
     }
 
-    publishUnavailable(observedAt) {
+    publishUnavailable(accountIdValue, observedAt) {
+        const accountId = requireAccountId(accountIdValue);
         if (!Number.isFinite(observedAt)) throw new Error('Invalid Claude rate-limit observation time');
-        if (this.snapshot && observedAt < this.snapshot.observedAt) return false;
-        const changed = !this.snapshot || this.snapshot.available;
-        this.snapshot = { available: false, observedAt, windows: [] };
-        if (changed) this.notify();
+        const current = this.snapshots.get(accountId);
+        if (current && observedAt < current.observedAt) return false;
+        const changed = !current || current.available;
+        this.snapshots.set(accountId, { accountId, available: false, observedAt, windows: [] });
+        if (changed) this.notify(accountId);
 
         return true;
     }
 
-    notify() {
-        this.events.dispatchEvent(new CustomEvent(RATE_LIMIT_EVENT, { detail: this.getSnapshot() }));
+    notify(accountId) {
+        this.events.dispatchEvent(new CustomEvent(RATE_LIMIT_EVENT, { detail: this.getSnapshot(accountId) }));
     }
 }
 

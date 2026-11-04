@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from './diagram_data'
+import { parseDiagramData, type DiagramData } from './diagram_data'
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import type { DiagramRecord } from './diagram_index'
 import { DiagramSaveService } from './diagram_save_service'
@@ -7,12 +7,12 @@ import type { SaveEditedDiagramCopyRequest } from './diagram_view_service'
 
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 const sourceRecord: DiagramRecord = {actionId: 'overview', id: 'source', label: 'Overview', path: 'design/diagrams/overview.json'}
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [],
     groups: [],
     meta: { description: 'Architecture', title: 'Overview', type: 'architecture', version: 1 },
     nodes: [{ id: 'orders', label: 'Orders', role: 'focal' }],
-}
+}))
 
 function createHarness(sourceDiagram: DiagramData = diagram) {
     const source = {
@@ -90,7 +90,7 @@ describe('DiagramSaveService', () => {
             edges: [],
             groups: [],
             meta: diagram.meta,
-            nodes: [{ id: 'orders', label: 'Purchases', role: 'focal' }],
+            nodes: [{ ...diagram.nodes[0], label: 'Purchases' }],
         })
         expect(session.read.getSavedRecordSnapshot()).toBe(savedRecord)
         expect(session.read.getDirtySnapshot()).toBe(false)

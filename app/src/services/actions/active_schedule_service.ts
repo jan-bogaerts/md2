@@ -3,8 +3,23 @@ import { getElectronActionBridge, type ElectronActionBridge } from '../../data/e
 import { resolveProjectConfigPaths, type ProjectReference, type ProjectWatchEvent } from '../../data/data_types'
 import { normalizePath } from '../../../../shared/path_utils.mjs'
 import { actionService, ACTIONS_CHANGED_EVENT, type ActionService } from './action_service'
-import { claudeRateLimitService, type ClaudeRateLimitService } from '../agents/claude_rate_limit_service'
-import { codexRateLimitService, type CodexRateLimitService } from '../agents/codex_rate_limit_service'
+import {
+    claudeRateLimitService,
+    claudeRateLimitsChangedEvent,
+    type ClaudeRateLimitService,
+} from '../agents/claude_rate_limit_service'
+import {
+    codexRateLimitService,
+    codexRateLimitsChangedEvent,
+    type CodexRateLimitService,
+} from '../agents/codex_rate_limit_service'
+import {
+    DEFAULT_AGENT_ACCOUNTS,
+    initialAgentAccountId,
+    resolveAgentAccount,
+    type AgentAccount,
+} from '../../data/agent_accounts'
+import { selectedAgentAccountId } from '../../data/agent_selection'
 import { configService } from '../config/config_service'
 import { dataService, type DataService } from '../data/data_service'
 import { projectAccessService } from '../project/project_access_service'
@@ -34,7 +49,15 @@ interface ActiveScheduleServiceDependencies {
     getActionsFolder(): string
     getBridge(): ElectronActionBridge | null
     getProject(): ProjectReference | null
+    getAgentAccounts?(): AgentAccount[]
+    getDefaultAccountId?(agent: string): string
+    /** Announces `changed` when configured accounts may have changed. */
+    selectionEvents: EventTarget
 }
+
+type RateLimitAgent = 'claude' | 'codex'
+
+interface RateLimitAccount { accountId: string; agent: RateLimitAgent }
 
 const EMPTY_ITEMS: readonly ActiveScheduleItem[] = []
 const INITIAL_SNAPSHOT: ActiveScheduleSnapshot = {
@@ -63,6 +86,13 @@ function defaultDependencies(): ActiveScheduleServiceDependencies {
         getActionsFolder: () => resolveProjectConfigPaths(configService.getProjectConfig()).actionsFolder,
         getBridge: getElectronActionBridge,
         getProject: () => dataService.getState().project,
+        getAgentAccounts: () => configService.isInitialized()
+            ? configService.get('desktop.agentAccounts')
+            : DEFAULT_AGENT_ACCOUNTS,
+        getDefaultAccountId: (agent) => configService.isInitialized()
+            ? selectedAgentAccountId(configService.get('desktop.agentSelection'), agent)
+            : initialAgentAccountId(agent),
+        selectionEvents: configService,
     }
 }
 
@@ -70,6 +100,7 @@ function defaultDependencies(): ActiveScheduleServiceDependencies {
 export class ActiveScheduleService extends EventTarget {
     private readonly dependencies: ActiveScheduleServiceDependencies
     private projectKey: string | null = null
+    private rateLimitAccounts = new Map<string, RateLimitAccount>()
     private refreshRevision = 0
     private schedules: readonly AnySchedule[] = []
     private pendingCardIds = new Set<string>()
@@ -127,8 +158,8 @@ export class ActiveScheduleService extends EventTarget {
         this.dependencies.dataService.addEventListener('changed', this.handleProjectChanged)
         this.dependencies.dataService.addEventListener('repositoryChanged', this.handleRepositoryChanged)
         this.dependencies.actionService.addEventListener(ACTIONS_CHANGED_EVENT, this.handleProjectionSourceChanged)
-        this.dependencies.claudeRateLimitService.addEventListener('changed', this.handleProjectionSourceChanged)
-        this.dependencies.codexRateLimitService.addEventListener('changed', this.handleProjectionSourceChanged)
+        this.dependencies.selectionEvents.addEventListener('changed', this.handleSelectionChanged)
+        this.bindRateLimitAccounts()
         this.handleProjectChanged()
     }
 
@@ -139,8 +170,8 @@ export class ActiveScheduleService extends EventTarget {
         this.dependencies.dataService.removeEventListener('changed', this.handleProjectChanged)
         this.dependencies.dataService.removeEventListener('repositoryChanged', this.handleRepositoryChanged)
         this.dependencies.actionService.removeEventListener(ACTIONS_CHANGED_EVENT, this.handleProjectionSourceChanged)
-        this.dependencies.claudeRateLimitService.removeEventListener('changed', this.handleProjectionSourceChanged)
-        this.dependencies.codexRateLimitService.removeEventListener('changed', this.handleProjectionSourceChanged)
+        this.dependencies.selectionEvents.removeEventListener('changed', this.handleSelectionChanged)
+        this.unbindRateLimitAccounts()
         this.projectKey = null
         this.refreshRevision += 1
         this.setSchedules([])
@@ -249,6 +280,59 @@ export class ActiveScheduleService extends EventTarget {
 
     private readonly handleProjectionSourceChanged = () => this.publishProjection()
 
+    private readonly handleSelectionChanged = () => {
+        this.bindRateLimitAccounts()
+        this.publishProjection()
+    }
+
+    /** Binds runtime snapshots for the exact accounts named by active reset schedules. */
+    private bindRateLimitAccounts() {
+        const next = new Map<string, RateLimitAccount>()
+        for (const schedule of this.schedules) {
+            if (schedule.trigger.type !== 'account-reset') continue
+            const { agent } = schedule.trigger
+            if (agent !== 'claude' && agent !== 'codex') continue
+            const accountId = this.resolveRateLimitAccountId(agent, schedule.trigger.accountId)
+            next.set(`${agent}\u0000${accountId}`, { accountId, agent })
+        }
+        const unchanged = next.size === this.rateLimitAccounts.size
+            && [...next.keys()].every((key) => this.rateLimitAccounts.has(key))
+        if (unchanged) return false
+        this.unbindRateLimitAccounts()
+        const { claudeRateLimitService: claudeLimits, codexRateLimitService: codexLimits } = this.dependencies
+        this.rateLimitAccounts = next
+        for (const { accountId, agent } of next.values()) {
+            const service = agent === 'claude' ? claudeLimits : codexLimits
+            const eventName = agent === 'claude'
+                ? claudeRateLimitsChangedEvent(accountId)
+                : codexRateLimitsChangedEvent(accountId)
+            service.addEventListener(eventName, this.handleProjectionSourceChanged)
+            service.requestSnapshot(accountId)
+        }
+
+        return true
+    }
+
+    private resolveRateLimitAccountId(agent: RateLimitAgent, accountId: string | undefined) {
+        if (accountId === undefined) return initialAgentAccountId(agent)
+        const accounts = this.dependencies.getAgentAccounts?.() ?? DEFAULT_AGENT_ACCOUNTS
+        const defaultAccountId = this.dependencies.getDefaultAccountId?.(agent) ?? initialAgentAccountId(agent)
+
+        return resolveAgentAccount(accounts, agent, accountId, defaultAccountId)?.id ?? initialAgentAccountId(agent)
+    }
+
+    private unbindRateLimitAccounts() {
+        const { claudeRateLimitService: claudeLimits, codexRateLimitService: codexLimits } = this.dependencies
+        for (const { accountId, agent } of this.rateLimitAccounts.values()) {
+            const service = agent === 'claude' ? claudeLimits : codexLimits
+            const eventName = agent === 'claude'
+                ? claudeRateLimitsChangedEvent(accountId)
+                : codexRateLimitsChangedEvent(accountId)
+            service.removeEventListener(eventName, this.handleProjectionSourceChanged)
+        }
+        this.rateLimitAccounts = new Map()
+    }
+
     private setSchedules(schedules: readonly AnySchedule[]) {
         const pendingCardIds = new Set<string>()
         const pendingCardActions = new Set<string>()
@@ -282,6 +366,7 @@ export class ActiveScheduleService extends EventTarget {
         const changedCardIds = new Set([...previousCardIds, ...pendingCardIds])
         const changedCardActions = new Set([...previousCardActions, ...pendingCardActions])
         this.schedules = schedules
+        this.bindRateLimitAccounts()
         this.pendingCardIds = pendingCardIds
         this.pendingCardActions = pendingCardActions
         this.sequenceCardWorktrees = sequenceCardWorktrees
@@ -306,11 +391,19 @@ export class ActiveScheduleService extends EventTarget {
     private publishProjection(overrides: Partial<Pick<ActiveScheduleSnapshot, 'error' | 'loading'>> = {}) {
         const { snapshot } = this.dependencies.dataService.getState()
         const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+        const claudeSnapshots = new Map<string, ReturnType<ClaudeRateLimitService['getState']>['snapshot']>()
+        const codexSnapshots = new Map<string, ReturnType<CodexRateLimitService['getState']>['snapshot']>()
+        for (const { accountId, agent } of this.rateLimitAccounts.values()) {
+            if (agent === 'claude') claudeSnapshots.set(accountId, this.dependencies.claudeRateLimitService.getState(accountId).snapshot)
+            else codexSnapshots.set(accountId, this.dependencies.codexRateLimitService.getState(accountId).snapshot)
+        }
         const items = projectActiveSchedules(this.schedules, {
             actions: this.dependencies.actionService.getActions(),
+            agentAccounts: this.dependencies.getAgentAccounts?.() ?? DEFAULT_AGENT_ACCOUNTS,
             cards,
-            claudeSnapshot: this.dependencies.claudeRateLimitService.getState().snapshot,
-            codexSnapshot: this.dependencies.codexRateLimitService.getState().snapshot,
+            claudeSnapshots,
+            codexSnapshots,
+            defaultAccountId: (agent) => this.dependencies.getDefaultAccountId?.(agent) ?? initialAgentAccountId(agent),
         })
         const scheduleIds = new Set(this.schedules.map(({ id }) => id))
         this.publish({

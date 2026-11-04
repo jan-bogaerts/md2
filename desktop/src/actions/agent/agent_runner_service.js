@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const path = require('node:path');
 const crossSpawn = require('cross-spawn');
 const { cancelUnfinishedTools } = require('./cancel_unfinished_tools');
@@ -17,10 +18,10 @@ const {
     persistConversation,
     persistConversationCheckpoint,
 } = require('./agent_conversation_persistence');
-const { AgentExecutableResolver, executableFromCommand } = require('./agent_executable_availability');
+const { initialAgentAccountId, supportsAgentAccounts } = require('./agent_accounts.mjs');
+const { AgentExecutableResolver } = require('./agent_executable_availability');
 const { createAgentEnvironment } = require('./agent_environment');
-const { ClaudeUsagePoller } = require('./claude_usage_poller');
-const { CodexUsagePoller } = require('./codex_usage_poller');
+const { publishCodexRuntimeEvent } = require('./agent_runtime_usage');
 const { diagnoseCodexCacheError, isCodexCacheError } = require('./agent_codex_cache_diagnostic');
 const { logAgentEvent } = require('./agent_file_logger');
 const { recordProviderEvent } = require('./agent_provider_event');
@@ -48,12 +49,19 @@ const {
 const { redactSecrets } = require('./agent_secret_redaction');
 const { filterCompleteStderrLines, isHiddenStderrLine, stripAnsi } = require('./agent_stderr_filter');
 const { STREAMING_EVENT_HANDLERS } = require('./agent_streaming_event_handlers');
+const { codexOneShotPrompt } = require('./agent_task_tracking');
 const { terminateProcessTree } = require('../process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/git_commands');
 
 const AGENT_FINISH_GRACE_MS = 5_000;
-const AGENT_USAGE_POLL_TICK_MS = 120_000;
 const TERMINAL_PERSIST_ATTEMPTS = 3;
+
+/** The account whose usage a run consumes; a run without an explicit account uses the agent's initial account. */
+function usageAccountId(agent, accountId) {
+    if (!supportsAgentAccounts(agent)) return null;
+
+    return accountId ?? initialAgentAccountId(agent);
+}
 
 function recordTaskList(run, taskList) {
     run.conversation.taskList = taskList;
@@ -75,27 +83,18 @@ class AgentRunnerService {
             ?? dependencies.persistConversationCheckpoint
             ?? persistConversation;
         this.spawn = dependencies.spawn ?? crossSpawn;
+        this.fileSystem = dependencies.fileSystem ?? fs.promises;
+        this.environment = dependencies.environment ?? process.env;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
         this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
         this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;
-        this.claudeUsagePoller = dependencies.claudeUsagePoller
-            ?? new ClaudeUsagePoller({onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event)});
-        this.codexUsagePoller = dependencies.codexUsagePoller
-            ?? new CodexUsagePoller({
-                onRuntimeEvent: (event) => this.handleAccountCodexRuntimeEvent(event),
-                terminateProcessTree: this.terminateProcessTree,
-            });
+        this.usagePollService = dependencies.usagePollService ?? null;
         this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
         this.now = dependencies.now ?? Date.now;
         this.handleFinishTimeout = this.handleFinishTimeout.bind(this);
-        this.handleAccountClaudeRuntimeEvent = this.handleAccountClaudeRuntimeEvent.bind(this);
         this.processes = new Map();
         this.runningConversationIds = new Set();
-        this.usageRefreshStopped = false;
-        this.usageRefreshGeneration = 0;
-        this.claudeUsagePollContext = null;
-        this.usagePollTimer = null;
     }
 
     async run(project, request, onEvent) {
@@ -133,6 +132,7 @@ class AgentRunnerService {
         const streaming = request.streaming === true;
         requireProjectFolder(request?.projectFolder);
         if (cardPath) ensureInsideRoot(rootPath, path.join(rootPath, cardPath));
+        const account = await this.requireAvailableAccount(request.account, agent);
 
         const id = `agent-turn-${crypto.randomUUID()}`;
         const startedAt = new Date().toISOString();
@@ -155,11 +155,12 @@ class AgentRunnerService {
         await this.persistConversationCheckpoint({ conversation: initialConversation, request });
         onConversationSaved?.();
         const [configuredExecutable, ...configuredArguments] = command;
-        const environment = createAgentEnvironment(process.env, agent, request.agentTaskTrackingEnabled === true);
+        const environment = createAgentEnvironment(this.environment, agent, request.agentTaskTrackingEnabled === true, account);
         const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
         if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);
-        const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
-        this.requestUsagePoll({ agent, environment, executable, rootPath });
+        const providerPrompt = codexOneShotPrompt(prompt, agent, request.agentTaskTrackingEnabled === true);
+        const argumentsList = streaming ? configuredArguments : [...configuredArguments, providerPrompt];
+        this.requestUsagePoll({ accountId: account?.id ?? null, agent, environment, executable, rootPath });
         const child = this.spawn(executable, argumentsList, {
             cwd: rootPath,
             detached: process.platform !== 'win32',
@@ -177,6 +178,7 @@ class AgentRunnerService {
             startedAt,
         });
         const run = createRun({
+            accountId: account?.id ?? null,
             agent,
             child,
             conversation,
@@ -194,7 +196,7 @@ class AgentRunnerService {
             streaming,
         });
         attachRunProtocol(run, {
-            onCodexRuntimeEvent: (event) => this.handleCodexRuntimeEvent(event),
+            onCodexRuntimeEvent: (event) => this.handleCodexRuntimeEvent(run, event),
             onMalformedOutput: (line) => this.handleMalformedOutput(id, line),
             onProviderEvent: (event) => this.handleProviderEvent(id, event),
             onStreamingEvent: (event) => this.handleStreamingEvent(id, event),
@@ -237,6 +239,23 @@ class AgentRunnerService {
         if (!compactOnly && conversationBeforePrompt) emitRunEvent(run, { type: 'userMessage', userMessage });
 
         return { conversation: initialConversation, reference, runId: id };
+    }
+
+    async requireAvailableAccount(account, agent) {
+        if (!account) return null;
+        if (account.agent !== agent) throw new Error(`Agent account ${account.id} belongs to ${account.agent}, not ${agent}`);
+        if (account.kind === 'initial') return account;
+        if (account.kind !== 'directory') throw new Error(`Invalid agent account kind: ${String(account.kind)}`);
+        try {
+            const directory = path.resolve(account.configDirectory);
+            const stats = await this.fileSystem.stat(directory);
+            if (!stats.isDirectory()) throw new Error('not a directory');
+            await this.fileSystem.access(directory, fs.constants.R_OK | fs.constants.W_OK);
+        } catch (error) {
+            throw new Error(`Agent account directory is unavailable: ${account.configDirectory}`, { cause: error });
+        }
+
+        return account;
     }
 
     /** Historical tools can only be running while this host owns their conversation process. */
@@ -331,7 +350,7 @@ class AgentRunnerService {
     finish(runId) {
         const run = this.requireStreamingRun(runId);
         run.finishing = true;
-        if (!run.turnActive || run.waitingForQuestion) this.beginFinishShutdown(run);
+        if (!run.turnActive || hasPendingInteraction(run)) this.beginFinishShutdown(run);
     }
 
     beginFinishShutdown(run) {
@@ -364,10 +383,7 @@ class AgentRunnerService {
     }
 
     stopAll() {
-        this.usageRefreshStopped = true;
-        this.stopUsagePollTicks();
-        this.claudeUsagePoller.stop();
-        const completions = [this.codexUsagePoller.stop()];
+        const completions = [];
         for (const run of this.processes.values()) {
             run.cancelled = true;
             transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString(), run.phases);
@@ -378,146 +394,24 @@ class AgentRunnerService {
         return Promise.all(completions);
     }
 
-    /**
-     * Starts one account-wide usage refresh for each configured built-in provider in the active
-     * project's folder, and keeps the Claude one repeating from there.
-     *
-     * The folder matters: Claude asks whether the files in a folder are trusted the first time it
-     * runs there, and that question blocks the poll. Polling the project folder means the answer
-     * covers the folder agents are about to run in anyway.
-     */
-    requestProjectUsageRefresh(project, profiles) {
-        if (!Array.isArray(profiles)) throw new Error('Project usage refresh requires agent profiles');
-        const cwd = requireRootPath(project);
-        if (this.usageRefreshStopped) return;
-        // A refresh for the previous project stops driving the interval the moment a new one starts.
-        this.stopUsagePollTicks();
-        this.claudeUsagePollContext = null;
-        this.usageRefreshGeneration += 1;
-        const generation = this.usageRefreshGeneration;
-        const observedAt = this.now();
-        const refreshProfiles = ['claude', 'codex']
-            .map((provider) => profiles.find(({ name }) => name === provider))
-            .filter((profile) => profile !== undefined);
-        // Usage polling runs a reporting command rather than a conversation, so it stays on the plain
-        // inherited environment shared by every provider.
-        const environment = createAgentEnvironment(process.env);
-        for (const profile of refreshProfiles) {
-            void this.startProviderUsageRefresh(profile, { cwd, environment, generation, observedAt });
-        }
-    }
-
-    async startProviderUsageRefresh(profile, { cwd, environment, generation, observedAt }) {
-        const [configuredExecutable, ...configuredArguments] = profile.command;
-        executableFromCommand(profile.command);
-        const executable = await this.executableResolver.find(configuredExecutable, { cwd, env: environment });
-        // Resolution outlives a project switch, and its result belongs to the folder it started in.
-        if (this.usageRefreshStopped || this.usageRefreshGeneration !== generation) return;
-        if (!executable) {
-            const unavailable = { kind: 'unavailable', observedAt };
-            if (profile.name === 'claude') await this.handleAccountClaudeRuntimeEvent(unavailable);
-            else await this.handleAccountCodexRuntimeEvent(unavailable);
-            return;
-        }
-        if (profile.name === 'claude') {
-            this.claudeUsagePollContext = { cwd, env: environment, executable };
-            this.claudeUsagePoller.requestPoll({
-                cwd,
-                env: environment,
-                executable,
-                observedAt,
-                onRuntimeEvent: this.handleAccountClaudeRuntimeEvent,
-            });
-            this.syncUsagePollTicks();
-            return;
-        }
-        this.codexUsagePoller.requestPoll({
-            argumentsList: configuredArguments,
-            cwd,
-            env: environment,
-            executable,
-            observedAt,
-        });
-    }
-
-    async handleAccountCodexRuntimeEvent(event) {
-        if (!this.codexRuntimeService || this.usageRefreshStopped) return;
-        if (event.kind === 'unavailable') {
-            this.codexRuntimeService.publishUnavailable(event.observedAt);
-            return;
-        }
-        const accepted = this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, false);
-        if (!accepted) this.codexRuntimeService.publishUnavailable(event.observedAt);
-    }
-
-    async handleAccountClaudeRuntimeEvent(event) {
-        if (!this.claudeRuntimeService || this.usageRefreshStopped) return;
-        if (event.kind === 'unavailable') {
-            this.claudeRuntimeService.publishUnavailable(event.observedAt);
-            return;
-        }
-        const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);
-        if (!accepted) this.claudeRuntimeService.publishUnavailable(event.observedAt);
-    }
-
     ensureTermination(run) {
         run.termination ??= this.terminateProcessTree(run.child);
 
         return run.termination;
     }
 
-    async handleCodexRuntimeEvent(event) {
-        if (!this.codexRuntimeService) return;
-        if (event.kind === 'unavailable') {
-            this.codexRuntimeService.publishUnavailable(event.observedAt);
-            return;
-        }
-        const accepted = this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, event.kind === 'update');
-        if (!accepted || !this.usageMetricsService) return;
-        await this.usageMetricsService.recordAccountUsage('codex', this.codexRuntimeService.getSnapshot());
+    /** Codex reports account usage inside its own protocol; it belongs to the account the run uses. */
+    handleCodexRuntimeEvent(run, event) {
+        const runtimeServices = { codexRuntimeService: this.codexRuntimeService, usageMetricsService: this.usageMetricsService };
+
+        return publishCodexRuntimeEvent(runtimeServices, usageAccountId(run.agent, run.accountId), event, true);
     }
 
-    async handleClaudeRuntimeEvent(event) {
-        if (!this.claudeRuntimeService) return;
-        if (event.kind === 'unavailable') {
-            this.claudeRuntimeService.publishUnavailable(event.observedAt);
-            return;
-        }
-        const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);
-        if (!accepted || !this.usageMetricsService) return;
-        const snapshot = this.claudeRuntimeService.getSnapshot();
-        await this.usageMetricsService.recordAccountUsage('claude', snapshot);
-    }
-
-    /** Refreshes account usage for agents that report it out of band; Codex reports it inside its own protocol. */
+    /** Refreshes the usage of the run's account for agents that report it out of band; Codex reports it inside its own protocol. */
     requestUsagePoll(run) {
-        if (run.agent !== 'claude') return;
-        this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment, executable: run.executable });
-    }
-
-    /**
-     * Keeps the account usage poll repeating for the active project, whatever the previous one
-     * returned. Success, failure and an inconclusive result all schedule the next poll the same
-     * way: a single failed poll used to leave the display empty until the user started a run.
-     *
-     * The poller's own cooldown stays the floor between poll starts, so an interval poll and a
-     * run-triggered poll can never put two Claude processes side by side.
-     */
-    syncUsagePollTicks() {
-        if (this.usageRefreshStopped || !this.claudeUsagePollContext || this.usagePollTimer) return;
-        this.usagePollTimer = this.setTimeout(() => {
-            this.usagePollTimer = null;
-            const context = this.claudeUsagePollContext;
-            if (this.usageRefreshStopped || !context) return;
-            this.claudeUsagePoller.requestPoll({ ...context });
-            this.syncUsagePollTicks();
-        }, AGENT_USAGE_POLL_TICK_MS);
-    }
-
-    stopUsagePollTicks() {
-        if (!this.usagePollTimer) return;
-        this.clearTimeout(this.usagePollTimer);
-        this.usagePollTimer = null;
+        if (run.agent !== 'claude' || !this.usagePollService) return;
+        const pollRequest = { cwd: run.rootPath, env: run.environment, executable: run.executable };
+        this.usagePollService.requestRunPoll(run.agent, usageAccountId(run.agent, run.accountId), pollRequest);
     }
 
     recordTokenUsage(run, usage, recordedAt) {
@@ -525,6 +419,7 @@ class AgentRunnerService {
 
         return this.usageMetricsService.recordTokenUsage(
             run.agent,
+            usageAccountId(run.agent, run.accountId),
             usage,
             Date.parse(recordedAt),
         );

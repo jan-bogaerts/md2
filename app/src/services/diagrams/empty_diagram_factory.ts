@@ -1,4 +1,4 @@
-import type { DiagramData, DiagramFlowPreset, DiagramType } from './diagram_data'
+import { DIAGRAM_DATA_VERSION, type DiagramData, type DiagramFlowPreset, type DiagramType } from './diagram_data'
 
 export type EmptyDiagramChoiceId = 'architecture' | 'dependency' | 'entity' | 'flowchart' | 'mindmap' | 'sequence' | 'state'
 
@@ -28,10 +28,11 @@ export function createEmptyDiagramData(choice: EmptyDiagramChoice): DiagramData 
         groups: [],
         meta: {
             description: choice.description,
+            legend: [],
             ...(choice.preset ? { preset: choice.preset } : {}),
             title: choice.title,
             type: choice.type,
-            version: 1,
+            version: DIAGRAM_DATA_VERSION,
         },
         nodes: [],
     }

@@ -3,9 +3,12 @@ import type { AgentProfile, PermissionMode, SpeedMode, ThinkingLevel } from '../
 import { PERMISSION_MODE_OPTIONS, SPEED_MODE_OPTIONS, THINKING_LEVELS, supportsPermissionMode, supportsThinkingLevel } from '../../../../data/agent_profiles';
 import { projectAgentSelection, type AgentSelectionState } from '../../../../data/agent_selection';
 import type { AgentModelOption } from '../../../../data/agent_model_options';
+import type { AgentAccount } from '../../../../data/agent_accounts';
+import { initialAgentAccountId, supportsAgentAccounts } from '../../../../data/agent_accounts';
 import type { CardSequenceDraftService } from './card_sequence_draft_service';
 
 interface CardSequenceAgentSelectionProps {
+    accounts: AgentAccount[];
     availability: Record<string, { available: boolean; error?: string | null }>;
     modelOptions: AgentModelOption[];
     profiles: AgentProfile[];
@@ -14,13 +17,22 @@ interface CardSequenceAgentSelectionProps {
 }
 
 /** Bind sequence execution settings to one draft. */
-export function CardSequenceAgentSelection({ availability, modelOptions, profiles, selection, service }: CardSequenceAgentSelectionProps) {
+export function CardSequenceAgentSelection(
+    { accounts, availability, modelOptions, profiles, selection, service }: CardSequenceAgentSelectionProps,
+) {
     const chosen = projectAgentSelection(selection, profiles);
     const profile = profiles.find(({ name }) => name === chosen.agent);
     const models = modelOptions.some(({ id }) => id === chosen.model)
         ? modelOptions
         : [{ id: chosen.model, displayName: `${chosen.model || '(none)'} — unavailable` }, ...modelOptions];
+    const agentAccounts = accounts.filter(({ agent, kind }) => agent === chosen.agent && kind !== 'initial');
+    const accountAvailable = !chosen.accountId
+        || chosen.accountId === initialAgentAccountId(chosen.agent)
+        || agentAccounts.some(({ id }) => id === chosen.accountId);
     const handleAgentChange = (event: { target: { value: unknown } }) => service.setExecutionAgent(event.target.value as string);
+    const handleAccountChange = (event: { target: { value: unknown } }) => (
+        service.setExecutionAccount((event.target.value as string) || undefined)
+    );
     const handleModelChange = (event: { target: { value: unknown } }) => service.setExecutionModel(event.target.value as string);
     const handleThinkingChange = (event: { target: { value: unknown } }) => (
         service.setExecutionThinkingLevel(event.target.value as ThinkingLevel)
@@ -36,6 +48,19 @@ export function CardSequenceAgentSelection({ availability, modelOptions, profile
         <Select inputProps={{ 'aria-label': 'Execution agent' }} onChange={handleAgentChange} size="small" value={chosen.agent}>
             {profiles.map(({ name }) => <MenuItem disabled={!availability[name]?.available} key={name} value={name}>{name}</MenuItem>)}
         </Select>
+        {supportsAgentAccounts(chosen.agent) ? <>
+            <Typography color="text.secondary" variant="caption">Account</Typography>
+            <Select
+                inputProps={{ 'aria-label': 'Execution account' }}
+                onChange={handleAccountChange}
+                size="small"
+                value={chosen.accountId === initialAgentAccountId(chosen.agent) ? '' : chosen.accountId ?? ''}
+            >
+                <MenuItem value="">Initial</MenuItem>
+                {!accountAvailable ? <MenuItem disabled value={chosen.accountId}>{chosen.accountId} — uses default</MenuItem> : null}
+                {agentAccounts.map(({ id, name }) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
+            </Select>
+        </> : null}
         <Typography color="text.secondary" variant="caption">Model</Typography>
         <Select inputProps={{ 'aria-label': 'Execution model' }} onChange={handleModelChange} size="small" value={chosen.model}>
             {models.map(({ displayName, id }) => <MenuItem key={id} value={id}>{displayName}</MenuItem>)}

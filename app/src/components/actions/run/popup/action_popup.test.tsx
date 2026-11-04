@@ -15,7 +15,14 @@ import { activeScheduleService } from '../../../../services/actions/active_sched
 import { agentCapabilitiesService } from '../../../../services/agents/agent_capabilities_service'
 import { agentAcknowledgementService } from '../../../../services/agents/agent_acknowledgement_service'
 import { dialogService } from '../../../../services/dialog_service'
-import { cardFieldChangedEvent, dataService } from '../../../../services/data/data_service'
+import {
+    CARD_ADDED_EVENT,
+    CARD_REMOVED_EVENT,
+    cardCollectionFieldChangedEvent,
+    cardFieldChangedEvent,
+    dataService,
+    type CardField,
+} from '../../../../services/data/data_service'
 import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
 import { RemoteControlConnectionError, RemoteControlStorageService } from '../../../../services/data/remote_control_storage_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
@@ -25,6 +32,7 @@ import type { MarkdownEditorHandle } from '../../../editor/markdown_editor';
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { createAppTheme } from '../../../../theme/app_theme'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
+import { ActionPopupSessionService } from './action_popup_session_service'
 import { useMarkdownTypeaheadStackPosition } from '../../../editor/typeahead/markdown_typeahead_layer_context'
 import { configService } from '../../../../services/config/config_service'
 import { BUILTIN_AGENT_PROFILES, mergeAgentProfiles } from '../../../../data/agent_profiles'
@@ -32,7 +40,7 @@ import { createActivityFile, type CardActivityFile } from '../../../../../../sha
 
 const renderProbes = vi.hoisted(() => ({
     agentPrompt: vi.fn(),
-    agentPromptPlainText: vi.fn(),
+    markdownEditorPlainText: vi.fn(),
     agentSelectors: vi.fn(),
     chat: vi.fn(),
     conversationPicker: vi.fn(),
@@ -57,7 +65,6 @@ vi.mock('../../agent/action_agent_prompt', async (importOriginal) => {
         ...actual,
         ActionAgentPrompt: function ActionAgentPromptRenderProbe(props: Parameters<typeof actual.ActionAgentPrompt>[0]) {
             renderProbes.agentPrompt(useMarkdownTypeaheadStackPosition())
-            renderProbes.agentPromptPlainText(props.plainText)
 
             return actual.ActionAgentPrompt(props)
         },
@@ -108,6 +115,7 @@ vi.mock('../../../editor/markdown_editor', async (importOriginal) => {
             props: Parameters<typeof actual.MarkdownEditor>[0], ref,
         ) {
             renderProbes.markdownEditor();
+            renderProbes.markdownEditorPlainText(props.plainText);
             return createElement(actual.MarkdownEditor, { ...props, ref });
         }),
     };
@@ -860,7 +868,7 @@ describe('ActionPopup', () => {
 
         renderPopup()
 
-        expect(renderProbes.agentPromptPlainText).toHaveBeenCalledWith(false)
+        expect(renderProbes.markdownEditorPlainText).toHaveBeenCalledWith(false)
     })
 
     it('uses literal text for command prompts', () => {
@@ -868,7 +876,7 @@ describe('ActionPopup', () => {
 
         renderPopup()
 
-        expect(renderProbes.agentPromptPlainText).toHaveBeenCalledWith(true)
+        expect(renderProbes.markdownEditorPlainText).toHaveBeenCalledWith(true)
     })
 
     it('renders the agent bottom row inside the prompt surface below the scrolling editor', () => {
@@ -3167,40 +3175,6 @@ describe('ActionPopup', () => {
         })));
     });
 
-    it('uses current Primary card assignment when continuing a conversation', async () => {
-        const popupContext = { ...context, cardInternalId: 'card-1', worktree: '1', worktreeBranch: 'feature' };
-        const assignedCard = {
-            path: context.file,
-            header: { id: 'F-010', internalId: 'card-1', title: 'Card', worktreeValue: '1', branch: 'feature', worktreeError: null },
-        } as Card;
-        vi.spyOn(dataService, 'getState').mockReturnValue({
-            project, runningAgents: [],
-            snapshot: { activeCards: [assignedCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
-        });
-        const waiting = agentConversation({ entries: [{ content: 'Continue on Primary', id: 'message-1', kind: 'message', role: 'assistant', timestamp: '2026-08-01T12:00:00Z' }] });
-        const startAction = vi.fn(async () => 'continued-run');
-        window.md2Actions = {
-            loadCardActivity: vi.fn(async () => createActivityFile({ cardInternalId: 'card-1', kind: 'card' })),
-            onActionRun: vi.fn(() => vi.fn()), prepareActionPrompt: vi.fn(async () => ({ prompt: '' })), startAction,
-        } as unknown as typeof window.md2Actions;
-        mockCodexAvailable();
-        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waiting]);
-        actionService.loadFromFiles([file(agentDefinition('respond', { label: 'Respond', streaming: true }))]);
-        renderPopup(popupContext);
-        expect(await screen.findByText('Continue on Primary')).toBeInTheDocument();
-
-        assignedCard.header.worktreeValue = null;
-        fireEvent.change(within(screen.getByLabelText('Prompt')).getByRole('textbox'), { target: { value: 'Continue here' } });
-        await userEvent.click(screen.getByRole('button', { name: 'Send' }));
-
-        await waitFor(() => expect(startAction).toHaveBeenCalled());
-        const request = startAction.mock.calls[0]?.[0] as ActionStartRequest;
-        expect(request.context).not.toHaveProperty('worktree');
-        expect(request.context).not.toHaveProperty('worktreeBranch');
-        expect(request.context).not.toHaveProperty('worktreeError');
-        expect(request.runInput).toMatchObject({ continueFrom: waiting.path, prompt: 'Continue here' });
-    });
-
     it('allows manual input for a persisted waiting conversation and starts its continuation', async () => {
         const persistedContext: ActionContext = { kind: 'project' }
         const waitingConversation = agentConversation({actionId: 'respond', cardInternalId: null, cardPath: null, path: 'persisted-waiting.json'})
@@ -4209,6 +4183,7 @@ describe('ActionPopup', () => {
             mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Renamed by the run')])
             act(() => {
                 dataService.dispatchEvent(new CustomEvent('changed', { detail: dataService.getState() }))
+                dataService.dispatchEvent(new Event(cardCollectionFieldChangedEvent('title')))
             })
 
             expect(await screen.findByText('Renamed by the run', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
@@ -4265,6 +4240,102 @@ describe('ActionPopup', () => {
             renderPopup({ ...context, cardInternalId: 'card-1' })
 
             expect(within(screen.getByTestId('action-popup-toolbar')).queryByText('F-010')).not.toBeInTheDocument()
+        })
+    })
+
+    describe('project changes outside the popup dependencies', () => {
+        const targetContext: ActionContext = { ...context, cardInternalId: 'card-1' }
+
+        function projectCard(id: string, internalId: string, title: string): Card {
+            return {
+                agentConversationErrors: [],
+                agentConversations: [],
+                content: '',
+                header: {
+                    affects: [], after: null, agentLogReferences: [], author: null, changedFiles: [], id, internalId,
+                    owner: null, policy: {}, references: [], status: 'design', title,
+                },
+                hasFrontmatter: true,
+                isActive: true,
+                path: `design/${id}.md`,
+            }
+        }
+
+        function replaceSnapshot(cards: Card[]) {
+            const snapshot = { activeCards: cards, backgroundCards: [], repositoryFiles: [], workingFolder: 'design' }
+            vi.spyOn(dataService, 'getState').mockReturnValue({ project, runningAgents: [], snapshot })
+            dataService.dispatchEvent(new CustomEvent('changed', { detail: dataService.getState() }))
+        }
+
+        function publishCardField(card: Card, field: CardField) {
+            dataService.dispatchEvent(new Event(cardFieldChangedEvent(card.path, field)))
+            dataService.dispatchEvent(new Event(cardCollectionFieldChangedEvent(field)))
+        }
+
+        function expectPopupNotRendered() {
+            expect(renderProbes.content).not.toHaveBeenCalled()
+            expect(renderProbes.agentPrompt).not.toHaveBeenCalled()
+            expect(renderProbes.markdownEditor).not.toHaveBeenCalled()
+            expect(renderProbes.phraseButtons).not.toHaveBeenCalled()
+            expect(renderProbes.bottomRow).not.toHaveBeenCalled()
+            expect(renderProbes.promptMenu).not.toHaveBeenCalled()
+            expect(renderProbes.agentSelectors).not.toHaveBeenCalled()
+        }
+
+        /** Renders the popup and waits for conversation loading and prompt preparation to settle. */
+        async function renderTargetPopup(cards: Card[]) {
+            actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+            vi.spyOn(dataService, 'getState').mockReturnValue({
+                project,
+                runningAgents: [],
+                snapshot: { activeCards: cards, backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+            })
+            renderPopup(targetContext)
+            const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+            await waitFor(() => expect(prompt).not.toHaveAttribute('readonly'))
+            Object.values(renderProbes).forEach((probe) => probe.mockClear())
+
+            return vi.spyOn(ActionPopupSessionService.prototype, 'select')
+        }
+
+        it('does not render or reconfigure the popup when an unrelated card is edited, closed, or opened', async () => {
+            const target = projectCard('F-010', 'card-1', 'Target')
+            const unrelated = projectCard('F-011', 'card-2', 'Unrelated')
+            const edited = { ...unrelated, content: 'Edited body', header: { ...unrelated.header, title: 'Edited' } }
+            const select = await renderTargetPopup([target, unrelated])
+
+            act(() => {
+                replaceSnapshot([target, edited])
+                publishCardField(edited, 'title')
+                publishCardField(edited, 'body')
+            })
+            act(() => {
+                replaceSnapshot([target])
+                dataService.dispatchEvent(new CustomEvent(CARD_REMOVED_EVENT, { detail: { card: edited } }))
+            })
+            act(() => {
+                replaceSnapshot([target, edited])
+                dataService.dispatchEvent(new CustomEvent(CARD_ADDED_EVENT, { detail: { card: edited } }))
+            })
+
+            expectPopupNotRendered()
+            expect(select).not.toHaveBeenCalled()
+        })
+
+        it('updates only the target display when the target card title changes', async () => {
+            const target = projectCard('F-010', 'card-1', 'Target')
+            const select = await renderTargetPopup([target])
+            const renamed = { ...target, header: { ...target.header, title: 'Renamed target' } }
+
+            act(() => {
+                replaceSnapshot([renamed])
+                publishCardField(renamed, 'title')
+            })
+            fireEvent.mouseOver(within(screen.getByTestId('action-popup-toolbar')).getByText('F-010'))
+
+            expect(await screen.findByText('Renamed target', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+            expectPopupNotRendered()
+            expect(select).not.toHaveBeenCalled()
         })
     })
 

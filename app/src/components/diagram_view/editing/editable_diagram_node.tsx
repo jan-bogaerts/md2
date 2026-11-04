@@ -5,6 +5,9 @@ import {
 import { diagramGeometryService, type DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
 import type { PositionedDiagramNode } from '../../../services/diagrams/diagram_layout'
 import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
+import {
     diagramSelectionService, type DiagramSelectionService,
 } from '../../../services/diagrams/diagram_selection_service'
 import { DiagramNode } from '../rendering/diagram_node'
@@ -21,6 +24,7 @@ interface EditableDiagramNodeProps {
     details?: DiagramObjectDetailsService
     emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
+    labelFocus?: DiagramLabelFocusService
     nodeId: string
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
@@ -34,6 +38,7 @@ function EditableDiagramNodeLeaf({
     details = diagramObjectDetailsService,
     emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
+    labelFocus = diagramLabelFocusService,
     nodeId,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
@@ -42,6 +47,7 @@ function EditableDiagramNodeLeaf({
     const preset = useEditableDiagramMetadataField('preset', session)
     const kind = useEditableDiagramNodeField(nodeId, 'kind', session)
     const label = useEditableDiagramNodeField(nodeId, 'label', session)
+    const legendEntryId = useEditableDiagramNodeField(nodeId, 'legendEntryId', session)
     const role = useEditableDiagramNodeField(nodeId, 'role', session)
     const sublabel = useEditableDiagramNodeField(nodeId, 'sublabel', session)
     const tag = useEditableDiagramNodeField(nodeId, 'tag', session)
@@ -52,7 +58,7 @@ function EditableDiagramNodeLeaf({
     const y = useDiagramNodeGeometryField(nodeId, 'y', geometry)
     const selected = useIsDiagramObjectSelected(nodeId, 'node', selection)
     const dimmed = useDiagramObjectDimmed('new', 'node', nodeId, emphasis)
-    if (!diagramType || label === null || role === null || width === null || height === null) return null
+    if (!diagramType || label === null || legendEntryId === null || role === null || width === null || height === null) return null
 
     const handleSelect = (_selection: unknown, ctrlKey: boolean) => {
         if (session.read.getActiveToolSnapshot() !== 'select') return
@@ -73,6 +79,7 @@ function EditableDiagramNodeLeaf({
         height,
         id: nodeId,
         label,
+        legendEntryId,
         role,
         width,
         x: x ?? 0,
@@ -87,7 +94,7 @@ function EditableDiagramNodeLeaf({
             circular={diagramType === 'mindmap'}
             diagramType={diagramType}
             dimmed={dimmed}
-            editableLabel={{ session }}
+            editableLabel={{ labelFocus, session }}
             entityFieldSource={diagramType === 'entity' ? { nodeId, session } : undefined}
             flowPreset={preset ?? undefined}
             formattingStore={session.read}

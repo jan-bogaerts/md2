@@ -86,6 +86,7 @@ function executeCommandAction(input) {
         input.primaryProject,
         input.projectFolder,
         input.releasesFolder,
+        input.actionsFolder,
         input.activeCardsFolder,
         '',
         input.diagramFile,

@@ -1,4 +1,4 @@
-import { Box, IconButton, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material'
+import { Box, IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material'
 import ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'
 import ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'
 import Close from 'mdi-material-ui/Close'
@@ -16,6 +16,8 @@ import { ActionConversationSearchRow } from '../../conversation/search/action_co
 import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 import { ActionSelector } from './action_selector'
 import type { ActionPopupContentProps } from './action_popup_types'
+import { ActionPopupTargetBadge } from './action_popup_target_badge'
+import { ActionPopupTitle } from './action_popup_title'
 import { ActionWorktreeSelectorOwner } from './action_worktree_selector_owner'
 
 export const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'
@@ -45,7 +47,7 @@ export function ActionPopupFrame(
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,
         onClose, onSelectAction, onToggleFullHeight, open, primaryPath, readOnlyMessage, stackPosition,
-        target, targetTitle, titleId,
+        subscribeFocusRequest, titleId,
     } = contentProps
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -64,21 +66,6 @@ export function ActionPopupFrame(
     const assignmentTarget = baseContext.kind === 'card' || baseContext.kind === 'file' || baseContext.kind === 'project'
         ? worktreeAssignmentTarget(baseContext)
         : null
-    // The badge stays a span carrying only tabIndex: a button or a role attribute would match the
-    // popper's INTERACTIVE_SELECTOR, which would stop a pointer press on the badge from dragging the popup.
-    const targetBadge = target ? (
-        <Box
-            component="span"
-            sx={{
-                bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,
-                fontFamily: '"Roboto Mono", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,
-                px: 0.875, py: 0.25,
-            }}
-            tabIndex={0}
-        >
-            {target}
-        </Box>
-    ) : null
     const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
         conversationSearchService.handlePopupKeyDown(event)
     }
@@ -116,15 +103,11 @@ export function ActionPopupFrame(
             resizeLabel="Resize action popup"
             stackPosition={stackPosition}
             storageKey={isMobile ? undefined : sizeStorageKey}
+            subscribeFocusRequest={subscribeFocusRequest}
         >
             <MarkdownTypeaheadLayerProvider stackPosition={stackPosition ?? 0}>
                 <Box onKeyDown={handleKeyDown} sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
-                    <Typography
-                        id={titleId}
-                        sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}
-                    >
-                        {target ? `Run actions for ${target}` : 'Run actions'}
-                    </Typography>
+                    <ActionPopupTitle context={baseContext} titleId={titleId} />
                     <Box
                         data-testid="action-popup-fixed-header"
                         data-drag-handle={!isMobile && draggable ? 'true' : undefined}
@@ -137,7 +120,7 @@ export function ActionPopupFrame(
                             data-testid="action-popup-toolbar"
                             sx={{ alignItems: 'center', display: 'flex', gap: { sm: 1, xs: 0.5 }, minWidth: 0 }}
                         >
-                            {targetBadge && targetTitle ? <Tooltip title={targetTitle}>{targetBadge}</Tooltip> : targetBadge}
+                            <ActionPopupTargetBadge context={baseContext} />
                             {assignmentTarget && !readOnlyMessage ? (
                                 <ActionWorktreeSelectorOwner
                                     assignment={worktreeAssignment}

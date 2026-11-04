@@ -91,7 +91,12 @@ describe('CardSequenceDialog', () => {
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Execution speed' }));
         fireEvent.click(screen.getByRole('option', { name: 'Fast' }));
         fireEvent.click(screen.getByRole('button', { name: 'Start' }));
-        await waitFor(() => expect(testState.register).toHaveBeenCalledWith(expect.objectContaining({agentSelection: {agent: 'codex', model: 'gpt-5.5', permissionMode: 'full-access', speedMode: 'fast', thinkingLevel: 'high'}})));
+        await waitFor(() => expect(testState.register).toHaveBeenCalledWith(expect.objectContaining({
+            agentSelection: {
+                accountId: 'codex-initial', agent: 'codex', model: 'gpt-5.5', permissionMode: 'full-access',
+                speedMode: 'fast', thinkingLevel: 'high',
+            },
+        })));
     });
     beforeEach(() => {
         testState.actions[0].type = 'agent';
@@ -259,7 +264,16 @@ describe('CardSequenceDialog', () => {
         await waitFor(() => expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled())
         fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 
-        await waitFor(() => expect(testState.register).toHaveBeenCalledWith({actionId: 'build', agentSelection: {agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval', speedMode: 'default', thinkingLevel: 'medium'}, cardInternalIds: ['card-1'], readyState: 'ready', trigger: { type: 'now' }}))
+        await waitFor(() => expect(testState.register).toHaveBeenCalledWith({
+            actionId: 'build',
+            agentSelection: {
+                accountId: 'codex-initial', agent: 'codex', model: 'gpt-6-sol', permissionMode: 'ask-for-approval',
+                speedMode: 'default', thinkingLevel: 'medium',
+            },
+            cardInternalIds: ['card-1'],
+            readyState: 'ready',
+            trigger: { type: 'now' },
+        }))
         await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add card sequence' })).not.toBeInTheDocument())
     })
 

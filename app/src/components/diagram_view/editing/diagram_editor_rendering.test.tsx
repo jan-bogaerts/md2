@@ -1,7 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react'
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData } from '../../../services/diagrams/diagram_data'
 import {
     DiagramEditSessionService,
 } from '../../../services/diagrams/diagram_edit_session_service'
@@ -24,7 +24,7 @@ import {
     useEditableDiagramNodeField,
 } from './use_editable_diagram'
 
-const diagram: DiagramData = {
+const diagram = parseDiagramData(JSON.stringify({
     edges: [
         { from: 'one', id: 'one-two', kind: 'call', label: 'first call', to: 'two' },
         { from: 'two', id: 'two-three', kind: 'return', label: 'second call', to: 'three' },
@@ -43,7 +43,7 @@ const diagram: DiagramData = {
         { id: 'two', kind: 'participant', label: 'Two', role: 'backend' },
         { id: 'three', kind: 'participant', label: 'Three', role: 'external' },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'sequence', id: 'diagram-1', label: 'Sequence', path: 'design/diagrams/sequence.json' }
 
 type RenderCounts = Map<string, number>
@@ -53,7 +53,7 @@ function countRender(counts: RenderCounts, id: string) {
 }
 
 class DiagramSourceStub extends EventTarget {
-    private readonly source: DiagramViewSourceSnapshot = { diagram, record }
+    private readonly source: DiagramViewSourceSnapshot = { diagram: parseDiagramData(JSON.stringify(diagram)), record }
 
     getSourceSnapshot = () => this.source
 

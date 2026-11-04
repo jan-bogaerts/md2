@@ -17,8 +17,11 @@ const {
 const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
 const { AgentModelCatalogService } = require('./src/actions/agent/agent_model_catalog_service');
+const { AgentAccountService } = require('./src/actions/agent/agent_account_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
 const { ClaudeRuntimeService } = require('./src/actions/agent/claude_runtime_service');
+const { AgentUsagePollService } = require('./src/actions/agent/agent_usage_poll_service');
+const { selectedAgentAccountId } = require('./src/actions/agent/agent_selection.mjs');
 const { UsageMetricsService } = require('./src/actions/agent/usage_metrics_service');
 const { projectOperationCoordinator } = require('./src/project/project_operation_coordinator');
 const { uncommittedProjectWrites } = require('./src/project/uncommitted_project_writes');
@@ -94,18 +97,30 @@ const agentModelCatalogService = new AgentModelCatalogService({ executableResolv
 const claudeRuntimeService = new ClaudeRuntimeService();
 const codexRuntimeService = new CodexRuntimeService();
 const usageMetricsService = new UsageMetricsService({ errorReporter: captureError, projectOperationCoordinator });
+const agentUsagePollService = new AgentUsagePollService({
+    claudeRuntimeService,
+    codexRuntimeService,
+    executableResolver: agentExecutableResolver,
+    usageMetricsService,
+});
 const agentRunnerService = new AgentRunnerService({
     claudeRuntimeService,
     codexRuntimeService,
     executableResolver: agentExecutableResolver,
     usageMetricsService,
+    usagePollService: agentUsagePollService,
 });
 const mergeConflictService = new MergeConflictService({
     configProvider: () => readDesktopConfig(store),
     runGit: localGitService.runGit,
     store,
 });
-const worktreeService = new WorktreeService({ errorReporter: captureError, mergeConflictService, runGit: localGitService.runGit });
+const worktreeService = new WorktreeService({
+    errorReporter: captureError,
+    mergeConflictService,
+    runGit: localGitService.runGit,
+    trashItem: (filePath) => shell.trashItem(filePath),
+});
 const actionWorktreeRunService = new ActionWorktreeRunService({
     mergeConflictService,
     runGit: localGitService.runGit,
@@ -143,20 +158,30 @@ async function confirmCardStateScheduleContinuation(schedule, currentState) {
 const actionSchedulerService = new ActionSchedulerService({
     worktreeService,
     actionRunnerService,
+    agentAccountsProvider: () => readDesktopConfig(store).agentAccounts,
     claudeRuntimeService,
     codexRuntimeService,
     confirmCardStateScheduleContinuation,
     errorReporter: captureError,
     localGitService,
+    selectedAgentAccountId: (agent) => selectedAgentAccountId(readDesktopConfig(store).agentSelection, agent),
 });
 const projectStatsWorkerService = new ProjectStatsWorkerService();
+const agentAccountService = new AgentAccountService({
+    executableResolver: agentExecutableResolver,
+    loadConfig: () => readDesktopConfig(store),
+    saveConfig: (values) => saveDesktopConfig(store, values),
+    selectFolder: () => openAgentAccountFolder(BrowserWindow.getFocusedWindow()),
+});
 const localBridgeDispatch = createLocalBridgeDispatch({
+    agentAccountService,
     agentModelCatalogService,
     actionRunnerService,
     actionSchedulerService,
     actionWorktreeRunService,
     agentExecutableAvailability: (profiles) => loadAgentExecutableAvailability(profiles, { resolver: agentExecutableResolver }),
     agentRunnerService,
+    agentUsagePollService,
     claudeRuntimeService,
     codexRuntimeService,
     desktopConfigStore: store,
@@ -173,6 +198,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     showItemInFolder: (fullPath) => shell.showItemInFolder(fullPath),
     uncommittedProjectWrites,
     updateCodexCli,
+    usageMetricsService,
     worktreeService,
 });
 const remoteControlService = new RemoteControlService(localBridgeDispatch);
@@ -228,6 +254,17 @@ async function openWorktreeFolder(window) {
     return result.filePaths[0];
 }
 
+async function openAgentAccountFolder(window) {
+    const result = await dialog.showOpenDialog(window, {
+        properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
+        title: 'Choose agent account folder',
+    });
+
+    if (result.canceled || result.filePaths.length === 0) return null;
+
+    return result.filePaths[0];
+}
+
 function subscriptionKey(webContents, subscriptionId) {
     return `${webContents.id}:${subscriptionId}`;
 }
@@ -246,9 +283,9 @@ function registerLocalBridge() {
         const { eventId, method, params } = request;
 
         return invokeWithErrorEnvelope(() => {
-            if (!EVENT_METHODS.has(method)) return localBridgeDispatch.invoke(method, params);
+            if (!EVENT_METHODS.has(method)) return localBridgeDispatch.invokeLocal(method, params);
 
-            return localBridgeDispatch.invoke(method, [
+            return localBridgeDispatch.invokeLocal(method, [
                 ...params,
                 (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId, payload }),
             ]);
@@ -397,6 +434,8 @@ async function stopAndQuit() {
         actionSchedulerService.stop();
         await actionRunnerService.suspend();
         await agentRunnerService.stopAll();
+        await agentUsagePollService.stop();
+        await agentAccountService.stop();
         await agentModelCatalogService.stop();
         await trackEvent('electron_stop');
         await flush();

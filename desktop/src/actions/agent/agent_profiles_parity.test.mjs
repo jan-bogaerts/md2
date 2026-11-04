@@ -23,13 +23,14 @@ describe('agent_profiles shared adapter', () => {
         const codex = profiles.find((profile) => profile.name === 'codex');
         if (!codex) throw new Error('Missing codex built-in profile');
 
-        expect(defaultModelForProfile(codex)).toBe('gpt-5.5');
+        expect(defaultModelForProfile(codex)).toBe('gpt-6-sol');
         expect(buildAgentCommand(codex, 'gpt-5')).toEqual(['codex', '--model', 'gpt-5']);
         expect(buildAgentExecutionCommand(codex, 'gpt-5', 'low')).toEqual([
-            'codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=low', '--search', 'exec', '--json',
+            'codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=low',
+            '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json',
         ]);
         expect(buildAgentStreamingCommand(codex, 'gpt-5', 'none')).toEqual([
-            'codex', '--model', 'gpt-5', 'app-server', '--stdio',
+            'codex', '--model', 'gpt-5', '-c', 'tools.update_plan.enabled=true', 'app-server', '--stdio',
         ]);
     });
 });

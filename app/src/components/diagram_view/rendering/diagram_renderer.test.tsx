@@ -2,6 +2,7 @@ import { ThemeProvider } from '@mui/material'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { parseDiagramData } from '../../../services/diagrams/diagram_data'
 import type { DiagramData, DiagramType } from '../../../services/diagrams/diagram_data'
 import { layout } from '../../../services/diagrams/diagram_layout'
 import { createAppTheme } from '../../../theme/app_theme'
@@ -12,7 +13,7 @@ function diagram(type: DiagramType): DiagramData {
     const kinds = type === 'flow' ? ['start', 'end'] as const
         : type === 'mindmap' ? ['root', 'topic'] as const : [undefined, undefined]
 
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{ from: 'one', id: 'one-two', kind: edgeKinds[type], label: 'connects', to: 'two' }],
         groups: [{ id: 'scope', label: 'Scope', nodeIds: ['one', 'two'] }],
         meta: {
@@ -30,7 +31,7 @@ function diagram(type: DiagramType): DiagramData {
             },
             { ...(kinds[1] ? { kind: kinds[1] } : {}), id: 'two', label: 'Two', role: 'backend' },
         ],
-    }
+    }))
 }
 
 function renderDiagram(data: DiagramData, onSelect = vi.fn()) {
@@ -49,7 +50,9 @@ describe('DiagramRenderer', () => {
     it.each(['architecture', 'dependency', 'sequence', 'flow', 'entity', 'mindmap'] as const)('renders supported %s data', (type) => {
         renderDiagram(diagram(type))
 
-        expect(screen.getByRole('heading', { name: `${type} title` })).toBeInTheDocument()
+        expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+        expect(screen.queryByText(`${type} description`)).not.toBeInTheDocument()
+        expect(screen.getByLabelText(`${type} title diagram`)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'One' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'connects' })).toBeInTheDocument()
         expect(screen.getByRole('group', { name: 'Scope' })).toBeInTheDocument()

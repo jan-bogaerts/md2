@@ -457,6 +457,40 @@ describe('WorktreeSelector', () => {
         expect(reportError).not.toHaveBeenCalled()
     })
 
+    it('keeps the assignment without an error when returning to Primary is cancelled in the change review', async () => {
+        const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'cancelled' })
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderAssignedWorktree(aheadWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /Primary/u }))
+
+        await vi.waitFor(() => expect(integrateCardWorktree).toHaveBeenCalledWith('design/F-1.md', false))
+        expect(setCardWorktree).not.toHaveBeenCalled()
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
+    it('closes the unassign dialog without unassigning when commit and integrate is cancelled in the change review', async () => {
+        const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+        vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
+        vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'cancelled' })
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderAssignedWorktree(dirtyWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /Primary/u }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Commit & integrate' }))
+
+        await vi.waitFor(() => expect(integrateCardWorktree).toHaveBeenCalledWith('design/F-1.md', false))
+        await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Commit & integrate' })).not.toBeInTheDocument())
+        expect(setCardWorktree).not.toHaveBeenCalled()
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
     it('unassigns after a completed integration when returning a clean worktree to Primary', async () => {
         const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
         const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })

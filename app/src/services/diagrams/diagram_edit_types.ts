@@ -20,7 +20,7 @@ export type DiagramPersistentTool = 'select' | 'pan' | 'fragment' | 'group' | `n
 export type DiagramCreationTool = Exclude<DiagramPersistentTool, 'pan' | 'select'>
 export type DiagramTransientGesture = 'placement' | 'edge' | 'group' | 'move' | 'pan' | 'resize'
 export type MutableDiagramMetaField = 'description' | 'title'
-export type MutableDiagramLegendEntryField = 'label'
+export type MutableDiagramLegendEntryField = 'label' | 'useLabelAsDefault'
 export type MutableDiagramNodeField = Exclude<keyof DiagramNode, 'fields' | 'id'>
 export type MutableDiagramEdgeField = Exclude<keyof DiagramEdge, 'id' | 'sourceAttachment' | 'targetAttachment' | 'waypoints'>
 export type MutableDiagramGroupField = Exclude<keyof DiagramGroup, 'id' | 'nodeIds'>
@@ -86,6 +86,7 @@ export interface DiagramPasteFragment {
     edges: readonly (ReadonlyDiagramData['edges'][number])[]
     fragments: readonly (NonNullable<ReadonlyDiagramData['fragments']>[number])[]
     groups: readonly (ReadonlyDiagramData['groups'][number])[]
+    legendEntries: readonly (ReadonlyDiagramData['meta']['legend'][number])[]
     nodes: readonly (ReadonlyDiagramData['nodes'][number])[]
 }
 

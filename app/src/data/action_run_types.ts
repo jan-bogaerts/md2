@@ -19,6 +19,7 @@ export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 export type ActionUserInputResponse = { type: 'version', value: string }
 
 export interface ActionRunInput {
+    accountId?: string
     agent?: string
     command?: string
     conversationId?: string
@@ -245,6 +246,7 @@ export type ActionRunEvent =
         type: 'run'
     }
     | ActionRunEventBase & {
+        accountId?: string
         command?: string
         conversationId?: string
         runWorktree?: number | null
@@ -272,6 +274,7 @@ export type ActionRunEvent =
     }
 
 export interface ActionRunLogEntry {
+    accountId?: string
     actionId: string
     actionName: string
     command: string | null

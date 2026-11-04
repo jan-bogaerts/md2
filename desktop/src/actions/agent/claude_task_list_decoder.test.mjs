@@ -101,6 +101,56 @@ describe('ClaudeTaskListDecoder', () => {
         ]);
     });
 
+    it('replaces the list when a task is created after all tasks are completed', () => {
+        const decoder = new ClaudeTaskListDecoder();
+
+        decoder.decode(assistant([taskCreate('create-1', 'Old task', 'Working old')]));
+        decoder.decode(toolResult('create-1', '1'));
+        decoder.decode(assistant([taskUpdate('update-1', { status: 'completed', taskId: '1' })]));
+        decoder.decode(assistant([taskCreate('create-2', 'New task', 'Working new')]));
+        const [created] = decoder.decode(toolResult('create-2', '2'));
+
+        expect(created.taskList.tasks).toEqual([
+            { activeForm: 'Working new', id: '2', status: 'pending', subject: 'New task' },
+        ]);
+    });
+
+    it.each(['pending', 'in_progress'])('appends a created task while a task is %s', (status) => {
+        const decoder = new ClaudeTaskListDecoder();
+
+        decoder.decode(assistant([taskCreate('create-1', 'Done task', 'Working done')]));
+        decoder.decode(toolResult('create-1', '1'));
+        decoder.decode(assistant([taskUpdate('update-1', { status: 'completed', taskId: '1' })]));
+        decoder.decode(assistant([taskCreate('create-2', 'Open task', 'Working open')]));
+        decoder.decode(toolResult('create-2', '2'));
+        decoder.decode(assistant([taskUpdate('update-2', { status, taskId: '2' })]));
+        decoder.decode(assistant([taskCreate('create-3', 'Next task', 'Working next')]));
+        const [created] = decoder.decode(toolResult('create-3', '3'));
+
+        expect(created.taskList.tasks.map(({ id }) => id)).toEqual(['2', '3']);
+    });
+
+    it('updates seeded root and sub-agent tasks from a persisted list', () => {
+        const initialTaskList = {
+            tasks: [
+                { activeForm: 'Root working', id: '1', status: 'inProgress', subject: 'Root task' },
+                { activeForm: 'Child working', id: 'agent-1:1', status: 'pending', subject: 'Child task' },
+            ],
+            updatedAt: UPDATED_AT,
+        };
+        const decoder = new ClaudeTaskListDecoder(initialTaskList);
+
+        decoder.decode(assistant([taskUpdate('update-root', { status: 'completed', taskId: '1' })]));
+        const [updated] = decoder.decode(assistant([
+            taskUpdate('update-child', { status: 'in_progress', taskId: '1' }),
+        ], 'agent-1'));
+
+        expect(updated.taskList.tasks).toEqual([
+            { activeForm: 'Root working', id: '1', status: 'completed', subject: 'Root task' },
+            { activeForm: 'Child working', id: 'agent-1:1', status: 'inProgress', subject: 'Child task' },
+        ]);
+    });
+
     it('hides task results and resets only per-turn correlation', () => {
         const decoder = new ClaudeTaskListDecoder();
         const createEvent = assistant([taskCreate('create-1', 'Task', 'Working')]);

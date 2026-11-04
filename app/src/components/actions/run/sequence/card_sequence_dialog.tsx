@@ -5,7 +5,7 @@ import { useDndContext, useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useSyncExternalStore, type KeyboardEvent } from 'react'
 import { ResizablePopper } from '../../../resizable_popper';
-import { cardPopupService, subscribeCardPopups } from '../../../../services/card_popup_service';
+import { cardPopupService, subscribeCardPopupFocusRequest, subscribeCardPopups } from '../../../../services/card_popup_service';
 import type { ProjectSnapshot } from '../../../../data/data_types'
 import { CARD_ADDED_EVENT, CARD_REMOVED_EVENT, cardCollectionFieldChangedEvent, dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
@@ -15,10 +15,12 @@ import { useAgentCapabilities } from '../../../hooks/use_agent_capabilities';
 import { useAgentModelCatalog } from '../../../hooks/use_agent_model_catalog';
 import { useConfigValueOrFallback } from '../../../hooks/use_config_value';
 import { DEFAULT_AGENT_SELECTION } from '../../../../data/agent_selection';
+import { DEFAULT_AGENT_ACCOUNTS } from '../../../../data/agent_accounts';
 import { mergeAgentProfiles } from '../../../../data/agent_profiles';
 import { agentModelOptions } from '../../../../data/agent_model_options';
 import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
 import { useCodexRateLimits } from '../../../hooks/use_codex_rate_limits'
+import { initialAgentAccountId } from '../../../../data/agent_accounts'
 import { useProjectConfig } from '../../../hooks/use_project_config'
 import { useWorktrees } from '../../../hooks/use_worktrees';
 import { accountTrackerOptions, cardScheduleOptions, scheduleTargetStates } from '../schedule/action_schedule_options'
@@ -74,22 +76,33 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
     const entry = entries.find(({ kind }) => kind === 'sequence');
     const stackPosition = entry ? entries.indexOf(entry) : 0;
     const visible = !isMobile || !entry || entries.at(-1)?.id === entry.id;
+    const entryId = entry?.id;
+    const subscribeFocusRequest = useMemo(() => entryId
+        ? (listener: () => void) => subscribeCardPopupFocusRequest(entryId, listener)
+        : undefined, [entryId]);
     const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot)
     const activeCards = useSyncExternalStore(subscribeActiveCards, getActiveCards, getActiveCards)
     const { actions } = useActions()
     const desktopSelection = useConfigValueOrFallback('desktop.agentSelection', DEFAULT_AGENT_SELECTION);
+    const accounts = useConfigValueOrFallback('desktop.agentAccounts', DEFAULT_AGENT_ACCOUNTS);
     const configuredProfiles = useConfigValueOrFallback('desktop.agentProfiles', []);
     const profiles = useMemo(() => mergeAgentProfiles(configuredProfiles), [configuredProfiles]);
     const capabilities = useAgentCapabilities();
     const executionAgent = snapshot.executionSelection?.activeAgent ?? '';
     const executionProfile = profiles.find(({ name }) => name === executionAgent) ?? null;
-    const modelCatalog = useAgentModelCatalog(executionProfile);
+    const executionAccountId = snapshot.executionSelection?.settingsByAgent[executionAgent]?.accountId;
+    const modelCatalog = useAgentModelCatalog(executionProfile, executionAccountId);
     const selectedModel = snapshot.executionSelection?.settingsByAgent[executionAgent]?.model ?? '';
     const modelOptions = useMemo(() => agentModelOptions(modelCatalog.catalog, selectedModel), [modelCatalog.catalog, selectedModel]);
     const projectConfig = useProjectConfig()
     const worktrees = useWorktrees();
-    const claudeState = useClaudeRateLimits()
-    const codexState = useCodexRateLimits()
+    const triggerAccount = snapshot.triggerType === 'account-reset'
+        ? accounts.find(({ id }) => id === snapshot.accountId) ?? null
+        : null
+    const claudeTriggerAccount = triggerAccount?.agent === 'claude' ? triggerAccount : null
+    const codexTriggerAccount = triggerAccount?.agent === 'codex' ? triggerAccount : null
+    const claudeState = useClaudeRateLimits(claudeTriggerAccount?.id ?? initialAgentAccountId('claude'))
+    const codexState = useCodexRateLimits(codexTriggerAccount?.id ?? initialAgentAccountId('codex'))
     const handleCardSourcesChange = useCallback(() => service.refreshCardSources(), [service]);
     useEffect(() => {
         if (!snapshot.open) return;
@@ -119,7 +132,10 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
         [actions, projectConfig?.cardTypes, selectedCards, worktrees, snapshot.worktreeBranch],
     )
     const readyStates = useMemo(() => scheduleTargetStates(projectConfig?.states), [projectConfig?.states])
-    const accountTrackers = useMemo(() => accountTrackerOptions(claudeState, codexState), [claudeState, codexState])
+    const accountTrackers = useMemo(
+        () => accountTrackerOptions(claudeTriggerAccount, claudeState, codexTriggerAccount, codexState),
+        [claudeState, claudeTriggerAccount, codexState, codexTriggerAccount],
+    )
     const triggerCards = useMemo(
         () => cardScheduleOptions(activeCards.filter(({ header }) => (
             snapshot.cardSources.some(({ cardInternalId }) => cardInternalId === header.internalId)
@@ -138,6 +154,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
 
     useEffect(() => {
         service.updateSources({
+            accounts,
             actionIds: availableActions.map(({ id }) => id),
             actions: availableActions,
             agentProfiles: profiles,
@@ -152,7 +169,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
             readyStates,
             triggerSources: { accountTrackers, cards: triggerCards, targetStates: readyStates },
         })
-    }, [accountTrackers, availableActions, capabilities.availability, desktopSelection, modelCatalog.catalog,
+    }, [accounts, accountTrackers, availableActions, capabilities.availability, desktopSelection, modelCatalog.catalog,
         modelCatalog.error, modelCatalog.loading, profiles, readyStates, selectedCards.length, service,
         snapshot.cardInternalIds.length, triggerCards])
 
@@ -170,6 +187,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
         if (change.type === 'trigger-type') service.setTriggerType(change.triggerType)
         else if (change.type === 'timestamp') service.setTimestamp(change.timestamp)
         else if (change.type === 'agent') service.setAgent(change.agent)
+        else if (change.type === 'account') service.setAccountId(change.accountId)
         else if (change.type === 'tracker') service.setAccountTracker(change.limitId, change.windowId)
         else if (change.type === 'card') service.setTriggerCard(change.cardInternalId)
         else service.setTargetState(change.targetState)
@@ -206,6 +224,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
             paperSx={{ display: 'flex', flexDirection: 'column' }}
             resizeLabel="Resize card sequence"
             stackPosition={stackPosition}
+            subscribeFocusRequest={subscribeFocusRequest}
         >
             <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
                 <DialogTitle
@@ -268,8 +287,10 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
                     </Box>
                 </Stack>
                 <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
-                    {snapshot.executionSelection ? <CardSequenceAgentSelection availability={capabilities.availability.values}
-                        modelOptions={modelOptions} profiles={profiles} selection={snapshot.executionSelection} service={service} /> : null}
+                    {snapshot.executionSelection ? (
+                        <CardSequenceAgentSelection accounts={accounts} availability={capabilities.availability.values}
+                            modelOptions={modelOptions} profiles={profiles} selection={snapshot.executionSelection} service={service} />
+                    ) : null}
                     <Typography color="text.secondary" variant="caption">Worktree</Typography>
                     <Select inputProps={{ 'aria-label': 'Sequence worktree' }} onChange={handleWorktreeChange} size="small" value={snapshot.worktreeBranch}>
                         <MenuItem value="">Unassigned</MenuItem>
@@ -288,6 +309,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
                         {readyStates.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
                     </Select>
                     <ScheduleTriggerFields
+                        accounts={accounts}
                         accountTrackers={accountTrackers}
                         cards={triggerCards}
                         includeNow

@@ -8,6 +8,8 @@ export interface AgentModel {
 
 export interface AgentModelCatalog {
     agent: string;
+    /** Resolved account the list was discovered with; `null` for agents without accounts. */
+    accountId: string | null;
     models: AgentModel[];
 }
 

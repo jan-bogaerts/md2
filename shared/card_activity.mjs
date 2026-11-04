@@ -115,7 +115,7 @@ function parseAgentDetails(value, index) {
     if (value.accessLevel !== undefined || value.approvalPolicy !== undefined) {
         throw new Error(`Malformed activity file: obsolete permission fields in records[${index}].details`);
     }
-    for (const fieldName of ['agent', 'model', 'permissionMode', 'thinkingLevel']) {
+    for (const fieldName of ['accountId', 'agent', 'model', 'permissionMode', 'thinkingLevel']) {
         if (value[fieldName] === undefined) continue;
         if (fieldName === 'agent' && value[fieldName] === null) details[fieldName] = null;
         else details[fieldName] = requiredString(value[fieldName], `records[${index}].details.${fieldName}`);
@@ -349,6 +349,9 @@ function migrateVersionFourActionSettings(value) {
             permissionMode: requiredString(settings.permissionMode, `actionSettings.${actionId}.permissionMode`, true),
             settingsByAgent: {
                 [activeAgent]: {
+                    ...(settings.accountId !== undefined
+                        ? { accountId: requiredString(settings.accountId, `actionSettings.${actionId}.accountId`) }
+                        : {}),
                     model: requiredString(settings.model, `actionSettings.${actionId}.model`, true),
                     thinkingLevel: requiredString(settings.thinkingLevel, `actionSettings.${actionId}.thinkingLevel`, true),
                 },

@@ -26,12 +26,24 @@ function isClaudeTaskToolName(name) {
     return CLAUDE_TASK_TOOLS.has(name);
 }
 
+function seededTaskReference(taskId) {
+    const separatorIndex = taskId.indexOf(':');
+    if (separatorIndex < 0) return `${ROOT_STREAM_KEY}:${taskId}`;
+
+    return taskId;
+}
+
 class ClaudeTaskListDecoder {
-    constructor() {
+    /** @param {object|null} initialTaskList persisted conversation task list to continue from. */
+    constructor(initialTaskList = null) {
         this.pendingCreates = new Map();
         this.taskToolUses = new Set();
         this.tasks = new Map();
         this.taskIds = new Map();
+        for (const task of initialTaskList?.tasks ?? []) {
+            this.tasks.set(task.id, { ...task });
+            this.taskIds.set(seededTaskReference(task.id), task.id);
+        }
     }
 
     decode(event) {
@@ -84,6 +96,8 @@ class ClaudeTaskListDecoder {
         if (block.is_error === true) return null;
         const taskId = validString(appliedResult?.task?.id);
         if (!taskId) return null;
+        // Claude starts a fresh list once every task is completed; its ids keep increasing, so taskIds stay unique.
+        if ([...this.tasks.values()].every(({ status }) => status === 'completed')) this.tasks.clear();
         const displayedId = this.resolveCreatedTaskId(taskId, pendingCreate.streamKey);
         const task = {
             ...(pendingCreate.activeForm ? { activeForm: pendingCreate.activeForm } : {}),

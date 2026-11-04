@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const { CodexRuntimeService } = require('./codex_runtime_service');
 
+const ACCOUNT_ID = 'codex-initial';
+const WORK_ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
+
 function bucket(limitId, usedPercent, overrides = {}) {
     return {
         credits: null,
@@ -39,7 +42,7 @@ describe('CodexRuntimeService', () => {
         const listener = vi.fn();
         service.subscribe(listener);
 
-        expect(service.publishRateLimits({
+        expect(service.publishRateLimits(ACCOUNT_ID, {
             rateLimitResetCredits: { availableCount: 0, credits: [] },
             rateLimits: bucket('codex', 10),
             rateLimitsByLimitId: {
@@ -51,7 +54,8 @@ describe('CodexRuntimeService', () => {
             },
         }, 200)).toBe(true);
 
-        expect(service.getSnapshot()).toEqual({
+        expect(service.getSnapshot(ACCOUNT_ID)).toEqual({
+            accountId: ACCOUNT_ID,
             available: true,
             buckets: [
                 expect.objectContaining({ limitId: 'codex', primary: expect.objectContaining({ usedPercent: 20 }) }),
@@ -63,20 +67,20 @@ describe('CodexRuntimeService', () => {
         const lateListener = vi.fn();
         service.subscribe(lateListener);
         expect(listener).toHaveBeenCalledOnce();
-        expect(lateListener).toHaveBeenCalledWith(service.getSnapshot());
+        expect(lateListener).toHaveBeenCalledWith(service.getSnapshot(ACCOUNT_ID));
     });
 
     it('excludes Spark from mixed full snapshots', () => {
         const service = new CodexRuntimeService();
 
-        expect(service.publishRateLimits({
+        expect(service.publishRateLimits(ACCOUNT_ID, {
             rateLimitsByLimitId: {
                 codex: bucket('codex', 20),
                 spark: bucket('spark', 60, { limitName: 'GPT-5.3-Codex-Spark' }),
             },
         }, 200)).toBe(true);
 
-        expect(service.getSnapshot()).toMatchObject({
+        expect(service.getSnapshot(ACCOUNT_ID)).toMatchObject({
             buckets: [{ limitId: 'codex', limitName: 'Codex' }],
             observedAt: 200,
         });
@@ -84,11 +88,12 @@ describe('CodexRuntimeService', () => {
 
     it('clears stale supported buckets when a full snapshot contains only Spark', () => {
         const service = new CodexRuntimeService();
-        service.publishRateLimits({ rateLimits: bucket('codex', 20) }, 100);
+        service.publishRateLimits(ACCOUNT_ID, { rateLimits: bucket('codex', 20) }, 100);
 
-        expect(service.publishRateLimits({rateLimits: bucket('spark', 60, { limitName: 'GPT-5.3-Codex-Spark' })}, 200)).toBe(true);
+        expect(service.publishRateLimits(ACCOUNT_ID, { rateLimits: bucket('spark', 60, { limitName: 'GPT-5.3-Codex-Spark' })}, 200)).toBe(true);
 
-        expect(service.getSnapshot()).toEqual({
+        expect(service.getSnapshot(ACCOUNT_ID)).toEqual({
+            accountId: ACCOUNT_ID,
             available: true,
             buckets: [],
             observedAt: 200,
@@ -98,16 +103,16 @@ describe('CodexRuntimeService', () => {
 
     it('ignores sparse Spark updates without changing supported buckets', () => {
         const service = new CodexRuntimeService();
-        service.publishRateLimits({
+        service.publishRateLimits(ACCOUNT_ID, {
             rateLimitsByLimitId: {
                 codex: bucket('codex', 20),
                 spark: bucket('spark', 60, { limitName: 'GPT-5.3-Codex-Spark' }),
             },
         }, 100);
 
-        expect(service.publishRateLimits({rateLimits: { limitId: 'spark', primary: { usedPercent: 80 } }}, 200, true)).toBe(true);
+        expect(service.publishRateLimits(ACCOUNT_ID, { rateLimits: { limitId: 'spark', primary: { usedPercent: 80 } }}, 200, true)).toBe(true);
 
-        expect(service.getSnapshot()).toMatchObject({
+        expect(service.getSnapshot(ACCOUNT_ID)).toMatchObject({
             buckets: [{ limitId: 'codex', limitName: 'Codex', primary: { usedPercent: 20 } }],
             observedAt: 200,
         });
@@ -115,7 +120,7 @@ describe('CodexRuntimeService', () => {
 
     it('merges sparse updates without erasing other buckets or nullable account fields', () => {
         const service = new CodexRuntimeService();
-        service.publishRateLimits({
+        service.publishRateLimits(ACCOUNT_ID, {
             rateLimitResetCredits: { availableCount: 1, credits: null },
             rateLimits: bucket('codex', 10),
             rateLimitsByLimitId: {
@@ -124,9 +129,9 @@ describe('CodexRuntimeService', () => {
             },
         }, 100);
 
-        service.publishRateLimits({rateLimits: bucket('codex', 70, { credits: null, limitName: null, planType: null })}, 101, true);
+        service.publishRateLimits(ACCOUNT_ID, { rateLimits: bucket('codex', 70, { credits: null, limitName: null, planType: null })}, 101, true);
 
-        expect(service.getSnapshot()).toMatchObject({
+        expect(service.getSnapshot(ACCOUNT_ID)).toMatchObject({
             buckets: [
                 { credits: null, limitId: 'codex', limitName: 'Codex', planType: 'plus', primary: { usedPercent: 70 } },
                 { limitId: 'review', primary: { usedPercent: 40 } },
@@ -137,18 +142,18 @@ describe('CodexRuntimeService', () => {
 
     it('accepts valid sparse updates with omitted optional fields', () => {
         const service = new CodexRuntimeService();
-        service.publishRateLimits({
+        service.publishRateLimits(ACCOUNT_ID, {
             rateLimits: bucket('codex', 20),
             rateLimitsByLimitId: null,
         }, 10);
 
-        expect(service.publishRateLimits({
+        expect(service.publishRateLimits(ACCOUNT_ID, {
             rateLimits: {
                 limitId: 'codex',
                 primary: { usedPercent: 45 },
             },
         }, 11, true)).toBe(true);
-        expect(service.getSnapshot()).toMatchObject({
+        expect(service.getSnapshot(ACCOUNT_ID)).toMatchObject({
             buckets: [{
                 limitId: 'codex',
                 limitName: 'Codex',
@@ -162,11 +167,11 @@ describe('CodexRuntimeService', () => {
         const service = new CodexRuntimeService();
         const listener = vi.fn();
         service.subscribe(listener);
-        service.publishRateLimits({ rateLimits: bucket('codex', 80) }, 200);
+        service.publishRateLimits(ACCOUNT_ID, { rateLimits: bucket('codex', 80) }, 200);
 
-        expect(service.publishRateLimits({ rateLimits: bucket('codex', 10) }, 199)).toBe(false);
-        expect(service.publishRateLimits({ rateLimits: { ...bucket('codex', 10), primary: { usedPercent: 'bad' } } }, 201)).toBe(false);
-        expect(service.getSnapshot()).toMatchObject({
+        expect(service.publishRateLimits(ACCOUNT_ID, { rateLimits: bucket('codex', 10) }, 199)).toBe(false);
+        expect(service.publishRateLimits(ACCOUNT_ID, { rateLimits: { ...bucket('codex', 10), primary: { usedPercent: 'bad' } } }, 201)).toBe(false);
+        expect(service.getSnapshot(ACCOUNT_ID)).toMatchObject({
             buckets: [{ limitId: 'codex', primary: { usedPercent: 80 } }],
             observedAt: 200,
         });
@@ -178,14 +183,40 @@ describe('CodexRuntimeService', () => {
         const listener = vi.fn();
         service.subscribe(listener);
 
-        expect(service.publishUnavailable(300)).toBe(true);
-        expect(service.getSnapshot()).toEqual({
+        expect(service.publishUnavailable(ACCOUNT_ID, 300)).toBe(true);
+        expect(service.getSnapshot(ACCOUNT_ID)).toEqual({
+            accountId: ACCOUNT_ID,
             available: false,
             buckets: [],
             observedAt: 300,
             rateLimitResetCredits: null,
         });
-        expect(listener).toHaveBeenCalledWith(service.getSnapshot());
+        expect(listener).toHaveBeenCalledWith(service.getSnapshot(ACCOUNT_ID));
         expect(Object.hasOwn(service, 'persistConversation')).toBe(false);
+    });
+
+    it('keeps account snapshots separate so one account cannot overwrite another', () => {
+        const service = new CodexRuntimeService();
+        const listener = vi.fn();
+        service.subscribe(listener);
+        service.publishRateLimits(ACCOUNT_ID, { rateLimits: bucket('codex', 20) }, 100);
+
+        expect(service.publishUnavailable(WORK_ACCOUNT_ID, 50)).toBe(true);
+        expect(service.publishRateLimits(WORK_ACCOUNT_ID, { rateLimits: bucket('codex', 90) }, 60)).toBe(true);
+
+        expect(service.getSnapshot(ACCOUNT_ID)).toMatchObject({ accountId: ACCOUNT_ID, buckets: [{ primary: { usedPercent: 20 } }] });
+        expect(service.getSnapshot(WORK_ACCOUNT_ID))
+            .toMatchObject({ accountId: WORK_ACCOUNT_ID, buckets: [{ primary: { usedPercent: 90 } }] });
+        expect(listener.mock.calls.map(([snapshot]) => snapshot.accountId)).toEqual([ACCOUNT_ID, WORK_ACCOUNT_ID, WORK_ACCOUNT_ID]);
+        const lateListener = vi.fn();
+        service.subscribe(lateListener);
+        expect(lateListener.mock.calls.map(([snapshot]) => snapshot.accountId)).toEqual([ACCOUNT_ID, WORK_ACCOUNT_ID]);
+    });
+
+    it('requires the account that produced the rate limits', () => {
+        const service = new CodexRuntimeService();
+
+        expect(() => service.publishUnavailable(undefined, 100)).toThrow('account ID');
+        expect(service.getSnapshot(ACCOUNT_ID)).toBeNull();
     });
 });

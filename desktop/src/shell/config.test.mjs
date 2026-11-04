@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_AGENT_ACCOUNTS } from '../actions/agent/agent_accounts.mjs';
 
 const require = createRequire(import.meta.url);
 const {
@@ -46,6 +47,7 @@ describe('resolveDesktopConfig', () => {
     it('defaults desktop config values', () => {
         expect(resolveDesktopConfig({})).toEqual({
             agentSelection: DEFAULT_DESKTOP_AGENT_SELECTION,
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['codex'], name: 'codex' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
@@ -58,6 +60,7 @@ describe('resolveDesktopConfig', () => {
     it('uses configured desktop values', () => {
         expect(resolveDesktopConfig({MD2_AGENT: 'custom-codex'})).toEqual({
             agentSelection: DEFAULT_DESKTOP_AGENT_SELECTION,
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['custom-codex'], name: 'codex' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
@@ -74,6 +77,7 @@ describe('readDesktopConfig', () => {
 
         expect(readDesktopConfig(store, {})).toEqual({
             agentSelection: DEFAULT_DESKTOP_AGENT_SELECTION,
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
@@ -88,6 +92,7 @@ describe('readDesktopConfig', () => {
 
         expect(readDesktopConfig(store, {})).toEqual({
             agentSelection: selection('claude', 'default', 'medium'),
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
@@ -95,6 +100,14 @@ describe('readDesktopConfig', () => {
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
         });
+    });
+
+    it('resolves missing agent accounts to the initial accounts without rewriting stored config', () => {
+        const stored = { agentSelection: selection('claude', 'opus', 'high'), editorCommand: 'code "{{file}}"' };
+        const store = createFakeStore({ [DESKTOP_CONFIG_STORE_KEY]: stored });
+
+        expect(readDesktopConfig(store, {}).agentAccounts).toEqual(DEFAULT_AGENT_ACCOUNTS);
+        expect(store.get(DESKTOP_CONFIG_STORE_KEY)).toBe(stored);
     });
 
     it('migrates the legacy flat selection without losing active values', () => {
@@ -124,6 +137,7 @@ describe('readDesktopConfig', () => {
 
         expect(readDesktopConfig(store, { MD2_AGENT: 'env-codex' })).toEqual({
             agentSelection: selection('custom', 'custom-model'),
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: expect.arrayContaining([
                 expect.objectContaining({ command: ['env-codex'], name: 'codex' }),
                 expect.objectContaining({ command: ['stored-custom'], name: 'custom' }),
@@ -185,6 +199,7 @@ describe('writeDesktopConfig', () => {
 
         expect(readDesktopConfig(store, {})).toEqual({
             agentSelection: selection('claude'),
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
@@ -202,6 +217,7 @@ describe('writeDesktopConfig', () => {
 
         expect(readDesktopConfig(store, {})).toEqual({
             agentSelection: selection('claude', 'custom-model'),
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
@@ -261,9 +277,17 @@ describe('saveDesktopConfig legacy profiles', () => {
     });
 });
 
+const WORK_ACCOUNT_ID = '0f8fad5b-d9cb-469f-a165-70867728950e';
+const PRIVATE_ACCOUNT_ID = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+
+function codexAccountSelection(accountId) {
+    return { activeAgent: 'codex', permissionMode: 'full-access', settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'high', accountId } } };
+}
+
 describe('saveDesktopConfig', () => {
     const validConfig = {
         agentSelection: selection('custom', 'custom-model', 'high', 'full-access'),
+        agentAccounts: DEFAULT_AGENT_ACCOUNTS,
         agentProfiles: [{ command: ['custom-agent'], defaultThinkingLevel: 'none', monthlySubscriptionCostUsd: 100, models: ['custom-model'], name: 'custom' }],
         agentTaskTrackingEnabled: false,
         codexSearchEnabled: false,
@@ -277,6 +301,45 @@ describe('saveDesktopConfig', () => {
 
         expect(saveDesktopConfig(store, validConfig, {})).toEqual(validConfig);
         expect(readDesktopConfig(store, {})).toEqual(validConfig);
+    });
+
+    it('persists additional accounts and remembered account selections', () => {
+        const store = createFakeStore();
+        const workAccount = { id: WORK_ACCOUNT_ID, agent: 'codex', kind: 'directory', name: 'Work', configDirectory: 'C:/codex-work' };
+        const agentAccounts = [...DEFAULT_AGENT_ACCOUNTS, workAccount];
+        const config = { ...validConfig, agentAccounts, agentSelection: codexAccountSelection(WORK_ACCOUNT_ID) };
+
+        expect(saveDesktopConfig(store, config, {})).toEqual(config);
+        expect(readDesktopConfig(store, {}).agentAccounts).toEqual(config.agentAccounts);
+    });
+
+    it.each([
+        ['missing agent accounts', { ...validConfig, agentAccounts: undefined }, 'Invalid agent accounts'],
+        ['duplicate account directory', {
+            ...validConfig,
+            agentAccounts: [
+                ...DEFAULT_AGENT_ACCOUNTS,
+                { id: WORK_ACCOUNT_ID, agent: 'codex', kind: 'directory', name: 'Work', configDirectory: 'C:/codex-work' },
+                { id: PRIVATE_ACCOUNT_ID, agent: 'claude', kind: 'directory', name: 'Private', configDirectory: 'c:\\Codex-Work' },
+            ],
+        }, 'Duplicate agent account directory'],
+        ['cross-agent account selection', { ...validConfig, agentSelection: codexAccountSelection('claude-initial') }, 'belongs to claude'],
+        ['custom-profile account selection', {
+            ...validConfig,
+            agentSelection: { ...validConfig.agentSelection, settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high', accountId: 'codex-initial' } } },
+        }, 'does not support accounts'],
+    ])('rejects %s before persistence', (_field, config, message) => {
+        const store = createFakeStore();
+
+        expect(() => saveDesktopConfig(store, config, {})).toThrow(message);
+        expect(store.get(DESKTOP_CONFIG_STORE_KEY)).toBeUndefined();
+    });
+
+    it('preserves a removed default account reference for runtime fallback', () => {
+        const store = createFakeStore();
+        const config = { ...validConfig, agentSelection: codexAccountSelection(WORK_ACCOUNT_ID) };
+
+        expect(saveDesktopConfig(store, config, {})).toEqual(config);
     });
 
     it.each([

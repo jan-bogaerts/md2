@@ -3,6 +3,7 @@ import {
     resolveAgentSelectionState,
     resolveAgentSettings,
 } from '../../../../shared/agent_selection.mjs';
+import { resolveAgentAccount, resolveAgentAccounts } from '../../../../shared/agent_accounts.mjs';
 
 export const {
     BUILTIN_AGENT_PROFILES,
@@ -50,14 +51,26 @@ export function resolveAgentConfiguration(config, selection = {}) {
             : undefined;
     validateAgentSelection(profiles, {
         agent,
+        ...(selection.accountId !== undefined ? { accountId: selection.accountId } : {}),
         model,
         ...(permissionMode !== undefined ? { permissionMode } : {}),
         thinkingLevel,
         ...(speedMode !== undefined ? { speedMode } : {}),
     }, 'desktop config');
+    const account = resolveAgentAccount(
+        resolveAgentAccounts(config.agentAccounts, 'desktop config'),
+        agent,
+        selection.accountId,
+        remembered.accountId,
+    );
 
     return {
-        agent, model, ...(permissionMode !== undefined ? { permissionMode } : {}), profile, thinkingLevel,
+        ...(account ? { account, accountId: account.id } : {}),
+        agent,
+        model,
+        ...(permissionMode !== undefined ? { permissionMode } : {}),
+        profile,
+        thinkingLevel,
         ...(speedMode !== undefined ? { speedMode } : {}),
     };
 }

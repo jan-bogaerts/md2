@@ -36,7 +36,12 @@ describe('action schedule types', () => {
 
     it('persists optional action prompt and failure fields without adding them to existing schedules', () => {
         const existingSchedule = createActionSchedule({ timestamp: '2026-07-06T11:00:00.000Z', type: 'at' })
-        const schedule = { ...existingSchedule, failure: 'Action could not start', prompt: 'Edited prompt' }
+        const schedule = {
+            ...existingSchedule,
+            conversationId: 'conversation-1',
+            failure: 'Action could not start',
+            prompt: 'Edited prompt',
+        }
 
         expect(parseActionScheduleFile({ schedules: [schedule] })).toEqual({ schedules: [schedule] })
         expect(createActionScheduleFile([existingSchedule])).toEqual({ schedules: [existingSchedule] })
@@ -98,6 +103,17 @@ describe('action schedule types', () => {
             type: 'account-reset',
             windowId: 'primary',
         })
+        const explicitAccountSchedule = {
+            ...createActionSchedule({
+                accountId: 'work-account',
+                agent: 'codex',
+                expectedResetAt: '2026-07-06T12:00:00.000Z',
+                limitId: 'weekly',
+                type: 'account-reset',
+                windowId: 'primary',
+            }),
+            id: 'schedule-explicit-account',
+        }
         const cardSchedule = createActionSchedule({
             cardInternalId: 'card-trigger',
             registrationState: 'todo',
@@ -105,7 +121,7 @@ describe('action schedule types', () => {
             type: 'card-state',
         })
 
-        const schedules = [accountSchedule, cardSchedule]
+        const schedules = [accountSchedule, explicitAccountSchedule, cardSchedule]
 
         expect(parseActionScheduleFile({ schedules })).toEqual({ schedules })
     })

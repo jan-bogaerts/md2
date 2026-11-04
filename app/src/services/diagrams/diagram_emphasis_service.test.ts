@@ -1,21 +1,22 @@
 import { describe, expect, it, vi } from 'vitest'
+import { parseDiagramData } from './diagram_data'
 import type { DiagramData, DiagramEdge } from './diagram_data'
 import { DiagramEmphasisService, type DiagramEmphasisTarget } from './diagram_emphasis_service'
 
-const diagram: DiagramData = {
+const diagram = parseDiagramData(JSON.stringify({
     edges: [
         { from: 'a', id: 'a-b', kind: 'dependency', to: 'b' },
         { from: 'b', id: 'b-c', kind: 'dependency', to: 'c' },
         { from: 'a', id: 'a-a', kind: 'dependency', to: 'a' },
     ],
     groups: [],
-    meta: { description: 'Relations', title: 'Relations', type: 'architecture', version: 1 },
+    meta: { description: 'Relations', title: 'Relations', type: 'dependency', version: 1 },
     nodes: [
         { id: 'a', label: 'A', role: 'backend' },
         { id: 'b', label: 'B', role: 'backend' },
         { id: 'c', label: 'C', role: 'backend' },
     ],
-}
+}))
 
 class ViewStub extends EventTarget {
     source = { diagram, record: { actionId: 'action', id: 'diagram', label: 'Diagram', path: 'diagram.json' } }
@@ -176,7 +177,7 @@ describe('DiagramEmphasisService', () => {
         service.emphasize(target('node', 'a', 'new'))
         expect(service.getDimmedSnapshot('new', 'node', 'c')).toBe(true)
 
-        editSession.addEdge({ from: 'a', id: 'a-c', kind: 'dependency', to: 'c' })
+        editSession.addEdge({ legendEntryId: 'dependency', from: 'a', id: 'a-c', kind: 'dependency', to: 'c' })
         expect(service.getDimmedSnapshot('new', 'node', 'c')).toBe(false)
         expect(service.getDimmedSnapshot('new', 'edge', 'a-c')).toBe(false)
 

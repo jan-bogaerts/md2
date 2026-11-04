@@ -1,17 +1,22 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagramEdge, DiagramNode } from './diagram_data'
+import { parseDiagramData } from './diagram_data'
 import { canCutDiagramSelection, cutDiagramSelection } from './diagram_cut'
 import type { DiagramSelectionIdentity } from './diagram_selection_service'
 
-const nodes: DiagramNode[] = [
-    { id: 'one', label: 'One', role: 'focal' },
-    { id: 'two', label: 'Two', role: 'backend' },
-    { id: 'three', label: 'Three', role: 'store' },
-]
-const edges: DiagramEdge[] = [
-    { from: 'one', id: 'one-two', kind: 'connection', to: 'two' },
-    { from: 'one', id: 'one-three', kind: 'connection', to: 'three' },
-]
+const diagram = parseDiagramData(JSON.stringify({
+    edges: [
+        { from: 'one', id: 'one-two', kind: 'connection', to: 'two' },
+        { from: 'one', id: 'one-three', kind: 'connection', to: 'three' },
+    ],
+    groups: [],
+    meta: { description: 'Cut test', title: 'Cut', type: 'architecture', version: 1 },
+    nodes: [
+        { id: 'one', label: 'One', role: 'focal' },
+        { id: 'two', label: 'Two', role: 'backend' },
+        { id: 'three', label: 'Three', role: 'store' },
+    ],
+}))
+const { edges, nodes } = diagram
 
 function diagramCutSession() {
     return {
@@ -20,6 +25,7 @@ function diagramCutSession() {
             getEdgeSnapshot: (edgeId: string) => edges.find(({ id }) => id === edgeId) ?? null,
             getFragmentIdsSnapshot: () => [],
             getFragmentSnapshot: () => null,
+            getEditableDiagram: () => diagram,
             getGroupSnapshot: () => null,
             getNodeIdsSnapshot: () => nodes.map(({ id }) => id),
             getNodeSnapshot: (nodeId: string) => nodes.find(({ id }) => id === nodeId) ?? null,
@@ -45,7 +51,7 @@ describe('diagram cut', () => {
             expect(JSON.parse(content)).toMatchObject({
                 edges: [edges[0]],
                 nodes: [nodes[0], nodes[1]],
-                version: 1,
+                version: 2,
             })
         })
         session.removeObjects.mockImplementation((identities) => {

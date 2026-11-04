@@ -15,6 +15,11 @@ import type {
     NewDiagramNode,
 } from './diagram_edit_types'
 import { DIAGRAM_GRID_SIZE, MINDMAP_TOPIC_DIAMETER, type PositionedDiagramNode } from './diagram_layout'
+import { findCompatibleNodeLegendEntry, nodeLegendEntryIsCompatible } from './diagram_legend_entry_compatibility'
+import {
+    diagramLabelFocusService,
+    type DiagramLabelFocusService,
+} from './diagram_label_focus_service'
 import {
     diagramSelectionService,
     type DiagramSelectionService,
@@ -28,7 +33,7 @@ export interface DiagramNodePlacementPoint {
     y: number
 }
 
-export type DiagramNodePlacementDefaults = Omit<NewDiagramNode, 'kind' | 'x' | 'y'>
+export type DiagramNodePlacementDefaults = Omit<NewDiagramNode, 'kind' | 'legendEntryId' | 'x' | 'y'>
 
 export interface DiagramNodePlacementPreviewSize {
     height: number
@@ -69,8 +74,9 @@ function cloneDefaults(defaults: DiagramNodePlacementDefaults): DiagramNodePlace
     }
 }
 
-function samePreviewPoint(preview: DiagramNodePlacementPreview | null, x: number, y: number, role: DiagramRole) {
+function samePreviewPoint(preview: DiagramNodePlacementPreview | null, x: number, y: number, role: DiagramRole, legendEntryId: string) {
     return preview?.node.x === x && preview.node.y === y && preview.node.role === role
+        && preview.node.legendEntryId === legendEntryId
 }
 
 function previewSize(definition: DiagramNodePlacementDefinition) {
@@ -86,6 +92,7 @@ function previewSize(definition: DiagramNodePlacementDefinition) {
 /** Owns one node tool from activation through transient preview and one committed placement. */
 export class DiagramNodePlacementService extends EventTarget {
     private definition: DiagramNodePlacementDefinition | null = null
+    private readonly labelFocus: Pick<DiagramLabelFocusService, 'request'>
     private preview: DiagramNodePlacementPreview | null = null
     private readonly selection: Pick<DiagramSelectionService, 'replace'>
     private readonly session: DiagramEditSessionService
@@ -93,8 +100,10 @@ export class DiagramNodePlacementService extends EventTarget {
     constructor(
         session: DiagramEditSessionService = diagramEditSessionService,
         selection: Pick<DiagramSelectionService, 'replace'> = diagramSelectionService,
+        labelFocus: Pick<DiagramLabelFocusService, 'request'> = diagramLabelFocusService,
     ) {
         super()
+        this.labelFocus = labelFocus
         this.selection = selection
         this.session = session
         this.session.read.subscribeActiveTool(this.handleActiveToolChanged)
@@ -156,12 +165,11 @@ export class DiagramNodePlacementService extends EventTarget {
 
         const x = snapCoordinate(point.x)
         const y = snapCoordinate(point.y)
-        const selectedKey = this.session.read.getSelectedLegendEntryKeySnapshot()
-        const role = selectedKey?.startsWith('node:')
-            ? selectedKey.slice('node:'.length) as DiagramRole : definition.defaults.role
-        if (samePreviewPoint(this.preview, x, y, role)) return false
+        const { legendEntryId, role } = this.nodeClassification(definition, false)
+        if (samePreviewPoint(this.preview, x, y, role, legendEntryId)) return false
 
-        const modelNode: DiagramNode = { ...cloneDefaults(definition.defaults), id: PREVIEW_NODE_ID, kind: definition.kind, role, x, y }
+        const defaults = cloneDefaults(definition.defaults)
+        const modelNode: DiagramNode = {...defaults, id: PREVIEW_NODE_ID, kind: definition.kind, legendEntryId, role, x, y}
         const { height, width } = previewSize(definition)
         const node: PositionedDiagramNode = { ...modelNode, fanIn: 0, height, width, x, y }
         const preview = {
@@ -181,11 +189,13 @@ export class DiagramNodePlacementService extends EventTarget {
         const definition = this.requireActiveDefinition()
         const preview = this.preview
         if (!preview) throw new Error('Cannot place a diagram node without a preview')
+        const { legendEntryId, role } = this.nodeClassification(definition, true)
 
         const node: NewDiagramNode = {
             ...cloneDefaults(definition.defaults),
             kind: definition.kind,
-            role: preview.node.role,
+            legendEntryId,
+            role,
             x: preview.node.x,
             y: preview.node.y,
         }
@@ -200,6 +210,7 @@ export class DiagramNodePlacementService extends EventTarget {
         } else if (!continueAdding) {
             this.session.setActiveTool('select')
         }
+        this.labelFocus.request({ objectId: nodeId, objectKind: 'node' })
 
         return nodeId
     }
@@ -230,6 +241,24 @@ export class DiagramNodePlacementService extends EventTarget {
         if (!this.definition || !this.isPlacementActive()) throw new Error('No diagram node placement is active')
 
         return this.definition
+    }
+
+    private nodeClassification(definition: DiagramNodePlacementDefinition, createMissing: boolean) {
+        const diagram = this.session.read.getEditableDiagram()
+        if (!diagram) throw new Error('Cannot classify a node without an editable diagram')
+        const selectedId = this.session.read.getSelectedLegendEntryKeySnapshot()
+        const selectedEntry = diagram.meta.legend.find(({ id }) => id === selectedId)
+        const role = selectedEntry && 'role' in selectedEntry ? selectedEntry.role : definition.defaults.role
+        const node = { kind: definition.kind, role }
+        const compatibleSelected = selectedEntry && nodeLegendEntryIsCompatible(selectedEntry, node, diagram.meta.type)
+            ? selectedEntry : null
+        const existing = compatibleSelected ?? findCompatibleNodeLegendEntry(diagram.meta.legend, node, diagram.meta.type)
+        if (existing) return { legendEntryId: existing.id, role }
+        if (!createMissing) return { legendEntryId: '', role }
+        const legendEntryId = this.session.legend.addLegendEntry({ nodeKind: definition.kind })
+        if (!legendEntryId) throw new Error(`Could not create legend entry for node kind ${definition.kind}`)
+
+        return { legendEntryId, role }
     }
 
     private setPreview(preview: DiagramNodePlacementPreview | null) {

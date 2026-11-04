@@ -22,6 +22,7 @@ function snapshot(
     firstResetDelayMs = 3_600_000,
 ): ClaudeRateLimitSnapshot {
     return {
+        accountId: 'claude-initial',
         available: true,
         observedAt,
         windows: [
@@ -71,7 +72,7 @@ describe('ClaudeRateLimitStatus', () => {
         const runtime = await renderStatus(null)
         expect(screen.queryByText(/Claude \d/u)).not.toBeInTheDocument()
 
-        act(() => runtime.emit({ available: false, observedAt: Date.now(), windows: [] }))
+        act(() => runtime.emit({ accountId: 'claude-initial', available: false, observedAt: Date.now(), windows: [] }))
 
         expect(screen.queryByText(/Claude \d/u)).not.toBeInTheDocument()
     })
@@ -138,6 +139,7 @@ describe('ClaudeRateLimitStatus', () => {
     it('renders independently beside Codex usage', async () => {
         const claudeRuntime = runtimeBridge(snapshot(30, 20))
         const codexSnapshot: CodexRateLimitSnapshot = {
+            accountId: 'codex-initial',
             available: true,
             buckets: [{
                 credits: null,

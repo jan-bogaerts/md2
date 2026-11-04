@@ -205,6 +205,20 @@ export class DiagramSelectionService extends EventTarget {
         return true
     }
 
+    completeAdditiveRectangleSelection(point: DiagramPoint) {
+        requireFinitePoint(point)
+        const start = this.rectangleStart
+        if (!start) return false
+
+        const rectangle = diagramRectangleBetween(start, point)
+        this.clearRectangle()
+        if (rectangle.width === 0 && rectangle.height === 0) return true
+
+        this.replace([...this.selection, ...this.identitiesIntersecting(rectangle)])
+
+        return true
+    }
+
     cancelRectangleSelection() {
         return this.clearRectangle()
     }

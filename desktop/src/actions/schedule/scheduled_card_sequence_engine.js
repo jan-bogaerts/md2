@@ -1,4 +1,8 @@
 const { validateAgentSelection } = require('../../../../shared/agent_profiles.mjs');
+const { resolveAgentAccount, resolveAgentAccounts } = require('../../../../shared/agent_accounts.mjs');
+
+/** A failed wait on a run the action runner still lists as active is retried once before giving up. */
+const RUN_WAIT_ATTEMPTS = 2;
 
 function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
@@ -189,12 +193,26 @@ class ScheduledCardSequenceEngine {
         void this.clearRunCompletion(runId, completion);
     }
 
+    /**
+     * Waits outside the schedule queue so cancellation is not blocked. A wait failure only gives up on the run once
+     * the action runner no longer lists it as active.
+     */
     async observeRunNow(scheduleId, runId) {
-        try {
-            const result = await this.actionRunnerService.wait(runId);
-            await this.enqueue(scheduleId, () => this.applyRunResult(scheduleId, runId, result));
-        } catch (error) {
-            await this.enqueue(scheduleId, () => this.failUnrecoverableRun(scheduleId, runId, error));
+        for (let attempt = 1; attempt <= RUN_WAIT_ATTEMPTS; attempt++) {
+            let result;
+            try {
+                result = await this.actionRunnerService.wait(runId);
+            } catch (error) {
+                const isActive = this.actionRunnerService.listActiveRuns().some((run) => run.runId === runId);
+                if (isActive && attempt < RUN_WAIT_ATTEMPTS) {
+                    this.reportError(error);
+                    continue;
+                }
+                await this.enqueue(scheduleId, () => this.failUnrecoverableRun(scheduleId, runId, error));
+                return;
+            }
+            await this.enqueue(scheduleId, () => this.applyRunResultOrFail(scheduleId, runId, result));
+            return;
         }
     }
 
@@ -205,6 +223,20 @@ class ScheduledCardSequenceEngine {
             this.reportError(error);
         }
         if (this.runCompletions.get(runId) === completion) this.runCompletions.delete(runId);
+    }
+
+    /** A failure while applying a finished run's result fails the sequence; the run itself is no longer recoverable. */
+    async applyRunResultOrFail(scheduleId, runId, result) {
+        try {
+            await this.applyRunResult(scheduleId, runId, result);
+        } catch (error) {
+            const schedule = await this.loadSequence(scheduleId);
+            if (!schedule || schedule.status !== 'running' || !this.isCurrent()) {
+                this.reportError(error);
+                return;
+            }
+            await this.failSequence(schedule, errorMessage(error));
+        }
     }
 
     async applyRunResult(scheduleId, runId, result) {
@@ -228,13 +260,17 @@ class ScheduledCardSequenceEngine {
     }
 
     async failUnrecoverableRun(scheduleId, runId, error) {
-        const schedule = await this.loadSequence(scheduleId);
-        if (!schedule || schedule.status !== 'running' || !this.isCurrent()) return;
         const failure = `Cannot recover sequence action run ${runId}: ${errorMessage(error)}`;
+        const schedule = await this.loadSequence(scheduleId);
+        if (!schedule || schedule.status !== 'running' || !this.isCurrent()) {
+            this.reportError(new Error(failure));
+            return;
+        }
         if (!schedule.conversationId) {
             await this.failSequence(schedule, failure);
             return;
         }
+        this.reportError(new Error(`Sequence ${scheduleId} waits on conversation ${schedule.conversationId}: ${failure}`));
         await this.awaitConversationOrFail(schedule, failure);
     }
 
@@ -264,15 +300,18 @@ class ScheduledCardSequenceEngine {
         this.observeRun(scheduleId, runId);
     }
 
-    closeConversation(scheduleId, conversationId, status) {
-        return this.enqueue(scheduleId, () => this.closeConversationLocked(scheduleId, conversationId, status));
+    /**
+     * Ends the step of a sequence waiting on its conversation without observing a run, either because the user
+     * closed the conversation or because an unobserved run on it finished.
+     */
+    finishConversationStep(scheduleId, conversationId, result) {
+        return this.enqueue(scheduleId, () => this.finishConversationStepLocked(scheduleId, conversationId, result));
     }
 
-    async closeConversationLocked(scheduleId, conversationId, status) {
+    async finishConversationStepLocked(scheduleId, conversationId, result) {
         const schedule = await this.loadSequence(scheduleId);
         if (!schedule || schedule.status !== 'running' || schedule.currentRunId || !this.isCurrent()) return;
         if (schedule.conversationId !== conversationId) return;
-        const result = { failure: null, status };
         await this.applyStepResult(schedule, result);
     }
 
@@ -377,8 +416,9 @@ class ScheduledCardSequenceEngine {
             return;
         }
         if (!schedule.agentSelection) throw new Error('Missing sequence execution agent settings');
-        const { agentProfiles } = this.actionRunnerService.agentConfigProvider();
+        const { agentAccounts, agentProfiles } = this.actionRunnerService.agentConfigProvider();
         validateAgentSelection(agentProfiles, schedule.agentSelection, 'sequence execution');
+        resolveAgentAccount(resolveAgentAccounts(agentAccounts, 'desktop config'), schedule.agentSelection.agent, schedule.agentSelection.accountId);
     }
 
     validateReadyState(schedule) {

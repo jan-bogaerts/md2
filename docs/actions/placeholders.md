@@ -15,6 +15,7 @@ Placeholders let one action definition work for every card. They are written as 
 | `{{repository-folder}}` | Absolute path to the opened repository. |
 | `{{project-folder}}` | Absolute path to the configured `project.projectFolder` under the opened repository. Equal to `{{repository-folder}}` when configuration is empty. |
 | `{{releases-folder}}` | Absolute path to the configured releases folder under the opened repository. |
+| `{{actions-folder}}` | Absolute path to the configured actions folder under the opened repository. Includes `project.projectFolder` when configured. |
 | `{{diagram-file}}` | Output path for a diagram action. Available when the action has diagram output. |
 | `{{parent-node}}` | Label of the selected item when running a child diagram action. |
 | `{{diagram-changes}}` | Generated text from reviewed diagram edits when sending changes to an agent. |
@@ -55,8 +56,8 @@ In the prompt editor, type `{{` for a typeahead list, or insert one from the too
 - Conflict placeholders need merge-conflict context. `{{conflict-file}}` only resolves when the action was started for one file, not from **all remaining files**.
 - `{{card-prompt}}` is empty when you run without typing anything. Write prompts that read fine either way.
 - `{{version}}` requires a confirmed or explicitly supplied version. Without one, executable text fails before it runs.
-- During linked-worktree actions, `{{repository-folder}}`, `{{project-folder}}`, and `{{active-cards-folder}}` remain under the opened repository. Only `{{worktree-folder}}` changes to the linked worktree.
-- The diff command in project configuration supports the same five folder placeholders plus `{{commit}}`, `{{branch}}`, and `{{file}}`. For diffs, `{{worktree-folder}}` and `{{repository-folder}}` both resolve to the opened repository.
+- During linked-worktree actions, `{{repository-folder}}`, `{{project-folder}}`, `{{active-cards-folder}}`, and `{{actions-folder}}` remain under the opened repository. Only `{{worktree-folder}}` changes to the linked worktree.
+- The diff command in project configuration supports the same six folder placeholders plus `{{commit}}`, `{{branch}}`, and `{{file}}`. For diffs, `{{worktree-folder}}` and `{{repository-folder}}` both resolve to the opened repository.
 - Custom agent profiles support `{{model}}` in `command` and `{{sessionId}}` in `resumeCommand`. Those are profile placeholders, not action placeholders.
 
 {% endraw %}

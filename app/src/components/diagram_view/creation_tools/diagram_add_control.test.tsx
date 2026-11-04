@@ -1,26 +1,26 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { DiagramData } from '../../../services/diagrams/diagram_data';
+import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
 import type { DiagramEdgeDrawingDefaults } from '../../../services/diagrams/diagram_edge_drawing_service';
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service';
 import type { DiagramNodePlacementDefinition } from '../../../services/diagrams/diagram_node_placement_service';
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service';
 import { DiagramAddControl } from './diagram_add_control';
 
-const architectureDiagram: DiagramData = {
+const architectureDiagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [],
     groups: [],
     meta: { description: 'Architecture', title: 'System', type: 'architecture', version: 1 },
     nodes: [],
-};
-const sequenceDiagram: DiagramData = {
+}));
+const sequenceDiagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [],
     fragments: [],
     groups: [],
     meta: { description: 'Sequence', title: 'Call', type: 'sequence', version: 1 },
     nodes: [],
-};
+}));
 
 class SourceStub extends EventTarget {
     private readonly diagram: DiagramData;

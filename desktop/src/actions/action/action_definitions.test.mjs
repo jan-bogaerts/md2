@@ -7,6 +7,7 @@ import {
 } from '../../../../shared/action_definitions.mjs';
 import { ACTION_DEFINITION_VALIDATION_PARITY_CASES } from '../../../../shared/action_definition_validation_parity_cases.mjs';
 import { BUILTIN_AGENT_PROFILES } from '../../../../shared/agent_profiles.mjs';
+import { DEFAULT_AGENT_ACCOUNTS } from '../../../../shared/agent_accounts.mjs';
 
 // Load and return the thrown ActionValidationError for assertion on its routing metadata.
 function validationError(files, dependencies = {}) {
@@ -29,6 +30,24 @@ const IMPLEMENT = {
 const LINT = {command: 'npm run lint', description: 'Lint', id: 'action-lint', label: 'Lint', type: 'command'};
 
 describe('loadActionDefinitions', () => {
+    it('preserves valid and removed account IDs while routing cross-agent and implicit-agent failures', () => {
+        const workAccount = {
+            agent: 'codex', configDirectory: 'C:/accounts/work',
+            id: '11111111-1111-4111-8111-111111111111', kind: 'directory', name: 'Work',
+        };
+        const dependencies = { accounts: [...DEFAULT_AGENT_ACCOUNTS, workAccount], profiles: BUILTIN_AGENT_PROFILES };
+        const definition = { ...IMPLEMENT, accountId: workAccount.id, agent: 'codex' };
+
+        expect(loadActionDefinitions([file('implement', definition)], dependencies).find(({ id }) => id === IMPLEMENT.id))
+            .toMatchObject({ accountId: workAccount.id, agent: 'codex' });
+        expect(validationError([file('implement', { ...IMPLEMENT, accountId: workAccount.id })], dependencies))
+            .toMatchObject({ code: 'agent-required', field: 'accountId' });
+        expect(validationError([file('implement', { ...definition, accountId: 'claude-initial' })], dependencies))
+            .toMatchObject({ code: 'invalid-agent-account', field: 'accountId' });
+        expect(loadActionDefinitions([file('implement', { ...definition, accountId: 'missing' })], dependencies)
+            .find(({ id }) => id === IMPLEMENT.id)).toMatchObject({ accountId: 'missing', agent: 'codex' });
+    });
+
     it('preserves new builtin model IDs and explicit speed while rejecting unsupported action speeds', () => {
         const definition = { ...IMPLEMENT, agent: 'codex', model: 'gpt-6.1-sol', speedMode: 'fast' };
         const action = loadActionDefinitions([file('implement', definition)]).find(({ id }) => id === IMPLEMENT.id);

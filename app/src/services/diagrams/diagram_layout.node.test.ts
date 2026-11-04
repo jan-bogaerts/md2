@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { parseDiagramData } from './diagram_data'
 import type { DiagramData } from './diagram_data'
 import { layout, mindmapConnectionGeometry, sequenceMessageInsertionIndexAt, sequenceMessageRowY } from './diagram_layout'
 
 function diagram(type: DiagramData['meta']['type'] = 'architecture'): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [
             { from: 'one', id: 'one-two', kind: type === 'sequence' ? 'call' : 'connection', to: 'two' },
             { from: 'one', id: 'one-three', kind: type === 'sequence' ? 'return' : 'connection', to: 'three' },
@@ -15,7 +16,7 @@ function diagram(type: DiagramData['meta']['type'] = 'architecture'): DiagramDat
             { id: 'two', label: 'Two', role: 'backend' },
             { height: 88, id: 'three', label: 'Three', role: 'store', width: 200, x: 400, y: 300 },
         ],
-    }
+    }))
 }
 
 type Positioned = ReturnType<typeof layout>
@@ -45,11 +46,11 @@ function layerCrossings(positioned: Positioned) {
 
 describe('diagram layout', () => {
     it('keeps Current node coordinates while adding left and top margins', () => {
-        const data: DiagramData = {
+        const data = parseDiagramData(JSON.stringify({
             edges: [], groups: [],
             meta: { description: 'Margins', title: 'Margins', type: 'architecture', version: 1 },
             nodes: [{ height: 72, id: 'one', label: 'One', role: 'focal', width: 160, x: 20, y: 12 }],
-        }
+        }))
         const positioned = layout(data)
 
         expect(positioned).toMatchObject({ originX: 20, originY: 28 })
@@ -59,7 +60,7 @@ describe('diagram layout', () => {
     })
 
     it('places mindmap nodes on deterministic distance rings around a centred root', () => {
-        const data: DiagramData = {
+        const data = parseDiagramData(JSON.stringify({
             edges: [
                 { from: 'root', id: 'root-a', kind: 'connection', to: 'a' },
                 { from: 'root', id: 'root-b', kind: 'connection', to: 'b' },
@@ -74,7 +75,7 @@ describe('diagram layout', () => {
                 { id: 'child', kind: 'topic', label: 'Child', role: 'backend' },
                 { id: 'detached', kind: 'topic', label: 'Detached', role: 'optional' },
             ],
-        }
+        }))
         const positioned = layout(data)
         const root = nodeById(positioned, 'root')
         const centre = { x: root.x + root.width / 2, y: root.y + root.height / 2 }
@@ -92,7 +93,7 @@ describe('diagram layout', () => {
     })
 
     it('keeps mindmap positions, uses ellipse dimensions, and derives curve geometry and midpoint labels', () => {
-        const data: DiagramData = {
+        const data = parseDiagramData(JSON.stringify({
             edges: [{ from: 'root', id: 'connection', kind: 'connection', label: 'Branch', to: 'topic' }],
             groups: [],
             meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
@@ -100,7 +101,7 @@ describe('diagram layout', () => {
                 { height: 80, id: 'root', kind: 'root', label: 'Root', role: 'focal', width: 120, x: 40, y: 80 },
                 { id: 'topic', kind: 'topic', label: 'Topic', role: 'backend', x: 360, y: 80 },
             ],
-        }
+        }))
         const positioned = layout(data)
         const root = nodeById(positioned, 'root')
         const topic = nodeById(positioned, 'topic')
@@ -198,6 +199,7 @@ describe('diagram layout', () => {
         const data = diagram('sequence')
         data.nodes[2] = { ...data.nodes[2], x: 400, y: 300 }
         data.edges = [{
+            legendEntryId: 'call',
             from: 'one', id: 'explicit', kind: 'call', to: 'three',
             waypoints: [{ x: 80, y: 200 }, { x: 400, y: 200 }],
         }]
@@ -236,10 +238,11 @@ describe('diagram layout', () => {
         const data = diagram()
         data.groups = []
         data.nodes = [
-            { height: 80, id: 'one', label: 'One', role: 'focal', width: 160, x: 40, y: 80 },
-            { height: 120, id: 'two', label: 'Two', role: 'backend', width: 200, x: 400, y: 120 },
+            { legendEntryId: 'focal', height: 80, id: 'one', label: 'One', role: 'focal', width: 160, x: 40, y: 80 },
+            { legendEntryId: 'backend', height: 120, id: 'two', label: 'Two', role: 'backend', width: 200, x: 400, y: 120 },
         ]
         data.edges = [{
+            legendEntryId: 'connection',
             from: 'one', id: 'attached', kind: 'connection',
             sourceAttachment: { nodeId: 'one', offset: 0.25, side: 'right' },
             targetAttachment: { nodeId: 'two', offset: 0.75, side: 'left' }, to: 'two',
@@ -257,16 +260,18 @@ describe('diagram layout', () => {
         const data = diagram()
         data.groups = []
         data.nodes = [
-            { height: 80, id: 'one', label: 'One', role: 'focal', width: 160, x: 40, y: 80 },
-            { height: 80, id: 'two', label: 'Two', role: 'backend', width: 160, x: 400, y: 40 },
-            { height: 80, id: 'three', label: 'Three', role: 'backend', width: 160, x: 400, y: 200 },
+            { legendEntryId: 'focal', height: 80, id: 'one', label: 'One', role: 'focal', width: 160, x: 40, y: 80 },
+            { legendEntryId: 'backend', height: 80, id: 'two', label: 'Two', role: 'backend', width: 160, x: 400, y: 40 },
+            { legendEntryId: 'backend', height: 80, id: 'three', label: 'Three', role: 'backend', width: 160, x: 400, y: 200 },
         ]
         data.edges = [
             {
+                legendEntryId: 'connection',
                 from: 'one', id: 'upper', kind: 'connection',
                 sourceAttachment: { nodeId: 'one', offset: 0.25, side: 'right' }, to: 'two',
             },
             {
+                legendEntryId: 'connection',
                 from: 'one', id: 'lower', kind: 'connection',
                 sourceAttachment: { nodeId: 'one', offset: 0.75, side: 'right' }, to: 'three',
             },
@@ -282,10 +287,11 @@ describe('diagram layout', () => {
         const data = diagram()
         data.groups = []
         data.nodes = [
-            { height: 80, id: 'one', label: 'One', role: 'focal', width: 160, x: 40, y: 80 },
-            { height: 80, id: 'two', label: 'Two', role: 'backend', width: 160, x: 400, y: 80 },
+            { legendEntryId: 'focal', height: 80, id: 'one', label: 'One', role: 'focal', width: 160, x: 40, y: 80 },
+            { legendEntryId: 'backend', height: 80, id: 'two', label: 'Two', role: 'backend', width: 160, x: 400, y: 80 },
         ]
         data.edges = [{
+            legendEntryId: 'connection',
             from: 'one', id: 'attached', kind: 'connection',
             sourceAttachment: { nodeId: 'one', offset: 0.5, side: 'right' },
             to: 'two', waypoints: [{ x: 160, y: 120 }, { x: 400, y: 120 }],
@@ -312,6 +318,7 @@ describe('diagram layout', () => {
     it('uses explicit connection points for sequence edges', () => {
         const data = diagram('sequence')
         data.edges = [{
+            legendEntryId: 'call',
             from: 'one', id: 'message', kind: 'call',
             sourceAttachment: { nodeId: 'one', offset: 0.25, side: 'bottom' },
             targetAttachment: { nodeId: 'two', offset: 0.75, side: 'bottom' }, to: 'two',
@@ -329,14 +336,14 @@ describe('diagram layout', () => {
         const data = diagram()
         data.groups = []
         data.nodes = [
-            { id: 'one', label: 'One', role: 'focal', x: 0, y: 100 },
-            { id: 'two', label: 'Two', role: 'backend', x: 400, y: 100 },
-            { id: 'three', label: 'Three', role: 'backend', x: 240, y: 0 },
-            { id: 'four', label: 'Four', role: 'backend', x: 240, y: 300 },
+            { legendEntryId: 'focal', id: 'one', label: 'One', role: 'focal', x: 0, y: 100 },
+            { legendEntryId: 'backend', id: 'two', label: 'Two', role: 'backend', x: 400, y: 100 },
+            { legendEntryId: 'backend', id: 'three', label: 'Three', role: 'backend', x: 240, y: 0 },
+            { legendEntryId: 'backend', id: 'four', label: 'Four', role: 'backend', x: 240, y: 300 },
         ]
         data.edges = [
-            { from: 'one', id: 'horizontal', kind: 'connection', to: 'two' },
-            { from: 'three', id: 'vertical', kind: 'connection', to: 'four' },
+            { legendEntryId: 'connection', from: 'one', id: 'horizontal', kind: 'connection', to: 'two' },
+            { legendEntryId: 'connection', from: 'three', id: 'vertical', kind: 'connection', to: 'four' },
         ]
 
         expect(layout(data).edges[1].points.length).toBeGreaterThan(4)
@@ -347,8 +354,8 @@ describe('diagram layout', () => {
         data.groups = []
         data.nodes = data.nodes.slice(0, 2)
         data.edges = [
-            { from: 'one', id: 'forward', kind: 'connection', to: 'two' },
-            { from: 'two', id: 'back', kind: 'connection', to: 'one' },
+            { legendEntryId: 'connection', from: 'one', id: 'forward', kind: 'connection', to: 'two' },
+            { legendEntryId: 'connection', from: 'two', id: 'back', kind: 'connection', to: 'one' },
         ]
 
         const positioned = layout(data)
@@ -364,11 +371,11 @@ describe('diagram layout', () => {
         const data = diagram()
         data.groups = []
         data.nodes = [
-            { id: 'one', label: 'One', role: 'focal', x: 0, y: 80 },
-            { id: 'obstacle', label: 'Obstacle', role: 'backend', x: 240, y: 80 },
-            { id: 'two', label: 'Two', role: 'backend', x: 480, y: 80 },
+            { legendEntryId: 'focal', id: 'one', label: 'One', role: 'focal', x: 0, y: 80 },
+            { legendEntryId: 'backend', id: 'obstacle', label: 'Obstacle', role: 'backend', x: 240, y: 80 },
+            { legendEntryId: 'backend', id: 'two', label: 'Two', role: 'backend', x: 480, y: 80 },
         ]
-        data.edges = [{ from: 'one', id: 'around', kind: 'connection', to: 'two' }]
+        data.edges = [{ legendEntryId: 'connection', from: 'one', id: 'around', kind: 'connection', to: 'two' }]
 
         const points = layout(data).edges[0].points
 
@@ -380,10 +387,10 @@ describe('diagram layout', () => {
         data.groups = []
         data.nodes = data.nodes.slice(0, 3)
         data.edges = [
-            { from: 'one', id: 'outer-call', kind: 'call', to: 'two' },
-            { from: 'three', id: 'inner-call', kind: 'call', to: 'two' },
-            { from: 'two', id: 'inner-return', kind: 'return', to: 'three' },
-            { from: 'two', id: 'outer-return', kind: 'return', to: 'one' },
+            { legendEntryId: 'call', from: 'one', id: 'outer-call', kind: 'call', to: 'two' },
+            { legendEntryId: 'call', from: 'three', id: 'inner-call', kind: 'call', to: 'two' },
+            { legendEntryId: 'return', from: 'two', id: 'inner-return', kind: 'return', to: 'three' },
+            { legendEntryId: 'return', from: 'two', id: 'outer-return', kind: 'return', to: 'one' },
         ]
         data.fragments = [{ id: 'loop', operator: 'loop', regions: [{ edgeIds: ['inner-call', 'inner-return'], guard: 'retry' }] }]
 
@@ -398,10 +405,11 @@ describe('diagram layout', () => {
         const data = diagram()
         data.groups = []
         data.nodes = Array.from({ length: 12 }, (_unused, index) => ({
+            legendEntryId: 'legend-entry',
             id: `node-${index}`, label: `Node ${index}`, role: 'backend' as const,
             x: (index % 4) * 160, y: Math.floor(index / 4) * 72,
         }))
-        data.edges = Array.from({ length: 24 }, (_unused, index) => ({from: `node-${index % 12}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index + 5) % 12}`}))
+        data.edges = Array.from({ length: 24 }, (_unused, index) => ({ legendEntryId: 'legend-entry',from: `node-${index % 12}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index + 5) % 12}`}))
 
         const positioned = layout(data)
 
@@ -424,7 +432,7 @@ describe('diagram layout', () => {
     })
 
     it('clamps connector ports on a node too narrow to keep them apart', () => {
-        const data: DiagramData = {
+        const data = parseDiagramData(JSON.stringify({
             edges: Array.from({ length: 6 }, (_unused, index) => ({from: `state-${index}`, id: `transition-${index}`, kind: 'transition', label: `t${index}`, to: 'done'})),
             groups: [],
             meta: { description: 'Narrow terminator', preset: 'state', title: 'States', type: 'flow', version: 1 },
@@ -432,7 +440,7 @@ describe('diagram layout', () => {
                 ...Array.from({ length: 6 }, (_unused, index) => ({id: `state-${index}`, kind: 'state' as const, label: `State ${index}`, role: 'backend' as const})),
                 { id: 'done', kind: 'end', label: 'Done', role: 'backend' },
             ],
-        }
+        }))
 
         const positioned = layout(data)
         const terminator = positioned.nodes.find(({ id }) => id === 'done')
@@ -443,12 +451,12 @@ describe('diagram layout', () => {
 
     it('lays out a dependency graph deeper than four ranks', () => {
         const ids = ['a', 'b', 'c', 'd', 'e', 'f']
-        const data: DiagramData = {
+        const data = parseDiagramData(JSON.stringify({
             edges: ids.slice(1).map((id, index) => ({ from: ids[index], id: `${ids[index]}-${id}`, kind: 'dependency', to: id })),
             groups: [],
             meta: { description: 'Deep chain', title: 'Deps', type: 'dependency', version: 1 },
             nodes: ids.map((id) => ({ id, label: id.toUpperCase(), role: 'backend' as const })),
-        }
+        }))
 
         const positioned = layout(data)
 
@@ -461,12 +469,12 @@ describe('diagram layout', () => {
 
     it('separates ranks top to bottom by the configured rank gap', () => {
         const ids = ['a', 'b', 'c']
-        const data: DiagramData = {
+        const data = parseDiagramData(JSON.stringify({
             edges: ids.slice(1).map((id, index) => ({ from: ids[index], id: `${ids[index]}-${id}`, kind: 'dependency', to: id })),
             groups: [],
             meta: { description: 'Chain', title: 'Deps', type: 'dependency', version: 1 },
             nodes: ids.map((id) => ({ id, label: id.toUpperCase(), role: 'backend' as const })),
-        }
+        }))
 
         const positioned = layout(data)
         const [first, second, third] = ids.map((id) => nodeById(positioned, id))
@@ -477,7 +485,7 @@ describe('diagram layout', () => {
     })
 
     it('reorders both layers so a graph the old one-pass ordering crossed stays crossing free', () => {
-        const data: DiagramData = {
+        const data = parseDiagramData(JSON.stringify({
             edges: [
                 { from: 'a', id: 'a-p', kind: 'dependency', to: 'p' },
                 { from: 'b', id: 'b-q', kind: 'dependency', to: 'q' },
@@ -487,13 +495,13 @@ describe('diagram layout', () => {
             groups: [],
             meta: { description: 'Interleaved parents', title: 'Deps', type: 'dependency', version: 1 },
             nodes: ['a', 'b', 'c', 'd', 'p', 'q'].map((id) => ({ id, label: id.toUpperCase(), role: 'backend' as const })),
-        }
+        }))
 
         expect(layerCrossings(layout(data))).toBe(0)
     })
 
     it('places disconnected subgraphs and isolated nodes without overlap', () => {
-        const data: DiagramData = {
+        const data = parseDiagramData(JSON.stringify({
             edges: [
                 { from: 'a', id: 'a-b', kind: 'dependency', to: 'b' },
                 { from: 'c', id: 'c-d', kind: 'dependency', to: 'd' },
@@ -501,7 +509,7 @@ describe('diagram layout', () => {
             groups: [],
             meta: { description: 'Disconnected', title: 'Deps', type: 'dependency', version: 1 },
             nodes: ['a', 'b', 'c', 'd', 'lonely'].map((id) => ({ id, label: id.toUpperCase(), role: 'backend' as const })),
-        }
+        }))
 
         const positioned = layout(data)
         const collisions = positioned.nodes.some((left, index) => positioned.nodes.slice(index + 1).some((right) => overlaps(left, right)))
@@ -511,11 +519,15 @@ describe('diagram layout', () => {
     })
 
     it('produces valid surface bounds for empty and single-node diagrams', () => {
-        const empty: DiagramData = {
+        const empty = parseDiagramData(JSON.stringify({
             edges: [], groups: [],
             meta: { description: 'Empty', title: 'Empty', type: 'architecture', version: 1 }, nodes: [],
-        }
-        const single: DiagramData = { ...empty, nodes: [{ id: 'only', label: 'Only', role: 'focal' }] }
+        }))
+        const single = parseDiagramData(JSON.stringify({
+            edges: [], groups: [],
+            meta: { description: 'Single', title: 'Single', type: 'architecture', version: 1 },
+            nodes: [{ id: 'only', label: 'Only', role: 'focal' }],
+        }))
 
         const emptyPositioned = layout(empty)
         const singlePositioned = layout(single)
@@ -531,9 +543,9 @@ describe('diagram layout', () => {
         const data = diagram()
         data.groups = []
         data.nodes = [
-            { id: 'one', label: 'One', role: 'focal' },
-            { id: 'two', label: 'Two', role: 'backend', x: 640 },
-            { id: 'three', label: 'Three', role: 'store', y: 720 },
+            { legendEntryId: 'focal', id: 'one', label: 'One', role: 'focal' },
+            { legendEntryId: 'backend', id: 'two', label: 'Two', role: 'backend', x: 640 },
+            { legendEntryId: 'store', id: 'three', label: 'Three', role: 'store', y: 720 },
         ]
 
         const positioned = layout(data)
@@ -553,8 +565,8 @@ describe('diagram layout', () => {
         decorated.groups = []
         decorated.edges = [
             ...plain.edges,
-            { from: 'two', id: 'two-one-cycle', kind: 'cycle', to: 'one' },
-            { from: 'two', id: 'two-self', kind: 'connection', to: 'two' },
+            { legendEntryId: 'cycle', from: 'two', id: 'two-one-cycle', kind: 'cycle', to: 'one' },
+            { legendEntryId: 'connection', from: 'two', id: 'two-self', kind: 'connection', to: 'two' },
         ]
 
         const geometry = (positioned: Positioned) => positioned.nodes.map(({ height, id, width, x, y }) => ({ height, id, width, x, y }))
@@ -565,8 +577,8 @@ describe('diagram layout', () => {
     it('lays out a hundred nodes and a hundred and fifty edges quickly', () => {
         const data = diagram()
         data.groups = []
-        data.nodes = Array.from({ length: 100 }, (_unused, index) => ({id: `node-${index}`, label: `Node ${index}`, role: 'backend' as const}))
-        data.edges = Array.from({ length: 150 }, (_unused, index) => ({from: `node-${index % 100}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index * 7 + 3) % 100}`}))
+        data.nodes = Array.from({ length: 100 }, (_unused, index) => ({ legendEntryId: 'legend-entry',id: `node-${index}`, label: `Node ${index}`, role: 'backend' as const}))
+        data.edges = Array.from({ length: 150 }, (_unused, index) => ({ legendEntryId: 'legend-entry',from: `node-${index % 100}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index * 7 + 3) % 100}`}))
 
         const started = Date.now()
         const positioned = layout(data)

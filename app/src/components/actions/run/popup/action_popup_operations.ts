@@ -129,6 +129,7 @@ async function runWithPrompt(
         ).getDiagramPath()
         const runInput = action.type === 'agent'
             ? {
+                ...(settings.accountId ? { accountId: settings.accountId } : {}),
                 ...(settings.agent ? { agent: settings.agent } : {}),
                 ...(continuationPath ? { continueFrom: continuationPath } : {}),
                 ...(submittedConversationId ? { conversationId: submittedConversationId } : {}),
@@ -287,6 +288,7 @@ export async function convertPromptToAction(input: ActionPopupOperationInput) {
     try {
         const label = actionLabel.trim().length > 0 ? actionLabel : prompt.trim().slice(0, DEFAULT_CONVERT_LABEL_LENGTH)
         const convertInput = {
+            ...(settings.accountId ? { accountId: settings.accountId } : {}),
             ...(settings.agent ? { agent: settings.agent } : {}),
             context,
             label,

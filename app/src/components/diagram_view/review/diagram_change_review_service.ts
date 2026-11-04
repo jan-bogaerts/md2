@@ -1,8 +1,5 @@
 import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
-import { actionContextIdentity, diagramContext, type ActionContext } from '../../../data/action_context'
-import type { ActionRunEvent, ActionRunStatus } from '../../../data/action_run_types'
-import { generateUuid } from '../../../data/uuid'
-import { actionRunRegistry } from '../../../services/actions/action_run_registry'
+import { dataService, type DataService } from '../../../services/data/data_service'
 import {
     generateDiagramChangeDescriptions,
     type DiagramChangeDescriptionReader,
@@ -19,15 +16,17 @@ import {
     type DiagramSelectionIdentity,
     type DiagramSelectionService,
 } from '../../../services/diagrams/diagram_selection_service'
+import { MarkdownDraft } from '../../../services/markdown/markdown_draft'
+import { diagramImplementationInstructions } from './diagram_implementation_instructions'
 
 const OPEN_CHANGED_EVENT = 'review:open'
 const REPORT_CHANGED_EVENT = 'review:report'
 const BLOCKING_ITEMS_CHANGED_EVENT = 'review:blockingItems'
-const AGENT_HANDOFF_REQUESTED_EVENT = 'review:agentHandoffRequested'
-const AGENT_HANDOFF_CHANGED_EVENT = 'review:agentHandoffChanged'
+const TITLE_CHANGED_EVENT = 'review:title'
+const CARD_TYPE_CHANGED_EVENT = 'review:cardType'
+const TARGET_COLUMN_CHANGED_EVENT = 'review:targetColumn'
 const SAVE_REQUESTED_EVENT = 'review:saveRequested'
 const EMPTY_BLOCKING_ITEMS: readonly string[] = Object.freeze([])
-const DELIVERED_RUN_STATUSES = new Set<ActionRunStatus>(['completed', 'okButNotAfter'])
 
 export const DIAGRAM_CHANGE_GROUPS = ['Diagram', 'Nodes', 'Connections', 'Groups', 'Fragments'] as const
 
@@ -43,30 +42,12 @@ export interface DiagramReviewRequestDetail {
     generatedText: string
 }
 
-export interface DiagramAgentHandoffRequestDetail extends DiagramReviewRequestDetail {
-    reviewedChangeSetId: string
-}
-
-export type DiagramChangeReviewSession = DiagramChangeDescriptionReader & DiagramEditSessionAccess<'getEditableDiagram' | 'getFragmentSnapshot' | 'getSessionSnapshot', never>
+export type DiagramChangeReviewSession = DiagramChangeDescriptionReader & DiagramEditSessionAccess<'getEditableDiagram' | 'getFragmentSnapshot' | 'getOriginalDiagramSnapshot' | 'getSavedRecordSnapshot' | 'getSessionSnapshot', never>
 
 type DiagramChangeReviewSelection = Pick<DiagramSelectionService, 'replace'>
 type DiagramReviewGenerator = (reader: DiagramChangeDescriptionReader) => string
 type DiagramReviewValidator = (content: string) => DiagramData
-type DiagramRunSubscriber = (listener: (event: ActionRunEvent) => void) => () => void
-
-interface ReviewedDiagramChanges {
-    changeIds: readonly string[]
-    contextIdentity: string
-    diagramId: string
-    generatedText: string
-    id: string
-}
-
-interface DiagramImplementationRun {
-    actionId: string
-    contextIdentity: string
-    reviewedChangeSetId: string
-}
+type DiagramReviewConfig = Pick<DataService, 'getConfig'>
 
 function errorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error)
@@ -217,38 +198,32 @@ export function affectedDiagramObjects(
 
 /** Owns explicit review output and review-only selection state. */
 export class DiagramChangeReviewService extends EventTarget {
-    private agentHandoffContext: ActionContext | null = null
     private blockingItems: readonly string[] = EMPTY_BLOCKING_ITEMS
-    private readonly createId: () => string
-    private readonly deliveredChangeSetIds = new Set<string>()
+    private cardTitle = ''
+    private cardType = ''
+    private readonly config: DiagramReviewConfig
     private generatedText = ''
-    private readonly implementationRuns = new Map<string, DiagramImplementationRun>()
-    private readonly implementationRunStatuses = new Map<string, ActionRunStatus>()
+    readonly markdownDraft = new MarkdownDraft('')
     private openState = false
     private readonly generate: DiagramReviewGenerator
-    private readonly reviewedChangeSets = new Map<string, ReviewedDiagramChanges>()
     private readonly selection: DiagramChangeReviewSelection
     private readonly session: DiagramChangeReviewSession
-    private readonly subscribeRunEvents: DiagramRunSubscriber
+    private targetColumn = ''
     private readonly validate: DiagramReviewValidator
-    private reviewedChanges: ReviewedDiagramChanges | null = null
     private selectedChangeId: string | null = null
-    private unsubscribeRunEvents: (() => void) | null = null
 
     constructor(
         session: DiagramChangeReviewSession = diagramEditSessionService,
         selection: DiagramChangeReviewSelection = diagramSelectionService,
         generate: DiagramReviewGenerator = generateDiagramChangeDescriptions,
         validate: DiagramReviewValidator = parseDiagramData,
-        createId: () => string = generateUuid,
-        subscribeRunEvents: DiagramRunSubscriber = (listener) => actionRunRegistry.subscribeActiveRunEvents(listener),
+        config: DiagramReviewConfig = dataService,
     ) {
         super()
-        this.createId = createId
+        this.config = config
         this.generate = generate
         this.selection = selection
         this.session = session
-        this.subscribeRunEvents = subscribeRunEvents
         this.validate = validate
     }
 
@@ -258,13 +233,11 @@ export class DiagramChangeReviewService extends EventTarget {
 
     getBlockingItemsSnapshot = () => this.blockingItems
 
-    getAgentHandoffContextSnapshot = () => this.agentHandoffContext
+    getCardTitleSnapshot = () => this.cardTitle
 
-    getImplementationRunStatusSnapshot = (runId: string) => this.implementationRunStatuses.get(runId) ?? null
+    getCardTypeSnapshot = () => this.cardType
 
-    getReviewedChangeSetDeliveredSnapshot = (reviewedChangeSetId: string) => (
-        this.deliveredChangeSetIds.has(reviewedChangeSetId)
-    )
+    getTargetColumnSnapshot = () => this.targetColumn
 
     getSelectedChangeSnapshot = (changeId: string) => this.selectedChangeId === changeId
 
@@ -274,33 +247,49 @@ export class DiagramChangeReviewService extends EventTarget {
 
     subscribeBlockingItems = (listener: () => void) => this.subscribe(BLOCKING_ITEMS_CHANGED_EVENT, listener)
 
+    subscribeCardTitle = (listener: () => void) => this.subscribe(TITLE_CHANGED_EVENT, listener)
+
+    subscribeCardType = (listener: () => void) => this.subscribe(CARD_TYPE_CHANGED_EVENT, listener)
+
+    subscribeTargetColumn = (listener: () => void) => this.subscribe(TARGET_COLUMN_CHANGED_EVENT, listener)
+
     subscribeSelectedChange = (changeId: string, listener: () => void) => (
         this.subscribe(`review:selected:${encodeURIComponent(changeId)}`, listener)
-    )
-
-    subscribeAgentHandoffRequested = (listener: EventListener) => this.subscribe(AGENT_HANDOFF_REQUESTED_EVENT, listener)
-
-    subscribeAgentHandoffContext = (listener: () => void) => this.subscribe(AGENT_HANDOFF_CHANGED_EVENT, listener)
-
-    subscribeImplementationRunStatus = (runId: string, listener: () => void) => (
-        this.subscribe(`review:runStatus:${encodeURIComponent(runId)}`, listener)
-    )
-
-    subscribeReviewedChangeSetDelivered = (reviewedChangeSetId: string, listener: () => void) => (
-        this.subscribe(`review:delivered:${encodeURIComponent(reviewedChangeSetId)}`, listener)
     )
 
     subscribeSaveRequested = (listener: EventListener) => this.subscribe(SAVE_REQUESTED_EVENT, listener)
 
     open() {
-        this.refresh(true)
-        this.reviewedChanges = this.captureReviewedChanges()
         if (this.openState) return false
+
+        this.refresh(true)
+        this.initializeCardDraft()
 
         this.openState = true
         this.dispatchEvent(new Event(OPEN_CHANGED_EVENT))
 
         return true
+    }
+
+    setCardTitle(title: string) {
+        if (title === this.cardTitle) return
+
+        this.cardTitle = title
+        this.dispatchEvent(new Event(TITLE_CHANGED_EVENT))
+    }
+
+    setCardType(type: string) {
+        if (type === this.cardType) return
+
+        this.cardType = type
+        this.dispatchEvent(new Event(CARD_TYPE_CHANGED_EVENT))
+    }
+
+    setTargetColumn(column: string) {
+        if (column === this.targetColumn) return
+
+        this.targetColumn = column
+        this.dispatchEvent(new Event(TARGET_COLUMN_CHANGED_EVENT))
     }
 
     close() {
@@ -323,39 +312,6 @@ export class DiagramChangeReviewService extends EventTarget {
         return true
     }
 
-    requestAgentHandoff() {
-        this.refresh(false)
-        const reviewedChanges = this.requireCurrentReviewedChanges()
-        if (!reviewedChanges) return false
-        this.ensureRunSubscription()
-        this.agentHandoffContext = diagramContext(
-            'root',
-            reviewedChanges.diagramId,
-            reviewedChanges.generatedText,
-            reviewedChanges.id,
-        )
-        this.close()
-        this.dispatchEvent(new Event(AGENT_HANDOFF_CHANGED_EVENT))
-        const detail = {
-            changeIds: reviewedChanges.changeIds,
-            generatedText: reviewedChanges.generatedText,
-            reviewedChangeSetId: reviewedChanges.id,
-        }
-
-        this.dispatchEvent(new CustomEvent<DiagramAgentHandoffRequestDetail>(AGENT_HANDOFF_REQUESTED_EVENT, { detail }))
-
-        return true
-    }
-
-    closeAgentHandoff() {
-        if (!this.agentHandoffContext) return false
-
-        this.agentHandoffContext = null
-        this.dispatchEvent(new Event(AGENT_HANDOFF_CHANGED_EVENT))
-
-        return true
-    }
-
     requestSave() {
         this.refresh(false)
         const detail = this.requestDetail()
@@ -373,106 +329,24 @@ export class DiagramChangeReviewService extends EventTarget {
         return { changeIds: Object.freeze([...changeIds]), generatedText: this.generatedText }
     }
 
-    private captureReviewedChanges(): ReviewedDiagramChanges | null {
-        const session = this.session.read.getSessionSnapshot()
-        const changeIds = this.session.read.getChangeIdsSnapshot()
-        if (!session || changeIds.length === 0 || this.blockingItems.length > 0) return null
-        if (!this.generatedText.trim()) {
-            this.setBlockingItems(['Generated diagram change text is empty.'])
+    private initializeCardDraft() {
+        const diagram = this.session.read.getEditableDiagram()
+        const config = this.config.getConfig()
+        this.setCardTitle(diagram ? `implement ${diagram.meta.title}` : '')
+        this.setCardType(config?.cardTypes[0]?.type ?? '')
+        this.setTargetColumn(config?.states[0]?.state ?? '')
 
-            return null
-        }
-
-        const current = this.reviewedChanges
-        const sameReview = current
-            && current.diagramId === session.sourceDiagramId
-            && current.generatedText === this.generatedText
-            && current.changeIds.length === changeIds.length
-            && current.changeIds.every((changeId, index) => changeId === changeIds[index])
-        if (sameReview) return current
-
-        const id = this.createId()
-        const context = diagramContext('root', session.sourceDiagramId, this.generatedText, id)
-        const reviewedChanges: ReviewedDiagramChanges = {
-            changeIds: Object.freeze([...changeIds]),
-            contextIdentity: actionContextIdentity(context),
-            diagramId: session.sourceDiagramId,
-            generatedText: this.generatedText,
-            id,
-        }
-        this.reviewedChangeSets.set(id, reviewedChanges)
-
-        return reviewedChanges
-    }
-
-    private ensureRunSubscription() {
-        this.unsubscribeRunEvents ??= this.subscribeRunEvents(this.handleRunEvent)
-    }
-
-    private readonly handleRunEvent = (event: ActionRunEvent) => {
-        if (event.type !== 'run' || event.context.kind !== 'diagram' || event.context.type !== 'root') return
-
-        const reviewedChangeSetId = event.context.diagramChangeSetId
-        if (!reviewedChangeSetId) return
-
-        const reviewedChanges = this.reviewedChangeSets.get(reviewedChangeSetId)
-        const contextIdentity = actionContextIdentity(event.context)
-        if (!reviewedChanges || reviewedChanges.contextIdentity !== contextIdentity) return
-
-        const currentRun = this.implementationRuns.get(event.runId)
-        if (currentRun && (
-            currentRun.actionId !== event.rootActionId
-            || currentRun.contextIdentity !== contextIdentity
-            || currentRun.reviewedChangeSetId !== reviewedChangeSetId
-        )) return
-        const currentStatus = this.implementationRunStatuses.get(event.runId)
-        if (!currentRun) {
-            this.implementationRuns.set(event.runId, {
-                actionId: event.rootActionId,
-                contextIdentity,
-                reviewedChangeSetId,
-            })
-        }
-        if (currentStatus !== event.status) {
-            this.implementationRunStatuses.set(event.runId, event.status)
-            this.dispatchEvent(new Event(`review:runStatus:${encodeURIComponent(event.runId)}`))
-        }
-        if (!DELIVERED_RUN_STATUSES.has(event.status) || this.deliveredChangeSetIds.has(reviewedChangeSetId)) return
-
-        this.deliveredChangeSetIds.add(reviewedChangeSetId)
-        this.dispatchEvent(new Event(`review:delivered:${encodeURIComponent(reviewedChangeSetId)}`))
-    }
-
-    private requireCurrentReviewedChanges(): ReviewedDiagramChanges | null {
-        const reviewedChanges = this.reviewedChanges
-        const session = this.session.read.getSessionSnapshot()
-        if (!reviewedChanges || !session) {
-            this.setBlockingItems(['No reviewed diagram changes are active.'])
-
-            return null
-        }
-        const changeIds = this.session.read.getChangeIdsSnapshot()
-        const sameIds = changeIds.length === reviewedChanges.changeIds.length
-            && changeIds.every((changeId, index) => changeId === reviewedChanges.changeIds[index])
-        let generatedText = ''
-        try {
-            generatedText = this.generate(this.session)
-        } catch (error) {
-            this.setBlockingItems([`Change description failed: ${errorMessage(error)}`])
-
-            return null
-        }
-        if (
-            session.sourceDiagramId !== reviewedChanges.diagramId
-            || !sameIds
-            || generatedText !== reviewedChanges.generatedText
-        ) {
-            this.setBlockingItems(['Diagram changes changed after review. Review them again before sending to an agent.'])
-
-            return null
-        }
-
-        return reviewedChanges
+        const originalDiagram = this.session.read.getOriginalDiagramSnapshot()
+        const markdown = originalDiagram && config
+            ? diagramImplementationInstructions(
+                diagram?.meta.title ?? originalDiagram.diagram.meta.title,
+                this.generatedText,
+                originalDiagram.record,
+                this.session.read.getSavedRecordSnapshot(),
+                config.workingFolder,
+            )
+            : this.generatedText
+        this.markdownDraft.replace(markdown)
     }
 
     private refresh(generateText: boolean) {

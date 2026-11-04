@@ -80,7 +80,7 @@ describe('AgentTaskList', () => {
         expect(within(panel).getByText('Map event flow')).toBeInTheDocument()
     })
 
-    it('starts expanded and toggles task details', async () => {
+    it('starts an incomplete list expanded and toggles task details', async () => {
         const user = userEvent.setup()
         renderTaskList(conversation('history', taskList([
             { id: 'task-1', status: 'pending', subject: 'Inspect state' },
@@ -94,6 +94,36 @@ describe('AgentTaskList', () => {
         expect(toggle).toHaveAttribute('aria-expanded', 'true')
     })
 
+    it('starts a completed list collapsed with its progress visible and expands on request', async () => {
+        const user = userEvent.setup()
+        renderTaskList(conversation('history', taskList([
+            { id: 'task-1', status: 'completed', subject: 'Inspect state' },
+            { id: 'task-2', status: 'completed', subject: 'Write tests' },
+        ])))
+        const panel = screen.getByRole('region', { name: 'Agent tasks' })
+        const toggle = within(panel).getByRole('button', { name: 'Toggle agent tasks' })
+
+        expect(within(panel).getByText('2/2')).toBeInTheDocument()
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        await user.click(toggle)
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
+        await user.click(toggle)
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    })
+
+    it('recalculates the initial state after remounting', () => {
+        const initial = renderTaskList(conversation('history', taskList([
+            { id: 'task-1', status: 'inProgress', subject: 'Inspect state' },
+        ])))
+
+        expect(screen.getByRole('button', { name: 'Toggle agent tasks' })).toHaveAttribute('aria-expanded', 'true')
+        initial.unmount()
+        renderTaskList(conversation('history', taskList([
+            { id: 'task-1', status: 'completed', subject: 'Inspect state' },
+        ])))
+        expect(screen.getByRole('button', { name: 'Toggle agent tasks' })).toHaveAttribute('aria-expanded', 'false')
+    })
+
     it.each([
         ['no task list', conversation('history')],
         ['an empty task list', conversation('history', taskList([]))],
@@ -103,7 +133,8 @@ describe('AgentTaskList', () => {
         expect(container).toBeEmptyDOMElement()
     })
 
-    it('updates when a live agentTaskList update arrives', () => {
+    it('keeps the current expansion choice when live task statuses change', async () => {
+        const user = userEvent.setup()
         let listener: ((event: ActionRunEvent) => void) | null = null
         setActionBridgeOverride({
             onActionRun: vi.fn((nextListener) => {
@@ -135,8 +166,34 @@ describe('AgentTaskList', () => {
         }))
 
         const panel = screen.getByRole('region', { name: 'Agent tasks' })
+        const toggle = within(panel).getByRole('button', { name: 'Toggle agent tasks' })
         expect(within(panel).getByText('0/1')).toBeInTheDocument()
         expect(within(panel).getByText('Implementing panel')).toBeInTheDocument()
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
+
+        act(() => emit({
+            ...event,
+            type: 'update',
+            update: {
+                kind: 'agentTaskList',
+                taskList: taskList([{ id: 'task-1', status: 'completed', subject: 'Implement panel' }]),
+            },
+        }))
+        expect(within(panel).getByText('1/1')).toBeInTheDocument()
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
+
+        await user.click(toggle)
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        act(() => emit({
+            ...event,
+            type: 'update',
+            update: {
+                kind: 'agentTaskList',
+                taskList: taskList([{ id: 'task-1', status: 'pending', subject: 'Implement panel' }]),
+            },
+        }))
+        expect(within(panel).getByText('0/1')).toBeInTheDocument()
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
         bindingStore.dispose()
     })
 })

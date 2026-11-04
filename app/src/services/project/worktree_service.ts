@@ -3,6 +3,7 @@ import type { CardSeparator } from '../../data/card_identifiers'
 import { getElectronActionBridge, type WorktreeDiffResult } from '../../data/electron_action_bridge'
 import type {
     Card,
+    IntegrateWorktreeRequest,
     ProjectReference,
     ProjectSnapshot,
     StorageService,
@@ -12,7 +13,10 @@ import type {
     WorktreeState,
     WorktreeStatus,
 } from '../../data/data_types'
+import type { WorktreeOperationOutcome } from '../../data/merge_conflict_types'
+import type { CancelledIntegrationOutcome } from '../../data/primary_change_types'
 import { register } from '../service_injector'
+import { primaryChangesService } from './primary_changes_service'
 import { PrimaryWorktreeSelectionError } from './worktree_errors'
 import { resolveWorktreeAssignment } from '../../../../shared/worktree_assignment.mjs';
 
@@ -48,6 +52,9 @@ export interface SequenceWorktreeReservation {
     checkoutPath: string | null
     worktreeBranch: string
 }
+
+/** Review rounds before integration gives up on a primary worktree that keeps getting new changes. */
+const MAX_PRIMARY_REVIEW_ROUNDS = 3
 
 function worktreePathKey(folderPath: string) {
     return folderPath.replace(/\\/gu, '/').replace(/\/+$/u, '').toLowerCase()
@@ -335,7 +342,7 @@ export class WorktreeService extends EventTarget {
         }
     }
 
-    async integrateCardWorktree(path: string, deleteBranch: boolean) {
+    async integrateCardWorktree(path: string, deleteBranch: boolean): Promise<WorktreeOperationOutcome | CancelledIntegrationOutcome> {
         const { card, project, storage, worktree, worktreeBranch } = this.requireCardOperation(path)
         if (!storage.integrateWorktree) throw new Error('Worktree integration requires Electron local mode')
         if (!card.header.internalId) throw new Error(`Cannot integrate card without an internal ID: ${path}`)
@@ -355,7 +362,7 @@ export class WorktreeService extends EventTarget {
                 worktree,
                 worktreeBranch,
             }
-            const outcome = await storage.integrateWorktree(request)
+            const outcome = await this.integrateWithPrimaryReview(project, request)
             if (outcome.status === 'completed' && outcome.activityPath) await this.requireActivityQueue()(outcome.activityPath)
             if (outcome.status === 'completed' && deleteBranch) {
                 this.requireUnassignmentWriter()(path)
@@ -399,14 +406,14 @@ export class WorktreeService extends EventTarget {
         }
     }
 
-    async integrateProjectWorktree() {
+    async integrateProjectWorktree(): Promise<WorktreeOperationOutcome | CancelledIntegrationOutcome> {
         const { project, storage, worktree, worktreeBranch } = this.requireProjectOperation();
         if (!storage.integrateWorktree) throw new Error('Worktree integration requires Electron local mode')
 
         this.startProjectOperation()
         try {
             await this.requirePendingChangesFlusher()()
-            const outcome = await storage.integrateWorktree({ project, worktree, worktreeBranch });
+            const outcome = await this.integrateWithPrimaryReview(project, { project, worktree, worktreeBranch });
 
             return outcome
         } finally {
@@ -687,6 +694,25 @@ export class WorktreeService extends EventTarget {
         if (!cardSeparator) throw new Error('Worktree card separator is not initialized')
 
         return cardSeparator
+    }
+
+    /** Integrates, letting the user commit blocking primary worktree changes and retrying a bounded number of times. */
+    private async integrateWithPrimaryReview(
+        project: ProjectReference,
+        request: IntegrateWorktreeRequest,
+    ): Promise<WorktreeOperationOutcome | CancelledIntegrationOutcome> {
+        const storage = this.requireStorage()
+        if (!storage.integrateWorktree) throw new Error('Worktree integration requires Electron local mode')
+
+        let outcome = await storage.integrateWorktree(request)
+        for (let round = 0; round < MAX_PRIMARY_REVIEW_ROUNDS && outcome.status === 'dirtyPrimary'; round += 1) {
+            const confirmed = await primaryChangesService.review(project, outcome.changes)
+            if (!confirmed) return { status: 'cancelled' }
+            outcome = await storage.integrateWorktree(request)
+        }
+        if (outcome.status === 'dirtyPrimary') throw new Error('Primary worktree still has uncommitted changes after review')
+
+        return outcome
     }
 
     private requireStorage() {

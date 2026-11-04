@@ -8,7 +8,8 @@ import { dialogService } from '../../../services/dialog_service';
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index';
 import type { DiagramViewService } from '../../../services/diagrams/diagram_view_service';
 import { diagramEditSessionService, type DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service';
-import { useEditableDiagramMetadataField } from '../editing/use_editable_diagram';
+import { DiagramBreadcrumbMetadataField } from './diagram_breadcrumb_metadata_field';
+import { DiagramCurrentSubtitle } from './diagram_current_subtitle';
 import { useActions } from '../../hooks/use_actions';
 
 const ROOT_DIAGRAM_CONTEXT = diagramContext('root');
@@ -44,10 +45,11 @@ export function DiagramBreadcrumbBar({ service, session = diagramEditSessionServ
     const editSession = useSyncExternalStore(
         session.read.subscribeSession, session.read.getSessionSnapshot, session.read.getSessionSnapshot,
     );
-    const draftTitle = useEditableDiagramMetadataField('title', session);
     const { actions } = useActions();
     const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions]);
     const activeRecords = index.activePath.map((id) => index.diagrams[id]);
+    const activeRecord = activeRecords.at(-1);
+    const editingActive = !!activeRecord && editSession?.sourceDiagramId === activeRecord.id;
     const rootDiagrams = service.getRootDiagrams();
 
     const handleBack = () => {
@@ -86,12 +88,12 @@ export function DiagramBreadcrumbBar({ service, session = diagramEditSessionServ
         }
     };
 
-    if (activeRecords.length === 0) return null;
+    if (!activeRecord) return null;
 
     return (
         <Box
             aria-label="Diagram breadcrumb bar"
-            sx={{ alignItems: 'center', display: 'flex', gap: 0.5, left: 1, maxWidth: 'calc(100% - 16px)', position: 'absolute', top: 1, whiteSpace: 'nowrap', zIndex: 4 }}
+            sx={{ alignItems: 'center', columnGap: 0.5, display: 'grid', flexShrink: 0, gridTemplateColumns: 'auto minmax(0, 1fr)', px: 1, pt: 1, whiteSpace: 'nowrap' }}
         >
             <Tooltip title="Back">
                 <span>
@@ -105,37 +107,57 @@ export function DiagramBreadcrumbBar({ service, session = diagramEditSessionServ
                     </IconButton>
                 </span>
             </Tooltip>
-            <Breadcrumbs aria-label="Diagram breadcrumb" onClick={handleCrumbClick}>
-                {activeRecords.map((record, recordIndex) => recordIndex === 0 ? (
-                    <Button
-                        aria-expanded={!!rootMenu}
-                        aria-haspopup="menu"
-                        key={record.id}
-                        onClick={handleRootCrumb}
-                        size="small"
-                        variant="text"
-                    >
-                        {editSession?.sourceDiagramId === record.id ? draftTitle : record.label}
-                    </Button>
-                ) : (
-                    <Button
-                        data-diagram-breadcrumb-index={recordIndex}
-                        disabled={recordIndex === activeRecords.length - 1}
-                        key={record.id}
-                        size="small"
-                        variant="text"
-                    >
-                        {editSession?.sourceDiagramId === record.id ? draftTitle : record.label}
-                    </Button>
-                ))}
-            </Breadcrumbs>
-            <Tooltip title={selectedItem ? 'Add child diagram' : 'Select a diagram item to add a child diagram'}>
-                <span>
-                    <IconButton aria-label="Add child diagram" disabled={!selectedItem} onClick={handleAdd} size="small">
-                        <AddOutlined />
-                    </IconButton>
-                </span>
-            </Tooltip>
+            <Box sx={{ alignItems: 'center', display: 'flex', gap: 0.5, minWidth: 0 }}>
+                <Breadcrumbs aria-label="Diagram breadcrumb" onClick={handleCrumbClick}>
+                    {activeRecords.map((record, recordIndex) => {
+                        if (editingActive && recordIndex === activeRecords.length - 1) {
+                            return (
+                                <DiagramBreadcrumbMetadataField
+                                    field="title"
+                                    key={record.id}
+                                    rootMenuService={recordIndex === 0 ? service : undefined}
+                                    session={session}
+                                />
+                            );
+                        }
+
+                        return recordIndex === 0 ? (
+                            <Button
+                                aria-expanded={!!rootMenu}
+                                aria-haspopup="menu"
+                                key={record.id}
+                                onClick={handleRootCrumb}
+                                size="small"
+                                variant="text"
+                            >
+                                {record.label}
+                            </Button>
+                        ) : (
+                            <Button
+                                data-diagram-breadcrumb-index={recordIndex}
+                                disabled={recordIndex === activeRecords.length - 1}
+                                key={record.id}
+                                size="small"
+                                variant="text"
+                            >
+                                {record.label}
+                            </Button>
+                        );
+                    })}
+                </Breadcrumbs>
+                <Tooltip title={selectedItem ? 'Add child diagram' : 'Select a diagram item to add a child diagram'}>
+                    <span>
+                        <IconButton aria-label="Add child diagram" disabled={!selectedItem} onClick={handleAdd} size="small">
+                            <AddOutlined />
+                        </IconButton>
+                    </span>
+                </Tooltip>
+            </Box>
+            <Box sx={{ gridColumn: 2, minWidth: 0, px: 1, whiteSpace: 'normal' }}>
+                {editingActive
+                    ? <DiagramBreadcrumbMetadataField field="description" key={activeRecord.id} session={session} />
+                    : <DiagramCurrentSubtitle key={activeRecord.id} service={service} />}
+            </Box>
             <Menu
                 anchorEl={rootMenu?.anchorElement}
                 onClick={handleRootMenuClick}

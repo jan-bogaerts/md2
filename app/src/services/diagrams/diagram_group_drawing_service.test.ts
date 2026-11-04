@@ -1,17 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from './diagram_data'
+import { parseDiagramData, type DiagramData } from './diagram_data'
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import { DiagramGroupDrawingService } from './diagram_group_drawing_service'
 import type { DiagramRecord } from './diagram_index'
 import { DiagramSelectionService } from './diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
 
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [],
     groups: [],
     meta: { description: 'Drawing test', title: 'Groups', type: 'architecture', version: 1 },
     nodes: [{ id: 'node-1', label: 'Node', role: 'focal' }],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'diagram.json' }
 
 class DiagramSourceStub extends EventTarget {

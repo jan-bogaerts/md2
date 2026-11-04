@@ -17,6 +17,18 @@ function agentConfig(activeAgent = 'codex', model = '', agentProfiles = [], perm
     };
 }
 
+const workAccount = { agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111', kind: 'directory', name: 'Work' };
+const initialCodexAccount = { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' };
+
+/** Desktop config with a Codex work account; `defaultAccountId` becomes the remembered Codex account. */
+function accountConfig(defaultAccountId) {
+    const config = agentConfig();
+    config.agentAccounts = [initialCodexAccount, { agent: 'claude', id: 'claude-initial', kind: 'initial', name: 'Default' }, workAccount];
+    if (defaultAccountId) config.agentSelection.settingsByAgent.codex.accountId = defaultAccountId;
+
+    return config;
+}
+
 function conversation(overrides = {}) {
     return {
         cardInternalId: cardContext.cardInternalId,
@@ -57,6 +69,7 @@ function createExecutor(overrides = {}) {
 function executionInput(overrides = {}) {
     return {
         action,
+        actionsFolder: 'design/actions',
         activeCardsFolder: 'design/feature_descriptions',
         activityOrigin: { cardInternalId: 'card-1', kind: 'card' },
         context: cardContext,
@@ -98,6 +111,57 @@ describe('ActionAgentExecutor', () => {
         localGitService.loadAgentConversation.mockResolvedValue(conversation({ actionId: action.id }));
         await expect(executor.execute(executionInput({compactOnly: true, runInput: { agent: 'codex', conversationId: 'conversation-1', continueFrom: 'activity.json' }}))).rejects.toThrow('Missing provider session for compact');
         expect(agentRunnerService.start).not.toHaveBeenCalled();
+    });
+
+    it('compacts the latest provider session on its stored account regardless of the desktop default', async () => {
+        const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider: () => accountConfig() });
+        localGitService.loadAgentConversation.mockResolvedValue(conversation({
+            actionId: action.id,
+            providerSessions: [
+                { agent: 'codex', conversationId: 'initial-thread', lastUsedAt: '2026-01-01T00:00:00.000Z', synchronizedThroughMessageId: 'm1' },
+                { accountId: workAccount.id, agent: 'codex', conversationId: 'work-thread', lastUsedAt: '2026-01-02T00:00:00.000Z', synchronizedThroughMessageId: 'm1' },
+            ],
+        }));
+
+        await executor.execute(executionInput({
+            compactOnly: true,
+            runInput: { agent: 'codex', conversationId: 'conversation-1', continueFrom: 'activity.json#conversation=conversation-1' },
+        }));
+
+        expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({ account: workAccount, providerConversationId: 'work-thread' });
+    });
+
+    it('compacts a session without accountId on the initial account even when another account is the default', async () => {
+        const agentConfigProvider = () => accountConfig(workAccount.id);
+        const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider });
+        localGitService.loadAgentConversation.mockResolvedValue(conversation({
+            actionId: action.id,
+            providerSessions: [{ agent: 'codex', conversationId: 'initial-thread', lastUsedAt: '2026-01-01T00:00:00.000Z', synchronizedThroughMessageId: 'm1' }],
+        }));
+
+        await executor.execute(executionInput({
+            compactOnly: true,
+            runInput: { agent: 'codex', conversationId: 'conversation-1', continueFrom: 'activity.json#conversation=conversation-1' },
+        }));
+
+        expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({ account: initialCodexAccount, providerConversationId: 'initial-thread' });
+    });
+
+    it('compacts on the initial account when the session account was removed', async () => {
+        const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider: () => accountConfig() });
+        localGitService.loadAgentConversation.mockResolvedValue(conversation({
+            actionId: action.id,
+            providerSessions: [{ accountId: 'removed-account', agent: 'codex', conversationId: 'removed-thread', lastUsedAt: 'now', synchronizedThroughMessageId: 'm1' }],
+        }));
+
+        await executor.execute(executionInput({
+            compactOnly: true,
+            runInput: { agent: 'codex', conversationId: 'conversation-1', continueFrom: 'activity.json#conversation=conversation-1' },
+        }));
+        expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({
+            account: initialCodexAccount,
+            providerConversationId: 'removed-thread',
+        });
     });
 
     it('keeps disabled Codex task tracking during compact streaming', async () => {
@@ -224,8 +288,31 @@ describe('ActionAgentExecutor', () => {
         expect(result).toMatchObject({ permissionMode: 'full-access' });
         expect(agentRunnerService.start.mock.calls[0][1].command).toEqual([
             'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-access', '--ask-for-approval', 'never',
-            '--search', 'exec', '--json',
+            '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json',
         ]);
+    });
+
+    it('resolves run account before action and desktop defaults without changing process request', async () => {
+        const work = { agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111', kind: 'directory', name: 'Work' };
+        const personal = { agent: 'codex', configDirectory: 'C:/accounts/personal', id: '22222222-2222-4222-8222-222222222222', kind: 'directory', name: 'Personal' };
+        const config = agentConfig();
+        config.agentAccounts = [
+            { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' },
+            { agent: 'claude', id: 'claude-initial', kind: 'initial', name: 'Default' },
+            work, personal,
+        ];
+        config.agentSelection.settingsByAgent.codex.accountId = work.id;
+        const { agentRunnerService, executor } = createExecutor({ agentConfigProvider: () => config });
+
+        const result = await executor.execute(executionInput({
+            action: { ...action, accountId: personal.id },
+            runInput: { accountId: work.id, extraPrompt: '' },
+        }));
+
+        expect(result.accountId).toBe(work.id);
+        expect(agentRunnerService.start.mock.calls[0][1].account).toEqual(work);
+        const actionResult = await executor.execute(executionInput({ action: { ...action, accountId: personal.id } }));
+        expect(actionResult.accountId).toBe(personal.id);
     });
 
     it('rejects stale permission overrides before process start', async () => {
@@ -269,12 +356,12 @@ describe('ActionAgentExecutor', () => {
             project: runProject,
             runInput: {
                 extraPrompt: 'focus',
-                prompt: 'Review {{card-file}} and {{this-card}} in {{worktree-folder}} for {{repository-folder}} active {{active-cards-folder}} project {{project-folder}} releases {{releases-folder}}: {{card-prompt}} {{unknown}}',
+                prompt: 'Review {{card-file}} and {{this-card}} in {{worktree-folder}} for {{repository-folder}} active {{active-cards-folder}} project {{project-folder}} releases {{releases-folder}} actions {{actions-folder}}: {{card-prompt}} {{unknown}}',
             },
         }));
 
         expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(
-            `Review design/card.md and design/card.md in C:/worktree for C:/repo active ${path.resolve('C:/repo', 'design/feature_descriptions')} project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')}:  {{unknown}}`,
+            `Review design/card.md and design/card.md in C:/worktree for C:/repo active ${path.resolve('C:/repo', 'design/feature_descriptions')} project ${path.resolve('C:/repo', 'design')} releases ${path.resolve('C:/repo', 'design/releases')} actions ${path.resolve('C:/repo', 'design/actions')}:  {{unknown}}`,
         );
     });
 
@@ -397,7 +484,10 @@ describe('ActionAgentExecutor', () => {
 
         const request = agentRunnerService.start.mock.calls[0][1];
         expect(request).toMatchObject({
-            command: ['codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', 'app-server', '--stdio'],
+            command: [
+                'codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request',
+                '-c', 'tools.update_plan.enabled=true', 'app-server', '--stdio',
+            ],
             contextInput: expect.stringContaining('new'),
             providerConversationId: 'thread-1',
         });
@@ -537,6 +627,80 @@ describe('ActionAgentExecutor', () => {
         expect(request.command).toContain('claude-session');
     });
 
+    describe('provider sessions scoped by account', () => {
+        const entries = [
+            { content: 'Original request', id: 'm1', kind: 'message', role: 'user', timestamp: '2026-01-01T00:00:00.000Z' },
+            { agent: 'codex', content: 'Original answer', id: 'm2', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+        ];
+        const legacySession = { agent: 'codex', conversationId: 'initial-thread', synchronizedThroughMessageId: 'm2' };
+        const workSession = { accountId: workAccount.id, agent: 'codex', conversationId: 'work-thread', synchronizedThroughMessageId: 'm2' };
+
+        it('resumes only the provider session of the resolved account', async () => {
+            const agentConfigProvider = () => accountConfig(workAccount.id);
+            const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider });
+            const sourceConversation = conversation({ entries, providerSessions: [legacySession, workSession] });
+            localGitService.loadAgentConversation.mockResolvedValueOnce(sourceConversation);
+
+            await executor.execute(executionInput({
+                action: { ...action, streaming: true },
+                runInput: { continueFrom: 'source.json', extraPrompt: 'next' },
+            }));
+
+            const request = agentRunnerService.start.mock.calls[0][1];
+            expect(request).toMatchObject({ account: workAccount, providerConversationId: 'work-thread' });
+            expect(request.contextInput ?? '').not.toContain('Original request');
+        });
+
+        it('resumes a session without accountId under the initial account', async () => {
+            const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider: () => accountConfig() });
+            const sourceConversation = conversation({ entries, providerSessions: [workSession, legacySession] });
+            localGitService.loadAgentConversation.mockResolvedValueOnce(sourceConversation);
+
+            await executor.execute(executionInput({ runInput: { continueFrom: 'source.json', extraPrompt: 'next' } }));
+
+            expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({ account: initialCodexAccount, providerConversationId: 'initial-thread' });
+        });
+
+        it('starts a separate provider session with full context for an account without a session', async () => {
+            const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider: () => accountConfig() });
+            localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({ entries, providerSessions: [legacySession] }));
+
+            await executor.execute(executionInput({
+                action: { ...action, streaming: true },
+                runInput: { accountId: workAccount.id, continueFrom: 'source.json', extraPrompt: 'next' },
+            }));
+
+            const request = agentRunnerService.start.mock.calls[0][1];
+            expect(request.account).toEqual(workAccount);
+            expect(request).not.toHaveProperty('providerConversationId');
+            expect(request.contextInput).toContain('Original request');
+            expect(request.contextInput).toContain('Original answer');
+        });
+
+        it('recovers a missing provider session on the same account', async () => {
+            const agentConfigProvider = () => accountConfig(workAccount.id);
+            const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider });
+            const sourceConversation = conversation({ entries, providerSessions: [legacySession, workSession] });
+            localGitService.loadAgentConversation.mockResolvedValueOnce(sourceConversation);
+            agentRunnerService.start.mockImplementationOnce(async (_project, _request, _onEvent, onComplete) => {
+                onComplete(1, {
+                    conversation: sourceConversation, missingSession: true, reference: 'source.json',
+                    stderr: 'missing', stdout: '', turnStarted: false,
+                });
+
+                return { runId: 'first' };
+            });
+
+            await executor.execute(executionInput({ runInput: { continueFrom: 'source.json', extraPrompt: 'next' } }));
+
+            expect(agentRunnerService.start).toHaveBeenCalledTimes(2);
+            expect(agentRunnerService.start.mock.calls[0][1].providerConversationId).toBe('work-thread');
+            const fallbackRequest = agentRunnerService.start.mock.calls[1][1];
+            expect(fallbackRequest.account).toEqual(workAccount);
+            expect(fallbackRequest).not.toHaveProperty('providerConversationId');
+        });
+    });
+
     it('rejects conversation from another context card', async () => {
         const { agentRunnerService, executor, localGitService } = createExecutor();
         localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({ cardInternalId: 'card-2' }));
@@ -580,6 +744,8 @@ describe('ActionAgentExecutor', () => {
         await executor.execute(executionInput({ runInput: { continueFrom: 'source.json', extraPrompt: 'next' } }));
 
         expect(agentRunnerService.start).toHaveBeenCalledTimes(2);
+        expect(agentRunnerService.start.mock.calls[1][1].account)
+            .toBe(agentRunnerService.start.mock.calls[0][1].account);
         expect(agentRunnerService.start.mock.calls[1][1]).toMatchObject({
             contextInput: expect.stringContaining('old answer'), conversation: sourceConversation,
             reference: 'producing.json', reuseLastUserMessage: true,

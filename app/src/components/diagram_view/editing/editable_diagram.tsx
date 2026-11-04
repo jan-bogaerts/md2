@@ -40,7 +40,7 @@ import {
 import {
     diagramObjectDetailsService, type DiagramObjectDetailsService,
 } from '../details/diagram_object_details_service'
-import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE, useDeleteDiagramSelectionOnDeleteKey } from './use_diagram_delete_key'
+import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from '../../../services/shortcuts/diagram_keyboard_shortcut_service'
 import { useDiagramSurfaceField } from './use_diagram_geometry'
 import { diagramViewService, type DiagramViewService } from '../../../services/diagrams/diagram_view_service'
 import { diagramEmphasisService, type DiagramEmphasisService } from '../../../services/diagrams/diagram_emphasis_service'
@@ -48,9 +48,10 @@ import { DiagramChangeReviewDialog } from '../review/diagram_change_review_dialo
 import {
     diagramChangeReviewService, type DiagramChangeReviewService,
 } from '../review/diagram_change_review_service'
-import { DiagramChangeActionPopup } from '../review/diagram_change_action_popup'
-import { DiagramInlineMetadataField } from './diagram_inline_metadata_field'
 import { useActiveDiagramTool } from './use_diagram_tool'
+import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
 
 interface EditableDiagramProps {
     details?: DiagramObjectDetailsService
@@ -59,25 +60,12 @@ interface EditableDiagramProps {
     fragmentDialog?: DiagramFragmentDialogService
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
+    labelFocus?: DiagramLabelFocusService
     placement?: DiagramNodePlacementService
     review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
     viewService?: DiagramViewService
-}
-
-interface MetadataLeafProps {
-    session?: DiagramEditSessionService
-}
-
-/** Title of the New diagram; it observes that one metadata field. */
-export function EditableDiagramTitle({ session = diagramEditSessionService }: MetadataLeafProps) {
-    return <DiagramInlineMetadataField field="title" session={session} />
-}
-
-/** Description of the New diagram; it observes that one metadata field. */
-export function EditableDiagramDescription({ session = diagramEditSessionService }: MetadataLeafProps) {
-    return <DiagramInlineMetadataField field="description" session={session} />
 }
 
 /**
@@ -137,7 +125,9 @@ export function EditableDiagramSurface({
     const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== event.pointerId) return
 
-        selection.completeRectangleSelection(diagramPointFromPointer(event))
+        const point = diagramPointFromPointer(event)
+        if (event.ctrlKey) selection.completeAdditiveRectangleSelection(point)
+        else selection.completeRectangleSelection(point)
         suppressNextClickRef.current = true
         releasePointer(event)
     }
@@ -232,44 +222,53 @@ export function EditableDiagram({
     fragmentDialog = diagramFragmentDialogService,
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
+    labelFocus = diagramLabelFocusService,
     placement = diagramNodePlacementService,
     review = diagramChangeReviewService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
     viewService = diagramViewService,
 }: EditableDiagramProps) {
-    useDeleteDiagramSelectionOnDeleteKey(selection)
 
     return (
         <Box
             {...{ [DIAGRAM_EDITOR_ROOT_ATTRIBUTE]: 'true' }}
             aria-label="New diagram editor"
-            sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pb: 2 }}
+            sx={{ display: 'flex', flexDirection: 'column', pb: 2 }}
             tabIndex={-1}
         >
-            <Box aria-label="New diagram editor header" sx={{ bgcolor: 'background.default', left: 0, position: 'sticky', top: 0, width: 'fit-content', zIndex: 5 }}>
-                <EditableDiagramTitle session={session} />
-                <EditableDiagramDescription session={session} />
-            </Box>
             <EditableDiagramSurface geometry={geometry} selection={selection} session={session} viewService={viewService}>
                 <EditableDiagramGroups details={details} emphasis={emphasis} geometry={geometry} selection={selection} session={session} />
                 <DiagramGroupDrawingPreview drawing={groupDrawing} />
                 <EditableDiagramFragments emphasis={emphasis} fragmentDialog={fragmentDialog} geometry={geometry} session={session} />
                 <EditableDiagramLifelines emphasis={emphasis} geometry={geometry} session={session} />
                 <EditableDiagramActivations emphasis={emphasis} geometry={geometry} session={session} />
-                <EditableDiagramEdges details={details} emphasis={emphasis} geometry={geometry} selection={selection} session={session} />
+                <EditableDiagramEdges
+                    details={details}
+                    emphasis={emphasis}
+                    geometry={geometry}
+                    labelFocus={labelFocus}
+                    selection={selection}
+                    session={session}
+                />
                 <DiagramEdgeDrawingPreview drawing={drawing} />
-                <EditableDiagramNodes details={details} emphasis={emphasis} geometry={geometry} selection={selection} session={session} />
+                <EditableDiagramNodes
+                    details={details}
+                    emphasis={emphasis}
+                    geometry={geometry}
+                    labelFocus={labelFocus}
+                    selection={selection}
+                    session={session}
+                />
                 <DiagramNodePlacementPreview placement={placement} />
                 <DiagramResizeHandles geometry={geometry} selection={selection} session={session} />
                 <DiagramSelectionBoundary selection={selection} />
                 <DiagramSelectionRectangle selection={selection} />
             </EditableDiagramSurface>
-            <DiagramObjectDetailsDialog details={details} session={session} />
+            <DiagramObjectDetailsDialog details={details} labelFocus={labelFocus} session={session} />
             <DiagramGroupLabelDialog drawing={groupDrawing} />
             <DiagramFragmentDialog dialog={fragmentDialog} session={session} />
             <DiagramChangeReviewDialog review={review} session={session} />
-            <DiagramChangeActionPopup review={review} />
         </Box>
     )
 }

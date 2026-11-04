@@ -1,5 +1,7 @@
 const { resolveAgentExecution } = require('../actions/agent/agent_execution');
+const { resolveAgentAccount, resolveAgentAccounts } = require('../actions/agent/agent_accounts.mjs');
 const { findAgentProfile } = require('../actions/agent/agent_profiles.mjs');
+const { selectedAgentAccountId } = require('../actions/agent/agent_selection.mjs');
 const { CardStateTracker } = require('../actions/card/card_state_tracker');
 const { ConversationViewEvents } = require('../actions/activity/conversation_view_events');
 const { resolveProjectPaths } = require('../project/project_paths');
@@ -46,11 +48,35 @@ async function loadAgentModelCatalog(dependencies, request) {
     if (!agentModelCatalogService) throw new Error('Agent model catalog service is not available');
     if (!request || typeof request.agent !== 'string' || request.agent.length === 0) throw new Error('Missing catalog agent');
     if (request.refresh !== undefined && typeof request.refresh !== 'boolean') throw new Error('Invalid catalog refresh value');
-    const { agentProfiles } = readDesktopConfig(desktopConfigStore);
+    if (request.accountId !== undefined && typeof request.accountId !== 'string') throw new Error('Invalid catalog account ID');
+    const { agentAccounts, agentProfiles, agentSelection } = readDesktopConfig(desktopConfigStore);
     const profile = request.profile === undefined ? findAgentProfile(agentProfiles, request.agent) : request.profile;
     if (!profile || profile.name !== request.agent) throw new Error('Catalog profile does not match its agent');
+    const defaultAccountId = selectedAgentAccountId(agentSelection, request.agent);
+    const account = resolveAgentAccount(
+        resolveAgentAccounts(agentAccounts, 'desktop config'),
+        request.agent,
+        request.accountId,
+        defaultAccountId,
+    );
 
-    return await agentModelCatalogService.load(profile, request.refresh === true);
+    return await agentModelCatalogService.load(profile, account, request.refresh === true);
+}
+
+/** Aligns usage polling with the configured accounts once an account was added, removed, or moved. */
+function reconcileUsageAccounts(dependencies) {
+    const { agentUsagePollService, desktopConfigStore, readDesktopConfig } = dependencies;
+    if (!agentUsagePollService) return;
+    const { agentAccounts, agentProfiles } = readDesktopConfig(desktopConfigStore);
+    agentUsagePollService.reconcileAccounts(agentProfiles, agentAccounts);
+}
+
+/** Runs an account operation, then lets usage polling follow the resulting account configuration. */
+async function changeAgentAccounts(dependencies, operation) {
+    const result = await operation(requireAgentAccountService(dependencies.agentAccountService));
+    reconcileUsageAccounts(dependencies);
+
+    return result;
 }
 
 function createLocalBridgeDispatch(dependencies) {
@@ -58,9 +84,11 @@ function createLocalBridgeDispatch(dependencies) {
         actionRunnerService,
         actionSchedulerService,
         actionWorktreeRunService,
+        agentAccountService,
         agentExecutableAvailability,
         agentModelCatalogService,
         agentRunnerService,
+        agentUsagePollService,
         claudeRuntimeService,
         codexRuntimeService,
         desktopConfigStore,
@@ -77,6 +105,7 @@ function createLocalBridgeDispatch(dependencies) {
         showItemInFolder,
         uncommittedProjectWrites,
         updateCodexCli,
+        usageMetricsService,
         worktreeService,
     } = dependencies;
     let currentLocalProject = null;
@@ -179,9 +208,9 @@ function createLocalBridgeDispatch(dependencies) {
         if (actionSchedulerService) await actionSchedulerService.startProject(project, projectPaths, projectConfig);
         // Account usage polls run in this folder: Claude's per-folder trust question blocks a poll
         // started anywhere it has never run, which is why the poll waits for a project at all.
-        if (agentRunnerService) {
-            const { agentProfiles } = readDesktopConfig(desktopConfigStore);
-            agentRunnerService.requestProjectUsageRefresh(project, agentProfiles);
+        if (agentUsagePollService) {
+            const { agentAccounts, agentProfiles } = readDesktopConfig(desktopConfigStore);
+            agentUsagePollService.startProject(project, agentProfiles, agentAccounts);
         }
         projectServicesReady = true;
     }
@@ -218,7 +247,12 @@ function createLocalBridgeDispatch(dependencies) {
             return localGitService.cancelActionSchedule(project, actionsFolder, scheduleId);
         },
         commit: async (request) => {
-            await localGitService.commit(request, currentLocalProject);
+            // Usage metrics never get a commit of their own; pending rows join the batch commit.
+            const usageMetricsPath = usageMetricsService.repositoryPath(currentLocalProject?.rootPath);
+            const commitRequest = usageMetricsPath
+                ? { ...request, paths: [...(request.paths ?? []), usageMetricsPath] }
+                : request;
+            await localGitService.commit(commitRequest, currentLocalProject);
 
             return [];
         },
@@ -313,7 +347,7 @@ function createLocalBridgeDispatch(dependencies) {
             return projectOperationCoordinator.run(request.project.rootPath, async () => {
                 await uncommittedProjectWrites.commit(request.project.rootPath);
                 const integration = await worktreeService.integrate(request.project, request.worktreeBranch, metadata);
-                if (integration.status === 'conflict') return integration;
+                if (integration.status === 'conflict' || integration.status === 'dirtyPrimary') return integration;
                 const progress = await finalizeIntegrationRepository(
                     request.project,
                     request.worktreeBranch,
@@ -324,6 +358,22 @@ function createLocalBridgeDispatch(dependencies) {
 
                 return { ...(activityPath ? { activityPath } : {}), status: 'completed' };
             });
+        },
+        commitPrimaryChanges: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing primary changes commit request');
+
+            return projectOperationCoordinator.run(
+                request.project.rootPath,
+                () => worktreeService.commitReviewedPrimaryChanges(request.project, request.paths, request.message),
+            );
+        },
+        trashPrimaryChange: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing primary change trash request');
+
+            return projectOperationCoordinator.run(
+                request.project.rootPath,
+                () => worktreeService.trashPrimaryChange(request.project, request.path),
+            );
         },
         abortMergeConflict: (request) => worktreeService.abortConflict(request),
         continueMergeConflict: async (request) => {
@@ -689,6 +739,7 @@ function createLocalBridgeDispatch(dependencies) {
                 ? `${projectFolder.replace(/[\\/]$/u, '')}/${configuredReleasesFolder.replace(/^[\\/]/u, '')}`
                 : configuredReleasesFolder;
             const request = {
+                ...(resolved.account ? { account: resolved.account } : {}),
                 agent: resolved.agent,
                 agentTaskTrackingEnabled: resolved.agentTaskTrackingEnabled,
                 activityOrigin: { kind: 'project' },
@@ -729,7 +780,7 @@ function createLocalBridgeDispatch(dependencies) {
     };
 
     const codexRuntimeBridge = {
-        getCodexRateLimits: () => codexRuntimeService?.getSnapshot() ?? null,
+        getCodexRateLimits: (accountId) => codexRuntimeService?.getSnapshot(accountId) ?? null,
         onCodexRateLimits: (callback) => {
             if (!codexRuntimeService) throw new Error('Codex runtime service is not available');
 
@@ -748,7 +799,7 @@ function createLocalBridgeDispatch(dependencies) {
     };
 
     const claudeRuntimeBridge = {
-        getClaudeRateLimits: () => claudeRuntimeService?.getSnapshot() ?? null,
+        getClaudeRateLimits: (accountId) => claudeRuntimeService?.getSnapshot(accountId) ?? null,
         onClaudeRateLimits: (callback) => {
             if (!claudeRuntimeService) throw new Error('Claude runtime service is not available');
 
@@ -756,21 +807,45 @@ function createLocalBridgeDispatch(dependencies) {
         },
     };
 
+    const agentAccountBridge = {
+        addAgentAccount: (agent) => changeAgentAccounts(dependencies, (service) => service.addAccount(agent)),
+        listAgentAccounts: () => requireAgentAccountService(agentAccountService).listAccounts(),
+        loadAgentAccountStatus: (accountId) => requireAgentAccountService(agentAccountService).loadStatus(accountId),
+        loginAgentAccount: (accountId) => requireAgentAccountService(agentAccountService).login(accountId),
+        removeAgentAccount: (accountId) => changeAgentAccounts(dependencies, (service) => service.removeAccount(accountId)),
+        renameAgentAccount: (accountId, name) => requireAgentAccountService(agentAccountService).renameAccount(accountId, name),
+        reselectAgentAccountDirectory: (accountId) => (
+            changeAgentAccounts(dependencies, (service) => service.reselectDirectory(accountId))
+        ),
+    };
+
     const methods = { ...dataBridge, ...actionBridge, ...claudeRuntimeBridge, ...codexRuntimeBridge };
+    // Account operations open desktop dialogs and login windows, so only the local renderer may call them.
+    const localMethods = { ...methods, ...agentAccountBridge };
 
     return {
         actionBridge,
+        agentAccountBridge,
         claudeRuntimeBridge,
         codexRuntimeBridge,
         dataBridge,
-        invoke: (method, params = []) => {
-            const handler = methods[method];
-            if (!handler) throw new Error(`Unknown remote-control method: ${method}`);
-            if (!Array.isArray(params)) throw new Error('Remote-control params must be an array');
-
-            return handler(...params);
-        },
+        invoke: (method, params = []) => invokeMethod(methods, method, params),
+        invokeLocal: (method, params = []) => invokeMethod(localMethods, method, params),
     };
+}
+
+function requireAgentAccountService(agentAccountService) {
+    if (!agentAccountService) throw new Error('Agent account service is not available');
+
+    return agentAccountService;
+}
+
+function invokeMethod(methods, method, params) {
+    const handler = methods[method];
+    if (!handler) throw new Error(`Unknown remote-control method: ${method}`);
+    if (!Array.isArray(params)) throw new Error('Remote-control params must be an array');
+
+    return handler(...params);
 }
 
 module.exports = { createLocalBridgeDispatch };

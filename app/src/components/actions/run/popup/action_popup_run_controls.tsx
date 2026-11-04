@@ -6,14 +6,9 @@ import Play from 'mdi-material-ui/Play';
 import { useEffect, useRef, useSyncExternalStore, type MouseEvent } from 'react';
 import type { ActionContext } from '../../../../data/action_context';
 import type { ActionDefinition } from '../../../../data/action_types';
-import type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service';
 import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs';
 import { usePendingActionScheduleForCardAndAction } from '../../../hooks/use_pending_action_schedule';
-import {
-    isBrowsingHistoricalConversation,
-    type ActionConversationStore,
-} from '../../conversation/state/action_conversation_store';
-import type { ActionHistoryStore } from '../state/action_history_store';
+import { isBrowsingHistoricalConversation } from '../../conversation/state/action_conversation_store';
 import {
     cancelPopupAction,
     currentActionPromptDraft,
@@ -21,34 +16,23 @@ import {
     runPopupAction,
 } from './action_popup_operations';
 import { actionPopupRunDisabled } from './action_popup_run_disabled';
-import type { ActionRunInputStore } from '../state/action_run_input_store';
-import type { ActionRunResultStore } from '../state/action_run_result_store';
-import type { ActionScheduleStore } from '../schedule/action_schedule_store';
 import { useActionRunSettings } from '../../shared/use_action_run_settings';
 import { ActionPopupFinishButton } from './action_popup_finish_button';
-import type { ActionRunBindingStore } from '../state/action_run_binding_store';
-import type { ActionPopupFocusRequest } from './action_popup_focus_request';
+import type { ActionPopupRuntime } from './action_popup_types';
 
 interface ActionPopupRunControlsProps {
     action: ActionDefinition;
     assignmentContext: ActionContext;
-    bindingStore: ActionRunBindingStore;
-    conversationStore: ActionConversationStore;
-    focusRequest: ActionPopupFocusRequest;
-    historyStore: ActionHistoryStore;
-    inputStore: ActionRunInputStore;
-    resultStore: ActionRunResultStore;
-    runValidationError: string | null;
-    scheduleStore: ActionScheduleStore;
-    settingsStore: ActionRunSettingsStore;
+    runtime: ActionPopupRuntime;
 }
 
 /** Owns prompt readiness, run operations, and scheduling controls at their rendering boundary. */
 export function ActionPopupRunControls(props: ActionPopupRunControlsProps) {
+    const { action, assignmentContext, runtime } = props;
     const {
-        action, assignmentContext, bindingStore, conversationStore, focusRequest, historyStore, inputStore, resultStore,
-        runValidationError, scheduleStore, settingsStore,
-    } = props;
+        bindingStore, conversationStore, focusRequest, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
+        settingsStore,
+    } = runtime;
     const primaryButtonRef = useRef<HTMLButtonElement>(null);
     const settings = useActionRunSettings(action, settingsStore);
     const scheduled = usePendingActionScheduleForCardAndAction(assignmentContext.cardInternalId, action.id);

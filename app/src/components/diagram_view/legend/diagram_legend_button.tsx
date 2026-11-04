@@ -10,7 +10,7 @@ interface DiagramLegendButtonProps {
     details?: Pick<DiagramObjectDetailsService, 'open'>
 }
 
-/** Opens legend editing for the New diagram. */
+/** Opens the add-legend-entry dialog for the New diagram. */
 export function DiagramLegendButton({ details = diagramObjectDetailsService }: DiagramLegendButtonProps) {
     const handleActivate = useCallback(() => details.open({ objectKind: 'legend' }), [details])
 
@@ -18,7 +18,7 @@ export function DiagramLegendButton({ details = diagramObjectDetailsService }: D
         <DiagramToolboxActionButton
             label="Legend"
             onActivate={handleActivate}
-            tooltip="Edit diagram legend"
+            tooltip="Add legend entry"
         ><LegendToggleOutlined fontSize="small" /></DiagramToolboxActionButton>
     )
 }

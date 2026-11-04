@@ -46,6 +46,8 @@ export interface CodexRateLimitResetCreditsSummary {
 }
 
 export interface CodexRateLimitSnapshot {
+    /** Agent account whose usage this snapshot describes. */
+    accountId: string
     available: boolean
     buckets: CodexRateLimitBucket[]
     observedAt: number
@@ -58,7 +60,7 @@ export interface CodexUpdateRequired {
 }
 
 export interface ElectronCodexRuntimeBridge {
-    getCodexRateLimits(): Promise<CodexRateLimitSnapshot | null>
+    getCodexRateLimits(accountId: string): Promise<CodexRateLimitSnapshot | null>
     onConnectionChanged?(callback: (connected: boolean) => void): () => void
     onCodexRateLimits(callback: (snapshot: CodexRateLimitSnapshot) => void): () => void
     onCodexUpdateRequired?(callback: (update: CodexUpdateRequired) => void): () => void

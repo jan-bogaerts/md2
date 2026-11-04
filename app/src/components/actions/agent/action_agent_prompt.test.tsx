@@ -1,49 +1,51 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { useMemo, type ComponentProps } from 'react'
-import { ActionInputLayoutStore } from '../run/popup/action_input_layout_store';
 import { ActionInputSplitter } from '../run/popup/action_input_splitter';
 import { ActionLayoutSurface } from '../run/popup/action_layout_surface';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ActionAgentPrompt as ActionAgentPromptImplementation } from './action_agent_prompt'
+import { ActionAgentPrompt } from './action_agent_prompt'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
-import type { AgentQuestion } from '../../../data/action_run_types'
+import type { ActionContext } from '../../../data/action_context'
+import type { ActionDefinition } from '../../../data/action_types'
+import type { AgentConversation, AgentQuestion } from '../../../data/data_types'
 import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
 import type { MarkdownDraftBinding } from '../../../services/markdown/markdown_draft'
-import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
-import type { RestoredAgentQuestions } from './action_agent_question_owner'
-
-type ActionAgentPromptProps = ComponentProps<typeof ActionAgentPromptImplementation>
-type TestPromptProps = Omit<ActionAgentPromptProps, 'bindingStore' | 'questionsEnabled' | 'layoutStore'>
-    & Partial<Pick<ActionAgentPromptProps, 'bindingStore' | 'questionsEnabled' | 'layoutStore'>>
+import { createTestPopupRuntime } from '../../../test/action_popup_runtime_fixture'
+import type { ActionConversationStore } from '../conversation/state/action_conversation_store'
+import { dismissRestoredConversationQuestions, runPopupAction } from '../run/popup/action_popup_operations'
+import type { ActionPopupRuntime } from '../run/popup/action_popup_types'
 
 const editorRender = vi.hoisted(() => vi.fn());
+const promptDraftState = vi.hoisted(() => ({ current: null as ActionPromptDraft | null }));
+/** Called once per ActionAgentPrompt render through its run-settings hook. */
+const promptRender = vi.hoisted(() => vi.fn());
 
-const questionFreeBindingStore = new ActionRunBindingStore(null)
+vi.mock('../run/popup/action_popup_operations', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../run/popup/action_popup_operations')>()
 
-function ActionAgentPrompt(props: TestPromptProps) {
-    const { bindingStore = questionFreeBindingStore, questionsEnabled = false } = props
-
-    const layoutStore = useMemo(() => new ActionInputLayoutStore('agent'), []);
-    return (
-        <ActionLayoutSurface store={layoutStore}>
-            <ActionInputSplitter store={layoutStore} />
-            <ActionAgentPromptImplementation
-                {...props}
-                bindingStore={bindingStore}
-                layoutStore={layoutStore}
-                questionsEnabled={questionsEnabled}
-            />
-        </ActionLayoutSurface>
-    );
-}
-
-function restoredAgentQuestions(questions: AgentQuestion[]): RestoredAgentQuestions {
     return {
-        onAnswer: vi.fn(async () => undefined),
-        onDismiss: vi.fn(async () => undefined),
-        questions,
+        ...actual,
+        answerRestoredConversationQuestions: vi.fn(async () => undefined),
+        currentActionPromptDraft: () => {
+            if (!promptDraftState.current) throw new Error('Test prompt draft is not configured')
+
+            return promptDraftState.current
+        },
+        dismissRestoredConversationQuestions: vi.fn(async () => undefined),
+        runPopupAction: vi.fn(async () => undefined),
     }
-}
+})
+
+vi.mock('../shared/use_action_run_settings', () => ({
+    useActionRunSettings: () => {
+        promptRender()
+
+        return { backendAvailable: true, runDisabledMessage: null }
+    },
+}))
+
+vi.mock('../editor/action_phrase_buttons_owner', () => ({ActionPhraseButtonsOwner: () => <div>Predefined phrases</div>}))
+
+vi.mock('../run/popup/action_popup_bottom_row', () => ({ActionPopupBottomRow: () => <div>Controls</div>}))
 
 vi.mock('../../editor/markdown_editor', async () => {
     const { forwardRef, useEffect, useImperativeHandle, useRef, useState } = await import('react')
@@ -60,6 +62,7 @@ vi.mock('../../editor/markdown_editor', async () => {
             onChange?: (markdown: string) => void
             onLiveChange?: (markdown: string) => void
             placeholders?: readonly { name: string }[]
+            plainText?: boolean
             readOnly?: boolean
         }, ref) {
             editorRender();
@@ -93,6 +96,7 @@ vi.mock('../../editor/markdown_editor', async () => {
                     data-local-text-search={props.localTextSearch === false ? 'false' : 'true'}
                     data-monospace={props.monospace ? 'true' : 'false'}
                     data-placeholders={props.placeholders?.map(({ name }) => name).join(',')}
+                    data-plain-text={props.plainText ? 'true' : 'false'}
                     value={value}
                     onBlur={(event) => props.onChange?.(event.currentTarget.value)}
                     onChange={(event) => {
@@ -117,10 +121,100 @@ vi.mock('../../editor/markdown_editor', async () => {
     }
 })
 
-function mockAvailablePromptHeight(height: number) {
+const context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' }
+const agentAction = {id: 'review', label: 'Review', phrases: [], prompt: 'Review', type: 'agent'} as unknown as ActionDefinition
+const commandAction = {command: 'npm test', id: 'build', label: 'Build', type: 'command'} as unknown as ActionDefinition
+
+interface ConversationSnapshotInput {
+    loading: boolean
+    selectedConversation: AgentConversation | null
+}
+
+/** Conversation store stand-in whose selection can be replaced by a test. */
+class TestConversationStore extends EventTarget {
+    private snapshot: ConversationSnapshotInput & { conversations: AgentConversation[]; pinningConversationId: null }
+
+    constructor(input: ConversationSnapshotInput) {
+        super()
+        this.snapshot = { ...input, conversations: [], pinningConversationId: null }
+    }
+
+    readonly getSnapshot = () => this.snapshot
+
+    readonly subscribe = (listener: () => void) => {
+        this.addEventListener('changed', listener)
+
+        return () => this.removeEventListener('changed', listener)
+    }
+
+    conversationOptions() {
+        return this.snapshot.conversations
+    }
+
+    select(selectedConversation: AgentConversation | null) {
+        this.snapshot = { ...this.snapshot, loading: false, selectedConversation }
+        this.dispatchEvent(new Event('changed'))
+    }
+}
+
+function waitingConversation(questions: AgentQuestion[]) {
+    return {
+        entries: [{ kind: 'event', questions, type: 'agentQuestion' }],
+        id: 'conversation-1',
+        status: 'waitingForInput',
+    } as unknown as AgentConversation
+}
+
+interface RenderPromptOptions {
+    action?: ActionDefinition
+    conversationStore?: TestConversationStore
+    questionsEnabled?: boolean
+    withSurface?: boolean
+}
+
+function createRuntime(action: ActionDefinition, conversationStore: TestConversationStore) {
+    const overrides = { conversationStore: conversationStore as unknown as ActionConversationStore }
+
+    return createTestPopupRuntime(action, context, overrides)
+}
+
+function promptElement(action: ActionDefinition, runtime: ActionPopupRuntime, questionsEnabled: boolean) {
+    return (
+        <ActionAgentPrompt
+            action={action}
+            assignmentContext={context}
+            questionsEnabled={questionsEnabled}
+            runtime={runtime}
+            scheduleContext={context}
+        />
+    )
+}
+
+function renderPrompt(promptDraft: ActionPromptDraft, options: RenderPromptOptions = {}) {
+    const {
+        action = agentAction,
+        conversationStore = new TestConversationStore({ loading: true, selectedConversation: null }),
+        questionsEnabled = true,
+        withSurface = true,
+    } = options
+    promptDraftState.current = promptDraft
+    const runtime = createRuntime(action, conversationStore)
+    const layoutStore = questionsEnabled ? runtime.agentLayoutStore : runtime.commandLayoutStore
+    const prompt = promptElement(action, runtime, questionsEnabled)
+    render(withSurface ? (
+        <ActionLayoutSurface store={layoutStore}>
+            <ActionInputSplitter store={layoutStore} />
+            {prompt}
+        </ActionLayoutSurface>
+    ) : prompt)
+
+    return { conversationStore, runtime }
+}
+
+function mockAvailablePromptHeight(height: number, questionsHeight = 96) {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function measureElement(this: HTMLElement) {
         const measuredHeight = this.getAttribute('role') === 'separator' ? 0
-            : this.dataset.testid === 'action-questions-region' ? 96 : height
+            : this.dataset.testid === 'action-questions-region' ? questionsHeight : height
 
         return {
             bottom: measuredHeight,
@@ -140,22 +234,16 @@ beforeEach(() => window.localStorage.clear())
 
 afterEach(() => {
     cleanup()
+    promptDraftState.current = null
     vi.restoreAllMocks()
+    vi.mocked(runPopupAction).mockClear()
+    vi.mocked(dismissRestoredConversationQuestions).mockClear()
 })
 
 describe('ActionAgentPrompt', () => {
     it('renders editor without a separator or writing layout preferences', () => {
-        const promptDraft = new ActionPromptDraft('Plan', false);
-        const layoutStore = new ActionInputLayoutStore('agent');
-        render(
-            <ActionAgentPromptImplementation
-                bindingStore={questionFreeBindingStore}
-                convertMessage={null}
-                layoutStore={layoutStore}
-                promptDraft={promptDraft}
-                questionsEnabled={false}
-            />,
-        );
+        renderPrompt(new ActionPromptDraft('Plan', false), { withSurface: false })
+
         expect(screen.getByRole('textbox', { name: 'Markdown prompt' })).toHaveValue('Plan');
         expect(screen.queryByRole('separator')).not.toBeInTheDocument();
         expect(window.localStorage.getItem('md2.actionPromptHeight')).toBeNull();
@@ -164,10 +252,10 @@ describe('ActionAgentPrompt', () => {
 
     it.each([false, true])('keeps editor stable across nonempty draft edits with pending questions %s', (pendingQuestions) => {
         const draft = new ActionPromptDraft('Plan', false);
-        const questions: RestoredAgentQuestions | null = pendingQuestions ? restoredAgentQuestions([{header: 'Choose', id: 'question-1', options: [{ label: 'Yes', description: 'Continue' }], question: 'Continue?'}]) : null;
-        render(
-            <ActionAgentPrompt convertMessage={null} promptDraft={draft} questionsEnabled restoredQuestions={questions} />,
-        );
+        const question = { header: 'Choose', id: 'question-1', options: [{ label: 'Yes', description: 'Continue' }], question: 'Continue?' }
+        const selectedConversation = pendingQuestions ? waitingConversation([question]) : null
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation })
+        renderPrompt(draft, { conversationStore })
         editorRender.mockClear();
         act(() => draft.edit('Plan more'));
         act(() => draft.edit('Plan more text'));
@@ -179,7 +267,7 @@ describe('ActionAgentPrompt', () => {
 
     it('stays read-only during prompt preparation and becomes editable when ready', async () => {
         const promptDraft = new ActionPromptDraft('', true)
-        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
+        renderPrompt(promptDraft)
         const prompt = screen.getByLabelText('Markdown prompt')
 
         expect(prompt).toHaveAttribute('readonly')
@@ -190,28 +278,15 @@ describe('ActionAgentPrompt', () => {
         expect(prompt).toHaveValue('Prepared prompt')
     })
 
-    it('passes card attachment handler to hidden-toolbar prompt editor', () => {
-        const promptDraft = new ActionPromptDraft('', false)
-        render(
-            <ActionAgentPrompt
-                attachmentHandler={vi.fn(async () => undefined)}
-                convertMessage={null}
-                promptDraft={promptDraft}
-            />,
-        )
+    it('passes a card attachment handler to the hidden-toolbar agent prompt editor', () => {
+        renderPrompt(new ActionPromptDraft('', false))
 
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-has-attachment-handler', 'true')
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-hide-attachment-control', 'true')
     })
 
     it('configures action placeholders on its hidden-toolbar editor', () => {
-        const promptDraft = new ActionPromptDraft('', false)
-        render(
-            <ActionAgentPrompt
-                convertMessage={null}
-                promptDraft={promptDraft}
-            />,
-        )
+        renderPrompt(new ActionPromptDraft('', false))
 
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute(
             'data-placeholders',
@@ -224,21 +299,20 @@ describe('ActionAgentPrompt', () => {
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-image-paste', 'false')
     })
 
-    it('enables monospace presentation for command editing', () => {
-        const promptDraft = new ActionPromptDraft('npm test', false)
-        render(<ActionAgentPrompt convertMessage={null} monospace promptDraft={promptDraft} />)
+    it('edits command input as monospace literal text without attachments or phrases', () => {
+        renderPrompt(new ActionPromptDraft('npm test', false), { action: commandAction, questionsEnabled: false })
+        const prompt = screen.getByLabelText('Markdown prompt')
 
-        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-monospace', 'true')
+        expect(prompt).toHaveAttribute('data-monospace', 'true')
+        expect(prompt).toHaveAttribute('data-plain-text', 'true')
+        expect(prompt).toHaveAttribute('data-has-attachment-handler', 'false')
+        expect(screen.queryByText('Predefined phrases')).not.toBeInTheDocument()
+        expect(screen.getByText('Controls')).toBeInTheDocument()
     })
 
     it('keeps typing local when prompt loses focus', () => {
         const promptDraft = new ActionPromptDraft('', false)
-        render(
-            <ActionAgentPrompt
-                convertMessage={null}
-                promptDraft={promptDraft}
-            />,
-        )
+        renderPrompt(promptDraft)
         const prompt = screen.getByLabelText('Markdown prompt')
 
         fireEvent.change(prompt, { target: { value: 'Draft' } })
@@ -255,34 +329,29 @@ describe('ActionAgentPrompt', () => {
         { keyModifier: { ctrlKey: true }, shortcut: 'Ctrl+Enter' },
         { keyModifier: { metaKey: true }, shortcut: 'Meta+Enter' },
     ])('flushes the latest prompt before running $shortcut without passing it to the editor', ({ keyModifier }) => {
-        const handleRunShortcut = vi.fn()
         const promptDraft = new ActionPromptDraft('', false)
-        render(
-            <ActionAgentPrompt
-                convertMessage={null}
-                onRunShortcut={handleRunShortcut}
-                promptDraft={promptDraft}
-            />,
-        )
+        renderPrompt(promptDraft)
         const prompt = screen.getByLabelText('Markdown prompt')
 
         fireEvent.change(prompt, { target: { value: 'Run this' } })
         fireEvent.keyDown(prompt, { ...keyModifier, key: 'Enter' })
 
-        expect(handleRunShortcut).toHaveBeenCalledOnce()
+        expect(runPopupAction).toHaveBeenCalledOnce()
         expect(promptDraft.getSnapshot()).toBe('Run this')
         expect(prompt).toHaveValue('Run this')
     })
 
+    it('does not run a command through Ctrl+Enter while its input is empty', () => {
+        renderPrompt(new ActionPromptDraft('', false), { action: commandAction, questionsEnabled: false })
+
+        fireEvent.keyDown(screen.getByLabelText('Markdown prompt'), { ctrlKey: true, key: 'Enter' })
+
+        expect(runPopupAction).not.toHaveBeenCalled()
+    })
+
     it('keeps plain Enter and Shift+Enter editor behavior', () => {
         const promptDraft = new ActionPromptDraft('Line', false)
-        render(
-            <ActionAgentPrompt
-                convertMessage={null}
-                onRunShortcut={vi.fn()}
-                promptDraft={promptDraft}
-            />,
-        )
+        renderPrompt(promptDraft)
         const prompt = screen.getByLabelText('Markdown prompt')
 
         fireEvent.keyDown(prompt, { key: 'Enter' })
@@ -290,47 +359,19 @@ describe('ActionAgentPrompt', () => {
 
         expect(promptDraft.getSnapshot()).toBe('Line\n\n')
         expect(prompt).toHaveValue('Line\n\n')
-    })
-
-    it('keeps Ctrl+Enter editor behavior when no shortcut callback exists', () => {
-        const promptDraft = new ActionPromptDraft('Line', false)
-        render(
-            <ActionAgentPrompt
-                convertMessage={null}
-                promptDraft={promptDraft}
-            />,
-        )
-        const prompt = screen.getByLabelText('Markdown prompt')
-
-        fireEvent.keyDown(prompt, { ctrlKey: true, key: 'Enter' })
-
-        expect(promptDraft.getSnapshot()).toBe('Line\n')
-        expect(prompt).toHaveValue('Line\n')
+        expect(runPopupAction).not.toHaveBeenCalled()
     })
 
     it('applies each external replacement to the mounted editor once', () => {
         const promptDraft = new ActionPromptDraft('Initial', false)
-        render(
-            <ActionAgentPrompt
-                convertMessage={null}
-                promptDraft={promptDraft}
-            />,
-        )
+        renderPrompt(promptDraft)
         act(() => promptDraft.replace('Prepared'))
 
         expect(screen.getByLabelText('Markdown prompt')).toHaveValue('Prepared')
     })
 
     it.each(['', '   \n\t'])('collapses only the editor region for an empty draft %#', (value) => {
-        const promptDraft = new ActionPromptDraft(value, false)
-        render(
-            <ActionAgentPrompt
-                bottomRow={<div>Controls</div>}
-                convertMessage={null}
-                promptDraft={promptDraft}
-                responsePrompts={<div>Predefined phrases</div>}
-            />,
-        )
+        renderPrompt(new ActionPromptDraft(value, false))
 
         expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: 'auto' })
         expect(screen.getByTestId('action-prompt-editor-region')).toHaveStyle({ height: '56px', overflowY: 'auto' })
@@ -338,10 +379,17 @@ describe('ActionAgentPrompt', () => {
         expect(screen.getByText('Controls')).toBeInTheDocument()
     })
 
+    it('shows the conversion message from its input store', () => {
+        const { runtime } = renderPrompt(new ActionPromptDraft('Plan', false))
+
+        act(() => runtime.inputStore.setConvertMessage('Converted to agent prompt'))
+
+        expect(screen.getByRole('status')).toHaveTextContent('Converted to agent prompt')
+    })
+
     it('disables pointer and keyboard resize while the prompt is empty', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '160')
-        const promptDraft = new ActionPromptDraft('', false)
-        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
+        renderPrompt(new ActionPromptDraft('', false))
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 
         expect(separator).toHaveAttribute('aria-disabled', 'true')
@@ -358,8 +406,7 @@ describe('ActionAgentPrompt', () => {
     it('restores the saved height on live text entry and preserves it across empty transitions', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '188')
         mockAvailablePromptHeight(400)
-        const promptDraft = new ActionPromptDraft('', false)
-        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
+        renderPrompt(new ActionPromptDraft('', false))
         const prompt = screen.getByLabelText('Markdown prompt')
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 
@@ -379,8 +426,7 @@ describe('ActionAgentPrompt', () => {
     it('clamps a restored height against the available popup height', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '220')
         mockAvailablePromptHeight(250)
-        const promptDraft = new ActionPromptDraft('', false)
-        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
+        renderPrompt(new ActionPromptDraft('', false))
 
         fireEvent.change(screen.getByLabelText('Markdown prompt'), { target: { value: 'Plan' } })
 
@@ -391,8 +437,7 @@ describe('ActionAgentPrompt', () => {
     it('persists non-empty pointer and keyboard resize without overwriting it after clearing', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '160')
         mockAvailablePromptHeight(400)
-        const promptDraft = new ActionPromptDraft('Plan', false)
-        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
+        renderPrompt(new ActionPromptDraft('Plan', false))
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 
         fireEvent.pointerDown(separator, { clientY: 200, pointerId: 2 })
@@ -415,31 +460,35 @@ describe('ActionAgentPrompt with a pending question', () => {
     const questions: AgentQuestion[] = [{ header: 'Reason', id: 'reason', question: 'Why?' }]
 
     function renderPendingQuestion(promptDraft = new ActionPromptDraft('', false)) {
-        const restoredQuestions = restoredAgentQuestions(questions)
-        render(
-            <ActionAgentPrompt
-                convertMessage={null}
-                promptDraft={promptDraft}
-                questionsEnabled
-                restoredQuestions={restoredQuestions}
-            />,
-        )
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: waitingConversation(questions) })
 
-        return restoredQuestions
+        return renderPrompt(promptDraft, { conversationStore })
     }
 
-    it('caps the unsized questions box at 40% of the agent column and scrolls its content', () => {
+    it('sizes unsized questions to their content below the cap and lets the prompt fill the rest', () => {
         mockAvailablePromptHeight(400)
 
         renderPendingQuestion()
 
         expect(screen.getByText('Why?')).toBeInTheDocument()
-        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: 'auto' })
+        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '300px' })
         expect(screen.getByTestId('action-questions-region')).toHaveStyle({
+            flex: '0 1 auto',
             maxHeight: '160px',
+            minHeight: '0',
             overflowY: 'auto',
         })
-        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: 'auto' })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ flex: '1', height: 'auto', minHeight: '72px' })
+        expect(screen.getByTestId('action-prompt-editor-region')).toHaveStyle({ flex: '1' })
+    })
+
+    it('caps and scrolls unsized questions that exceed the cap while the prompt keeps its minimum', () => {
+        mockAvailablePromptHeight(400, 600)
+
+        renderPendingQuestion()
+
+        expect(screen.getByTestId('action-questions-region')).toHaveStyle({ maxHeight: '160px', overflowY: 'auto' })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ minHeight: '72px' })
     })
 
     it('bounds questions to the available space in a short agent column', () => {
@@ -448,6 +497,18 @@ describe('ActionAgentPrompt with a pending question', () => {
         renderPendingQuestion()
 
         expect(screen.getByTestId('action-questions-region')).toHaveStyle({ maxHeight: '48px' })
+    })
+
+    it('renders at most twice for a question update: run state, then the layout snapshot', () => {
+        mockAvailablePromptHeight(400)
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: null })
+        renderPrompt(new ActionPromptDraft('', false), { conversationStore })
+        promptRender.mockClear()
+
+        act(() => conversationStore.select(waitingConversation(questions)))
+
+        expect(screen.getByText('Why?')).toBeInTheDocument()
+        expect(promptRender).toHaveBeenCalledTimes(2)
     })
 
     it('starts with the question region primary when a stored block height exists', () => {
@@ -482,7 +543,7 @@ describe('ActionAgentPrompt with a pending question', () => {
     it('recovers both regions repeatedly through prompt edits and question pointer-down', () => {
         window.localStorage.setItem('md2.actionQuestionsBlockHeight', '300')
         mockAvailablePromptHeight(400)
-        const restoredQuestions = renderPendingQuestion()
+        renderPendingQuestion()
         const prompt = screen.getByLabelText('Markdown prompt')
         const questionsRegion = screen.getByTestId('action-questions-region')
 
@@ -498,7 +559,7 @@ describe('ActionAgentPrompt with a pending question', () => {
 
         fireEvent.pointerDown(screen.getByRole('button', { name: 'Cancel questions' }))
         expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '72px' })
-        expect(restoredQuestions.onDismiss).not.toHaveBeenCalled()
+        expect(dismissRestoredConversationQuestions).not.toHaveBeenCalled()
         expect(prompt).toHaveValue('Second')
         expect(screen.getByRole('textbox', { name: 'Why?' })).toHaveValue('Because')
     })
@@ -532,9 +593,8 @@ describe('ActionAgentPrompt with a pending question', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '140')
         window.localStorage.setItem('md2.actionQuestionsBlockHeight', '300')
         mockAvailablePromptHeight(400)
-        const promptDraft = new ActionPromptDraft('Plan', false)
 
-        renderPendingQuestion(promptDraft)
+        renderPendingQuestion(new ActionPromptDraft('Plan', false))
         const separator = screen.getByRole('separator', { name: 'Resize prompt and questions' })
 
         fireEvent.change(screen.getByLabelText('Markdown prompt'), { target: { value: 'Updated plan' } })
@@ -603,18 +663,18 @@ describe('ActionAgentPrompt with a pending question', () => {
         expect(separator).toHaveAttribute('aria-valuemin', '168')
     })
 
-    it('leaves prompt-only resizing and storage untouched when questions are disabled', () => {
-        window.localStorage.setItem('md2.actionPromptHeight', '160')
+    it('ignores pending questions and question storage when questions are disabled', () => {
+        window.localStorage.setItem('md2.commandActionInputHeight', '160')
         mockAvailablePromptHeight(400)
-        const promptDraft = new ActionPromptDraft('Plan', false)
-        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
-        const separator = screen.getByRole('separator', { name: 'Resize prompt' })
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: waitingConversation(questions) })
+        renderPrompt(new ActionPromptDraft('npm test', false), { action: commandAction, conversationStore, questionsEnabled: false })
+        const separator = screen.getByRole('separator', { name: 'Resize command input' })
 
         fireEvent.keyDown(separator, { key: 'ArrowUp' })
 
         expect(screen.queryByTestId('action-questions-region')).not.toBeInTheDocument()
         expect(separator).toHaveAttribute('aria-valuemin', '72')
-        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('184')
+        expect(window.localStorage.getItem('md2.commandActionInputHeight')).toBe('136')
         expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBeNull()
     })
 })

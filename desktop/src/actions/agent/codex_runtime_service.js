@@ -176,23 +176,52 @@ function mergeBucket(current, incoming) {
     };
 }
 
+/** Drops Spark buckets; an account remembers excluded limit IDs so later sparse updates stay excluded. */
+function filterSupportedBuckets(state, buckets, sparse) {
+    if (!sparse) {
+        const excludedBuckets = buckets.filter((bucket) => EXCLUDED_RATE_LIMIT_NAMES.has(bucket.limitName));
+        state.excludedRateLimitIds = new Set(excludedBuckets.map((bucket) => bucket.limitId));
+
+        return buckets.filter((bucket) => !EXCLUDED_RATE_LIMIT_NAMES.has(bucket.limitName));
+    }
+
+    return buckets.filter((bucket) => {
+        if (EXCLUDED_RATE_LIMIT_NAMES.has(bucket.limitName)) {
+            state.excludedRateLimitIds.add(bucket.limitId);
+            return false;
+        }
+        if (bucket.limitName !== undefined && bucket.limitName !== null) state.excludedRateLimitIds.delete(bucket.limitId);
+
+        return !state.excludedRateLimitIds.has(bucket.limitId);
+    });
+}
+
+function requireAccountId(accountId) {
+    if (typeof accountId !== 'string' || accountId.length === 0) throw new Error('Codex rate limits require an account ID');
+
+    return accountId;
+}
+
+/** Owns the latest Codex rate-limit snapshot of each agent account in the desktop process. */
 class CodexRuntimeService {
     constructor() {
         this.events = new EventTarget();
-        this.excludedRateLimitIds = new Set();
+        this.accounts = new Map();
         this.publishedUpdateMismatches = new Set();
-        this.snapshot = null;
         this.updateRequiredSnapshot = null;
     }
 
-    getSnapshot() {
-        return this.snapshot ? structuredClone(this.snapshot) : null;
+    getSnapshot(accountId) {
+        const snapshot = this.accounts.get(accountId)?.snapshot;
+
+        return snapshot ? structuredClone(snapshot) : null;
     }
 
+    /** Streams every account snapshot; each one names the account it belongs to. */
     subscribe(listener) {
         const handleRateLimits = (event) => listener(event.detail);
         this.events.addEventListener(RATE_LIMIT_EVENT, handleRateLimits);
-        if (this.snapshot) listener(this.getSnapshot());
+        for (const accountId of this.accounts.keys()) listener(this.getSnapshot(accountId));
 
         return () => this.events.removeEventListener(RATE_LIMIT_EVENT, handleRateLimits);
     }
@@ -222,15 +251,17 @@ class CodexRuntimeService {
         return true;
     }
 
-    publishRateLimits(payload, observedAt, sparse = false) {
+    publishRateLimits(accountIdValue, payload, observedAt, sparse = false) {
+        const accountId = requireAccountId(accountIdValue);
         if (!Number.isFinite(observedAt)) throw new Error('Invalid Codex rate-limit observation time');
-        if (this.snapshot && observedAt < this.snapshot.observedAt) return false;
+        const state = this.accountState(accountId);
+        if (state.snapshot && observedAt < state.snapshot.observedAt) return false;
         if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
         const buckets = normalizeBuckets(payload);
         const resetCredits = normalizeResetCredits(payload.rateLimitResetCredits);
         if (!buckets || resetCredits === undefined) return false;
-        const supportedBuckets = this.filterSupportedBuckets(buckets, sparse);
-        const currentBuckets = new Map((this.snapshot?.buckets ?? []).map((bucket) => [bucket.limitId, bucket]));
+        const supportedBuckets = filterSupportedBuckets(state, buckets, sparse);
+        const currentBuckets = new Map((state.snapshot?.buckets ?? []).map((bucket) => [bucket.limitId, bucket]));
         if (sparse) {
             for (const bucket of supportedBuckets) {
                 const currentBucket = currentBuckets.get(bucket.limitId);
@@ -239,49 +270,42 @@ class CodexRuntimeService {
         }
         const normalizedBuckets = (sparse ? [...currentBuckets.values()] : supportedBuckets).map(completeBucket);
         const rateLimitResetCredits = sparse && resetCredits === null
-            ? this.snapshot?.rateLimitResetCredits ?? null
+            ? state.snapshot?.rateLimitResetCredits ?? null
             : resetCredits;
-        this.snapshot = {
+        state.snapshot = {
+            accountId,
             available: true,
             buckets: normalizedBuckets,
             observedAt,
             rateLimitResetCredits,
         };
-        this.notify();
+        this.notify(accountId);
 
         return true;
     }
 
-    filterSupportedBuckets(buckets, sparse) {
-        if (!sparse) {
-            const excludedBuckets = buckets.filter((bucket) => EXCLUDED_RATE_LIMIT_NAMES.has(bucket.limitName));
-            this.excludedRateLimitIds = new Set(excludedBuckets.map((bucket) => bucket.limitId));
-
-            return buckets.filter((bucket) => !EXCLUDED_RATE_LIMIT_NAMES.has(bucket.limitName));
-        }
-
-        return buckets.filter((bucket) => {
-            if (EXCLUDED_RATE_LIMIT_NAMES.has(bucket.limitName)) {
-                this.excludedRateLimitIds.add(bucket.limitId);
-                return false;
-            }
-            if (bucket.limitName !== undefined && bucket.limitName !== null) this.excludedRateLimitIds.delete(bucket.limitId);
-
-            return !this.excludedRateLimitIds.has(bucket.limitId);
-        });
-    }
-
-    publishUnavailable(observedAt) {
+    publishUnavailable(accountIdValue, observedAt) {
+        const accountId = requireAccountId(accountIdValue);
         if (!Number.isFinite(observedAt)) throw new Error('Invalid Codex rate-limit observation time');
-        if (this.snapshot && observedAt < this.snapshot.observedAt) return false;
-        this.snapshot = { available: false, buckets: [], observedAt, rateLimitResetCredits: null };
-        this.notify();
+        const state = this.accountState(accountId);
+        if (state.snapshot && observedAt < state.snapshot.observedAt) return false;
+        state.snapshot = { accountId, available: false, buckets: [], observedAt, rateLimitResetCredits: null };
+        this.notify(accountId);
 
         return true;
     }
 
-    notify() {
-        const snapshot = this.getSnapshot();
+    accountState(accountId) {
+        const existing = this.accounts.get(accountId);
+        if (existing) return existing;
+        const state = { excludedRateLimitIds: new Set(), snapshot: null };
+        this.accounts.set(accountId, state);
+
+        return state;
+    }
+
+    notify(accountId) {
+        const snapshot = this.getSnapshot(accountId);
         this.events.dispatchEvent(new CustomEvent(RATE_LIMIT_EVENT, { detail: snapshot }));
     }
 }

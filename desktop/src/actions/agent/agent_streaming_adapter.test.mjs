@@ -5,8 +5,9 @@ import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.
 const require = createRequire(import.meta.url);
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
+const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');
 
-function harness(agent, providerConversationId = null, executionSettings = {}) {
+function harness(agent, providerConversationId = null, executionSettings = {}, taskTrackingEnabled = false) {
     const events = [];
     const runtimeEvents = [];
     const writes = [];
@@ -18,6 +19,8 @@ function harness(agent, providerConversationId = null, executionSettings = {}) {
         providerConversationId,
         (event) => runtimeEvents.push(event),
         executionSettings,
+        null,
+        taskTrackingEnabled,
     );
 
     return { adapter, events, runtimeEvents, writes };
@@ -49,6 +52,10 @@ const ROOT_COLLABORATION_ITEM = {
     tool: 'wait',
     type: 'collabAgentToolCall',
 };
+
+function subAgentActivity(id, agentThreadId, agentPath) {
+    return { agentPath, agentThreadId, id, kind: 'started', type: 'subAgentActivity' };
+}
 
 /** Brings a Codex adapter to a running root turn whose collaboration call has started one child thread. */
 async function startCodexCollaboration() {
@@ -132,10 +139,6 @@ function claudeTaskFixtureEvents() {
             type: 'assistant',
         },
         {
-            message: {content: [{id: 'task-update-complete', input: { id: '1', status: 'completed' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-3'},
-            type: 'assistant',
-        },
-        {
             message: {
                 content: [{
                     id: 'task-create-child', input: { activeForm: 'Building child', subject: 'Build child' },
@@ -150,6 +153,10 @@ function claudeTaskFixtureEvents() {
             parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,
             tool_use_result: { task: { id: '2' } },
             type: 'user',
+        },
+        {
+            message: {content: [{id: 'task-update-complete', input: { id: '1', status: 'completed' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-3'},
+            type: 'assistant',
         },
         {
             message: {
@@ -647,7 +654,10 @@ describe('ClaudeStreamingAdapter', () => {
         expect(streamingTaskLists).toEqual([
             [{ activeForm: 'Building root', id: '1', status: 'pending', subject: 'Build root' }],
             [{ activeForm: 'Building root', id: '1', status: 'inProgress', subject: 'Build root' }],
-            [{ activeForm: 'Building root', id: '1', status: 'completed', subject: 'Build root' }],
+            [
+                { activeForm: 'Building root', id: '1', status: 'inProgress', subject: 'Build root' },
+                { activeForm: 'Building child', id: '2', status: 'pending', subject: 'Build child' },
+            ],
             [
                 { activeForm: 'Building root', id: '1', status: 'completed', subject: 'Build root' },
                 { activeForm: 'Building child', id: '2', status: 'pending', subject: 'Build child' },
@@ -658,6 +668,35 @@ describe('ClaudeStreamingAdapter', () => {
         expect(streaming.events.filter(({ event }) => event?.type?.startsWith('tool.Task'))).toEqual([]);
         const ordinaryProtocolEvents = protocolEvents.filter(({ type }) => type !== 'taskList');
         expect(ordinaryProtocolEvents.every(({ transcriptEvents }) => transcriptEvents.length === 0)).toBe(true);
+    });
+
+    it('seeds the Claude task list decoder from a persisted conversation task list', async () => {
+        const events = [];
+        const initialTaskList = {
+            tasks: [{ activeForm: 'Building root', id: '1', status: 'inProgress', subject: 'Build root' }],
+            updatedAt: '2026-10-16T10:00:00.000Z',
+        };
+        const adapter = createAgentStreamingAdapter(
+            'claude',
+            vi.fn(),
+            (event) => events.push(event),
+            'C:\\repo',
+            'session-1',
+            vi.fn(),
+            {},
+            null,
+            false,
+            initialTaskList,
+        );
+
+        await adapter.handleMessage({
+            message: {content: [{id: 'task-update-complete', input: { status: 'completed', taskId: '1' }, name: 'TaskUpdate', type: 'tool_use'}], id: 'task-message-1'},
+            type: 'assistant',
+        });
+
+        expect(events.filter(({ type }) => type === 'taskList').at(-1).taskList.tasks).toEqual([
+            { activeForm: 'Building root', id: '1', status: 'completed', subject: 'Build root' },
+        ]);
     });
 
     it('bounds Claude command and tool results without truncating their inputs or duplicating command output', async () => {
@@ -1281,6 +1320,30 @@ describe('CodexStreamingAdapter', () => {
         expect(writes[5]).toMatchObject({ method: 'turn/start', params: settings });
     });
 
+    it.each([
+        [null, 'thread/start'],
+        ['saved-thread', 'thread/resume'],
+    ])('adds task instructions to %s when task tracking is enabled', async (sessionId, method) => {
+        const { adapter, writes } = harness('codex', sessionId, {}, true);
+
+        await adapter.start('first prompt');
+        await adapter.handleMessage({ id: 1, result: {} });
+
+        expect(writes[3]).toMatchObject({
+            method,
+            params: { developerInstructions: CODEX_TASK_TRACKING_INSTRUCTIONS },
+        });
+    });
+
+    it('omits task instructions when task tracking is disabled', async () => {
+        const { adapter, writes } = harness('codex');
+
+        await adapter.start('first prompt');
+        await adapter.handleMessage({ id: 1, result: {} });
+
+        expect(writes[3].params).not.toHaveProperty('developerInstructions');
+    });
+
     it.each(['default', undefined])('refuses to infer when the requested Fast tier is not acknowledged: %s', async (serviceTier) => {
         const { adapter, events, writes } = harness('codex', null, { model: 'gpt-6.1-sol', serviceTier: 'priority' });
         await adapter.start('prompt');
@@ -1368,13 +1431,163 @@ describe('CodexStreamingAdapter', () => {
         });
 
         expect(events.filter(({ event }) => event?.parentItemId === 'wait-1').map(({ event }) => event)).toEqual([
-            expect.objectContaining({ providerItemId: 'child-command', status: 'inProgress', type: 'commandExecution' }),
-            expect.objectContaining({ providerItemId: 'child-command', status: 'completed', type: 'commandExecution' }),
-            expect.objectContaining({ content: '', label: 'wait', providerItemId: 'child-message', status: 'inProgress', type: 'agentMessage' }),
+            expect.objectContaining({ providerItemId: 'thread-child:child-command', status: 'inProgress', type: 'commandExecution' }),
+            expect.objectContaining({ providerItemId: 'thread-child:child-command', status: 'completed', type: 'commandExecution' }),
+            expect.objectContaining({ content: '', label: 'wait', providerItemId: 'thread-child:child-message', status: 'inProgress', type: 'agentMessage' }),
             expect.objectContaining({ content: 'found it', label: 'wait', status: 'inProgress', type: 'agentMessage' }),
             expect.objectContaining({ content: 'found it', label: 'wait', status: 'completed', type: 'agentMessage' }),
         ]);
         expect(events.filter(({ type }) => type === 'assistant' || type === 'assistantStarted')).toEqual([]);
+    });
+
+    it('hydrates parallel and nested sub-agent file changes once before completing the root turn', async () => {
+        const { adapter, events, writes } = harness('codex');
+        await adapter.start('plan');
+        await adapter.handleMessage({ id: 1, result: {} });
+        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-root' } } });
+        await adapter.handleMessage({
+            method: 'turn/started',
+            params: { threadId: 'thread-root', turn: { id: 'turn-root' }, turnId: 'turn-root' },
+        });
+        const firstActivity = subAgentActivity('activity-one', 'thread-child-one', '/root/first');
+        const secondActivity = subAgentActivity('activity-two', 'thread-child-two', '/root/second');
+        for (const activity of [firstActivity, secondActivity]) {
+            await adapter.handleMessage({
+                method: 'item/started',
+                params: { item: activity, threadId: 'thread-root', turnId: 'turn-root' },
+            });
+        }
+        await adapter.handleMessage({
+            method: 'turn/started',
+            params: { threadId: 'thread-child-one', turn: { id: 'turn-child-one' }, turnId: 'turn-child-one' },
+        });
+        const liveFile = {
+            changes: [{ diff: 'first\nsecond', kind: { type: 'add' }, path: 'live.txt' }],
+            id: 'file-live', status: 'completed', type: 'fileChange',
+        };
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: { item: { ...liveFile, status: 'inProgress' }, threadId: 'thread-child-one', turnId: 'turn-child-one' },
+        });
+        await adapter.handleMessage({
+            method: 'item/completed',
+            params: { item: liveFile, threadId: 'thread-child-one', turnId: 'turn-child-one' },
+        });
+        for (const activity of [firstActivity, secondActivity]) {
+            await adapter.handleMessage({
+                method: 'item/completed',
+                params: { item: activity, threadId: 'thread-root', turnId: 'turn-root' },
+            });
+        }
+
+        expect(writes.filter(({ method }) => method === 'thread/read')).toEqual([
+            expect.objectContaining({ id: 5, params: { includeTurns: true, threadId: 'thread-child-one' } }),
+            expect.objectContaining({ id: 6, params: { includeTurns: true, threadId: 'thread-child-two' } }),
+        ]);
+
+        await adapter.handleMessage({
+            method: 'turn/completed',
+            params: { threadId: 'thread-root', turn: { id: 'turn-root', status: 'completed' }, turnId: 'turn-root' },
+        });
+        expect(events.filter(({ type }) => type === 'turnCompleted')).toHaveLength(0);
+
+        const nestedActivity = subAgentActivity('activity-nested', 'thread-grandchild', '/root/first/nested');
+        await adapter.handleMessage({
+            id: 5,
+            result: {
+                thread: {
+                    id: 'thread-child-one', turns: [{
+                        items: [liveFile, {
+                            changes: [{ diff: 'old', kind: { type: 'delete' }, path: 'history.txt' }],
+                            id: 'file-history', status: 'completed', type: 'fileChange',
+                        }, nestedActivity],
+                    }],
+                },
+            },
+        });
+        await adapter.handleMessage({
+            id: 6,
+            result: {
+                thread: {
+                    id: 'thread-child-two', turns: [{
+                        items: [{
+                            changes: [{ diff: 'parallel', kind: { type: 'add' }, path: 'parallel.txt' }],
+                            id: 'file-parallel', status: 'completed', type: 'fileChange',
+                        }],
+                    }],
+                },
+            },
+        });
+
+        expect(writes.filter(({ method }) => method === 'thread/read').at(-1)).toMatchObject({
+            id: 7,
+            params: { includeTurns: true, threadId: 'thread-grandchild' },
+        });
+        expect(events.filter(({ type }) => type === 'turnCompleted')).toHaveLength(0);
+
+        await adapter.handleMessage({
+            id: 7,
+            result: {
+                thread: {
+                    id: 'thread-grandchild', turns: [{
+                        items: [{
+                            changes: [{ diff: 'nested', kind: { type: 'add' }, path: 'nested.txt' }],
+                            id: 'file-nested', status: 'completed', type: 'fileChange',
+                        }],
+                    }],
+                },
+            },
+        });
+
+        const completedFiles = events
+            .filter(({ event }) => event?.type === 'fileChange' && event.status === 'completed')
+            .map(({ event }) => event);
+        expect(completedFiles.map(({ providerItemId }) => providerItemId)).toEqual([
+            'thread-child-one:file-live',
+            'thread-child-one:file-history',
+            'thread-child-two:file-parallel',
+            'thread-grandchild:file-nested',
+        ]);
+        expect(completedFiles.find(({ providerItemId }) => providerItemId.endsWith('file-nested'))).toMatchObject({parentItemId: 'thread-child-one:activity-nested'});
+        expect(events.filter(({ type }) => type === 'turnCompleted')).toHaveLength(1);
+    });
+
+    it('logs a child-thread read failure and completes without fabricated file counts', async () => {
+        const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        try {
+            const { adapter, events } = harness('codex');
+            await adapter.start('plan');
+            await adapter.handleMessage({ id: 1, result: {} });
+            await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-root' } } });
+            await adapter.handleMessage({
+                method: 'turn/started',
+                params: { threadId: 'thread-root', turn: { id: 'turn-root' }, turnId: 'turn-root' },
+            });
+            const activity = subAgentActivity('activity-one', 'thread-child', '/root/child');
+            await adapter.handleMessage({
+                method: 'item/started',
+                params: { item: activity, threadId: 'thread-root', turnId: 'turn-root' },
+            });
+            await adapter.handleMessage({
+                method: 'item/completed',
+                params: { item: activity, threadId: 'thread-root', turnId: 'turn-root' },
+            });
+            await adapter.handleMessage({
+                method: 'turn/completed',
+                params: { threadId: 'thread-root', turn: { id: 'turn-root', status: 'completed' }, turnId: 'turn-root' },
+            });
+            await adapter.handleMessage({ error: { message: 'missing child rollout' }, id: 5 });
+
+            expect(warning).toHaveBeenCalledWith('[agent:child-thread-read]', {
+                error: 'missing child rollout',
+                threadId: 'thread-child',
+            });
+            expect(events.filter(({ event }) => event?.type === 'fileChange')).toEqual([]);
+            expect(events.filter(({ type }) => type === 'turnCompleted')).toHaveLength(1);
+            expect(events.some(({ type }) => type === 'fatal')).toBe(false);
+        } finally {
+            warning.mockRestore();
+        }
     });
 
     it('replaces Codex root plans with task lists and omits explanations', async () => {
@@ -1774,14 +1987,14 @@ describe('CodexStreamingAdapter', () => {
             },
         });
 
-        expect(events.find(({ event }) => event?.providerItemId === 'wait-2').event).toMatchObject({
+        expect(events.find(({ event }) => event?.providerItemId === 'thread-child:wait-2').event).toMatchObject({
             label: 'Collaboration: ask',
             parentItemId: 'wait-1',
         });
-        expect(events.find(({ event }) => event?.providerItemId === 'grandchild-message').event).toMatchObject({
+        expect(events.find(({ event }) => event?.providerItemId === 'thread-grandchild:grandchild-message').event).toMatchObject({
             content: 'deep',
             label: 'ask',
-            parentItemId: 'wait-2',
+            parentItemId: 'thread-child:wait-2',
         });
     });
 

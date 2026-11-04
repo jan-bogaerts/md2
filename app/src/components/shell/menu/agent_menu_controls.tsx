@@ -18,12 +18,15 @@ import {
 import {
     projectAgentSelection,
     selectAgent,
+    selectAccount,
     selectModel,
     selectPermissionMode,
     selectThinkingLevel,
     selectSpeedMode,
     type AgentSelectionState,
 } from '../../../data/agent_selection'
+import { initialAgentAccountId, resolveAgentAccount, supportsAgentAccounts } from '../../../data/agent_accounts'
+import type { AgentAccount } from '../../../data/agent_accounts'
 import { configService } from '../../../services/config/config_service'
 import { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'
 import { dialogService } from '../../../services/dialog_service'
@@ -34,9 +37,15 @@ import { NO_DRAG_REGION } from '../drag_region'
 import { MenuSelect } from './menu_select'
 import { Section } from './section'
 
-function desktopSelectionError(selection: AgentSelectionState, profiles: ReturnType<typeof mergeAgentProfiles>) {
+function desktopSelectionError(
+    accounts: AgentAccount[],
+    selection: AgentSelectionState,
+    profiles: ReturnType<typeof mergeAgentProfiles>,
+) {
     try {
-        validateAgentSelection(profiles, projectAgentSelection(selection, profiles), 'desktop agent selection')
+        const projected = projectAgentSelection(selection, profiles)
+        validateAgentSelection(profiles, projected, 'desktop agent selection')
+        resolveAgentAccount(accounts, projected.agent, projected.accountId)
 
         return null
     } catch (error) {
@@ -54,6 +63,7 @@ function persistDesktopConfig() {
 export function AgentMenuControls() {
     const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
     const agentSelection = useConfigValue('desktop.agentSelection')
+    const accounts = useConfigValue('desktop.agentAccounts')
     const selectedAgent = agentSelection.activeAgent
     const selectedProfile = findAgentProfile(agentProfiles, selectedAgent)
     const activeAgentSettings = agentSelection.settingsByAgent[selectedAgent]
@@ -61,11 +71,21 @@ export function AgentMenuControls() {
     const selectedPermissionMode = agentSelection.permissionMode
     const desktopAvailable = useHasDesktopConfig()
     const selectedModel = activeAgentSettings?.model ?? ''
-    const modelCatalog = useAgentModelCatalog(selectedProfile);
+    const modelCatalog = useAgentModelCatalog(selectedProfile, activeAgentSettings?.accountId);
     const selectedModels = agentModelOptions(modelCatalog.catalog, selectedModel);
     const selectedSpeedMode = activeAgentSettings?.speedMode ?? 'default';
+    const selectedAccountId = activeAgentSettings?.accountId ?? ''
+    const selectedAgentAccounts = accounts.filter(({ agent, kind }) => agent === selectedAgent && kind !== 'initial')
+    const selectedInitialAccount = selectedAccountId === initialAgentAccountId(selectedAgent)
+    const accountAvailable = !selectedAccountId || selectedInitialAccount
+        || selectedAgentAccounts.some(({ id }) => id === selectedAccountId)
+    const renderAccountValue = (accountId: string) => accountId
+        ? accountId === initialAgentAccountId(selectedAgent)
+            ? 'Initial'
+            : selectedAgentAccounts.find(({ id }) => id === accountId)?.name ?? `${accountId} — uses default`
+        : 'Initial'
     const selectionError = activeAgentSettings
-        ? desktopSelectionError(agentSelection, agentProfiles)
+        ? desktopSelectionError(accounts, agentSelection, agentProfiles)
         : null;
 
     useEffect(() => {
@@ -77,6 +97,11 @@ export function AgentMenuControls() {
 
     const handleAgentChange = (event: SelectChangeEvent) => {
         configService.set('desktop.agentSelection', selectAgent(agentSelection, event.target.value, agentProfiles))
+        persistDesktopConfig()
+    }
+    const handleAccountChange = (event: SelectChangeEvent) => {
+        const accountId = event.target.value || undefined
+        configService.set('desktop.agentSelection', selectAccount(agentSelection, accountId, accounts))
         persistDesktopConfig()
     }
     const setModel = (value: string) => {
@@ -113,6 +138,21 @@ export function AgentMenuControls() {
                 {!selectedProfile ? <MenuItem disabled value={selectedAgent}>{selectedAgent} — unavailable</MenuItem> : null}
                 {agentProfiles.map((profile) => <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>)}
             </MenuSelect>
+            {supportsAgentAccounts(selectedAgent) ? (
+                <MenuSelect
+                    disabled={!desktopAvailable}
+                    errorMessage={selectionError}
+                    label="Default account"
+                    minWidth={150}
+                    onChange={handleAccountChange}
+                    renderValue={renderAccountValue}
+                    value={selectedInitialAccount ? '' : selectedAccountId}
+                >
+                    <MenuItem value="">Initial</MenuItem>
+                    {!accountAvailable ? <MenuItem disabled value={selectedAccountId}>{selectedAccountId} — uses default</MenuItem> : null}
+                    {selectedAgentAccounts.map(({ id, name }) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
+                </MenuSelect>
+            ) : null}
             <MenuSelect
                 disabled={!desktopAvailable}
                 errorMessage={selectionError}

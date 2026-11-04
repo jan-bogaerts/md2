@@ -1,23 +1,31 @@
 import { describe, expect, it } from 'vitest'
 import type { Card } from '../../../../data/data_types'
 import { accountTrackerOptions, cardScheduleOptions, scheduleTargetStates } from './action_schedule_options'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../../../data/agent_accounts'
+
+const claudeAccount = DEFAULT_AGENT_ACCOUNTS.find(({ agent }) => agent === 'claude')!
+const codexAccount = DEFAULT_AGENT_ACCOUNTS.find(({ agent }) => agent === 'codex')!
 
 describe('action schedule options', () => {
     it('projects exact live account windows and keeps reset-less windows visible', () => {
         const trackers = accountTrackerOptions(
+            claudeAccount,
             {
                 receivedAt: 1,
                 stale: false,
                 snapshot: {
+                    accountId: 'claude-initial',
                     available: true,
                     observedAt: 1,
                     windows: [{ id: 'five_hour', resetsAt: null, usedPercent: 20 }],
                 },
             },
+            codexAccount,
             {
                 receivedAt: 1,
                 stale: false,
                 snapshot: {
+                    accountId: 'codex-initial',
                     available: true,
                     buckets: [{
                         credits: null,
@@ -51,7 +59,9 @@ describe('action schedule options', () => {
         expect(cardScheduleOptions(cards, 'current')).toEqual([{cardInternalId: 'other', label: 'Other · design/F_2.md', registrationState: 'doing'}])
         expect(scheduleTargetStates([{ alwaysVisible: true, state: 'ready' }])).toEqual(['ready'])
         expect(accountTrackerOptions(
+            claudeAccount,
             { receivedAt: null, snapshot: null, stale: false },
+            codexAccount,
             { receivedAt: 1, snapshot: null, stale: true },
         )).toEqual([])
     })

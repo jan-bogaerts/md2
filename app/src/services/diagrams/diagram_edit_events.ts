@@ -6,7 +6,6 @@ import type {
 import type {
     DiagramConnectionPoint,
     DiagramEntityField,
-    DiagramLegendEntryData,
     DiagramMeta,
     DiagramSequenceFragmentRegion,
 } from './diagram_data';
@@ -48,7 +47,10 @@ export function diagramLegendMembershipChangedEvent() {
     return 'diagram:legendEntry:membership'
 }
 
-export function diagramLegendEntryFieldChangedEvent(entryKey: string, field: keyof DiagramLegendEntryData | 'order') {
+export function diagramLegendEntryFieldChangedEvent(
+    entryKey: string,
+    field: 'id' | 'kind' | 'label' | 'nodeKind' | 'order' | 'role' | 'useLabelAsDefault',
+) {
     return `diagram:legendEntry:${eventScope(entryKey)}:${field}`
 }
 
@@ -87,4 +89,3 @@ export function diagramFragmentRegionFieldChangedEvent(
 export function diagramChangeFieldChangedEvent(changeId: string, field: DiagramChangeField) {
     return `diagram:change:${eventScope(changeId)}:${field}`
 }
-

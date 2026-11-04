@@ -291,6 +291,7 @@ class ActionRunnerService {
             project,
             this.projectFolder,
             this.releasesFolder,
+            this.actionsFolder,
             this.activeCardsFolder,
             '',
             this.diagramFooter,
@@ -565,7 +566,13 @@ class ActionRunnerService {
         const config = this.agentConfigProvider();
         await this.actionCacheReady;
 
-        return resolveActionDefinition(this.actionDefinitionCache, config.agentProfiles, actionId, this.configuredStates);
+        return resolveActionDefinition(
+            this.actionDefinitionCache,
+            config.agentAccounts,
+            config.agentProfiles,
+            actionId,
+            this.configuredStates,
+        );
     }
 
     allocateDiagramPath(actionLabel) {

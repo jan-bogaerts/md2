@@ -21,9 +21,10 @@ describe('action definition writer helpers', () => {
     })
 
     it('preserves selected agent settings in a reusable action definition', () => {
-        const definition = createActionDefinition({ agent: 'codex', context, label: 'Fix tests', model: 'gpt-5', permissionMode: 'ask-for-approval', prompt: 'fix tests' })
+        const definition = createActionDefinition({ accountId: '11111111-1111-4111-8111-111111111111', agent: 'codex', context, label: 'Fix tests', model: 'gpt-5', permissionMode: 'ask-for-approval', prompt: 'fix tests' })
 
         expect(definition).toEqual({
+            accountId: '11111111-1111-4111-8111-111111111111',
             agent: 'codex',
             appliesTo: { type: 'feature' },
             description: 'Custom prompt action: Fix tests',

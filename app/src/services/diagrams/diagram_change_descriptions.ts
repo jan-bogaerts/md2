@@ -351,10 +351,13 @@ function describeConnectionPointChange(change: DiagramChange, context: DiagramDe
     return changedValueSentence(`${attachment} of ${connectionReference(edge, context)}`, String(change.field), change);
 }
 
-function legendSemantic(entryKey: string) {
-    if (entryKey.startsWith('nodeKind:')) return `node kind ${quote(entryKey.slice('nodeKind:'.length))}`;
-    if (entryKey.startsWith('node:')) return `node role ${quote(entryKey.slice('node:'.length))}`;
-    if (entryKey.startsWith('connection:')) return `connection kind ${quote(entryKey.slice('connection:'.length))}`;
+function legendSemantic(entryKey: string, getter: DiagramDescriptionContext['reader']['read']['getLegendEntryFieldSnapshot']) {
+    const nodeKind = getter(entryKey, 'nodeKind');
+    if (nodeKind) return `node kind ${quote(nodeKind)}`;
+    const role = getter(entryKey, 'role');
+    if (role) return `node role ${quote(role)}`;
+    const kind = getter(entryKey, 'kind');
+    if (kind) return `connection kind ${quote(kind)}`;
 
     throw new Error(`Invalid legend entry identity ${entryKey}`);
 }
@@ -366,7 +369,7 @@ function legendEntryReference(entryKey: string, context: DiagramDescriptionConte
     const label = getter(entryKey, 'label');
     const labelled = label ? ` ${quote(label)}` : '';
 
-    return `legend entry${labelled} for ${legendSemantic(entryKey)}`;
+    return `legend entry${labelled} for ${legendSemantic(entryKey, getter)}`;
 }
 
 function describeLegendChange(change: DiagramChange, context: DiagramDescriptionContext) {
@@ -439,7 +442,9 @@ function describeFieldChange(change: DiagramChange, context: DiagramDescriptionC
     if (change.objectKind === 'legendEntry') return describeLegendChange(change, context);
     if (change.objectKind === 'fragment') return describeFragmentField(change, context);
     if (change.objectKind === 'formatting') {
-        const target = change.objectId === 'diagram' ? 'diagram' : `${String(change.field)} ${quote(change.objectId)}`;
+        const target = change.field === 'legendEntry'
+            ? legendEntryReference(change.objectId, context, false)
+            : change.objectId === 'diagram' ? 'diagram' : `${String(change.field)} ${quote(change.objectId)}`;
 
         return changedValueSentence(`${target} formatting`, String(change.field), change);
     }

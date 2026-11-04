@@ -1,4 +1,5 @@
 import { validateAgentSelection, validateThinkingLevel, validateSpeedMode } from './agent_profiles.mjs'
+import { resolveAgentAccount } from './agent_accounts.mjs'
 
 function normalizeActionId(value) {
     if (typeof value !== 'string' || value.length === 0) throw new Error('Missing action id')
@@ -12,7 +13,7 @@ const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
 export const ACTION_DEFINITION_FIELDS = Object.freeze([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'output', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'speedMode', 'permissionMode', 'prompt', 'command', 'phrases', 'userInput',
+    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'accountId', 'model', 'thinkingLevel', 'speedMode', 'permissionMode', 'prompt', 'command', 'phrases', 'userInput',
 ])
 export const ACTION_AUTO_FINISH_FIELDS = Object.freeze(['when', 'state'])
 export const ACTION_OUTPUT_FIELDS = Object.freeze(['kind'])
@@ -33,7 +34,7 @@ export const REMARKABLE_CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-te
 // Fields the editor can route an error to. Anything else routes to the general summary.
 const ROUTABLE_FIELDS = new Set([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'output', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'speedMode', 'permissionMode', 'prompt', 'command', 'phrases', 'userInput',
+    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'accountId', 'model', 'thinkingLevel', 'speedMode', 'permissionMode', 'prompt', 'command', 'phrases', 'userInput',
 ])
 
 /**
@@ -70,6 +71,7 @@ function fail(message, code, source, fieldName = null) {
 }
 
 export const BUILTIN_CUSTOM_PROMPT = {
+    accountId: null,
     agent: null,
     appliesTo: null,
     permissionMode: null,
@@ -99,6 +101,7 @@ export const BUILTIN_CUSTOM_PROMPT = {
 }
 
 export const BUILTIN_REMARKABLE_CONVERT = {
+    accountId: null,
     agent: null,
     appliesTo: null,
     permissionMode: null,
@@ -324,6 +327,12 @@ function readAutoFinish(value, streaming, output, dependencies, source) {
 }
 
 function validateAgentFields(raw, dependencies, source) {
+    if (raw.accountId !== undefined && raw.agent === undefined) {
+        throw fail(`Action accountId requires agent in ${source}`, 'agent-required', source, 'accountId')
+    }
+    if (raw.accountId !== undefined && raw.type !== 'agent') {
+        throw fail(`Action accountId requires an agent action in ${source}`, 'field-not-allowed', source, 'accountId')
+    }
     if (raw.speedMode !== undefined) {
         try {
             validateSpeedMode(raw.speedMode, source);
@@ -346,6 +355,7 @@ function validateAgentFields(raw, dependencies, source) {
     try {
         validateAgentSelection(profiles, {
             agent: raw.agent,
+            ...(raw.accountId !== undefined ? { accountId: raw.accountId } : {}),
             model: raw.model ?? '',
             permissionMode: raw.permissionMode,
             speedMode: raw.speedMode,
@@ -354,12 +364,21 @@ function validateAgentFields(raw, dependencies, source) {
         // Route by the tagged code, never by message text.
         const field = error.code === 'unknown-agent'
             ? 'agent'
+            : error.code?.includes('account')
+                ? 'accountId'
             : error.code?.includes('speed-mode')
                 ? 'speedMode'
             : error.code?.includes('permission-mode')
                 ? 'permissionMode'
                 : 'model'
         throw fail(error.message, error.code ?? 'invalid-agent', source, field)
+    }
+    if (raw.accountId !== undefined) {
+        try {
+            resolveAgentAccount(dependencies.accounts ?? [], raw.agent, raw.accountId)
+        } catch (error) {
+            throw fail(error.message, 'invalid-agent-account', source, 'accountId')
+        }
     }
     if (raw.thinkingLevel === undefined) return
 
@@ -394,6 +413,7 @@ function validateRawDefinition(value, source, dependencies) {
 
     const streaming = value.streaming ?? false
     const raw = {
+        accountId: readOptionalString(value.accountId, 'accountId', source),
         agent: readOptionalString(value.agent, 'agent', source),
         appliesTo,
         autoFinish: readAutoFinish(value.autoFinish, streaming, output, dependencies, source),
@@ -496,6 +516,7 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
     const registry = new Map(BUILTIN_ACTIONS.map((action) => [action.id, action]))
     for (const raw of rawDefinitions) {
         registry.set(raw.id, {
+            accountId: raw.accountId ?? null,
             agent: raw.agent ?? null,
             appliesTo: raw.appliesTo ?? null,
             autoFinish: raw.autoFinish ?? null,

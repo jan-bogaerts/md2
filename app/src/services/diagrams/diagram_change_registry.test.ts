@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CHANGE_IDS_CHANGED_EVENT, DiagramChangeRegistry } from './diagram_change_registry';
 import type { DiagramChange } from './diagram_edit_types';
-import type { DiagramData } from './diagram_data';
+import { parseDiagramData } from './diagram_data'
 
 function createChange(id: string, value: string): DiagramChange {
     return {
@@ -12,18 +12,18 @@ function createChange(id: string, value: string): DiagramChange {
 
 describe('DiagramChangeRegistry', () => {
     it('compares collection changes with the saved baseline and clears them when restored', () => {
-        const baseline: DiagramData = {
+        const baseline = parseDiagramData(JSON.stringify({
             nodes: [{ id: 'first', label: 'First', role: 'focal' }],
             edges: [],
             groups: [],
-            meta: { title: 'Diagram', description: '', type: 'architecture', version: 1 },
-        };
-        const current: DiagramData = { ...baseline, nodes: [...baseline.nodes] };
+            meta: { title: 'Diagram', description: 'Diagram', type: 'architecture', version: 1 },
+        }));
+        const current = parseDiagramData(JSON.stringify({ ...baseline, nodes: [...baseline.nodes] }));
         const registry = new DiagramChangeRegistry();
         registry.setBaseline(baseline);
         registry.setCurrentDiagram(current);
 
-        current.nodes.push({ id: 'second', label: 'Second', role: 'store' });
+        current.nodes.push({ legendEntryId: baseline.nodes[0].legendEntryId, id: 'second', label: 'Second', role: 'focal' });
         registry.markCollectionMembership('node', 'second', true);
         expect(registry.hasChanges).toBe(true);
 

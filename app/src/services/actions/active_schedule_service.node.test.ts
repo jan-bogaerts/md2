@@ -10,6 +10,7 @@ import { configService } from '../config/config_service'
 import { dataService } from '../data/data_service'
 import { worktreeService } from '../project/worktree_service'
 import { ActiveScheduleService } from './active_schedule_service'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
 
 function schedule(): ActionSchedule {
     return {
@@ -59,8 +60,16 @@ function createHarness() {
     let cards = [{ header: { id: 'F-1', internalId: 'card-1', title: 'First' }, path: 'design/F-1.md' } as Card]
     const rateLimitState = { receivedAt: null, snapshot: null, stale: false }
     const actionService = Object.assign(actionEvents, { getActions: () => [] }) as unknown as ActionService
-    const claudeRateLimits = Object.assign(claudeEvents, { getState: () => rateLimitState }) as unknown as ClaudeRateLimitService
-    const codexRateLimits = Object.assign(codexEvents, { getState: () => rateLimitState }) as unknown as CodexRateLimitService
+    const claudeRateLimits = Object.assign(
+        claudeEvents,
+        { getState: vi.fn(() => rateLimitState), requestSnapshot: vi.fn() },
+    ) as unknown as ClaudeRateLimitService
+    const codexRateLimits = Object.assign(
+        codexEvents,
+        { getState: vi.fn(() => rateLimitState), requestSnapshot: vi.fn() },
+    ) as unknown as CodexRateLimitService
+    const selectionEvents = new EventTarget()
+    const selectedAccountIds = { claude: 'claude-initial', codex: 'codex-initial' }
     const serviceData = Object.assign(
         dataEvents,
         {
@@ -78,12 +87,23 @@ function createHarness() {
         dataService: serviceData,
         getActionsFolder: () => 'design/actions',
         getBridge: () => bridge as never,
+        getAgentAccounts: () => [
+            ...DEFAULT_AGENT_ACCOUNTS,
+            { agent: 'codex', configDirectory: 'C:/accounts/other', id: 'other-account', kind: 'directory', name: 'Other' },
+        ],
+        getDefaultAccountId: (agent) => selectedAccountIds[agent as keyof typeof selectedAccountIds],
         getProject: () => project,
+        selectionEvents,
     })
 
     return {
         bridge,
+        claudeRateLimits,
+        codexEvents,
+        codexRateLimits,
         dataEvents,
+        selectedAccountIds,
+        selectionEvents,
         service,
         setCards: (nextCards: Card[]) => { cards = nextCards },
         setProject: (nextProject: typeof project) => { project = nextProject },
@@ -344,6 +364,34 @@ describe('ActiveScheduleService', () => {
         expect(service.hasPendingActionForCard('card-1')).toBe(false)
         await vi.waitFor(() => expect(service.getSnapshot().loading).toBe(false))
         expect(service.hasPendingActionForCard('card-1')).toBe(false)
+        service.stop()
+    })
+
+    it('projects account resets from the persisted account and ignores later default changes', async () => {
+        const { bridge, codexEvents, codexRateLimits, selectedAccountIds, selectionEvents, service } = createHarness()
+        bridge.listActiveSchedules.mockResolvedValueOnce([{
+            ...schedule(),
+            trigger: {
+                accountId: 'other-account', agent: 'codex', expectedResetAt: '2026-09-19T10:00:00.000Z',
+                limitId: 'codex,pro', type: 'account-reset', windowId: 'primary',
+            },
+        }])
+        const published = vi.fn()
+        service.start()
+        await vi.waitFor(() => expect(service.getSnapshot().items).toHaveLength(1))
+        service.subscribe(published)
+
+        expect(codexRateLimits.requestSnapshot).toHaveBeenCalledWith('other-account')
+        codexEvents.dispatchEvent(new Event('changed:codex-initial'))
+        expect(codexRateLimits.getState).not.toHaveBeenCalledWith('codex-initial')
+
+        selectedAccountIds.codex = 'other-account'
+        selectionEvents.dispatchEvent(new Event('changed'))
+        expect(codexRateLimits.getState).toHaveBeenLastCalledWith('other-account')
+        vi.mocked(codexRateLimits.getState).mockClear()
+        codexEvents.dispatchEvent(new Event('changed:other-account'))
+        expect(codexRateLimits.getState).toHaveBeenCalledWith('other-account')
+
         service.stop()
     })
 })

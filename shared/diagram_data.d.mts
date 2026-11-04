@@ -1,4 +1,4 @@
-export const DIAGRAM_DATA_VERSION: 1
+export const DIAGRAM_DATA_VERSION: 3
 export const DIAGRAM_TYPES: readonly ['architecture', 'dependency', 'sequence', 'flow', 'entity', 'mindmap']
 export const DIAGRAM_ROLES: readonly ['focal', 'backend', 'store', 'external', 'input', 'optional', 'boundary']
 export const DIAGRAM_NODE_KINDS: readonly ['component', 'participant', 'step', 'decision', 'start', 'end', 'state', 'entity', 'root', 'topic']
@@ -53,21 +53,23 @@ export interface DiagramConnectionKindFormatting {
     line?: DiagramLineFormatting
     startMarker?: DiagramConnectionMarker
 }
+export type DiagramLegendEntryFormatting = DiagramNodeRoleFormatting | DiagramConnectionKindFormatting
 export interface DiagramFormatting {
     boxScalePercent?: number
     connectionKinds?: Partial<Record<DiagramEdgeKind, DiagramConnectionKindFormatting>>
     fontScalePercent?: number
+    legendEntries?: Record<string, DiagramLegendEntryFormatting>
     nodeRoles?: Partial<Record<DiagramRole, DiagramNodeRoleFormatting>>
     spacingScalePercent?: number
 }
 
 export type DiagramLegendEntryData =
-    | { label: string; role: DiagramRole }
-    | { label: string; nodeKind: DiagramNodeKind }
-    | { kind: DiagramEdgeKind; label: string }
+    | { id: string; label: string; role: DiagramRole }
+    | { id: string; label: string; nodeKind: DiagramNodeKind }
+    | { id: string; kind: DiagramEdgeKind; label: string; useLabelAsDefault: boolean }
 export interface DiagramMeta {
     description: string
-    legend?: DiagramLegendEntryData[]
+    legend: DiagramLegendEntryData[]
     preset?: DiagramFlowPreset
     title: string
     type: DiagramType
@@ -81,6 +83,7 @@ export interface DiagramNode {
     id: string
     kind?: DiagramNodeKind
     label: string
+    legendEntryId: string
     role: DiagramRole
     sublabel?: string
     tag?: string
@@ -96,6 +99,7 @@ export interface DiagramEdge {
     id: string
     kind: DiagramEdgeKind
     label?: string
+    legendEntryId: string
     sourceAttachment?: DiagramConnectionPoint
     targetAttachment?: DiagramConnectionPoint
     to: string
@@ -129,6 +133,7 @@ export interface DiagramData {
 export function requireDiagramString(value: unknown, field: string): string
 export function optionalDiagramString(value: unknown, field: string): string | undefined
 export function optionalDiagramBoolean(value: unknown, field: string): boolean | undefined
+export function requireDiagramBoolean(value: unknown, field: string): boolean
 export function requireDiagramGridNumber(value: unknown, field: string, positive?: boolean): number
 export function requireDiagramRelativeOffset(value: unknown, field: string): number
 export function requireDiagramEnum<Value extends string>(value: unknown, values: readonly Value[], field: string): Value

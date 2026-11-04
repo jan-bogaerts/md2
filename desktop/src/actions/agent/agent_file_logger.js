@@ -3,7 +3,7 @@
 // const path = require('node:path');
 const util = require('node:util');
 
-const AGENT_LOGGING_ENABLED = true;
+const AGENT_LOGGING_ENABLED = false;
 
 // const AGENT_LOG_PATH = path.join(os.tmpdir(), 'md2-agent-debug.log');
 

@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from './diagram_data'
+import { parseDiagramData, type DiagramData } from './diagram_data'
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import { DiagramGeometryService } from './diagram_geometry_service'
 import type { DiagramRecord } from './diagram_index'
 import { DiagramSelectionService, type DiagramSelectionIdentity } from './diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
 
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' }],
     groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
@@ -14,7 +14,7 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 const orders: DiagramSelectionIdentity = { objectId: 'orders', objectKind: 'node' }
@@ -100,14 +100,14 @@ function createCurvedRectangleHarness() {
 
 describe('DiagramSelectionService', () => {
     it('tracks one boundary across selected nodes, groups, and routed edges as geometry changes', () => {
-        const sourceDiagram: DiagramData = {
+        const sourceDiagram: DiagramData = parseDiagramData(JSON.stringify({
             ...diagram,
             groups: [{ height: 40, id: 'backend', label: 'Backend', nodeIds: ['orders'], width: 80, x: 300, y: 200 }],
             nodes: [
-                { id: 'orders', label: 'Orders', role: 'focal', width: 80, height: 40, x: 40, y: 40 },
-                { id: 'store', label: 'Store', role: 'store', width: 80, height: 40, x: 200, y: 40 },
+                { ...diagram.nodes[0], width: 80, height: 40, x: 40, y: 40 },
+                { ...diagram.nodes[1], width: 80, height: 40, x: 200, y: 40 },
             ],
-        }
+        }))
         const session = new DiagramEditSessionService(new DiagramSourceStub(sourceDiagram))
         session.bindProject(project)
         session.start()
@@ -316,6 +316,54 @@ describe('DiagramSelectionService', () => {
 
         expect(selection.getRectangleSnapshot()).toBeNull()
         expect(selection.getSelectionSnapshot()).toEqual([])
+    })
+
+    it('adds mixed rectangle intersections without duplicates or unrelated identity events', () => {
+        const { selection, session } = createRectangleHarness()
+        selection.replace([store, edge])
+        const editableDiagram = session.read.getEditableDiagram()
+        const storeNode = session.read.getNodeSnapshot('store')
+        const transientGesture = session.read.getTransientGestureSnapshot()
+        const viewportScale = session.read.getViewportScaleSnapshot()
+        const ordersChanged = vi.fn()
+        const storeChanged = vi.fn()
+        const edgeChanged = vi.fn()
+        const groupChanged = vi.fn()
+        selection.subscribeSelected(orders, ordersChanged)
+        selection.subscribeSelected(store, storeChanged)
+        selection.subscribeSelected(edge, edgeChanged)
+        selection.subscribeSelected(group, groupChanged)
+
+        selection.beginRectangleSelection({ x: 55, y: 55 })
+        expect(selection.completeAdditiveRectangleSelection({ x: 5, y: 5 })).toBe(true)
+
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toEqual([store, edge, orders, group])
+        expect(ordersChanged).toHaveBeenCalledOnce()
+        expect(storeChanged).not.toHaveBeenCalled()
+        expect(edgeChanged).not.toHaveBeenCalled()
+        expect(groupChanged).toHaveBeenCalledOnce()
+        expect(session.read.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.read.getNodeSnapshot('store')).toBe(storeNode)
+        expect(session.read.getTransientGestureSnapshot()).toBe(transientGesture)
+        expect(session.read.getViewportScaleSnapshot()).toBe(viewportScale)
+        expect(session.read.getChangeIdsSnapshot()).toEqual([])
+        expect(session.read.getDirtySnapshot()).toBe(false)
+    })
+
+    it('preserves selection for additive zero-distance and non-intersecting rectangles', () => {
+        const { selection } = createRectangleHarness()
+        selection.replace([orders])
+        const selectionSnapshot = selection.getSelectionSnapshot()
+
+        selection.beginRectangleSelection({ x: 20, y: 20 })
+        expect(selection.completeAdditiveRectangleSelection({ x: 20, y: 20 })).toBe(true)
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        selection.beginRectangleSelection({ x: 200, y: 200 })
+        expect(selection.completeAdditiveRectangleSelection({ x: 210, y: 210 })).toBe(true)
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+        expect(selection.getRectangleSnapshot()).toBeNull()
     })
 
     it('cancels rectangle state without changing selection', () => {

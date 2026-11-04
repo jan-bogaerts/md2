@@ -4,12 +4,19 @@ import { planDiagramRemoval } from './diagram_removal_plan';
 
 const diagram: DiagramData = {
     nodes: [
-        { id: 'source', label: 'Source', role: 'focal' },
-        { id: 'target', label: 'Target', role: 'store' },
+        { id: 'source', label: 'Source', legendEntryId: 'focal', role: 'focal' },
+        { id: 'target', label: 'Target', legendEntryId: 'store', role: 'store' },
     ],
-    edges: [{ id: 'connection', from: 'source', to: 'target', kind: 'connection' }],
+    edges: [{ id: 'connection', from: 'source', to: 'target', kind: 'connection', legendEntryId: 'connection' }],
     groups: [{ id: 'group', label: 'Group', nodeIds: ['source'] }],
-    meta: { title: 'Diagram', description: '', type: 'architecture', version: 1 },
+    meta: {
+        title: 'Diagram', description: '', type: 'architecture', version: 3,
+        legend: [
+            { id: 'focal', label: 'Focal', role: 'focal' },
+            { id: 'store', label: 'Store', role: 'store' },
+            { id: 'connection', kind: 'connection', label: 'Connection', useLabelAsDefault: false },
+        ],
+    },
 };
 
 describe('planDiagramRemoval', () => {

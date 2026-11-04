@@ -24,10 +24,17 @@ import { useAgentCapabilities } from '../../hooks/use_agent_capabilities'
 import { useConfigValueOrFallback, useHasDesktopConfig } from '../../hooks/use_config_value'
 import { useProjectReadOnly } from '../../hooks/use_project_read_only'
 import { useAgentModelCatalog } from '../../hooks/use_agent_model_catalog';
+import { DEFAULT_AGENT_ACCOUNTS, resolveAgentAccount } from '../../../data/agent_accounts';
+import type { AgentAccount } from '../../../data/agent_accounts';
 
-function agentSelectionError(agentProfiles: ReturnType<typeof mergeAgentProfiles>, selection: ReturnType<typeof projectAgentSelection>) {
+function agentSelectionError(
+    accounts: AgentAccount[],
+    agentProfiles: ReturnType<typeof mergeAgentProfiles>,
+    selection: ReturnType<typeof projectAgentSelection>,
+) {
     try {
         validateAgentSelection(agentProfiles, selection, 'action run settings')
+        resolveAgentAccount(accounts, selection.agent, selection.accountId)
 
         return null
     } catch (error) {
@@ -38,6 +45,7 @@ function agentSelectionError(agentProfiles: ReturnType<typeof mergeAgentProfiles
 /** Resolve agent input and backend state only for controls that consume it. */
 export function useActionRunSettings(action: ActionDefinition, store: ActionRunSettingsStore) {
     const desktopSelection = useConfigValueOrFallback('desktop.agentSelection', DEFAULT_AGENT_SELECTION)
+    const accounts = useConfigValueOrFallback('desktop.agentAccounts', DEFAULT_AGENT_ACCOUNTS)
     const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [])
     const desktopConfigAvailable = useHasDesktopConfig()
     const readOnly = useProjectReadOnly()
@@ -48,13 +56,14 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
     const baseSelection = desktopSelection as AgentSelectionState
     const defaultAgent = action.agent ?? baseSelection.activeAgent
     const rememberedDefinitionSettings = resolveAgentSettings(defaultAgent, agentProfiles, [baseSelection]);
-    const definitionSource: AgentSelectionState | null = action.agent || action.speedMode !== undefined
+    const definitionSource: AgentSelectionState | null = action.agent || action.accountId || action.speedMode !== undefined
         ? {
             activeAgent: defaultAgent,
             permissionMode: action.permissionMode ?? baseSelection.permissionMode,
             settingsByAgent: {
                 [defaultAgent]: {
                     ...rememberedDefinitionSettings,
+                    ...(action.accountId ? { accountId: action.accountId } : {}),
                     model: action.model ?? rememberedDefinitionSettings.model,
                     thinkingLevel: validateThinkingLevel(action.thinkingLevel ?? rememberedDefinitionSettings.thinkingLevel, `action "${action.label}"`),
                     ...(action.speedMode !== undefined ? { speedMode: action.speedMode } : {}),
@@ -70,14 +79,14 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
     const resolutionSources = [definitionSource, baseSelection].filter((source): source is AgentSelectionState => !!source)
     const selection = resolveAgentSelectionState(unresolvedSelection, agentProfiles, resolutionSources)
     const projectedSelection = projectAgentSelection(selection, agentProfiles)
-    const { agent, permissionMode, thinkingLevel, speedMode } = projectedSelection
+    const { accountId, agent, permissionMode, thinkingLevel, speedMode } = projectedSelection
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
     const model = projectedSelection.model || (selectedAgentProfile ? defaultModelForProfile(selectedAgentProfile) : '');
-    const modelCatalog = useAgentModelCatalog(action.type === 'agent' ? selectedAgentProfile : null);
+    const modelCatalog = useAgentModelCatalog(action.type === 'agent' ? selectedAgentProfile : null, accountId);
     const modelOptions = agentModelOptions(modelCatalog.catalog, model);
     const thinkingLevelOptions = THINKING_LEVELS
         .filter((level) => !!selectedAgentProfile && supportsThinkingLevel(selectedAgentProfile, level));
-    const selectionValidationError = action.type === 'agent' ? agentSelectionError(agentProfiles, projectedSelection) : null;
+    const selectionValidationError = action.type === 'agent' ? agentSelectionError(accounts, agentProfiles, projectedSelection) : null;
     const permissionModeSupported = !!selectedAgentProfile && supportsPermissionMode(selectedAgentProfile)
     const selectedAvailability = capabilities.availability.values[agent]
     const selectedAgentAvailable = action.type !== 'agent'
@@ -101,6 +110,8 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunS
                                     ? selectedAvailability?.error ?? capabilities.availability.error ?? `Agent executable is unavailable for ${agent}`
                                     : null
     return {
+        accountId,
+        accounts,
         agent,
         agentAvailability: capabilities.availability.values,
         agentProfiles,

@@ -56,7 +56,7 @@ Step-by-step walkthroughs of one workflow each. They link to the reference pages
 | Page | What it covers |
 | --- | --- |
 | [Action definition](actions/action-definition.md) | Every field, `appliesTo` filters, validation rules |
-| [Placeholders](actions/placeholders.md) | {% raw %}`{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{worktree-folder}}`, `{{repository-folder}}`, `{{project-folder}}`, `{{releases-folder}}`, diagram and conflict placeholders{% endraw %} |
+| [Placeholders](actions/placeholders.md) | {% raw %}`{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{worktree-folder}}`, `{{repository-folder}}`, `{{project-folder}}`, `{{releases-folder}}`, `{{actions-folder}}`, diagram and conflict placeholders{% endraw %} |
 | [Running actions](actions/running-actions.md) | Entry points, popup, conversations, chains, state triggers, scheduling, card sequences |
 | [Agent setup](actions/agent-setup.md) | Profiles, models, reasoning levels, conversation logs |
 | [Cookbook](actions/cookbook.md) | Copy-paste action definitions |

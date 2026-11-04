@@ -17,6 +17,7 @@ const {
     validateThinkingLevel,
 } = require('./agent_profiles.mjs');
 const { resolveAgentExecution } = require('./agent_execution');
+const { DEFAULT_AGENT_ACCOUNTS } = require('../../../../shared/agent_accounts.mjs');
 
 function agentConfig(activeAgent, model, agentProfiles, thinkingLevel = 'none', permissionMode = 'ask-for-approval', agentTaskTrackingEnabled = true) {
     return {
@@ -27,13 +28,30 @@ function agentConfig(activeAgent, model, agentProfiles, thinkingLevel = 'none', 
 }
 
 describe('agent profile resolution', () => {
+    it('resolves account precedence from run selection, remembered desktop default, then initial account', () => {
+        const work = { agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111', kind: 'directory', name: 'Work' };
+        const personal = { agent: 'codex', configDirectory: 'C:/accounts/personal', id: '22222222-2222-4222-8222-222222222222', kind: 'directory', name: 'Personal' };
+        const config = agentConfig('codex', 'gpt-5.5', BUILTIN_AGENT_PROFILES);
+        config.agentAccounts = [...DEFAULT_AGENT_ACCOUNTS, work, personal];
+        config.agentSelection.settingsByAgent.codex.accountId = work.id;
+
+        expect(resolveAgentExecution(config, { accountId: personal.id }).accountId).toBe(personal.id);
+        expect(resolveAgentExecution(config, { accountId: personal.id }).account).toEqual(personal);
+        expect(resolveAgentExecution(config).accountId).toBe(work.id);
+        delete config.agentSelection.settingsByAgent.codex.accountId;
+        expect(resolveAgentExecution(config).accountId).toBe('codex-initial');
+    });
+
     it('uses profile default model when config model is empty', () => {
         const profiles = [{ command: ['codex'], defaultModel: 'gpt-5', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }];
         const result = resolveAgentExecution(agentConfig('codex', '', profiles));
 
         expect(result).toMatchObject({
             agent: 'codex',
-            command: ['codex', '--model', 'gpt-5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '--search', 'exec', '--json'],
+            command: [
+                'codex', '--model', 'gpt-5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request',
+                '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json',
+            ],
             model: 'gpt-5',
             permissionMode: 'ask-for-approval',
         });
@@ -55,7 +73,10 @@ describe('agent profile resolution', () => {
         const profile = BUILTIN_AGENT_PROFILES.find(({ name }) => name === agent);
         if (!profile) throw new Error(`Missing profile ${agent}`);
         const model = agent === 'codex' ? 'gpt-5.5' : 'sonnet';
-        const base = [agent, '--model', model, ...permissionArguments];
+        const base = [
+            agent, '--model', model, ...permissionArguments,
+            ...(agent === 'codex' ? ['-c', 'tools.update_plan.enabled=true'] : []),
+        ];
         const output = agent === 'codex'
             ? ['--search', 'exec', '--json']
             : ['--print', '--verbose', '--output-format', 'stream-json'];
@@ -91,11 +112,11 @@ describe('agent profile resolution', () => {
         const codex = { command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' };
         const claude = { command: ['claude'], modelArgument: '--model', models: ['sonnet'], name: 'claude' };
 
-        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'high')).toEqual(['codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=high', '--search', 'exec', '--json']);
-        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'max')).toEqual(['codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=xhigh', '--search', 'exec', '--json']);
+        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'high')).toEqual(['codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=high', '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json']);
+        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'max')).toEqual(['codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=xhigh', '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json']);
         expect(buildAgentExecutionCommand(claude, 'sonnet', 'max')).toEqual(['claude', '--model', 'sonnet', '--effort', 'max', '--print', '--verbose', '--output-format', 'stream-json']);
-        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none')).toEqual(['codex', '--model', 'gpt-5', '--search', 'exec', '--json']);
-        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none', false)).toEqual(['codex', '--model', 'gpt-5', 'exec', '--json']);
+        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none')).toEqual(['codex', '--model', 'gpt-5', '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json']);
+        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none', false)).toEqual(['codex', '--model', 'gpt-5', '-c', 'tools.update_plan.enabled=true', 'exec', '--json']);
     });
 
     it('builds streaming commands only for supported provider profiles', () => {
@@ -104,7 +125,8 @@ describe('agent profile resolution', () => {
         const custom = { command: ['custom'], models: ['fast'], name: 'custom' };
 
         expect(buildAgentStreamingCommand(codex, 'gpt-5', 'high')).toEqual([
-            'codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=high', 'app-server', '--stdio',
+            'codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=high',
+            '-c', 'tools.update_plan.enabled=true', 'app-server', '--stdio',
         ]);
         expect(buildAgentStreamingCommand(claude, 'sonnet', 'none')).toEqual([
             'claude', '--model', 'sonnet', '--print', '--verbose', '--output-format', 'stream-json',
@@ -115,7 +137,7 @@ describe('agent profile resolution', () => {
             .toThrow('Agent profile does not support streaming: custom');
     });
 
-    it('disables Codex task tracking in one-shot, streaming, and resumed commands only when setting is off', () => {
+    it('sets Codex task tracking explicitly in one-shot, streaming, and resumed commands', () => {
         const codex = { command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' };
         const claude = { command: ['claude'], modelArgument: '--model', models: ['sonnet'], name: 'claude' };
         const disabledArguments = ['-c', 'tools.update_plan.enabled=false'];
@@ -128,9 +150,9 @@ describe('agent profile resolution', () => {
             'codex', '--model', 'gpt-5', ...disabledArguments, '--search', 'exec', 'resume', '--json', 'thread-1',
         ]);
         expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none', true, undefined, {}, true))
-            .not.toContain('tools.update_plan.enabled=false');
+            .toContain('tools.update_plan.enabled=true');
         expect(buildAgentStreamingCommand(codex, 'gpt-5', 'none', undefined, {}, true))
-            .not.toContain('tools.update_plan.enabled=false');
+            .toContain('tools.update_plan.enabled=true');
         expect(buildAgentExecutionCommand(claude, 'sonnet', 'none', true, undefined, {}, false))
             .toEqual(buildAgentExecutionCommand(claude, 'sonnet', 'none'));
         expect(buildAgentStreamingCommand(claude, 'sonnet', 'none', undefined, {}, false))
@@ -149,9 +171,10 @@ describe('agent profile resolution', () => {
         const config = agentConfig('codex', 'gpt-5', profiles, 'medium');
 
         const permissionArguments = ['--sandbox', 'workspace-write', '--ask-for-approval', 'on-request'];
-        expect(resolveAgentExecution(config, { thinkingLevel: 'low' })).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=low', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'low'});
-        expect(resolveAgentExecution(config)).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=medium', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'medium'});
-        expect(resolveAgentExecution(agentConfig('codex', 'gpt-5', profiles))).toMatchObject({ command: ['codex', ...permissionArguments, '--search', 'exec', '--json'], thinkingLevel: 'none' });
+        const taskTrackingArguments = ['-c', 'tools.update_plan.enabled=true'];
+        expect(resolveAgentExecution(config, { thinkingLevel: 'low' })).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=low', ...permissionArguments, ...taskTrackingArguments, '--search', 'exec', '--json'], thinkingLevel: 'low'});
+        expect(resolveAgentExecution(config)).toMatchObject({command: ['codex', '-c', 'model_reasoning_effort=medium', ...permissionArguments, ...taskTrackingArguments, '--search', 'exec', '--json'], thinkingLevel: 'medium'});
+        expect(resolveAgentExecution(agentConfig('codex', 'gpt-5', profiles))).toMatchObject({ command: ['codex', ...permissionArguments, ...taskTrackingArguments, '--search', 'exec', '--json'], thinkingLevel: 'none' });
     });
 
     it('rejects unavailable remembered active agents instead of replacing them', () => {
@@ -211,7 +234,9 @@ describe('agent profile resolution', () => {
         const claude = BUILTIN_AGENT_PROFILES.find((profile) => profile.name === 'claude');
         if (!codex || !claude) throw new Error('Missing built-in agent profile');
 
-        expect(buildResumeAgentCommand(codex, 'session-1')).toEqual(['codex', 'exec', 'resume', '--json', 'session-1']);
+        expect(buildResumeAgentCommand(codex, 'session-1')).toEqual([
+            'codex', '-c', 'tools.update_plan.enabled=true', 'exec', 'resume', '--json', 'session-1',
+        ]);
         expect(buildResumeAgentCommand(claude, 'session-1')).toEqual(['claude', '--print', '--verbose', '--output-format', 'stream-json', '--resume', 'session-1']);
     });
 

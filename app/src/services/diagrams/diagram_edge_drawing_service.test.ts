@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from './diagram_data'
+import { parseDiagramData, type DiagramData } from './diagram_data'
 import {
     DiagramEdgeDrawingService,
     diagramConnectionPointAt,
@@ -8,6 +8,7 @@ import {
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import { DiagramGeometryService } from './diagram_geometry_service'
 import type { DiagramRecord } from './diagram_index'
+import { DiagramLabelFocusService } from './diagram_label_focus_service'
 import { DiagramSelectionService } from './diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
 
@@ -15,7 +16,7 @@ const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'O
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
 function architectureDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{ from: 'source', id: 'existing', kind: 'connection', to: 'target' }],
         groups: [],
         meta: { description: 'Editable architecture', title: 'Architecture', type: 'architecture', version: 1 },
@@ -23,11 +24,11 @@ function architectureDiagram(): DiagramData {
             { height: 80, id: 'source', label: 'Source', role: 'focal', width: 120, x: 0, y: 0 },
             { height: 80, id: 'target', label: 'Target', role: 'store', width: 120, x: 240, y: 0 },
         ],
-    }
+    }))
 }
 
 function dependencyDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{ from: 'source', id: 'existing', kind: 'dependency', to: 'target' }],
         groups: [],
         meta: { description: 'Editable dependencies', title: 'Dependencies', type: 'dependency', version: 1 },
@@ -35,11 +36,11 @@ function dependencyDiagram(): DiagramData {
             { height: 80, id: 'source', label: 'Source', role: 'focal', width: 120, x: 0, y: 0 },
             { height: 80, id: 'target', label: 'Target', role: 'backend', width: 120, x: 240, y: 0 },
         ],
-    }
+    }))
 }
 
 function sequenceDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [
             { from: 'source', id: 'call', kind: 'call', to: 'target' },
             { from: 'target', id: 'return', kind: 'return', to: 'source' },
@@ -50,11 +51,11 @@ function sequenceDiagram(): DiagramData {
             { height: 72, id: 'source', kind: 'participant', label: 'Source', role: 'focal', width: 120, x: 0, y: 40 },
             { height: 72, id: 'target', kind: 'participant', label: 'Target', role: 'store', width: 120, x: 240, y: 40 },
         ],
-    }
+    }))
 }
 
 function flowchartDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{ from: 'step', id: 'existing', kind: 'flow', to: 'check' }],
         groups: [],
         meta: { description: 'Editable flowchart', preset: 'flowchart', title: 'Flow', type: 'flow', version: 1 },
@@ -63,11 +64,11 @@ function flowchartDiagram(): DiagramData {
             { height: 96, id: 'check', kind: 'decision', label: 'Check', role: 'focal', width: 96, x: 240, y: 0 },
             { height: 72, id: 'done', kind: 'end', label: 'Done', role: 'backend', width: 120, x: 480, y: 0 },
         ],
-    }
+    }))
 }
 
 function stateDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{ from: 'idle', id: 'existing', kind: 'transition', label: 'start', to: 'working' }],
         groups: [],
         meta: { description: 'Editable states', preset: 'state', title: 'States', type: 'flow', version: 1 },
@@ -75,11 +76,11 @@ function stateDiagram(): DiagramData {
             { height: 72, id: 'idle', kind: 'state', label: 'Idle', role: 'focal', width: 160, x: 0, y: 0 },
             { height: 72, id: 'working', kind: 'state', label: 'Working', role: 'backend', width: 160, x: 240, y: 0 },
         ],
-    }
+    }))
 }
 
 function entityDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [],
         groups: [],
         meta: { description: 'Editable entities', title: 'Entities', type: 'entity', version: 1 },
@@ -87,11 +88,11 @@ function entityDiagram(): DiagramData {
             { height: 80, id: 'source', kind: 'entity', label: 'Source', role: 'focal', width: 120, x: 0, y: 0 },
             { height: 80, id: 'target', kind: 'entity', label: 'Target', role: 'store', width: 120, x: 240, y: 0 },
         ],
-    }
+    }))
 }
 
 function mindmapDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [],
         groups: [],
         meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
@@ -99,7 +100,7 @@ function mindmapDiagram(): DiagramData {
             { height: 128, id: 'source', kind: 'root', label: 'Source', role: 'focal', width: 128, x: 0, y: 0 },
             { height: 96, id: 'target', kind: 'topic', label: 'Target', role: 'backend', width: 96, x: 280, y: 20 },
         ],
-    }
+    }))
 }
 
 class DiagramSourceStub extends EventTarget {
@@ -120,14 +121,16 @@ class DiagramSourceStub extends EventTarget {
 }
 
 function createHarness(source: DiagramData = architectureDiagram(), createId: () => string = () => 'drawn-edge') {
-    const session = new DiagramEditSessionService(new DiagramSourceStub({ diagram: source, record }), createId)
+    const parsedSource = parseDiagramData(JSON.stringify(source))
+    const session = new DiagramEditSessionService(new DiagramSourceStub({ diagram: parsedSource, record }), createId)
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
     const selection = new DiagramSelectionService(session, geometry)
-    const drawing = new DiagramEdgeDrawingService(session, geometry, selection)
+    const labelFocus = new DiagramLabelFocusService(session)
+    const drawing = new DiagramEdgeDrawingService(session, geometry, selection, labelFocus)
 
-    return { drawing, geometry, selection, session }
+    return { drawing, geometry, labelFocus, selection, session }
 }
 
 describe('diagram edge drawing geometry', () => {
@@ -140,7 +143,7 @@ describe('diagram edge drawing geometry', () => {
         expect(drawing.getPreviewSnapshot()).toMatchObject({ curved: true, targetAttachment: { nodeId: 'target' } })
         expect(drawing.getPreviewSnapshot()?.controlPoint).toBeDefined()
         expect(drawing.completeTarget('target', { x: 280, y: 68 }, true)).toBe('drawn-edge')
-        expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind: 'connection', to: 'target'})
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind: 'connection', legendEntryId: expect.any(String), to: 'target'})
     })
 
     it('resolves the nearest node boundary and relative offset', () => {
@@ -165,11 +168,14 @@ describe('diagram edge drawing geometry', () => {
 
 describe('DiagramEdgeDrawingService', () => {
     it('uses compatible selected connection kind for preview and created edge', () => {
-        const source = architectureDiagram()
-        source.meta.legend = [{ kind: 'data', label: 'Data' }]
+        const source = parseDiagramData(JSON.stringify(architectureDiagram()))
+        source.meta = {
+            ...source.meta,
+            legend: [...source.meta.legend, { id: 'data-entry', kind: 'data', label: 'Data', useLabelAsDefault: false }],
+        }
         const { drawing, session } = createHarness(source)
         drawing.activate({ kind: 'connection' })
-        expect(session.selectLegendEntry('connection:data')).toBe(true)
+        expect(session.selectLegendEntry('data-entry')).toBe(true)
 
         drawing.beginSource('source', { x: 120, y: 40 })
         expect(drawing.getPreviewSnapshot()?.kind).toBe('data')
@@ -179,12 +185,54 @@ describe('DiagramEdgeDrawingService', () => {
         expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
     })
 
+    it('uses default label from the exact selected duplicate-kind entry', () => {
+        const source = parseDiagramData(JSON.stringify(architectureDiagram()))
+        source.meta.legend.push(
+            { id: 'primary-connection', kind: 'connection', label: 'Primary', useLabelAsDefault: true },
+            { id: 'secondary-connection', kind: 'connection', label: 'Secondary', useLabelAsDefault: true },
+        )
+        const { drawing, session } = createHarness(source)
+        drawing.activate({ kind: 'connection' })
+        session.selectLegendEntry('secondary-connection')
+
+        drawing.beginSource('source', { x: 120, y: 40 })
+        drawing.completeTarget('target', { x: 240, y: 40 }, true)
+
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({kind: 'connection', label: 'Secondary', legendEntryId: 'secondary-connection'})
+    })
+
+    it('applies renamed defaults only to later edges and disabling leaves later edges unlabelled', () => {
+        const createId = vi.fn().mockReturnValueOnce('first-edge').mockReturnValueOnce('second-edge').mockReturnValueOnce('third-edge')
+        const source = parseDiagramData(JSON.stringify(architectureDiagram()))
+        const connectionEntry = source.meta.legend.find((entry) => 'kind' in entry && entry.kind === 'connection')
+        if (!connectionEntry || !('kind' in connectionEntry)) throw new Error('Expected connection legend entry')
+        connectionEntry.label = 'Calls'
+        connectionEntry.useLabelAsDefault = true
+        const { drawing, session } = createHarness(source, createId)
+        drawing.activate({ kind: 'connection' })
+        session.selectLegendEntry(connectionEntry.id)
+
+        drawing.beginSource('source', { x: 120, y: 40 })
+        drawing.completeTarget('target', { x: 240, y: 40 }, true)
+        session.legend.setLegendEntryLabel(connectionEntry.id, 'Invokes')
+        drawing.beginSource('source', { x: 120, y: 40 })
+        drawing.completeTarget('target', { x: 240, y: 40 }, true)
+        session.legend.setLegendEntryUseLabelAsDefault(connectionEntry.id, false)
+        drawing.beginSource('source', { x: 120, y: 40 })
+        drawing.completeTarget('target', { x: 240, y: 40 }, true)
+
+        expect(session.read.getEdgeFieldSnapshot('first-edge', 'label')).toBe('Calls')
+        expect(session.read.getEdgeFieldSnapshot('second-edge', 'label')).toBe('Invokes')
+        expect(session.read.getEdgeFieldSnapshot('third-edge', 'label')).toBeUndefined()
+    })
+
     it('keeps edge default when selected legend entry is a node role', () => {
-        const source = architectureDiagram()
-        source.meta.legend = [{ label: 'Store', role: 'store' }]
+        const source = parseDiagramData(JSON.stringify(architectureDiagram()))
+        const storeEntry = { legendEntryId: 'legend-entry', id: 'store-entry', label: 'Store', role: 'store' as const }
+        source.meta.legend.push(storeEntry)
         const { drawing, session } = createHarness(source)
         drawing.activate({ kind: 'data' })
-        expect(session.selectLegendEntry('node:store')).toBe(true)
+        expect(session.selectLegendEntry(storeEntry.id)).toBe(true)
 
         drawing.beginSource('source', { x: 120, y: 40 })
         expect(drawing.getPreviewSnapshot()?.kind).toBe('data')
@@ -194,16 +242,18 @@ describe('DiagramEdgeDrawingService', () => {
 
     it('draws two connections without reselecting the edge tool', () => {
         const createId = vi.fn().mockReturnValueOnce('first-edge').mockReturnValueOnce('second-edge')
-        const { drawing, session } = createHarness(architectureDiagram(), createId)
+        const { drawing, labelFocus, session } = createHarness(architectureDiagram(), createId)
         drawing.activate({ kind: 'connection' })
 
         drawing.beginSource('source', { x: 120, y: 40 })
         expect(drawing.completeTarget('target', { x: 240, y: 40 }, true)).toBe('first-edge')
+        expect(labelFocus.getTargetSnapshot()).toEqual({ objectId: 'first-edge', objectKind: 'edge' })
         drawing.beginSource('source', { x: 120, y: 40 })
         expect(drawing.completeTarget('target', { x: 240, y: 40 }, true)).toBe('second-edge')
 
         expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
         expect(drawing.getPreviewSnapshot()).toBeNull()
+        expect(labelFocus.getTargetSnapshot()).toEqual({ objectId: 'second-edge', objectKind: 'edge' })
     })
 
     it('creates an entity relationship between persisted connection points', () => {
@@ -214,6 +264,7 @@ describe('DiagramEdgeDrawingService', () => {
         expect(drawing.completeTarget('target', { x: 240, y: 60 }, true)).toBe('drawn-edge')
 
         expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
+            legendEntryId: expect.any(String),
             from: 'source',
             kind: 'relationship',
             sourceAttachment: { nodeId: 'source', offset: 0.25, side: 'right' },
@@ -275,7 +326,7 @@ describe('DiagramEdgeDrawingService', () => {
             expect(drawing.completeTarget('target', { x: 300, y: 200 }, true)).toBe('drawn-edge')
 
             expect(session.read.getEdgeIdsSnapshot()).toEqual(['call', 'drawn-edge', 'return'])
-            expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind, to: 'target'})
+            expect(session.read.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind, legendEntryId: expect.any(String), to: 'target'})
         },
     )
 
@@ -294,6 +345,7 @@ describe('DiagramEdgeDrawingService', () => {
         expect(drawing.completeTarget('target', { x: 240, y: 60 }, true)).toBe('drawn-edge')
 
         expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
+            legendEntryId: expect.any(String),
             from: 'source',
             kind: 'data',
             label: 'payload',
@@ -313,7 +365,7 @@ describe('DiagramEdgeDrawingService', () => {
     })
 
     it('returns to Select and keeps the edge selected when completed without continuous add', () => {
-        const { drawing, selection, session } = createHarness()
+        const { drawing, labelFocus, selection, session } = createHarness()
         drawing.activate({ kind: 'connection' })
         drawing.beginSource('source', { x: 120, y: 40 })
 
@@ -323,10 +375,11 @@ describe('DiagramEdgeDrawingService', () => {
         expect(session.read.getLastSelectedCreationToolSnapshot()).toBe('edge:connection')
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'drawn-edge', objectKind: 'edge' }])
         expect(drawing.getPreviewSnapshot()).toBeNull()
+        expect(labelFocus.getTargetSnapshot()).toEqual({ objectId: 'drawn-edge', objectKind: 'edge' })
     })
 
     it('keeps the edge tool active when a create is rejected', () => {
-        const { drawing, session } = createHarness()
+        const { drawing, labelFocus, session } = createHarness()
         drawing.activate({ kind: 'connection' })
         drawing.beginSource('source', { x: 120, y: 40 })
         vi.spyOn(session, 'createEdge').mockReturnValue(null)
@@ -334,6 +387,7 @@ describe('DiagramEdgeDrawingService', () => {
         expect(drawing.completeTarget('target', { x: 240, y: 40 }, false)).toBeNull()
 
         expect(session.read.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
     })
 
     it('keeps an invalid target recoverable and creates nothing', () => {
@@ -373,6 +427,7 @@ describe('DiagramEdgeDrawingService', () => {
         expect(drawing.completeTarget('done', { x: 480, y: 36 }, true)).toBe('drawn-edge')
 
         expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
+            legendEntryId: expect.any(String),
             from: 'check',
             kind: 'flow',
             label: 'New branch',
@@ -391,13 +446,46 @@ describe('DiagramEdgeDrawingService', () => {
     })
 
     it('keeps a tool supplied flow label instead of the placeholder', () => {
-        const { drawing, session } = createHarness(flowchartDiagram())
+        const source = parseDiagramData(JSON.stringify(flowchartDiagram()))
+        const flowEntry = source.meta.legend.find((entry) => 'kind' in entry && entry.kind === 'flow')
+        if (!flowEntry || !('kind' in flowEntry)) throw new Error('Expected flow legend entry')
+        flowEntry.label = 'Legend label'
+        flowEntry.useLabelAsDefault = true
+        const { drawing, session } = createHarness(source)
 
         drawing.activate({ kind: 'flow', label: 'no' })
+        session.selectLegendEntry(flowEntry.id)
         drawing.beginSource('check', { x: 336, y: 48 })
         expect(drawing.completeTarget('done', { x: 480, y: 36 }, true)).toBe('drawn-edge')
 
         expect(session.read.getEdgeFieldSnapshot('drawn-edge', 'label')).toBe('no')
+    })
+
+    it('uses an enabled legend default instead of a required branch placeholder', () => {
+        const source = parseDiagramData(JSON.stringify(flowchartDiagram()))
+        const flowEntry = source.meta.legend.find((entry) => 'kind' in entry && entry.kind === 'flow')
+        if (!flowEntry || !('kind' in flowEntry)) throw new Error('Expected flow legend entry')
+        flowEntry.label = 'Approved'
+        flowEntry.useLabelAsDefault = true
+        const { drawing, session } = createHarness(source)
+        drawing.activate({ kind: 'flow' })
+        session.selectLegendEntry(flowEntry.id)
+
+        drawing.beginSource('check', { x: 336, y: 48 })
+        drawing.completeTarget('done', { x: 480, y: 36 }, true)
+
+        expect(session.read.getEdgeFieldSnapshot('drawn-edge', 'label')).toBe('Approved')
+    })
+
+    it('does not relabel an existing edge when its legend entry changes', () => {
+        const source = parseDiagramData(JSON.stringify(architectureDiagram()))
+        source.edges[0].label = 'Stored label'
+        source.meta.legend.push({id: 'alternate-connection', kind: 'connection', label: 'Alternate', useLabelAsDefault: true})
+        const { session } = createHarness(source)
+
+        session.objects.setEdgeClassification('existing', { kind: 'connection', legendEntryId: 'alternate-connection' })
+
+        expect(session.read.getEdgeSnapshot('existing')).toMatchObject({label: 'Stored label', legendEntryId: 'alternate-connection'})
     })
 
     it('labels every drawn state transition and keeps shared attachments and routing', () => {
@@ -410,6 +498,7 @@ describe('DiagramEdgeDrawingService', () => {
         expect(drawing.completeTarget('idle', { x: 0, y: 54 }, true)).toBe('drawn-edge')
 
         expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
+            legendEntryId: expect.any(String),
             from: 'working',
             kind: 'transition',
             label: 'New transition',
@@ -441,7 +530,7 @@ describe('DiagramEdgeDrawingService', () => {
     })
 
     it('clears incomplete drawing on cancellation or tool change', () => {
-        const { drawing, session } = createHarness()
+        const { drawing, labelFocus, session } = createHarness()
         const previewChanged = vi.fn()
         drawing.subscribePreview(previewChanged)
         drawing.activate({ kind: 'connection' })
@@ -456,5 +545,6 @@ describe('DiagramEdgeDrawingService', () => {
         session.setActiveTool('node:component')
         expect(drawing.getPreviewSnapshot()).toBeNull()
         expect(previewChanged).toHaveBeenCalledTimes(4)
+        expect(labelFocus.getTargetSnapshot()).toBeNull()
     })
 })

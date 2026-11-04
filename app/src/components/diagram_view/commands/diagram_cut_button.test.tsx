@@ -1,16 +1,21 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramEdge, DiagramNode } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData } from '../../../services/diagrams/diagram_data'
 import type { DiagramSelectionIdentity } from '../../../services/diagrams/diagram_selection_service'
 import { DiagramCutButton } from './diagram_cut_button'
 
 const EMPTY_SELECTION: readonly DiagramSelectionIdentity[] = Object.freeze([])
-const nodes: DiagramNode[] = [
-    { id: 'one', label: 'One', role: 'focal' },
-    { id: 'two', label: 'Two', role: 'backend' },
-    { id: 'three', label: 'Three', role: 'store' },
-]
-const edges: DiagramEdge[] = [{ from: 'one', id: 'one-two', kind: 'connection', to: 'two' }]
+const diagram = parseDiagramData(JSON.stringify({
+    edges: [{ from: 'one', id: 'one-two', kind: 'connection', to: 'two' }],
+    groups: [],
+    meta: { description: 'Cut test', title: 'Cut', type: 'architecture', version: 1 },
+    nodes: [
+        { id: 'one', label: 'One', role: 'focal' },
+        { id: 'two', label: 'Two', role: 'backend' },
+        { id: 'three', label: 'Three', role: 'store' },
+    ],
+}))
+const { edges, nodes } = diagram
 
 class CutSelectionStub extends EventTarget {
     private selection: readonly DiagramSelectionIdentity[] = EMPTY_SELECTION
@@ -36,6 +41,7 @@ function cutSession() {
             getEdgeSnapshot: (edgeId: string) => edges.find(({ id }) => id === edgeId) ?? null,
             getFragmentIdsSnapshot: () => [],
             getFragmentSnapshot: () => null,
+            getEditableDiagram: () => diagram,
             getGroupSnapshot: () => null,
             getNodeIdsSnapshot: () => nodes.map(({ id }) => id),
             getNodeSnapshot: (nodeId: string) => nodes.find(({ id }) => id === nodeId) ?? null,

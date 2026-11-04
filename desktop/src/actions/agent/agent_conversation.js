@@ -11,6 +11,7 @@ const {
     adjustAgentConversationTimer,
     boundedAgentResult,
 } = require('../../../../shared/agent_conversations.mjs');
+const { initialAgentAccountId, supportsAgentAccounts } = require('../../../../shared/agent_accounts.mjs');
 
 function createMessageEntry(id, role, content, timestamp, agent, sequence) {
     return {
@@ -173,14 +174,27 @@ function snapshotConversation(conversation) {
     };
 }
 
+/** Resolves the account owning a provider session; a missing `accountId` means the agent's initial account. */
+function providerSessionAccountId(session) {
+    if (session.accountId) return session.accountId;
+
+    return supportsAgentAccounts(session.agent) ? initialAgentAccountId(session.agent) : null;
+}
+
+/** Finds the provider session identified by agent and account inside one conversation. */
+function findProviderSession(sessions, agent, accountId) {
+    return sessions.find((session) => session.agent === agent && providerSessionAccountId(session) === (accountId ?? null)) ?? null;
+}
+
 function updateProviderSession(run, synchronizedThroughMessageId, completedAt) {
     const conversationId = run.providerConversationId ?? run.request.providerConversationId;
     if (!conversationId) return;
 
     const sessions = run.conversation.providerSessions;
-    const current = sessions.find(({ agent }) => agent === run.agent);
+    const current = findProviderSession(sessions, run.agent, run.accountId);
     const usageBaseline = run.claudeUsageTracker?.conversationId === conversationId ? run.claudeUsageTracker.usageBaseline : null;
     const nextSession = {
+        ...(run.accountId ? { accountId: run.accountId } : {}),
         agent: run.agent,
         conversationId,
         createdAt: current?.createdAt ?? completedAt,
@@ -189,7 +203,7 @@ function updateProviderSession(run, synchronizedThroughMessageId, completedAt) {
         ...(usageBaseline ? { usageBaseline } : {}),
     };
     run.conversation.providerSessions = current
-        ? sessions.map((session) => (session.agent === run.agent ? nextSession : session))
+        ? sessions.map((session) => (session === current ? nextSession : session))
         : [...sessions, nextSession];
 }
 
@@ -199,6 +213,8 @@ module.exports = {
     createConversation,
     createEventEntry,
     createMessageEntry,
+    findProviderSession,
+    providerSessionAccountId,
     snapshotConversation,
     transitionConversationStatus,
     updateProviderSession,

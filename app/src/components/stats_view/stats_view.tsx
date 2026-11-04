@@ -37,7 +37,7 @@ export function StatsView() {
     return (
         <Box
             aria-label="Stats view"
-            sx={{ bgcolor: 'background.default', display: viewMode === 'stats' ? 'flex' : 'none', flex: 1, minHeight: 0, overflow: 'hidden' }}
+            sx={{ bgcolor: 'custom.projectBackground', display: viewMode === 'stats' ? 'flex' : 'none', flex: 1, minHeight: 0, overflow: 'hidden' }}
         >
             <StatsContent />
         </Box>

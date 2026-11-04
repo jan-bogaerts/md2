@@ -34,8 +34,7 @@ export interface ActionPopupContentProps {
     primaryPath: string | null
     readOnlyMessage: string | null
     stackPosition?: number
-    target: string | null
-    targetTitle?: string | null
+    subscribeFocusRequest?: (listener: () => void) => () => void
     titleId: string
 }
 

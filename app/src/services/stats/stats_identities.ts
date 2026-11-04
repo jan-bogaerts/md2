@@ -9,11 +9,11 @@ export function modelIdentity(agent: string, model: string) {
 }
 
 export function accountSeriesIdentity(row: UsageMetricsAccountRow) {
-    return `${row.provider}${IDENTITY_SEPARATOR}${row.limitId}${IDENTITY_SEPARATOR}${row.windowId}`;
+    return `${row.provider}${IDENTITY_SEPARATOR}${row.accountId}${IDENTITY_SEPARATOR}${row.limitId}${IDENTITY_SEPARATOR}${row.windowId}`;
 }
 
 export function accountSeriesLabel(series: StatsAccountSeriesOption) {
-    return `${series.provider} / ${series.limitId} / ${series.windowId}`;
+    return `${series.provider} / ${series.accountName} / ${series.limitId} / ${series.windowId}`;
 }
 
 export function actionLabel(actionId: string, storedLabel: string | null) {

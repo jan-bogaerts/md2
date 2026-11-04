@@ -2,6 +2,7 @@ import { Box, ButtonBase, Typography } from '@mui/material'
 import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { DIAGRAM_CONTENT_INSET_DEFAULT, type DiagramContentPosition, type DiagramFlowPreset, type DiagramType } from '../../../services/diagrams/diagram_data'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
+import type { DiagramLabelFocusService } from '../../../services/diagrams/diagram_label_focus_service'
 import type { PositionedDiagramNode } from '../../../services/diagrams/diagram_layout'
 import { DiagramEntityFieldRow } from './diagram_entity_field'
 import { diagramRoleStyle } from '../formatting/diagram_role_style'
@@ -11,7 +12,7 @@ import { DIAGRAM_DIMMED_OPACITY } from '../surface/diagram_emphasis_presentation
 import { diagramFontStyle } from '../formatting/diagram_font_style'
 import { DiagramInlineNodeControls } from '../editing/diagram_inline_node_controls'
 import {
-    type DiagramFormattingStore, useDiagramFormattingScale, useDiagramNodeRoleFormatting,
+    type DiagramFormattingStore, useDiagramFormattingScale, useDiagramNodeFormatting,
 } from '../formatting/use_diagram_formatting'
 
 interface EditableEntityFieldSource {
@@ -23,7 +24,7 @@ interface DiagramNodeProps {
     circular?: boolean
     diagramType: DiagramType
     dimmed?: boolean
-    editableLabel?: { session: DiagramEditSessionService }
+    editableLabel?: { labelFocus?: DiagramLabelFocusService, session: DiagramEditSessionService }
     entityFieldSource?: EditableEntityFieldSource
     flowPreset?: DiagramFlowPreset
     formattingStore?: DiagramFormattingStore
@@ -46,7 +47,7 @@ function kindStyles(node: PositionedDiagramNode, flowPreset: DiagramFlowPreset |
     }
     if (flowPreset === 'state' && node.kind === 'end') {
         return {
-            bgcolor: 'background.default', border: '2px solid', borderColor: 'text.primary', borderRadius: 99,
+            bgcolor: 'custom.projectBackground', border: '2px solid', borderColor: 'text.primary', borderRadius: 99,
             '&::before': {
                 bgcolor: 'text.primary', borderRadius: 99, content: '""', height: 10, left: 5,
                 position: 'absolute', top: 5, width: 10,
@@ -69,7 +70,7 @@ export function DiagramNode(props: DiagramNodeProps) {
     const {onOpenDetails, onSelect, selected} = props
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
     const decision = node.kind === 'decision'
-    const formatting = useDiagramNodeRoleFormatting(node.role, formattingStore)
+    const formatting = useDiagramNodeFormatting(node.legendEntryId, node.role, formattingStore)
     const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
     const roleStyle = diagramRoleStyle(node.role, formatting)
     const positionStyle = contentPosition(formatting?.box?.contentPosition)
@@ -210,6 +211,7 @@ export function DiagramNode(props: DiagramNodeProps) {
                 <DiagramInlineNodeControls
                     autoWrap={autoWrap}
                     contentInset={contentInset}
+                    labelFocus={editableLabel.labelFocus}
                     node={node}
                     onOpenDetails={onOpenDetails}
                     session={editableLabel.session}

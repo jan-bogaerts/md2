@@ -43,6 +43,14 @@ import { useDiagramSurfacePan } from '../editing/use_diagram_surface_pan'
 import { useActiveDiagramTool } from '../editing/use_diagram_tool'
 import { useDiagramSurfaceField } from '../editing/use_diagram_geometry'
 import { useDiagramPinchZoom } from './use_diagram_pinch_zoom'
+import {
+    diagramLabelFocusService, type DiagramLabelFocusService,
+} from '../../../services/diagrams/diagram_label_focus_service'
+import {
+    DIAGRAM_ESCAPE_REQUESTED_EVENT,
+    diagramKeyboardShortcutService,
+    type DiagramEscapeRequestedDetail,
+} from '../../../services/shortcuts/diagram_keyboard_shortcut_service'
 
 interface DiagramZoomViewportProps {
     details?: DiagramObjectDetailsService
@@ -50,6 +58,7 @@ interface DiagramZoomViewportProps {
     emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
+    labelFocus?: DiagramLabelFocusService
     movement?: DiagramMoveService
     placement?: DiagramNodePlacementService
     resize?: DiagramResizeService
@@ -110,6 +119,7 @@ export function DiagramZoomViewport({
     emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
+    labelFocus = diagramLabelFocusService,
     movement = diagramMoveService,
     placement = diagramNodePlacementService,
     resize = diagramResizeService,
@@ -237,11 +247,9 @@ export function DiagramZoomViewport({
 
     useLayoutEffect(() => {
         const scroller = scrollerRef.current
-        const header = zoomSurfaceRef.current?.querySelector<HTMLElement>('[aria-label="New diagram editor header"]')
-        if (!scroller || !header) return
+        if (!scroller) return
         const observer = new ResizeObserver(updateViewportMinimum)
         observer.observe(scroller)
-        observer.observe(header)
         updateViewportMinimum()
 
         return () => observer.disconnect()
@@ -293,7 +301,7 @@ export function DiagramZoomViewport({
         const identity = resizeTarget ? null : diagramIdentityFromTarget(event.target)
         const gesture = resizeTarget && resize.beginResize(resizeTarget.identity, resizeTarget.direction, point)
             ? 'resize'
-            : identity && movement.beginMove(identity, point)
+            : identity && !event.ctrlKey && movement.beginMove(identity, point)
                 ? 'move'
                 : null
         if (!gesture) return
@@ -429,17 +437,11 @@ export function DiagramZoomViewport({
         if (event.currentTarget.contains(event.target as Node)) pinch.endPointerCapture(event)
     }, [pinch])
 
-    const handleWindowKeyDown = useCallback((event: KeyboardEvent) => {
-        if (event.defaultPrevented || event.key !== 'Escape') return
-        if (event.target instanceof Element && event.target.closest('input, textarea, [contenteditable="true"], [role="dialog"]')) return
-        if (drawing.isDrawingActive() && drawing.hasSource()) {
-            event.preventDefault()
-            suppressClickRef.current = false
-            drawing.cancelDrawing()
-            session.setActiveTool('select')
-
-            return
-        }
+    const handleDiagramEscapeRequested = useCallback((event: Event) => {
+        if (event.defaultPrevented) return
+        const { keyboardEvent } = (event as CustomEvent<DiagramEscapeRequestedDetail>).detail
+        if (keyboardEvent.target instanceof Element
+            && keyboardEvent.target.closest('input, textarea, [contenteditable="true"], [role="dialog"]')) return
         if (activePointerGestureRef.current === 'pan') {
             event.preventDefault()
             endPanGesture()
@@ -454,7 +456,6 @@ export function DiagramZoomViewport({
 
             return
         }
-        if (activePointerGestureRef.current === 'placement' || activePointerGestureRef.current === 'group') return
 
         event.preventDefault()
         suppressClickRef.current = false
@@ -462,7 +463,7 @@ export function DiagramZoomViewport({
         else movement.cancelMove()
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [drawing, emphasis, endPanGesture, movement, pan, releaseActivePointer, resize, session])
+    }, [emphasis, endPanGesture, movement, pan, releaseActivePointer, resize])
 
     const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
         if (!event.currentTarget.contains(event.target as Node)) return
@@ -504,10 +505,10 @@ export function DiagramZoomViewport({
     }, [endPanGesture, pan, releaseActivePointer, session])
 
     useEffect(() => {
-        window.addEventListener('keydown', handleWindowKeyDown)
+        diagramKeyboardShortcutService.addEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)
 
-        return () => window.removeEventListener('keydown', handleWindowKeyDown)
-    }, [handleWindowKeyDown])
+        return () => diagramKeyboardShortcutService.removeEventListener(DIAGRAM_ESCAPE_REQUESTED_EVENT, handleDiagramEscapeRequested)
+    }, [handleDiagramEscapeRequested])
 
     useEffect(
         () => session.read.subscribeTransientGesture(handleTransientGestureChanged),
@@ -530,7 +531,7 @@ export function DiagramZoomViewport({
             onPointerUp={handlePointerUp}
             onScroll={handleScroll}
             ref={scrollerRef}
-            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'scroll', overflowY: 'scroll', px: 2, pb: 2, pt: 7, touchAction: panToolActive ? 'none' : 'pan-x pan-y' }}
+            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'scroll', overflowY: 'scroll', p: 2, touchAction: panToolActive ? 'none' : 'pan-x pan-y' }}
         >
             <Box data-testid="new-diagram-zoom-surface" ref={zoomSurfaceRef} sx={{ transformOrigin: 'top left', zoom: scale }}>
                 <NewDiagram
@@ -539,6 +540,7 @@ export function DiagramZoomViewport({
                     emphasis={emphasis}
                     geometry={geometry}
                     groupDrawing={groupDrawing}
+                    labelFocus={labelFocus}
                     placement={placement}
                     review={review}
                     selection={selection}

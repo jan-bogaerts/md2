@@ -28,6 +28,17 @@ function ExpandablePopper({ storageKey }: { storageKey?: string }) {
     )
 }
 
+function createFocusRequestSource() {
+    const focusRequests = new EventTarget()
+    const subscribeFocusRequest = (listener: () => void) => {
+        focusRequests.addEventListener('focus', listener)
+
+        return () => focusRequests.removeEventListener('focus', listener)
+    }
+
+    return { focusRequests, subscribeFocusRequest }
+}
+
 describe('ResizablePopper', () => {
     afterEach(() => {
         cleanup()
@@ -520,6 +531,63 @@ describe('ResizablePopper', () => {
 
         expect(editor).toHaveFocus()
         expect(dialog).toBeInTheDocument()
+    })
+
+    it('focuses the mounted paper on a focus request', () => {
+        const { focusRequests, subscribeFocusRequest } = createFocusRequestSource()
+        render(
+            <>
+                <input aria-label="Editor" />
+                <ResizablePopper
+                    anchorElement={document.body}
+                    initialSize={{ height: 300, width: 400 }}
+                    labelId="popper-title"
+                    onClose={vi.fn()}
+                    open
+                    resizeLabel="Resize test popper"
+                    stackPosition={1}
+                    subscribeFocusRequest={subscribeFocusRequest}
+                >
+                    <h2 id="popper-title">Test popper</h2>
+                </ResizablePopper>
+            </>,
+        )
+        const editor = screen.getByRole('textbox', { name: 'Editor' })
+        act(() => editor.focus())
+        expect(editor).toHaveFocus()
+
+        act(() => {
+            focusRequests.dispatchEvent(new Event('focus'))
+        })
+
+        expect(screen.getByRole('dialog', { name: 'Test popper' })).toHaveFocus()
+    })
+
+    it('focuses the paper after opening when a focus request arrives while closed', () => {
+        const { focusRequests, subscribeFocusRequest } = createFocusRequestSource()
+        const renderPopper = (open: boolean) => (
+            <ResizablePopper
+                anchorElement={document.body}
+                focusOnMount={false}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onClose={vi.fn()}
+                open={open}
+                resizeLabel="Resize test popper"
+                stackPosition={1}
+                subscribeFocusRequest={subscribeFocusRequest}
+            >
+                <h2 id="popper-title">Test popper</h2>
+            </ResizablePopper>
+        )
+        const view = render(renderPopper(false))
+
+        act(() => {
+            focusRequests.dispatchEvent(new Event('focus'))
+        })
+        view.rerender(renderPopper(true))
+
+        expect(screen.getByRole('dialog', { name: 'Test popper' })).toHaveFocus()
     })
 
     it('keeps full-height presentation constrained without overwriting normal size', () => {

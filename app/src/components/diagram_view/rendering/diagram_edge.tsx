@@ -7,7 +7,7 @@ import type { DiagramSelectHandler } from '../editing/diagram_selection'
 import { DIAGRAM_DIMMED_OPACITY } from '../surface/diagram_emphasis_presentation'
 import { DiagramConnectionMarkerShape } from './diagram_connection_marker'
 import {
-    type DiagramFormattingStore, useDiagramConnectionKindFormatting, useDiagramFormattingScale,
+    type DiagramFormattingStore, useDiagramConnectionFormatting, useDiagramFormattingScale,
 } from '../formatting/use_diagram_formatting'
 
 const EDGE_LABEL_FONT_SIZE = 8
@@ -20,6 +20,7 @@ interface DiagramEdgeProps {
     nodeLabels: ReadonlyMap<string, string>
     onOpenDetails?: () => void
     onSelect: DiagramSelectHandler
+    renderLabel?: boolean
     selected: boolean
 }
 
@@ -33,14 +34,14 @@ function edgeLabel(edge: PositionedDiagramEdge, nodeLabels: ReadonlyMap<string, 
 /** Themed selectable connection rendered from validated geometry. */
 export function DiagramEdge(props: DiagramEdgeProps) {
     const { curved = false, dimmed = false, edge, formattingStore, nodeLabels } = props
-    const { onOpenDetails, onSelect, selected } = props
+    const { onOpenDetails, onSelect, renderLabel = true, selected } = props
     const theme = useTheme()
     const [focused, setFocused] = useState(false)
     const label = edgeLabel(edge, nodeLabels)
     const path = curved && edge.controlPoint
         ? curvedDiagramPath(edge.points, edge.controlPoint as NonNullable<PositionedDiagramEdge['controlPoint']>)
         : roundedDiagramPath(edge.points)
-    const formatting = useDiagramConnectionKindFormatting(edge.kind, formattingStore)
+    const formatting = useDiagramConnectionFormatting(edge.legendEntryId, edge.kind, formattingStore)
     const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
     const { color, endMarker, startMarker, strokeDasharray, strokeWidth } = diagramEdgeStyle(
         edge.kind, theme, focused || selected, formatting,
@@ -107,10 +108,10 @@ export function DiagramEdge(props: DiagramEdgeProps) {
                     strokeLinejoin="round"
                     strokeWidth={strokeWidth}
                 />
-                {visibleLabel && labelPoint ? (
+                {renderLabel && visibleLabel && labelPoint ? (
                     <g>
                         <rect
-                            fill={theme.palette.background.default}
+                            fill={theme.palette.custom.projectBackground}
                             height={labelPoint.height}
                             rx={2}
                             width={labelPoint.width}

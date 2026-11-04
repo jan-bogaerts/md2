@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RemoteControlStorageService } from './remote_control_storage_service'
 import { MissingWorkingFolderError } from '../../data/data_types'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
 import type { ActionScheduleRegistrationRequest } from '../../data/electron_action_bridge'
 
 class MockWebSocket extends EventTarget {
@@ -291,6 +292,7 @@ describe('RemoteControlStorageService', () => {
         const service = createService()
         const desktopConfig = {
             agentSelection: { activeAgent: 'custom', permissionMode: 'full-access' as const, settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' as const } } },
+            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none' as const, models: ['custom-model'], name: 'custom' }],
             codexSearchEnabled: false,
             editorCommand: 'code "{{file}}"',
@@ -315,17 +317,17 @@ describe('RemoteControlStorageService', () => {
         await expect(save).resolves.toEqual(desktopConfig)
     })
 
-    it('reads current Claude rate limits through remote control', async () => {
+    it('reads the current Claude rate limits of one account through remote control', async () => {
         installWebSocket()
         const service = createService()
-        const load = service.getClaudeRateLimits()
+        const load = service.getClaudeRateLimits('claude-initial')
         const socket = lastSocket()
-        const snapshot = { available: true, observedAt: 10, windows: [] }
+        const snapshot = { accountId: 'claude-initial', available: true, observedAt: 10, windows: [] }
 
         socket.open()
         await flushPromises()
         const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(request).toMatchObject({ method: 'getClaudeRateLimits', params: [] })
+        expect(request).toMatchObject({ method: 'getClaudeRateLimits', params: ['claude-initial'] })
         socket.receive({ id: request.id, result: snapshot })
 
         await expect(load).resolves.toEqual(snapshot)
@@ -970,7 +972,7 @@ describe('RemoteControlStorageService', () => {
         const service = createService()
         const actionRequest = {
             ...actionStartRequest(),
-            runInput: { permissionMode: 'approve-for-me' as const },
+            runInput: { accountId: 'codex-initial', permissionMode: 'approve-for-me' as const },
         }
         const request = service.startAction(actionRequest)
         const socket = lastSocket()

@@ -5,6 +5,10 @@ import {
     type DiagramFragmentReader,
 } from './diagram_fragment_clipboard'
 import { diagramEditSessionService } from './diagram_edit_session_service'
+import {
+    diagramFormatPasteService,
+    type DiagramFormatPasteService,
+} from './diagram_format_paste_service'
 import type { DiagramSelectionIdentity } from './diagram_selection_service'
 
 export type DiagramCopySession = DiagramFragmentReader
@@ -25,12 +29,23 @@ export async function copyDiagramSelection(
     session: DiagramCopySession = diagramEditSessionService,
     clipboardWriter: DiagramCopyClipboardWriter = writeClipboard,
     errorReporter: DiagramCopyErrorReporter = reportClipboardError,
+    formatPaste: Pick<DiagramFormatPasteService, 'captureSuccessfulCopy'> = diagramFormatPasteService,
 ) {
     try {
+        const connectionOnly = identities.length === 1 && identities[0].objectKind === 'edge'
+        if (connectionOnly) {
+            if (!formatPaste.captureSuccessfulCopy(identities, session)) {
+                throw new Error('Diagram connection could not be captured as a format source')
+            }
+
+            return true
+        }
+
         const payload = buildDiagramFragmentClipboardPayload(identities, session)
         if (!payload) throw new Error('Diagram selection cannot form a supported clipboard fragment')
 
         await clipboardWriter(serializeDiagramFragmentClipboardPayload(payload))
+        formatPaste.captureSuccessfulCopy(identities, session)
 
         return true
     } catch (error) {

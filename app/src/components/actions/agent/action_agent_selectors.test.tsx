@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../../data/action_types'
 import { BUILTIN_AGENT_PROFILES } from '../../../data/agent_profiles'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../../data/agent_accounts'
 import type { AgentSelectionState } from '../../../data/agent_selection'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { createAppTheme } from '../../../theme/app_theme'
@@ -12,6 +13,11 @@ import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 const selectorState = vi.hoisted(() => ({
     runStatus: null as string | null,
     settings: {
+        accountId: undefined as string | undefined,
+        accounts: [
+            { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' },
+            { agent: 'claude', id: 'claude-initial', kind: 'initial', name: 'Default' },
+        ],
         agent: 'codex',
         agentAvailability: {
             claude: { available: true, error: null as string | null },
@@ -58,7 +64,7 @@ function renderSelectors(setSettings = vi.fn()) {
     return { ...rendered, setSettings }
 }
 
-function openSubmenu(name: 'Agent' | 'Model' | 'Thinking level' | 'Speed') {
+function openSubmenu(name: 'Account' | 'Agent' | 'Model' | 'Thinking level' | 'Speed') {
     fireEvent.click(screen.getByRole('button', { name: 'Model' }))
     fireEvent.click(screen.getByRole('menuitem', { name: name === 'Speed' ? /^Speed/u : name }))
 }
@@ -102,6 +108,8 @@ describe('ActionAgentSelectors', () => {
     beforeEach(() => {
         selectorState.runStatus = null
         selectorState.settings = {
+            accountId: undefined,
+            accounts: DEFAULT_AGENT_ACCOUNTS,
             agent: 'codex',
             agentAvailability: {
                 claude: { available: true, error: null },
@@ -145,6 +153,31 @@ describe('ActionAgentSelectors', () => {
         expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual(expect.arrayContaining(['Agent', 'Model', 'Thinking level', 'Refresh models']))
         fireEvent.click(within(menu).getByRole('menuitem', { name: 'Model' }))
         expect(screen.getByRole('menu', { name: 'Model choices' })).toHaveTextContent('gpt-5.6-sol')
+    })
+
+    it('selects and clears a run account without replacing initial account absence', () => {
+        const workAccount = {
+            agent: 'codex', configDirectory: 'C:/accounts/work',
+            id: '11111111-1111-4111-8111-111111111111', kind: 'directory' as const, name: 'Work',
+        }
+        selectorState.settings.accounts = [...DEFAULT_AGENT_ACCOUNTS, workAccount]
+        const { setSettings } = renderSelectors()
+
+        openSubmenu('Account')
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Work' }))
+        expect(setSettings).toHaveBeenCalledWith(
+            expect.objectContaining({ settingsByAgent: { codex: expect.objectContaining({ accountId: workAccount.id }) } }), false,
+        )
+
+        selectorState.settings.accountId = workAccount.id
+        selectorState.settings.selection.settingsByAgent.codex.accountId = workAccount.id
+        cleanup()
+        const cleared = renderSelectors().setSettings
+        openSubmenu('Account')
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Initial' }))
+        expect(cleared).toHaveBeenCalledWith(
+            expect.objectContaining({ settingsByAgent: { codex: expect.not.objectContaining({ accountId: expect.anything() }) } }), false,
+        )
     })
 
     it.each([

@@ -12,6 +12,14 @@ describe('agent profile validation', () => {
             .not.toThrow();
     })
 
+    it('rejects an account selection for a custom agent profile', () => {
+        const custom = { command: ['custom'], models: ['model'], defaultThinkingLevel: 'none' as const, name: 'custom' };
+        const customSelection = { agent: 'custom', model: 'model', accountId: 'codex-initial' };
+
+        expect(() => validateAgentSelection([custom], customSelection, 'test')).toThrow('does not support accounts');
+        expect(() => validateAgentSelection([], { agent: 'codex', model: 'gpt', accountId: 'codex-initial' }, 'test')).not.toThrow();
+    })
+
     it('accepts resume command templates and drops legacy session patterns', () => {
         const [profile] = validateAgentProfiles([{
             command: ['agent'],

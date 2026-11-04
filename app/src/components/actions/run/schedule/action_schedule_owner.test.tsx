@@ -33,11 +33,19 @@ function createDateStore() {
     return store
 }
 
-function renderOpenOwner(store = createDateStore(), promptDraft = new ActionPromptDraft('Prepared prompt', false)) {
+function renderOpenOwner(
+    store = createDateStore(),
+    promptDraft = new ActionPromptDraft('Prepared prompt', false),
+    conversationId: string | null = null,
+    accountId?: string,
+) {
     render(
         <div data-testid="action-popup-scroll-body">
             <button type="button">Schedule anchor</button>
-            <ActionScheduleOwner action={action} context={context} promptDraft={promptDraft} store={store} />
+            <ActionScheduleOwner
+                accountId={accountId} action={action} context={context} conversationId={conversationId}
+                promptDraft={promptDraft} store={store}
+            />
         </div>,
     )
     const anchorElement = screen.getByRole('button', { name: 'Schedule anchor' })
@@ -52,12 +60,29 @@ describe('ActionScheduleOwner registration', () => {
         vi.restoreAllMocks()
     })
 
+    it('does not subscribe to project cards or render while scheduling is closed', () => {
+        configureSources()
+        vi.mocked(useProjectConfig).mockClear()
+        const addEventListener = vi.spyOn(dataService, 'addEventListener')
+        const store = createDateStore()
+        render(
+            <ActionScheduleOwner
+                action={action} context={context} conversationId={null}
+                promptDraft={new ActionPromptDraft('Prepared prompt', false)} store={store}
+            />,
+        )
+
+        expect(addEventListener).not.toHaveBeenCalledWith('changed', expect.any(Function))
+        expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument()
+        expect(useProjectConfig).not.toHaveBeenCalled()
+    })
+
     it('registers selected trigger and closes only schedule popover after refresh', async () => {
         configureSources()
         let confirmRegistration!: () => void
         const registration = new Promise<void>((resolve) => { confirmRegistration = resolve })
         vi.mocked(defaultScheduleAction).mockReturnValue(registration)
-        renderOpenOwner()
+        renderOpenOwner(undefined, undefined, null, '11111111-1111-4111-8111-111111111111')
 
         fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
 
@@ -66,6 +91,8 @@ describe('ActionScheduleOwner registration', () => {
             context,
             { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
             'Prepared prompt',
+            undefined,
+            '11111111-1111-4111-8111-111111111111',
         ))
         expect(screen.getByRole('dialog', { name: 'Schedule action' })).toBeInTheDocument()
         confirmRegistration()
@@ -87,6 +114,25 @@ describe('ActionScheduleOwner registration', () => {
             context,
             { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
             'Latest prompt',
+            undefined,
+            undefined,
+        ))
+    })
+
+    it('registers displayed conversation identity', async () => {
+        configureSources()
+        vi.mocked(defaultScheduleAction).mockResolvedValue(undefined)
+        renderOpenOwner(createDateStore(), new ActionPromptDraft('Continue work', false), 'conversation-1')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
+
+        await waitFor(() => expect(defaultScheduleAction).toHaveBeenCalledWith(
+            action,
+            context,
+            { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
+            'Continue work',
+            'conversation-1',
+            undefined,
         ))
     })
 

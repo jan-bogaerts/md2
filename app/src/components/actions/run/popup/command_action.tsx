@@ -4,7 +4,7 @@ import type { ActionDefinition } from '../../../../data/action_types'
 import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
 import { ActionRunHistoryOwner } from '../state/action_run_history_owner'
 import { ActionRunStatusOwner } from '../state/action_run_status_owner'
-import { ActionPromptOwner } from '../../agent/action_prompt_owner'
+import { ActionAgentPrompt } from '../../agent/action_agent_prompt'
 import { ActionAgentInteraction } from './action_agent_interaction'
 import { ActionInputSplitter } from './action_input_splitter';
 import { ActionLayoutSurface } from './action_layout_surface';
@@ -24,10 +24,7 @@ interface CommandActionProps {
 /** Command status, history, scheduling, and run controls. */
 export function CommandAction(props: CommandActionProps) {
     const { action, assignmentContext, baseContext, readOnlyMessage, runtime, showHistoricalHistory } = props
-    const {
-        bindingStore, conversationStore, focusRequest, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
-        settingsStore, commandLayoutStore,
-    } = runtime
+    const { bindingStore, commandLayoutStore, historyStore, resultStore, runValidationError, settingsStore } = runtime
     const boundRunId = useBoundRunId(bindingStore)
     const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
     const sessionActive = useRunSelector(boundRunId, (run) => run?.status === 'queued'
@@ -60,21 +57,12 @@ export function CommandAction(props: CommandActionProps) {
                 ) : null}
                 <ActionLayoutSurface store={commandLayoutStore}>
                     {!sessionActive ? (
-                        <ActionPromptOwner
+                        <ActionAgentPrompt
                             action={action}
-                            bindingStore={bindingStore}
-                            context={assignmentContext}
-                            conversationStore={conversationStore}
-                            focusRequest={focusRequest}
-                            historyStore={historyStore}
-                            inputStore={inputStore}
-                            layoutStore={commandLayoutStore}
+                            assignmentContext={assignmentContext}
                             questionsEnabled={false}
-                            resultStore={resultStore}
-                            runValidationError={runValidationError}
+                            runtime={runtime}
                             scheduleContext={baseContext}
-                            scheduleStore={scheduleStore}
-                            settingsStore={settingsStore}
                         />
                     ) : null}
                     {!sessionActive ? <ActionInputSplitter store={commandLayoutStore} /> : null}
@@ -84,19 +72,7 @@ export function CommandAction(props: CommandActionProps) {
                 </ActionLayoutSurface>
             </Stack>
             {showBottomRow ? (
-                <ActionPopupBottomRow
-                    action={action}
-                    assignmentContext={assignmentContext}
-                    bindingStore={bindingStore}
-                    conversationStore={conversationStore}
-                    focusRequest={focusRequest}
-                    historyStore={historyStore}
-                    inputStore={inputStore}
-                    settingsStore={settingsStore}
-                    resultStore={resultStore}
-                    runValidationError={runValidationError}
-                    scheduleStore={scheduleStore}
-                />
+                <ActionPopupBottomRow action={action} assignmentContext={assignmentContext} runtime={runtime} />
             ) : null}
         </>
     )

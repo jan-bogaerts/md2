@@ -102,6 +102,7 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
 
         handleDefinitionChange({
             ...definition,
+            accountId: undefined,
             agent: undefined,
             autoFinish: undefined,
             command: definition.command ?? '',

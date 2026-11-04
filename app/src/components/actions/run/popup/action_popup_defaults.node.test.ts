@@ -90,14 +90,32 @@ describe('defaultScheduleAction', () => {
         const context = { cardInternalId: 'card-1', kind: 'card' as const }
         const trigger = { timestamp: '2026-09-19T10:00:00.000Z', type: 'at' as const }
 
-        await defaultScheduleAction(action, context, trigger, 'Review latest changes')
+        await defaultScheduleAction(
+            action, context, trigger, 'Review latest changes', 'conversation-1', '11111111-1111-4111-8111-111111111111',
+        )
 
         expect(registerActionSchedule).toHaveBeenCalledWith({
+            accountId: '11111111-1111-4111-8111-111111111111',
             actionId: 'implement',
+            conversationId: 'conversation-1',
             context,
             prompt: 'Review latest changes',
             trigger,
         })
+    })
+
+    it('omits conversation identity for command schedules', async () => {
+        const registerActionSchedule = vi.fn(async () => undefined)
+        setActionBridgeOverride({ registerActionSchedule } as unknown as ElectronActionBridge)
+        projectAccessService.setReadOnly(false)
+        vi.spyOn(activeScheduleService, 'refresh').mockResolvedValue(undefined)
+        const action = { id: 'implement', type: 'command' } as ActionDefinition
+        const context = { cardInternalId: 'card-1', kind: 'card' as const }
+        const trigger = { timestamp: '2026-09-19T10:00:00.000Z', type: 'at' as const }
+
+        await defaultScheduleAction(action, context, trigger, 'Ignored', 'conversation-1')
+
+        expect(registerActionSchedule).toHaveBeenCalledWith({ actionId: 'implement', context, trigger })
     })
 
     it.each(['', '  \n\t'])('rejects empty custom prompt before registration: %#', async (prompt) => {

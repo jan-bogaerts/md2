@@ -1,5 +1,7 @@
+import { memo, useCallback } from 'react'
 import {
     cardPopupService,
+    subscribeCardPopupFocusRequest,
     type CardActionPopupEntry,
 } from '../../../../services/card_popup_service'
 import { ActionPopup } from './action_popup'
@@ -10,15 +12,25 @@ interface CardActionPopupHostEntryProps {
     visible: boolean
 }
 
-/** Renders one service-owned card action popup with isolated local controller state. */
-export function CardActionPopupHostEntry({ entry, stackPosition, visible }: CardActionPopupHostEntryProps) {
-    const handleClose = () => {
+/**
+ * Renders one service-owned card action popup with isolated local controller state. Memoized so
+ * opening or closing another popup entry does not render this one.
+ */
+export const CardActionPopupHostEntry = memo(function CardActionPopupHostEntry(
+    { entry, stackPosition, visible }: CardActionPopupHostEntryProps,
+) {
+    const handleClose = useCallback(() => {
         cardPopupService.close(entry.id)
-    }
+    }, [entry.id])
 
-    const handleActivate = () => {
+    const handleActivate = useCallback(() => {
         cardPopupService.activate(entry.id)
-    }
+    }, [entry.id])
+
+    const subscribeFocusRequest = useCallback(
+        (listener: () => void) => subscribeCardPopupFocusRequest(entry.id, listener),
+        [entry.id],
+    )
 
     const anchorElement = entry.anchorElement.isConnected ? entry.anchorElement : entry.fallbackAnchorElement
 
@@ -36,6 +48,7 @@ export function CardActionPopupHostEntry({ entry, stackPosition, visible }: Card
             popupEntryId={entry.id}
             popupVisible={visible}
             stackPosition={stackPosition}
+            subscribeFocusRequest={subscribeFocusRequest}
         />
     )
-}
+})

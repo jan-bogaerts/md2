@@ -5,6 +5,7 @@ const STORAGE_SAVE_METHODS = new Set<PropertyKey>([
     'addWorktree',
     'cancelActionSchedule',
     'commit',
+    'commitPrimaryChanges',
     'createProject',
     'deleteFile',
     'deleteFolder',
@@ -13,6 +14,7 @@ const STORAGE_SAVE_METHODS = new Set<PropertyKey>([
     'removeWorktree',
     'saveActionSchedules',
     'saveProjectConfig',
+    'trashPrimaryChange',
 ])
 
 export interface SaveState {

@@ -1,8 +1,9 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
+const { initialAgentAccountId } = require('../../../../shared/agent_accounts.mjs');
 const { ensureInsideRoot } = require('../../git/git_commands');
-const { projectOperationCoordinator } = require('../../project/project_operation_coordinator');
+const { projectKey, projectOperationCoordinator } = require('../../project/project_operation_coordinator');
 const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 
 const CSV_COLUMNS = [
@@ -20,8 +21,12 @@ const CSV_COLUMNS = [
     'total_tokens',
     'used_percent',
     'used_percent_delta',
+    'account_id',
 ];
 const CSV_HEADER = CSV_COLUMNS.join(',');
+// Files written before account switching lack the trailing account column; their rows belong to the initial account.
+const LEGACY_CSV_COLUMNS = CSV_COLUMNS.slice(0, -1);
+const LEGACY_CSV_HEADER = LEGACY_CSV_COLUMNS.join(',');
 const DEFAULT_LIMIT_ID = 'default';
 const SUPPORTED_PROVIDERS = new Set(['claude', 'codex']);
 const UNIX_MILLISECONDS_THRESHOLD = 1_000_000_000_000;
@@ -171,8 +176,12 @@ function normalizeTokenUsage(usage) {
     return values;
 }
 
-function accountKey(provider, limitId, windowId) {
-    return `${provider}\u0000${limitId}\u0000${windowId}`;
+function accountKey(provider, accountId, limitId, windowId) {
+    return `${provider}\u0000${accountId}\u0000${limitId}\u0000${windowId}`;
+}
+
+function validAccountId(accountId) {
+    return typeof accountId === 'string' && accountId.length > 0;
 }
 
 function sameAccountWindow(leftResetTimestamp, rightResetTimestamp) {
@@ -251,17 +260,20 @@ function normalizeAccountSnapshot(provider, snapshot) {
     if (!SUPPORTED_PROVIDERS.has(provider)) return null;
     if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null;
     if (snapshot.available !== true || !validTimestamp(snapshot.observedAt)) return null;
+    if (!validAccountId(snapshot.accountId)) return null;
     const recordedAt = isoTimestamp(snapshot.observedAt);
     if (!recordedAt) return null;
     const windows = provider === 'codex' ? codexAccountWindows(snapshot) : claudeAccountWindows(snapshot);
     if (!windows || windows.length === 0) return null;
-    if (new Set(windows.map(({ limitId, windowId }) => accountKey(provider, limitId, windowId))).size !== windows.length) return null;
+    const windowKeys = windows.map(({ limitId, windowId }) => accountKey(provider, snapshot.accountId, limitId, windowId));
+    if (new Set(windowKeys).size !== windows.length) return null;
 
-    return { recordedAt, windows };
+    return { accountId: snapshot.accountId, recordedAt, windows };
 }
 
-function tokenRecord(provider, usage, recordedAt) {
+function tokenRecord(provider, accountId, usage, recordedAt) {
     return completeCsvRecord({
+        account_id: accountId,
         cached_input_tokens: usage.cachedInputTokens,
         input_tokens: usage.inputTokens,
         output_tokens: usage.outputTokens,
@@ -273,8 +285,9 @@ function tokenRecord(provider, usage, recordedAt) {
     });
 }
 
-function accountRecord(provider, window, recordedAt, delta) {
+function accountRecord(provider, accountId, window, recordedAt, delta) {
     return completeCsvRecord({
+        account_id: accountId,
         limit_id: window.limitId,
         provider,
         recorded_at: recordedAt,
@@ -287,9 +300,20 @@ function accountRecord(provider, window, recordedAt, delta) {
     });
 }
 
-function validRestoredAccountRecord(record) {
-    if (record.length !== CSV_COLUMNS.length) return false;
-    const values = Object.fromEntries(CSV_COLUMNS.map((column, index) => [column, record[index]]));
+/** Maps one record onto the current columns; a legacy-length record has an empty `account_id`. */
+function recordValues(record) {
+    if (record.length !== CSV_COLUMNS.length && record.length !== LEGACY_CSV_COLUMNS.length) return null;
+
+    return Object.fromEntries(CSV_COLUMNS.map((column, index) => [column, record[index] ?? '']));
+}
+
+/** A row without an account identity belongs to the provider's initial account. */
+function recordAccountId(values) {
+    return values.account_id === '' ? initialAgentAccountId(values.provider) : values.account_id;
+}
+
+function validRestoredAccountRecord(values) {
+    if (!values) return false;
     if (values.record_type !== 'account_usage' || !SUPPORTED_PROVIDERS.has(values.provider)) return false;
     if (!values.limit_id || !values.window_id || !validIsoTimestamp(values.recorded_at)) return false;
     if (!validIsoTimestamp(values.resets_at) || !Number.isFinite(Number(values.used_percent))) return false;
@@ -300,18 +324,26 @@ function validRestoredAccountRecord(record) {
     return tokenColumns.every((column) => values[column] === '');
 }
 
-function restoreBaselines(content) {
-    const records = parseCsv(content);
-    if (records.length === 0 || !records[0].valid || records[0].fields.join(',') !== CSV_HEADER) return new Map();
+function restoreBaselines(records) {
     const baselines = new Map();
     for (const { fields, valid } of records.slice(1)) {
-        if (!valid || !validRestoredAccountRecord(fields)) continue;
-        const values = Object.fromEntries(CSV_COLUMNS.map((column, index) => [column, fields[index]]));
-        const key = accountKey(values.provider, values.limit_id, values.window_id);
+        const values = valid ? recordValues(fields) : null;
+        if (!validRestoredAccountRecord(values)) continue;
+        const key = accountKey(values.provider, recordAccountId(values), values.limit_id, values.window_id);
         baselines.set(key, { resetsAt: values.resets_at, usedPercent: Number(values.used_percent) });
     }
 
     return baselines;
+}
+
+/** Restores baselines below a current or legacy header; any other header restores none. */
+function restoreFileState(content) {
+    const records = parseCsv(content);
+    const header = records[0]?.valid ? records[0].fields.join(',') : null;
+    if (header === CSV_HEADER) return { baselines: restoreBaselines(records), legacyHeader: false };
+    if (header === LEGACY_CSV_HEADER) return { baselines: restoreBaselines(records), legacyHeader: true };
+
+    return { baselines: new Map(), legacyHeader: false };
 }
 
 function usageMetricsPath(project, projectFolder) {
@@ -337,6 +369,7 @@ class UsageMetricsService {
         this.projectOperationCoordinator = dependencies.projectOperationCoordinator ?? projectOperationCoordinator;
         this.readFile = dependencies.readFile ?? fs.readFile;
         this.uncommittedProjectWrites = dependencies.uncommittedProjectWrites ?? uncommittedProjectWrites;
+        this.writeFile = dependencies.writeFile ?? fs.writeFile;
         this.fileStates = new Map();
         this.fileWrites = new Map();
         this.filePath = null;
@@ -351,6 +384,14 @@ class UsageMetricsService {
         this.rootPath = project.rootPath;
     }
 
+    /** Returns the metrics file path relative to the repository root, or null when `rootPath` is not the bound project. */
+    repositoryPath(rootPath) {
+        if (!this.filePath || typeof rootPath !== 'string' || rootPath.length === 0) return null;
+        if (projectKey(rootPath) !== projectKey(this.rootPath)) return null;
+
+        return path.relative(this.rootPath, this.filePath).replaceAll('\\', '/');
+    }
+
     requireFilePath() {
         if (!this.filePath) throw new Error('Usage metrics project is not active');
 
@@ -363,15 +404,16 @@ class UsageMetricsService {
         return this.rootPath;
     }
 
-    async recordTokenUsage(provider, usageValue, recordedAtValue) {
+    /** Records one run's token usage against the account that run used. */
+    async recordTokenUsage(provider, accountId, usageValue, recordedAtValue) {
         const filePath = this.requireFilePath();
         const usage = normalizeTokenUsage(usageValue);
         const recordedAt = isoTimestamp(recordedAtValue);
-        if (!SUPPORTED_PROVIDERS.has(provider) || !usage || !recordedAt) return false;
+        if (!SUPPORTED_PROVIDERS.has(provider) || !validAccountId(accountId) || !usage || !recordedAt) return false;
 
         return this.runNonFatal(filePath, async () => {
             const state = await this.loadFileState(filePath);
-            await this.appendRecords(filePath, state, [tokenRecord(provider, usage, recordedAt)]);
+            await this.appendRecords(filePath, state, [tokenRecord(provider, accountId, usage, recordedAt)]);
 
             return true;
         });
@@ -384,23 +426,24 @@ class UsageMetricsService {
 
         return this.runNonFatal(filePath, async () => {
             const state = await this.loadFileState(filePath);
+            const { accountId } = snapshot;
             const changed = snapshot.windows.filter((window) => {
-                const baseline = state.baselines.get(accountKey(provider, window.limitId, window.windowId));
+                const baseline = state.baselines.get(accountKey(provider, accountId, window.limitId, window.windowId));
 
                 return !baseline || baseline.usedPercent !== window.usedPercent || baseline.resetsAt !== window.resetsAt;
             });
             if (changed.length === 0) return false;
             const records = changed.map((window) => {
-                const baseline = state.baselines.get(accountKey(provider, window.limitId, window.windowId));
+                const baseline = state.baselines.get(accountKey(provider, accountId, window.limitId, window.windowId));
                 const delta = !baseline ? '' : sameAccountWindow(baseline.resetsAt, window.resetsAt)
                     ? window.usedPercent - baseline.usedPercent
                     : window.usedPercent;
 
-                return accountRecord(provider, window, snapshot.recordedAt, delta);
+                return accountRecord(provider, accountId, window, snapshot.recordedAt, delta);
             });
             await this.appendRecords(filePath, state, records);
             changed.forEach((window) => {
-                const key = accountKey(provider, window.limitId, window.windowId);
+                const key = accountKey(provider, accountId, window.limitId, window.windowId);
                 state.baselines.set(key, { resetsAt: window.resetsAt, usedPercent: window.usedPercent });
             });
 
@@ -444,9 +487,11 @@ class UsageMetricsService {
         } catch (error) {
             if (error?.code !== 'ENOENT') throw error;
         }
+        const { baselines, legacyHeader } = restoreFileState(content);
         const state = {
-            baselines: restoreBaselines(content),
+            baselines,
             hasContent: content.length > 0,
+            legacyHeader,
             needsRecordSeparator: content.length > 0 && !/[\r\n]$/u.test(content),
         };
         this.fileStates.set(filePath, state);
@@ -454,7 +499,16 @@ class UsageMetricsService {
         return state;
     }
 
+    /** Extends a legacy header in place; existing rows keep their missing account values. */
+    async extendLegacyHeader(filePath, state) {
+        const content = await this.readFile(filePath, 'utf8');
+        if (!content.startsWith(LEGACY_CSV_HEADER)) throw new Error('Usage metrics header changed before it could be extended');
+        await this.writeFile(filePath, `${CSV_HEADER}${content.slice(LEGACY_CSV_HEADER.length)}`, 'utf8');
+        state.legacyHeader = false;
+    }
+
     async appendRecords(filePath, state, records) {
+        if (state.legacyHeader) await this.extendLegacyHeader(filePath, state);
         const rows = records.map(csvRow).join('\r\n');
         const header = state.hasContent ? '' : `${CSV_HEADER}\r\n`;
         const recordSeparator = state.needsRecordSeparator ? '\r\n' : '';
@@ -469,6 +523,7 @@ class UsageMetricsService {
 module.exports = {
     CSV_COLUMNS,
     CSV_HEADER,
+    LEGACY_CSV_HEADER,
     UsageMetricsService,
     parseCsv,
 };

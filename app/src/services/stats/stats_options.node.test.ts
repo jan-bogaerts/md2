@@ -10,6 +10,7 @@ import {
 } from './project_stats_types'
 import { modelIdentity } from './stats_identities'
 import { buildOptions, buildReleaseOptions, completedReleaseIdentity, reconcileControls } from './stats_options'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
 
 function actionFact(overrides: Partial<StatsActionFact> = {}): StatsActionFact {
     return {
@@ -49,6 +50,7 @@ function conversationFact(overrides: Partial<StatsConversationFact> = {}): Stats
 
 function accountRow(overrides: Partial<UsageMetricsAccountRow> = {}): UsageMetricsAccountRow {
     return {
+        accountId: 'codex-initial',
         limitId: 'weekly',
         provider: 'codex',
         recordedAt: '2026-08-12T09:00:00.000Z',
@@ -64,6 +66,7 @@ function accountRow(overrides: Partial<UsageMetricsAccountRow> = {}): UsageMetri
 function source(overrides: Partial<StatsDatasetSource> = {}): StatsDatasetSource {
     return {
         accountRows: [],
+        agentAccounts: DEFAULT_AGENT_ACCOUNTS,
         agentProfiles: [],
         cards: [],
         stats: { actions: [], conversations: [] },
@@ -77,6 +80,7 @@ function source(overrides: Partial<StatsDatasetSource> = {}): StatsDatasetSource
 function loadedSource(overrides: Partial<LoadedStatsSource> = {}): LoadedStatsSource {
     return {
         accountRows: [],
+        agentAccounts: DEFAULT_AGENT_ACCOUNTS,
         agentProfiles: [],
         cards: [],
         currentStats: { actions: [], conversations: [] },
@@ -129,16 +133,26 @@ describe('buildOptions', () => {
         ])
     })
 
-    it('deduplicates account series per provider, limit, and window', () => {
+    it('deduplicates account series per account, provider, limit, and window', () => {
+        const workAccount = {
+            agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111',
+            kind: 'directory' as const, name: 'Work',
+        }
         const options = buildOptions(source({
+            agentAccounts: [...DEFAULT_AGENT_ACCOUNTS, workAccount],
             accountRows: [
                 accountRow(),
                 accountRow({ recordedAt: '2026-08-12T10:00:00.000Z' }),
                 accountRow({ windowId: 'window-b' }),
+                accountRow({ accountId: workAccount.id }),
             ],
         }), [])
 
-        expect(options.accountSeries.map(({ windowId }) => windowId)).toEqual(['window-a', 'window-b'])
+        expect(options.accountSeries.map(({ accountName, windowId }) => ({ accountName, windowId }))).toEqual([
+            { accountName: 'Work', windowId: 'window-a' },
+            { accountName: 'Default', windowId: 'window-a' },
+            { accountName: 'Default', windowId: 'window-b' },
+        ])
     })
 })
 

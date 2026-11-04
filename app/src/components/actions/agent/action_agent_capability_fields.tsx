@@ -15,12 +15,14 @@ import {
 } from '../../../data/agent_profiles'
 import {
     projectAgentSelection,
+    selectAccount,
     selectAgent,
     selectModel,
     selectPermissionMode,
     selectThinkingLevel,
     selectSpeedMode,
 } from '../../../data/agent_selection'
+import { initialAgentAccountId, supportsAgentAccounts } from '../../../data/agent_accounts'
 import type { RawActionDefinition } from '../../../data/action_types'
 import { agentCapabilitiesService, type AgentCapabilitiesService } from '../../../services/agents/agent_capabilities_service'
 import { actionAgentSelectionDraftService } from '../../../services/actions/action_agent_selection_draft_service'
@@ -43,10 +45,15 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
     const { definition, errors, onChange, service = agentCapabilitiesService, sourcePath } = props
     const profiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
     const desktopSelection = useConfigValue('desktop.agentSelection')
+    const accounts = useConfigValue('desktop.agentAccounts')
     const selection = actionAgentSelectionDraftService.getSelection(sourcePath, definition, desktopSelection, profiles)
     const { availability } = useAgentCapabilities(service)
     const selectedProfile = definition.agent ? findAgentProfile(profiles, definition.agent) : null
-    const models = useAgentModelCatalog(selectedProfile, service);
+    const selectedAgentAccounts = accounts.filter(({ agent, kind }) => agent === definition.agent && kind !== 'initial')
+    const accountAvailable = !definition.accountId
+        || definition.accountId === initialAgentAccountId(definition.agent ?? '')
+        || selectedAgentAccounts.some(({ id }) => id === definition.accountId)
+    const models = useAgentModelCatalog(selectedProfile, definition.accountId, service);
     const modelOptions = agentModelOptions(models.catalog, definition.model ?? '');
     const configuredThinkingLevels: string[] = THINKING_LEVELS
         .filter((level) => level === 'none' || (!!selectedProfile && supportsThinkingLevel(selectedProfile, level)));
@@ -62,6 +69,7 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
         if (!agent) {
             const clearedDefinition = {
                 ...definition,
+                accountId: undefined,
                 agent: undefined,
                 model: undefined,
                 permissionMode: undefined,
@@ -76,8 +84,16 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
         actionAgentSelectionDraftService.setSelection(sourcePath, nextSelection)
         onChange({
             ...definition, agent: projected.agent, model: projected.model, thinkingLevel: projected.thinkingLevel,
+            accountId: supportsAgentAccounts(projected.agent) ? projected.accountId : undefined,
             speedMode: projected.agent === 'codex' ? projected.speedMode : undefined,
         });
+    }
+
+    const handleAccountChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const accountId = event.target.value || undefined
+        const nextSelection = selectAccount(selection, accountId, accounts)
+        actionAgentSelectionDraftService.setSelection(sourcePath, nextSelection)
+        onChange({ ...definition, accountId })
     }
 
     const handleModelChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -156,6 +172,23 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                         return <MenuItem disabled={disabled} key={profile.name} value={profile.name}>{label}</MenuItem>
                     })}
                 </ActionEditorField>
+                {definition.agent && supportsAgentAccounts(definition.agent) ? <ActionEditorField
+                    error={!!errors.accountId}
+                    fieldId="action-account"
+                    fullWidth
+                    helperText={errors.accountId ?? (!accountAvailable ? `Removed account ${definition.accountId}; the default is used.` : undefined)}
+                    label="Account"
+                    onChange={handleAccountChange}
+                    select
+                    size="small"
+                    value={definition.accountId === initialAgentAccountId(definition.agent) ? '' : definition.accountId ?? ''}
+                >
+                    <MenuItem value="">Initial</MenuItem>
+                    {!accountAvailable ? (
+                        <MenuItem disabled value={definition.accountId}>{definition.accountId} — uses default</MenuItem>
+                    ) : null}
+                    {selectedAgentAccounts.map(({ id, name }) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
+                </ActionEditorField> : null}
                 <ActionEditorField
                     disabled={!definition.agent}
                     error={!!errors.model}

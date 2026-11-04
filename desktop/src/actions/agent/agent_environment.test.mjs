@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
@@ -46,5 +47,36 @@ describe('createAgentEnvironment', () => {
 
     it('leaves other agents without the Claude-only forwarding variable', () => {
         expect(createAgentEnvironment({ Path: 'C:/tools' }, 'codex')).toEqual({ Path: 'C:/tools' });
+    });
+
+    it('keeps inherited provider directories for initial accounts', () => {
+        const account = { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' };
+
+        expect(createAgentEnvironment({ CODEX_HOME: 'C:/codex', Path: 'C:/tools' }, 'codex', false, account))
+            .toEqual({ CODEX_HOME: 'C:/codex', Path: 'C:/tools' });
+    });
+
+    it('sets the resolved provider directory without keeping a case-variant inherited value', () => {
+        const account = {
+            agent: 'claude', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111',
+            kind: 'directory', name: 'Work',
+        };
+
+        expect(createAgentEnvironment({ claude_config_dir: 'C:/old', Path: 'C:/tools' }, 'claude', true, account)).toEqual({
+            CLAUDE_CODE_ENABLE_TODO_TOOLS: '1',
+            CLAUDE_CODE_FORWARD_SUBAGENT_TEXT: '1',
+            CLAUDE_CONFIG_DIR: path.resolve(account.configDirectory),
+            Path: 'C:/tools',
+        });
+    });
+
+    it('rejects an account owned by another agent', () => {
+        const account = {
+            agent: 'claude', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111',
+            kind: 'directory', name: 'Work',
+        };
+
+        expect(() => createAgentEnvironment({}, 'codex', false, account))
+            .toThrow(`Agent account ${account.id} belongs to claude, not codex`);
     });
 });
