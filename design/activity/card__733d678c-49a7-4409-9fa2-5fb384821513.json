@@ -4209,7 +4209,7 @@
         }
       ],
       "startedAt": "2026-11-04T14:02:21.667Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
@@ -4240,8 +4240,8 @@
           "reasoningMs": 770,
           "toolMs": 6004
         },
-        "elapsedMs": 354602,
-        "runningStartedAt": "2026-11-04T14:25:02.616Z"
+        "elapsedMs": 380473,
+        "runningStartedAt": null
       },
       "title": "review",
       "usage": {
