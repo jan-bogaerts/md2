@@ -1,5 +1,20 @@
 {
-  "actionSettings": {},
+  "actionSettings": {
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
   "conversations": [
     {
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
@@ -806,6 +821,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "b71e73f9-ddd6-4a14-bf59-7f9415ad0614",
+      "cardPath": "design/feature_descriptions/B_329_changing_appearence_not_applied.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_329_changing_appearence_not_applied.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_329_changing_appearence_not_applied.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "submission-ecef3c88-8fc4-409e-b89c-40793b934f80",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-04T15:09:59.850Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-7afcd304-702c-4fb0-a054-4bd0069b064e",
+      "providerSessions": [],
+      "startedAt": "2026-11-04T15:09:59.850Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-04T15:09:59.850Z"
+      },
+      "title": "implement",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -820,13 +863,13 @@
         "agent-44660c0a-1ba8-4273-b981-6217679fbf55"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-61b30cd7-fbe0-465d-af93-4e4360c5afe8",
       "origin": {
@@ -835,9 +878,9 @@
       },
       "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "rootActionLabel": "investigate",
-      "rootConversationId": "agent-44660c0a-1ba8-4273-b981-6217679fbf55",
       "startedAt": "2026-11-04T15:02:06.056Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-44660c0a-1ba8-4273-b981-6217679fbf55"
     }
   ],
   "version": 5
