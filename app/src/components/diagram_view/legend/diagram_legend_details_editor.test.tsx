@@ -10,7 +10,7 @@ import { createAppTheme } from '../../../theme/app_theme'
 import { DiagramLegendButton } from './diagram_legend_button'
 import { DiagramLegendDetailsEditor } from './diagram_legend_details_editor'
 
-const diagram: DiagramData = {
+const diagram = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' }],
     groups: [],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
@@ -18,11 +18,12 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
-}
-const legendDiagram: DiagramData = {
-    ...diagram,
-    meta: { ...diagram.meta, legend: [{ label: 'Service', role: 'focal' }, { kind: 'connection', label: 'Calls' }] },
-}
+}))
+const legendDiagram = structuredClone(diagram)
+legendDiagram.meta.legend = legendDiagram.meta.legend.map((entry) => ({
+    ...entry,
+    label: 'kind' in entry ? 'Calls' : 'Service',
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const theme = createAppTheme('dark')
 

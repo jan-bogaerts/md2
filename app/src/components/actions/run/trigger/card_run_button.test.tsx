@@ -127,6 +127,8 @@ describe('CardRunButton', () => {
     beforeEach(() => {
         agentAcknowledgementService.reset()
         conversationsByCardInternalId.clear()
+        const dataState = dataService.getState()
+        vi.spyOn(dataService, 'getState').mockImplementation(() => ({ ...dataState, snapshot: projectState.snapshot }))
         vi.spyOn(dataService.agents, 'getAgentConversations').mockImplementation((cardInternalId: string) => (
             conversationsByCardInternalId.get(cardInternalId) ?? []
         ))

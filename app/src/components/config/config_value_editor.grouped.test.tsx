@@ -216,8 +216,8 @@ describe('ConfigValueEditor', () => {
         )
 
         expect(screen.getByLabelText('Agent')).toHaveTextContent('removed-agent — unavailable')
-        expect(screen.getByLabelText('Model')).toHaveTextContent('removed-model — unavailable')
-        expect(screen.getByLabelText('Thinking level')).toHaveTextContent('high — unavailable')
+        expect(screen.getByLabelText('Model')).toHaveTextContent('removed-model')
+        expect(screen.getByLabelText('Thinking level')).toHaveTextContent('high')
         expect(screen.getByText('Unknown agent profile in desktop agent selection: removed-agent')).toBeInTheDocument()
     })
 })

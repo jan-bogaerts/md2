@@ -290,9 +290,10 @@ describe('DiagramViewService', () => {
             groups: [],
             meta: {
                 description: 'New architecture diagram',
+                legend: [],
                 title: 'New architecture',
                 type: 'architecture',
-                version: 1,
+                version: 3,
             },
             nodes: [],
         })
@@ -675,7 +676,7 @@ describe('DiagramViewService', () => {
         expect(service.getSnapshot().currentDiagram?.nodes[0]).toMatchObject({ id: 'orders', label: 'Orders' })
         expect(service.getSnapshot().currentDiagram?.width).toBeGreaterThan(0)
         expect(service.getSourceSnapshot()?.record.id).toBe('child-1')
-        expect(service.getSourceSnapshot()?.diagram.nodes[0]).toEqual({ id: 'orders', label: 'Orders', role: 'focal' })
+        expect(service.getSourceSnapshot()?.diagram.nodes[0]).toEqual({id: 'orders', label: 'Orders', legendEntryId: 'legend-entry-1', role: 'focal'})
         expect(service.getSourceSnapshot()?.diagram).not.toHaveProperty('width')
     })
 

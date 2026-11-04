@@ -12,6 +12,6 @@ export function derivedDiagramLegendEntries(data: {
 
     return [
         ...nodeKinds.map((nodeKind, index) => ({ id: `derived-legend-${index + 1}`, label: diagramNodeKindLabel(nodeKind), nodeKind })),
-        ...edgeKinds.map((kind, index) => ({ id: `derived-legend-${nodeKinds.length + index + 1}`, kind, label: diagramEdgeKindLabel(kind) })),
+        ...edgeKinds.map((kind, index) => ({id: `derived-legend-${nodeKinds.length + index + 1}`, kind, label: diagramEdgeKindLabel(kind), useLabelAsDefault: false})),
     ]
 }

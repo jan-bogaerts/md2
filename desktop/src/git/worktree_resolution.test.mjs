@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const indexCoordinator = require('./git_index_coordinator');
 vi.spyOn(indexCoordinator, 'withGitIndexMutations').mockImplementation(mockedIndexMutation);
 const { WorktreeService } = require('./worktree_service');
-const project = { branch: 'main', id: '/repo', rootPath: '/repo' };
+const project = { branch: 'main', id: '/repo', rootPath: path.resolve('/repo') };
 const selected = {
     branch: 'feature/selected', error: null, parkingBranch: 'md2/parking/selected', path: '/selected',
     status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
@@ -31,10 +32,11 @@ async function unchangedPath(folder) {
     return folder;
 }
 
-function createService(records) {
+function createService(records, cachedRecords = records) {
     const service = new WorktreeService({ runGit: vi.fn(mockedGit), setTimeout: () => 1, clearTimeout: () => {} });
     service.project = project;
-    service.records = [other, selected];
+    service.records = cachedRecords;
+    vi.spyOn(service, 'runGit');
     vi.spyOn(service, 'readWorktreeRecords').mockResolvedValue(records);
 
     return service;
@@ -53,7 +55,7 @@ describe('live worktree resolution', () => {
     afterAll(() => vi.restoreAllMocks());
 
     it('uses the current registration list instead of the stale position', async () => {
-        const service = createService([selected, other]);
+        const service = createService([selected, other], [other, selected]);
         const resolution = await service.resolveBranch(project, selected.branch);
         expect(resolution.index).toBe(1);
         expect(resolution.record.path).toBe(selected.path);
@@ -87,7 +89,7 @@ describe('live worktree resolution', () => {
     it.each(['prepare', 'commit', 'push', 'pull', 'rebase', 'integrate', 'synchronize', 'discard', 'park', 'readDiffContext'])(
         'blocks %s before any Git command when the assigned branch disappears', async (operation) => {
             const service = createService([other]);
-            await expect(service[operation](project, selected.branch, 'message')).rejects.toThrow(/unavailable/u);
+            await expect(async () => service[operation](project, selected.branch, 'message')).rejects.toThrow(/unavailable/u);
             expect(service.runGit).not.toHaveBeenCalled();
         },
     );

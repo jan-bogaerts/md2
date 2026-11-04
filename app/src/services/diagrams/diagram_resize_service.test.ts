@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { DiagramData } from './diagram_data'
+import { parseDiagramData, type DiagramData } from './diagram_data'
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import { DiagramGeometryService } from './diagram_geometry_service'
 import type { DiagramRecord } from './diagram_index'
@@ -11,7 +11,7 @@ import {
 import { DiagramSelectionService, type DiagramSelectionIdentity } from './diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
 
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{
         from: 'orders',
         id: 'orders-store',
@@ -26,7 +26,7 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal', x: 40, y: 40 },
         { height: 56, id: 'store', label: 'Store', role: 'store', width: 120, x: 240, y: 40 },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 const orders: DiagramSelectionIdentity = { objectId: 'orders', objectKind: 'node' }
@@ -35,12 +35,12 @@ const edge: DiagramSelectionIdentity = { objectId: 'orders-store', objectKind: '
 const group: DiagramSelectionIdentity = { objectId: 'backend', objectKind: 'group' }
 const mindmapRoot: DiagramSelectionIdentity = { objectId: 'root', objectKind: 'node' }
 
-const mindmapDiagram: DiagramData = {
+const mindmapDiagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [],
     groups: [],
     meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
     nodes: [{ height: 128, id: 'root', kind: 'root', label: 'Root', role: 'focal', width: 128, x: 40, y: 40 }],
-}
+}))
 
 class DiagramSourceStub extends EventTarget {
     private readonly source: DiagramViewSourceSnapshot

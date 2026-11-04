@@ -23,9 +23,7 @@ describe('diagramEdgeKindsForType', () => {
 
 describe('parseDiagramData', () => {
     it('parses and serializes empty and populated mindmaps', () => {
-        const empty: DiagramData = {
-            edges: [], groups: [], meta: { description: 'Ideas', legend: [], title: 'Ideas', type: 'mindmap', version: 3 }, nodes: [],
-        }
+        const empty: DiagramData = {edges: [], groups: [], meta: { description: 'Ideas', legend: [], title: 'Ideas', type: 'mindmap', version: 3 }, nodes: []}
         expect(parseDiagramData(serializeDiagramData(empty))).toEqual(empty)
 
         const populated: DiagramData = {
@@ -229,7 +227,8 @@ describe('parseDiagramData', () => {
                 ...versionTwo.meta,
                 legend: versionTwo.meta.legend.map((entry) => {
                     if (!('kind' in entry)) return entry
-                    const { useLabelAsDefault: _useLabelAsDefault, ...legacyEntry } = entry
+                    const { useLabelAsDefault, ...legacyEntry } = entry
+                    void useLabelAsDefault
 
                     return legacyEntry
                 }),
@@ -286,21 +285,15 @@ describe('parseDiagramData', () => {
         const diagram = parseDiagramData(JSON.stringify(validDiagram()))
         diagram.meta.legend.push({ id: 'connection-secondary', kind: 'connection', label: 'Replication', useLabelAsDefault: true })
         diagram.edges[0].legendEntryId = 'connection-secondary'
-        diagram.formatting = {
-            legendEntries: { 'connection-secondary': { line: { color: '#112233', thickness: 4 } } },
-        }
+        diagram.formatting = {legendEntries: { 'connection-secondary': { line: { color: '#112233', thickness: 4 } } }}
 
         expect(parseDiagramData(serializeDiagramData(diagram))).toEqual(diagram)
         expect(() => parseDiagramData(JSON.stringify({
             ...diagram,
             meta: { ...diagram.meta, legend: [...diagram.meta.legend, { ...diagram.meta.legend[0] }] },
         }))).toThrow('meta.legend has duplicate id legend-entry-1')
-        expect(() => parseDiagramData(JSON.stringify({
-            ...diagram, nodes: [{ ...diagram.nodes[0], legendEntryId: 'missing' }, diagram.nodes[1]],
-        }))).toThrow('nodes.api.legendEntryId has unknown legend entry missing')
-        expect(() => parseDiagramData(JSON.stringify({
-            ...diagram, edges: [{ ...diagram.edges[0], legendEntryId: 'legend-entry-1' }],
-        }))).toThrow('edges.request.legendEntryId has incompatible legend entry legend-entry-1')
+        expect(() => parseDiagramData(JSON.stringify({...diagram, nodes: [{ ...diagram.nodes[0], legendEntryId: 'missing' }, diagram.nodes[1]]}))).toThrow('nodes.api.legendEntryId has unknown legend entry missing')
+        expect(() => parseDiagramData(JSON.stringify({...diagram, edges: [{ ...diagram.edges[0], legendEntryId: 'legend-entry-1' }]}))).toThrow('edges.request.legendEntryId has incompatible legend entry legend-entry-1')
     })
 
     it('rejects a legend entry naming an edge kind the diagram type does not support', () => {

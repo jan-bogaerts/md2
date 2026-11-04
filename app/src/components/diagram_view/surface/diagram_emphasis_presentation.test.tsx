@@ -1,7 +1,7 @@
 import { ThemeProvider } from '@mui/material'
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData } from '../../../services/diagrams/diagram_data'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramEmphasisService } from '../../../services/diagrams/diagram_emphasis_service'
 import type { DiagramViewService } from '../../../services/diagrams/diagram_view_service'
@@ -11,7 +11,7 @@ import { SequenceActivation } from '../rendering/sequence_activation'
 import { SequenceFragment } from '../rendering/sequence_fragment'
 import { SequenceLifeline } from '../rendering/sequence_lifeline'
 
-const diagram: DiagramData = {
+const diagram = parseDiagramData(JSON.stringify({
     edges: [{ from: 'one', id: 'one-two', kind: 'call', to: 'two' }],
     groups: [{ id: 'group', label: 'Group', nodeIds: ['one', 'two'] }],
     meta: { description: 'Sequence', title: 'Sequence', type: 'sequence', version: 1 },
@@ -19,7 +19,7 @@ const diagram: DiagramData = {
         { id: 'one', label: 'One', role: 'focal' },
         { id: 'two', label: 'Two', role: 'backend' },
     ],
-}
+}))
 
 function emphasisService() {
     const view = {

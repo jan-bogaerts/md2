@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from './diagram_data'
+import { parseDiagramData, type DiagramData } from './diagram_data'
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import { DiagramGeometryService } from './diagram_geometry_service'
 import type { DiagramRecord } from './diagram_index'
@@ -7,7 +7,7 @@ import { DiagramMoveService } from './diagram_move_service'
 import { DiagramSelectionService, type DiagramSelectionIdentity } from './diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
 
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' }],
     groups: [{ height: 120, id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'], width: 240, x: 20, y: 20 }],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
@@ -16,7 +16,7 @@ const diagram: DiagramData = {
         { height: 56, id: 'store', label: 'Store', role: 'store', width: 120, x: 200, y: 40 },
         { height: 56, id: 'external', label: 'External', role: 'external', width: 120, x: 360, y: 40 },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 const orders: DiagramSelectionIdentity = { objectId: 'orders', objectKind: 'node' }

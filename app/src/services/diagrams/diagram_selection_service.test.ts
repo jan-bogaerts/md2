@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from './diagram_data'
+import { parseDiagramData, type DiagramData } from './diagram_data'
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import { DiagramGeometryService } from './diagram_geometry_service'
 import type { DiagramRecord } from './diagram_index'
 import { DiagramSelectionService, type DiagramSelectionIdentity } from './diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
 
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' }],
     groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
@@ -14,7 +14,7 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 const orders: DiagramSelectionIdentity = { objectId: 'orders', objectKind: 'node' }
@@ -100,14 +100,14 @@ function createCurvedRectangleHarness() {
 
 describe('DiagramSelectionService', () => {
     it('tracks one boundary across selected nodes, groups, and routed edges as geometry changes', () => {
-        const sourceDiagram: DiagramData = {
+        const sourceDiagram: DiagramData = parseDiagramData(JSON.stringify({
             ...diagram,
             groups: [{ height: 40, id: 'backend', label: 'Backend', nodeIds: ['orders'], width: 80, x: 300, y: 200 }],
             nodes: [
-                { id: 'orders', label: 'Orders', role: 'focal', width: 80, height: 40, x: 40, y: 40 },
-                { id: 'store', label: 'Store', role: 'store', width: 80, height: 40, x: 200, y: 40 },
+                { ...diagram.nodes[0], width: 80, height: 40, x: 40, y: 40 },
+                { ...diagram.nodes[1], width: 80, height: 40, x: 200, y: 40 },
             ],
-        }
+        }))
         const session = new DiagramEditSessionService(new DiagramSourceStub(sourceDiagram))
         session.bindProject(project)
         session.start()

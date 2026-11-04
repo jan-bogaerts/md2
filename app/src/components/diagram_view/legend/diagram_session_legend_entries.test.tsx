@@ -13,7 +13,7 @@ import { DiagramLegend } from './diagram_legend'
 import { DiagramSessionLegendEntries } from './diagram_session_legend_entries'
 import { diagramObjectDetailsService } from '../details/diagram_object_details_service'
 
-const diagram: DiagramData = {
+const diagram = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' }],
     groups: [],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
@@ -21,11 +21,14 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
-}
-const legendDiagram: DiagramData = {
-    ...diagram,
-    meta: { ...diagram.meta, legend: [{ label: 'Service', role: 'focal' }, { kind: 'connection', label: 'Calls' }] },
-}
+}))
+const legendDiagram = structuredClone(diagram)
+legendDiagram.meta.legend = [
+    { id: 'service-entry', label: 'Service', role: 'focal' },
+    { id: 'calls-entry', kind: 'connection', label: 'Calls', useLabelAsDefault: false },
+]
+legendDiagram.nodes = legendDiagram.nodes.map((node) => ({ ...node, legendEntryId: 'service-entry', role: 'focal' }))
+legendDiagram.edges = legendDiagram.edges.map((edge) => ({ ...edge, legendEntryId: 'calls-entry' }))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const theme = createAppTheme('dark')
 
@@ -132,9 +135,7 @@ describe('DiagramSessionLegendEntries', () => {
         await user.click(screen.getByRole('switch', { name: 'Bold' }))
         await user.click(screen.getByRole('button', { name: 'Apply' }))
 
-        expect(session.read.getNodeFormattingSnapshot(serviceEntryId, 'focal')).toMatchObject({
-            font: { bold: true, family: MARKDOWN_STYLE_PRESETS.modern.body.fontFamily },
-        })
+        expect(session.read.getNodeFormattingSnapshot(serviceEntryId, 'focal')).toMatchObject({font: { bold: true, family: MARKDOWN_STYLE_PRESETS.modern.body.fontFamily }})
     })
 
     it('offers all connection markers and Cancel changes nothing', async () => {
@@ -199,11 +200,11 @@ describe('DiagramSessionLegendEntries', () => {
     })
 
     it('disables formatting for a saved node kind with no used nodes', () => {
-        const source: DiagramData = {
+        const source = parseDiagramData(JSON.stringify({
             edges: [], groups: [],
             meta: { description: 'Empty', legend: [{ label: 'Module', nodeKind: 'component' }], title: 'Empty', type: 'architecture', version: 1 },
             nodes: [],
-        }
+        }))
         const session = startSession(source)
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
@@ -325,7 +326,10 @@ describe('DiagramLegend session tabs', () => {
         await user.click(screen.getByRole('button', { name: 'Apply' }))
 
         expect(setNewFormatting).toHaveBeenCalledOnce()
-        expect(setNewFormatting).toHaveBeenCalledWith(serviceEntryId, expect.objectContaining({ font: expect.objectContaining({ bold: true }) }))
+        expect(setNewFormatting).toHaveBeenCalledWith(
+            serviceEntryId,
+            expect.objectContaining({ font: expect.objectContaining({ bold: true }) }),
+        )
         expect(setCurrentFormatting).not.toHaveBeenCalled()
 
         await user.click(screen.getByRole('tab', { name: 'Current' }))
@@ -335,7 +339,10 @@ describe('DiagramLegend session tabs', () => {
         await user.click(screen.getByRole('button', { name: 'Apply' }))
 
         expect(setCurrentFormatting).toHaveBeenCalledOnce()
-        expect(setCurrentFormatting).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ font: expect.objectContaining({ italic: true }) }))
+        expect(setCurrentFormatting).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ font: expect.objectContaining({ italic: true }) }),
+        )
         expect(setNewFormatting).toHaveBeenCalledOnce()
     })
 })

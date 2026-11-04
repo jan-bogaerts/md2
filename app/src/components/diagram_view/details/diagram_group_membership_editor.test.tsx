@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
@@ -11,15 +11,15 @@ const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'O
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
 function diagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [],
-        groups: [{ height: 8, id: 'backend', label: 'Backend', nodeIds: ['orders'], width: 12, x: 4, y: 2 }],
+        groups: [{ height: 8, id: 'backend', label: 'Backend', nodeIds: ['orders'], width: 12, x: 4, y: 4 }],
         meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
         nodes: [
             { id: 'orders', label: 'Orders', role: 'focal' },
             { id: 'store', label: 'Store', role: 'store' },
         ],
-    }
+    }))
 }
 
 class DiagramSourceStub extends EventTarget {

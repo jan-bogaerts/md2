@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData } from '../../../services/diagrams/diagram_data'
 import { layout } from '../../../services/diagrams/diagram_layout'
 import { DiagramViewService } from '../../../services/diagrams/diagram_view_service'
 import {
@@ -13,12 +13,12 @@ import { DiagramCurrentViewport } from './diagram_current_viewport'
 import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
 import { workspaceViewService } from '../../../services/project/workspace_view_service'
 
-const diagram: DiagramData = {
+const diagram = parseDiagramData(JSON.stringify({
     edges: [],
     groups: [],
     meta: { description: 'Current diagram', title: 'Current', type: 'architecture', version: 1 },
     nodes: [{ id: 'orders', label: 'Orders', role: 'focal' }],
-}
+}))
 
 function renderCurrentViewport(onSelect = vi.fn()) {
     const service = new DiagramViewService()

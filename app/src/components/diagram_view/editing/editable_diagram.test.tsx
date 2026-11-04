@@ -22,7 +22,7 @@ function render(element: ReactElement) {
     return testingRender(<AppThemeProvider>{element}</AppThemeProvider>);
 }
 
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
     groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
@@ -30,7 +30,7 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
@@ -105,13 +105,13 @@ afterEach(cleanup)
 describe('editable diagram', () => {
     it.each(['architecture', 'dependency', 'entity', 'flow', 'mindmap', 'sequence'] as DiagramType[])(
         'edits title and subtitle on a %s diagram', (type) => {
-            const sourceDiagram: DiagramData = {
+            const sourceDiagram: DiagramData = parseDiagramData(JSON.stringify({
                 edges: [], groups: [], nodes: [],
                 meta: {
                     description: 'Original subtitle', title: 'Original title', type, version: 1,
                     ...(type === 'flow' ? { preset: 'flowchart' as const } : {}),
                 },
-            }
+            }))
             const { session } = createHarness(sourceDiagram)
             render(<><DiagramBreadcrumbMetadataField field="title" session={session} /><DiagramBreadcrumbMetadataField field="description" session={session} /></>)
 
@@ -174,7 +174,8 @@ describe('editable diagram', () => {
         const { geometry, selection, session } = createHarness()
         render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
         const label = screen.getByRole('textbox', { name: 'Edit writes label' })
-        const editor = label.closest('foreignObject') as SVGForeignObjectElement
+        const editor = label.closest('svg')?.querySelector('foreignObject')
+        if (!editor) throw new Error('Missing connection label editor container')
         const restingWidth = Number(editor.getAttribute('width'))
 
         fireEvent.focus(label)

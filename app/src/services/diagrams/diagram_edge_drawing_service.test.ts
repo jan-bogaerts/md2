@@ -16,7 +16,7 @@ const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'O
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
 function architectureDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{ from: 'source', id: 'existing', kind: 'connection', to: 'target' }],
         groups: [],
         meta: { description: 'Editable architecture', title: 'Architecture', type: 'architecture', version: 1 },
@@ -24,11 +24,11 @@ function architectureDiagram(): DiagramData {
             { height: 80, id: 'source', label: 'Source', role: 'focal', width: 120, x: 0, y: 0 },
             { height: 80, id: 'target', label: 'Target', role: 'store', width: 120, x: 240, y: 0 },
         ],
-    }
+    }))
 }
 
 function dependencyDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{ from: 'source', id: 'existing', kind: 'dependency', to: 'target' }],
         groups: [],
         meta: { description: 'Editable dependencies', title: 'Dependencies', type: 'dependency', version: 1 },
@@ -36,11 +36,11 @@ function dependencyDiagram(): DiagramData {
             { height: 80, id: 'source', label: 'Source', role: 'focal', width: 120, x: 0, y: 0 },
             { height: 80, id: 'target', label: 'Target', role: 'backend', width: 120, x: 240, y: 0 },
         ],
-    }
+    }))
 }
 
 function sequenceDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [
             { from: 'source', id: 'call', kind: 'call', to: 'target' },
             { from: 'target', id: 'return', kind: 'return', to: 'source' },
@@ -51,11 +51,11 @@ function sequenceDiagram(): DiagramData {
             { height: 72, id: 'source', kind: 'participant', label: 'Source', role: 'focal', width: 120, x: 0, y: 40 },
             { height: 72, id: 'target', kind: 'participant', label: 'Target', role: 'store', width: 120, x: 240, y: 40 },
         ],
-    }
+    }))
 }
 
 function flowchartDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{ from: 'step', id: 'existing', kind: 'flow', to: 'check' }],
         groups: [],
         meta: { description: 'Editable flowchart', preset: 'flowchart', title: 'Flow', type: 'flow', version: 1 },
@@ -64,11 +64,11 @@ function flowchartDiagram(): DiagramData {
             { height: 96, id: 'check', kind: 'decision', label: 'Check', role: 'focal', width: 96, x: 240, y: 0 },
             { height: 72, id: 'done', kind: 'end', label: 'Done', role: 'backend', width: 120, x: 480, y: 0 },
         ],
-    }
+    }))
 }
 
 function stateDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{ from: 'idle', id: 'existing', kind: 'transition', label: 'start', to: 'working' }],
         groups: [],
         meta: { description: 'Editable states', preset: 'state', title: 'States', type: 'flow', version: 1 },
@@ -76,11 +76,11 @@ function stateDiagram(): DiagramData {
             { height: 72, id: 'idle', kind: 'state', label: 'Idle', role: 'focal', width: 160, x: 0, y: 0 },
             { height: 72, id: 'working', kind: 'state', label: 'Working', role: 'backend', width: 160, x: 240, y: 0 },
         ],
-    }
+    }))
 }
 
 function entityDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [],
         groups: [],
         meta: { description: 'Editable entities', title: 'Entities', type: 'entity', version: 1 },
@@ -88,11 +88,11 @@ function entityDiagram(): DiagramData {
             { height: 80, id: 'source', kind: 'entity', label: 'Source', role: 'focal', width: 120, x: 0, y: 0 },
             { height: 80, id: 'target', kind: 'entity', label: 'Target', role: 'store', width: 120, x: 240, y: 0 },
         ],
-    }
+    }))
 }
 
 function mindmapDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [],
         groups: [],
         meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
@@ -100,7 +100,7 @@ function mindmapDiagram(): DiagramData {
             { height: 128, id: 'source', kind: 'root', label: 'Source', role: 'focal', width: 128, x: 0, y: 0 },
             { height: 96, id: 'target', kind: 'topic', label: 'Target', role: 'backend', width: 96, x: 280, y: 20 },
         ],
-    }
+    }))
 }
 
 class DiagramSourceStub extends EventTarget {
@@ -198,9 +198,7 @@ describe('DiagramEdgeDrawingService', () => {
         drawing.beginSource('source', { x: 120, y: 40 })
         drawing.completeTarget('target', { x: 240, y: 40 }, true)
 
-        expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
-            kind: 'connection', label: 'Secondary', legendEntryId: 'secondary-connection',
-        })
+        expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({kind: 'connection', label: 'Secondary', legendEntryId: 'secondary-connection'})
     })
 
     it('applies renamed defaults only to later edges and disabling leaves later edges unlabelled', () => {
@@ -230,7 +228,7 @@ describe('DiagramEdgeDrawingService', () => {
 
     it('keeps edge default when selected legend entry is a node role', () => {
         const source = parseDiagramData(JSON.stringify(architectureDiagram()))
-        const storeEntry = { id: 'store-entry', label: 'Store', role: 'store' as const }
+        const storeEntry = { legendEntryId: 'legend-entry', id: 'store-entry', label: 'Store', role: 'store' as const }
         source.meta.legend.push(storeEntry)
         const { drawing, session } = createHarness(source)
         drawing.activate({ kind: 'data' })
@@ -266,6 +264,7 @@ describe('DiagramEdgeDrawingService', () => {
         expect(drawing.completeTarget('target', { x: 240, y: 60 }, true)).toBe('drawn-edge')
 
         expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
+            legendEntryId: expect.any(String),
             from: 'source',
             kind: 'relationship',
             sourceAttachment: { nodeId: 'source', offset: 0.25, side: 'right' },
@@ -346,6 +345,7 @@ describe('DiagramEdgeDrawingService', () => {
         expect(drawing.completeTarget('target', { x: 240, y: 60 }, true)).toBe('drawn-edge')
 
         expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
+            legendEntryId: expect.any(String),
             from: 'source',
             kind: 'data',
             label: 'payload',
@@ -427,6 +427,7 @@ describe('DiagramEdgeDrawingService', () => {
         expect(drawing.completeTarget('done', { x: 480, y: 36 }, true)).toBe('drawn-edge')
 
         expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
+            legendEntryId: expect.any(String),
             from: 'check',
             kind: 'flow',
             label: 'New branch',
@@ -479,16 +480,12 @@ describe('DiagramEdgeDrawingService', () => {
     it('does not relabel an existing edge when its legend entry changes', () => {
         const source = parseDiagramData(JSON.stringify(architectureDiagram()))
         source.edges[0].label = 'Stored label'
-        source.meta.legend.push({
-            id: 'alternate-connection', kind: 'connection', label: 'Alternate', useLabelAsDefault: true,
-        })
+        source.meta.legend.push({id: 'alternate-connection', kind: 'connection', label: 'Alternate', useLabelAsDefault: true})
         const { session } = createHarness(source)
 
         session.objects.setEdgeClassification('existing', { kind: 'connection', legendEntryId: 'alternate-connection' })
 
-        expect(session.read.getEdgeSnapshot('existing')).toMatchObject({
-            label: 'Stored label', legendEntryId: 'alternate-connection',
-        })
+        expect(session.read.getEdgeSnapshot('existing')).toMatchObject({label: 'Stored label', legendEntryId: 'alternate-connection'})
     })
 
     it('labels every drawn state transition and keeps shared attachments and routing', () => {
@@ -501,6 +498,7 @@ describe('DiagramEdgeDrawingService', () => {
         expect(drawing.completeTarget('idle', { x: 0, y: 54 }, true)).toBe('drawn-edge')
 
         expect(session.read.getEdgeSnapshot('drawn-edge')).toMatchObject({
+            legendEntryId: expect.any(String),
             from: 'working',
             kind: 'transition',
             label: 'New transition',

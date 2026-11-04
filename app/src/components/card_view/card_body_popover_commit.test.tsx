@@ -379,7 +379,7 @@ describe('CardBodyPopover commit diff', () => {
     })
 
     it('uses same worktree panel from menu action and popup entry, then removes it when eligibility is lost', async () => {
-        const assignedCard = { ...card, header: { ...card.header, worktree: 1, worktreeValue: '1' } }
+        const assignedCard = { ...card, header: { ...card.header, branch: 'feature', worktree: 1, worktreeValue: '1' } }
         vi.spyOn(dataService, 'getState').mockReturnValue({
             project: null,
             runningAgents: [],

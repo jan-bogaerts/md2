@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagramData, DiagramType } from './diagram_data'
+import { parseDiagramData, type DiagramData, type DiagramType } from './diagram_data'
 import { DiagramEditSessionService } from './diagram_edit_session_service'
 import { DiagramGeometryService } from './diagram_geometry_service'
 import type { DiagramRecord } from './diagram_index'
@@ -9,7 +9,7 @@ const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'O
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
 function architectureDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [
             { from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' },
             { from: 'orders', id: 'orders-mail', kind: 'connection', to: 'mail' },
@@ -21,11 +21,11 @@ function architectureDiagram(): DiagramData {
             { height: 64, id: 'store', label: 'Store', role: 'store', width: 120, x: 240, y: 320 },
             { id: 'mail', label: 'Mail', role: 'external' },
         ],
-    }
+    }))
 }
 
 function sequenceDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [
             { from: 'user', id: 'user-orders', kind: 'call', to: 'orders' },
             { from: 'orders', id: 'orders-store', kind: 'call', to: 'store' },
@@ -34,17 +34,26 @@ function sequenceDiagram(): DiagramData {
         ],
         fragments: [{ id: 'transaction', operator: 'opt', regions: [{ edgeIds: ['orders-store'], guard: 'requested' }] }],
         groups: [],
-        meta: { description: 'Order call flow', title: 'Calls', type: 'sequence', version: 1 },
+        meta: {
+            description: 'Order call flow',
+            legend: [
+                { kind: 'async', label: 'Async' },
+                { kind: 'success', label: 'Success' },
+            ],
+            title: 'Calls',
+            type: 'sequence',
+            version: 1,
+        },
         nodes: [
             { id: 'user', kind: 'participant', label: 'User', role: 'external' },
             { id: 'orders', kind: 'participant', label: 'Orders', role: 'focal' },
             { id: 'store', kind: 'participant', label: 'Store', role: 'store' },
         ],
-    }
+    }))
 }
 
 function dependencyDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [
             { from: 'app', id: 'app-core', kind: 'dependency', to: 'core' },
             { from: 'core', id: 'core-app', kind: 'cycle', to: 'app' },
@@ -55,11 +64,11 @@ function dependencyDiagram(): DiagramData {
             { id: 'app', label: 'App', role: 'focal' },
             { id: 'core', label: 'Core', role: 'backend' },
         ],
-    }
+    }))
 }
 
 function editableDependencyDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [
             {
                 from: 'app', id: 'app-core', kind: 'dependency',
@@ -85,11 +94,11 @@ function editableDependencyDiagram(): DiagramData {
             { height: 64, id: 'auxiliary', label: 'Auxiliary', role: 'external', width: 120, x: 0, y: 200 },
             { height: 64, id: 'sink', label: 'Sink', role: 'store', width: 120, x: 240, y: 200 },
         ],
-    }
+    }))
 }
 
 function flowDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [
             { from: 'begin', id: 'begin-check', kind: 'flow', to: 'check' },
             { from: 'check', id: 'check-done', kind: 'flow', label: 'yes', to: 'done' },
@@ -101,11 +110,11 @@ function flowDiagram(): DiagramData {
             { id: 'check', kind: 'decision', label: 'Valid?', role: 'focal' },
             { id: 'done', kind: 'end', label: 'Done', role: 'backend' },
         ],
-    }
+    }))
 }
 
 function entityDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{ from: 'order', fromCardinality: '1', id: 'order-line', kind: 'relationship', to: 'line', toCardinality: '1..*' }],
         groups: [],
         meta: { description: 'Order model', title: 'Orders', type: 'entity', version: 1 },
@@ -113,11 +122,11 @@ function entityDiagram(): DiagramData {
             { fields: [{ key: 'primary', name: 'id', type: 'uuid' }], id: 'order', label: 'Order', role: 'focal' },
             { fields: [{ key: 'foreign', name: 'orderId' }], id: 'line', label: 'Line', role: 'backend' },
         ],
-    }
+    }))
 }
 
 function mindmapDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [
             { from: 'root', id: 'root-a', kind: 'connection', to: 'a' },
             { from: 'a', id: 'a-child', kind: 'connection', label: 'child', to: 'child' },
@@ -132,7 +141,7 @@ function mindmapDiagram(): DiagramData {
             { id: 'grandchild', kind: 'topic', label: 'Grandchild', role: 'backend' },
             { id: 'detached', kind: 'topic', label: 'Detached', role: 'optional' },
         ],
-    }
+    }))
 }
 
 class DiagramSourceStub extends EventTarget {
@@ -140,7 +149,7 @@ class DiagramSourceStub extends EventTarget {
 
     constructor(diagram: DiagramData) {
         super()
-        this.source = { diagram, record }
+        this.source = { diagram: parseDiagramData(JSON.stringify(diagram)), record }
     }
 
     getSourceSnapshot = () => this.source
@@ -161,19 +170,31 @@ function createHarness(diagram: DiagramData = architectureDiagram(), createId?: 
     return { geometry, session }
 }
 
+function legendEntryId(session: DiagramEditSessionService, field: 'kind' | 'nodeKind', value: string) {
+    const entry = session.read.getEditableDiagram()?.meta.legend.find((candidate) => field === 'kind'
+        ? 'kind' in candidate && candidate.kind === value
+        : 'nodeKind' in candidate && candidate.nodeKind === value)
+    if (!entry) throw new Error(`Missing ${field} legend entry for ${value}`)
+
+    return entry.id
+}
+
 function edgeGrowthDiagram(): DiagramData {
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [],
         groups: [],
         meta: { description: 'Growth', title: 'Growth', type: 'architecture', version: 1 },
         nodes: [{ height: 64, id: 'moving', label: 'Moving', role: 'focal', width: 120, x: 80, y: 80 }],
-    }
+    }))
 }
 
 describe('DiagramGeometryService surface growth', () => {
     it('uses viewport minimum for an empty diagram without editing or saving it', () => {
-        const meta: DiagramData['meta'] = { description: '', title: 'Empty', type: 'architecture', version: 1 }
-        const emptyDiagram: DiagramData = { edges: [], groups: [], meta, nodes: [] }
+        const emptyDiagram = parseDiagramData(JSON.stringify({
+            edges: [], groups: [],
+            meta: { description: 'Empty diagram', title: 'Empty', type: 'architecture', version: 1 },
+            nodes: [],
+        }))
         const { geometry, session } = createHarness(emptyDiagram)
         const originalJson = JSON.stringify(session.read.getEditableDiagram())
         const originalWidth = geometry.getSurfaceFieldSnapshot('width')
@@ -305,7 +326,8 @@ describe('DiagramGeometryService', () => {
         geometry.subscribeNodeGeometryField('detached', 'x', detachedEvents)
         geometry.subscribeNodeGeometryField('child', 'y', childEvents)
 
-        expect(session.createEdge({ from: 'root', kind: 'connection', to: 'child' })).toBe('root-child')
+        const legendEntryIdValue = legendEntryId(session, 'kind', 'connection')
+        expect(session.createEdge({ from: 'root', kind: 'connection', legendEntryId: legendEntryIdValue, to: 'child' })).toBe('root-child')
 
         expect(nodeBox(geometry, 'detached')).toEqual(detachedBefore)
         expect(detachedEvents).not.toHaveBeenCalled()
@@ -550,7 +572,8 @@ describe('DiagramGeometryService', () => {
         const { geometry, session } = createHarness()
         const before = nodeBox(geometry, 'store')
 
-        const nodeId = session.createNode({ label: 'Audit', role: 'backend', x: 40, y: 40 })
+        const legendEntryIdValue = legendEntryId(session, 'nodeKind', 'component')
+        const nodeId = session.createNode({ label: 'Audit', legendEntryId: legendEntryIdValue, role: 'backend', x: 40, y: 40 })
         if (!nodeId) throw new Error('Expected node creation to succeed')
 
         expect(nodeBox(geometry, nodeId)).toMatchObject({ x: 40, y: 40 })
@@ -578,7 +601,8 @@ describe('DiagramGeometryService', () => {
         }
         const fragmentGuards = geometry.getFragmentGuardPositionsSnapshot('transaction')
 
-        const participantId = session.createNode({height: 72, kind: 'participant', label: 'Audit', role: 'focal', width: 160, x: 720, y: 40})
+        const legendEntryIdValue = legendEntryId(session, 'nodeKind', 'participant')
+        const participantId = session.createNode({height: 72, kind: 'participant', label: 'Audit', legendEntryId: legendEntryIdValue, role: 'focal', width: 160, x: 720, y: 40})
         if (!participantId) throw new Error('Expected participant creation to succeed')
 
         expect(nodeBox(geometry, participantId)).toEqual({ height: 72, width: 160, x: 720, y: 40 })
@@ -722,7 +746,8 @@ describe('DiagramGeometryService', () => {
         const fragmentTop = geometry.getFragmentGeometryFieldSnapshot('transaction', 'y')
         const dispatched = recordGeometryEvents(geometry)
 
-        const edgeId = session.createSequenceEdge({ from: 'user', kind: 'async', to: 'store' }, 1)
+        const legendEntryIdValue = legendEntryId(session, 'kind', 'async')
+        const edgeId = session.createSequenceEdge({ from: 'user', kind: 'async', legendEntryId: legendEntryIdValue, to: 'store' }, 1)
         if (!edgeId) throw new Error('Expected sequence message creation to succeed')
 
         expect(geometry.getEdgeRouteSnapshot('user-orders')).toBe(firstRoute)
@@ -737,7 +762,8 @@ describe('DiagramGeometryService', () => {
     it('reflows shifted sequence rows after message movement and deletion', () => {
         const { geometry, session } = createHarness(sequenceDiagram())
         const firstRoute = geometry.getEdgeRouteSnapshot('user-orders')
-        const insertedId = session.createSequenceEdge({ from: 'user', kind: 'async', to: 'store' }, 1)
+        const legendEntryIdValue = legendEntryId(session, 'kind', 'async')
+        const insertedId = session.createSequenceEdge({ from: 'user', kind: 'async', legendEntryId: legendEntryIdValue, to: 'store' }, 1)
         if (!insertedId) throw new Error('Expected sequence message creation to succeed')
         const insertedRoute = geometry.getEdgeRouteSnapshot(insertedId)
         const orderBeforeMove = session.read.getEdgeIdsSnapshot()
@@ -763,8 +789,10 @@ describe('DiagramGeometryService', () => {
         const activationIdsChanged = vi.fn()
         geometry.subscribeActivationIds(activationIdsChanged)
 
-        expect(session.createSequenceEdge({ from: 'user', kind: 'call', to: 'store' }, 1)).toBe('audit-call')
-        expect(session.createSequenceEdge({ from: 'store', kind: 'success', to: 'user' }, 2)).toBe('audit-success')
+        const callLegendEntryId = legendEntryId(session, 'kind', 'call')
+        const successLegendEntryId = legendEntryId(session, 'kind', 'success')
+        expect(session.createSequenceEdge({ from: 'user', kind: 'call', legendEntryId: callLegendEntryId, to: 'store' }, 1)).toBe('audit-call')
+        expect(session.createSequenceEdge({ from: 'store', kind: 'success', legendEntryId: successLegendEntryId, to: 'user' }, 2)).toBe('audit-success')
 
         expect(geometry.getActivationIdsSnapshot()).toContain('store:audit-call')
         expect(geometry.getActivationFieldSnapshot('store:audit-call', 'height')).toBe(48)
@@ -777,15 +805,7 @@ describe('DiagramGeometryService', () => {
             dependency: dependencyDiagram(),
             entity: entityDiagram(),
             flow: flowDiagram(),
-            mindmap: {
-                edges: [{ from: 'root', id: 'root-topic', kind: 'connection', to: 'topic' }],
-                groups: [],
-                meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
-                nodes: [
-                    { id: 'root', kind: 'root', label: 'Root', role: 'focal' },
-                    { id: 'topic', kind: 'topic', label: 'Topic', role: 'backend' },
-                ],
-            },
+            mindmap: mindmapDiagram(),
             sequence: sequenceDiagram(),
         }
         for (const diagram of Object.values(diagrams)) {

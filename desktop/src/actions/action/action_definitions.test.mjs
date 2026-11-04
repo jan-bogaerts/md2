@@ -30,7 +30,7 @@ const IMPLEMENT = {
 const LINT = {command: 'npm run lint', description: 'Lint', id: 'action-lint', label: 'Lint', type: 'command'};
 
 describe('loadActionDefinitions', () => {
-    it('preserves valid account IDs and routes missing, cross-agent, and implicit-agent failures', () => {
+    it('preserves valid and removed account IDs while routing cross-agent and implicit-agent failures', () => {
         const workAccount = {
             agent: 'codex', configDirectory: 'C:/accounts/work',
             id: '11111111-1111-4111-8111-111111111111', kind: 'directory', name: 'Work',
@@ -44,8 +44,8 @@ describe('loadActionDefinitions', () => {
             .toMatchObject({ code: 'agent-required', field: 'accountId' });
         expect(validationError([file('implement', { ...definition, accountId: 'claude-initial' })], dependencies))
             .toMatchObject({ code: 'invalid-agent-account', field: 'accountId' });
-        expect(validationError([file('implement', { ...definition, accountId: 'missing' })], dependencies))
-            .toMatchObject({ code: 'invalid-agent-account', field: 'accountId' });
+        expect(loadActionDefinitions([file('implement', { ...definition, accountId: 'missing' })], dependencies)
+            .find(({ id }) => id === IMPLEMENT.id)).toMatchObject({ accountId: 'missing', agent: 'codex' });
     });
 
     it('preserves new builtin model IDs and explicit speed while rejecting unsupported action speeds', () => {

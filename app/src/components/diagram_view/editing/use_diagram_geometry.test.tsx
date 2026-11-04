@@ -1,6 +1,6 @@
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
@@ -13,7 +13,7 @@ import {
     useDiagramSurfaceField,
 } from './use_diagram_geometry'
 
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [
         { from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' },
         { from: 'orders', id: 'orders-mail', kind: 'connection', to: 'mail' },
@@ -25,7 +25,7 @@ const diagram: DiagramData = {
         { height: 64, id: 'store', label: 'Store', role: 'store', width: 120, x: 240, y: 320 },
         { id: 'mail', label: 'Mail', role: 'external' },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 

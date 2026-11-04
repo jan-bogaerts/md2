@@ -16,6 +16,15 @@ interface ReaderData {
     originalLegend?: Readonly<Record<string, string>>;
 }
 
+function legendField(entryKey: string, field: string, labels: Readonly<Record<string, string>> | undefined) {
+    if (field === 'label') return labels?.[entryKey] ?? null;
+    const separator = entryKey.indexOf(':');
+    const semanticField = entryKey.slice(0, separator);
+    if (field === 'kind' && semanticField === 'connection') return entryKey.slice(separator + 1);
+
+    return field === semanticField || (field === 'role' && semanticField === 'node') ? entryKey.slice(separator + 1) : null;
+}
+
 function diagramChange(overrides: Partial<DiagramChange> & Pick<DiagramChange, 'id' | 'objectId' | 'objectKind'>): DiagramChange {
     return {
         category: 'field',
@@ -41,19 +50,21 @@ function reader(data: ReaderData = {}) {
             getEdgeSnapshot: vi.fn((edgeId: string) => edges.get(edgeId) ?? null),
             getGroupIdsSnapshot: vi.fn(() => [...groups.keys()]),
             getGroupSnapshot: vi.fn((groupId: string) => groups.get(groupId) ?? null),
-            getLegendEntryFieldSnapshot: vi.fn((entryKey: string) => data.legend?.[entryKey] ?? null),
+            getLegendEntryFieldSnapshot: vi.fn((entryKey: string, field: string) => legendField(entryKey, field, data.legend)),
             getNodeIdsSnapshot: vi.fn(() => [...nodes.keys()]),
             getNodeSnapshot: vi.fn((nodeId: string) => nodes.get(nodeId) ?? null),
-            getOriginalLegendEntryFieldSnapshot: vi.fn((entryKey: string) => data.originalLegend?.[entryKey] ?? null),
+            getOriginalLegendEntryFieldSnapshot: vi.fn((entryKey: string, field: string) => (
+                legendField(entryKey, field, data.originalLegend)
+            )),
         },
     } as unknown as DiagramChangeDescriptionReader;
 
     return value;
 }
 
-const ordersNode: DiagramNode = { id: 'orders', label: 'Orders', role: 'focal' };
-const storeNode: DiagramNode = { id: 'store', label: 'Store', role: 'store' };
-const callsEdge: DiagramEdge = { from: 'orders', id: 'orders-store', kind: 'call', label: 'Loads', to: 'store' };
+const ordersNode: DiagramNode = { legendEntryId: 'focal', id: 'orders', label: 'Orders', role: 'focal' };
+const storeNode: DiagramNode = { legendEntryId: 'store', id: 'store', label: 'Store', role: 'store' };
+const callsEdge: DiagramEdge = { legendEntryId: 'call', from: 'orders', id: 'orders-store', kind: 'call', label: 'Loads', to: 'store' };
 const backendGroup: DiagramGroup = { id: 'backend', label: 'Backend', nodeIds: ['orders'] };
 
 describe('diagram change descriptions', () => {
@@ -104,6 +115,7 @@ describe('diagram change descriptions', () => {
 
     it('describes node additions and removals with persisted semantic and geometry data', () => {
         const addedNode: DiagramNode = {
+            legendEntryId: 'entity',
             drilldown: true,
             fields: [{ key: 'primary', name: 'id', type: 'uuid' }],
             height: 80,
@@ -117,7 +129,7 @@ describe('diagram change descriptions', () => {
             x: 40,
             y: 80,
         };
-        const removedNode: DiagramNode = { id: 'legacy', label: 'Legacy', role: 'backend' };
+        const removedNode: DiagramNode = { legendEntryId: 'backend', id: 'legacy', label: 'Legacy', role: 'backend' };
         const source = reader({
             changes: [
                 diagramChange({
@@ -211,7 +223,7 @@ describe('diagram change descriptions', () => {
 
     it('describes detail, metadata, reconnect, order, and connection-point changes', () => {
         const reconnectedEdge: DiagramEdge = { ...callsEdge, from: 'client' };
-        const clientNode: DiagramNode = { id: 'client', label: 'Client', role: 'external' };
+        const clientNode: DiagramNode = { legendEntryId: 'external', id: 'client', label: 'Client', role: 'external' };
         const changes = [
             diagramChange({ field: 'role', id: 'node-role', objectId: ordersNode.id, objectKind: 'node', originalValue: 'focal', value: 'backend' }),
             diagramChange({ field: 'title', id: 'meta-title', objectId: 'diagram', objectKind: 'meta', originalValue: 'Old', value: 'New' }),
@@ -242,10 +254,10 @@ describe('diagram change descriptions', () => {
     });
 
     it('adds stable IDs when duplicate labels make node and relationship references ambiguous', () => {
-        const firstNode: DiagramNode = { id: 'first', label: 'Worker', role: 'backend' };
-        const secondNode: DiagramNode = { id: 'second', label: 'Worker', role: 'backend' };
-        const firstEdge: DiagramEdge = { from: 'first', id: 'edge-a', kind: 'connection', to: 'second' };
-        const secondEdge: DiagramEdge = { from: 'first', id: 'edge-b', kind: 'connection', to: 'second' };
+        const firstNode: DiagramNode = { legendEntryId: 'backend', id: 'first', label: 'Worker', role: 'backend' };
+        const secondNode: DiagramNode = { legendEntryId: 'backend', id: 'second', label: 'Worker', role: 'backend' };
+        const firstEdge: DiagramEdge = { legendEntryId: 'connection', from: 'first', id: 'edge-a', kind: 'connection', to: 'second' };
+        const secondEdge: DiagramEdge = { legendEntryId: 'connection', from: 'first', id: 'edge-b', kind: 'connection', to: 'second' };
         const change = diagramChange({
             category: 'collection', field: null, id: 'edge-add', objectId: firstEdge.id,
             objectKind: 'edge', originalValue: null, value: firstEdge,
@@ -287,7 +299,7 @@ describe('diagram change descriptions', () => {
     });
 
     it('describes fragment details, entity-field details, and ordered region connections', () => {
-        const secondEdge: DiagramEdge = { from: 'store', id: 'store-orders', kind: 'return', to: 'orders' };
+        const secondEdge: DiagramEdge = { legendEntryId: 'return', from: 'store', id: 'store-orders', kind: 'return', to: 'orders' };
         const changes = [
             diagramChange({ field: 'operator', id: 'fragment-operator', objectId: 'retry', objectKind: 'fragment', originalValue: 'opt', value: 'loop' }),
             diagramChange({

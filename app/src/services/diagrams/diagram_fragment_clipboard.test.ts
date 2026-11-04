@@ -48,7 +48,11 @@ function diagramFragmentReader() {
             getFragmentIdsSnapshot: () => fragments.map(({ id }) => id),
             getFragmentSnapshot: (fragmentId: string) => fragments.find(({ id }) => id === fragmentId) ?? null,
             getGroupSnapshot: (groupId: string) => groups.find(({ id }) => id === groupId) ?? null,
-            getEditableDiagram: () => ({ meta: { legend: legendEntries } }),
+            getEditableDiagram: () => ({
+                edges, fragments, groups,
+                meta: { description: 'Sequence', legend: legendEntries, title: 'Sequence', type: 'sequence' as const, version: 3 as const },
+                nodes,
+            }),
             getNodeIdsSnapshot: () => nodes.map(({ id }) => id),
             getNodeSnapshot: (nodeId: string) => nodes.find(({ id }) => id === nodeId) ?? null,
         },

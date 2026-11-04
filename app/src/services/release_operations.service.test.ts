@@ -317,7 +317,7 @@ describe('ReleaseOperations', () => {
         const failure = Object.assign(new Error('ENOENT: asset load failed'), { code });
         const cardFile = {
             content: `---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nreferences:\n  - ${path}\n---\n# One`,
-            path: 'design/F-1.md',
+            path: 'design/F-1-one.md',
         };
         const releaseReleaseCardLocks = vi.fn(async () => undefined);
         window.md2Actions = {
@@ -351,7 +351,7 @@ describe('ReleaseOperations', () => {
         const failure = Object.assign(new Error('Required file absent'), { code: 'ENOENT' });
         const cardFile = {
             content: `---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nagents:\n  - ${activityPath}\n---\n![missing](absent.png)`,
-            path: 'design/F-1.md',
+            path: 'design/F-1-one.md',
         };
         const releaseReleaseCardLocks = vi.fn(async () => undefined);
         window.md2Actions = {
@@ -1125,8 +1125,8 @@ describe('ReleaseOperations', () => {
     it('lists only existing local branches for cards in the current release', async () => {
         configService.init()
         const releaseFiles: MarkdownFile[] = [
-            { content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nbranch: f-1\n---\n# One', path: 'design/F-1.md' },
-            { content: '---\nid: F-2\ninternalId: two\ntitle: Two\nstatus: active\nbranch: f-2\n---\n# Two', path: 'design/F-2.md' },
+            { content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nbranch: f-1\n---\n# One', path: 'design/F-1-one.md' },
+            { content: '---\nid: F-2\ninternalId: two\ntitle: Two\nstatus: active\nbranch: f-2\n---\n# Two', path: 'design/F-2-two.md' },
             { content: '---\nid: F-3\ninternalId: three\ntitle: Three\nstatus: done\nbranch: missing\n---\n# Three', path: 'design/F-3.md' },
         ]
         const storage = createStorage({
@@ -1140,15 +1140,15 @@ describe('ReleaseOperations', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         await expect(service.releases.getReleaseBranchCandidates()).resolves.toEqual([
-            { branchName: 'f-1', cardId: 'F-1', cardPath: 'design/F-1.md' },
+            { branchName: 'f-1', cardId: 'F-1', cardPath: 'design/F-1-one.md' },
         ])
     })
 
     it('deletes selected branches after release push and clears only successful branch metadata', async () => {
         configService.init()
         const releaseFiles: MarkdownFile[] = [
-            { content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nbranch: f-1\n---\n# One', path: 'design/F-1.md' },
-            { content: '---\nid: F-2\ninternalId: two\ntitle: Two\nstatus: done\nbranch: f-2\n---\n# Two', path: 'design/F-2.md' },
+            { content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nbranch: f-1\n---\n# One', path: 'design/F-1-one.md' },
+            { content: '---\nid: F-2\ninternalId: two\ntitle: Two\nstatus: done\nbranch: f-2\n---\n# Two', path: 'design/F-2-two.md' },
         ]
         const archivedFiles = releaseFiles.map((file) => ({ ...file, path: `history/v1/${file.path.split('/').at(-1)}` }))
         const commit = vi.fn<StorageService['commit']>(async (request) => request.files)
@@ -1177,14 +1177,14 @@ describe('ReleaseOperations', () => {
         expect(deleteLocalBranch.mock.invocationCallOrder[0]).toBeLessThan(commit.mock.invocationCallOrder.at(-1) ?? 0)
         expect(commit).toHaveBeenLastCalledWith({
             branch: 'main',
-            files: [{ content: expect.not.stringContaining('branch: f-1'), path: 'history/v1/F-1.md' }],
+            files: [{ content: expect.not.stringContaining('branch: f-1'), path: 'history/v1/F-1-one.md' }],
             message: 'Clear deleted release branches',
         })
     })
 
     it('deletes no branch when automatic release push fails', async () => {
         configService.init()
-        const releaseFile = { content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nbranch: f-1\n---\n# One', path: 'design/F-1.md' }
+        const releaseFile = { content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nbranch: f-1\n---\n# One', path: 'design/F-1-one.md' }
         const storage = createStorage({
             deleteLocalBranch: vi.fn(async () => undefined),
             listBranches: vi.fn(async () => [{ name: 'f-1' }]),
@@ -1203,8 +1203,8 @@ describe('ReleaseOperations', () => {
     it('attempts every selected branch and reports each branch not deleted', async () => {
         configService.init()
         const releaseFiles: MarkdownFile[] = [
-            { content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nbranch: f-1\n---\n# One', path: 'design/F-1.md' },
-            { content: '---\nid: F-2\ninternalId: two\ntitle: Two\nstatus: done\nbranch: f-2\n---\n# Two', path: 'design/F-2.md' },
+            { content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nbranch: f-1\n---\n# One', path: 'design/F-1-one.md' },
+            { content: '---\nid: F-2\ninternalId: two\ntitle: Two\nstatus: done\nbranch: f-2\n---\n# Two', path: 'design/F-2-two.md' },
         ]
         const deleteLocalBranch = vi.fn(async (_project, branchName: string) => {
             if (branchName === 'f-1') throw new Error('locked')

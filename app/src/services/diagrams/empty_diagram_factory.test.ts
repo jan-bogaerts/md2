@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseDiagramData, serializeDiagramData } from './diagram_data'
+import { DIAGRAM_DATA_VERSION, parseDiagramData, serializeDiagramData } from './diagram_data'
 import { createEmptyDiagramData, EMPTY_DIAGRAM_CHOICES } from './empty_diagram_factory'
 
 describe('createEmptyDiagramData', () => {
@@ -13,16 +13,17 @@ describe('createEmptyDiagramData', () => {
             groups: [],
             meta: {
                 description: choice.description,
+                legend: [],
                 title: choice.title,
                 type: choice.type,
-                version: 1,
+                version: DIAGRAM_DATA_VERSION,
             },
             nodes: [],
         })
         expect(diagram.meta.description.length).toBeGreaterThan(0)
         expect(diagram.meta.title.length).toBeGreaterThan(0)
         expect(diagram).not.toHaveProperty('fragments')
-        expect(diagram.meta).not.toHaveProperty('legend')
+        expect(diagram.meta.legend).toEqual([])
     })
 
     it('stores separate flowchart and state presets', () => {

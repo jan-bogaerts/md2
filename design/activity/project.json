@@ -876,6 +876,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
+      "cardInternalId": null,
+      "cardPath": null,
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "You are tasked to generate release notes for this app.\n\n* these release notes should be directed towards the end user:\n  * keep it simple and very short, no details\n  * never mention anything about internal workings, nothing about release methods, internal scripts,...\n* &#x20;Before you can render these notes, you need to know the current version. This can be read from the file \\`C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\package.json\\`.\n* all features descriptions jobs, and bug fixes that need to be included in the release, can be found at \\`C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases{VERSION}\\\\\\`, where version is read from package.json, dots (.) replaced with lines (\\_)\n* &#x20;The release note should be saved at \\`C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\\\{VERSION}\\release\\_notes.md\\`, where version is read from package.json, dots (.) replaced with lines (\\_).&#x20;\n* the release note is a markdown file that will be used to publish the app on github\n* use single bullet points to describe each new feature. keep it short no detailed explanation needed.\n* don't mention technical details of the models like architecture.",
+          "id": "submission-d45c3978-1b02-4fde-979b-139a18c678aa",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-04T17:55:20.776Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-95824387-772f-42b6-ae5f-e4564a513157",
+      "providerSessions": [],
+      "startedAt": "2026-11-04T17:55:20.776Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-04T17:55:20.776Z"
+      },
+      "title": "write release note",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {

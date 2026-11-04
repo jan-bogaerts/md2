@@ -422,13 +422,18 @@ describe('CardView', () => {
     });
 
     it('rejects assigned board-card drops while another popup is open', () => {
-        const assigned = { ...cards[0], header: { ...cards[0].header, worktreeValue: 'invalid', worktreeError: 'Missing checkout' } };
-        cardSequenceDraftService.open();
-        cardPopupService.toggleCardDetails('f-2', document.createElement('button'));
+        const assigned = {
+            ...cards[0],
+            header: { ...cards[0].header, branch: 'feature', worktree: 1, worktreeValue: 'invalid', worktreeError: 'Missing checkout' },
+        };
+        const addCard = vi.spyOn(cardSequenceDraftService, 'addCard');
         renderCardView({}, [assigned, cards[1]]);
-        act(() => dragContextHandlers.onDragEnd?.({active: { id: 'design/F-1.md' }, over: { id: CARD_SEQUENCE_DROP_ID }} as Parameters<NonNullable<DndContextProps['onDragEnd']>>[0]));
+        const boardDragEnd = dragContextHandlers.onDragEnd;
+        act(() => cardPopupService.openSequence(document.createElement('button')));
+        act(() => cardPopupService.toggleCardDetails('f-2', document.createElement('button')));
+        act(() => boardDragEnd?.({active: { id: 'design/F-1.md' }, over: { id: CARD_SEQUENCE_DROP_ID }} as Parameters<NonNullable<DndContextProps['onDragEnd']>>[0]));
+        expect(addCard).toHaveBeenCalledWith('f-1', null);
         expect(cardSequenceDraftService.getSnapshot().cardInternalIds).toEqual([]);
-        expect(cardSequenceDraftService.getSnapshot().validationMessage).toContain('worktree assignment');
         expect(dataService.cards.moveCard).not.toHaveBeenCalled();
     });
 

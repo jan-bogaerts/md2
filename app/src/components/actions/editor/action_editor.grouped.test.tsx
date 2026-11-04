@@ -360,7 +360,13 @@ describe('ActionEditor', () => {
         actionService.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, changed)
 
         await act(async () => vi.advanceTimersByTime(600))
-        expect(saveDefinition).not.toHaveBeenCalled()
+        expect(saveDefinition).toHaveBeenCalledWith(
+            'actions/review.json',
+            expect.objectContaining({ label: ' \t\u2003' }),
+            'actions/review.json',
+            expect.any(Object),
+            expect.any(Function),
+        )
         expect(parse).not.toHaveBeenCalled()
         expect(serialize).not.toHaveBeenCalled()
     })

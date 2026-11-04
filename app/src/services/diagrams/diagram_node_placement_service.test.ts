@@ -236,7 +236,7 @@ describe('DiagramNodePlacementService', () => {
 
     it('places one valid sequence participant without replacing existing sequence objects', () => {
         const source = diagram('sequence')
-        source.edges = [{ from: 'existing', id: 'existing-edge', kind: 'call', to: 'other' }]
+        source.edges = [{ legendEntryId: 'call', from: 'existing', id: 'existing-edge', kind: 'call', to: 'other' }]
         source.fragments = [{ id: 'existing-fragment', operator: 'opt', regions: [{ edgeIds: ['existing-edge'], guard: 'sent' }] }]
         source.nodes = source.nodes.map((node, index) => ({...node, height: 72, kind: 'participant', width: 160, x: 40 + index * 216, y: 40}))
         const { placement, selection, session } = createHarness(source)
@@ -299,7 +299,7 @@ describe('DiagramNodePlacementService', () => {
 
     it('creates and selects one step in a flowchart diagram through one membership mutation', () => {
         const source = diagram('flow', 'flowchart')
-        source.edges = [{ from: 'existing', id: 'existing-edge', kind: 'flow', label: 'next', to: 'other' }]
+        source.edges = [{ legendEntryId: 'flow', from: 'existing', id: 'existing-edge', kind: 'flow', label: 'next', to: 'other' }]
         const { placement, selection, session } = createHarness(source)
         const originalNode = session.read.getNodeSnapshot('existing')
         const membershipChanged = vi.fn()
@@ -344,13 +344,13 @@ describe('DiagramNodePlacementService', () => {
         expect(session.read.getNodeSnapshot('existing')).toBe(originalNode)
         expect(membershipChanged).toHaveBeenCalledOnce()
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
-        expect(session.createEdge({ from: 'placed-node', kind: 'flow', to: 'existing' })).toBeNull()
+        expect(session.createEdge({ legendEntryId: 'flow', from: 'placed-node', kind: 'flow', to: 'existing' })).toBeNull()
         expect(session.read.getEdgeIdsSnapshot()).toEqual(['existing-edge'])
     })
 
     it('creates and selects one stable state through one membership mutation', () => {
         const source = diagram('flow', 'state')
-        source.edges = [{ from: 'existing', id: 'existing-edge', kind: 'transition', label: 'next', to: 'other' }]
+        source.edges = [{ legendEntryId: 'transition', from: 'existing', id: 'existing-edge', kind: 'transition', label: 'next', to: 'other' }]
         source.nodes = source.nodes.map((node) => ({ ...node, kind: 'state' }))
         const { createId, placement, selection, session } = createHarness(source)
         const originalNode = session.read.getNodeSnapshot('existing')
@@ -386,7 +386,7 @@ describe('DiagramNodePlacementService', () => {
         ['state', stateStartDefinition, { height: 24, width: 24 }],
     ] as const)('places one schema-complete start node in a %s diagram', (preset, definition, size) => {
         const source = diagram('flow', preset)
-        source.edges = [{ from: 'existing', id: 'existing-edge', kind: preset === 'state' ? 'transition' : 'flow', label: 'next', to: 'other' }]
+        source.edges = [{ legendEntryId: 'legend-entry', from: 'existing', id: 'existing-edge', kind: preset === 'state' ? 'transition' : 'flow', label: 'next', to: 'other' }]
         source.nodes = source.nodes.map((node) => ({ ...node, kind: preset === 'state' ? 'state' : 'step' }))
         const { placement, selection, session } = createHarness(source)
         const originalNode = session.read.getNodeSnapshot('existing')
@@ -420,7 +420,7 @@ describe('DiagramNodePlacementService', () => {
         ['state', stateEndDefinition, { height: 24, width: 24 }],
     ] as const)('places one schema-complete end node in a %s diagram', (preset, definition, size) => {
         const source = diagram('flow', preset)
-        source.edges = [{ from: 'existing', id: 'existing-edge', kind: preset === 'state' ? 'transition' : 'flow', label: 'next', to: 'other' }]
+        source.edges = [{ legendEntryId: 'legend-entry', from: 'existing', id: 'existing-edge', kind: preset === 'state' ? 'transition' : 'flow', label: 'next', to: 'other' }]
         source.nodes = source.nodes.map((node) => ({ ...node, kind: preset === 'state' ? 'state' : 'step' }))
         const { placement, selection, session } = createHarness(source)
         const originalNode = session.read.getNodeSnapshot('existing')
@@ -465,9 +465,9 @@ describe('DiagramNodePlacementService', () => {
         ['flow', 'state', 'start', true],
     ] as const)('reports %s/%s kind %s availability as %s', (type, preset, kind, available) => {
         const source = diagram(type, preset)
-        if (type === 'sequence') source.edges = [{ from: 'existing', id: 'existing-edge', kind: 'call', to: 'other' }]
+        if (type === 'sequence') source.edges = [{ legendEntryId: 'call', from: 'existing', id: 'existing-edge', kind: 'call', to: 'other' }]
         if (type === 'flow') {
-            source.edges = [{ from: 'existing', id: 'existing-edge', kind: preset === 'state' ? 'transition' : 'flow', label: 'next', to: 'other' }]
+            source.edges = [{ legendEntryId: 'legend-entry', from: 'existing', id: 'existing-edge', kind: preset === 'state' ? 'transition' : 'flow', label: 'next', to: 'other' }]
             source.nodes = source.nodes.map((node) => ({ ...node, kind: preset === 'state' ? 'state' : 'step' }))
         }
         const { placement } = createHarness(source)
@@ -512,7 +512,7 @@ describe('DiagramNodePlacementService', () => {
 
     it('uses selected legend role for preview and node while keeping tool defaults', () => {
         const source = diagram('architecture')
-        const backendEntry = { id: 'backend-entry', label: 'Backend', role: 'backend' as const }
+        const backendEntry = { legendEntryId: 'legend-entry', id: 'backend-entry', label: 'Backend', role: 'backend' as const }
         source.meta.legend.push(backendEntry)
         const { placement, session } = createHarness(source)
         placement.activate(componentDefinition)

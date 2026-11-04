@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render as testingRender, screen, waitFor } fro
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactElement } from 'react'
+import { parseDiagramData } from '../../../services/diagrams/diagram_data'
 import type { DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEdgeDrawingService } from '../../../services/diagrams/diagram_edge_drawing_service'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
@@ -25,7 +26,7 @@ function render(element: ReactElement) {
     return testingRender(<AppThemeProvider>{element}</AppThemeProvider>);
 }
 
-const diagram: DiagramData = {
+const diagram = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
     groups: [{ height: 160, id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'], width: 480, x: 200, y: 80 }],
     meta: { description: 'Orders architecture', legend: [], title: 'Overview', type: 'architecture', version: 1 },
@@ -33,8 +34,8 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal', x: 240, y: 120 },
         { id: 'store', label: 'Store', role: 'store', x: 480, y: 120 },
     ],
-}
-const sequenceDiagram: DiagramData = {
+}))
+const sequenceDiagram = parseDiagramData(JSON.stringify({
     edges: [
         { from: 'orders', id: 'orders-store', kind: 'call', label: 'writes', to: 'store' },
         { from: 'store', id: 'store-orders', kind: 'return', label: 'done', to: 'orders' },
@@ -45,7 +46,7 @@ const sequenceDiagram: DiagramData = {
         { id: 'orders', kind: 'participant', label: 'Orders', role: 'focal', x: 40, y: 40 },
         { id: 'store', kind: 'participant', label: 'Store', role: 'store', x: 256, y: 40 },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
@@ -158,10 +159,10 @@ afterEach(() => {
 
 describe('DiagramZoomViewport', () => {
     it.each(['empty', 'small'])('keeps a scrollable drawing surface for %s diagrams through resize and zoom', (kind) => {
-        const meta: DiagramData['meta'] = { description: '', legend: [], title: kind, type: 'architecture', version: 1 }
+        const meta = { description: 'Diagram', title: kind, type: 'architecture', version: 1 } as const
         const nodes: DiagramData['nodes'] = kind === 'small'
-            ? [{ id: 'small', label: 'Small', role: 'focal', x: 40, y: 40 }] : []
-        const sourceDiagram: DiagramData = { edges: [], groups: [], meta, nodes }
+            ? [{ legendEntryId: 'focal', id: 'small', label: 'Small', role: 'focal', x: 40, y: 40 }] : []
+        const sourceDiagram = parseDiagramData(JSON.stringify({ edges: [], groups: [], meta, nodes }))
         const { geometry, groupDrawing, placement, selection, session } = createHarness(sourceDiagram)
         const originalJson = JSON.stringify(session.read.getEditableDiagram())
         viewportResizeCallback = null
@@ -292,14 +293,14 @@ describe('DiagramZoomViewport', () => {
     })
 
     it('targets entity field text in preview and completion', () => {
-        const source: DiagramData = {
+        const source = parseDiagramData(JSON.stringify({
             edges: [], groups: [],
             meta: { description: 'Entities', legend: [], title: 'Entities', type: 'entity', version: 1 },
             nodes: [
                 { fields: [{ name: 'sourceField' }], id: 'orders', kind: 'entity', label: 'Orders', role: 'focal', x: 40, y: 40 },
                 { fields: [{ name: 'targetField' }], id: 'store', kind: 'entity', label: 'Store', role: 'store', x: 240, y: 40 },
             ],
-        }
+        }))
         const { drawing, geometry, session } = createHarness(source)
         render(<DiagramZoomViewport drawing={drawing} geometry={geometry} session={session} />)
         act(() => { drawing.activate({ kind: 'relationship' }) })
@@ -368,6 +369,7 @@ describe('DiagramZoomViewport', () => {
 
         const edgeId = session.read.getEdgeIdsSnapshot().at(-1) as string
         expect(session.read.getEdgeSnapshot(edgeId)).toMatchObject({
+            legendEntryId: expect.any(String),
             from: 'orders',
             kind: 'data',
             sourceAttachment: { nodeId: 'orders', offset: 0.25, side: 'right' },
@@ -568,7 +570,7 @@ describe('DiagramZoomViewport', () => {
 
         expect(session.read.getEdgeIdsSnapshot()).toHaveLength(3)
         const insertedId = session.read.getEdgeIdsSnapshot()[1]
-        expect(session.read.getEdgeSnapshot(insertedId)).toMatchObject({ from: 'orders', kind: 'async', to: 'store' })
+        expect(session.read.getEdgeSnapshot(insertedId)).toMatchObject({ legendEntryId: expect.any(String), from: 'orders', kind: 'async', to: 'store' })
         expect(session.read.getEdgeSnapshot(insertedId)?.sourceAttachment).toBeUndefined()
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: insertedId, objectKind: 'edge' }])
     })

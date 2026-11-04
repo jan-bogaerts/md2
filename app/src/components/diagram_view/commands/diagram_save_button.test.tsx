@@ -1,16 +1,16 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramSaveService } from '../../../services/diagrams/diagram_save_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
 import { DiagramSaveButton } from './diagram_save_button'
 
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [], groups: [], meta: { description: 'Architecture', title: 'Overview', type: 'architecture', version: 1 },
     nodes: [{ id: 'orders', label: 'Orders', role: 'focal' }],
-}
+}))
 const sourceRecord: DiagramRecord = { actionId: 'overview', id: 'source', label: 'Overview', path: 'design/diagrams/overview.json' }
 
 afterEach(cleanup)

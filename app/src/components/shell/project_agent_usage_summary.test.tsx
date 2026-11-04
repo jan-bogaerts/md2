@@ -107,8 +107,8 @@ describe('ProjectAgentUsageSummary', () => {
         fireEvent.click(button)
 
         expect(screen.getByRole('dialog', { name: 'Project agent usage' })).toHaveFocus()
-        expect(screen.getByText('Reported cost: $3.012345')).toBeVisible();
-        expect(screen.getByText('Reported cost: $1.25')).toBeVisible();
+        expect(screen.getByText('Cost: $3.01')).toBeVisible();
+        expect(screen.getByText('Cost: $1.25')).toBeVisible();
         expect(screen.getByText('Current').parentElement).toHaveTextContent('Cost: Data missing');
         expect(screen.getByText('Archived').parentElement).toHaveTextContent('Cost: Data missing');
     })
@@ -142,19 +142,19 @@ describe('ProjectAgentUsageSummary', () => {
         render(<ProjectAgentUsageSummary mobile={mobile} />);
         await user.click(screen.getByRole('button', { name: 'Agent token usage summary' }));
 
-        expect(screen.getByText('Reported cost: $3.012345')).toBeVisible();
-        expect(screen.getByText('Current').parentElement).toHaveTextContent('tokens: 16Reported cost: $0.0125');
-        expect(screen.getByText('Archived').parentElement).toHaveTextContent('tokens: 8Reported cost: $0.00');
-        expect(screen.getByText('v1').parentElement).toHaveTextContent('tokens: 32Reported cost: $1.25');
-        expect(screen.queryByText('Reported cost: $999.00')).not.toBeInTheDocument();
+        expect(screen.getByText('Cost: $3.01')).toBeVisible();
+        expect(screen.getByText('Current').parentElement).toHaveTextContent('tokens: 16Cost: $0.01');
+        expect(screen.getByText('Archived').parentElement).toHaveTextContent('tokens: 8Cost: $0.00');
+        expect(screen.getByText('v1').parentElement).toHaveTextContent('tokens: 32Cost: $1.25');
+        expect(screen.queryByText('Cost: $999.00')).not.toBeInTheDocument();
         if (mobile) expect(screen.getByRole('dialog', { name: 'Project agent usage' })).toBeVisible();
 
         await user.keyboard('{Escape}');
         await waitFor(() => expect(screen.queryByRole('heading', { name: 'Project agent usage' })).not.toBeInTheDocument());
         await user.click(screen.getByRole('button', { name: 'Agent token usage summary' }));
 
-        expect(screen.getByText('Reported cost: $3.012345')).toBeVisible();
-        expect(screen.getByText('v1').parentElement).toHaveTextContent('Reported cost: $1.25');
+        expect(screen.getByText('Cost: $3.01')).toBeVisible();
+        expect(screen.getByText('v1').parentElement).toHaveTextContent('Cost: $1.25');
         expect(summaryService.getSnapshot()).toEqual(originalSummary);
         expect(projectState.snapshot).toEqual(originalSnapshot);
     });

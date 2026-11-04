@@ -16,6 +16,8 @@ import { ActionConversationSearchService } from './search/action_conversation_se
 const context = { cardInternalId: 'card-1', file: 'design/F-138.md', kind: 'card' as const }
 const snapshot = { conversations: [], loading: false, selectedConversation: null }
 const store = {
+    actionId: 'review',
+    context,
     getSnapshot: () => snapshot,
     subscribe: () => () => undefined,
 } as unknown as ActionConversationStore
@@ -76,6 +78,8 @@ function createConversationStore(initialConversation: AgentConversation) {
     const events = new EventTarget()
     let currentSnapshot = { conversations: [initialConversation], loading: false, selectedConversation: initialConversation }
     const selectableStore = {
+        actionId: 'review',
+        context,
         getSnapshot: () => currentSnapshot,
         subscribe: (listener: () => void) => {
             events.addEventListener('changed', listener)

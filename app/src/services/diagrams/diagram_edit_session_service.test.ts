@@ -1088,7 +1088,8 @@ describe('DiagramEditSessionService', () => {
             edges: [],
             fragments: [],
             groups: [],
-            nodes: [{ id: 'participant', kind: 'participant', label: 'Participant', role: 'external', x: 4, y: 4 }],
+            legendEntries: [],
+            nodes: [{ legendEntryId: 'participant', id: 'participant', kind: 'participant', label: 'Participant', role: 'external', x: 4, y: 4 }],
         }, 4)
 
         expect(result).toBeNull()

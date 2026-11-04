@@ -19,9 +19,7 @@ function derivedDiagramLegendEntries(data: {
             .map(({ role }) => role))],
     }))
     const edgeKinds = [...new Set(data.edges.map(({ kind }) => kind))]
-    const connectionEntries = edgeKinds.map((kind): DiagramLegendEntry => ({
-        entryType: 'connection', id: `connection:${kind}`, kind, label: diagramEdgeKindLabel(kind), useLabelAsDefault: false,
-    }))
+    const connectionEntries = edgeKinds.map((kind): DiagramLegendEntry => ({entryType: 'connection', id: `connection:${kind}`, kind, label: diagramEdgeKindLabel(kind), useLabelAsDefault: false}))
 
     return [...nodeEntries, ...connectionEntries]
 }

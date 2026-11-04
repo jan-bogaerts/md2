@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
+import type { AgentAccount } from '../../../../data/agent_accounts'
 import { DialogDisplay } from '../../../dialog_display'
 import { ActionRunHistory } from './action_run_history'
 import { configService } from '../../../../services/config/config_service'
@@ -60,7 +61,7 @@ describe('ActionRunHistory', () => {
                 { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' },
                 { agent: 'claude', id: 'claude-initial', kind: 'initial', name: 'Default' },
                 { agent: 'codex', configDirectory: 'C:/accounts/work', id: accountId, kind: 'directory', name: 'Renamed Work' },
-            ],
+            ] as AgentAccount[],
         }
         configService.init({ desktopConfig })
         const entries: ActionRunHistoryEntry[] = [{

@@ -322,7 +322,7 @@ describe('project dialog components', () => {
         expect(close).not.toHaveBeenCalled()
     })
 
-    it('keeps every desktop draft field and restores real title and Markdown typing after backdrop dismissal', async () => {
+    it('keeps every desktop draft field and restores real title and Markdown editing after backdrop dismissal', async () => {
         const user = userEvent.setup()
         const discardImages = vi.spyOn(projectSessionService, 'discardNewCardDraftImages').mockResolvedValue()
         vi.spyOn(projectSessionService, 'hasNewCardDraftImages').mockReturnValue(true)
@@ -343,7 +343,8 @@ describe('project dialog components', () => {
         const title = screen.getByRole('textbox', { name: 'Title' })
         const description = getDescriptionEditor()
         await user.type(title, 'Draft title')
-        await user.type(description, 'Draft body')
+        await user.click(description)
+        await user.paste('Draft body')
         await user.click(screen.getByRole('radio', { name: 'Bug' }))
         await user.click(screen.getByRole('combobox', { name: 'Target column' }))
         await user.click(await screen.findByRole('option', { name: 'design' }))
@@ -363,7 +364,7 @@ describe('project dialog components', () => {
         await user.click(title)
         await user.type(title, ' continued')
         await user.click(description)
-        await user.type(description, ' continued')
+        await user.paste(' continued')
         expect(title).toHaveValue('Draft title continued')
         expect(description).toHaveValue('Draft body continued')
         expect(discardImages).not.toHaveBeenCalled()

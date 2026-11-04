@@ -87,7 +87,7 @@ function renderWorktreeSelector() {
     render(
         <AppThemeProvider>
             <WorktreeSelector
-                assignment={{ worktree: 1 }}
+                assignment={{ branch: 'feature', worktree: 1 }}
                 assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: card.path }}
                 labelPrefix="F-1"
                 primaryPath="C:\\project"

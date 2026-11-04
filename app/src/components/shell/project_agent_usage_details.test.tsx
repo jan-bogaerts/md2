@@ -20,9 +20,9 @@ describe('ProjectAgentUsageDetails', () => {
         />);
 
         const projectHeading = screen.getByRole('heading', { name: 'Project agent usage' });
-        expect(projectHeading.parentElement).toHaveTextContent('tokens: 16Reported cost: $1,234.56');
+        expect(projectHeading.parentElement).toHaveTextContent('tokens: 16Cost: $1,234.56');
         const labels = ['Current', 'Archived', 'v1', 'v2'];
-        const costs = ['Reported cost: $0.0125', 'Reported cost: $0.000001', 'Reported cost: $1.25', 'Reported cost: $2.00'];
+        const costs = ['Cost: $0.01', 'Cost: $0.00', 'Cost: $1.25', 'Cost: $2.00'];
         labels.forEach((label, index) => {
             const row = screen.getByText(label).parentElement;
             expect(row).toHaveTextContent(`tokens: 16${costs[index]}`);
@@ -33,7 +33,7 @@ describe('ProjectAgentUsageDetails', () => {
 
     it.each([
         { costUsd: undefined, label: 'Cost: Data missing' },
-        { costUsd: 0, label: 'Reported cost: $0.00' },
+        { costUsd: 0, label: 'Cost: $0.00' },
     ])('shows $label for project and every version row', ({ costUsd, label }) => {
         const usage = { ...TOKEN_USAGE, ...(costUsd === undefined ? {} : { costUsd }) };
         render(<ProjectAgentUsageDetails
@@ -53,7 +53,7 @@ describe('ProjectAgentUsageDetails', () => {
 
         expect(screen.getByRole('heading', { name: 'Project agent usage' }).parentElement).toHaveTextContent('Cost: Data missing');
         const releaseRow = screen.getByText('v1').parentElement;
-        expect(releaseRow).toHaveTextContent('Reported cost: $0.00');
-        expect(screen.getByText('Reported cost: $0.00')).toBeVisible();
+        expect(releaseRow).toHaveTextContent('Cost: $0.00');
+        expect(screen.getByText('Cost: $0.00')).toBeVisible();
     });
 });

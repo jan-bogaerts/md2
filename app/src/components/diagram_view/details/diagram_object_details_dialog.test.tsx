@@ -24,7 +24,7 @@ function diagram(type: DiagramType = 'architecture', flowPreset: DiagramFlowPres
     const edgeKind = type === 'flow' ? flowPreset === 'state' ? 'transition' : 'flow'
         : type === 'entity' ? 'relationship' : type === 'sequence' ? 'call' : 'connection'
 
-    return {
+    return parseDiagramData(JSON.stringify({
         edges: [{
             from: 'orders',
             id: 'orders-store',
@@ -54,7 +54,7 @@ function diagram(type: DiagramType = 'architecture', flowPreset: DiagramFlowPres
             },
             { ...(nodeKind ? { kind: nodeKind } : {}), id: 'store', label: 'Store', role: 'store' },
         ],
-    }
+    }))
 }
 
 class DiagramSourceStub extends EventTarget {
@@ -106,7 +106,7 @@ describe('diagram object details dialog', () => {
         expect(screen.getByRole('dialog', { name: 'Diagram metadata' })).toBeInTheDocument()
         expect(screen.getByRole('textbox', { name: 'Type' })).toHaveValue('architecture')
         expect(screen.getByRole('textbox', { name: 'Type' })).toHaveAttribute('readonly')
-        expect(screen.getByRole('textbox', { name: 'Schema version' })).toHaveValue('2')
+        expect(screen.getByRole('textbox', { name: 'Schema version' })).toHaveValue('3')
         expect(screen.getByRole('textbox', { name: 'Schema version' })).toHaveAttribute('readonly')
         expect(screen.queryByRole('textbox', { name: 'Flow preset' })).toBeNull()
         await user.click(screen.getByRole('button', { name: 'Cancel' }))

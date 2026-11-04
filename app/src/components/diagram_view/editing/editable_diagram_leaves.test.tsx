@@ -1,7 +1,7 @@
 import { Profiler, type ReactNode } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
@@ -12,7 +12,7 @@ import { EditableDiagramGroup } from './editable_diagram_group'
 import { EditableDiagramNode } from './editable_diagram_node'
 import { DiagramEmphasisService } from '../../../services/diagrams/diagram_emphasis_service'
 
-const diagram: DiagramData = {
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
     groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
@@ -20,8 +20,8 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
-}
-const entityDiagram: DiagramData = {
+}))
+const entityDiagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{
         from: 'orders',
         fromCardinality: '1',
@@ -42,8 +42,8 @@ const entityDiagram: DiagramData = {
         { fields: [], height: 80, id: 'store', kind: 'entity', label: 'Store', role: 'store', width: 120, x: 240, y: 0 },
         { fields: [], height: 80, id: 'archive', kind: 'entity', label: 'Archive', role: 'store', width: 120, x: 600, y: 0 },
     ],
-}
-const mindmapDiagram: DiagramData = {
+}))
+const mindmapDiagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'branch', to: 'store' }],
     groups: [],
     meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
@@ -51,7 +51,7 @@ const mindmapDiagram: DiagramData = {
         { id: 'orders', kind: 'root', label: 'Orders', role: 'focal' },
         { id: 'store', kind: 'topic', label: 'Store', role: 'store' },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
@@ -139,7 +139,7 @@ describe('editable diagram leaves', () => {
 
         expect(root).toHaveAttribute('data-diagram-node-shape', 'circle')
         expect(edge.querySelector('path[stroke="currentColor"]')?.getAttribute('d')).toContain(' Q ')
-        expect(screen.getByText('branch')).toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Edit branch label' })).toHaveValue('branch')
     })
 
     it('renders each leaf from its own service subscriptions', () => {

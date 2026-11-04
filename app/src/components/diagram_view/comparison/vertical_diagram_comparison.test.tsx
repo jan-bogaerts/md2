@@ -1,19 +1,25 @@
 import {
-    act, cleanup, fireEvent, render, screen, within,
+    act, cleanup, fireEvent, render as testingRender, screen, within,
 } from '@testing-library/react'
+import type { ReactElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from '../../../services/diagrams/diagram_data'
+import { parseDiagramData, type DiagramData } from '../../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index'
 import { layout } from '../../../services/diagrams/diagram_layout'
 import type { DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service'
+import { AppThemeProvider } from '../../../theme/theme_provider'
 import { DiagramComparisonLayoutService } from './diagram_comparison_layout_service'
 import { VerticalDiagramComparison } from './vertical_diagram_comparison'
 
 const COMPARISON_WIDTH = 806
 
-const diagram: DiagramData = {
+function render(element: ReactElement) {
+    return testingRender(<AppThemeProvider>{element}</AppThemeProvider>)
+}
+
+const diagram: DiagramData = parseDiagramData(JSON.stringify({
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
     groups: [],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
@@ -21,7 +27,7 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
-}
+}))
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 

@@ -15,7 +15,7 @@ import { AppThemeProvider } from '../../../theme/theme_provider'
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
-const diagrams: Record<string, DiagramData> = {
+const diagrams = Object.fromEntries(Object.entries({
     architecture: {
         edges: [{ from: 'one', id: 'one-two', kind: 'connection', label: 'calls', to: 'two' }],
         groups: [{ id: 'scope', label: 'Scope', nodeIds: ['one', 'two'] }],
@@ -65,7 +65,7 @@ const diagrams: Record<string, DiagramData> = {
             { id: 'two', kind: 'state', label: 'Two', role: 'backend' },
         ],
     },
-}
+}).map(([key, diagram]) => [key, parseDiagramData(JSON.stringify(diagram))])) as Record<string, DiagramData>
 
 class DiagramSourceStub extends EventTarget {
     private readonly source: DiagramViewSourceSnapshot
