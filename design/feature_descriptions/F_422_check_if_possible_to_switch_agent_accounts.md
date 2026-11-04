@@ -52,7 +52,7 @@ F_443 – account-scoped metrics and reset schedules
 * Always resolve one primary account as the first account for Codex and one for Claude. A primary account has no configured directory: processes run with the normal inherited CLI environment and continue using the login already configured outside MD². It can be renamed but cannot have its directory changed or be removed.
 * Migrate existing desktop configuration by adding the two primary records and assigning the appropriate primary account to every existing `settingsByAgent` entry. This reflects historical behavior: all existing runs used the global CLI login.
 * Add `accountId` to `AgentSettings` and `FlatAgentSelection`. The value in `settingsByAgent[agent]` is that agent's default account. Add `selectAccount`, validation that the account belongs to the selected agent, and resolution that returns the selected account with the existing profile/model settings.
-* Reject duplicate account IDs and duplicate normalized extra-account directories. An explicit unknown or mismatched account is an error; do not silently run with the primary account. Account names need only be non-empty and unique within one agent.
+* Reject duplicate account IDs and duplicate normalized extra-account directories. A new selection must reference an existing account owned by the selected agent. A persisted reference to a removed account resolves to that agent's configured default, then its initial account; a mismatched account remains an error. Account names need only be non-empty and unique within one agent.
 
 ### Account setup in the config dialog
 
@@ -76,7 +76,7 @@ F_443 – account-scoped metrics and reset schedules
   * `AgentMenuControls`, where it edits the default `accountId` in `desktop.agentSelection.settingsByAgent[agent]`.
   * `ActionAgentCapabilityFields`, where it writes the optional action-definition field `accountId`.
   * `ActionAgentSelectors`, where it selects the account for the current run and remembers card/action settings through `ActionRunSettingsService`.
-* The selector lists only accounts belonging to the selected agent and shows the stored name. When a referenced account no longer exists, retain its ID as an unavailable option and show a validation error.
+* The selector lists only accounts belonging to the selected agent and shows the stored name. When a referenced account no longer exists, show that the configured default will be used.
 * Extend `ACTION_DEFINITION_FIELDS`, raw/normalized action types, editor routing, serialization, and validation with optional `accountId`. Like model settings, an explicit action account requires an explicit agent so the ownership can be validated.
 * Extend action-run input validation, bridge types, remote-control payloads, run history, activity agent details, and action-definition creation with `accountId`.
 * Resolve a new run in this order: run-menu `accountId`, action `accountId`, default account for the resolved agent. Pass the resolved account record to the desktop runner and include its ID in the result/history. Scheduled and chained actions use the same resolution path.
@@ -102,11 +102,11 @@ F_443 – account-scoped metrics and reset schedules
 * Update `updateProviderSession`, normalization, persistence, resume, retry, and compact paths to preserve the account ID. Compaction must always use the account stored on the provider session, regardless of the current default or action setting.
 * Migrate provider sessions without `accountId` to that agent's primary account because those sessions predate account switching and were created with the global CLI login.
 * Store `accountId` in agent activity details so historical runs show which account was used. Resolve the current display name from desktop configuration; persisted records keep the stable ID so later renames do not rewrite project history.
-* If a referenced account is unavailable, continuation and compaction fail with a clear account-specific message. Never resume a provider conversation under a different account.
+* If a referenced account was removed, continuation and compaction resolve through the configured default and then the initial account. Existing unreadable or logged-out accounts still fail with a clear account-specific message.
 
 ### Usage metrics and schedules
 
-* Add `account_id` to account-usage and token-usage records in `usage_metrics.csv`, and include it in baseline keys and renderer projections. Migrate existing rows logically to the provider's primary account when reading the old header; write the new header for new files. Do not combine percentage deltas from different accounts.
+* Add `account_id` to account-usage and token-usage records in `usage_metrics.csv`, and include it in baseline keys and renderer projections. Migrate existing rows logically to the provider's primary account when reading the old header; write the new header for new files. Keep percentage baselines separate per account, but combine provider totals across all of its accounts.
 * Add `accountId` to account-reset schedule triggers, tracker keys, snapshots, labels, persistence, and validation. Existing schedules migrate to the primary account for their agent.
 * Record run token usage with the run's account ID. Record rate-limit usage with the account whose environment produced the snapshot.
 
@@ -119,7 +119,7 @@ F_443 – account-scoped metrics and reset schedules
 
 ### Tests
 
-* Shared/config tests: primary-account migration, account validation, stable IDs across rename, unique directories, `selectAccount`, default resolution, and explicit missing-account errors.
+* Shared/config tests: primary-account migration, account validation, stable IDs across rename, unique directories, `selectAccount`, default resolution, and removed-account fallback.
 * Account service tests: primary environment, Codex/Claude directory environments, folder validation, login command construction, cancellation/failure, status reporting, and confirmation that credential content is never returned over the bridge.
 * UI tests: config account creation/rename/retry, default account selection, action account selection, run-menu selection, and unavailable references.
 * Action tests: parser/writer support, run-input allowlist, resolution precedence, activity/history persistence, scheduled actions, and remote-control payloads.
@@ -137,7 +137,7 @@ F_443 – account-scoped metrics and reset schedules
 * Runs, model discovery, usage polling, retries, and diagnostics use the selected account's configuration directory.
 * A conversation remembers account identity per provider session. Continuing with the same agent and account resumes it; selecting another account starts a separate provider session and sends the full conversation context once.
 * Changing defaults or account names does not change the account used by an existing provider session. Compact and resume never cross account boundaries.
-* Rate limits, usage metrics, and account-reset schedules remain separate for accounts of the same provider.
+* Rate limits, usage-metric baselines, and account-reset trackers remain separate for accounts of the same provider. Provider totals combine all accounts.
 * Existing configuration, actions, conversations, activity, schedules, and metrics continue under the primary account after migration.
-* Missing folders, expired credentials, cancelled login, and unavailable referenced accounts produce clear errors without falling back to another account or preventing other accounts from running.
+* Missing folders, expired credentials, and cancelled login produce clear errors without preventing other accounts from running. Removed references fall back to the configured default and then the initial account.
 * Focused tests and lint pass in `app` and `desktop`.
