@@ -10,6 +10,40 @@ agents:
   - design/activity/card__733d678c-49a7-4409-9fa2-5fb384821513.json
 policy:
 branch: f_422_check_if_possible_to_switch_agent_accounts
+changedFiles:
+  - app/src/components/actions/agent/action_agent_capability_fields.grouped.test.tsx
+  - app/src/components/actions/agent/action_agent_capability_fields.tsx
+  - app/src/components/actions/agent/action_agent_selectors.tsx
+  - app/src/components/actions/run/sequence/card_sequence_agent_selection.tsx
+  - app/src/components/actions/run/sequence/card_sequence_draft_service.node.test.ts
+  - app/src/components/shell/menu/agent_menu_controls.tsx
+  - app/src/data/agent_accounts.node.test.ts
+  - app/src/services/actions/active_schedule_projection.node.test.ts
+  - app/src/services/actions/active_schedule_projection.ts
+  - app/src/services/actions/active_schedule_service.node.test.ts
+  - app/src/services/actions/active_schedule_service.ts
+  - app/src/services/agents/agent_account_service.service.test.ts
+  - app/src/services/agents/agent_account_service.ts
+  - app/src/services/stats/project_stats_service.node.test.ts
+  - app/src/services/stats/stats_totals_dataset.ts
+  - app/src/services/stats/stats_usage_comparison_dataset.ts
+  - design/feature_descriptions/F_436_add_agent_account_model_and_resolution.md
+  - design/feature_descriptions/F_439_add_account_selection_to_actions_and_runs.md
+  - design/feature_descriptions/F_440_run_agents_with_selected_account.md
+  - design/feature_descriptions/F_441_scope_provider_sessions_by_agent_account.md
+  - design/feature_descriptions/F_443_scope_usage_metrics_and_reset_schedules_by_account.md
+  - desktop/main.js
+  - desktop/src/actions/action/action_agent_executor.js
+  - desktop/src/actions/action/action_agent_executor.test.mjs
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/agent/agent_profiles.mjs
+  - desktop/src/shell/config.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - shared/agent_accounts.d.mts
+  - shared/agent_accounts.mjs
+  - shared/agent_selection.mjs
 ---
 Allow separate Codex and Claude accounts to be configured, selected as defaults, assigned to actions and runs, and remembered by provider sessions in a conversation.
 
