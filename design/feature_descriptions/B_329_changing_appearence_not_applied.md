@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__b71e73f9-ddd6-4a14-bf59-7f9415ad0614.json
 policy:
-branch: b_329_changing_appearence_not_applied
-worktree: 1
 changedFiles:
   - app/src/theme/theme_provider.tsx
 ---
