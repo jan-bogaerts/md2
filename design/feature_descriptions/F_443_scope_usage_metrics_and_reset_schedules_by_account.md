@@ -13,12 +13,45 @@ branch: f_443_scope_usage_metrics_and_reset_schedules_by_account
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 worktree: 1
 changedFiles:
+  - app/src/components/actions/run/schedule/action_schedule_form.test.tsx
+  - app/src/components/actions/run/schedule/action_schedule_form.tsx
+  - app/src/components/actions/run/schedule/action_schedule_options.node.test.ts
+  - app/src/components/actions/run/schedule/action_schedule_options.ts
+  - app/src/components/actions/run/schedule/action_schedule_popover.tsx
+  - app/src/components/actions/run/schedule/action_schedule_store.node.test.ts
+  - app/src/components/actions/run/schedule/action_schedule_store.ts
+  - app/src/components/actions/run/schedule/action_schedule_trigger.node.test.ts
+  - app/src/components/actions/run/schedule/action_schedule_trigger.ts
+  - app/src/components/actions/run/schedule/schedule_trigger_fields.tsx
+  - app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx
+  - app/src/components/actions/run/sequence/card_sequence_dialog.tsx
+  - app/src/components/actions/run/sequence/card_sequence_draft_service.node.test.ts
+  - app/src/components/actions/run/sequence/card_sequence_draft_service.ts
+  - app/src/data/action_schedule_types.node.test.ts
+  - app/src/services/actions/active_schedule_projection.node.test.ts
+  - app/src/services/actions/active_schedule_projection.ts
+  - app/src/services/actions/active_schedule_service.node.test.ts
+  - app/src/services/actions/active_schedule_service.ts
   - app/src/services/agents/project_usage_metrics_service.node.test.ts
   - app/src/services/agents/project_usage_metrics_service.ts
+  - app/src/services/stats/project_stats_service.node.test.ts
+  - app/src/services/stats/project_stats_service.ts
   - app/src/services/stats/project_stats_types.ts
+  - app/src/services/stats/stats_duration_split.node.test.ts
+  - app/src/services/stats/stats_identities.ts
+  - app/src/services/stats/stats_options.node.test.ts
+  - app/src/services/stats/stats_options.ts
+  - app/src/services/stats/stats_totals_dataset.ts
+  - app/src/services/stats/stats_usage_comparison_dataset.ts
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
   - desktop/src/actions/agent/agent_runner_service.js
   - desktop/src/actions/agent/usage_metrics_service.js
   - desktop/src/actions/agent/usage_metrics_service.test.mjs
+  - desktop/src/actions/schedule/schedule_account_snapshots.js
+  - desktop/src/actions/schedule/schedule_account_snapshots.test.mjs
+  - shared/action_schedules.d.mts
+  - shared/action_schedules.mjs
 ---
 
 Persist and project usage measurements and account-reset schedules separately for each agent account, using the account-scoped runtime snapshots from F_442.
