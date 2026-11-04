@@ -213,6 +213,89 @@ describe('ProjectOpenDialog', () => {
         expect(projectOpenFlowService.getPhase()).toBe('folder-setup')
     })
 
+    it('groups explained outlined folder fields and shows their resolved missing paths', () => {
+        renderDialog({ initialProjectOpenResolution: folderSetupResolution() })
+        const dialog = screen.getByRole('dialog', { name: 'Project folders' })
+        const projectFolderCard = within(dialog).getByRole('region', { name: 'Project folder' })
+        const currentFilesCard = within(dialog).getByRole('region', { name: 'Current project files' })
+        const historyCard = within(dialog).getByRole('region', { name: 'History' })
+        expect(within(dialog).getAllByRole('region')).toEqual([projectFolderCard, currentFilesCard, historyCard])
+
+        expect(within(projectFolderCard).getByText(
+            'Choose the top-level repository folder that contains this MD² project.',
+        )).toBeInTheDocument()
+        expect(within(currentFilesCard).getByText(
+            'These folders contain files MD² reads or writes while work on the project is active.',
+        )).toBeInTheDocument()
+        expect(within(historyCard).getByText(
+            'These folders contain completed releases and cards archived outside a release.',
+        )).toBeInTheDocument()
+
+        expect(within(projectFolderCard).getAllByRole('combobox').map((input) => input.getAttribute('aria-label')))
+            .toEqual(['Project folder'])
+        expect(within(currentFilesCard).getAllByRole('combobox').map((input) => input.getAttribute('aria-label')))
+            .toEqual(['Working folder', 'Diagrams folder', 'Actions folder'])
+        expect(within(historyCard).getAllByRole('combobox').map((input) => input.getAttribute('aria-label')))
+            .toEqual(['Releases folder', 'Archived folder'])
+
+        const helperDescriptions = [
+            'Contains the MD² project configuration and all project subfolders.',
+            'Contains active design and job Markdown files that MD² loads as cards.',
+            'Contains JSON diagram data saved by diagram actions.',
+            'Contains JSON definitions for project actions.',
+            'Contains one subfolder for each completed release.',
+            'Contains cards archived individually outside a release.',
+        ]
+        helperDescriptions.forEach((description) => {
+            expect(within(dialog).getByText(description)).toBeInTheDocument()
+        })
+
+        const folderInputs = within(dialog).getAllByRole('combobox')
+        expect(folderInputs).toHaveLength(6)
+        folderInputs.forEach((input) => {
+            expect(input.closest('.MuiOutlinedInput-root')).toBeInTheDocument()
+        })
+        const resolvedPaths = [
+            'Resolved path: design',
+            'Resolved path: design/active',
+            'Resolved path: design/diagrams',
+            'Resolved path: design/actions',
+            'Resolved path: design/history',
+            'Resolved path: design/archived',
+        ]
+        resolvedPaths.forEach((resolvedPath) => {
+            expect(within(dialog).getByText(resolvedPath)).toBeInTheDocument()
+        })
+        expect(within(dialog).getAllByText('Will be created')).toHaveLength(6)
+    })
+
+    it('hides creation markers for resolved paths that already exist', () => {
+        const resolution = {
+            ...folderSetupResolution(),
+            existingFolderPaths: [
+                'design',
+                'design/active',
+                'design/diagrams',
+                'design/actions',
+                'design/history',
+                'design/archived',
+            ],
+        }
+        renderDialog({ initialProjectOpenResolution: resolution })
+
+        expect(screen.queryByText('Will be created')).toBeNull()
+    })
+
+    it('supports free-text folder editing', async () => {
+        renderDialog({ initialProjectOpenResolution: folderSetupResolution() })
+        const workingFolder = screen.getByRole('combobox', { name: 'Working folder' })
+        await userEvent.clear(workingFolder)
+        await userEvent.type(workingFolder, 'current/cards')
+
+        expect(workingFolder).toHaveValue('current/cards')
+        expect(screen.getByText('Resolved path: design/current/cards')).toBeInTheDocument()
+    })
+
     it('stays hidden after folder setup while recording the opened local project', async () => {
         setDesktopBridge()
         vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(folderSetupResolution())
