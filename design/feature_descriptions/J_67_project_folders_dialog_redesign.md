@@ -11,6 +11,7 @@ agents:
 policy:
 branch: j_67_project_folders_dialog_redesign
 worktree: 2
+after: 733d678c-49a7-4409-9fa2-5fb384821513
 ---
 see:
 

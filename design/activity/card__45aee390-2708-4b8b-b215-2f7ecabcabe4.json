@@ -1897,6 +1897,38 @@
       "startedAt": "2026-11-03T15:23:52.333Z",
       "status": "completed",
       "rootConversationId": "agent-5f562cbd-4fc5-4aa9-a0a5-075fdc726c1d"
+    },
+    {
+      "commits": [
+        {
+          "commit": "6752278f611f715123af4dda2dae274b97d77a32",
+          "committedAt": "2026-11-04T10:42:58+01:00",
+          "deletions": 13,
+          "filePaths": [
+            "app/src/data/data_types.ts",
+            "app/src/services/agents/agent_conversation_service.node.test.ts",
+            "desktop/src/actions/action/action_agent_executor.js",
+            "desktop/src/actions/action/action_agent_executor.test.mjs",
+            "desktop/src/actions/action/action_compact_queue.test.mjs",
+            "desktop/src/actions/agent/agent_conversation.js",
+            "desktop/src/actions/agent/agent_conversation.test.mjs",
+            "desktop/src/actions/agent/agent_run_state.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/claude_usage_accounting.test.mjs",
+            "shared/agent_conversations.mjs"
+          ],
+          "filesChanged": 11,
+          "insertions": 308,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-04T10:42:58+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "45aee390-2708-4b8b-b215-2f7ecabcabe4",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
