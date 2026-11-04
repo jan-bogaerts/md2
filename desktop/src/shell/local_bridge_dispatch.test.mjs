@@ -291,7 +291,7 @@ describe('createLocalBridgeDispatch', () => {
         expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(2, profile, initialAccount, true);
     });
 
-    it('resolves the requested account for catalog discovery and rejects unknown accounts', async () => {
+    it('resolves requested accounts for catalog discovery and falls back from removed accounts', async () => {
         const workAccount = { id: '11111111-1111-4111-8111-111111111111', agent: 'codex', kind: 'directory', name: 'work', configDirectory: 'C:/accounts/work' };
         const desktopConfig = {
             agentAccounts: [
@@ -300,6 +300,10 @@ describe('createLocalBridgeDispatch', () => {
                 workAccount,
             ],
             agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
+            agentSelection: {
+                activeAgent: 'codex', permissionMode: 'ask-for-approval',
+                settingsByAgent: { codex: { accountId: workAccount.id, model: 'gpt-5', thinkingLevel: 'none' } },
+            },
         };
         const { dispatch, agentModelCatalogService } = createDispatch({ desktopConfig });
 
@@ -307,8 +311,8 @@ describe('createLocalBridgeDispatch', () => {
 
         expect(agentModelCatalogService.load).toHaveBeenCalledWith(desktopConfig.agentProfiles[0], workAccount, false);
         expect(catalog.accountId).toBe(workAccount.id);
-        await expect(dispatch.dataBridge.loadAgentModelCatalog({ agent: 'codex', accountId: 'missing' }))
-            .rejects.toThrow('Unknown agent account');
+        const fallbackCatalog = await dispatch.dataBridge.loadAgentModelCatalog({ agent: 'codex', accountId: 'missing' });
+        expect(fallbackCatalog.accountId).toBe(workAccount.id);
     });
 
     it('shares refreshed model lists between subscribed bridge surfaces', () => {

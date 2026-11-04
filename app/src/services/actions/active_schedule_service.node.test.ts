@@ -10,6 +10,7 @@ import { configService } from '../config/config_service'
 import { dataService } from '../data/data_service'
 import { worktreeService } from '../project/worktree_service'
 import { ActiveScheduleService } from './active_schedule_service'
+import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
 
 function schedule(): ActionSchedule {
     return {
@@ -86,6 +87,11 @@ function createHarness() {
         dataService: serviceData,
         getActionsFolder: () => 'design/actions',
         getBridge: () => bridge as never,
+        getAgentAccounts: () => [
+            ...DEFAULT_AGENT_ACCOUNTS,
+            { agent: 'codex', configDirectory: 'C:/accounts/other', id: 'other-account', kind: 'directory', name: 'Other' },
+        ],
+        getDefaultAccountId: (agent) => selectedAccountIds[agent as keyof typeof selectedAccountIds],
         getProject: () => project,
         selectionEvents,
     })

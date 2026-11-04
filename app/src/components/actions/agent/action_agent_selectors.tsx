@@ -30,7 +30,7 @@ import {
     selectThinkingLevel,
     selectSpeedMode,
 } from '../../../data/agent_selection'
-import { supportsAgentAccounts } from '../../../data/agent_accounts'
+import { initialAgentAccountId, supportsAgentAccounts } from '../../../data/agent_accounts'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
@@ -85,7 +85,9 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
         : 'Permission controls are unsupported by this agent'
     const selectedProfile = settings.agentProfiles.find(({ name }) => name === settings.agent) ?? null
     const selectedAgentAccounts = settings.accounts.filter(({ agent, kind }) => agent === settings.agent && kind !== 'initial')
-    const accountAvailable = !settings.accountId || selectedAgentAccounts.some(({ id }) => id === settings.accountId)
+    const accountAvailable = !settings.accountId
+        || settings.accountId === initialAgentAccountId(settings.agent)
+        || selectedAgentAccounts.some(({ id }) => id === settings.accountId)
     const selectedModel = settings.modelOptions.find(({ id }) => id === settings.model);
 
     const handleOpenModelMenu = (event: MouseEvent<HTMLButtonElement>) => setModelMenuAnchor(event.currentTarget)
@@ -292,10 +294,16 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                 slotProps={{ list: { 'aria-label': 'Account choices', onKeyDown: handleNestedMenuKeyDown } }}
                 transformOrigin={{ horizontal: 'left', vertical: 'top' }}
             >
-                <MenuItem data-account-id="" onClick={handleAccountChange} selected={!settings.accountId}>Initial</MenuItem>
+                <MenuItem
+                    data-account-id=""
+                    onClick={handleAccountChange}
+                    selected={!settings.accountId || settings.accountId === initialAgentAccountId(settings.agent)}
+                >
+                    Initial
+                </MenuItem>
                 {!accountAvailable ? (
                     <MenuItem data-account-id={settings.accountId} disabled selected>
-                        {settings.accountId} — unavailable
+                        {settings.accountId} — uses default
                     </MenuItem>
                 ) : null}
                 {selectedAgentAccounts.map(({ id, name }) => (

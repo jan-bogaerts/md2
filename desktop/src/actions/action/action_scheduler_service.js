@@ -1,7 +1,7 @@
 const { normalizeFolderPath } = require('../../../../shared/project_config_defaults.mjs');
 const { parseSequenceAgentSelection } = require('../../../../shared/action_schedules.mjs');
 const { CUSTOM_PROMPT_ACTION_ID } = require('../../../../shared/action_definitions.mjs');
-const { initialAgentAccountId } = require('../../../../shared/agent_accounts.mjs');
+const { initialAgentAccountId, resolveAgentAccount, resolveAgentAccounts } = require('../../../../shared/agent_accounts.mjs');
 const {
     activeSchedules,
     appendActionSchedule,
@@ -125,6 +125,8 @@ class ActionSchedulerService {
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
         this.clearTimeout = dependencies?.clearTimeout ?? clearTimeout;
         this.localGitService = dependencies?.localGitService;
+        this.agentAccountsProvider = dependencies?.agentAccountsProvider ?? (() => undefined);
+        this.selectedAgentAccountId = dependencies?.selectedAgentAccountId ?? initialAgentAccountId;
         this.worktreeService = dependencies?.worktreeService;
         this.now = dependencies?.now ?? Date.now;
         this.setTimeout = dependencies?.setTimeout ?? setTimeout;
@@ -528,7 +530,7 @@ class ActionSchedulerService {
         for (const schedule of schedules) {
             if (schedule.status !== 'pending' || schedule.trigger.type !== 'account-reset') continue;
             const { agent: triggerAgent, expectedResetAt, limitId, windowId } = schedule.trigger;
-            const triggerAccountId = schedule.trigger.accountId ?? initialAgentAccountId(triggerAgent);
+            const triggerAccountId = this.resolveTriggerAccountId(triggerAgent, schedule.trigger.accountId);
             const hasMatchingObservation = observations.some((observation) => (
                 observation.agent === triggerAgent
                 && observation.accountId === triggerAccountId
@@ -538,6 +540,14 @@ class ActionSchedulerService {
             if (!hasMatchingObservation || this.now() < Date.parse(expectedResetAt)) continue;
             await this.fireSchedule(schedule.id, generation);
         }
+    }
+
+    resolveTriggerAccountId(agent, accountId) {
+        if (accountId === undefined) return initialAgentAccountId(agent);
+        const accounts = resolveAgentAccounts(this.agentAccountsProvider(), 'desktop config');
+        const account = resolveAgentAccount(accounts, agent, accountId, this.selectedAgentAccountId(agent));
+
+        return account.id;
     }
 
     async reconcile(options = {}) {

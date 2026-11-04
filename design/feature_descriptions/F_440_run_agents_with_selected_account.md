@@ -40,7 +40,7 @@ Use the account selected by F_439 for agent execution and persist which account 
 
 ## Implementation details
 
-* Resolve the effective account record once before starting a process. A missing account ID resolves to the selected agent's initial account. An explicit missing, mismatched, unreadable, or unavailable account fails before process start.
+* Resolve the effective account record once before starting a process. A missing account ID resolves to the selected agent's initial account. A removed account resolves to the configured default and then the initial account. Mismatched, unreadable, or unavailable existing accounts fail before process start.
 * Pass the resolved account through `ActionAgentExecutor` and `AgentRunnerService`; do not repeatedly look it up from mutable configuration during one run.
 * Extend `createAgentEnvironment` to accept the resolved account while preserving current filtering and Claude task-tracking behavior:
   * for an initial account, leave `CODEX_HOME` and `CLAUDE_CONFIG_DIR` as inherited;
@@ -57,7 +57,7 @@ Use the account selected by F_439 for agent execution and persist which account 
 
 * A fresh Codex or Claude run uses the configuration directory of its resolved directory account.
 * A run using the initial account behaves exactly like the current inherited-environment execution.
-* Explicit invalid or unavailable accounts fail clearly and never fall back to another account.
+* Removed references fall back to the configured default and then the initial account. Mismatched or unavailable existing accounts fail clearly.
 * Live runs, retries, completion results, history, and activity details retain the account that actually started the run.
 * Changing a default account while a run is active does not change that run's environment or recorded identity.
 * Immediate, scheduled, chained, and remote-controlled runs use the same execution behavior.

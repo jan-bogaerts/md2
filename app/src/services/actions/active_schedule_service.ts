@@ -13,7 +13,13 @@ import {
     codexRateLimitsChangedEvent,
     type CodexRateLimitService,
 } from '../agents/codex_rate_limit_service'
-import { DEFAULT_AGENT_ACCOUNTS, initialAgentAccountId, type AgentAccount } from '../../data/agent_accounts'
+import {
+    DEFAULT_AGENT_ACCOUNTS,
+    initialAgentAccountId,
+    resolveAgentAccount,
+    type AgentAccount,
+} from '../../data/agent_accounts'
+import { selectedAgentAccountId } from '../../data/agent_selection'
 import { configService } from '../config/config_service'
 import { dataService, type DataService } from '../data/data_service'
 import { projectAccessService } from '../project/project_access_service'
@@ -44,6 +50,7 @@ interface ActiveScheduleServiceDependencies {
     getBridge(): ElectronActionBridge | null
     getProject(): ProjectReference | null
     getAgentAccounts?(): AgentAccount[]
+    getDefaultAccountId?(agent: string): string
     /** Announces `changed` when configured accounts may have changed. */
     selectionEvents: EventTarget
 }
@@ -82,6 +89,9 @@ function defaultDependencies(): ActiveScheduleServiceDependencies {
         getAgentAccounts: () => configService.isInitialized()
             ? configService.get('desktop.agentAccounts')
             : DEFAULT_AGENT_ACCOUNTS,
+        getDefaultAccountId: (agent) => configService.isInitialized()
+            ? selectedAgentAccountId(configService.get('desktop.agentSelection'), agent)
+            : initialAgentAccountId(agent),
         selectionEvents: configService,
     }
 }
@@ -282,7 +292,7 @@ export class ActiveScheduleService extends EventTarget {
             if (schedule.trigger.type !== 'account-reset') continue
             const { agent } = schedule.trigger
             if (agent !== 'claude' && agent !== 'codex') continue
-            const accountId = schedule.trigger.accountId ?? initialAgentAccountId(agent)
+            const accountId = this.resolveRateLimitAccountId(agent, schedule.trigger.accountId)
             next.set(`${agent}\u0000${accountId}`, { accountId, agent })
         }
         const unchanged = next.size === this.rateLimitAccounts.size
@@ -301,6 +311,14 @@ export class ActiveScheduleService extends EventTarget {
         }
 
         return true
+    }
+
+    private resolveRateLimitAccountId(agent: RateLimitAgent, accountId: string | undefined) {
+        if (accountId === undefined) return initialAgentAccountId(agent)
+        const accounts = this.dependencies.getAgentAccounts?.() ?? DEFAULT_AGENT_ACCOUNTS
+        const defaultAccountId = this.dependencies.getDefaultAccountId?.(agent) ?? initialAgentAccountId(agent)
+
+        return resolveAgentAccount(accounts, agent, accountId, defaultAccountId)?.id ?? initialAgentAccountId(agent)
     }
 
     private unbindRateLimitAccounts() {
@@ -385,6 +403,7 @@ export class ActiveScheduleService extends EventTarget {
             cards,
             claudeSnapshots,
             codexSnapshots,
+            defaultAccountId: (agent) => this.dependencies.getDefaultAccountId?.(agent) ?? initialAgentAccountId(agent),
         })
         const scheduleIds = new Set(this.schedules.map(({ id }) => id))
         this.publish({

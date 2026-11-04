@@ -1,6 +1,7 @@
 const { resolveAgentExecution } = require('../actions/agent/agent_execution');
 const { resolveAgentAccount, resolveAgentAccounts } = require('../actions/agent/agent_accounts.mjs');
 const { findAgentProfile } = require('../actions/agent/agent_profiles.mjs');
+const { selectedAgentAccountId } = require('../actions/agent/agent_selection.mjs');
 const { CardStateTracker } = require('../actions/card/card_state_tracker');
 const { ConversationViewEvents } = require('../actions/activity/conversation_view_events');
 const { resolveProjectPaths } = require('../project/project_paths');
@@ -48,10 +49,16 @@ async function loadAgentModelCatalog(dependencies, request) {
     if (!request || typeof request.agent !== 'string' || request.agent.length === 0) throw new Error('Missing catalog agent');
     if (request.refresh !== undefined && typeof request.refresh !== 'boolean') throw new Error('Invalid catalog refresh value');
     if (request.accountId !== undefined && typeof request.accountId !== 'string') throw new Error('Invalid catalog account ID');
-    const { agentAccounts, agentProfiles } = readDesktopConfig(desktopConfigStore);
+    const { agentAccounts, agentProfiles, agentSelection } = readDesktopConfig(desktopConfigStore);
     const profile = request.profile === undefined ? findAgentProfile(agentProfiles, request.agent) : request.profile;
     if (!profile || profile.name !== request.agent) throw new Error('Catalog profile does not match its agent');
-    const account = resolveAgentAccount(resolveAgentAccounts(agentAccounts, 'desktop config'), request.agent, request.accountId);
+    const defaultAccountId = selectedAgentAccountId(agentSelection, request.agent);
+    const account = resolveAgentAccount(
+        resolveAgentAccounts(agentAccounts, 'desktop config'),
+        request.agent,
+        request.accountId,
+        defaultAccountId,
+    );
 
     return await agentModelCatalogService.load(profile, account, request.refresh === true);
 }

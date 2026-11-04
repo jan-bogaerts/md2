@@ -3,7 +3,7 @@ import type { AnySchedule } from '../../data/action_schedule_types'
 import type { Card } from '../../data/data_types'
 import type { ClaudeRateLimitSnapshot } from '../../data/electron_claude_runtime_bridge'
 import type { CodexRateLimitSnapshot } from '../../data/electron_codex_runtime_bridge'
-import { findAgentAccount, initialAgentAccountId, type AgentAccount } from '../../data/agent_accounts'
+import { initialAgentAccountId, resolveAgentAccount, type AgentAccount } from '../../data/agent_accounts'
 
 export interface ActiveScheduleReference {
     available: boolean
@@ -33,6 +33,7 @@ export interface ActiveScheduleProjectionSources {
     cards: Card[]
     claudeSnapshots: ReadonlyMap<string, ClaudeRateLimitSnapshot | null>
     codexSnapshots: ReadonlyMap<string, CodexRateLimitSnapshot | null>
+    defaultAccountId(agent: string): string
 }
 
 function cardReference(cardInternalId: string, cards: Card[]): ActiveScheduleReference {
@@ -53,12 +54,21 @@ function trackerReference(
 ): ActiveScheduleTrackerReference | null {
     if (schedule.trigger.type !== 'account-reset') return null
     const { agent, limitId, windowId } = schedule.trigger
-    const accountId = schedule.trigger.accountId ?? initialAgentAccountId(agent)
-    const account = findAgentAccount(sources.agentAccounts, accountId)
-    const accountLabel = account?.name ?? accountId
-    if (!account || account.agent !== agent) {
-        return { available: false, label: `${agent} / ${accountLabel} / ${limitId} / ${windowId}` }
+    const requestedAccountId = schedule.trigger.accountId
+    let account: AgentAccount | null = null
+    try {
+        account = resolveAgentAccount(
+            sources.agentAccounts,
+            agent,
+            requestedAccountId,
+            requestedAccountId === undefined ? undefined : sources.defaultAccountId(agent),
+        )
+    } catch {
+        // Invalid cross-agent references remain unavailable instead of breaking the schedules view.
     }
+    const accountId = account?.id ?? requestedAccountId ?? initialAgentAccountId(agent)
+    const accountLabel = account?.name ?? accountId
+    if (!account) return { available: false, label: `${agent} / ${accountLabel} / ${limitId} / ${windowId}` }
     if (agent === 'claude') {
         const claudeSnapshot = sources.claudeSnapshots.get(accountId) ?? null
         const window = claudeSnapshot?.available && limitId === 'default'

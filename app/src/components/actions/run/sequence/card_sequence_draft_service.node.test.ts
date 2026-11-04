@@ -63,7 +63,7 @@ describe('CardSequenceDraftService', () => {
         expect(service.createRegistrationRequest()).not.toHaveProperty('agentSelection');
     });
 
-    it('persists sequence account selection and blocks removed accounts', () => {
+    it('persists sequence account selection and allows removed accounts to use runtime fallback', () => {
         const service = readyService();
         const workAccount = {
             agent: 'codex', configDirectory: 'C:/accounts/work',
@@ -84,7 +84,7 @@ describe('CardSequenceDraftService', () => {
         expect(service.createRegistrationRequest().agentSelection).toMatchObject({ accountId: workAccount.id });
 
         service.updateSources({ ...sources, accounts: DEFAULT_AGENT_ACCOUNTS });
-        expect(service.getSnapshot()).toMatchObject({ canSubmit: false, validationMessage: expect.stringContaining('Unknown agent account') });
+        expect(service.getSnapshot()).toMatchObject({ canSubmit: true, validationMessage: null });
     });
 
     it('blocks unavailable agents and unsupported models with specific reasons', () => {

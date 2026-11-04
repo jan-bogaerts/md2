@@ -135,7 +135,7 @@ describe('ActionAgentCapabilityFields', () => {
         }))
     })
 
-    it('shows owned accounts, preserves missing IDs, and writes selected account', async () => {
+    it('shows owned accounts, explains removed-account fallback, and writes selected account', async () => {
         const workAccount = {
             agent: 'codex', configDirectory: 'C:/accounts/work',
             id: '11111111-1111-4111-8111-111111111111', kind: 'directory' as const, name: 'Work',
@@ -146,9 +146,9 @@ describe('ActionAgentCapabilityFields', () => {
         renderFields(service, { ...definition, accountId: 'missing-account' }, onChange)
 
         expect(screen.getByLabelText('Account')).toHaveTextContent('missing-account')
-        expect(screen.getByText('Unknown account: missing-account')).toBeInTheDocument()
+        expect(screen.getByText('Removed account missing-account; the default is used.')).toBeInTheDocument()
         fireEvent.mouseDown(screen.getByLabelText('Account'))
-        expect(within(screen.getByRole('listbox')).getByRole('option', { name: 'missing-account — unavailable' }))
+        expect(within(screen.getByRole('listbox')).getByRole('option', { name: 'missing-account — uses default' }))
             .toHaveAttribute('aria-disabled', 'true')
         fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Work' }))
         expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ accountId: workAccount.id }))

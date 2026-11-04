@@ -1,4 +1,4 @@
-import type { AgentAccount } from '../../data/agent_accounts';
+import { INITIAL_ACCOUNT_KIND, type AgentAccount } from '../../data/agent_accounts';
 import {
     getElectronAgentAccountBridge,
     type DesktopAgentAccountStatus,
@@ -165,6 +165,11 @@ export class AgentAccountService extends EventTarget {
             const agentAccounts = nextByAgent.get(account.agent) ?? [];
             agentAccounts.push(account);
             nextByAgent.set(account.agent, agentAccounts);
+        }
+        for (const [agent, agentAccounts] of nextByAgent) {
+            const initialAccounts = agentAccounts.filter(({ kind }) => kind === INITIAL_ACCOUNT_KIND);
+            const directoryAccounts = agentAccounts.filter(({ kind }) => kind !== INITIAL_ACCOUNT_KIND);
+            nextByAgent.set(agent, [...initialAccounts, ...directoryAccounts]);
         }
         const changedAgents = new Set([...previousByAgent.keys(), ...nextByAgent.keys()]);
         for (const [agent, agentAccounts] of nextByAgent) {

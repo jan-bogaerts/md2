@@ -231,7 +231,7 @@ export function longestWindowSeriesByProvider(seriesOptions: StatsAccountSeriesO
     return seriesByProvider;
 }
 
-function longestWindowSeriesByAccount(seriesOptions: StatsAccountSeriesOption[]) {
+export function longestWindowSeriesByAccount(seriesOptions: StatsAccountSeriesOption[]) {
     const seriesByAccount = new Map<string, StatsAccountSeriesOption>();
     for (const series of seriesOptions) {
         const accountIdentity = accountProviderIdentity(series.provider, series.accountId);

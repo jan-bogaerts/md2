@@ -1,4 +1,3 @@
-const { findAgentAccount, resolveAgentAccounts } = require('../../../../shared/agent_accounts.mjs');
 const { findProviderSession, providerSessionAccountId } = require('../agent/agent_conversation');
 const { resolveAgentExecution } = require('../agent/agent_execution');
 const { buildResumeAgentCommand, buildAgentStreamingCommand, resolveAgentConfiguration } = require('../agent/agent_profiles.mjs');
@@ -186,9 +185,6 @@ class ActionAgentExecutor {
         if (!providerSession?.conversationId) throw new Error('Missing provider session for compact');
         const config = this.agentConfigProvider();
         const accountId = providerSessionAccountId(providerSession);
-        if (accountId && !findAgentAccount(resolveAgentAccounts(config.agentAccounts, 'desktop config'), accountId)) {
-            throw new Error(`Provider session account is unavailable for ${providerSession.agent}: ${accountId}`);
-        }
         const resolvedAgent = resolveAgentConfiguration(config, { ...(accountId ? { accountId } : {}), agent: providerSession.agent });
         const agentTaskTrackingEnabled = config.agentTaskTrackingEnabled ?? false;
         const command = buildAgentStreamingCommand(

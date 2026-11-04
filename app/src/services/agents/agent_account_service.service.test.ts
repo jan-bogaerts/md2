@@ -58,6 +58,15 @@ describe('AgentAccountService', () => {
         expect(service.getStatus(CLAUDE_INITIAL_ID)).toBe('available');
     });
 
+    it('lists the initial account first even when storage returns it later', async () => {
+        const bridge = createBridge([WORK_ACCOUNT, ...DEFAULT_AGENT_ACCOUNTS]);
+        const { service } = createService(bridge);
+
+        await service.load();
+
+        expect(service.getAccounts('codex').map(({ id }) => id)).toEqual([CODEX_INITIAL_ID, WORK_ACCOUNT.id]);
+    });
+
     it('adds a selected account, mirrors it into the config draft, and starts its login', async () => {
         const bridge = createBridge(DEFAULT_AGENT_ACCOUNTS);
         const { config, service } = createService(bridge);

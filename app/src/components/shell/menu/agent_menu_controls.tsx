@@ -25,7 +25,7 @@ import {
     selectSpeedMode,
     type AgentSelectionState,
 } from '../../../data/agent_selection'
-import { resolveAgentAccount, supportsAgentAccounts } from '../../../data/agent_accounts'
+import { initialAgentAccountId, resolveAgentAccount, supportsAgentAccounts } from '../../../data/agent_accounts'
 import type { AgentAccount } from '../../../data/agent_accounts'
 import { configService } from '../../../services/config/config_service'
 import { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'
@@ -76,9 +76,13 @@ export function AgentMenuControls() {
     const selectedSpeedMode = activeAgentSettings?.speedMode ?? 'default';
     const selectedAccountId = activeAgentSettings?.accountId ?? ''
     const selectedAgentAccounts = accounts.filter(({ agent, kind }) => agent === selectedAgent && kind !== 'initial')
-    const accountAvailable = !selectedAccountId || selectedAgentAccounts.some(({ id }) => id === selectedAccountId)
+    const selectedInitialAccount = selectedAccountId === initialAgentAccountId(selectedAgent)
+    const accountAvailable = !selectedAccountId || selectedInitialAccount
+        || selectedAgentAccounts.some(({ id }) => id === selectedAccountId)
     const renderAccountValue = (accountId: string) => accountId
-        ? selectedAgentAccounts.find(({ id }) => id === accountId)?.name ?? `${accountId} — unavailable`
+        ? accountId === initialAgentAccountId(selectedAgent)
+            ? 'Initial'
+            : selectedAgentAccounts.find(({ id }) => id === accountId)?.name ?? `${accountId} — uses default`
         : 'Initial'
     const selectionError = activeAgentSettings
         ? desktopSelectionError(accounts, agentSelection, agentProfiles)
@@ -142,10 +146,10 @@ export function AgentMenuControls() {
                     minWidth={150}
                     onChange={handleAccountChange}
                     renderValue={renderAccountValue}
-                    value={selectedAccountId}
+                    value={selectedInitialAccount ? '' : selectedAccountId}
                 >
                     <MenuItem value="">Initial</MenuItem>
-                    {!accountAvailable ? <MenuItem disabled value={selectedAccountId}>{selectedAccountId} — unavailable</MenuItem> : null}
+                    {!accountAvailable ? <MenuItem disabled value={selectedAccountId}>{selectedAccountId} — uses default</MenuItem> : null}
                     {selectedAgentAccounts.map(({ id, name }) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
                 </MenuSelect>
             ) : null}

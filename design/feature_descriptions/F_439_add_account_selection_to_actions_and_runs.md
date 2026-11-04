@@ -84,7 +84,7 @@ Carry optional account selection through desktop defaults, action definitions, r
   * `ActionAgentSelectors`, updating the current run selection and remembered card/action settings.
 * List only accounts owned by the selected built-in agent. Custom profiles do not show an account selector.
 * A missing account ID means the selected agent's initial account. The UI may label this choice `Initial`; it must not write a compatibility migration merely because an old value is absent.
-* If an explicit referenced account no longer exists, keep its ID as a selected unavailable option and show a validation error. Do not silently select the initial account.
+* If an explicit referenced account no longer exists, show that resolution uses the desktop default account and then the initial account.
 * Add optional `accountId` to `ACTION_DEFINITION_FIELDS`, raw and normalized action types, editor error routing, serialization, and validation. An explicit action account requires an explicit built-in agent so ownership can be validated.
 * Add optional `accountId` to run-input validation, bridge types, remote-control requests, remembered run settings, sequence/schedule agent selections, and action-definition creation.
 * Resolve effective account choice in this order: run-menu account, action account, desktop default account, then the selected agent's initial account when no ID is present.
@@ -97,7 +97,6 @@ Carry optional account selection through desktop defaults, action definitions, r
 * Users can choose a default account per built-in agent, an action override, and a run-menu override.
 * Selection precedence is run override, action override, desktop default, then the agent's initial account.
 * Switching agents shows only accounts owned by the new agent and restores remembered settings for that agent.
-* Explicit missing or cross-agent account references remain visible and block submission with a clear validation error.
+* Removed account references use the configured fallback. Cross-agent references remain visible and block submission with a clear validation error.
 * Existing actions, settings, schedules, and remote requests without `accountId` remain valid and select the initial account without rewriting stored data.
 * Immediate, scheduled, chained, and remote-controlled action requests carry the same resolved account selection contract.
-

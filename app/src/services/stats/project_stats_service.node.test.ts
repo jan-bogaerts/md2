@@ -1125,11 +1125,20 @@ describe('ProjectStatsService aggregation', () => {
             `2026-08-12T13:30:00.000Z,account_usage,codex,weekly,codex-window,10080,2026-08-17T00:00:00.000Z,,,,,,40,5,${workAccount.id}`,
         ].join('\r\n')
         const service = new ProjectStatsService()
+        const agentProfiles = BUILTIN_AGENT_PROFILES.map((profile) => (
+            profile.name === 'codex' ? { ...profile, monthlySubscriptionCostUsd: 100 } : profile
+        ))
+        const usage = { cachedInputTokens: 1, inputTokens: 37, outputTokens: 1, reasoningTokens: 1, totalTokens: 40 }
+        const storedConversation = conversation({ usage })
+        const records = [agentRecord('run-1', '2026-08-12T10:00:00.000Z', storedConversation.id)]
         await openService(
             service,
-            storage({ 'design/usage_metrics.csv': metrics }),
+            storage({
+                'design/activity/card__card-1.json': activityContent({ conversations: [storedConversation], records }),
+                'design/usage_metrics.csv': metrics,
+            }),
             cards,
-            BUILTIN_AGENT_PROFILES,
+            agentProfiles,
             [...DEFAULT_AGENT_ACCOUNTS, workAccount],
         )
         service.setControls({ dataset: 'usageComparison' })
@@ -1141,6 +1150,10 @@ describe('ProjectStatsService aggregation', () => {
         expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'projectTokensTotal')).toMatchObject([
             { provider: 'codex', seriesLabel: 'codex / Work', value: 30 },
             { provider: 'codex', seriesLabel: 'codex / Default', value: 10 },
+        ])
+        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'cost' })
+        expect(service.getSnapshot().rows).toMatchObject([
+            { denominator: 7, numerator: 40, provider: 'codex', value: 1.75 },
         ])
     })
 

@@ -323,7 +323,6 @@ describe('saveDesktopConfig', () => {
                 { id: PRIVATE_ACCOUNT_ID, agent: 'claude', kind: 'directory', name: 'Private', configDirectory: 'c:\\Codex-Work' },
             ],
         }, 'Duplicate agent account directory'],
-        ['unknown account selection', { ...validConfig, agentSelection: codexAccountSelection(WORK_ACCOUNT_ID) }, 'Unknown agent account'],
         ['cross-agent account selection', { ...validConfig, agentSelection: codexAccountSelection('claude-initial') }, 'belongs to claude'],
         ['custom-profile account selection', {
             ...validConfig,
@@ -334,6 +333,13 @@ describe('saveDesktopConfig', () => {
 
         expect(() => saveDesktopConfig(store, config, {})).toThrow(message);
         expect(store.get(DESKTOP_CONFIG_STORE_KEY)).toBeUndefined();
+    });
+
+    it('preserves a removed default account reference for runtime fallback', () => {
+        const store = createFakeStore();
+        const config = { ...validConfig, agentSelection: codexAccountSelection(WORK_ACCOUNT_ID) };
+
+        expect(saveDesktopConfig(store, config, {})).toEqual(config);
     });
 
     it.each([

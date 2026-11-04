@@ -46,6 +46,7 @@ describe('projectActiveSchedules', () => {
         const sources = {
             actions: [action], agentAccounts: DEFAULT_AGENT_ACCOUNTS, cards: [card],
             claudeSnapshots: new Map(), codexSnapshots: new Map(),
+            defaultAccountId: () => 'claude-initial',
         }
         const [item] = projectActiveSchedules([actionSchedule()], sources)
 
@@ -61,6 +62,7 @@ describe('projectActiveSchedules', () => {
             cards: [card],
             claudeSnapshots: new Map([['claude-initial', { accountId: 'claude-initial', available: true, observedAt: 1, windows: [{ id: 'weekly', resetsAt: 2, usedPercent: 10 }] }]]),
             codexSnapshots: new Map(),
+            defaultAccountId: () => 'claude-initial',
         })
 
         expect(item.actionLabel).toBe('missing-action')
@@ -72,7 +74,7 @@ describe('projectActiveSchedules', () => {
         ])
     })
 
-    it('keeps an unavailable explicit account visible without falling back to the initial account', () => {
+    it('falls back from a removed explicit account to the configured default account', () => {
         const scheduled = sequenceSchedule()
         if (scheduled.trigger.type !== 'account-reset') throw new Error('Expected account-reset trigger')
         scheduled.trigger = { ...scheduled.trigger, accountId: 'removed-account' }
@@ -85,9 +87,10 @@ describe('projectActiveSchedules', () => {
                 windows: [{ id: 'weekly', resetsAt: 2, usedPercent: 10 }],
             }]]),
             codexSnapshots: new Map(),
+            defaultAccountId: () => 'claude-initial',
         })
 
-        expect(item.tracker).toEqual({ available: false, label: 'claude / removed-account / default / weekly' })
-        expect(item.unavailableReasons).toContain('Account tracker unavailable: claude / removed-account / default / weekly')
+        expect(item.tracker).toEqual({ available: true, label: 'Claude / Default / default / weekly' })
+        expect(item.unavailableReasons).not.toContain(expect.stringContaining('Account tracker unavailable'))
     })
 })

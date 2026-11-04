@@ -102,19 +102,29 @@ export function findAgentAccount(accounts, accountId) {
 }
 
 /**
- * Resolves the account for an agent. A missing account ID resolves to the initial account;
- * an explicit invalid account ID is an error and never falls back to the initial account.
+ * Resolves the account for an agent. A removed account falls back to the configured default and
+ * then the initial account. An account owned by another agent remains an error.
  */
-export function resolveAgentAccount(accounts, agent, accountId) {
+export function resolveAgentAccount(accounts, agent, accountId, defaultAccountId) {
     if (!supportsAgentAccounts(agent)) {
         if (accountId !== undefined) throw new Error(`Agent profile does not support accounts: ${agent}`);
 
         return null;
     }
-    const targetId = accountId ?? initialAgentAccountId(agent);
-    const account = findAgentAccount(accounts, targetId);
-    if (!account) throw new Error(`Unknown agent account for ${agent}: ${targetId}`);
-    if (account.agent !== agent) throw new Error(`Agent account ${targetId} belongs to ${account.agent}, not ${agent}`);
+    const candidateIds = [...new Set([
+        accountId,
+        defaultAccountId,
+        initialAgentAccountId(agent),
+    ].filter((candidateId) => candidateId !== undefined))];
+    for (const candidateId of candidateIds) {
+        const account = findAgentAccount(accounts, candidateId);
+        if (!account) continue;
+        if (account.agent !== agent) {
+            throw new Error(`Agent account ${candidateId} belongs to ${account.agent}, not ${agent}`);
+        }
 
-    return account;
+        return account;
+    }
+
+    throw new Error(`Missing initial agent account for ${agent}`);
 }

@@ -43,7 +43,7 @@ Make provider conversation ownership account-specific so a provider session is n
 * Update provider-session normalization, persistence, synchronization, retry, and missing-session recovery to preserve account identity.
 * Compaction must resolve and use the account stored on the selected provider session. Current desktop defaults and action/run overrides must not redirect an existing session.
 * A retry of an existing turn remains on that turn's captured account. A fallback after a missing provider conversation may create a replacement provider session only for the same agent and account.
-* If a provider session references a removed, missing, unreadable, or logged-out account, continuation and compaction fail with an account-specific error. Never resume the provider conversation through the initial or another configured account.
+* If a provider session references a removed account, continuation and compaction resolve through the configured default and then the initial account. An unreadable or logged-out existing account fails with an account-specific error.
 * Keep multiple sessions for the same agent when their accounts differ and update only the matching session record.
 * Add focused conversation, executor, runner-state, persistence, retry, missing-session, and compact tests.
 
@@ -54,6 +54,5 @@ Make provider conversation ownership account-specific so a provider session is n
 * Selecting another account starts a separate provider session and sends the full canonical conversation context once.
 * Existing provider sessions without `accountId` continue under the corresponding initial account without file migration.
 * Changing account defaults or names does not change the account used for an existing provider session.
-* Retry, missing-session recovery, and compaction never cross an account boundary.
-* An unavailable referenced account produces a clear error without affecting other accounts or sessions.
-
+* Retry and missing-session recovery keep the resolved account identity; removed references use the defined fallback.
+* An unavailable existing account produces a clear error without affecting other accounts or sessions.

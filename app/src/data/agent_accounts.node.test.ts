@@ -75,10 +75,11 @@ describe('agent accounts', () => {
         expect(validateAgentAccounts([...DEFAULT_AGENT_ACCOUNTS, upperCase, privateAccount], 'test')).toHaveLength(4)
     })
 
-    it('rejects explicit unknown, cross-agent, and custom-profile account selections', () => {
+    it('falls back for removed accounts while rejecting cross-agent and custom-profile selections', () => {
         const accounts = validateAgentAccounts([...DEFAULT_AGENT_ACCOUNTS, workAccount], 'test')
 
-        expect(() => resolveAgentAccount(accounts, 'codex', 'missing')).toThrow('Unknown agent account')
+        expect(resolveAgentAccount(accounts, 'codex', 'missing')).toMatchObject({ id: 'codex-initial' })
+        expect(resolveAgentAccount(accounts, 'codex', 'missing', WORK_ACCOUNT_ID)).toMatchObject({ id: WORK_ACCOUNT_ID })
         expect(() => resolveAgentAccount(accounts, 'claude', WORK_ACCOUNT_ID)).toThrow('belongs to codex')
         expect(() => resolveAgentAccount(accounts, 'claude', 'codex-initial')).toThrow('belongs to codex')
         expect(() => resolveAgentAccount(accounts, 'custom', 'codex-initial')).toThrow('does not support accounts')

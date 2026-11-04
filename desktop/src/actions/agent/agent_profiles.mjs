@@ -41,7 +41,6 @@ export function resolveAgentConfiguration(config, selection = {}) {
     const profile = findAgentProfile(profiles, agent);
     if (!profile) throw new Error(`Unknown agent profile: ${agent}`);
     const remembered = resolveAgentSettings(agent, profiles, [configuredSelection]);
-    const accountId = selection.accountId ?? remembered.accountId;
     const model = (selection.model ?? remembered.model) || defaultModelForProfile(profile);
     const thinkingLevel = selection.thinkingLevel ?? remembered.thinkingLevel;
     const speedMode = selection.speedMode === undefined ? remembered.speedMode : selection.speedMode;
@@ -52,13 +51,18 @@ export function resolveAgentConfiguration(config, selection = {}) {
             : undefined;
     validateAgentSelection(profiles, {
         agent,
-        ...(accountId !== undefined ? { accountId } : {}),
+        ...(selection.accountId !== undefined ? { accountId: selection.accountId } : {}),
         model,
         ...(permissionMode !== undefined ? { permissionMode } : {}),
         thinkingLevel,
         ...(speedMode !== undefined ? { speedMode } : {}),
     }, 'desktop config');
-    const account = resolveAgentAccount(resolveAgentAccounts(config.agentAccounts, 'desktop config'), agent, accountId);
+    const account = resolveAgentAccount(
+        resolveAgentAccounts(config.agentAccounts, 'desktop config'),
+        agent,
+        selection.accountId,
+        remembered.accountId,
+    );
 
     return {
         ...(account ? { account, accountId: account.id } : {}),

@@ -757,8 +757,9 @@ describe('ActionSchedulerService', () => {
 
     it('fires an account reset only from the account persisted on the trigger', async () => {
         const expectedResetAt = now + 5000;
+        const workAccountId = '11111111-1111-4111-8111-111111111111';
         const trigger = {
-            accountId: 'work-account', agent: 'codex', expectedResetAt: new Date(expectedResetAt).toISOString(),
+            accountId: workAccountId, agent: 'codex', expectedResetAt: new Date(expectedResetAt).toISOString(),
             limitId: 'codex,pro', type: 'account-reset', windowId: 'primary',
         };
         const localGitService = createLocalGitService([createSchedule('schedule-1', 'implement', trigger)]);
@@ -770,6 +771,11 @@ describe('ActionSchedulerService', () => {
             wait: vi.fn(async () => ({ failure: null, runId: 'action-1', status: 'completed' })),
         };
         const scheduler = createScheduler(localGitService, {
+            agentAccountsProvider: () => [
+                { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' },
+                { agent: 'claude', id: 'claude-initial', kind: 'initial', name: 'Default' },
+                { agent: 'codex', configDirectory: 'C:/accounts/work', id: workAccountId, kind: 'directory', name: 'Work' },
+            ],
             actionRunnerService,
             now: () => expectedResetAt,
         });
@@ -778,7 +784,7 @@ describe('ActionSchedulerService', () => {
 
         await scheduler.handleAccountUsageChange('codex', { ...dueSnapshot, accountId: 'codex-initial' });
         expect(actionRunnerService.start).not.toHaveBeenCalled();
-        await scheduler.handleAccountUsageChange('codex', { ...dueSnapshot, accountId: 'work-account' });
+        await scheduler.handleAccountUsageChange('codex', { ...dueSnapshot, accountId: workAccountId });
 
         expect(actionRunnerService.start).toHaveBeenCalledOnce();
     });

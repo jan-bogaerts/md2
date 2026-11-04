@@ -22,7 +22,7 @@ import {
     selectThinkingLevel,
     selectSpeedMode,
 } from '../../../data/agent_selection'
-import { supportsAgentAccounts } from '../../../data/agent_accounts'
+import { initialAgentAccountId, supportsAgentAccounts } from '../../../data/agent_accounts'
 import type { RawActionDefinition } from '../../../data/action_types'
 import { agentCapabilitiesService, type AgentCapabilitiesService } from '../../../services/agents/agent_capabilities_service'
 import { actionAgentSelectionDraftService } from '../../../services/actions/action_agent_selection_draft_service'
@@ -50,7 +50,9 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
     const { availability } = useAgentCapabilities(service)
     const selectedProfile = definition.agent ? findAgentProfile(profiles, definition.agent) : null
     const selectedAgentAccounts = accounts.filter(({ agent, kind }) => agent === definition.agent && kind !== 'initial')
-    const accountAvailable = !definition.accountId || selectedAgentAccounts.some(({ id }) => id === definition.accountId)
+    const accountAvailable = !definition.accountId
+        || definition.accountId === initialAgentAccountId(definition.agent ?? '')
+        || selectedAgentAccounts.some(({ id }) => id === definition.accountId)
     const models = useAgentModelCatalog(selectedProfile, definition.accountId, service);
     const modelOptions = agentModelOptions(models.catalog, definition.model ?? '');
     const configuredThinkingLevels: string[] = THINKING_LEVELS
@@ -170,23 +172,6 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                         return <MenuItem disabled={disabled} key={profile.name} value={profile.name}>{label}</MenuItem>
                     })}
                 </ActionEditorField>
-                {definition.agent && supportsAgentAccounts(definition.agent) ? <ActionEditorField
-                    error={!!errors.accountId || !accountAvailable}
-                    fieldId="action-account"
-                    fullWidth
-                    helperText={errors.accountId ?? (!accountAvailable ? `Unknown account: ${definition.accountId}` : undefined)}
-                    label="Account"
-                    onChange={handleAccountChange}
-                    select
-                    size="small"
-                    value={definition.accountId ?? ''}
-                >
-                    <MenuItem value="">Initial</MenuItem>
-                    {!accountAvailable ? (
-                        <MenuItem disabled value={definition.accountId}>{definition.accountId} — unavailable</MenuItem>
-                    ) : null}
-                    {selectedAgentAccounts.map(({ id, name }) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
-                </ActionEditorField> : null}
                 <ActionEditorField
                     disabled={!definition.agent}
                     error={!!errors.model}
@@ -265,6 +250,23 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                     ))}
                 </ActionEditorField>
             ) : null}
+            {definition.agent && supportsAgentAccounts(definition.agent) ? <ActionEditorField
+                error={!!errors.accountId}
+                fieldId="action-account"
+                fullWidth
+                helperText={errors.accountId ?? (!accountAvailable ? `Removed account ${definition.accountId}; the default is used.` : undefined)}
+                label="Account"
+                onChange={handleAccountChange}
+                select
+                size="small"
+                value={definition.accountId === initialAgentAccountId(definition.agent) ? '' : definition.accountId ?? ''}
+            >
+                <MenuItem value="">Initial</MenuItem>
+                {!accountAvailable ? (
+                    <MenuItem disabled value={definition.accountId}>{definition.accountId} — uses default</MenuItem>
+                ) : null}
+                {selectedAgentAccounts.map(({ id, name }) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
+            </ActionEditorField> : null}
         </Stack>
     )
 }

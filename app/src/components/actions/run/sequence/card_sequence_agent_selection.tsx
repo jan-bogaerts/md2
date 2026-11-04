@@ -4,7 +4,7 @@ import { PERMISSION_MODE_OPTIONS, SPEED_MODE_OPTIONS, THINKING_LEVELS, supportsP
 import { projectAgentSelection, type AgentSelectionState } from '../../../../data/agent_selection';
 import type { AgentModelOption } from '../../../../data/agent_model_options';
 import type { AgentAccount } from '../../../../data/agent_accounts';
-import { supportsAgentAccounts } from '../../../../data/agent_accounts';
+import { initialAgentAccountId, supportsAgentAccounts } from '../../../../data/agent_accounts';
 import type { CardSequenceDraftService } from './card_sequence_draft_service';
 
 interface CardSequenceAgentSelectionProps {
@@ -26,7 +26,9 @@ export function CardSequenceAgentSelection(
         ? modelOptions
         : [{ id: chosen.model, displayName: `${chosen.model || '(none)'} — unavailable` }, ...modelOptions];
     const agentAccounts = accounts.filter(({ agent, kind }) => agent === chosen.agent && kind !== 'initial');
-    const accountAvailable = !chosen.accountId || agentAccounts.some(({ id }) => id === chosen.accountId);
+    const accountAvailable = !chosen.accountId
+        || chosen.accountId === initialAgentAccountId(chosen.agent)
+        || agentAccounts.some(({ id }) => id === chosen.accountId);
     const handleAgentChange = (event: { target: { value: unknown } }) => service.setExecutionAgent(event.target.value as string);
     const handleAccountChange = (event: { target: { value: unknown } }) => (
         service.setExecutionAccount((event.target.value as string) || undefined)
@@ -48,9 +50,14 @@ export function CardSequenceAgentSelection(
         </Select>
         {supportsAgentAccounts(chosen.agent) ? <>
             <Typography color="text.secondary" variant="caption">Account</Typography>
-            <Select inputProps={{ 'aria-label': 'Execution account' }} onChange={handleAccountChange} size="small" value={chosen.accountId ?? ''}>
+            <Select
+                inputProps={{ 'aria-label': 'Execution account' }}
+                onChange={handleAccountChange}
+                size="small"
+                value={chosen.accountId === initialAgentAccountId(chosen.agent) ? '' : chosen.accountId ?? ''}
+            >
                 <MenuItem value="">Initial</MenuItem>
-                {!accountAvailable ? <MenuItem disabled value={chosen.accountId}>{chosen.accountId} — unavailable</MenuItem> : null}
+                {!accountAvailable ? <MenuItem disabled value={chosen.accountId}>{chosen.accountId} — uses default</MenuItem> : null}
                 {agentAccounts.map(({ id, name }) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
             </Select>
         </> : null}

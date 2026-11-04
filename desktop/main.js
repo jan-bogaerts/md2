@@ -158,6 +158,7 @@ async function confirmCardStateScheduleContinuation(schedule, currentState) {
 const actionSchedulerService = new ActionSchedulerService({
     worktreeService,
     actionRunnerService,
+    agentAccountsProvider: () => readDesktopConfig(store).agentAccounts,
     claudeRuntimeService,
     codexRuntimeService,
     confirmCardStateScheduleContinuation,

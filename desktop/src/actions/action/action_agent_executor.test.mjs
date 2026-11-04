@@ -147,18 +147,21 @@ describe('ActionAgentExecutor', () => {
         expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({ account: initialCodexAccount, providerConversationId: 'initial-thread' });
     });
 
-    it('fails compaction with an account-specific error when the session account was removed', async () => {
+    it('compacts on the initial account when the session account was removed', async () => {
         const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider: () => accountConfig() });
         localGitService.loadAgentConversation.mockResolvedValue(conversation({
             actionId: action.id,
             providerSessions: [{ accountId: 'removed-account', agent: 'codex', conversationId: 'removed-thread', lastUsedAt: 'now', synchronizedThroughMessageId: 'm1' }],
         }));
 
-        await expect(executor.execute(executionInput({
+        await executor.execute(executionInput({
             compactOnly: true,
             runInput: { agent: 'codex', conversationId: 'conversation-1', continueFrom: 'activity.json#conversation=conversation-1' },
-        }))).rejects.toThrow('Provider session account is unavailable for codex: removed-account');
-        expect(agentRunnerService.start).not.toHaveBeenCalled();
+        }));
+        expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({
+            account: initialCodexAccount,
+            providerConversationId: 'removed-thread',
+        });
     });
 
     it('keeps disabled Codex task tracking during compact streaming', async () => {

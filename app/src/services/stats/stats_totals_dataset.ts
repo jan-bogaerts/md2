@@ -21,7 +21,7 @@ import {
 import { accountSeriesIdentity, actionLabel, cardDisplay } from './stats_identities';
 import { inRange } from './stats_time_buckets';
 import { accessibleStatsTooltip, formatCount, formatDollars, formatDurationHms, statsTooltip, type StatsTooltipLine } from './stats_tooltip';
-import { longestWindowSeriesByProvider } from './stats_usage_comparison_dataset';
+import { longestWindowSeriesByAccount } from './stats_usage_comparison_dataset';
 import { subscriptionCostPerPercentagePoint } from './stats_subscription_cost';
 
 const MIXED_AGENT_IDENTITY = 'mixed';
@@ -249,7 +249,7 @@ function accountSeries(source: StatsDatasetSource, controls: StatsControls) {
     return [...seriesByIdentity.values()].sort((left, right) => left.identity.localeCompare(right.identity));
 }
 
-/** One subscription rate per agent, taken from that agent's longest reported limit window. */
+/** One blended subscription rate per provider, combining every account's longest reported limit window. */
 function providerRates(source: StatsDatasetSource, controls: StatsControls) {
     const accountRows = source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls));
     const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));
@@ -261,11 +261,20 @@ function providerRates(source: StatsDatasetSource, controls: StatsControls) {
     }
     const activeSeries = accountSeries(source, controls)
         .filter(({ identity }) => (denominatorsBySeries.get(identity) ?? 0) > 0);
+    const seriesByProvider = new Map<string, StatsAccountSeriesOption[]>();
+    for (const series of longestWindowSeriesByAccount(activeSeries).values()) {
+        const providerSeries = seriesByProvider.get(series.provider) ?? [];
+        providerSeries.push(series);
+        seriesByProvider.set(series.provider, providerSeries);
+    }
     const rates = new Map<string, ProviderRate>();
-    for (const [provider, series] of longestWindowSeriesByProvider(activeSeries)) {
-        const denominator = denominatorsBySeries.get(series.identity)!;
+    for (const [provider, providerSeries] of seriesByProvider) {
+        const denominator = providerSeries.reduce(
+            (total, series) => total + (denominatorsBySeries.get(series.identity) ?? 0),
+            0,
+        );
         const numerator = tokenRows
-            .filter((row) => row.provider === provider && row.accountId === series.accountId)
+            .filter((row) => row.provider === provider)
             .reduce((total, row) => total + row.totalTokens, 0);
         const profile = findAgentProfile(source.agentProfiles, provider);
         const monthlySubscriptionCostUsd = profile?.monthlySubscriptionCostUsd;
@@ -274,19 +283,22 @@ function providerRates(source: StatsDatasetSource, controls: StatsControls) {
         else if (!profile) reason = 'matching agent profile is unavailable';
         else if (monthlySubscriptionCostUsd === undefined) reason = 'monthly subscription cost is not configured';
         else if (numerator <= 0) reason = 'positive provider token total is unavailable';
-        const costPerPercentagePoint = reason
-            ? 0
-            : subscriptionCostPerPercentagePoint(monthlySubscriptionCostUsd!, series.windowDurationMinutes);
-        const tokensPerDollar = reason ? 0 : (numerator / denominator) / costPerPercentagePoint;
+        const estimatedCost = reason ? 0 : providerSeries.reduce((total, series) => (
+            total + (denominatorsBySeries.get(series.identity) ?? 0)
+                * subscriptionCostPerPercentagePoint(monthlySubscriptionCostUsd ?? 0, series.windowDurationMinutes)
+        ), 0);
+        const tokensPerDollar = reason || estimatedCost <= 0 ? 0 : numerator / estimatedCost;
+        const limitIds = new Set(providerSeries.map(({ limitId }) => limitId));
+        const windowIds = new Set(providerSeries.map(({ windowId }) => windowId));
 
         rates.set(provider, {
             available: reason === null,
             denominator,
-            limitId: series.limitId,
+            limitId: limitIds.size === 1 ? providerSeries[0].limitId : 'combined',
             numerator,
             reason,
             tokensPerDollar,
-            windowId: series.windowId,
+            windowId: windowIds.size === 1 ? providerSeries[0].windowId : 'combined',
         });
     }
 

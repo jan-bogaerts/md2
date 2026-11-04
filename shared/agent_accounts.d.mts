@@ -26,4 +26,6 @@ export function supportsAgentAccounts(agent: string): boolean
 export function validateAgentAccounts(value: unknown, source: string): AgentAccount[]
 export function resolveAgentAccounts(value: unknown, source: string): AgentAccount[]
 export function findAgentAccount(accounts: AgentAccount[], accountId: string): AgentAccount | null
-export function resolveAgentAccount(accounts: AgentAccount[], agent: string, accountId?: string): AgentAccount | null
+export function resolveAgentAccount(
+    accounts: AgentAccount[], agent: string, accountId?: string, defaultAccountId?: string,
+): AgentAccount | null

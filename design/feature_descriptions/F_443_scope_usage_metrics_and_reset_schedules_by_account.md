@@ -71,16 +71,16 @@ Persist and project usage measurements and account-reset schedules separately fo
 * Build reset tracker options from account-scoped runtime snapshots. The schedule form selects an agent, then one of that agent's accounts, then a limit/window from the matching snapshot.
 * Match reset observations and pending schedules by `(agent, accountId, limitId, windowId)`. A reset from one account must never fire a schedule registered for another account.
 * Preserve the resolved account in the scheduled run selection so the eventual action does not follow a later desktop-default change.
-* Removed or unavailable explicit accounts leave the schedule visible but invalid/unfireable with a clear account-specific error. Do not fall back to the initial account.
+* A removed explicit account remains visible and resolves to the configured default, then the initial account. An unavailable existing account leaves the schedule invalid/unfireable with a clear account-specific error.
 * Update stats/usage views and active-schedule labels where account identity is needed to distinguish otherwise identical rows or triggers.
 * Add focused CSV parsing/writing, baseline, projection, schedule parsing, form, tracker, persistence, and scheduler tests.
 
 ## Acceptance criteria
 
 * Account and token usage records identify the account that produced them.
-* Percentage deltas and summaries never combine measurements from different accounts of the same provider.
+* Percentage baselines remain separate per account. Provider totals combine measurements from all accounts of that provider.
 * Existing CSV rows and schedules without account identity continue to represent the provider's initial account without data migration.
 * Reset schedules select and display an account and fire only from that account's matching runtime observation.
 * Changing the desktop default after schedule registration does not change the scheduled run's account.
-* An explicit unavailable account blocks the affected schedule clearly and does not affect other accounts or schedules.
+* A removed account uses the configured fallback. An unavailable existing account blocks the affected schedule clearly and does not affect other accounts or schedules.
 * Focused app and desktop tests and lint pass.
