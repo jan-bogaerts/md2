@@ -3,7 +3,7 @@ author:
 id: B_329
 internalId: b71e73f9-ddd6-4a14-bf59-7f9415ad0614
 title: changing appearence not applied
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,8 @@ agents:
 policy:
 branch: b_329_changing_appearence_not_applied
 worktree: 1
+changedFiles:
+  - app/src/theme/theme_provider.tsx
 ---
 
 In the project section of the config dialog, we can select a background shade color for the application. It seems that this color is only applied after restarting the app or re-opening the project again.
