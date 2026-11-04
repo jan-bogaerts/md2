@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 52835
+        "usedTokens": 62639
       },
       "entries": [
         {
@@ -464,6 +464,171 @@
           "role": "user",
           "sequence": 34,
           "timestamp": "2026-11-04T10:38:50.306Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-event-35",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_08444ede9eaea197016aeb0b3d6a8487d28c0f915efc96fa28",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T10:38:52.600Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll use the technical-writer skill to keep the feature description concise and implementation-ready. The code-path analysis is already complete; I’ll also check the project’s architecture-document rules before editing, then verify the diff.\n\n",
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-11-04T10:38:53.645Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'; Get-Content -Raw 'design\\\\architecture\\\\architectural_decisions.md'; Get-Content -Raw 'design\\\\feature_descriptions\\\\B_328_stopping_a_conversation_fails.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define\n[5318 characters omitted]\nso `configService` is not usable at import time. Reading config in a constructor is a bug. |\n\n## Card state\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| The application has one `Card` domain type. | Do not create separate canonical, project, snapshot, or editor card types. The card-owning service holds the loaded cards and exposes focused operations that change only the requested field. React snapshots and editor drafts are read values; they must never replace or merge a complete card. Parser bookkeeping may remain private persistence metadata, but it is not another card model. | One card concept gives state a clear owner and prevents stale copies from overwriting newer worktree, activity, ordering, policy, or body values. |\n| Card UI subscribes at field level. | A component subscribes only to the primitive or stable reference it renders, using granular `EventTarget` events and `useSyncExternalStore`. Do not clone or stringify a complete card to detect a field change. Group fields only in a deliberately small, stable projection when they are always rendered together. | A one-field change allocates and rerenders only what consumes that field, keeping memory use bounded and the UI responsive. |\n| Cards are serialized only at persistence boundaries. | Mutate the owned `Card` through a focused operation, then serialize its current state when the persistence batch flushes. Editor changes update only the edited field. Activity linking updates only activity references. External file changes are parsed and applied deliberately without replacing dirty local state. | Persistence remains deterministic while concurrent saves and external updates cannot discard unrelated newer values. |\n\n\n## Events and React integration\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Services notify observers through their own `EventTarget`. | Services expose an `EventTarget` and dispatch named `CustomEvent` domain events such as `activeIndex`, `added`, `deleted`, or `changedBox`. Observers subscribe with `addEventListener` and unsubscribe with `removeEventListener` on the owning service. | Decouples producers from consumers without depending on Node `EventEmitter`, which is not available in the browser-first React app. |\n| Custom hooks bridge service events to functional components. | Hooks in `src/components/hooks/`, such as `useActiveIndex` and `useProjectConfig`, seed `useState` from a service property, subscribe in `useEffect`, unsubscribe in cleanup, and return the value. Prefer hook + service over prop chains. | Components stay declarative and avoid direct event plumbing. |\n| Components subscribe at the smallest rendering boundary. | Root and layout components compose UI regions and pass structural inputs. Components that render changing application data subscribe through hooks themselves. Do not hoist changing data into ancestors only to pass it downward. | Limits rerenders to affected UI, protects transient state such as open popups, and avoids broad prop chains. |\n| Components use the app theme service path. | `App` owns theme mode through `useThemeMode()`, builds the MUI theme with `createAppTheme(mode)`, and provides it through `ThemeProvider`. Components read theme values with MUI APIs such as `useTheme`, `useMediaQuery`, and `sx`; only controls that change the palette mode receive `mode` and `onToggleTheme`. | Theme state, persistence, and palette construction stay centralized while components remain presentation-focused. |\n\r\n---\nauthor: \nid: B_328\ninternalId: 9b59a42b-9d2e-4dfd-96b1-cbdb7b51fa05\ntitle: stopping a conversation fails\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__9b59a42b-9d2e-4dfd-96b1-cbdb7b51fa05.json\npolicy:\nafter: c9a462cf-7874-4ada-a2f3-df08cf1793b2\n---\n\nI have a conversation that is currently in the 'waitingForInput' state. But when I press the `finish conversation` button, nothing happens.\n\nit is very strange, sometimes it works, sometimes it doesn't. If it fails, closing and opening the application fixes it, so it seems to be some broken internal state perhaps?\r\n",
+          "durationMs": 34,
+          "exitCode": 0,
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-event-37",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'; Get-Content -Raw 'design\\\\architecture\\\\architectural_decisions.md'; Get-Content -Raw 'design\\\\feature_descriptions\\\\B_328_stopping_a_conversation_fails.md'\"",
+          "providerItemId": "exec-a9f6d8a9-4891-4004-884b-6060ae47da3b",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-11-04T10:38:59.115Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_08444ede9eaea197016aeb0b4513bc87d289da669e862ec500",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T10:39:00.259Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^## (Current state|Implementation details|Acceptance criteria)$\" design/feature_descriptions -g '\"'*.md' | Select-Object -First 30\"",
+          "content": "design/feature_descriptions\\B_306_error_primary_worktree_has_uncommitted_changes_c.md:76:## Current state\r\ndesign/feature_descriptions\\B_306_error_primary_worktree_has_uncommitted_changes_c.md:96:## Implementation details\r\ndesign/feature_descriptions\\B_306_error_primary_worktree_has_uncommitted_changes_c.md:189:## Acceptance criteria\r\ndesign/feature_descriptions\\B_316_new_tasks_on_second_prompt_no_longer_used.md:24:## Current state\r\ndesign/feature_descriptions\\B_316_new_tasks_on_second_prompt_no_longer_used.md:35:## Implementation details\r\ndesign/feature_descriptions\\B_317_usage_metrics_not_committed.md:23:## Current state\r\ndesign/feature_descriptions\\B_317_usage_metrics_not_committed.md:35:## Implementation details\r\ndesign/feature_descriptions\\B_317_usage_metrics_not_committed.md:60:## Acceptance criteria\r\ndesign/feature_descriptions\\B_320_project_color_applied_to_wrong_components.md:19:## Current state\r\ndesign/feature_descriptions\\B_320_project_color_applied_to_wrong_components.md:33:## Implementation details\r\ndesign/feature_descriptions\\B_320_project_color_applied_to_wrong_components.md:84:## Acceptance criteria\r\ndesign/feature_descriptions\\B_323_drop_changes_does_not_work.md:38:## Current state\r\ndesign/feature_descriptions\\B_321_codex_sub_agents_report_incorrect_file_changes.md:25:## Current state\r\ndesign/feature_descriptions\\B_321_codex_sub_agents_report_incorrect_file_changes.md:29:## Implementation details\r\ndesign/feature_descriptions\\B_321_codex_sub_agents_report_incorrect_file_changes.md:39:## Acceptance criteria\r\ndesign/feature_descriptions\\B_324_legend_does_not_allow_multiple_entires_of_same_type.md:67:## Current state\r\ndesign/feature_descriptions\\B_324_legend_does_not_allow_multiple_entires_of_same_type.md:97:## Acceptance criteria\r\ndesign/feature_descriptions\\B_325_scheduler_lost_context_when_restarting_conversation.md:31:## Current state\r\ndesign/feature_descriptions\\F_180_add_extra_event_logging.md:21:## Current state\r\ndesign/feature_descriptions\\F_180_add_extra_event_logging.md:35:## Implementation details\r\ndesign/feature_descriptions\\F_180_add_extra_event_logging.md:46:## Acceptance criteria\r\ndesign/feature_descriptions\\diagram_edit_refactor\\read_api.md:3:## Current state\r\ndesign/feature_descriptions\\diagram_edit_refactor\\field_editors.md:3:## Current state\r\ndesign/feature_descriptions\\diagram_edit_refactor\\transaction_context.md:3:## Current state\r\ndesign/feature_descriptions\\diagram_edit_refactor\\structure_editor.md:3:## Current state\r\ndesign/feature_descriptions\\diagram_edit_refactor\\structure_editor.md:14:## Acceptance criteria\r\ndesign/feature_descriptions\\F_381_check_for_codex_cli_updates_at_startup.md:11:## Current state\r\ndesign/feature_descriptions\\F_401_add_placeholder_for_actions_folder.md:17:## Current state\r\ndesign/feature_descriptions\\F_401_add_placeholder_for_actions_folder.md:32:## Implementation details\r\ndesign/feature_descriptions\\F_401_add_placeholder_for_actions_folder.md:82:## Acceptance criteria\r\n",
+          "durationMs": 58,
+          "exitCode": 0,
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-event-39",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^## (Current state|Implementation details|Acceptance criteria)$\" design/feature_descriptions -g '\"'*.md' | Select-Object -First 30\"",
+          "providerItemId": "exec-bcff7d13-49f8-497b-bee2-a5f45b12f099",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-11-04T10:39:02.588Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_316_new_tasks_on_second_prompt_no_longer_used.md'; Get-Content -Raw 'design/feature_descriptions/B_321_codex_sub_agents_report_incorrect_file_changes.md'\"",
+          "content": "---\nauthor: \nid: B_316\ninternalId: 16c530e0-7832-414c-bb82-b8c7f77ebf93\ntitle: new tasks on second prompt no longer used\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__16c530e0-7832-414c-bb82-b8c7f77ebf93.json\npolicy:\nafter: 379541e5-0bb0-437e-a7c5-4d844ccdffc9\nchangedFiles:\n  - desktop/src/actions/agent/agent_claude_streaming_adapter.js\n  - desktop/src/actions/agent/agent_provider_protocol.js\n  - desktop/src/actions/agent/agent_run_state.js\n  - desktop/src/actions/agent/agent_streaming_adapter.js\n  - desktop/src/actions/agent/agent_streaming_adapter.test.mjs\n  - desktop/src/actions/agent/claude_task_list_decoder.js\n  - desktop/src/actions/agent/claude_task_list_decoder.test.mjs\n---\nFollow-up on [F\\_434\\_agent\\_task\\_list\\_component.md](design/releases/0.9.0/F_434_agent_task_list_component.md) and [F\\_432\\_claude\\_task\\_list\\_decoder.md](design/releases/0.9.0/F_432_claude_task_list_decoder.md). The task list works across prompts in a live run. Investigation found two gaps in the Claude task list decoder.\n\n## Current state\n\n* `ClaudeTaskListDecoder` (`desktop/src/actions/agent/claude_task_list_decoder.js`) keeps its tasks for the whole lifetime of the adapter. `reset()` at turn end only clears per-turn tool correlation. A task is only removed by a `TaskUpdate` with status `deleted`.\n* Claude Code resets a task list once every task is completed, but keeps a high-water mark, so the next `TaskCreate` continues the numbering (6, 7, â€¦).\n* The decoder is created empty in the `ClaudeStreamingAdapter` constructor (`agent_claude_streaming_adapter.js`) and in `AgentProviderProtocolParser` (`agent_provider_protocol.js`). Both are created per process in `attachRunProtocol` (`agent_run_state.js`), which has the persisted `run.conversation.taskList` available.\n\n## Problems\n\n1. **Completed list is never replaced.** When Claude starts a new list after finishing the previous one, the new tasks are appended below the old completed tasks instead of replacing them.\n2. **Task state is lost when the process restarts.** After an app restart or when a closed conversation is resumed, the new decoder is empty. `TaskUpdate` calls for earlier tasks are dropped with an `Unknown Claude task id` warning, and the first new `TaskCreate` replaces the whole list with only the new task.\n\n## Implementation details\n\n* Problem 1: in `applyCreateResult`, when every known task is completed, clear `tasks` before adding the created task. Keep `taskIds`, since Claude ids keep increasing and stay unique. The emitted list then holds only the new tasks.\n* Problem 2: give `ClaudeTaskListDecoder` an optional initial task list in its constructor. For each task, store it in `tasks` and register it in `taskIds` under its owner: the prefix before `:` for namespaced sub-agent ids, `root` otherwise, with the raw id after the prefix.\n* Pass `run.conversation.taskList` from `attachRunProtocol` through `createAgentStreamingAdapter` to `ClaudeStreamingAdapter`, and through `createAgentProviderProtocolParser` to `AgentProviderProtocolParser`.\n\n## Tests\n\n* Decoder: a `TaskCreate` result after all tasks are completed emits a list with only the new task.\n* Decoder: a `TaskCreate` result while a task is still pending or in progress appends to the list.\n* Decoder: seeded with a persisted list, a `TaskUpdate` for a seeded root task and for a seeded sub-agent task updates that task.\n* Streaming adapter: a conversation with a persisted `taskList` seeds the decoder.\n\r\n---\nauthor: \nid: B_321\ninternalId: b4209b86-7a2f-497f-a268-13acc153c748\ntitle: codex sub agents report incorrect file changes\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__b4209b86-7a2f-497f-a268-13acc153c748.json\npolicy:\nafter: 6636980d-0f8d-4f94-a4bb-b5a171ce8891\nchangedFiles:\n  - app/src/components/actions/run/popup/action_usage_summary_data.node.test.ts\n  - desktop/src/actions/agent/agent_streaming_adapter.js\n  - desktop/src/actions/agent/agent_streaming_adapter.test.mjs\n---\n\nWhen an action runs an agent, we track the number of lines that were changed and removed. This works ok.\n\nHowever, when codex runs tasks in parallel, we only seem to show the nr of lines that the root agent changed, not what the sub agents did.\n\nWe should show the total lines changed below the action popup's conversation log, across all agents that ran in parallel.\n\n## Current state\n\nThe usage footer already sums every completed `fileChange` entry in the canonical conversation. Codex reports spawned agents through `subAgentActivity` items, but the desktop adapter does not support that item type or hydrate the referenced child thread. The child agent's file changes therefore never reach the conversation, so the footer can only count root-agent changes.\n\n## Implementation details\n\n- Handle Codex `subAgentActivity` items and register their `agentThreadId` as soon as the activity starts.\n- Accept live notifications from registered child threads and tag their events with the owning sub-agent activity.\n- When a child activity completes, read the child thread's turns and normalize any completed `fileChange` items that were not received live. Recursively discover nested sub-agent activities.\n- Namespace provider item identities by thread ID and deduplicate live and hydrated events.\n- Wait for the finite set of pending child-thread reads before publishing the root conversation as complete. Log a child-thread read failure and continue safely without inventing counts.\n- Store child file changes through the existing canonical conversation event path. The existing usage footer aggregation remains unchanged.\n- Add focused tests in the Codex adapter and usage aggregation suites for parallel agents, nested agents, live/history deduplication, and child-thread read failures.\n\n## Acceptance criteria\n\n- [ ] The conversation usage footer includes insertions and deletions reported by the root agent and every spawned Codex sub-agent.\n- [ ] Parallel and nested sub-agent file changes are included exactly once.\n- [ ] Live child-thread events and hydrated thread history cannot double-count the same file change.\n- [ ] The root conversation does not complete before pending child-thread file-change reads finish.\n- [ ] A failed child-thread read is logged, does not fail the action, and does not fabricate line counts.\n- [ ] Existing root-only and non-Codex file-change reporting remains unchanged.\n- [ ] Focused desktop and app tests pass.\n\r\n",
+          "durationMs": 29,
+          "exitCode": 0,
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-event-40",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_316_new_tasks_on_second_prompt_no_longer_used.md'; Get-Content -Raw 'design/feature_descriptions/B_321_codex_sub_agents_report_incorrect_file_changes.md'\"",
+          "providerItemId": "exec-61267347-982a-4db7-b4c9-59bbbecc4f8a",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-11-04T10:39:05.860Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_08444ede9eaea197016aeb0b4d09e487d2813266bb6d6a7474",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T10:39:08.225Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The technical-writer guidance reinforces a short, scannable structure. I’ll document the verified distinction between idle turns, questions, and approvals, and keep the fix limited to the agent runner plus a focused regression test.\n\n",
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 42,
+          "timestamp": "2026-11-04T10:39:09.370Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_328_stopping_a_conversation_fails.md",
+          "deletions": 2,
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-event-43",
+          "insertions": 22,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-6f2d9027-8e0b-4ba0-859c-280387be915f",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-11-04T10:39:18.466Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-event-44",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_08444ede9eaea197016aeb0b58250087d28fa79a876dc9749b",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T10:39:19.340Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_328_stopping_a_conversation_fails.md'; git diff -- 'design/feature_descriptions/B_328_stopping_a_conversation_fails.md'\"",
+          "content": "diff --git a/design/feature_descriptions/B_328_stopping_a_conversation_fails.md b/design/feature_descriptions/B_328_stopping_a_conversation_fails.md\nindex 0ac0c3af0..f19a84b5a 100644\n--- a/design/feature_descriptions/B_328_stopping_a_conversation_fails.md\n+++ b/design/feature_descriptions/B_328_stopping_a_conversation_fails.md\n@@ -3,7 +3,7 @@ author:\n id: B_328\n internalId: 9b59a42b-9d2e-4dfd-96b1-cbdb7b51fa05\n title: stopping a conversation fails\n-status: design\n+status: ready for implementation\n owner: \n affects:\n agents:\n@@ -14,4 +14,24 @@ after: c9a462cf-7874-4ada-a2f3-df08cf1793b2\n \n I have a conversation that is currently in the 'waitingForInput' state. But when I press the `finish conversation` button, nothing happens.\n \n-it is very strange, sometimes it works, sometimes it doesn't. If it fails, closing and opening the application fixes it, so it seems to be some broken internal state perhaps?\n\\ No newline at end of file\n+it is very strange, sometimes it works, sometimes it doesn't. If it fails, closing and opening the application fixes it, so it seems to be some broken internal state perhaps?\n+\n+## Current state\n+\n+`finishPopupAction` forwards Finish for a live conversation through the Electron bridge to `AgentRunnerService.finish()`. The runner marks the run as finishing and starts shutdown when the turn is idle or waiting for a question.\n+\n+An approval also changes the conversation to `waitingForInput`, but the active turn remains blocked on the approval. `AgentRunnerService.finish()` does not start shutdown for this state because it checks `waitingForQuestion` instead of the complete pending-interaction state. No later turn-completed event arrives, so the run remains active and the Finish button appears to do nothing. Restarting removes the live run, after which the stored waiting conversation can be completed directly.\n+\n+## Implementation details\n+\n+- In `AgentRunnerService.finish()`, start shutdown when `hasPendingInteraction(run)` is true instead of checking only `run.waitingForQuestion`. This covers pending questions and pending approvals through the existing run-state helper.\n+- Keep the current behavior for an active turn without a pending interaction: mark it as finishing and wait for the turn-completed event before starting shutdown.\n+- Add a regression test in `desktop/src/actions/agent/agent_runner_state.test.mjs` proving that Finish starts shutdown when an active turn has a pending approval.\n+\n+## Acceptance criteria\n+\n+- [ ] Finishing a conversation waiting for an approval starts agent shutdown immediately.\n+- [ ] Finishing a conversation waiting for a question continues to start agent shutdown immediately.\n+- [ ] Finishing an idle `waitingForInput` conversation continues to start agent shutdown immediately.\n+- [ ] Finishing during an active turn without a pending interaction waits for that turn to complete before starting shutdown.\n+- [ ] The pending-approval regression test and the focused agent runner tests pass.\n",
+          "durationMs": 63,
+          "exitCode": 0,
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-event-45",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_328_stopping_a_conversation_fails.md'; git diff -- 'design/feature_descriptions/B_328_stopping_a_conversation_fails.md'\"",
+          "providerItemId": "exec-faf52bd7-4083-4b32-9e50-710b94698f0e",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-11-04T10:39:21.744Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-event-46",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_08444ede9eaea197016aeb0b5be6e887d28c4d0221021098d5",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T10:39:23.085Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_328_stopping_a_conversation_fails.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_328_stopping_a_conversation_fails.md) with:\n\n- Status set to `ready for implementation`.\n- Current state and root cause.\n- Focused implementation details.\n- Acceptance criteria, including regression testing.\n\n`git diff --check` passes.\n\n",
+          "id": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 47,
+          "timestamp": "2026-11-04T10:39:27.647Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -473,8 +638,8 @@
           "agent": "codex",
           "conversationId": "01a1a61b-a79b-7d51-85f9-e0af8ef8b3e1",
           "createdAt": "2026-11-04T10:31:28.010Z",
-          "lastUsedAt": "2026-11-04T10:31:28.010Z",
-          "synchronizedThroughMessageId": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-04T10:39:27.647Z",
+          "synchronizedThroughMessageId": "agent-turn-2dd195b1-d482-45f6-939e-6b981c3c7744-turn-2-assistant-3"
         }
       ],
       "startedAt": "2026-11-04T10:29:52.264Z",
@@ -483,37 +648,37 @@
         "tasks": [
           {
             "id": "0",
-            "subject": "Read the feature description and identify the relevant code paths",
+            "subject": "Read the documentation skill and architecture guidance",
             "status": "completed"
           },
           {
             "id": "1",
-            "subject": "Trace stop, persistence, and error handling behavior",
+            "subject": "Update B_328 with current state, implementation details, acceptance criteria, and status",
             "status": "completed"
           },
           {
             "id": "2",
-            "subject": "Report findings and propose a focused solution",
+            "subject": "Review the resulting diff for scope and accuracy",
             "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-04T10:31:23.582Z"
+        "updatedAt": "2026-11-04T10:39:24.869Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 291,
-          "toolMs": 4115
+          "reasoningMs": 337,
+          "toolMs": 4730
         },
         "elapsedMs": 95746,
         "runningStartedAt": "2026-11-04T10:38:50.306Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 761088,
-        "inputTokens": 40177,
-        "outputTokens": 2486,
-        "reasoningTokens": 738,
-        "totalTokens": 804489
+        "cachedInputTokens": 1227392,
+        "inputTokens": 49989,
+        "outputTokens": 3795,
+        "reasoningTokens": 895,
+        "totalTokens": 1282071
       },
       "usageSchemaVersion": 1,
       "viewed": true
