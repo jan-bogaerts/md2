@@ -861,6 +861,14 @@
           "role": "assistant",
           "sequence": 60,
           "timestamp": "2026-11-04T14:27:17.707Z"
+        },
+        {
+          "content": "can we find a solution where resizing is still allowed",
+          "id": "submission-f3813ccf-302e-4616-a3f5-78620c8a5940",
+          "kind": "message",
+          "role": "user",
+          "sequence": 61,
+          "timestamp": "2026-11-04T14:29:10.027Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -875,7 +883,7 @@
         }
       ],
       "startedAt": "2026-11-04T14:25:20.723Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -902,7 +910,7 @@
           "toolMs": 5305
         },
         "elapsedMs": 116984,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-04T14:29:10.027Z"
       },
       "title": "investigate",
       "usage": {
