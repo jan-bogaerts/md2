@@ -29,6 +29,7 @@ changedFiles:
   - desktop/src/shell/local_bridge_dispatch.js
   - desktop/src/shell/local_bridge_dispatch.test.mjs
   - desktop/src/shell/preload.test.mjs
+after: 733d678c-49a7-4409-9fa2-5fb384821513
 ---
 ## Sentry issue
 
