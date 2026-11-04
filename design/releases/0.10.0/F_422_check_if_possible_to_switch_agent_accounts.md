@@ -9,7 +9,6 @@ affects:
 agents:
   - design/releases/0.10.0/card__733d678c-49a7-4409-9fa2-5fb384821513.json
 policy:
-branch: f_422_check_if_possible_to_switch_agent_accounts
 changedFiles:
   - app/src/components/actions/agent/action_agent_capability_fields.grouped.test.tsx
   - app/src/components/actions/agent/action_agent_capability_fields.tsx
