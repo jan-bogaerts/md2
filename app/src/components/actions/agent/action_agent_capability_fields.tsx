@@ -172,6 +172,23 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                         return <MenuItem disabled={disabled} key={profile.name} value={profile.name}>{label}</MenuItem>
                     })}
                 </ActionEditorField>
+                {definition.agent && supportsAgentAccounts(definition.agent) ? <ActionEditorField
+                    error={!!errors.accountId}
+                    fieldId="action-account"
+                    fullWidth
+                    helperText={errors.accountId ?? (!accountAvailable ? `Removed account ${definition.accountId}; the default is used.` : undefined)}
+                    label="Account"
+                    onChange={handleAccountChange}
+                    select
+                    size="small"
+                    value={definition.accountId === initialAgentAccountId(definition.agent) ? '' : definition.accountId ?? ''}
+                >
+                    <MenuItem value="">Initial</MenuItem>
+                    {!accountAvailable ? (
+                        <MenuItem disabled value={definition.accountId}>{definition.accountId} — uses default</MenuItem>
+                    ) : null}
+                    {selectedAgentAccounts.map(({ id, name }) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
+                </ActionEditorField> : null}
                 <ActionEditorField
                     disabled={!definition.agent}
                     error={!!errors.model}
@@ -250,23 +267,6 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                     ))}
                 </ActionEditorField>
             ) : null}
-            {definition.agent && supportsAgentAccounts(definition.agent) ? <ActionEditorField
-                error={!!errors.accountId}
-                fieldId="action-account"
-                fullWidth
-                helperText={errors.accountId ?? (!accountAvailable ? `Removed account ${definition.accountId}; the default is used.` : undefined)}
-                label="Account"
-                onChange={handleAccountChange}
-                select
-                size="small"
-                value={definition.accountId === initialAgentAccountId(definition.agent) ? '' : definition.accountId ?? ''}
-            >
-                <MenuItem value="">Initial</MenuItem>
-                {!accountAvailable ? (
-                    <MenuItem disabled value={definition.accountId}>{definition.accountId} — uses default</MenuItem>
-                ) : null}
-                {selectedAgentAccounts.map(({ id, name }) => <MenuItem key={id} value={id}>{name}</MenuItem>)}
-            </ActionEditorField> : null}
         </Stack>
     )
 }
