@@ -9870,3 +9870,6 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-04T14:07:22.228Z,account_usage,codex,codex,primary,10080,2026-11-11T10:03:58.000Z,,,,,,3,1
 2026-11-04T14:08:16.269Z,token_usage,codex,,,,,167145,4041856,7076,7193,4223270,,
 2026-11-04T14:07:37.999Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,20,0
+2026-11-04T14:17:38.042Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,20,0
+2026-11-04T14:21:38.066Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,20,0
+2026-11-04T14:25:28.487Z,token_usage,codex,,,,,2769,174464,316,1034,178583,,
