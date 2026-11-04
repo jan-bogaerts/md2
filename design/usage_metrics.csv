@@ -1,4 +1,4 @@
-recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,resets_at,input_tokens,cached_input_tokens,output_tokens,reasoning_tokens,total_tokens,used_percent,used_percent_delta
+recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,resets_at,input_tokens,cached_input_tokens,output_tokens,reasoning_tokens,total_tokens,used_percent,used_percent_delta,account_id
 2026-08-17T12:09:24.958Z,account_usage,codex,codex_bengalfox,primary,10080,2026-08-24T12:09:26.000Z,,,,,,0,
 2026-08-17T12:09:24.958Z,account_usage,codex,codex,primary,10080,2026-08-20T11:32:00.000Z,,,,,,45,
 2026-08-17T12:11:54.673Z,token_usage,codex,,,,,78917,76544,137,40,155638,,
@@ -9924,3 +9924,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-04T17:19:38.815Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,21,0
 2026-11-04T17:41:38.878Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,21,0
 2026-11-04T17:43:38.881Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,21,0
+2026-11-04T17:56:46.188Z,token_usage,codex,,,,,42202,530688,2249,1230,576369,,,codex-initial

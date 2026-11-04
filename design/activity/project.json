@@ -1367,7 +1367,7 @@
         }
       ],
       "startedAt": "2026-11-04T17:55:20.776Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
@@ -1393,8 +1393,8 @@
           "reasoningMs": 127,
           "toolMs": 1759
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-11-04T17:55:20.776Z"
+        "elapsedMs": 85412,
+        "runningStartedAt": null
       },
       "title": "write release note",
       "usage": {
