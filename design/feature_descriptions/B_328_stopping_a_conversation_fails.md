@@ -10,8 +10,6 @@ agents:
   - design/activity/card__9b59a42b-9d2e-4dfd-96b1-cbdb7b51fa05.json
 policy:
 after: c9a462cf-7874-4ada-a2f3-df08cf1793b2
-branch: b_328_stopping_a_conversation_fails
-worktree: 2
 changedFiles:
   - desktop/src/actions/agent/agent_runner_service.js
   - desktop/src/actions/agent/agent_runner_state.test.mjs
