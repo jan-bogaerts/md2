@@ -10,6 +10,7 @@ agents:
 policy:
 branch: f_443_scope_usage_metrics_and_reset_schedules_by_account
 after: 733d678c-49a7-4409-9fa2-5fb384821513
+worktree: 1
 ---
 
 Persist and project usage measurements and account-reset schedules separately for each agent account, using the account-scoped runtime snapshots from F_442.
