@@ -690,7 +690,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 74369
+        "usedTokens": 80968
       },
       "entries": [
         {
@@ -1243,6 +1243,282 @@
           "role": "user",
           "sequence": 41,
           "timestamp": "2026-11-04T12:44:58.981Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-42",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_055c786e1feda98c016aeb28cf57ec87d289bc52590fd6ef63",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T12:45:02.199Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Approved. Block 1 starts: one condition change only. Shared callers keep same semantics; pending approval joins existing pending-question shutdown path.\n\n",
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 43,
+          "timestamp": "2026-11-04T12:45:02.934Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop\\src\\actions\\agent\\agent_runner_service.js",
+          "deletions": 1,
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-44",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-fbcd5c64-27bb-418c-8944-4c1d68f4bc80",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-11-04T12:45:10.796Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_055c786e1feda98c016aeb28da431c87d2a7cea6547437bde7",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T12:45:13.123Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 8 \\\"requireStreamingRun\\\\(\\\" desktop\\\\src\\\\actions\\\\agent\\\\agent_runner_service.js\"",
+          "content": "288-     */\n289-    hasPendingInteraction(runId) {\n290-        const run = this.processes.get(runId);\n291-\n292-        return !!run && hasPendingInteraction(run);\n293-    }\n294-\n295-    sendMessage(runId, content, submissionId) {\n296:        return agentInteractions.sendMessage(this, this.requireStreamingRun(runId), content, submissionId);\n297-    }\n298-\n299-    /** A parked status alone does not prove that provider writes are safe. */\n300-    canCompact(runId) {\n301-        const run = this.processes.get(runId);\n302-        return !!run && run.sessionReady && !run.turnActive && !run.activeCompact\n303-            && !hasPendingInteraction(run) && !run.finishing && !run.cancelled && !run.streamingFailure;\n304-    }\n305-\n306-    async compact(runId, request) {\n307:        const run = this.requireStreamingRun(runId);\n308-        await agentInteractions.queueInteractionWrite(run, async () => {\n309-            if (request.conversationId !== run.conversation.id || request.provider !== run.agent) {\n310-                throw new Error('Compact target does not match the initialized provider conversation');\n311-            }\n312-            if (!this.canCompact(runId)) throw new Error('Agent session is not at a safe compact dispatch point');\n313-            run.activeCompact = request;\n314-            run.turnActive = true;\n315-            try {\n--\n331-        emitRunEvent(run, { error, explanation, requestId: request.requestId, type: 'compactSettled' });\n332-    }\n333-\n334-    sendStreamingMessage(run, content) {\n335-        return agentInteractions.sendStreamingMessage(this, run, content);\n336-    }\n337-\n338-    answerQuestion(runId, requestId, answers) {\n339:        return agentInteractions.answerQuestion(this, this.requireStreamingRun(runId), requestId, answers);\n340-    }\n341-\n342-    dismissQuestions(runId, requestId) {\n343:        return agentInteractions.dismissQuestions(this, this.requireStreamingRun(runId), requestId);\n344-    }\n345-\n346-    answerApproval(runId, requestId, decision) {\n347:        return agentInteractions.answerApproval(this, this.requireStreamingRun(runId), requestId, decision);\n348-    }\n349-\n350-    finish(runId) {\n351:        const run = this.requireStreamingRun(runId);\n352-        run.finishing = true;\n353-        if (!run.turnActive || hasPendingInteraction(run)) this.beginFinishShutdown(run);\n354-    }\n355-\n356-    beginFinishShutdown(run) {\n357-        if (run.finishTimeout !== null && run.finishTimeout !== undefined) return;\n358-        run.finishTimeout = this.setTimeout(this.handleFinishTimeout, AGENT_FINISH_GRACE_MS, run.id);\n359-        run.child.stdin.end();\n--\n797-    persistSuccessfulTurn(run) {\n798-        const snapshot = { ...run, conversation: snapshotConversation(run.conversation) };\n799-        const write = run.persistence.then(() => this.persistSuccessfulConversationTurn(snapshot));\n800-        run.persistence = write.catch(() => undefined);\n801-\n802-        return write;\n803-    }\n804-\n805:    requireStreamingRun(runId) {\n806-        const run = this.requireRun(runId);\n807-        if (!run.streaming) throw new Error(`Agent run is not streaming: ${runId}`);\n808-\n809-        return run;\n810-    }\n811-}\n812-\n813-module.exports = { AGENT_FINISH_GRACE_MS, AgentRunnerService };\n",
+          "durationMs": 133,
+          "exitCode": 0,
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-46",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 8 \\\"requireStreamingRun\\\\(\\\" desktop\\\\src\\\\actions\\\\agent\\\\agent_runner_service.js\"",
+          "providerItemId": "exec-f46d527b-cbda-4e92-bcdc-1a6caf7dc23e",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-11-04T12:45:15.270Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_055c786e1feda98c016aeb28e4ce4c87d2adb34ff186080d72",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T12:45:23.700Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'desktop\\\\src\\\\actions\\\\agent\\\\agent_runner_state.test.mjs'; \"'$lines[240..350]'",
+          "content": "            run.turnUsage = usage;\r\n            await service.handleClose(run.id, 0);\r\n        }\r\n        const saved = service.persistConversation.mock.calls[0][0].conversation;\r\n\r\n        expect(saved.usage).toMatchObject({ costUsd: 0.10, totalTokens: 350 });\r\n        expect(saved.providerSessions[0].usageBaseline).toEqual({\r\n            costUsd: 0.10,\r\n            resultId: 'result-1',\r\n            tokens: { cachedInputTokens: 0, inputTokens: 300, outputTokens: 50, reasoningTokens: 0, totalTokens: 350 },\r\n        });\r\n    });\r\n\r\n    it('keeps waitingForInput on tool, usage and output events while a question is pending', async () => {\r\n        const { onEvent, run, service } = streamingRunService();\r\n\r\n        await service.handleStreamingEvent('run-1', {questions: [{ id: 'confirm', question: 'Proceed?' }], requestId: 7, type: 'question'});\r\n        await service.handleStreamingEvent('run-1', toolEvent('command-1'));\r\n        await service.handleStreamingEvent('run-1', {\r\n            type: 'usage',\r\n            usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },\r\n        });\r\n        await service.handleStreamingEvent('run-1', { itemId: 'item-1', type: 'assistantStarted' });\r\n        await service.handleStreamingEvent('run-1', { content: 'chunk', itemId: 'item-1', type: 'assistant' });\r\n\r\n        expect(run.conversation.status).toBe('waitingForInput');\r\n        expect(service.hasPendingInteraction('run-1')).toBe(true);\r\n        expect(emittedStatuses(onEvent, 'agentEvent')).toEqual(['waitingForInput', 'waitingForInput']);\r\n        expect(emittedStatuses(onEvent, 'usage')).toEqual(['waitingForInput']);\r\n        expect(emittedStatuses(onEvent, 'output')).toEqual(['waitingForInput', 'waitingForInput']);\r\n    });\r\n\r\n    it('keeps waitingForInput on tool, usage and output events while an approval is pending', async () => {\r\n        const { onEvent, run, service } = streamingRunService();\r\n        const approval = {\r\n            command: 'npm test', itemId: 'command-1', kind: 'commandExecution', requestId: 41,\r\n            threadId: 'thread-1', turnId: 'turn-1',\r\n        };\r\n\r\n        await service.handleStreamingEvent('run-1', { approval, type: 'approval' });\r\n        await service.handleStreamingEvent('run-1', toolEvent('command-2'));\r\n        await service.handleStreamingEvent('run-1', {\r\n            type: 'usage',\r\n            usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },\r\n        });\r\n        await service.handleStreamingEvent('run-1', { itemId: 'item-1', type: 'assistantStarted' });\r\n        await service.handleStreamingEvent('run-1', { content: 'chunk', itemId: 'item-1', type: 'assistant' });\r\n\r\n        expect(run.conversation.status).toBe('waitingForInput');\r\n        expect(emittedStatuses(onEvent, 'agentEvent')).toEqual(['waitingForInput']);\r\n        expect(emittedStatuses(onEvent, 'usage')).toEqual(['waitingForInput']);\r\n        expect(emittedStatuses(onEvent, 'output')).toEqual(['waitingForInput', 'waitingForInput']);\r\n    });\r\n\r\n    it('returns to running once the last pending interaction resolves', async () => {\r\n        const { onEvent, run, service } = streamingRunService();\r\n        const approval = (requestId) => ({\r\n            command: 'npm test', itemId: `command-${requestId}`, kind: 'commandExecution', requestId,\r\n            threadId: 'thread-1', turnId: 'turn-1',\r\n        });\r\n\r\n        await service.handleStreamingEvent('run-1', { approval: approval(41), type: 'approval' });\r\n        await service.handleStreamingEvent('run-1', { approval: approval(42), type: 'approval' });\r\n        await service.handleStreamingEvent('run-1', { requestId: 41, type: 'approvalResolved' });\r\n\r\n        expect(run.conversation.status).toBe('waitingForInput');\r\n        expect(emittedStatuses(onEvent, 'approvalResolved')).toEqual(['waitingForInput']);\r\n\r\n        await service.handleStreamingEvent('run-1', { requestId: 42, type: 'approvalResolved' });\r\n\r\n        expect(run.conversation.status).toBe('running');\r\n        expect(emittedStatuses(onEvent, 'approvalResolved')).toEqual(['waitingForInput', 'running']);\r\n        expect(emittedStatuses(onEvent, 'state'))\r\n            .toEqual(['waitingForInput', 'waitingForInput', 'waitingForInput', 'running']);\r\n        expect(service.hasPendingInteraction('run-1')).toBe(false);\r\n\r\n        await service.handleStreamingEvent('run-1', toolEvent('command-3'));\r\n\r\n        expect(emittedStatuses(onEvent, 'agentEvent')).toEqual(['running']);\r\n    });\r\n\r\n    it('stays waitingForInput when an approval resolves while a question is still unanswered', async () => {\r\n        const { onEvent, run, service } = streamingRunService();\r\n        const approval = {\r\n            command: 'npm test', itemId: 'command-1', kind: 'commandExecution', requestId: 41,\r\n            threadId: 'thread-1', turnId: 'turn-1',\r\n        };\r\n\r\n        await service.handleStreamingEvent('run-1', {questions: [{ id: 'confirm', question: 'Proceed?' }], requestId: 7, type: 'question'});\r\n        await service.handleStreamingEvent('run-1', { approval, type: 'approval' });\r\n        await service.handleStreamingEvent('run-1', { requestId: 41, type: 'approvalResolved' });\r\n\r\n        expect(run.conversation.status).toBe('waitingForInput');\r\n        expect(service.hasPendingInteraction('run-1')).toBe(true);\r\n        expect(emittedStatuses(onEvent, 'approvalResolved')).toEqual(['waitingForInput']);\r\n    });\r\n\r\n    it('reports no pending interaction for a run that is no longer active', () => {\r\n        const { service } = streamingRunService();\r\n\r\n        expect(service.hasPendingInteraction('run-2')).toBe(false);\r\n    });\r\n});\r\n\r\ndescribe('AgentRunnerService state handling', () => {\r\n    it('stores and publishes a streaming Codex plan update', async () => {\r\n        const { onEvent, run, service } = streamingRunService();\r\n        const adapter = createAgentStreamingAdapter(\r\n            'codex',\r\n            vi.fn(),\r\n            (event) => service.handleStreamingEvent(run.id, event),\r\n",
+          "durationMs": 59,
+          "exitCode": 0,
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'desktop\\\\src\\\\actions\\\\agent\\\\agent_runner_state.test.mjs'; \"'$lines[240..350]'",
+          "providerItemId": "exec-d9771fef-5a5c-4df1-bf8d-2c35b4fac688",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-11-04T12:45:26.032Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-49",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_055c786e1feda98c016aeb28ea1bfc87d29c64a546ef3f698c",
+          "sequence": 49,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T12:45:28.968Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 1 done. Block 2 adds pending-approval regression and strengthens active-turn test to prove shutdown waits before `turnCompleted`.\n\n",
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 50,
+          "timestamp": "2026-11-04T12:45:29.819Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop\\src\\actions\\agent\\agent_runner_state.test.mjs",
+          "deletions": 1,
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-51",
+          "insertions": 27,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-a59ec2ff-3b07-407d-82c0-0d8a4bc3c90b",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-11-04T12:45:43.579Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-52",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_055c786e1feda98c016aeb28faa19487d2b72196b21c14aa11",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T12:45:46.014Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 2 done. Block 3 runs one test file only, then ESLint on two changed desktop files.\n\n",
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 53,
+          "timestamp": "2026-11-04T12:45:47.366Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/agent/agent_runner_state.test.mjs'",
+          "content": "\n> desktop@0.9.2 test\n> vitest run src/actions/agent/agent_runner_state.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/desktop\n\n\n Test Files  1 passed (1)\n      Tests  73 passed (73)\n   Start at  13:45:55\n   Duration  969ms (transform 62ms, setup 0ms, import 173ms, tests 665ms, environment 0ms)\n\n",
+          "durationMs": 1934,
+          "exitCode": 0,
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-54",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/agent/agent_runner_state.test.mjs'",
+          "providerItemId": "exec-3936f6fe-22b4-47c1-b28e-3195f4d8f1e7",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-11-04T12:45:56.699Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint -- src/actions/agent/agent_runner_service.js src/actions/agent/agent_runner_state.test.mjs'",
+          "content": "\n> desktop@0.9.2 lint\n> eslint . src/actions/agent/agent_runner_service.js src/actions/agent/agent_runner_state.test.mjs\n\n",
+          "durationMs": 6878,
+          "exitCode": 0,
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-55",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint -- src/actions/agent/agent_runner_service.js src/actions/agent/agent_runner_state.test.mjs'",
+          "providerItemId": "exec-2eb66e43-07ad-4a9b-bd19-7dcce434e11e",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-11-04T12:46:06.590Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-56",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_055c786e1feda98c016aeb2914e5c887d2b164b4df758bbed4",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T12:46:11.773Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Focused tests pass: 73/73. Lint passes. Block 4 now changes only feature frontmatter status in source `md2` tree.\n\n",
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 57,
+          "timestamp": "2026-11-04T12:46:12.628Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_328_stopping_a_conversation_fails.md",
+          "deletions": 1,
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-58",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-c9221e10-f9e8-4f00-98d4-f26904143084",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-11-04T12:46:23.149Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_055c786e1feda98c016aeb29224b6c87d2a602eb390fa73d95",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T12:46:25.151Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"hasPendingInteraction\\\\(run\\\\)|starts graceful Finish during|starts graceful Finish only|\"'^status:\" desktop'\"\\\\src\\\\actions\\\\agent\\\\agent_runner_service.js desktop\\\\src\\\\actions\\\\agent\\\\agent_runner_state.test.mjs 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_328_stopping_a_conversation_fails.md'\"",
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_328_stopping_a_conversation_fails.md:6:status: ready\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_328_stopping_a_conversation_fails.md:29:- In `AgentRunnerService.finish()`, start shutdown when `hasPendingInteraction(run)` is true instead of checking only `run.waitingForQuestion`. This covers pending questions and pending approvals through the existing run-state helper.\ndesktop\\src\\actions\\agent\\agent_runner_service.js:292:        return !!run && hasPendingInteraction(run);\ndesktop\\src\\actions\\agent\\agent_runner_service.js:303:            && !hasPendingInteraction(run) && !run.finishing && !run.cancelled && !run.streamingFailure;\ndesktop\\src\\actions\\agent\\agent_runner_service.js:353:        if (!run.turnActive || hasPendingInteraction(run)) this.beginFinishShutdown(run);\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:1516:    it('starts graceful Finish during an active turn with a pending approval', () => {\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:1537:    it('starts graceful Finish only after the active turn completes', async () => {\n",
+          "durationMs": 19,
+          "exitCode": 0,
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-60",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"hasPendingInteraction\\\\(run\\\\)|starts graceful Finish during|starts graceful Finish only|\"'^status:\" desktop'\"\\\\src\\\\actions\\\\agent\\\\agent_runner_service.js desktop\\\\src\\\\actions\\\\agent\\\\agent_runner_state.test.mjs 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_328_stopping_a_conversation_fails.md'\"",
+          "providerItemId": "exec-a43baf53-98ab-4fd6-898a-22315046f028",
+          "sequence": 60,
+          "status": "completed",
+          "timestamp": "2026-11-04T12:46:28.272Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-61",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_055c786e1feda98c016aeb29267d5887d2a68b4ce88ddd4fbb",
+          "sequence": 61,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T12:46:29.356Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_055c786e1feda98c016aeb292d4ed487d2899a358e02a53746",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-04T12:46:36.166Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Implemented B_328.\n\n- `finish()` now shuts down active runs with pending question or approval.\n- Active turns without pending interaction still wait for completion.\n- Added pending-approval regression test.\n- Strengthened active-turn waiting test.\n- Focused tests: 73 passed.\n- Lint: passed.\n- Feature [status set to `ready`](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_328_stopping_a_conversation_fails.md:6).\n\n",
+          "id": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 63,
+          "timestamp": "2026-11-04T12:46:38.279Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1252,8 +1528,8 @@
           "agent": "codex",
           "conversationId": "01a1a627-e791-76d1-a2aa-ff0b0cd8939c",
           "createdAt": "2026-11-04T10:44:52.098Z",
-          "lastUsedAt": "2026-11-04T10:44:52.098Z",
-          "synchronizedThroughMessageId": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-turn-1-assistant-2"
+          "lastUsedAt": "2026-11-04T12:46:38.279Z",
+          "synchronizedThroughMessageId": "agent-turn-b6834bc0-ed9b-43f5-bed5-0026a6d07737-turn-2-assistant-5"
         }
       ],
       "startedAt": "2026-11-04T10:43:15.063Z",
@@ -1263,46 +1539,46 @@
           {
             "id": "0",
             "subject": "Block 1 — Fix shutdown condition in desktop/src/actions/agent/agent_runner_service.js: when Finish marks run finishing, begin shutdown if turn is idle or has any pending interaction (question or approval); preserve wait-for-turn-completion behavior otherwise",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "1",
             "subject": "Block 2 — Add pending-approval regression test in desktop/src/actions/agent/agent_runner_state.test.mjs; retain coverage for pending question, idle waitingForInput, and active turn without interaction",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 3 — Run focused agent_runner_state test file and targeted lint for changed desktop files; fix only related failures",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Block 4 — After implementation and verification, set B_328 feature description status to ready in C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_328_stopping_a_conversation_fails.md",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "4",
             "subject": "Approval gate — wait for user approval before edits",
-            "status": "inProgress"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-04T10:44:47.591Z"
+        "updatedAt": "2026-11-04T12:46:34.089Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 176,
-          "toolMs": 3901
+          "reasoningMs": 291,
+          "toolMs": 17481
         },
         "elapsedMs": 97035,
         "runningStartedAt": "2026-11-04T12:44:58.981Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 994304,
-        "inputTokens": 62307,
-        "outputTokens": 2277,
-        "reasoningTokens": 837,
-        "totalTokens": 1059725
+        "cachedInputTokens": 2082048,
+        "inputTokens": 67802,
+        "outputTokens": 4901,
+        "reasoningTokens": 1777,
+        "totalTokens": 2156528
       },
       "usageSchemaVersion": 1,
       "viewed": true
