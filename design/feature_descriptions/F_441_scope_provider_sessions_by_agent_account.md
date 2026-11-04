@@ -3,7 +3,7 @@ author:
 id: F_441
 internalId: 45aee390-2708-4b8b-b215-2f7ecabcabe4
 title: scope provider sessions by agent account
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,18 @@ policy:
 branch: f_441_scope_provider_sessions_by_agent_account
 after: 733d678c-49a7-4409-9fa2-5fb384821513
 worktree: 1
+changedFiles:
+  - app/src/data/data_types.ts
+  - app/src/services/agents/agent_conversation_service.node.test.ts
+  - desktop/src/actions/action/action_agent_executor.js
+  - desktop/src/actions/action/action_agent_executor.test.mjs
+  - desktop/src/actions/action/action_compact_queue.test.mjs
+  - desktop/src/actions/agent/agent_conversation.js
+  - desktop/src/actions/agent/agent_conversation.test.mjs
+  - desktop/src/actions/agent/agent_run_state.js
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
+  - desktop/src/actions/agent/claude_usage_accounting.test.mjs
+  - shared/agent_conversations.mjs
 ---
 
 Make provider conversation ownership account-specific so a provider session is never resumed or compacted under another login.
