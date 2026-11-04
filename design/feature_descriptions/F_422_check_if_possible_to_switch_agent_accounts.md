@@ -11,8 +11,20 @@ agents:
 policy:
 branch: f_422_check_if_possible_to_switch_agent_accounts
 ---
-
 Allow separate Codex and Claude accounts to be configured, selected as defaults, assigned to actions and runs, and remembered by provider sessions in a conversation.
+
+this card was split up into the following sub sections:
+
+F_436 – account model and resolution
+F_437 – account lifecycle service
+F_438 – account management UI
+F_439 – account selection for actions and runs
+F_440 – account-aware execution
+F_441 – account-scoped provider sessions
+F_442 – account-scoped catalogs and runtime usage
+F_443 – account-scoped metrics and reset schedules
+
+
 
 ## Current state
 
