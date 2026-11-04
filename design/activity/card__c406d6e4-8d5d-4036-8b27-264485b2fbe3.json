@@ -5,7 +5,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "c406d6e4-8d5d-4036-8b27-264485b2fbe3",
       "cardPath": "design/feature_descriptions/B_327_pasted_images_not_saved.md",
-      "completedAt": null,
+      "completedAt": "2026-11-04T15:03:56.992Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 105319
@@ -1117,7 +1117,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 81,
-          "timestamp": "2026-11-04T15:03:56.634Z"
+          "timestamp": "2026-11-04T15:03:56.992Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1127,12 +1127,12 @@
           "agent": "codex",
           "conversationId": "01a1a6f3-3cdc-7990-beb0-5ecf8c68bb21",
           "createdAt": "2026-11-04T14:27:17.707Z",
-          "lastUsedAt": "2026-11-04T15:03:56.634Z",
+          "lastUsedAt": "2026-11-04T15:03:56.992Z",
           "synchronizedThroughMessageId": "agent-turn-8c6d9e1d-d6a8-46c3-aa18-6365e85a657a-turn-3-assistant-2"
         }
       ],
       "startedAt": "2026-11-04T14:25:20.723Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -1158,8 +1158,8 @@
           "reasoningMs": 220,
           "toolMs": 7081
         },
-        "elapsedMs": 147157,
-        "runningStartedAt": "2026-11-04T15:03:01.198Z"
+        "elapsedMs": 202951,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
