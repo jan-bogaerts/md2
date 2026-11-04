@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "b71e73f9-ddd6-4a14-bf59-7f9415ad0614",
+      "cardPath": "design/feature_descriptions/B_329_changing_appearence_not_applied.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_329_changing_appearence_not_applied.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-cca61e94-cfb7-4704-a22d-ce70938faecc",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-04T15:02:06.057Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-44660c0a-1ba8-4273-b981-6217679fbf55",
+      "providerSessions": [],
+      "startedAt": "2026-11-04T15:02:06.057Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-04T15:02:06.057Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "b71e73f9-ddd6-4a14-bf59-7f9415ad0614",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
