@@ -1414,7 +1414,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 87634
+        "usedTokens": 101857
       },
       "entries": [
         {
@@ -2351,6 +2351,250 @@
           "role": "assistant",
           "sequence": 80,
           "timestamp": "2026-11-05T09:40:59.167Z"
+        },
+        {
+          "content": "they also have a 'suggest a tool' button where the entry can be added as an issue. is that a good idea? are there many old issues open?",
+          "id": "submission-335951a3-a69b-443b-93d0-93087f290e6c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 81,
+          "timestamp": "2026-11-05T09:44:30.632Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-82",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec5000ef7887d2aab2732fc940e276",
+          "sequence": 82,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:44:32.719Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll check what the “Suggest a tool” form creates and sample the current issue backlog by age and maintainer activity. That will show whether an issue is a practical route or whether a validated PR is materially faster.\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-8-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 83,
+          "timestamp": "2026-11-05T09:44:33.773Z"
+        },
+        {
+          "content": "https://github.com/aliammari1/awesome-ai-tools/issues",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-84",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"openPage\",\"url\":\"https://github.com/aliammari1/awesome-ai-tools/issues\"}",
+          "providerItemId": "exec-967de0bc-5ca1-4e97-9d22-9f62efa04e40",
+          "sequence": 84,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:44:37.728Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-85",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec5007be0887d28864d0f1fb2e704e",
+          "sequence": 85,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:44:39.512Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-86",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"other\"}",
+          "providerItemId": "exec-1f45694a-aace-4ac0-a0e9-7974491c2d1c",
+          "sequence": 86,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:44:41.904Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-87",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec500fbe0887d2a44d3007dc938669",
+          "sequence": 87,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:44:47.529Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$headers = @{ '\"'User-Agent' = 'Codex' }; \"'$open = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Aissue+is%3Aopen&sort=created&order=asc&per_page=100'; \"'$closed = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Aissue+is%3Aclosed&sort=updated&order=desc&per_page=20'; Write-Output \\\"OPEN_TOTAL=\"'$($open.total_count)\"; $open.items | Select-Object number,title,created_at,updated_at | Format-Table -AutoSize; Write-Output \"RECENT_CLOSED\"; $closed.items | Select-Object -First 15 number,title,created_at,closed_at,updated_at | Format-Table -AutoSize; Write-Output '\"'ISSUE_FORM'; (Invoke-WebRequest -UseBasicParsing -Headers \"'$headers -Uri '\"'https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/.github/ISSUE_TEMPLATE/tool_addition.yml').Content\"",
+          "content": "OPEN_TOTAL=68\r\n\r\nnumber title                                                                          created_at           updated_at  \r\n------ -----                                                                          ----------           ----------  \r\n    27 Update Guidelines                                                              2026-03-17T10:32:27Z 2026-03-1...\r\n    28 Awesome Ai Tools Linter                                                        2026-03-17T10:34:44Z 2026-03-1...\r\n    34 Add StoryRoute - AI GPS Audio Tour Guide                                       2026-03-22T20:34:33Z 2026-03-2...\r\n   108 Submit CallURL                                                                 2026-06-22T23:05:10Z 2026-06-2...\r\n   110 Suggestion: rust-norion for AI infrastructure / agent automation               2026-06-25T18:12:59Z 2026-06-2...\r\n   111 Tool suggestion: Tudo and Telo                                                 2026-06-26T04:13:27Z 2026-06-2...\r\n   119 Scope check: would codex-profiles fit under Code Generation & Development?     2026-07-08T10:46:15Z 2026-07-0...\r\n   126 Link Checker Report                                                            2026-07-13T11:15:52Z 2026-10-1...\r\n   138 [ADD] GPTGeminiGrok.AI                                                         2026-07-27T13:43:21Z 2026-07-2...\r\n   140 [ADD] ATS Checker - AI Resume Analysis Tool                                    2026-07-28T07:07:21Z 2026-07-2...\r\n   142 [ADD] GPT Image 2                                                              2026-07-28T18:27:36Z 2026-07-2...\r\n   153 [ADD] Sharpniq                                                                 2026-08-09T10:01:03Z 2026-08-0...\r\n   154 [ADD] Image Describer                                                          2026-08-10T18:34:38Z 2026-08-1...\r\n   155 [ADD] Vedic Astrology Chart                                                    2026-08-10T18:34:49Z 2026-08-1...\r\n   156 [ADD] Video Upscaler                                                           2026-08-10T18:35:04Z 2026-08-1...\r\n   158 Suggestion: Pixonara - image and video creation for creators                   2026-08-13T07:26:22Z 2026-08-1...\r\n   169 Add SocialEcho — AI social media management and automation                     2026-08-22T23:25:34Z 2026-08-2...\r\n   170 Add TANCO SkillHub — reusable AI workflow Skills                               2026-08-23T19:23:43Z 2026-08-2...\r\n   178 [ADD] Lunalisa                                                                 2026-08-28T13:40:21Z 2026-08-2...\r\n   180 Add InnerCanvas                                                                2026-08-29T04:58:17Z 2026-08-2...\r\n   187 [ADD] Agent QA                                                                 2026-09-05T01:03:50Z 2026-09-0...\r\n   194 [ADD] ModelRush — multimodal API and Playground                                2026-09-09T06:14:32Z 2026-09-0...\r\n   203 [ADD] OrkasVideoStudio                                                         2026-09-17T01:19:08Z 2026-09-1...\r\n   324 [ADD] API.market MCP Gateway                                                   2026-09-25T08:10:23Z 2026-09-2...\r\n   336 [ADD] Honer AI - native Android assistant                                      2026-10-02T07:52:29Z 2026-10-0...\r\n   341 Suggest Clout for Video & Media → Video Creation & Editing                     2026-10-06T00:43:01Z 2026-10-0...\r\n   342 [ADD] 「初」表示 先行性スクリーニング: preliminary advertising-claim screening                2026-10-06T14:32:15Z 2026-10-0...\r\n   343 Add FalcoScan (AI tool directory and market tracker)                           2026-10-07T18:24:32Z 2026-10-0...\r\n   347 [ADD] Stunna — mobile AI photo editing                                         2026-10-09T13:58:28Z 2026-10-0...\r\n   352 [ADD] QuietTake browser-local speech noise cleanup                             2026-10-13T02:00:58Z 2026-10-1...\r\n   355 [ADD] MangaTranslate - OCR and typesetting for image translation               2026-10-14T16:06:26Z 2026-10-1...\r\n   360 [ADD] LogoMovo                                                    \n[5472 characters omitted]\n              2026-10-08T12:12:29Z 20...\r\n    16 Dependency Dashboard                                                                  2025-12-07T05:05:54Z 20...\r\n    35 Add StoryRoute - AI-powered interactive learning tool                                 2026-03-22T23:21:34Z 20...\r\n    20 Update Taskade entry to link taskade/taskade repo                                     2026-02-19T04:32:17Z 20...\r\n     1 add more content to the repo                                                          2023-07-28T19:01:54Z 20...\r\n    11 How in the world is ComfyUI not on here?                                              2025-09-04T01:41:43Z 20...\r\n     6 update the list                                                                       2023-08-09T14:08:54Z 20...\r\n     4 Create awesome ai tools website                                                       2023-07-29T14:59:13Z 20...\r\n\r\n\r\nISSUE_FORM\r\nname: Tool Addition Request\ndescription: Suggest a new AI tool for the structured catalog\ntitle: '[ADD] '\nlabels: ['enhancement']\nbody:\n  - type: markdown\n    attributes:\n      value: |\n        Thanks for suggesting a tool for **Awesome AI Tools**! Please provide factual details below.\n  - type: input\n    id: name\n    attributes:\n      label: Tool Name\n      description: The official name of the tool or project.\n      placeholder: e.g. Cursor\n    validations:\n      required: true\n  - type: input\n    id: url\n    attributes:\n      label: Official URL\n      description: Must be an HTTPS link on a public domain. No affiliate, tracking, or shortened links.\n      placeholder: https://example.com/\n    validations:\n      required: true\n  - type: dropdown\n    id: category\n    attributes:\n      label: Category\n      description: Select the catalog category that best fits the tool.\n      options:\n        - ai-agents\n        - ai-safety-and-ethics\n        - ai-search-and-research\n        - audio-and-music\n        - business-and-marketing\n        - code-generation-and-development\n        - communication-and-writing\n        - computer-vision\n        - creativity-and-design\n        - data-science-and-analytics\n        - gaming-and-entertainment\n        - getting-started\n        - large-language-models\n        - miscellaneous\n        - natural-language-processing\n        - no-code-low-code-ai\n        - productivity\n        - research-and-education\n        - video-and-media\n    validations:\n      required: true\n  - type: textarea\n    id: description\n    attributes:\n      label: One-sentence Description\n      description: A concise, factual sentence describing what the tool does. End with a period. Avoid slogans, valuations, rankings, and user counts.\n      placeholder: Generates optimized SQL queries from natural language questions.\n    validations:\n      required: true\n  - type: textarea\n    id: why\n    attributes:\n      label: Why this tool belongs\n      description: Explain what makes this tool distinct or useful compared to existing catalog entries.\n    validations:\n      required: true\n  - type: dropdown\n    id: pricing\n    attributes:\n      label: Pricing Model (Optional)\n      description: Only select if confirmed on their official pricing page.\n      options:\n        - Unknown / Unsure\n        - free\n        - freemium\n        - paid\n        - contact-sales\n  - type: dropdown\n    id: open_source\n    attributes:\n      label: Is it Open Source? (Optional)\n      description: Does it have a public source repository with an OSI-approved license?\n      options:\n        - Unknown / Unsure\n        - 'Yes (Open Source)'\n        - 'No (Proprietary)'\n  - type: checkboxes\n    id: checklist\n    attributes:\n      label: Quality Checklist\n      options:\n        - label: The tool is publicly reachable and not behind a private waitlist.\n          required: true\n        - label: The project appears actively maintained.\n          required: true\n        - label: I verified that this URL is not already in `catalog/tools/`.\n          required: true\n        - label: This link contains no tracking parameters (utm, ref, aff).\n          required: true\n\r\n",
+          "durationMs": 2326,
+          "exitCode": 0,
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-88",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$headers = @{ '\"'User-Agent' = 'Codex' }; \"'$open = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Aissue+is%3Aopen&sort=created&order=asc&per_page=100'; \"'$closed = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Aissue+is%3Aclosed&sort=updated&order=desc&per_page=20'; Write-Output \\\"OPEN_TOTAL=\"'$($open.total_count)\"; $open.items | Select-Object number,title,created_at,updated_at | Format-Table -AutoSize; Write-Output \"RECENT_CLOSED\"; $closed.items | Select-Object -First 15 number,title,created_at,closed_at,updated_at | Format-Table -AutoSize; Write-Output '\"'ISSUE_FORM'; (Invoke-WebRequest -UseBasicParsing -Headers \"'$headers -Uri '\"'https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/.github/ISSUE_TEMPLATE/tool_addition.yml').Content\"",
+          "providerItemId": "exec-f51a34eb-7cc5-4ab3-b228-4866a1e07b7b",
+          "sequence": 88,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:45:00.420Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-89",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec50235db887d29560b82f888788f1",
+          "sequence": 89,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:45:07.146Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The current backlog is larger than the cached GitHub page suggests: the live API reports 68 open issues, including tool suggestions dating back to June and earlier. I’m checking recent closures to distinguish “old but intentionally retained” from suggestions that are actually being processed.\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-8-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 90,
+          "timestamp": "2026-11-05T09:45:08.441Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$headers = @{ '\"'User-Agent' = 'Codex' }; \"'$open = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Aissue+is%3Aopen&sort=created&order=asc&per_page=100'; \"'$now = [datetime]'\"'2026-11-05T12:00:00Z'; \"'$items = @($open.items); Write-Output \"Open total: $($open.total_count)\"; Write-Output \"Older than 30 days: $(@($items | Where-Object { $now - [datetime]$_.created_at -gt [timespan]::FromDays(30) }).Count)\"; Write-Output \"Older than 60 days: $(@($items | Where-Object { $now - [datetime]$_.created_at -gt [timespan]::FromDays(60) }).Count)\"; Write-Output \"Older than 90 days: $(@($items | Where-Object { $now - [datetime]$_.created_at -gt [timespan]::FromDays(90) }).Count)\"; $closed = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Aissue+is%3Aclosed&sort=updated&order=desc&per_page=100'; Write-Output \\\"Closed issue total: \"'$($closed.total_count)\"; $closed.items | Select-Object -First 15 | ForEach-Object { Write-Output (\"#{0}|created={1}|closed={2}|{3}\" -f $_.number,$_.created_at,$_.closed_at,$_.title) }; foreach ($number in 408,407,344,459) { $issue = Invoke-RestMethod -Headers $headers -Uri \"https://api.github.com/repos/aliammari1/awesome-ai-tools/issues/$number\"; Write-Output (\"ISSUE #{0}|state={1}|reason={2}|created={3}|closed={4}|comments={5}|{6}\" -f $number,$issue.state,$issue.state_reason,$issue.created_at,$issue.closed_at,$issue.comments,$issue.title); $comments = Invoke-RestMethod -Headers $headers -Uri \"https://api.github.com/repos/aliammari1/awesome-ai-tools/issues/$number/comments\"; $comments | ForEach-Object { Write-Output (\"COMMENT {0}: {1}\" -f $_.user.login,($_.body -replace \"`r|`n\",'\"' ')) } }\"",
+          "content": "Open total: 68\r\nOlder than 30 days: 26\r\nOlder than 60 days: 21\r\nOlder than 90 days: 11\r\nClosed issue total: 13\r\n#459|created=2026-11-03T06:03:14Z|closed=2026-11-03T06:03:25Z|Follow-up: Audio Cutter AI already suggested in #456\r\n#408|created=2026-10-24T02:15:44Z|closed=2026-10-24T02:16:31Z|[ADD] System One API\r\n#407|created=2026-10-24T02:15:42Z|closed=2026-10-24T02:16:26Z|[ADD] Artgen\r\n#54|created=2026-04-21T01:58:21Z|closed=2026-10-21T09:50:05Z|Add StoryRoute — AI-powered interactive storytelling travel app for city exploration\r\n#53|created=2026-04-20T18:41:43Z|closed=2026-10-21T09:50:05Z|Add DishRoll — AI-powered meal planning PWA that generates recipes and shopping lists\r\n#344|created=2026-10-08T12:12:29Z|closed=2026-10-11T17:31:32Z|[ADD] Tale — shared workspace for coding-agent tasks and review\r\n#16|created=2025-12-07T05:05:54Z|closed=2026-09-21T11:02:10Z|Dependency Dashboard\r\n#35|created=2026-03-22T23:21:34Z|closed=2026-03-24T18:54:23Z|Add StoryRoute - AI-powered interactive learning tool\r\n#20|created=2026-02-19T04:32:17Z|closed=2026-03-13T06:19:55Z|Update Taskade entry to link taskade/taskade repo\r\n#1|created=2023-07-28T19:01:54Z|closed=2023-08-04T15:53:13Z|add more content to the repo\r\n#11|created=2025-09-04T01:41:43Z|closed=2025-10-04T20:38:06Z|How in the world is ComfyUI not on here? \r\n#6|created=2023-08-09T14:08:54Z|closed=2023-08-09T14:08:59Z|update the list\r\n#4|created=2023-07-29T14:59:13Z|closed=2023-08-04T15:52:55Z|Create awesome ai tools website\r\nISSUE #408|state=closed|reason=completed|created=2026-10-24T02:15:44Z|closed=2026-10-24T02:16:31Z|comments=1|[ADD] System One API\r\nCOMMENT ziyu: Duplicate of #406\r\nISSUE #407|state=closed|reason=completed|created=2026-10-24T02:15:42Z|closed=2026-10-24T02:16:26Z|comments=1|[ADD] Artgen\r\nCOMMENT ziyu: Duplicate of #405\r\nISSUE #344|state=closed|reason=completed|created=2026-10-08T12:12:29Z|closed=2026-10-11T17:31:32Z|comments=0|[ADD] Tale — shared workspace for coding-agent tasks and review\r\nISSUE #459|state=closed|reason=not_planned|created=2026-11-03T06:03:14Z|closed=2026-11-03T06:03:25Z|comments=0|Follow-up: Audio Cutter AI already suggested in #456\r\n",
+          "durationMs": 3045,
+          "exitCode": 0,
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-91",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$headers = @{ '\"'User-Agent' = 'Codex' }; \"'$open = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Aissue+is%3Aopen&sort=created&order=asc&per_page=100'; \"'$now = [datetime]'\"'2026-11-05T12:00:00Z'; \"'$items = @($open.items); Write-Output \"Open total: $($open.total_count)\"; Write-Output \"Older than 30 days: $(@($items | Where-Object { $now - [datetime]$_.created_at -gt [timespan]::FromDays(30) }).Count)\"; Write-Output \"Older than 60 days: $(@($items | Where-Object { $now - [datetime]$_.created_at -gt [timespan]::FromDays(60) }).Count)\"; Write-Output \"Older than 90 days: $(@($items | Where-Object { $now - [datetime]$_.created_at -gt [timespan]::FromDays(90) }).Count)\"; $closed = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Aissue+is%3Aclosed&sort=updated&order=desc&per_page=100'; Write-Output \\\"Closed issue total: \"'$($closed.total_count)\"; $closed.items | Select-Object -First 15 | ForEach-Object { Write-Output (\"#{0}|created={1}|closed={2}|{3}\" -f $_.number,$_.created_at,$_.closed_at,$_.title) }; foreach ($number in 408,407,344,459) { $issue = Invoke-RestMethod -Headers $headers -Uri \"https://api.github.com/repos/aliammari1/awesome-ai-tools/issues/$number\"; Write-Output (\"ISSUE #{0}|state={1}|reason={2}|created={3}|closed={4}|comments={5}|{6}\" -f $number,$issue.state,$issue.state_reason,$issue.created_at,$issue.closed_at,$issue.comments,$issue.title); $comments = Invoke-RestMethod -Headers $headers -Uri \"https://api.github.com/repos/aliammari1/awesome-ai-tools/issues/$number/comments\"; $comments | ForEach-Object { Write-Output (\"COMMENT {0}: {1}\" -f $_.user.login,($_.body -replace \"`r|`n\",'\"' ')) } }\"",
+          "providerItemId": "exec-dd50f8d4-0d80-40e7-ac67-d3dd52f42f61",
+          "sequence": 91,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:45:26.726Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-92",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec5038b7f887d2831036c2f6b7ac41",
+          "sequence": 92,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:45:28.492Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "'Tale'",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-93",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"findInPage\",\"url\":null,\"pattern\":\"Tale\"}",
+          "providerItemId": "exec-bc10d3e4-b62c-4d6f-8de8-5c5d331510e5",
+          "sequence": 93,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:45:31.450Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-94",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec5041851c87d287c6f8ab7e149523",
+          "sequence": 94,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:45:37.327Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Issue submission is an officially supported path, but it is not a fast queue: 68 issues are open, 26 are older than 30 days, and 11 are older than 90 days. I’m comparing that with the PR queue before recommending one route, because the repository also currently has a large number of open pull requests.\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-8-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 95,
+          "timestamp": "2026-11-05T09:45:38.818Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$headers = @{ '\"'User-Agent' = 'Codex' }; \"'$now = [datetime]'\"'2026-11-05T12:00:00Z'; \"'$open = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Apr+is%3Aopen&sort=created&order=asc&per_page=100'; \"'$items = @($open.items); Write-Output \"Open PR total: $($open.total_count)\"; Write-Output \"First page older than 30 days: $(@($items | Where-Object { $now - [datetime]$_.created_at -gt [timespan]::FromDays(30) }).Count)\"; Write-Output \"First page older than 60 days: $(@($items | Where-Object { $now - [datetime]$_.created_at -gt [timespan]::FromDays(60) }).Count)\"; $merged = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Apr+is%3Amerged&sort=updated&order=desc&per_page=20'; Write-Output \\\"Merged PR total: \"'$($merged.total_count)\"; $merged.items | Select-Object -First 12 | ForEach-Object { $pull = Invoke-RestMethod -Headers $headers -Uri $_.pull_request.url; Write-Output (\"#{0}|created={1}|merged={2}|{3}\" -f $_.number,$_.created_at,$pull.merged_at,$_.title) }'",
+          "content": "Open PR total: 132\r\nFirst page older than 30 days: 93\r\nFirst page older than 60 days: 0\r\nMerged PR total: 61\r\n#13|created=2025-12-06T01:01:13Z|merged=2025-12-07T05:05:27Z|Configure Renovate\r\n#304|created=2026-09-21T11:14:31Z|merged=2026-10-31T04:11:07Z|Add README Skills to Writing Assistants (recovery of #196)\r\n#332|created=2026-09-29T20:54:01Z|merged=2026-10-31T04:10:37Z|Add ModelVRAM to LLM Tools & Frameworks\r\n#348|created=2026-10-09T20:35:52Z|merged=2026-10-31T04:10:15Z|Add Drevon\r\n#356|created=2026-10-14T20:00:06Z|merged=2026-10-31T04:10:03Z|Add Multi Upload Tool to Communication & Writing > Content Creation\r\n#370|created=2026-10-17T16:50:58Z|merged=2026-10-31T04:09:47Z|Add LibreAI to Research & Knowledge Tools\r\n#376|created=2026-10-19T09:55:58Z|merged=2026-10-31T04:09:35Z|Add Pulse\r\n#377|created=2026-10-19T10:16:04Z|merged=2026-10-31T04:09:27Z|Add Frink to AI Agents & Automation\r\n#383|created=2026-10-20T00:05:07Z|merged=2026-10-31T04:09:14Z|Add OtterFill to Productivity\r\n#385|created=2026-10-20T11:48:42Z|merged=2026-10-31T04:09:02Z|Add Seedream 5.5 to Image Generation & Art\r\n#388|created=2026-10-21T15:08:45Z|merged=2026-10-31T04:08:50Z|Update dependency @astrojs/check to v0.9.12\r\n#389|created=2026-10-22T01:11:56Z|merged=2026-10-31T04:08:41Z|Add isGenAI to AI Ethics & Governance\r\n",
+          "durationMs": 6450,
+          "exitCode": 0,
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-96",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$headers = @{ '\"'User-Agent' = 'Codex' }; \"'$now = [datetime]'\"'2026-11-05T12:00:00Z'; \"'$open = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Apr+is%3Aopen&sort=created&order=asc&per_page=100'; \"'$items = @($open.items); Write-Output \"Open PR total: $($open.total_count)\"; Write-Output \"First page older than 30 days: $(@($items | Where-Object { $now - [datetime]$_.created_at -gt [timespan]::FromDays(30) }).Count)\"; Write-Output \"First page older than 60 days: $(@($items | Where-Object { $now - [datetime]$_.created_at -gt [timespan]::FromDays(60) }).Count)\"; $merged = Invoke-RestMethod -Headers $headers -Uri '\"'https://api.github.com/search/issues?q=repo%3Aaliammari1%2Fawesome-ai-tools+is%3Apr+is%3Amerged&sort=updated&order=desc&per_page=20'; Write-Output \\\"Merged PR total: \"'$($merged.total_count)\"; $merged.items | Select-Object -First 12 | ForEach-Object { $pull = Invoke-RestMethod -Headers $headers -Uri $_.pull_request.url; Write-Output (\"#{0}|created={1}|merged={2}|{3}\" -f $_.number,$_.created_at,$pull.merged_at,$_.title) }'",
+          "providerItemId": "exec-7ed0b80b-0dd6-4475-bee8-cc09334e50ca",
+          "sequence": 96,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:45:56.541Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-97",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec5058fae887d290a01ee89c8ed20f",
+          "sequence": 97,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:46:00.752Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$headers = @{ '\"'User-Agent' = 'Codex'; 'Accept' = 'application/vnd.github+json' }; foreach (\"'$number in 344,54,53) { $issue = Invoke-RestMethod -Headers $headers -Uri \"https://api.github.com/repos/aliammari1/awesome-ai-tools/issues/$number\"; Write-Output (\"ISSUE #{0}|closed_by={1}|body={2}\" -f $number,$issue.closed_by.login,($issue.body -replace \"`r|`n\",'\"' ')); \"'$events = Invoke-RestMethod -Headers $headers -Uri \"https://api.github.com/repos/aliammari1/awesome-ai-tools/issues/$number/events\"; $events | ForEach-Object { Write-Output (\"EVENT {0}|actor={1}|commit={2}\" -f $_.event,$_.actor.login,$_.commit_id) } }'",
+          "content": "ISSUE #344|closed_by=yannickmonney|body=## Tool details  - **Name**: Tale - **Official URL**: https://tale.dev/ - **Repository**: https://github.com/tale-project/tale - **Suggested category**: AI Agents - **Suggested subcategory**: None; the existing category directly covers orchestration.  ## Description  Tale is an open-source project workspace for delegating coding-agent tasks in persistent sandboxes and reviewing their reports and deliverables with teammates.  ## Why this belongs  The agent coordination layer is attached to shared project work: reusable agent configurations specify a harness, model, instructions and equipment; tasks can be delegated to agents; sandbox context persists across tasks; and teammates review outputs together. It complements the catalog's individual coding agents and orchestration tools with a shared workspace model.  ## Quality checklist  - [x] The tool is publicly reachable. - [x] It appears actively maintained (public repository updated on 2026-10-08). - [x] It adds meaningful functionality or coverage. - [x] It is not already present in `catalog/tools/` (full-source and all-state issue/PR searches checked). - [x] The official URL has been checked.  ## Optional metadata  - **Pricing model**: MIT Community software can be self-hosted; managed cloud is paid. Hosting and model usage can incur separate costs. - **Platforms**: Browser workspace; self-hosted installation is documented with Docker Compose. - **Open source?**: Yes, MIT license. - **Evidence/source for optional metadata**:   - https://github.com/tale-project/tale   - https://tale.dev/pricing   - https://docs.tale.dev/self-hosted/install/quickstart   - https://docs.tale.dev/platform/projects/project-agents   - https://docs.tale.dev/platform/admin/sandboxes  ## Additional context  Disclosure: this nomination was prepared by an AI assistant acting for Tale's owner. Please apply your normal editorial review. I am using the documented tool-addition issue route; no migration-provenance metadata or rating is being proposed. \r\nEVENT closed|actor=yannickmonney|commit=\r\nISSUE #54|closed_by=linear-code[bot]|body=## Submission: StoryRoute  Hi! I'd like to suggest adding **StoryRoute** to this curated collection of AI tools.  ### About  **StoryRoute** is an AI-powered travel PWA that helps people explore cities through interactive, narrative-driven experiences. It uses AI to generate contextual storytelling about destinations, turning a walk through a city into an engaging educational journey.  🔗 **URL:** https://storyroute.netlify.app/  ### Why it fits this list  This list curates AI tools that enhance productivity and creativity across domains. StoryRoute fits in the **AI + Travel/Education** category — it uses AI to enrich the experience of exploring destinations, generating location-aware narratives that bring cities to life for travelers, students, and digital nomads.  ### Key Features  - AI-generated storytelling tailored to geographic locations - Interactive city routes with narrative waypoints - PWA — offline-capable and installable - Combines geolocation with AI context delivery - Educational and engaging for curious travelers  ### Category Suggestion  Travel / Education / Lifestyle  ### Summary  StoryRoute demonstrates a practical and creative AI use case — applying language AI to travel and local discovery — making it a relevant addition to this collection of AI-powered tools.  ---  *Happy to provide any additional details!*\r\nEVENT closed|actor=linear-code[bot]|commit=\r\nISSUE #53|closed_by=linear-code[bot]|body=## Add DishRoll to Awesome AI Tools  ### About  **DishRoll** is an AI-powered weekly meal planning Progressive Web App. It uses AI to generate personalized recipes based on dietary preferences, automatically build grocery shopping lists, and help users plan their entire week of meals in seconds.  🔗 **URL:** https://dishroll.netlify.app/  ### Why it fits this list  This list curates 100+ AI tools designed to enhance productivity and creativity. DishRoll is a clear-cut AI productivity tool — it eliminates the mental overhead of weekly meal planning by using AI to make recipe decisions, then auto-generates the corresponding shopping list. It's a genuine, everyday-use AI application that saves users meaningful time and effort.  ### Key Features  - **AI meal plan generation** — automatically creates personalized weekly meal plans - **Smart recipe selection** — AI picks recipes based on dietary goals, preferences, and variety - **Automated shopping lists** — grocery lists generated instantly from the weekly plan - **PWA** — installable, works on mobile and desktop - **Freemium via Stripe** — accessible free tier with premium AI features available via subscription - **Nutrition-aware** — helps users hit dietary targets without manual calculation  DishRoll represents the kind of practical, consumer-facing AI tool that's easy to recommend — it solves a real problem people face every week.\r\nEVENT closed|actor=linear-code[bot]|commit=\r\n",
+          "durationMs": 1949,
+          "exitCode": 0,
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-98",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$headers = @{ '\"'User-Agent' = 'Codex'; 'Accept' = 'application/vnd.github+json' }; foreach (\"'$number in 344,54,53) { $issue = Invoke-RestMethod -Headers $headers -Uri \"https://api.github.com/repos/aliammari1/awesome-ai-tools/issues/$number\"; Write-Output (\"ISSUE #{0}|closed_by={1}|body={2}\" -f $number,$issue.closed_by.login,($issue.body -replace \"`r|`n\",'\"' ')); \"'$events = Invoke-RestMethod -Headers $headers -Uri \"https://api.github.com/repos/aliammari1/awesome-ai-tools/issues/$number/events\"; $events | ForEach-Object { Write-Output (\"EVENT {0}|actor={1}|commit={2}\" -f $_.event,$_.actor.login,$_.commit_id) } }'",
+          "providerItemId": "exec-746a0a8f-a79e-4d5c-ab9d-ace3ce3a6704",
+          "sequence": 98,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:46:11.098Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-99",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec506b1e6087d2853522008ed99858",
+          "sequence": 99,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:46:18.908Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The issue form is valid, but I would choose a pull request for md².\n\nAs of November 5, 2026, the live backlog contains:\n\n- **68 open issues**\n- **26** older than 30 days\n- **21** older than 60 days\n- **11** older than 90 days\n- Tool suggestions dating back to June remain open\n\nYou can see the [open issue queue ordered by age](https://github.com/aliammari1/awesome-ai-tools/issues?q=is%3Aissue%20state%3Aopen%20sort%3Acreated-asc).\n\nThe PR queue is also large, but the maintainer recently merged a batch of properly structured catalog PRs on October 31. That indicates validated PRs are the more operational submission path.\n\nMy recommendation:\n\n- **Use an issue** if you only want to nominate md² and leave research, categorization, JSON creation, generation, and validation to the maintainer.\n- **Use a PR** if you want the best chance of inclusion. The repository’s contribution guide explicitly describes the JSON-and-PR workflow, and we already have the proposed record ready.\n- Do not submit both independently, because that creates duplicate review work. If an issue already exists, reference it from the PR.\n\nSo yes, the button is legitimate—but given the old issue backlog, a complete validated PR is the stronger choice. No files were changed.\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-8-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 100,
+          "timestamp": "2026-11-05T09:46:24.421Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2361,27 +2605,27 @@
           "agent": "codex",
           "conversationId": "01a1ab04-b94f-7ea2-b9b3-e72aaef08e82",
           "createdAt": "2026-11-05T09:24:21.959Z",
-          "lastUsedAt": "2026-11-05T09:40:59.167Z",
-          "synchronizedThroughMessageId": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-7-assistant-3"
+          "lastUsedAt": "2026-11-05T09:46:24.421Z",
+          "synchronizedThroughMessageId": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-8-assistant-4"
         }
       ],
       "startedAt": "2026-11-04T18:09:04.291Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 358,
-          "toolMs": 31515
+          "reasoningMs": 449,
+          "toolMs": 61750
         },
-        "elapsedMs": 140112,
-        "runningStartedAt": "2026-11-05T09:39:48.104Z"
+        "elapsedMs": 211175,
+        "runningStartedAt": "2026-11-05T09:44:30.632Z"
       },
       "title": "+ (split)",
       "usage": {
-        "cachedInputTokens": 1579776,
-        "inputTokens": 84808,
-        "outputTokens": 4431,
-        "reasoningTokens": 2670,
-        "totalTokens": 1671685
+        "cachedInputTokens": 2331776,
+        "inputTokens": 96728,
+        "outputTokens": 7030,
+        "reasoningTokens": 3923,
+        "totalTokens": 2439457
       },
       "usageSchemaVersion": 1,
       "viewed": true
