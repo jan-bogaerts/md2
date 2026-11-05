@@ -8880,6 +8880,210 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": null,
+      "cardPath": null,
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "I would like to get this app (https://github.com/jan-bogaerts/md2) listed on this github aggregation list: [https://github.com/jamesmurdza/awesome-ai-devtools#ai-native-ides](https://github.com/jamesmurdza/awesome-ai-devtools#ai-native-ides)\n\nwhat do we need to do to get it listed there?",
+          "id": "submission-964f0ae1-985f-4bf2-9b4e-0abf3c5db80f",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-30T13:30:33.826Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll check the aggregation repo’s contribution rules and compare its AI-native IDE entries with md2’s current public positioning. Since this is a “what’s needed” question, I’ll only report recommendations—no repo changes.\n\n",
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-10-30T13:30:37.309Z"
+        },
+        {
+          "content": "https://github.com/jamesmurdza/awesome-ai-devtools#ai-native-ides",
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-3",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"openPage\",\"url\":\"https://github.com/jamesmurdza/awesome-ai-devtools#ai-native-ides\"}",
+          "providerItemId": "exec-4526d7e2-995e-4646-96b9-ab203d155ce5",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-10-30T13:30:39.218Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-4",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0a6c6862cdf2a691016ae49c023ca88191aef69554ba5b899d",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T13:30:41.124Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-5",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"other\"}",
+          "providerItemId": "exec-c8731191-6ac2-4848-b884-d9744de89063",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-10-30T13:30:43.149Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-6",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0a6c6862cdf2a691016ae49c070460819184e15e40993b74b4",
+          "sequence": 6,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T13:30:46.068Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "site:github.com/jamesmurdza/awesome-ai-devtools/pulls \"AI-Native IDEs\" \"open source\" ...",
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-7",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"search\",\"query\":null,\"queries\":[\"site:github.com/jamesmurdza/awesome-ai-devtools/pulls \\\"AI-Native IDEs\\\" \\\"open source\\\"\",\"site:github.com/jamesmurdza/awesome-ai-devtools/pull \\\"AI-Native IDEs\\\"\",\"site:github.com/jamesmurdza/awesome-ai-devtools/issues submission rejected IDE\"]}",
+          "providerItemId": "exec-d7129f30-f470-48de-a18d-342ba19f12cc",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-10-30T13:30:48.492Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-8",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0a6c6862cdf2a691016ae49c0aa7888191bd03712772cdf5d7",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T13:30:49.543Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-9",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"other\"}",
+          "providerItemId": "exec-3a6fe856-fab4-4477-889f-70183d8df756",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-10-30T13:30:52.161Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-10",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0a6c6862cdf2a691016ae49c1035648191b744138ab0ef9656",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T13:30:55.094Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The key finding is that md² is eligible, but the linked “AI-Native IDEs” subsection is probably the wrong category. That section defines products as full environments with code generation, chat, and debugging; md²’s closest peers are instead already under “Multi-Agent Orchestration” (Conductor, Vibe Kanban, Kagan). I’m checking the actual submission mechanics and how narrowly to phrase the entry.\n\n",
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 11,
+          "timestamp": "2026-10-30T13:30:56.150Z"
+        },
+        {
+          "content": "https://api.github.com/repos/jamesmurdza/awesome-ai-devtools/pulls?state=closed&per_page=20",
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-12",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"openPage\",\"url\":\"https://api.github.com/repos/jamesmurdza/awesome-ai-devtools/pulls?state=closed&per_page=20\"}",
+          "providerItemId": "exec-73e3332a-72fa-4916-8a78-d8ea67ace0c9",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-10-30T13:30:58.096Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-13",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0a6c6862cdf2a691016ae49c141c78819185a038260862a840",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T13:30:59.009Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "repo:jamesmurdza/awesome-ai-devtools is:pr is:merged \"Multi-Agent Orchestration\" ...",
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-14",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"search\",\"query\":null,\"queries\":[\"repo:jamesmurdza/awesome-ai-devtools is:pr is:merged \\\"Multi-Agent Orchestration\\\"\",\"site:github.com/jamesmurdza/awesome-ai-devtools/pull \\\"Conductor\\\"\",\"site:github.com/jamesmurdza/awesome-ai-devtools/pull \\\"Kagan\\\"\"]}",
+          "providerItemId": "exec-b12d4c0a-aea8-4e8a-96e5-e629c7602fff",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-10-30T13:31:01.544Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-event-15",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0a6c6862cdf2a691016ae49c1dd5c081918b2c4281a86a34a1",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-30T13:31:08.737Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "md² appears eligible, but I recommend submitting it under **Agent Infrastructure → Multi-Agent Orchestration**, not **AI-Native IDEs**.\n\nThe IDE category is defined as full development environments offering code generation, chat, and debugging. md² is positioned as an orchestration workspace around Codex CLI and Claude Code, Markdown feature cards, and isolated Git worktrees. That closely matches existing entries such as Conductor, Vibe Kanban, and Kagan. [See the list’s categories](https://github.com/jamesmurdza/awesome-ai-devtools#multi-agent-orchestration).\n\n### What to do\n\n1. Fork `jamesmurdza/awesome-ai-devtools`.\n2. Add one entry to `README.md` under `### Multi-Agent Orchestration`.\n3. Open a pull request titled:\n   `Add md² to Multi-Agent Orchestration`\n4. Complete the repository’s checklist:\n   - The tool uses AI.\n   - It is developer-focused.\n   - The description is clear and unambiguous.\n   - The description matches other entries’ style.\n\nThose are the only published submission requirements. Self-submissions are not prohibited. [Contribution rules](https://github.com/jamesmurdza/awesome-ai-devtools/blob/main/.github/PULL_REQUEST_TEMPLATE.md).\n\n### Suggested entry\n\n```markdown\n* [md²](https://github.com/jan-bogaerts/md2) — Open-source Electron workspace for planning, running, and tracking Codex CLI and Claude Code tasks from local Markdown cards. Runs coding agents in parallel Git worktrees with a Kanban-style dashboard, conversation history, merge workflows, reusable actions, diagrams, and token and cost tracking.\n```\n\nThis description is supported by the current [md² README](https://github.com/jan-bogaerts/md2), including the downloadable Windows installer, agent integrations, worktree management, and documentation.\n\n### Suggested PR description\n\n```markdown\n## Description\n\nAdds md² to Multi-Agent Orchestration.\n\nmd² is an open-source Electron workspace for managing Codex CLI and Claude Code work by feature. It can run coding agents in parallel Git worktrees and connects their conversations, commits, resource usage, and merge workflow to local Markdown cards.\n\n## Checklist\n\n- [x] The entry is a tool that uses AI\n- [x] The entry is a developer-focused tool\n- [x] The description is unambiguous and clear\n- [x] The description matches the style of other entries\n```\n\nI would not submit it under AI-Native IDEs unless md² is intentionally repositioned as a complete IDE with built-in source editing and debugging. The orchestration category is a much stronger, more defensible fit and therefore likelier to be accepted.\n\n",
+          "id": "agent-turn-b16e1cd8-0260-4916-9437-1a1b63de02dc-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 16,
+          "timestamp": "2026-10-30T14:23:39.550Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "40c4eb99-d1db-444e-8758-24a8db45a7b0",
+      "providerSessions": [],
+      "startedAt": "2026-11-04T18:09:04.291Z",
+      "status": "waitingForInput",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": null
+      },
+      "title": "+ (split)",
+      "viewed": true
     }
   ],
   "origin": {

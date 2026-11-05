@@ -1411,7 +1411,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-11-05T13:33:18.754Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 104553
@@ -2835,7 +2835,7 @@
         }
       ],
       "startedAt": "2026-11-04T18:09:04.291Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 788,
@@ -2945,14 +2945,14 @@
         "40c4eb99-d1db-444e-8758-24a8db45a7b0"
       ],
       "details": {
+        "type": "agent",
         "accountId": "codex-initial",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-9e081b9e-4a4e-4ee4-a9e8-e7443eb5474e",
       "origin": {
@@ -2960,9 +2960,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "40c4eb99-d1db-444e-8758-24a8db45a7b0",
       "startedAt": "2026-11-05T09:22:55.760Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "40c4eb99-d1db-444e-8758-24a8db45a7b0"
     }
   ],
   "version": 5
