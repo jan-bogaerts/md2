@@ -992,6 +992,14 @@
           "role": "assistant",
           "sequence": 70,
           "timestamp": "2026-11-05T15:38:43.426Z"
+        },
+        {
+          "content": "1. default failure policy: log and continue\n2. must survive.",
+          "id": "submission-1d0fe848-1c73-4d3f-abab-4ead7013c634",
+          "kind": "message",
+          "role": "user",
+          "sequence": 71,
+          "timestamp": "2026-11-05T15:39:58.126Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1007,7 +1015,7 @@
         }
       ],
       "startedAt": "2026-11-05T13:33:30.110Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -1044,7 +1052,7 @@
           "toolMs": 3732
         },
         "elapsedMs": 143840,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-05T15:39:58.126Z"
       },
       "title": "complete",
       "usage": {
