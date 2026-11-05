@@ -2819,7 +2819,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 119,
-          "timestamp": "2026-11-05T12:29:23.112Z"
+          "timestamp": "2026-11-05T13:12:00.978Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2835,14 +2835,14 @@
         }
       ],
       "startedAt": "2026-11-04T18:09:04.291Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 788,
           "toolMs": 66964
         },
-        "elapsedMs": 366449,
-        "runningStartedAt": "2026-11-05T12:29:15.922Z"
+        "elapsedMs": 373639,
+        "runningStartedAt": null
       },
       "title": "+ (split)",
       "usage": {
