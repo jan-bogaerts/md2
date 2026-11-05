@@ -1414,7 +1414,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 23034
+        "usedTokens": 23238
       },
       "entries": [
         {
@@ -1631,6 +1631,36 @@
           "role": "assistant",
           "sequence": 19,
           "timestamp": "2026-11-05T09:01:33.030Z"
+        },
+        {
+          "content": "use:&#x20;\n\n> [md²](https://github.com/jan-bogaerts/md2)\n>\n>  — Open-source Kanban-style workspace for orchestrating Codex CLI and Claude Code across multiple accounts. Design and render diagrams, turn them into agent work, automate repetitive tasks, manage parallel Git worktrees, and track token usage and costs.",
+          "id": "submission-00ef82f6-c71d-437f-84ed-575c0759b525",
+          "kind": "message",
+          "role": "user",
+          "sequence": 20,
+          "timestamp": "2026-11-05T09:08:32.774Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-c5d912d4-cde3-470b-8def-4fc4df1f7f05-event-21",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bcf034203f2a3ee016aec47931a5487d2959b1cd62effff64",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:08:34.983Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Use this entry:\n\n```markdown\n* [md²](https://github.com/jan-bogaerts/md2) — Open-source Kanban-style workspace for orchestrating Codex CLI and Claude Code across multiple accounts. Design and render diagrams, turn them into agent work, automate repetitive tasks, manage parallel Git worktrees, and track token usage and costs.\n```\n\n",
+          "id": "agent-turn-c5d912d4-cde3-470b-8def-4fc4df1f7f05-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 22,
+          "timestamp": "2026-11-05T09:08:36.408Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1641,27 +1671,27 @@
           "agent": "codex",
           "conversationId": "01a1aaf0-fc83-7a22-9033-1c86b2df3fc7",
           "createdAt": "2026-11-05T09:01:33.030Z",
-          "lastUsedAt": "2026-11-05T09:01:33.030Z",
-          "synchronizedThroughMessageId": "agent-turn-c5d912d4-cde3-470b-8def-4fc4df1f7f05-turn-1-assistant-1"
+          "lastUsedAt": "2026-11-05T09:08:36.408Z",
+          "synchronizedThroughMessageId": "agent-turn-c5d912d4-cde3-470b-8def-4fc4df1f7f05-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-11-04T18:09:04.291Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 12,
+          "reasoningMs": 27,
           "toolMs": 0
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-11-05T09:01:22.250Z"
+        "elapsedMs": 10780,
+        "runningStartedAt": "2026-11-05T09:08:32.774Z"
       },
       "title": "+ (split)",
       "usage": {
-        "cachedInputTokens": 0,
-        "inputTokens": 22630,
-        "outputTokens": 207,
-        "reasoningTokens": 197,
-        "totalTokens": 23034
+        "cachedInputTokens": 22400,
+        "inputTokens": 23344,
+        "outputTokens": 286,
+        "reasoningTokens": 242,
+        "totalTokens": 46272
       },
       "usageSchemaVersion": 1,
       "viewed": true
