@@ -1414,7 +1414,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 66786
+        "usedTokens": 87634
       },
       "entries": [
         {
@@ -2137,6 +2137,220 @@
           "role": "assistant",
           "sequence": 62,
           "timestamp": "2026-11-05T09:33:00.355Z"
+        },
+        {
+          "content": "ok, next repo: [https://github.com/aliammari1/awesome-ai-tools](https://github.com/aliammari1/awesome-ai-tools)&#x20;\n\nhow do we add the app there?",
+          "id": "submission-69497c75-df85-444c-aba5-d5750428aa86",
+          "kind": "message",
+          "role": "user",
+          "sequence": 63,
+          "timestamp": "2026-11-05T09:39:48.104Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-64",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4ee60fec87d29a1b5d612ae16527",
+          "sequence": 64,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:39:50.045Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll inspect this list’s contribution rules, entry format, categories, and recent accepted submissions, then map md² to the best section. I’ll only report the required steps and a proposed entry—no repository changes.\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-7-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 65,
+          "timestamp": "2026-11-05T09:39:50.968Z"
+        },
+        {
+          "content": "https://github.com/aliammari1/awesome-ai-tools",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-66",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"openPage\",\"url\":\"https://github.com/aliammari1/awesome-ai-tools\"}",
+          "providerItemId": "exec-947c8cfd-c144-4786-b23f-b78755b26136",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:39:54.344Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-67",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4eee1a0487d2bd8b433a453f4b6b",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:39:57.894Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "This repository is structurally different: tool records must be added as JSON under `catalog/tools/`; editing `README.md` directly is explicitly prohibited because it is generated. I’m checking the available category IDs and current JSON schema so the proposed record will validate.\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-7-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 68,
+          "timestamp": "2026-11-05T09:39:59.050Z"
+        },
+        {
+          "content": "https://github.com/aliammari1/awesome-ai-tools/tree/main/catalog/categories",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-69",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"openPage\",\"url\":\"https://github.com/aliammari1/awesome-ai-tools/tree/main/catalog/categories\"}",
+          "providerItemId": "exec-8272d353-77af-4685-92e2-c6673987d4b2",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:40:02.256Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-70",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4ef3fda887d2b3c72f567ef1bebb",
+          "sequence": 70,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:40:03.773Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "site:github.com/aliammari1/awesome-ai-tools/tree/main/catalog/categories \"code-generation\" ...",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-71",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"search\",\"query\":null,\"queries\":[\"site:github.com/aliammari1/awesome-ai-tools/tree/main/catalog/categories \\\"code-generation\\\"\",\"site:github.com/aliammari1/awesome-ai-tools/blob/main/catalog/tools \\\"ai-coding-assistants\\\"\",\"site:github.com/aliammari1/awesome-ai-tools/blob/main/catalog/categories \\\"Coding Agents\\\"\"]}",
+          "providerItemId": "exec-4985bef2-bd48-4ce1-8820-2a07d5f012fd",
+          "sequence": 71,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:40:07.690Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-72",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4ef9b15487d2a8c95fe2cdd0a8b4",
+          "sequence": 72,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:40:09.472Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/catalog/tools/yylo.json",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-73",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"openPage\",\"url\":\"https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/catalog/tools/yylo.json\"}",
+          "providerItemId": "exec-a7b5453b-6cdb-41c6-8417-151783c4bdd3",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:40:13.084Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-74",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4f0026a487d2b6433177eaa3fdcf",
+          "sequence": 74,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:40:15.945Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "https://api.github.com/repos/aliammari1/awesome-ai-tools/contents/catalog/tools/yylo.json",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-75",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"openPage\",\"url\":\"https://api.github.com/repos/aliammari1/awesome-ai-tools/contents/catalog/tools/yylo.json\"}",
+          "providerItemId": "exec-d3fe41d8-c2ca-4f43-8feb-43e796e92d3f",
+          "sequence": 75,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:40:18.801Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-76",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4f0698f887d2bd3c4dbe850f35a9",
+          "sequence": 76,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:40:22.390Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$urls = @('\"'https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/catalog/tools/yylo.json','https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/catalog/tools/orbi.json','https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/catalog/categories/code-generation-and-development.json','https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/package.json'); foreach (\"'$url in $urls) { Write-Output \"URL: $url\"; (Invoke-WebRequest -UseBasicParsing -Uri $url).Content }'",
+          "content": "URL: https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/catalog/tools/yylo.json\r\n{\n  \"name\": \"YYLO\",\n  \"url\": \"https://github.com/yylo-dev/yylo\",\n  \"description\": \"Open-source CLI that orchestrates AI coding agents with Kanban task boards, Git worktree workflows, and merge automation.\",\n  \"category\": \"code-generation-and-development\",\n  \"subcategory\": {\n    \"id\": \"ai-coding-assistants\",\n    \"name\": \"AI Coding Assistants\"\n  },\n  \"order\": 9999,\n  \"openSource\": true,\n  \"pricing\": null,\n  \"status\": \"listed\",\n  \"source\": {\n    \"kind\": \"readme-migration\",\n    \"migratedAt\": \"2026-10-16\"\n  }\n}\n\r\nURL: https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/catalog/tools/orbi.json\r\n{\n  \"name\": \"Orbi\",\n  \"url\": \"https://orbi.build/\",\n  \"description\": \"Open-source GitHub coding agent that turns issues labeled ai-ready into independently reviewed, CI-checked, merged pull requests. Free tier: first 3 merged pull requests free, no credit card required.\",\n  \"category\": \"code-generation-and-development\",\n  \"subcategory\": {\n    \"id\": \"ai-coding-assistants\",\n    \"name\": \"AI Coding Assistants\"\n  },\n  \"order\": 9999,\n  \"openSource\": true,\n  \"pricing\": \"freemium\",\n  \"status\": \"listed\",\n  \"source\": {\n    \"kind\": \"community\",\n    \"addedAt\": \"2026-10-22\"\n  }\n}\n\r\nURL: https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/catalog/categories/code-generation-and-development.json\r\n{\n  \"name\": \"Code Generation & Development\",\n  \"description\": \"Coding assistants, developer tools, code analysis, and software-engineering automation.\",\n  \"order\": 9\n}\n\r\nURL: https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/package.json\r\n{\n  \"name\": \"awesome-ai-tools\",\n  \"version\": \"1.0.0\",\n  \"private\": true,\n  \"description\": \"A curated, structured catalog of AI tools with a generated README and searchable directory.\",\n  \"license\": \"CC0-1.0\",\n  \"repository\": {\n    \"type\": \"git\",\n    \"url\": \"git+https://github.com/aliammari1/awesome-ai-tools.git\"\n  },\n  \"homepage\": \"https://docs.aliammari.dev\",\n  \"bugs\": {\n    \"url\": \"https://github.com/aliammari1/awesome-ai-tools/issues\"\n  },\n  \"keywords\": [\n    \"awesome-list\",\n    \"ai\",\n    \"ai-tools\",\n    \"catalog\",\n    \"astro\"\n  ],\n  \"type\": \"module\",\n  \"packageManager\": \"bun@1.4.3\",\n  \"engines\": {\n    \"node\": \">=24.0.0\",\n    \"bun\": \">=1.4.3\"\n  },\n  \"scripts\": {\n    \"dev\": \"astro dev\",\n    \"build\": \"astro build\",\n    \"preview\": \"astro preview\",\n    \"validate\": \"bun scripts/validate-catalog.mjs\",\n    \"generate:readme\": \"bun scripts/generate-readme.mjs\",\n    \"check:readme\": \"bun scripts/generate-readme.mjs --check\",\n    \"check:pr\": \"bun run validate && bun run check:readme && bun run test\",\n    \"audit:catalog\": \"bun scripts/audit-catalog.mjs\",\n    \"new:tool\": \"bun scripts/new-tool.mjs\",\n    \"lint\": \"eslint .\",\n    \"lint:awesome\": \"awesome-lint\",\n    \"check\": \"bun run check:pr && bun run typecheck && bun run format:check && bun run lint && bun run lint:awesome && bun run build\",\n    \"test\": \"node --test tests/*.test.mjs\",\n    \"typecheck\": \"astro check\",\n    \"format\": \"prettier --write .\",\n    \"format:check\": \"prettier --check .\",\n    \"audit:dependencies\": \"bun audit --audit-level=high --ignore=GHSA-vfj7-8cjw-p6xm\"\n  },\n  \"dependencies\": {\n    \"@fontsource-variable/geist\": \"5.3.0\",\n    \"@lucide/astro\": \"1.65.0\",\n    \"astro\": \"7.3.3\",\n    \"minisearch\": \"7.2.0\"\n  },\n  \"devDependencies\": {\n    \"@astrojs/check\": \"0.9.12\",\n    \"@eslint/js\": \"10.0.1\",\n    \"@types/node\": \"24.19.2\",\n    \"awesome-lint\": \"2.3.0\",\n    \"eslint\": \"10.13.0\",\n    \"eslint-plugin-astro\": \"3.2.1\",\n    \"globals\": \"17.13.0\",\n    \"prettier\": \"3.9.10\",\n    \"prettier-plugin-astro\": \"1.1.2\",\n    \"typescript\": \"6.0.3\",\n    \"typescript-eslint\": \"8.72.1\"\n  }\n}\n\r\n",
+          "durationMs": 1726,
+          "exitCode": 0,
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-77",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$urls = @('\"'https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/catalog/tools/yylo.json','https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/catalog/tools/orbi.json','https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/catalog/categories/code-generation-and-development.json','https://raw.githubusercontent.com/aliammari1/awesome-ai-tools/main/package.json'); foreach (\"'$url in $urls) { Write-Output \"URL: $url\"; (Invoke-WebRequest -UseBasicParsing -Uri $url).Content }'",
+          "providerItemId": "exec-962ea240-5b07-4fea-bd57-699f433c96ff",
+          "sequence": 77,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:40:32.194Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-78",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4f1dbe0087d2adee3b2ea8164695",
+          "sequence": 78,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:40:45.536Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-79",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4f210dd887d28659ff1afbe35522",
+          "sequence": 79,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:40:48.910Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "md² fits best under **Code Generation & Development → AI Coding Assistants**. The list already places YYLO—a similar coding-agent/worktree orchestrator—in that subcategory. [Current category](https://github.com/aliammari1/awesome-ai-tools#ai-coding-assistants).\n\nUnlike the previous repository, do **not** edit `README.md` directly. It is generated from JSON records. [Contribution instructions](https://github.com/aliammari1/awesome-ai-tools/blob/main/CONTRIBUTING.md).\n\n### Add this file\n\nCreate `catalog/tools/md2.json`:\n\n```json\n{\n  \"name\": \"md²\",\n  \"url\": \"https://github.com/jan-bogaerts/md2\",\n  \"description\": \"Open-source desktop workspace for managing Codex and Claude Code tasks through local Markdown cards, isolated Git worktrees, multi-account switching, usage statistics, and editable diagrams for round-tripping between code and visual models.\",\n  \"category\": \"code-generation-and-development\",\n  \"subcategory\": {\n    \"id\": \"ai-coding-assistants\",\n    \"name\": \"AI Coding Assistants\"\n  },\n  \"order\": 9999,\n  \"openSource\": true,\n  \"pricing\": null,\n  \"status\": \"listed\",\n  \"source\": {\n    \"kind\": \"community\",\n    \"addedAt\": \"2026-11-05\"\n  }\n}\n```\n\n`pricing` is deliberately `null`: the contribution rules say not to guess unknown metadata. The coding agents may require their own subscriptions, while md² itself does not currently publish a pricing classification.\n\n### Validate and generate\n\nThe repository requires Bun 1.4.3 and Node 24 or newer. Run:\n\n```powershell\nbun install\nbun run validate\nbun run generate:readme\nbun run build\n```\n\nCommit both:\n\n- `catalog/tools/md2.json`\n- The generated `README.md` change\n\nThen open a PR titled:\n\n```text\nAdd md² to AI Coding Assistants\n```\n\nSuggested PR description:\n\n```markdown\n## Description\n\nAdds md² to Code Generation & Development → AI Coding Assistants.\n\nmd² is an open-source desktop workspace for managing Codex CLI and\nClaude Code work through local Markdown feature cards and isolated Git\nworktrees. It supports multiple accounts, usage statistics, merge\nworkflows, and editable diagrams for moving between code and visual\nmodels.\n\nThe catalog record uses `null` for pricing because no catalog-compatible\npricing classification has been established.\n```\n\nThe repository’s CI will validate the JSON catalog, check that the README was regenerated, run `awesome-lint`, verify links, and build the website.\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-7-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 80,
+          "timestamp": "2026-11-05T09:40:59.167Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2147,27 +2361,27 @@
           "agent": "codex",
           "conversationId": "01a1ab04-b94f-7ea2-b9b3-e72aaef08e82",
           "createdAt": "2026-11-05T09:24:21.959Z",
-          "lastUsedAt": "2026-11-05T09:33:00.355Z",
-          "synchronizedThroughMessageId": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-6-assistant-3"
+          "lastUsedAt": "2026-11-05T09:40:59.167Z",
+          "synchronizedThroughMessageId": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-7-assistant-3"
         }
       ],
       "startedAt": "2026-11-04T18:09:04.291Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 289,
-          "toolMs": 18094
+          "reasoningMs": 358,
+          "toolMs": 31515
         },
-        "elapsedMs": 106168,
-        "runningStartedAt": "2026-11-05T09:32:26.411Z"
+        "elapsedMs": 140112,
+        "runningStartedAt": "2026-11-05T09:39:48.104Z"
       },
       "title": "+ (split)",
       "usage": {
-        "cachedInputTokens": 1042048,
-        "inputTokens": 65057,
-        "outputTokens": 3009,
-        "reasoningTokens": 1604,
-        "totalTokens": 1111718
+        "cachedInputTokens": 1579776,
+        "inputTokens": 84808,
+        "outputTokens": 4431,
+        "reasoningTokens": 2670,
+        "totalTokens": 1671685
       },
       "usageSchemaVersion": 1,
       "viewed": true
