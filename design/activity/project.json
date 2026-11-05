@@ -1414,7 +1414,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 63758
+        "usedTokens": 66786
       },
       "entries": [
         {
@@ -1979,6 +1979,164 @@
           "role": "assistant",
           "sequence": 49,
           "timestamp": "2026-11-05T09:32:01.587Z"
+        },
+        {
+          "content": "ok, we are there. update \"C:\\Users\\janbo\\Documents\\dev\\awesome-open-ai-developer-tools\\README.md\"",
+          "id": "submission-af0d9c5f-e813-43f2-8be9-692f8a2b5271",
+          "kind": "message",
+          "role": "user",
+          "sequence": 50,
+          "timestamp": "2026-11-05T09:32:26.411Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4d2d448887d2aaba2b6a9efb4458",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:32:29.235Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll place the agreed entry in the repository’s “Coding Agents & Pair Programmers” section, matching its existing Markdown format. I’ll first check the target repository’s local instructions and nearby entries, then make only that README change.\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-6-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 52,
+          "timestamp": "2026-11-05T09:32:30.261Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\awesome-open-ai-developer-tools' -Filter AGENTS.md -Force; rg -n -C 4 \\\"Ivy Tendril|LoopTroop|## Coding Agents\\\" README.md\"",
+          "content": "50-- [Contributing](#contributing)\n51-\n52----\n53-\n54:## Coding Agents & Pair Programmers\n55-\n56-Agents that read, write, and refactor code in your repo.\n57-\n58-### [aider](https://github.com/Aider-AI/aider)\n--\n170-- **Replaces:** Manual task decomposition and multi-agent CLI scripting\n171-- **Backends:** Claude Code, Codex, OpenCode\n172-- **Edge:** Features a read-only planner that generates explicit step-by-step agent plans before execution, with per-task runner, model, and mode assignment.\n173-\n174:### [LoopTroop](https://github.com/looptroop-ai/LoopTroop)\n175-`TypeScript` · `MIT` · Desktop + CLI · 🟡 active\n176-\n177-Local orchestrator that turns complex coding tickets into verified pull requests using multi-model planning councils and isolated git worktrees.\n178-\n179-- **Replaces:** Devin, Cursor agent mode, cloud-hosted agent orchestrators\n180-- **Backends:** Anthropic, OpenAI, Google Gemini, DeepSeek, OpenRouter, and local models via OpenCode\n181:- **Edge:** LoopTroop runs an LLM council where distinct models draft and vote on task plans before implementation starts. Each task executes inside an isolated git worktree with bounded retry loops, so failed runs roll back without touching the primary checkout. Human approval gates pause execution before irreversible terminal commands or branch updates run.\n182-\n183-### [Atomic Agent](https://github.com/AtomicBot-ai/atomic-agent)\n184-`TypeScript` · `MIT` · CLI + TUI · 🟠 experimental\n185-\n--\n220-- **Replaces:** Devin, GitHub Copilot coding agent\n221-- **Backends:** Any OpenAI-compatible model, or a Codex subscription\n222-- **Edge:** Review is a gate, not a suggestion: only the exact head the reviewer approved is merged, and Orbi then cuts the tagged release. Ops tickets (deploys, investigations) post their real commands and output on the issue.\n223-\n224:### [Ivy Tendril](https://github.com/Ivy-Interactive/Ivy-Tendril)\n225-`TypeScript` · `MIT` · Desktop + Web · 🟡 active\n226-\n227-Agentic software factory that manages parallel Git worktrees with programmatic verifications and interactive review loops.\n228-\n--\n1338-| You're paying for | Use instead |\n1339-|---|---|\n1340-| GitHub Copilot | [Continue](https://github.com/continuedev/continue), [Tabby](https://github.com/TabbyML/tabby), [aider](https://github.com/Aider-AI/aider) |\n1341-| Cursor / Windsurf | [Cline](https://github.com/cline/cline), [OpenCode](https://github.com/sst/opencode), [Continue](https://github.com/continuedev/continue), [BitFun](https://github.com/GCWing/BitFun), [Atomic Agent](https://github.com/AtomicBot-ai/atomic-agent) |\n1342:| Devin | [OpenHands](https://github.com/All-Hands-AI/OpenHands), [Goose](https://github.com/block/goose), [SWE-agent](https://github.com/SWE-agent/SWE-agent), [LoopTroop](https://github.com/looptroop-ai/LoopTroop), [5dive](https://github.com/5dive-ai/5dive) |\n1343-| CodeRabbit / Copilot code review | [CodeOtter](https://github.com/dharmeshgurnani/CodeOtter) |\n1344-| Claude Design / Figma Make | [Open Design](https://github.com/nexu-io/open-design) |\n1345-| ChatGPT desktop / Copilot assistant | [OpenClaw](https://github.com/openclaw/openclaw), [Hermes Agent](https://github.com/NousResearch/hermes-agent) |\n1346-| Bolt.new / v0 / Lovable | [bolt.diy](https://github.com/stackblitz-labs/bolt.diy), [OpenUI](https://github.com/wandb/openui), [Dyad](https://github.com/dyad-sh/dyad) |\n",
+          "durationMs": 46,
+          "exitCode": 0,
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-53",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\awesome-open-ai-developer-tools' -Filter AGENTS.md -Force; rg -n -C 4 \\\"Ivy Tendril|LoopTroop|## Coding Agents\\\" README.md\"",
+          "providerItemId": "exec-6847ceb8-3ab8-4d9f-8c7c-a1a606249353",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:32:32.940Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\awesome-open-ai-developer-tools"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-54",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4d333bc887d2aa42804c2a5d4111",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:32:35.046Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content README.md | Select-Object -Skip 210 -First 38'",
+          "content": "Describe a project in natural language; it writes and iterates on the whole codebase.\r\n\r\n- **Edge:** Best for greenfield scaffolding rather than surgical edits on an existing repo.\r\n\r\n### [Orbi](https://github.com/orbi-build/orbi)\r\n`Python` Â· `AGPL-3.0` Â· Self-hosted runner + GitHub Â· ðŸŸ¢ stable\r\n\r\nWorks from GitHub issues: label one `ai-ready` and it implements the change in an isolated worktree, opens a PR, and a separate review session checks the diff against the issue's acceptance criteria before anything merges.\r\n\r\n- **Replaces:** Devin, GitHub Copilot coding agent\r\n- **Backends:** Any OpenAI-compatible model, or a Codex subscription\r\n- **Edge:** Review is a gate, not a suggestion: only the exact head the reviewer approved is merged, and Orbi then cuts the tagged release. Ops tickets (deploys, investigations) post their real commands and output on the issue.\r\n\r\n### [Ivy Tendril](https://github.com/Ivy-Interactive/Ivy-Tendril)\r\n`TypeScript` Â· `MIT` Â· Desktop + Web Â· ðŸŸ¡ active\r\n\r\nAgentic software factory that manages parallel Git worktrees with programmatic verifications and interactive review loops.\r\n\r\n- **Replaces:** Manual git worktree management, multi-agent branch orchestration\r\n- **Backends:** Anthropic, OpenAI, local models\r\n- **Edge:** Automates parallel Git worktree isolation with built-in programmatic verification gates and interactive human-in-the-loop review loops before merging.\r\n\r\n### [YYLO](https://github.com/yylo-dev/yylo)\r\n`Python + TypeScript` Â· `MIT` Â· CLI Â· ðŸŸ¡ active\r\n\r\nCommand-line orchestrator for coding agents, repeatable workflows, and receipt-backed repository changes.\r\n\r\n- **Replaces:** Manual multi-agent workflow scripting, cloud-hosted agent orchestration\r\n- **Backends:** Drives Pi and Codex subagents through per-subagent aliases\r\n- **Edge:** `task start` freezes the protected target SHA and creates a dedicated branch/worktree per task; a merge queue then owns risk-based review â€” low risk merges with no semantic reviewer,\r\n\r\n### [CodeOtter](https://github.com/dharmeshgurnani/CodeOtter)\r\n`JavaScript + TypeScript` Â· `AGPL-3.0` Â· Self-hosted server + CLI Â· ðŸŸ¡ active\r\n\r\nSelf-hosted AI pull request reviewer for GitHub, Forgejo and Gitea that scores each PR, enforces merge gates as status checks and posts committable inline fixes.\r\n\r\n- **Replaces:** CodeRabbit, GitHub Copilot code review\r\n- **Backends:** Local GGUF models via a managed llama.cpp runtime, Anthropic, OpenAI, OpenRouter, MiniMax\r\n",
+          "durationMs": 100,
+          "exitCode": 0,
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-55",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content README.md | Select-Object -Skip 210 -First 38'",
+          "providerItemId": "exec-2353cbba-52f9-414a-9677-b0995f073a23",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:32:37.172Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\awesome-open-ai-developer-tools"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-56",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4d3a2bb887d29e62834cba4857d4",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:32:42.050Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The closest placement is immediately after Ivy Tendril, another desktop worktree orchestrator. I’ll use the repository’s actual bold-label bullet style and preserve its existing encoding and line endings.\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-6-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 57,
+          "timestamp": "2026-11-05T09:32:42.887Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\awesome-open-ai-developer-tools\\README.md",
+          "deletions": 0,
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-58",
+          "insertions": 9,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-14440f50-50be-4222-add6-f0d1ed14c00d",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:32:52.178Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4d47977087d2a9c2d140a7420cd0",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:32:55.430Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- README.md; git status --short'",
+          "content": "diff --git a/README.md b/README.md\nindex de057ee..9e2dc79 100644\n--- a/README.md\n+++ b/README.md\n@@ -230,6 +230,15 @@ Agentic software factory that manages parallel Git worktrees with programmatic v\n - **Backends:** Anthropic, OpenAI, local models\n - **Edge:** Automates parallel Git worktree isolation with built-in programmatic verification gates and interactive human-in-the-loop review loops before merging.\n \n+### [md²](https://github.com/jan-bogaerts/md2)\n+`TypeScript + JavaScript` · `AGPL-3.0` · Desktop app · 🟡 active\n+\n+Local desktop workspace that organizes Codex and Claude Code work around Markdown feature cards and isolated Git worktrees.\n+\n+- **Replaces:** Conductor, manual task-board and terminal/worktree orchestration\n+- **Backends:** Codex CLI and Claude Code CLI, with multiple accounts and agent switching\n+- **Edge:** Keeps feature definitions as local, versionable Markdown while connecting each card to its agent conversations, worktree, commits, diagrams, and merge workflow. Built-in statistics provide insight into agent usage, performance, and cost. Turn code into editable diagrams and diagram changes back into code.\n+\n ### [YYLO](https://github.com/yylo-dev/yylo)\n `Python + TypeScript` · `MIT` · CLI · 🟡 active\n \nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n M README.md\n",
+          "durationMs": 92,
+          "exitCode": 0,
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-60",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- README.md; git status --short'",
+          "providerItemId": "exec-1746ee77-a072-4f74-9af4-cac60d024695",
+          "sequence": 60,
+          "status": "completed",
+          "timestamp": "2026-11-05T09:32:57.346Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\awesome-open-ai-developer-tools"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-61",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4d4b585887d2b92e002e3c92d5a5",
+          "sequence": 61,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:32:59.150Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [README.md](C:\\Users\\janbo\\Documents\\dev\\awesome-open-ai-developer-tools\\README.md:233) with the agreed md² entry after Ivy Tendril.\n\nOnly `README.md` changed. No tests were needed for this documentation-only edit.\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-6-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 62,
+          "timestamp": "2026-11-05T09:33:00.355Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1989,27 +2147,27 @@
           "agent": "codex",
           "conversationId": "01a1ab04-b94f-7ea2-b9b3-e72aaef08e82",
           "createdAt": "2026-11-05T09:24:21.959Z",
-          "lastUsedAt": "2026-11-05T09:32:01.587Z",
-          "synchronizedThroughMessageId": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-5-assistant-1"
+          "lastUsedAt": "2026-11-05T09:33:00.355Z",
+          "synchronizedThroughMessageId": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-6-assistant-3"
         }
       ],
       "startedAt": "2026-11-04T18:09:04.291Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 218,
-          "toolMs": 13761
+          "reasoningMs": 289,
+          "toolMs": 18094
         },
-        "elapsedMs": 103212,
-        "runningStartedAt": "2026-11-05T09:31:58.631Z"
+        "elapsedMs": 106168,
+        "runningStartedAt": "2026-11-05T09:32:26.411Z"
       },
       "title": "+ (split)",
       "usage": {
-        "cachedInputTokens": 717440,
-        "inputTokens": 62269,
-        "outputTokens": 2285,
-        "reasoningTokens": 1301,
-        "totalTokens": 783295
+        "cachedInputTokens": 1042048,
+        "inputTokens": 65057,
+        "outputTokens": 3009,
+        "reasoningTokens": 1604,
+        "totalTokens": 1111718
       },
       "usageSchemaVersion": 1,
       "viewed": true
