@@ -1756,6 +1756,32 @@
       "startedAt": "2026-11-04T17:55:20.774Z",
       "status": "completed",
       "rootConversationId": "agent-95824387-772f-42b6-ae5f-e4564a513157"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-05T08:58:59.154Z",
+      "conversationIds": [
+        "40c4eb99-d1db-444e-8758-24a8db45a7b0"
+      ],
+      "details": {
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-f0959b1f-4558-4cb0-b4a4-2177e2724246",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "rootConversationId": "40c4eb99-d1db-444e-8758-24a8db45a7b0",
+      "startedAt": "2026-11-05T08:58:28.298Z",
+      "status": "cancelled"
     }
   ],
   "version": 5
