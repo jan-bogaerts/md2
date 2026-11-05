@@ -16,4 +16,4 @@ The user should be able to attach a json list (file) to an action so it will run
 
 * On the agent-action-popup, we have a context menu (prompt menu) that currently contains 2 menu items: `compact` & `add file` , we need to add 'for-each' here, which allows the user to select 1 or more json files that will be attached to the action-prompt as the 'for-each' data
 * the placeholder looks like: `{{data xx.xx.x.xx}}` example `{{data countries.0.cities}}` so countries is a list, we take the item at index 0, field 'cities'
-* when
+* when an action has a 'for-each' file attached, show a `loop` icon behind&#x20;
