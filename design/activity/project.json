@@ -1414,7 +1414,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 63364
+        "usedTokens": 63555
       },
       "entries": [
         {
@@ -1915,6 +1915,23 @@
           "role": "assistant",
           "sequence": 42,
           "timestamp": "2026-11-05T09:28:22.077Z"
+        },
+        {
+          "content": "perhaps a little bit less details on the stats?",
+          "id": "submission-5b7e6a1a-f570-41a1-bd8e-b341bc18f3a4",
+          "kind": "message",
+          "role": "user",
+          "sequence": 43,
+          "timestamp": "2026-11-05T09:29:34.839Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Agreed. The detailed metric list is too granular for an aggregation entry. I’d use:\n\n```markdown\n### [md²](https://github.com/jan-bogaerts/md2)\n\n`TypeScript + JavaScript` · `AGPL-3.0` · Desktop app · 🟡 active\n\nLocal desktop workspace that organizes Codex and Claude Code work around Markdown feature cards and isolated Git worktrees.\n\n  * Replaces: Conductor, manual task-board and terminal/worktree orchestration\n  * Backends: Codex CLI and Claude Code CLI, with multiple accounts and agent switching\n  * Edge: Keeps feature definitions as local, versionable Markdown while connecting each card to its agent conversations, worktree, commits, diagrams, and merge workflow. Built-in statistics provide insight into agent usage, performance, and cost.\n```\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 44,
+          "timestamp": "2026-11-05T09:29:41.074Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1925,8 +1942,8 @@
           "agent": "codex",
           "conversationId": "01a1ab04-b94f-7ea2-b9b3-e72aaef08e82",
           "createdAt": "2026-11-05T09:24:21.959Z",
-          "lastUsedAt": "2026-11-05T09:28:22.077Z",
-          "synchronizedThroughMessageId": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-2-assistant-1"
+          "lastUsedAt": "2026-11-05T09:29:41.074Z",
+          "synchronizedThroughMessageId": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-3-assistant-1"
         }
       ],
       "startedAt": "2026-11-04T18:09:04.291Z",
@@ -1936,16 +1953,16 @@
           "reasoningMs": 211,
           "toolMs": 13761
         },
-        "elapsedMs": 86191,
-        "runningStartedAt": "2026-11-05T09:28:14.083Z"
+        "elapsedMs": 94185,
+        "runningStartedAt": "2026-11-05T09:29:34.839Z"
       },
       "title": "+ (split)",
       "usage": {
-        "cachedInputTokens": 527360,
-        "inputTokens": 61727,
-        "outputTokens": 1954,
+        "cachedInputTokens": 590592,
+        "inputTokens": 61875,
+        "outputTokens": 2129,
         "reasoningTokens": 1292,
-        "totalTokens": 592333
+        "totalTokens": 655888
       },
       "usageSchemaVersion": 1,
       "viewed": true
