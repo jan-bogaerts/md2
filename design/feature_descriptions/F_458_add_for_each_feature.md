@@ -20,4 +20,8 @@ The user should be able to attach a json list (file) to an action so it will run
 * also show the loop icon in front of the 'prompt menu' button (vertical dots) that opens the prompt's context menu. The loop icon also opens a context menu where the user can configure the for-each:
   * remove: remove the json file and thus the loop
   * view: view the contents of the json file (external open)
-  * behcompact: toggle, when enabled, after every record in the json file, compact&#x20;
+  * at end: sub menu where user can select exclusively out of:
+    * compact: when enabled, after every record in the json file, compact&#x20;
+    * new conversation: start a new conversation for each record
+* if the file only contains an object, than that becomes 1 record. if it contains a list, all items in that list are traversed.
+* The electron app is responsible for performing the loop.
