@@ -1411,7 +1411,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-11-05T09:20:44.064Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 76854
@@ -2234,7 +2234,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 68,
-          "timestamp": "2026-11-05T09:20:00.738Z"
+          "timestamp": "2026-11-05T09:20:44.064Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2245,12 +2245,12 @@
           "agent": "codex",
           "conversationId": "01a1aaf0-fc83-7a22-9033-1c86b2df3fc7",
           "createdAt": "2026-11-05T09:01:33.030Z",
-          "lastUsedAt": "2026-11-05T09:20:00.738Z",
+          "lastUsedAt": "2026-11-05T09:20:44.064Z",
           "synchronizedThroughMessageId": "agent-turn-c5d912d4-cde3-470b-8def-4fc4df1f7f05-turn-4-assistant-3"
         }
       ],
       "startedAt": "2026-11-04T18:09:04.291Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -2276,8 +2276,8 @@
           "reasoningMs": 190,
           "toolMs": 14261
         },
-        "elapsedMs": 76544,
-        "runningStartedAt": "2026-11-05T09:18:53.967Z"
+        "elapsedMs": 143315,
+        "runningStartedAt": null
       },
       "title": "+ (split)",
       "usage": {
