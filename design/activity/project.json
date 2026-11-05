@@ -1414,7 +1414,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 62974
+        "usedTokens": 63364
       },
       "entries": [
         {
@@ -1885,6 +1885,36 @@
           "role": "assistant",
           "sequence": 39,
           "timestamp": "2026-11-05T09:24:21.959Z"
+        },
+        {
+          "content": "ok, the repo has been cloned at C:\\Users\\janbo\\Documents\\dev\\awesome-open-ai-developer-tools. The description again doesn't include stats, diagrams and multi-account support?",
+          "id": "submission-dd978d3c-bff2-4127-aee5-b12f90e2939d",
+          "kind": "message",
+          "role": "user",
+          "sequence": 40,
+          "timestamp": "2026-11-05T09:28:14.083Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0075645ad81819f5016aec4c31359087d280b44e5c40c3d390",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-05T09:28:17.030Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Correct. I omitted them to keep the entry focused, but that removes meaningful differentiators—especially statistics and multi-account support. Diagrams also distinguish md² from terminal-oriented orchestrators.\n\nA better entry is:\n\n```markdown\n### [md²](https://github.com/jan-bogaerts/md2)\n\n`TypeScript + JavaScript` · `AGPL-3.0` · Desktop app · 🟡 active\n\nLocal desktop workspace that organizes Codex and Claude Code work around Markdown feature cards and isolated Git worktrees.\n\n  * Replaces: Conductor, manual task-board and terminal/worktree orchestration\n  * Backends: Codex CLI and Claude Code CLI, with multiple accounts and agent switching\n  * Edge: Keeps feature definitions as local, versionable Markdown while connecting each card to its agent conversations, worktree, commits, diagrams, and merge workflow. Built-in statistics compare agents, models, accounts, features, and actions by time, tokens, tool calls, usage, and estimated cost.\n```\n\nThis covers the distinguishing areas without turning the entry into a complete feature list:\n\n- Markdown-backed feature management\n- Parallel Git worktrees and merging\n- Codex and Claude Code\n- Multiple accounts and agent switching\n- Architecture and project diagrams\n- Token, cost, usage, and performance statistics\n\nNo files were changed.\n\n",
+          "id": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 42,
+          "timestamp": "2026-11-05T09:28:22.077Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1895,27 +1925,27 @@
           "agent": "codex",
           "conversationId": "01a1ab04-b94f-7ea2-b9b3-e72aaef08e82",
           "createdAt": "2026-11-05T09:24:21.959Z",
-          "lastUsedAt": "2026-11-05T09:24:21.959Z",
-          "synchronizedThroughMessageId": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-05T09:28:22.077Z",
+          "synchronizedThroughMessageId": "agent-turn-d35ee016-34d2-4747-9115-acdff873c948-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-11-04T18:09:04.291Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 202,
+          "reasoningMs": 211,
           "toolMs": 13761
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-11-05T09:22:55.768Z"
+        "elapsedMs": 86191,
+        "runningStartedAt": "2026-11-05T09:28:14.083Z"
       },
       "title": "+ (split)",
       "usage": {
-        "cachedInputTokens": 464512,
-        "inputTokens": 61556,
-        "outputTokens": 1674,
-        "reasoningTokens": 1227,
-        "totalTokens": 528969
+        "cachedInputTokens": 527360,
+        "inputTokens": 61727,
+        "outputTokens": 1954,
+        "reasoningTokens": 1292,
+        "totalTokens": 592333
       },
       "usageSchemaVersion": 1,
       "viewed": true
