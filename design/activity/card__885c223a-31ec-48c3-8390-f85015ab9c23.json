@@ -423,6 +423,14 @@
           "role": "assistant",
           "sequence": 32,
           "timestamp": "2026-11-06T15:32:27.791Z"
+        },
+        {
+          "content": "do both\n\nAdd `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_339_error_missing_referenced_activity_file_c_users.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-bf9b0b9a-c575-4649-a6e1-72620f59e120",
+          "kind": "message",
+          "role": "user",
+          "sequence": 33,
+          "timestamp": "2026-11-06T15:36:24.396Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -449,14 +457,14 @@
         }
       ],
       "startedAt": "2026-11-06T15:31:21.735Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 25604,
           "toolMs": 25767
         },
         "elapsedMs": 66056,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T15:36:24.396Z"
       },
       "title": "investigate",
       "usage": {
