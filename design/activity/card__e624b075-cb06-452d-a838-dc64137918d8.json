@@ -1988,17 +1988,17 @@
           "agent": "claude",
           "conversationId": "a5163569-5655-4695-b583-13bfc38a4689",
           "createdAt": "2026-11-06T15:47:45.769Z",
-          "lastUsedAt": "2026-11-06T15:50:17.082Z",
-          "synchronizedThroughMessageId": "submission-9d9a8e49-1997-4fec-b7ad-85627f9afac1",
+          "lastUsedAt": "2026-11-06T16:23:55.223Z",
+          "synchronizedThroughMessageId": "submission-0d7e48ce-53f7-4233-83d5-d3e8f0d4783a",
           "usageBaseline": {
-            "costUsd": 1.0029112000000002,
-            "resultId": "b97851ae-4dad-40d5-8060-183afa3e7f20",
+            "costUsd": 1.9496720000000003,
+            "resultId": "7783db7a-e534-49eb-a2a7-807fddcf9fb0",
             "tokens": {
-              "cachedInputTokens": 1198357,
-              "inputTokens": 36,
-              "outputTokens": 9934,
+              "cachedInputTokens": 3344121,
+              "inputTokens": 80,
+              "outputTokens": 26079,
               "reasoningTokens": 0,
-              "totalTokens": 1208327
+              "totalTokens": 3370280
             }
           }
         }
