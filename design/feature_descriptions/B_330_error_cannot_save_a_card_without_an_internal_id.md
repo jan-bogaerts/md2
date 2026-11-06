@@ -3,7 +3,7 @@ author:
 id: B_330
 internalId: 3cf170da-d33b-4875-825b-8121f2664e33
 title: Error: Cannot save a card without an internal ID: 
-status: design
+status: ready
 owner: 
 affects:
 agents:
@@ -12,7 +12,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 158901482
 sentryOrganization: elastetic
-after: 41d340e6-afae-44bd-82e7-41ab673c94e0
+after: 65a76f7c-abcf-4ef8-b5cb-81255208dc51
 ---
 ## Sentry issue
 
