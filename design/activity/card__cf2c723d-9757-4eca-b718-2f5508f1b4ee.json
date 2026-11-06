@@ -737,6 +737,14 @@
           "role": "assistant",
           "sequence": 52,
           "timestamp": "2026-11-06T08:44:34.497Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_331_error_cannot_save_a_card_without_an_internal_id.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-1a8c4c13-b553-434b-9127-55a65b17632b",
+          "kind": "message",
+          "role": "user",
+          "sequence": 53,
+          "timestamp": "2026-11-06T08:46:24.725Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -752,7 +760,7 @@
         }
       ],
       "startedAt": "2026-11-06T08:42:27.007Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -779,7 +787,7 @@
           "toolMs": 3630
         },
         "elapsedMs": 127490,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T08:46:24.725Z"
       },
       "title": "investigate",
       "usage": {
