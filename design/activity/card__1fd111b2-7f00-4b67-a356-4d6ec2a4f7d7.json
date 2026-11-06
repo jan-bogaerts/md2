@@ -868,6 +868,14 @@
           "role": "assistant",
           "sequence": 64,
           "timestamp": "2026-11-06T10:33:37.770Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_345_horizontal_resizer_on_action_popup_broken.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-10eed645-e4d6-4cb3-aac7-79a83c941cce",
+          "kind": "message",
+          "role": "user",
+          "sequence": 65,
+          "timestamp": "2026-11-06T10:41:25.365Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -883,7 +891,7 @@
         }
       ],
       "startedAt": "2026-11-06T10:24:11.613Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -910,7 +918,7 @@
           "toolMs": 4881
         },
         "elapsedMs": 228856,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T10:41:25.365Z"
       },
       "title": "investigate",
       "usage": {
@@ -921,7 +929,7 @@
         "totalTokens": 2627658
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
