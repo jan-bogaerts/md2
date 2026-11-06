@@ -3,7 +3,7 @@ author:
 id: J_66
 internalId: ac32ed09-2e05-4ae3-9a90-8a03bba61616
 title: diagram save
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,13 @@ agents:
 policy:
 branch: j_66_diagram_save
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/commands/diagram_menu_tab.test.tsx
+  - app/src/components/diagram_view/commands/diagram_menu_tab.tsx
+  - app/src/components/diagram_view/commands/diagram_save_button.test.tsx
+  - app/src/components/diagram_view/commands/diagram_save_button.tsx
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/services/project/project_persistence_service.node.test.ts
 ---
 
 we currently have a separate button on the diagram tab of the app bar to save the diagram separately. not certain what the value is of this.
