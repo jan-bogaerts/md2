@@ -382,7 +382,7 @@ export class ActionConversationSearchService extends EventTarget {
         this.publish(ACTIVE_MATCH_CHANGED_EVENT)
     }
 
-    private setResultCount(count: number) {
+    private setResultCount(count: number | null) {
         if (this.resultCount === count) return
 
         this.resultCount = count

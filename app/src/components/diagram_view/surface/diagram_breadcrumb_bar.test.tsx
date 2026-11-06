@@ -32,24 +32,44 @@ function diagramData(title: string, description: string): DiagramData {
 
 function architectureDiagram(): DiagramData {
     return {
-        edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' }],
+        edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', legendEntryId: 'connection', to: 'store' }],
         groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
-        meta: { description: 'Orders architecture', title: 'Orders', type: 'architecture', version: 1 },
+        meta: {
+            description: 'Orders architecture',
+            legend: [
+                { id: 'focal', label: 'Focal', role: 'focal' },
+                { id: 'store', label: 'Store', role: 'store' },
+                { id: 'connection', kind: 'connection', label: 'Connection', useLabelAsDefault: false },
+            ],
+            title: 'Orders',
+            type: 'architecture',
+            version: 3,
+        },
         nodes: [
-            { id: 'orders', label: 'Orders', role: 'focal' },
-            { id: 'store', label: 'Store', role: 'store' },
+            { id: 'orders', label: 'Orders', legendEntryId: 'focal', role: 'focal' },
+            { id: 'store', label: 'Store', legendEntryId: 'store', role: 'store' },
         ],
     };
 }
 
 function mindmapDiagram(): DiagramData {
     return {
-        edges: [{ from: 'root', id: 'root-topic', kind: 'connection', to: 'topic' }],
+        edges: [{ from: 'root', id: 'root-topic', kind: 'connection', legendEntryId: 'connection', to: 'topic' }],
         groups: [],
-        meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
+        meta: {
+            description: 'Ideas',
+            legend: [
+                { id: 'root', label: 'Root', nodeKind: 'root' },
+                { id: 'topic', label: 'Topic', nodeKind: 'topic' },
+                { id: 'connection', kind: 'connection', label: 'Connection', useLabelAsDefault: false },
+            ],
+            title: 'Ideas',
+            type: 'mindmap',
+            version: 3,
+        },
         nodes: [
-            { height: 128, id: 'root', kind: 'root', label: 'Root', role: 'focal', width: 128 },
-            { height: 96, id: 'topic', kind: 'topic', label: 'Persisted topic', role: 'backend', width: 96 },
+            { height: 128, id: 'root', kind: 'root', label: 'Root', legendEntryId: 'root', role: 'focal', width: 128 },
+            { height: 96, id: 'topic', kind: 'topic', label: 'Persisted topic', legendEntryId: 'topic', role: 'backend', width: 96 },
         ],
     };
 }
@@ -326,7 +346,7 @@ describe('DiagramBreadcrumbBar', () => {
         const stub = new ViewServiceStub(['root-1'], data);
         const editorData = {
             ...data,
-            nodes: [...data.nodes, { id: 'new-node', label: 'New node', role: 'focal' as const }],
+            nodes: [...data.nodes, { id: 'new-node', label: 'New node', legendEntryId: 'focal', role: 'focal' as const }],
         };
         const session = createEditSession(rootRecord, editorData);
         const { selection } = renderBar(stub, session);
