@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "3cf170da-d33b-4875-825b-8121f2664e33",
+      "cardPath": "design/feature_descriptions/B_330_error_cannot_save_a_card_without_an_internal_id.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_330_error_cannot_save_a_card_without_an_internal_id.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-d37caecd-9b56-4bf4-bea1-9117c6031feb",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-06T15:24:10.856Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-83c4eb82-045a-4f95-bc53-c8af8df79b26",
+      "providerSessions": [],
+      "startedAt": "2026-11-06T15:24:10.856Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-06T15:24:10.856Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "3cf170da-d33b-4875-825b-8121f2664e33",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
