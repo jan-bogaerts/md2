@@ -3,7 +3,7 @@ author:
 id: B_347
 internalId: 5f556f36-aa43-429a-be26-b901b056e4aa
 title: Error: Cannot resolve this-card placeholder withou
-status: new
+status: design
 owner: 
 affects:
 agents:
