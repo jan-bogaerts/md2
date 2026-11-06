@@ -55,6 +55,6 @@ after: ac32ed09-2e05-4ae3-9a90-8a03bba61616
 
 
 
-More details
+# More details
 
-This bug
+This bug occurred while I was editing a generic markdown file in the list&#x20;
