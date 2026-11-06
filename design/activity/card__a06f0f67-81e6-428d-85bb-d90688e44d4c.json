@@ -1389,6 +1389,30 @@
       "startedAt": "2026-11-06T15:13:28.725Z",
       "status": "completed",
       "rootConversationId": "agent-91ef9ee1-9a4a-483c-a0c7-0a88ca90e713"
+    },
+    {
+      "commits": [
+        {
+          "commit": "383f91fec5bfdbe8a517d9b07739e5b4dd99e2d8",
+          "committedAt": "2026-11-06T16:20:08+01:00",
+          "deletions": 8,
+          "filePaths": [
+            "app/src/components/actions/editor/action_phrase_editor_state.node.test.ts",
+            "app/src/components/actions/editor/action_phrase_editor_state.ts",
+            "app/src/components/actions/editor/use_action_editor_controller.test.ts"
+          ],
+          "filesChanged": 3,
+          "insertions": 114,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-06T16:20:08+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "a06f0f67-81e6-428d-85bb-d90688e44d4c",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

@@ -12,9 +12,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 154937872
 sentryOrganization: elastetic
-after: 22edc81f-6888-44c5-8d8b-48207057c653
-branch: b_343_error_unknown_action_phrase_section_phrase_00f9d
-worktree: 1
+after: 495dac3d-c52b-4ae4-bae5-765b7434e0f6
 changedFiles:
   - app/src/components/actions/editor/action_phrase_editor_state.node.test.ts
   - app/src/components/actions/editor/action_phrase_editor_state.ts
