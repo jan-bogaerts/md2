@@ -1,6 +1,6 @@
 ---
 author: 
-id: F_461
+id: B_345
 internalId: 1fd111b2-7f00-4b67-a356-4d6ec2a4f7d7
 title: horizontal resizer on action popup broken
 status: design
