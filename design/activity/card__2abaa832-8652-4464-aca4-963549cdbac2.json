@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "2abaa832-8652-4464-aca4-963549cdbac2",
       "cardPath": "design/feature_descriptions/F_457_add_replace_to_search.md",
-      "completedAt": null,
+      "completedAt": "2026-11-06T08:19:00.430Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 76507
@@ -465,7 +465,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 35,
-          "timestamp": "2026-11-06T08:19:00.068Z"
+          "timestamp": "2026-11-06T08:19:00.430Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -476,12 +476,12 @@
           "agent": "codex",
           "conversationId": "01a1afee-487a-7312-b47c-47bc5314dd4c",
           "createdAt": "2026-11-06T08:19:00.068Z",
-          "lastUsedAt": "2026-11-06T08:19:00.068Z",
+          "lastUsedAt": "2026-11-06T08:19:00.430Z",
           "synchronizedThroughMessageId": "agent-turn-1f209eea-c526-4194-9e3b-9fa4cfdd3df7-turn-1-assistant-4"
         }
       ],
       "startedAt": "2026-11-06T08:16:30.726Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -512,8 +512,8 @@
           "reasoningMs": 265,
           "toolMs": 3466
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-11-06T08:16:30.726Z"
+        "elapsedMs": 149704,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
