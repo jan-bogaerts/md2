@@ -2113,6 +2113,25 @@
       "startedAt": "2026-11-06T15:38:58.134Z",
       "status": "completed",
       "rootConversationId": "agent-34e46330-c410-4026-bbaa-e56cff666200"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-06T18:49:00.030Z",
+      "conversationIds": [],
+      "details": {
+        "command": "",
+        "output": "Agent conversation already has a running turn: agent-8181dc95-266a-420a-9d74-956608d9b36f",
+        "type": "command"
+      },
+      "runId": "action-78fed5c4-3295-4c66-a997-48c008be805a",
+      "origin": {
+        "cardInternalId": "e624b075-cb06-452d-a838-dc64137918d8",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "startedAt": "2026-11-06T18:49:00.025Z",
+      "status": "failed"
     }
   ],
   "version": 5
