@@ -495,6 +495,7 @@ export class DataService extends EventTarget {
             hydrateProjectConversations: () => this.agents.listProjectAgentConversations(),
             matchesCurrentContent: (path, content) => this.projectState.matchesCurrentContent(path, content),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
+            isFullProjectLoaded: () => this.fullProjectLoaded,
             mergeBackgroundProjectFiles: (files, workingFolder, repositoryFiles) => (
                 this.projectState.mergeBackgroundProjectFiles(files, workingFolder, repositoryFiles)
             ),

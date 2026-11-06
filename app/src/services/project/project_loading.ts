@@ -144,6 +144,7 @@ export interface ProjectLoadingDeps {
     hydrateProjectConversations(): Promise<AgentConversation[]>
     matchesCurrentContent(path: string, content: string): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
+    isFullProjectLoaded(): boolean
     mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
     migrateAgentLogReferences(): Promise<void>
     markFullProjectLoaded(): void
@@ -514,7 +515,11 @@ export class ProjectLoading {
         }
     }
 
-    private planDetectedCardImports(files: MarkdownFile[], workingFolder: string): DetectedCardImportPlan {
+    private planDetectedCardImports(
+        files: MarkdownFile[],
+        workingFolder: string,
+        repositoryFiles: ReadonlySet<string> | null,
+    ): DetectedCardImportPlan {
         if (projectAccessService.getSnapshot()) return { files, imports: [] }
 
         let nextFiles = files
@@ -539,6 +544,7 @@ export class ProjectLoading {
             config.cardTypes,
             config.states[0].state,
             internalIdsByPath,
+            repositoryFiles,
         )
         const imports = plan.moves.map((move, index) => {
             const importedFile = plan.importedFiles[index]
@@ -631,7 +637,10 @@ export class ProjectLoading {
         let imports: PendingDetectedCardImport[] = []
         if (loadedFiles) {
             try {
-                const importPlan = this.planDetectedCardImports(loadedFiles, workingFolder)
+                const listedRepositoryFiles = repositoryFilesResult.status === 'fulfilled'
+                    ? new Set(repositoryFilesResult.value.map(normalizePath))
+                    : null
+                const importPlan = this.planDetectedCardImports(loadedFiles, workingFolder, listedRepositoryFiles)
                 const importedPaths = new Set(importPlan.files.map((file) => file.path))
                 const removedImportedPaths = loadedFiles
                     .filter((file) => !importedPaths.has(file.path))
@@ -1088,7 +1097,13 @@ export class ProjectLoading {
             this.dependencies.files().filter((file) => !removedPathSet.has(file.path)),
             updatedFiles,
         )
-        const importPlan = this.planDetectedCardImports(watchedFiles, config.workingFolder)
+        const watchedRepositoryFiles = this.dependencies.isFullProjectLoaded()
+            ? new Set([
+                ...(this.dependencies.snapshot()?.repositoryFiles ?? []),
+                ...events.filter(({ changeKind }) => changeKind !== 'removed').map(({ path }) => path),
+            ].map(normalizePath))
+            : null
+        const importPlan = this.planDetectedCardImports(watchedFiles, config.workingFolder, watchedRepositoryFiles)
         const importedFiles = importPlan.files
         if (updatedFiles.length === 0 && removedPaths.length === 0 && importPlan.imports.length === 0) return
 

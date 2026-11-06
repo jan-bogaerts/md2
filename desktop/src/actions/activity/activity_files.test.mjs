@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { boundedAgentResult } from '../../../../shared/agent_conversations.mjs';
+import { MISSING_ACTIVITY_FILE_ERROR } from '../../../../shared/card_activity.mjs';
 
 const require = createRequire(import.meta.url);
 const {
@@ -65,6 +66,7 @@ describe('project activity conversations', () => {
         const read = vi.spyOn(fs.promises, 'access').mockRejectedValue(Object.assign(new Error('absent'), { code: 'ENOENT' }));
         try {
             await expect(readActivityFile(filePath)).rejects.toThrow(`Missing referenced activity file: ${filePath}`);
+            await expect(readActivityFile(filePath)).rejects.toMatchObject({ code: MISSING_ACTIVITY_FILE_ERROR });
             await expect(readActivityFile(filePath, { kind: 'project' })).resolves.toEqual({actionSettings: {}, conversations: [], origin: { kind: 'project' }, records: [], version: 5});
         } finally {
             read.mockRestore();

@@ -7,6 +7,7 @@ const {
     compactActivityFileContent,
     createActivityFile,
     findActivityConversation,
+    MISSING_ACTIVITY_FILE_ERROR,
     parseActivityValue,
     parseActivityValueForMigration,
 } = require('../../../../shared/card_activity.mjs');
@@ -82,7 +83,9 @@ async function loadActivityValue(filePath, origin) {
 async function readActivityFile(filePath, origin) {
     const stored = await readStoredActivity(filePath);
     if (stored.missing) {
-        if (origin === undefined) throw new Error(`Missing referenced activity file: ${filePath}`);
+        if (origin === undefined) {
+            throw Object.assign(new Error(`Missing referenced activity file: ${filePath}`), { code: MISSING_ACTIVITY_FILE_ERROR });
+        }
 
         return createActivityFile(origin);
     }

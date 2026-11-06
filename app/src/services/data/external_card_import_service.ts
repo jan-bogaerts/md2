@@ -2,6 +2,8 @@ import { getNextCardNumber, slugifyTitle } from '../../data/card_naming'
 import { buildCardId, type CardSeparator } from '../../data/card_identifiers'
 import type { CardTypeConfig, MarkdownFile, MoveFile } from '../../data/data_types'
 import { markdownParsingService, type HeaderValue, type MarkdownHeaderFields } from './markdown_parsing_service'
+import { activityPathForCardReference } from '../agents/agent_reference_migration'
+import { normalizePath } from '../../../../shared/path_utils.mjs'
 
 const DEFAULT_CARD_TYPE = 'feature'
 const MARKDOWN_EXTENSION = '.md'
@@ -61,11 +63,22 @@ function buildImportedContent(
     initialState: string,
     title: string,
     parsed: ReturnType<typeof markdownParsingService.parse>,
+    repositoryFiles: ReadonlySet<string> | null,
 ) {
     const resolvedInternalId = stringField(parsed.header, 'internalId') ?? internalId ?? markdownParsingService.generateInternalId()
     const status = stringField(parsed.header, 'status') ?? initialState
 
-    return markdownParsingService.rewriteHeader(file.content, { id, internalId: resolvedInternalId, status, title })
+    const content = markdownParsingService.rewriteHeader(file.content, { id, internalId: resolvedInternalId, status, title })
+    if (!repositoryFiles) return content
+
+    const agents = parsed.header.agents
+    const references = Array.isArray(agents) ? agents : []
+    const existingReferences = references.filter((reference) => (
+        repositoryFiles.has(normalizePath(activityPathForCardReference(reference)))
+    ))
+    if (existingReferences.length === references.length) return content
+
+    return markdownParsingService.setAgentLogReferences(content, existingReferences)
 }
 
 function importedPath(workingFolder: string, id: string, title: string, cardSeparator: CardSeparator) {
@@ -79,6 +92,7 @@ export function planExternalCardImports(
     cardTypes: CardTypeConfig[],
     initialState: string,
     internalIdsByPath: ReadonlyMap<string, string>,
+    repositoryFiles: ReadonlySet<string> | null,
 ): ExternalCardImportPlan {
     const cardType = getFeatureCardType(cardTypes)
     const candidates = files.filter((file) => isExternalCardImportCandidate(file, workingFolder))
@@ -91,7 +105,7 @@ export function planExternalCardImports(
         const title = importTitle(file, parsed.header, parsed.body)
         const id = buildCardId(cardType.idPrefix, nextNumber, cardSeparator)
         const path = importedPath(workingFolder, id, title, cardSeparator)
-        const content = buildImportedContent(file, id, internalIdsByPath.get(file.path), initialState, title, parsed)
+        const content = buildImportedContent(file, id, internalIdsByPath.get(file.path), initialState, title, parsed, repositoryFiles)
         const importedFile = { content, path }
         moves.push({ content, fromPath: file.path, sha: file.sha, toPath: path })
         importedFiles.push(importedFile)

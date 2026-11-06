@@ -7,6 +7,7 @@ export const LEGACY_ACTIVITY_VERSION = 1;
 export const SECOND_ACTIVITY_VERSION = 2;
 export const THIRD_ACTIVITY_VERSION = 3;
 export const PREVIOUS_ACTIVITY_VERSION = 4;
+export const MISSING_ACTIVITY_FILE_ERROR = 'missing-activity-file';
 const ACTION_ACTIVITY_STATUSES = new Set(['cancelled', 'completed', 'failed', 'okButNotAfter']);
 
 function requiredString(value, fieldName, allowEmpty = false) {

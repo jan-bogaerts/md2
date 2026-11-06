@@ -1097,6 +1097,48 @@ describe('ProjectLoading', () => {
         }
     })
 
+    it.each([
+        { expectedReferences: ['design/activity/card__existing.json'], listing: 'succeeds' },
+        { expectedReferences: ['design/activity/card__existing.json', 'design/activity/card__missing.json'], listing: 'fails' },
+    ])('imports external agent references against the repository index when listing $listing', async ({ expectedReferences, listing }) => {
+        configService.init()
+        const existingReference = 'design/activity/card__existing.json'
+        const externalFile = {
+            content: `---\ntitle: Linked\nagents:\n  - ${existingReference}\n  - design/activity/card__missing.json\n---\n\n# Linked`,
+            path: 'design/linked.md',
+            sha: 'sha-linked',
+        }
+        const listRepositoryFiles = listing === 'succeeds'
+            ? vi.fn(async () => [files[0].path, externalFile.path, existingReference])
+            : vi.fn(async () => {
+                throw new Error('Repository listing failed')
+            })
+        const storage = createStorage({
+            listRepositoryFiles,
+            loadProject: vi.fn(async () => ({ files: [files[0], externalFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [files[0], externalFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        const notices = recordDialogMessages('success')
+        const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
+
+        try {
+            service.init({ storage })
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+            await vi.waitFor(() => {
+                expect(service.describePendingFileCommits()).toEqual([
+                    'card design/F-2-linked.md (Import 1 external file)',
+                ])
+            })
+            const importedCard = service.getState().snapshot?.activeCards.find((card) => card.path === 'design/F-2-linked.md')
+            expect(importedCard?.header.agentLogReferences).toEqual(expectedReferences)
+        } finally {
+            notices.stop()
+            trackEvent.mockRestore()
+        }
+    })
+
     it('does not repeat imports for complete conforming cards', async () => {
         configService.init()
         const completeFile = {
