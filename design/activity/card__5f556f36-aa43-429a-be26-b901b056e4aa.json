@@ -515,13 +515,53 @@
         "totalTokens": 1171681
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "5f556f36-aa43-429a-be26-b901b056e4aa",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "44be727e966cf4d0c9fe0f4e42b7b3f3754b04d7",
+          "committedAt": "2026-11-06T14:39:49+01:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_347_error_cannot_resolve_this_card_placeholder_withou.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 27
+        }
+      ],
+      "completedAt": "2026-11-06T13:39:49.452Z",
+      "conversationIds": [
+        "agent-a32456d4-f932-4b1f-a100-6891e407f342"
+      ],
+      "details": {
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-952f159c-e0eb-4aa0-aec9-935e9d537fc5",
+      "origin": {
+        "cardInternalId": "5f556f36-aa43-429a-be26-b901b056e4aa",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-a32456d4-f932-4b1f-a100-6891e407f342",
+      "startedAt": "2026-11-06T13:37:31.898Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
