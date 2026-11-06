@@ -12,6 +12,8 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 159110069
 sentryOrganization: elastetic
+branch: b_347_error_cannot_resolve_this_card_placeholder_withou
+worktree: 1
 ---
 ## Sentry issue
 
