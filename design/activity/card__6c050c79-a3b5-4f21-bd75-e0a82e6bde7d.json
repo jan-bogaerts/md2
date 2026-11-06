@@ -613,6 +613,14 @@
           "role": "assistant",
           "sequence": 46,
           "timestamp": "2026-11-06T12:36:47.618Z"
+        },
+        {
+          "content": "> or ended before its provider session was persisted.\n\nthere must be a bug somewhere, cause I just closed the app normally, the conversations had already stopped. they were stopped with the stop button",
+          "id": "submission-4577c44c-a8ce-47de-a2b5-0c1ac132c74e",
+          "kind": "message",
+          "role": "user",
+          "sequence": 47,
+          "timestamp": "2026-11-06T12:38:49.611Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -628,7 +636,7 @@
         }
       ],
       "startedAt": "2026-11-06T12:25:57.619Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -655,7 +663,7 @@
           "toolMs": 7118
         },
         "elapsedMs": 150566,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T12:38:49.611Z"
       },
       "title": "investigate",
       "usage": {
