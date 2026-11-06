@@ -20,7 +20,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "24eb9c64-9544-4438-9083-eb8458f60732",
       "cardPath": "design/feature_descriptions/B_349_aptabase_reports_usage_double.md",
-      "completedAt": null,
+      "completedAt": "2026-11-06T13:52:47.058Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 55394
@@ -298,7 +298,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 22,
-          "timestamp": "2026-11-06T13:52:46.236Z"
+          "timestamp": "2026-11-06T13:52:47.058Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -309,7 +309,7 @@
           "agent": "claude",
           "conversationId": "ae98c603-5d81-4a09-89dd-afd7c2c6a8d2",
           "createdAt": "2026-11-06T13:50:26.190Z",
-          "lastUsedAt": "2026-11-06T13:52:46.236Z",
+          "lastUsedAt": "2026-11-06T13:52:47.058Z",
           "synchronizedThroughMessageId": "agent-turn-eab98e3a-468a-4edb-87d5-cda20cb0effc-turn-2-assistant-1",
           "usageBaseline": {
             "costUsd": 0.5255941999999999,
@@ -325,14 +325,14 @@
         }
       ],
       "startedAt": "2026-11-06T13:50:23.288Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 16921,
           "toolMs": 35638
         },
-        "elapsedMs": 35734,
-        "runningStartedAt": "2026-11-06T13:52:15.518Z"
+        "elapsedMs": 67274,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
