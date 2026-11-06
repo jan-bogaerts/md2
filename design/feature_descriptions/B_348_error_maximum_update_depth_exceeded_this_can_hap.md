@@ -12,6 +12,8 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 159129008
 sentryOrganization: elastetic
+branch: b_348_error_maximum_update_depth_exceeded_this_can_hap
+worktree: 2
 ---
 
 ## Current state
