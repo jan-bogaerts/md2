@@ -3,7 +3,7 @@ author:
 id: B_331
 internalId: cf2c723d-9757-4eca-b718-2f5508f1b4ee
 title: Error: Cannot save a card without an internal ID: 
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -15,6 +15,10 @@ sentryOrganization: elastetic
 after: ac32ed09-2e05-4ae3-9a90-8a03bba61616
 branch: b_331_error_cannot_save_a_card_without_an_internal_id
 worktree: 2
+changedFiles:
+  - app/src/services/data/card_operation_context.ts
+  - app/src/services/data/card_operations.test.ts
+  - app/src/services/data/card_operations.ts
 ---
 ## Sentry issue
 
