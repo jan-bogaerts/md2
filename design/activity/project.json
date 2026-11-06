@@ -1258,6 +1258,33 @@
   "origin": {
     "kind": "project"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-11-06T13:30:30.631Z",
+      "conversationIds": [
+        "agent-bcc5f29a-1a75-46fd-9fd4-bbce7e21a8ab"
+      ],
+      "details": {
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-d503a524-0d6e-458c-9942-79488d026d61",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
+      "rootActionLabel": "write release note",
+      "rootConversationId": "agent-bcc5f29a-1a75-46fd-9fd4-bbce7e21a8ab",
+      "startedAt": "2026-11-06T13:28:32.882Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
