@@ -10,8 +10,6 @@ agents:
   - design/activity/card__204e1fa2-8e5e-4fd1-b63c-06c9c762c080.json
 policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
-branch: b_326_add_child_diagram_not_working
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/diagram_view.test.tsx
   - app/src/components/diagram_view/diagram_view.tsx
