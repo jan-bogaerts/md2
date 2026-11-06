@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "8e0b5ae2-76a2-4101-86e8-9d19f8736ae0",
+      "cardPath": "design/feature_descriptions/B_334_error_local_git_project_validation_failed_for_c.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_334_error_local_git_project_validation_failed_for_c.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-bbdde860-365e-4ca7-a6d9-d24a7bc149a3",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-06T15:47:59.923Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-c3f9ce02-b6c4-40cf-a915-c6e2fa74ea4f",
+      "providerSessions": [],
+      "startedAt": "2026-11-06T15:47:59.923Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-06T15:47:59.923Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "8e0b5ae2-76a2-4101-86e8-9d19f8736ae0",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
