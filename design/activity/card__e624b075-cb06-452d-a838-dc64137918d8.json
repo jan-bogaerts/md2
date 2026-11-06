@@ -497,6 +497,14 @@
           "role": "assistant",
           "sequence": 36,
           "timestamp": "2026-11-06T15:40:57.396Z"
+        },
+        {
+          "content": "I'm a little bit confused. is this about links in the markdown files or in the prompts?",
+          "id": "submission-0ac9b6f0-8961-4b78-b8af-74b37d45d53d",
+          "kind": "message",
+          "role": "user",
+          "sequence": 37,
+          "timestamp": "2026-11-06T15:42:08.589Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -512,7 +520,7 @@
         }
       ],
       "startedAt": "2026-11-06T15:38:58.136Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -539,7 +547,7 @@
           "toolMs": 4521
         },
         "elapsedMs": 119260,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T15:42:08.589Z"
       },
       "title": "investigate",
       "usage": {
