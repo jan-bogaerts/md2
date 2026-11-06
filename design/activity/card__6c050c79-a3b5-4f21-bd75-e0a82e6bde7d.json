@@ -583,6 +583,14 @@
           "role": "assistant",
           "sequence": 43,
           "timestamp": "2026-11-06T12:35:27.676Z"
+        },
+        {
+          "content": "how is it possible that there was no thread id? there had been a conversation, so if I had typed something in and sent that prompt, the conversation would have resumed, so why can't we compact it then?",
+          "id": "submission-0a34664a-4163-4dfa-b204-e296210c929c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 44,
+          "timestamp": "2026-11-06T12:36:37.412Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -598,7 +606,7 @@
         }
       ],
       "startedAt": "2026-11-06T12:25:57.619Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -625,7 +633,7 @@
           "toolMs": 7118
         },
         "elapsedMs": 140360,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T12:36:37.412Z"
       },
       "title": "investigate",
       "usage": {
