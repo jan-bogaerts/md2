@@ -773,6 +773,14 @@
           "role": "assistant",
           "sequence": 56,
           "timestamp": "2026-11-06T10:27:25.545Z"
+        },
+        {
+          "content": "> the internal horizontal input splitter\n\nyes correct.\n\nwhen the splitter becomes enabled, it no longer resizes anything, nothing happens. it is clear that the drag started, the mouse changes in a drag icon, but nothing happens, so I think it is in the layout of the boxes somewhere.",
+          "id": "submission-ff44ff5b-e0cd-4379-9734-e9a8d3df2c16",
+          "kind": "message",
+          "role": "user",
+          "sequence": 57,
+          "timestamp": "2026-11-06T10:33:02.846Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -788,7 +796,7 @@
         }
       ],
       "startedAt": "2026-11-06T10:24:11.613Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -815,7 +823,7 @@
           "toolMs": 4479
         },
         "elapsedMs": 193932,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T10:33:02.846Z"
       },
       "title": "investigate",
       "usage": {
