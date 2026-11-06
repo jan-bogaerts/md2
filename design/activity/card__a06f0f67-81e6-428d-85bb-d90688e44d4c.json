@@ -726,7 +726,26 @@
       ],
       "hasExplicitTitle": true,
       "id": "agent-91ef9ee1-9a4a-483c-a0c7-0a88ca90e713",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "accountId": "claude-initial",
+          "agent": "claude",
+          "conversationId": "23613142-a5cd-42a9-b4b6-96582de82f22",
+          "createdAt": "2026-11-06T15:13:32.583Z",
+          "lastUsedAt": "2026-11-06T15:13:32.583Z",
+          "synchronizedThroughMessageId": "submission-7ed1eeef-ff85-40a1-9908-2f1ecf61720d",
+          "usageBaseline": {
+            "costUsd": 0,
+            "tokens": {
+              "cachedInputTokens": 0,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 0
+            }
+          }
+        }
+      ],
       "startedAt": "2026-11-06T15:13:29.899Z",
       "status": "running",
       "timer": {
