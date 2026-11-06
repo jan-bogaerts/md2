@@ -10,8 +10,6 @@ agents:
   - design/activity/card__c9a462cf-7874-4ada-a2f3-df08cf1793b2.json
 policy:
 after: c406d6e4-8d5d-4036-8b27-264485b2fbe3
-branch: f_458_add_for_each_feature
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/popup/action_for_each_menu.tsx
   - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
