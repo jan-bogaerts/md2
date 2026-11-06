@@ -13,8 +13,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 158900983
 sentryOrganization: elastetic
 after: ac32ed09-2e05-4ae3-9a90-8a03bba61616
-branch: b_331_error_cannot_save_a_card_without_an_internal_id
-worktree: 2
 changedFiles:
   - app/src/services/data/card_operation_context.ts
   - app/src/services/data/card_operations.test.ts
