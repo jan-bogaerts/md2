@@ -31,6 +31,8 @@ import {
 import { testLexicalEditor } from './lexical_composer_context_stub'
 
 const PLAIN_TEXT_COMPOSER_CHILD = 'MarkdownPlainTextPlugin'
+// Keys whose shortcuts (Ctrl+F, Ctrl+H) read the editor selection, so Lexical selection is mirrored first.
+const SELECTION_SEEDING_KEYS = ['f', 'h']
 
 /**
  * Lightweight stand-in for `@mdxeditor/editor` used in jsdom tests. The real
@@ -234,6 +236,7 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
         const selectionStartRef = useRef(0)
         const selectionEndRef = useRef(0)
         const suppressSelectionMirrorRef = useRef(false)
+        const stubLexicalEditRef = useRef(false)
         const textareaRef = useRef<HTMLTextAreaElement | null>(null)
         const [renderedMarkdown, setRenderedMarkdown] = useState(initialMarkdown)
         const [realm] = useState(() => {
@@ -310,6 +313,21 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
             })
         }, [plainTextMode])
 
+        // Rich-text plugins that edit Lexical text directly (local replace) reach the textarea and onChange like MDXEditor.
+        useEffect(() => {
+            if (plainTextMode) return
+
+            return testLexicalEditor.registerUpdateListener(({ editorState, prevEditorState }) => {
+                if (suppressSelectionMirrorRef.current || stubLexicalEditRef.current) return
+                const text = editorState.read(() => $getRoot().getTextContent())
+                if (text === prevEditorState.read(() => $getRoot().getTextContent())) return
+
+                latestMarkdownRef.current = text
+                setRenderedMarkdown(text)
+                onChange?.(text)
+            })
+        }, [onChange, plainTextMode])
+
         const prepareLexicalSelection = (start: number, end: number) => {
             suppressSelectionMirrorRef.current = true
             setTestLexicalMarkdownSelection(latestMarkdownRef.current, start, end)
@@ -318,7 +336,9 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
 
         const handleTextareaRef = useCallback((textarea: HTMLTextAreaElement | null) => {
             textareaRef.current = textarea
+            stubLexicalEditRef.current = true
             testLexicalEditor.setRootElement(textarea)
+            stubLexicalEditRef.current = false
             if (!textarea) return
 
             suppressSelectionMirrorRef.current = true
@@ -346,7 +366,7 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
 
         const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
             updateSelection(event)
-            if (event.key.toLowerCase() === 'f') {
+            if (SELECTION_SEEDING_KEYS.includes(event.key.toLowerCase())) {
                 prepareLexicalSelection(selectionStartRef.current, selectionEndRef.current)
             }
             testLexicalEditor.dispatchCommand(KEY_DOWN_COMMAND, event.nativeEvent)
@@ -358,9 +378,11 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
             suppressSelectionMirrorRef.current = true
             setTestLexicalSelection(currentMarkdown, selectionStartRef.current, selectionEndRef.current)
             suppressSelectionMirrorRef.current = false
+            stubLexicalEditRef.current = true
             testLexicalEditor.update(() => {
                 testLexicalEditor.dispatchCommand(PASTE_COMMAND, event.nativeEvent)
             }, { discrete: true })
+            stubLexicalEditRef.current = false
             const nextMarkdown = getTestLexicalText()
             if (nextMarkdown === currentMarkdown) return
             latestMarkdownRef.current = nextMarkdown

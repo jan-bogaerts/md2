@@ -491,7 +491,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         ...(!hideToolbar || onAttachFiles ? [toolbarPlugin({ toolbarContents })] : []),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),
-        ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer })] : []),
+        ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer, readOnly })] : []),
         markdownPastePlugin({ getSelectionMarkdown, imagePasteHandler, insertMarkdown, readOnly }),
         ...(historyPlugin ? [historyPlugin] : []),
     ]

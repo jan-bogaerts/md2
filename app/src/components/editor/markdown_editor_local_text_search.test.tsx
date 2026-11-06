@@ -1,8 +1,10 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { UNDO_COMMAND } from 'lexical'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { testLexicalEditor } from '../../test/lexical_composer_context_stub'
 import type { CardOpenDocument } from '../../services/open_files_service'
 import { MarkdownEditor } from './markdown_editor'
 import { MarkdownDocumentHistoryStore } from './history/markdown_document_history_store'
@@ -79,6 +81,15 @@ function renderSearchEditor(
 function selectText(textbox: HTMLTextAreaElement, start: number, end = start) {
     textbox.setSelectionRange(start, end)
     fireEvent.select(textbox)
+}
+
+async function submitReplaceSearch(editor: HTMLElement, term: string, replacement: string) {
+    fireEvent.keyDown(editor, { ctrlKey: true, key: 'h' })
+    const searchField = screen.getByRole('textbox', { name: 'Find text' })
+    fireEvent.change(searchField, { target: { value: term } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Replace with' }), { target: { value: replacement } })
+    fireEvent.keyDown(searchField, { key: 'Enter' })
+    await screen.findByText(/results?$/)
 }
 
 function capturedSearchPopperProps() {
@@ -407,5 +418,147 @@ describe('MarkdownEditor local text search', () => {
 
         expect(browserEventAllowed).toBe(true)
         expect(screen.queryByRole('textbox', { name: 'Find text' })).not.toBeInTheDocument()
+    })
+
+    it('opens expanded with Ctrl+H, seeds selected text, focuses search, and prevents browser history', () => {
+        renderSearchEditor('before Bold after', { hideToolbar: true })
+        const editor = screen.getByRole('textbox') as HTMLTextAreaElement
+        selectText(editor, 7, 11)
+
+        const browserEventAllowed = fireEvent.keyDown(editor, { ctrlKey: true, key: 'h' })
+
+        expect(browserEventAllowed).toBe(false)
+        expect(screen.getByRole('textbox', { name: 'Find text' })).toHaveValue('Bold')
+        expect(screen.getByRole('textbox', { name: 'Find text' })).toHaveFocus()
+        expect(screen.getByRole('textbox', { name: 'Replace with' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Replace' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Replace all' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Hide replace' })).toHaveAttribute('aria-expanded', 'true')
+    })
+
+    it('expands and collapses replacement with the chevron while Ctrl+F and toolbar open find-only', () => {
+        renderSearchEditor('Find this')
+        const editor = screen.getAllByRole('textbox')[0]
+
+        fireEvent.click(screen.getByRole('button', { name: 'Find text' }))
+        expect(screen.queryByRole('textbox', { name: 'Replace with' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Show replace' }))
+        expect(screen.getByRole('textbox', { name: 'Replace with' })).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Hide replace' }))
+        expect(screen.queryByRole('textbox', { name: 'Replace with' })).not.toBeInTheDocument()
+
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'h' })
+        expect(screen.getByRole('textbox', { name: 'Replace with' })).toBeInTheDocument()
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+        expect(screen.queryByRole('textbox', { name: 'Replace with' })).not.toBeInTheDocument()
+    })
+
+    it('keeps replacement actions disabled and the document unchanged until a find term is submitted', async () => {
+        const { onChange } = renderSearchEditor('one two one')
+        const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+        selectText(editor, 4)
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'h' })
+        const searchField = screen.getByRole('textbox', { name: 'Find text' })
+
+        fireEvent.change(searchField, { target: { value: 'one' } })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Replace with' }), { target: { value: 'X' } })
+
+        expect(screen.getByRole('button', { name: 'Replace' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Replace all' })).toBeDisabled()
+        expect(editor).toHaveValue('one two one')
+        expect(editor.selectionStart).toBe(4)
+        expect(onChange).not.toHaveBeenCalled()
+
+        fireEvent.keyDown(searchField, { key: 'Enter' })
+
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Replace' })).toBeEnabled())
+        expect(screen.getByRole('button', { name: 'Replace all' })).toBeEnabled()
+        expect(editor).toHaveValue('one two one')
+    })
+
+    it('replaces only the current match, updates count, selects next match, and marks dirty', async () => {
+        const { onDirtyChange } = renderSearchEditor('one two one two')
+        const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+        await submitReplaceSearch(editor, 'two', 'X')
+        expect(screen.getByText('2 results')).toBeInTheDocument()
+        expect(editor.selectionStart).toBe(4)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Replace' }))
+
+        await waitFor(() => expect(editor).toHaveValue('one X one two'))
+        expect(screen.getByText('1 result')).toBeInTheDocument()
+        expect(editor.selectionStart).toBe(10)
+        expect(editor.selectionEnd).toBe(13)
+        expect(onDirtyChange).toHaveBeenCalledWith(true)
+    })
+
+    it('replaces all matches through the data source as one undoable action', async () => {
+        const dataSource = new SearchTestDataSource('one two one')
+        const historyStore = new MarkdownDocumentHistoryStore()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    binding="list-card"
+                    dataSource={dataSource}
+                    historyStore={historyStore}
+                />
+            </AppThemeProvider>,
+        )
+        const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+        await submitReplaceSearch(editor, 'one', '1')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Replace all' }))
+
+        await waitFor(() => expect(editor).toHaveValue('1 two 1'))
+        expect(screen.getByText('0 results')).toBeInTheDocument()
+        expect(dataSource.edit).toHaveBeenLastCalledWith('list-card', expect.anything(), '1 two 1')
+        expect(historyStore.canUndo).toBe(true)
+
+        act(() => {
+            testLexicalEditor.dispatchCommand(UNDO_COMMAND, undefined)
+        })
+
+        await waitFor(() => expect(editor).toHaveValue('one two one'))
+        expect(historyStore.canUndo).toBe(false)
+    })
+
+    it('applies match case and deletes matches with an empty replacement', async () => {
+        renderSearchEditor('Alpha alpha')
+        const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'h' })
+        fireEvent.click(screen.getByRole('button', { name: 'Match case' }))
+        await submitReplaceSearch(editor, 'alpha', '')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Replace all' }))
+
+        await waitFor(() => expect(editor).toHaveValue('Alpha '))
+    })
+
+    it('leaves the document unchanged when replace all has zero matches', async () => {
+        const { onChange, onDirtyChange } = renderSearchEditor('unchanged')
+        const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+        await submitReplaceSearch(editor, 'missing', 'X')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Replace all' }))
+
+        expect(editor).toHaveValue('unchanged')
+        expect(screen.getByText('0 results')).toBeInTheDocument()
+        expect(onChange).not.toHaveBeenCalled()
+        expect(onDirtyChange).not.toHaveBeenCalledWith(true)
+    })
+
+    it('keeps search but disables replacement in read-only editors', async () => {
+        const { onChange, onDirtyChange } = renderSearchEditor('locked text locked', { hideToolbar: true, readOnly: true })
+        const editor = screen.getByRole('textbox') as HTMLTextAreaElement
+        await submitReplaceSearch(editor, 'locked', 'open')
+
+        expect(screen.getByText('2 results')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Replace' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Replace all' })).toBeDisabled()
+        expect(editor).toHaveValue('locked text locked')
+        expect(onChange).not.toHaveBeenCalled()
+        expect(onDirtyChange).not.toHaveBeenCalledWith(true)
     })
 })
