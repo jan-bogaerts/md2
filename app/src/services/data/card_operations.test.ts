@@ -1647,6 +1647,142 @@ describe('CardOperations', () => {
         expect(committed.files[0].content).toContain('Edited body')
     })
 
+    it('automatically persists a direct editor save for headerless regular Markdown', async () => {
+        configService.init()
+        const file = { content: '# Notes\n\nOriginal body', path: 'design/architecture/notes.md' }
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [file], workingFolder: 'design/active' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(1))
+        const card = service.getState().snapshot?.backgroundCards[0]
+        if (!card) throw new Error('Expected regular Markdown record')
+        const document = openFilesService.openDocument(card)
+        if (document.kind !== 'card') throw new Error('Expected card-shaped document')
+        vi.useFakeTimers()
+        configService.set('project.autoCommitDelayMs', 1000)
+        const content = '# Notes\n\nEdited body'
+        document.updateDraft({ content }, 'list-card')
+
+        service.cards.updateCardBody(file.path, content, document.createSaveReference())
+        await vi.advanceTimersByTimeAsync(1000)
+
+        expect(storage.commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content, path: file.path }],
+            message: `Update ${file.path}`,
+        })
+        expect(document.dirty).toBe(false)
+        expect(content).not.toContain('internalId:')
+        expect(content).not.toContain('---')
+    })
+
+    it('preserves regular Markdown frontmatter and CRLF line endings during manual flush', async () => {
+        configService.init()
+        const path = 'design/architecture/details.md'
+        const file = { content: '---\r\ntitle: Details\r\ncustom: keep\r\n---\r\n\r\n# Details\r\n\r\nOriginal', path }
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [file], workingFolder: 'design/active' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(1))
+
+        service.cards.updateCardBody(path, '\r\n# Details\r\n\r\nEdited')
+        await service.cards.flushPendingCommits()
+
+        const request = vi.mocked(storage.commit).mock.calls[0][0]
+        expect(request.files).toEqual([{
+            content: '---\r\ntitle: Details\r\ncustom: keep\r\n---\r\n\r\n# Details\r\n\r\nEdited',
+            path,
+        }])
+        expect(request.files[0].content).not.toContain('internalId:')
+    })
+
+    it('flushes a dirty regular Markdown document through the file commit path', async () => {
+        configService.init()
+        const file = { content: '# Notes\n\nOriginal body', path: 'design/architecture/notes.md' }
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [file], workingFolder: 'design/active' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(1))
+        const card = service.getState().snapshot?.backgroundCards[0]
+        if (!card) throw new Error('Expected regular Markdown record')
+        const document = openFilesService.openDocument(card)
+        if (document.kind !== 'card') throw new Error('Expected card-shaped document')
+        const content = '# Notes\n\nFlushed body'
+        document.updateDraft({ content }, 'list-card')
+
+        await projectPersistenceService.flushPendingChanges()
+
+        expect(storage.commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content, path: file.path }],
+            message: `Update ${file.path}`,
+        })
+        expect(document.dirty).toBe(false)
+        expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(false)
+    })
+
+    it('keeps a failed regular Markdown save dirty and pending for retry', async () => {
+        configService.init()
+        const failure = new Error('commit failed')
+        const file = { content: '# Notes', path: 'design/architecture/notes.md' }
+        const storage = createStorage({
+            commit: vi.fn(async () => { throw failure }),
+            loadProject: vi.fn(async () => ({ files: [file], workingFolder: 'design/active' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(1))
+        const card = service.getState().snapshot?.backgroundCards[0]
+        if (!card) throw new Error('Expected regular Markdown record')
+        const document = openFilesService.openDocument(card)
+        if (document.kind !== 'card') throw new Error('Expected card-shaped document')
+        document.updateDraft({ content: '# Edited notes' }, 'list-card')
+        service.cards.updateCardBody(file.path, '# Edited notes', document.createSaveReference())
+
+        await expect(service.cards.flushPendingCommits()).rejects.toBe(failure)
+
+        expect(document.dirty).toBe(true)
+        expect(service.hasPendingFile(file.path)).toBe(true)
+    })
+
+    it('rejects a card-only save for regular Markdown before mutating memory', async () => {
+        configService.init()
+        const file = { content: '---\ntitle: Notes\n---\n\n# Notes', path: 'design/architecture/notes.md' }
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [file], workingFolder: 'design/active' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.backgroundCards).toHaveLength(1))
+        const originalCard = service.getState().snapshot?.backgroundCards[0]
+        if (!originalCard) throw new Error('Expected regular Markdown record')
+
+        expect(() => service.cards.updateCardHeaderFields(file.path, { author: 'JB' }))
+            .toThrow(`Cannot save a card without an internal ID: ${file.path}`)
+
+        const currentCard = service.getState().snapshot?.backgroundCards[0]
+        expect(currentCard).toBe(originalCard)
+        expect(currentCard?.header.author).toBeNull()
+        expect(service.hasPendingFile(file.path)).toBe(false)
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
     it('preserves a canonical dirty body when card metadata is saved', async () => {
         configService.init()
         const storage = createStorage()
