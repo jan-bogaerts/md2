@@ -3,7 +3,7 @@ author:
 id: F_457
 internalId: 2abaa832-8652-4464-aca4-963549cdbac2
 title: add replace to search
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,11 @@ policy:
 after: ac32ed09-2e05-4ae3-9a90-8a03bba61616
 branch: f_457_add_replace_to_search
 worktree: 2
+changedFiles:
+  - app/src/components/editor/local_search/markdown_local_text_search.ts
+  - app/src/components/editor/local_search/markdown_local_text_search_plugin.tsx
+  - app/src/components/editor/markdown_editor_local_text_search.test.tsx
+  - app/src/test/mdx_editor_stub.tsx
 ---
 In the markdown editor, we have a local search function. We should also include a `replace` feature. So the text that was searched for, can be replaced.
 

@@ -58,3 +58,7 @@ after: ac32ed09-2e05-4ae3-9a90-8a03bba61616
 # More details
 
 This bug occurred while I was editing a generic markdown file in `list view`. So the markdown file did not (and should not) have a header section with an `internal id`.&#x20;
+
+possible solutions here: we could generate a temporary id, that is only valid while 'in memory? we just need to make certain that we don't save a header in these generic markdown files.
+
+or we could use the path. only problem here, what if the filename changes.
