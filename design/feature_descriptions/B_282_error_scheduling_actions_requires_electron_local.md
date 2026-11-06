@@ -3,7 +3,7 @@ author:
 id: B_282
 internalId: d78bbdec-cace-478a-8639-cc4afa66c7b6
 title: Error: Scheduling actions requires Electron local 
-status: new
+status: ready
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 150995219
 sentryOrganization: elastetic
-after: 8b060eac-e294-46f0-86f9-3782d541fa8a
 ---
 
 ## Sentry issue
