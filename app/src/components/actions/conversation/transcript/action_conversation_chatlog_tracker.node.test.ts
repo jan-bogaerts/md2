@@ -297,6 +297,42 @@ describe('ActionConversationChatlogTracker', () => {
         expect(evolvingListener).toHaveBeenCalledOnce()
     })
 
+    it('exposes final dense root and child content from bounded coalesced notifications', () => {
+        const user = message('user-1', 'user')
+        const assistant = message('assistant-1', 'assistant', '')
+        const agentCall = event('agent-1', 'tool.Agent', { status: 'inProgress' })
+        const child = event('child-1', 'agentMessage', { content: '', parentItemId: 'agent-1', status: 'inProgress' })
+        const value = conversation('conversation-1', [user, assistant, agentCall, child])
+        const { registry, tracker } = setup(run('run-1', value))
+        tracker.load()
+        const evolvingListener = vi.fn()
+        tracker.subscribeEvolvingGroups(evolvingListener)
+        let rootContent = ''
+        let childContent = ''
+        for (let index = 0; index < 120; index += 1) {
+            rootContent += 'r'
+            childContent += 'c'
+        }
+
+        const rootUpdated = { ...value, entries: [user, { ...assistant, content: rootContent }, agentCall, child] }
+        registry.setRun({ ...run('run-1', rootUpdated), conversationChange: { entryIndex: 1, kind: 'entry' } })
+        const childUpdated = {
+            ...value,
+            entries: [user, rootUpdated.entries[1], agentCall, { ...child, content: childContent }],
+        }
+        registry.setRun({ ...run('run-1', childUpdated), conversationChange: { entryIndex: 3, kind: 'entry' } })
+        const completed = {
+            ...value,
+            entries: [user, rootUpdated.entries[1], { ...agentCall, status: 'completed' }, { ...childUpdated.entries[3], status: 'completed' }],
+        }
+        registry.setRun({ ...run('run-1', completed), conversationChange: { entryIndex: 2, kind: 'entry' } })
+        registry.setRun({ ...run('run-1', completed), conversationChange: { entryIndex: 3, kind: 'entry' } })
+
+        expect(tracker.getConversation()?.entries[1]).toMatchObject({ content: 'r'.repeat(120) })
+        expect(tracker.getConversation()?.entries[3]).toMatchObject({ content: 'c'.repeat(120), status: 'completed' })
+        expect(evolvingListener.mock.calls.length).toBeLessThanOrEqual(4)
+    })
+
     it('does not rebuild stable grouping for an evolving entry update', () => {
         const firstUser = message('user-1', 'user')
         const stableAssistant = message('assistant-1', 'assistant')

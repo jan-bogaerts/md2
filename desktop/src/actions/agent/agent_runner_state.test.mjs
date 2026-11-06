@@ -12,6 +12,7 @@ const { attachRunProtocol, createRun, createRunResult } = require('./agent_run_s
 const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
+const { AgentStreamingEventPublisher } = require('./agent_streaming_event_publisher');
 const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');
 
 const WORK_ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -143,6 +144,55 @@ describe('attachRunProtocol', () => {
 });
 
 describe('AgentRunnerService published run status', () => {
+    it.each(['cancelled', 'failed'])('discards buffered provider events when a run is %s', async (outcome) => {
+        vi.useFakeTimers();
+        try {
+            const { onEvent, run, service } = streamingRunService();
+            service.terminateProcessTree = vi.fn(async () => true);
+            run.streamingEventPublisher = new AgentStreamingEventPublisher(
+                (event) => service.handleStreamingEvent(run.id, event),
+            );
+            await run.streamingEventPublisher.publish(toolEvent('buffered-tool'));
+
+            if (outcome === 'cancelled') await service.stop(run.id);
+            else await service.failStreamingRun(run, new Error('Provider failed'));
+            await vi.runAllTimersAsync();
+
+            expect(run.conversation.entries.some(({ providerItemId }) => providerItemId === 'buffered-tool')).toBe(false);
+            expect(onEvent.mock.calls.some(([event]) => event.event?.providerItemId === 'buffered-tool')).toBe(false);
+            expect(vi.getTimerCount()).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('flushes pending provider content before closing a successful streaming run', async () => {
+        vi.useFakeTimers();
+        try {
+            const service = new AgentRunnerService({
+                persistConversation: vi.fn(async () => undefined),
+                persistConversationCheckpoint: vi.fn(async () => undefined),
+            });
+            const run = acknowledgedTurnRun(service, 'codex');
+            run.finishing = true;
+            run.streamingEventPublisher = new AgentStreamingEventPublisher(
+                (event) => service.handleStreamingEvent(run.id, event),
+            );
+            await run.streamingEventPublisher.publish(toolEvent('final-tool'));
+
+            await service.handleClose(run.id, 0);
+
+            const emitted = run.onEvent.mock.calls.map(([event]) => event);
+            expect(emitted.findIndex(({ event }) => event?.providerItemId === 'final-tool')).toBeLessThan(
+                emitted.findIndex(({ type }) => type === 'closed'),
+            );
+            expect(run.conversation.entries).toContainEqual(expect.objectContaining({ providerItemId: 'final-tool' }));
+            expect(vi.getTimerCount()).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it.each([
         ['sendMessage', 'userMessage'],
         ['answerQuestion', 'questionAnswered'],

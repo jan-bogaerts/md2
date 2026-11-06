@@ -217,4 +217,94 @@ describe('registry-owned submissions', () => {
         await sending;
         expect(registry.getSubmissions(action.id, context)).toEqual([]);
     });
+
+    it('publishes one run notification after backend prompt events reconcile submission state', () => {
+        const { registry, emit } = setup();
+        emit({ ...eventBase, status: 'running', type: 'update', update: { continued: true, conversation, kind: 'agentStarted' } });
+        const runNotifications = vi.fn(() => registry.getSubmissions(action.id, context).map(({ state }) => state));
+        const submissionNotifications = vi.fn();
+        const unsubscribeRun = registry.subscribeRun(eventBase.runId, runNotifications);
+        const unsubscribeSubmissions = registry.subscribeSubmissions(action.id, context, submissionNotifications);
+
+        const queuedId = registry.beginSubmission(action.id, context, 'Queued', eventBase.runId, conversation.id);
+        submissionNotifications.mockClear();
+        emit({
+            ...eventBase,
+            status: 'running',
+            type: 'update',
+            update: {
+                entry: { content: 'Queued', dispatchState: 'queued', id: queuedId, revision: 0 },
+                kind: 'agentPromptQueued',
+            },
+        });
+        expect(runNotifications).toHaveBeenCalledTimes(1);
+        expect(runNotifications).toHaveLastReturnedWith(['queued']);
+        expect(submissionNotifications).not.toHaveBeenCalled();
+
+        runNotifications.mockClear();
+        emit({
+            ...eventBase, status: 'running', type: 'update',
+            update: { kind: 'agentPromptDeleted', promptId: queuedId, revision: 0 },
+        });
+        expect(runNotifications).toHaveBeenCalledTimes(1);
+        expect(runNotifications).toHaveLastReturnedWith([]);
+        expect(submissionNotifications).not.toHaveBeenCalled();
+
+        const discardedId = registry.beginSubmission(action.id, context, 'Discarded', eventBase.runId, conversation.id);
+        runNotifications.mockClear();
+        submissionNotifications.mockClear();
+        emit({
+            ...eventBase, status: 'running', type: 'update',
+            update: { kind: 'agentPromptDiscarded', promptId: discardedId, revision: 0 },
+        });
+        expect(runNotifications).toHaveBeenCalledTimes(1);
+        expect(runNotifications).toHaveLastReturnedWith([]);
+        expect(submissionNotifications).not.toHaveBeenCalled();
+
+        const sentId = registry.beginSubmission(action.id, context, 'Sent', eventBase.runId, conversation.id);
+        runNotifications.mockClear();
+        submissionNotifications.mockClear();
+        emit({
+            ...eventBase, status: 'running', type: 'update',
+            update: { kind: 'agentUserMessage', userMessage: { content: 'Sent', id: sentId, kind: 'message', role: 'user', timestamp: 'now' } },
+        });
+        expect(runNotifications).toHaveBeenCalledTimes(1);
+        expect(runNotifications).toHaveLastReturnedWith([]);
+        expect(submissionNotifications).not.toHaveBeenCalled();
+
+        const failedId = registry.beginSubmission(action.id, context, 'Failed', eventBase.runId, conversation.id);
+        runNotifications.mockClear();
+        submissionNotifications.mockClear();
+        emit({ ...eventBase, status: 'failed', type: 'run' });
+        expect(runNotifications).toHaveBeenCalledTimes(1);
+        expect(runNotifications).toHaveLastReturnedWith(['failed']);
+        expect(registry.getSubmissions(action.id, context)).toMatchObject([{ id: failedId, state: 'failed' }]);
+        expect(submissionNotifications).not.toHaveBeenCalled();
+
+        unsubscribeRun();
+        unsubscribeSubmissions();
+        registry.stop();
+    });
+
+    it('keeps submission notifications for local failure and queue-response changes', async () => {
+        const { registry } = setup({
+            enqueueActionPrompt: vi.fn(async (_runId, content, id) => ({ content, dispatchState: 'queued' as const, id, revision: 0 })),
+        });
+        const listener = vi.fn();
+        const unsubscribe = registry.subscribeSubmissions(action.id, context, listener);
+        const queuedId = registry.beginSubmission(action.id, context, 'Queue', eventBase.runId, conversation.id);
+        listener.mockClear();
+        await registry.enqueueSubmission(queuedId);
+        expect(listener).toHaveBeenCalledOnce();
+        expect(registry.getSubmissions(action.id, context)).toMatchObject([{ id: queuedId, state: 'queued' }]);
+
+        const failedId = registry.beginSubmission(action.id, context, 'Fail', eventBase.runId, conversation.id);
+        listener.mockClear();
+        registry.failSubmission(failedId, 'Transmission failed');
+        expect(listener).toHaveBeenCalledOnce();
+        expect(registry.getSubmissions(action.id, context)).toContainEqual(expect.objectContaining({ id: failedId, state: 'failed' }));
+
+        unsubscribe();
+        registry.stop();
+    });
 });

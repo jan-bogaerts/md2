@@ -56,6 +56,10 @@ const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/
 const AGENT_FINISH_GRACE_MS = 5_000;
 const TERMINAL_PERSIST_ATTEMPTS = 3;
 
+function logDeferredStreamingEventError(run, error) {
+    console.error('[agent:streaming-event]', run.id, redactSecrets(String(error), run.secretValues));
+}
+
 /** The account whose usage a run consumes; a run without an explicit account uses the agent's initial account. */
 function usageAccountId(agent, accountId) {
     if (!supportsAgentAccounts(agent)) return null;
@@ -200,6 +204,7 @@ class AgentRunnerService {
             onMalformedOutput: (line) => this.handleMalformedOutput(id, line),
             onProviderEvent: (event) => this.handleProviderEvent(id, event),
             onStreamingEvent: (event) => this.handleStreamingEvent(id, event),
+            onStreamingEventError: (error) => logDeferredStreamingEventError(run, error),
             onStreamingLine: (line) => this.handleStreamingLine(id, line),
             providerConversationId: request.providerConversationId,
             rootPath,
@@ -268,6 +273,7 @@ class AgentRunnerService {
     stop(runId) {
         const run = this.requireRun(runId);
         run.cancelled = true;
+        run.streamingEventPublisher?.dispose();
         transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString(), run.phases);
         this.clearFinishTimeout(run);
 
@@ -277,6 +283,7 @@ class AgentRunnerService {
     suspend(runId) {
         const run = this.requireRun(runId);
         run.suspended = true;
+        run.streamingEventPublisher?.dispose();
         this.clearFinishTimeout(run);
 
         return this.ensureTermination(run);
@@ -386,6 +393,7 @@ class AgentRunnerService {
         const completions = [];
         for (const run of this.processes.values()) {
             run.cancelled = true;
+            run.streamingEventPublisher?.dispose();
             transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString(), run.phases);
             this.clearFinishTimeout(run);
             completions.push(Promise.all([this.ensureTermination(run), run.closed]));
@@ -651,6 +659,7 @@ class AgentRunnerService {
         const message = redactSecrets(error.message, run.secretValues);
         const timestamp = new Date().toISOString();
         run.streamingFailure = new Error(message);
+        run.streamingEventPublisher?.dispose();
         this.settleCompact(run, message);
         transitionConversationStatus(run.conversation, 'failed', timestamp, run.phases);
         run.waitingForQuestion = false;
@@ -686,6 +695,12 @@ class AgentRunnerService {
             run.parser?.finish();
             run.protocolLines?.finish();
             await run.protocolHandling;
+            if (run.streaming) {
+                if (run.finishing && !run.cancelled && !run.streamingFailure && !run.suspended) {
+                    await run.streamingEventPublisher?.flush();
+                }
+                run.streamingEventPublisher?.dispose();
+            }
             this.flushStderr(runId);
             await run.stderrHandling;
             const completedAt = new Date().toISOString();

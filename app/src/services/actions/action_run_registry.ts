@@ -567,7 +567,7 @@ export class ActionRunRegistry extends EventTarget {
         }
     }
 
-    failSubmission(id: string, error: string) {
+    failSubmission(id: string, error: string, notify = true) {
         const owner = this.submissionOwners.get(id);
         if (!owner) return;
         const submissions = this.getSubmissions(owner.actionId, owner.context);
@@ -575,10 +575,10 @@ export class ActionRunRegistry extends EventTarget {
         if (!current || current.state === 'failed') return;
         this.publishSubmissions(owner.actionId, owner.context, submissions.map((submission) => (
             submission.id === id ? { ...submission, error, state: 'failed' } : submission
-        )));
+        )), notify);
     }
 
-    private acceptSubmission(id: string, prompt: ActionQueuedPrompt) {
+    private acceptSubmission(id: string, prompt: ActionQueuedPrompt, notify = true) {
         const owner = this.submissionOwners.get(id);
         // The user-message event can acknowledge sending before the queue request returns.
         if (!owner) return;
@@ -588,7 +588,7 @@ export class ActionRunRegistry extends EventTarget {
         if (prompt.id !== id) throw new Error(`Queued prompt ID does not match submitted message ID: ${id}`);
         this.publishSubmissions(owner.actionId, owner.context, submissions.map((submission) => (
             submission.id === id ? { ...submission, prompt, state: 'queued' } : submission
-        )));
+        )), notify);
     }
 
     private bindSubmission(id: string, runId: string) {
@@ -604,22 +604,27 @@ export class ActionRunRegistry extends EventTarget {
         }
     }
 
-    private removeSubmission(id: string) {
+    private removeSubmission(id: string, notify = true) {
         const owner = this.submissionOwners.get(id);
         if (!owner) return;
         this.submissionOwners.delete(id);
         const submissions = this.getSubmissions(owner.actionId, owner.context).filter((submission) => submission.id !== id);
-        this.publishSubmissions(owner.actionId, owner.context, submissions);
+        this.publishSubmissions(owner.actionId, owner.context, submissions, notify);
     }
 
-    private publishSubmissions(actionId: string, context: ActionContext, submissions: PendingActionSubmission[]) {
+    private publishSubmissions(
+        actionId: string,
+        context: ActionContext,
+        submissions: PendingActionSubmission[],
+        notify = true,
+    ) {
         const key = actionContextKey(actionId, context);
         if (submissions.length > 0) this.submissions.set(key, submissions);
         else this.submissions.delete(key);
-        this.dispatchEvent(new Event(submissionsEventType(actionId, context)));
+        if (notify) this.dispatchEvent(new Event(submissionsEventType(actionId, context)));
     }
 
-    private reconcileSubmissions(event: ActionRunEvent) {
+    private reconcileSubmissions(event: ActionRunEvent, notify = true) {
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
             const { conversation, continued } = event.update;
             let matched = false;
@@ -630,11 +635,11 @@ export class ActionRunRegistry extends EventTarget {
                 matched = true;
             }
             if (matched && !continued) actionPromptDraftService.attachNewConversation(event.actionId, event.context, conversation.id);
-            if (matched) this.dispatchEvent(new Event(submissionsEventType(event.actionId, event.context)));
+            if (matched && notify) this.dispatchEvent(new Event(submissionsEventType(event.actionId, event.context)));
         }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
             for (const [id, owner] of [...this.submissionOwners]) {
-                if (owner.runId === event.runId) this.failSubmission(id, 'Run ended before the prompt was sent');
+                if (owner.runId === event.runId) this.failSubmission(id, 'Run ended before the prompt was sent', notify);
             }
         }
         if (event.type !== 'update') return;
@@ -650,9 +655,9 @@ export class ActionRunRegistry extends EventTarget {
         if (!submission || submission.state === 'failed') return;
         if (update.kind === 'agentPromptQueued') {
             this.submissionOwners.set(id, { ...owner, runId: event.runId });
-            this.acceptSubmission(id, update.entry);
+            this.acceptSubmission(id, update.entry, notify);
         } else {
-            this.removeSubmission(id);
+            this.removeSubmission(id, notify);
         }
     }
 
@@ -1250,6 +1255,8 @@ export class ActionRunRegistry extends EventTarget {
                 logs: updateOutputLogs(next.logs, event, event.update),
             }
         }
+        // Run observers read submissions while handling this store update. Reconcile first, then publish once.
+        this.reconcileSubmissions(event, false);
         const nextStore = store ?? new ActionRunStore(next, (releasedStore) => this.handleStoreReleased(releasedStore))
         if (!store) {
             this.runs.set(event.runId, nextStore)
@@ -1268,7 +1275,6 @@ export class ActionRunRegistry extends EventTarget {
             }
         }
 
-        this.reconcileSubmissions(event);
         this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
         this.publishScopedEvents(event)
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
