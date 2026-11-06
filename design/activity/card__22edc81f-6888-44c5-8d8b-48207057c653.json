@@ -5093,7 +5093,7 @@
         "totalTokens": 8046061
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -5185,6 +5185,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "2c2793c589073080e3abd8de65c9aacbbeac5f83",
           "committedAt": "2026-11-06T16:31:04+01:00",
           "deletions": 20,
@@ -5200,8 +5201,7 @@
             "desktop/src/actions/agent/agent_streaming_event_publisher.test.mjs"
           ],
           "filesChanged": 9,
-          "insertions": 560,
-          "branch": "dev_main"
+          "insertions": 560
         }
       ],
       "completedAt": "2026-11-06T16:31:04+01:00",
