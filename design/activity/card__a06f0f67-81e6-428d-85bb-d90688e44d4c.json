@@ -945,8 +945,8 @@
           "agent": "claude",
           "conversationId": "23613142-a5cd-42a9-b4b6-96582de82f22",
           "createdAt": "2026-11-06T15:13:32.583Z",
-          "lastUsedAt": "2026-11-06T15:13:58.925Z",
-          "synchronizedThroughMessageId": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-turn-1-assistant-2",
+          "lastUsedAt": "2026-11-06T15:16:32.679Z",
+          "synchronizedThroughMessageId": "submission-c5b6bece-3a88-445b-8b11-c9a7e6922967",
           "usageBaseline": {
             "costUsd": 0.45768060000000005,
             "resultId": "4df153e7-8471-4916-94a7-9281a9120e3a",
