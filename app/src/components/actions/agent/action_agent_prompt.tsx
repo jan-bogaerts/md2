@@ -239,7 +239,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                         borderColor: 'custom.borderStrong',
                         display: 'flex',
                         flexDirection: 'column',
-                        flex: hasQuestions && !automaticQuestions ? '0 0 auto' : 1,
+                        flex: automaticQuestions ? 1 : '0 0 auto',
                         height: automaticQuestions || (promptEmpty && activeBlockHeight === null) ? 'auto' : layout.promptHeight,
                         minHeight: hasQuestions ? layout.promptMinHeight : undefined,
                         overflow: 'hidden',

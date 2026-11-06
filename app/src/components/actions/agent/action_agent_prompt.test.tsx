@@ -403,6 +403,37 @@ describe('ActionAgentPrompt', () => {
         expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('160')
     })
 
+    it.each([
+        {
+            action: agentAction,
+            label: 'Resize prompt',
+            pointerEndY: 176,
+            questionsEnabled: true,
+            storageKey: 'md2.actionPromptHeight',
+        },
+        {
+            action: commandAction,
+            label: 'Resize command input',
+            pointerEndY: 224,
+            questionsEnabled: false,
+            storageKey: 'md2.commandActionInputHeight',
+        },
+    ])('drag-resizes a height-driven prompt-only $label layout', (testCase) => {
+        mockAvailablePromptHeight(400)
+        renderPrompt(new ActionPromptDraft('Input', false), testCase)
+        const prompt = screen.getByLabelText('Prompt')
+        const separator = screen.getByRole('separator', { name: testCase.label })
+
+        expect(prompt).toHaveStyle({ flex: '0 0 auto', height: '140px' })
+
+        fireEvent.pointerDown(separator, { clientY: 200, pointerId: 6 })
+        fireEvent.pointerMove(separator, { clientY: testCase.pointerEndY, pointerId: 6 })
+        fireEvent.pointerUp(separator, { clientY: testCase.pointerEndY, pointerId: 6 })
+
+        expect(prompt).toHaveStyle({ flex: '0 0 auto', height: '164px' })
+        expect(window.localStorage.getItem(testCase.storageKey)).toBe('164')
+    })
+
     it('restores the saved height on live text entry and preserves it across empty transitions', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '188')
         mockAvailablePromptHeight(400)
@@ -518,7 +549,7 @@ describe('ActionAgentPrompt with a pending question', () => {
 
         renderPendingQuestion()
 
-        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '72px' })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ flex: '0 0 auto', height: '72px' })
         expect(screen.getByTestId('action-questions-region')).toHaveStyle({
             flex: '1',
             minHeight: '96px',
