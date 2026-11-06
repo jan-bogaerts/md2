@@ -10,6 +10,8 @@ agents:
   - design/activity/card__2abaa832-8652-4464-aca4-963549cdbac2.json
 policy:
 after: ac32ed09-2e05-4ae3-9a90-8a03bba61616
+branch: f_457_add_replace_to_search
+worktree: 2
 ---
 In the markdown editor, we have a local search function. We should also include a `replace` feature. So the text that was searched for, can be replaced.
 
