@@ -3,7 +3,7 @@ author:
 id: B_349
 internalId: 24eb9c64-9544-4438-9083-eb8458f60732
 title: aptabase reports usage double
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,9 @@ agents:
 policy:
 branch: b_349_aptabase_reports_usage_double
 worktree: 1
+changedFiles:
+  - app/src/services/telemetry/telemetry_service.service.test.ts
+  - app/src/services/telemetry/telemetry_service.ts
 ---
 
 I think we report for both desktop and renderer usage. this is not really needed, preferably, it is the desktop only
