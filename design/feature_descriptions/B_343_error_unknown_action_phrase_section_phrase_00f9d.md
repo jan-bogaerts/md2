@@ -3,7 +3,7 @@ author:
 id: B_343
 internalId: a06f0f67-81e6-428d-85bb-d90688e44d4c
 title: Error: Unknown action phrase section: phrase-00f9d
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -15,6 +15,10 @@ sentryOrganization: elastetic
 after: 22edc81f-6888-44c5-8d8b-48207057c653
 branch: b_343_error_unknown_action_phrase_section_phrase_00f9d
 worktree: 1
+changedFiles:
+  - app/src/components/actions/editor/action_phrase_editor_state.node.test.ts
+  - app/src/components/actions/editor/action_phrase_editor_state.ts
+  - app/src/components/actions/editor/use_action_editor_controller.test.ts
 ---
 
 ## Sentry issue
