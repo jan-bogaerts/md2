@@ -716,7 +716,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 59663
+        "usedTokens": 72665
       },
       "entries": [
         {
@@ -935,6 +935,335 @@
           "role": "user",
           "sequence": 18,
           "timestamp": "2026-11-06T15:16:31.511Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-19",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgmttyoDdRbJ6V8gJYR7w:thinking:0",
+          "sequence": 19,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:16:42.095Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\action_phrase_editor_state.ts",
+          "deletions": 8,
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-20",
+          "insertions": 50,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\action_phrase_editor_state.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_011xPMDr5BzCa6w5cPsScLVN",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:16:49.847Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "Now node tests.",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 21,
+          "timestamp": "2026-11-06T15:16:50.797Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\action_phrase_editor_state.node.test.ts",
+          "deletions": 0,
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-22",
+          "insertions": 32,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\action_phrase_editor_state.node.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01EacLY1hGisgzA4idgq9iqQ",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:16:57.017Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-23",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgmtvkAVBQeNpJqT6wrDW:thinking:0",
+          "sequence": 23,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:16:58.824Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"command\":\"Set-Location app; npm run test -- src/components/actions/editor/action_phrase_editor_state.node.test.ts\",\"description\":\"Run phrase editor state tests\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-24",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.11.0 test\n> vitest run src/components/actions/editor/action_phrase_editor_state.node.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  1 passed (1)\n      Tests  6 passed (6)\n   Start at  16:17:01\n   Duration  204ms (transform 34ms, setup 17ms, import 41ms, tests 7ms, environment 0ms)",
+          "providerItemId": "toolu_01Co4sBUzVMWqe9mnmT63jsF",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:17:01.611Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\services\\\\actions\\\\action_draft_store.ts\",\"offset\":90,\"limit\":120}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-25",
+          "kind": "event",
+          "label": "Read",
+          "output": "90\t        const draft = {\n91\t            ...current,\n92\t            conflict: null,\n93\t            committedRevision: revision,\n94\t            definition,\n95\t            error: null,\n96\t            revision,\n97\t            targetPath,\n98\t            validation,\n99\t        }\n100\t        this.drafts.set(actionId, draft)\n101\t        this.updateOpenDocument(actionId, definition)\n102\t        this.host.dispatchDraftChanged(actionId)\n103\t        this.host.dispatchPersistenceChanged()\n104\t        if (!draft.deleted) this.queueDraftSave(actionId, definition, revision, targetPath)\n105\t\n106\t        return draft\n107\t    }\n108\t\n109\t    /** Store an editor value and mark draft dirty without validation, events, or persistence. */\n110\t    stageDraft(actionId: string, definition: RawActionDefinition) {\n111\t        const current = this.requireDraft(actionId)\n112\t        const draft = {\n113\t            ...current,\n114\t            conflict: null,\n115\t            definition,\n116\t            error: null,\n117\t            revision: current.revision + 1,\n118\t        }\n119\t        this.drafts.set(actionId, draft)\n120\t        this.updateOpenDocument(actionId, definition)\n121\t\n122\t        return draft\n123\t    }\n124\t\n125\t    /** Validate and queue latest staged value at editor commit boundary. */\n126\t    commitDraft(actionId: string) {\n127\t        const current = this.requireDraft(actionId)\n128\t        if (current.committedRevision === current.revision) return current\n129\t\n130\t        const validation = validateDraftDefinition(current.sourcePath, current.definition)\n131\t        const targetPath = validation.valid\n132\t            ? this.desiredActionPath(actionId, current.sourcePath, current.definition.label)\n133\t            : current.targetPath\n134\t        const draft = { ...current, committedRevision: current.revision, targetPath, validation }\n135\t        this.drafts.set(actionId, draft)\n136\t        this.host.dispatchDraftChanged(actionId)\n137\t        this.host.dispatchPersistenceChanged()\n138\t        if (!draft.conflict && !draft.deleted) {\n139\t            this.queueDraftSave(actionId, draft.definition, draft.revision, targetPath)\n140\t        }\n141\t\n142\t        return draft\n143\t    }\n144\t\n145\t    retryDraft(actionId: string) {\n146\t        const draft = this.requireDraft(actionId)\n147\t        if (draft.deleted) throw new Error(`Cannot retry deleted action draft: ${actionId}`)\n148\t        this.queueDraftSave(actionId, draft.definition, draft.revision, draft.targetPath)\n149\t    }\n150\t\n151\t    keepDraft(actionId: string) {\n152\t        this.commitDraft(actionId)\n153\t        const draft = this.requireDraft(actionId)\n154\t        this.drafts.set(actionId, { ...draft, conflict: null })\n155\t        this.host.dispatchDraftChanged(actionId)\n156\t        this.host.dispatchPersistenceChanged()\n157\t        if (draft.revision !== draft.savedRevision) {\n158\t            this.queueDraftSave(actionId, draft.definition, draft.revision, draft.targetPath)\n159\t        }\n160\t    }\n161\t\n162\t    reloadDraft(actionId: string) {\n163\t        const draft = this.requireDraft(actionId)\n164\t        if (!draft.conflict) return\n165\t        const revision = draft.revision + 1\n166\t        this.drafts.set(actionId, {\n167\t            ...draft,\n168\t            committedRevision: revision,\n169\t            conflict: null,\n170\t            definition: draft.conflict,\n171\t            error: null,\n172\t            revision,\n173\t            savedRevision: revision,\n174\t            targetPath: draft.sourcePath,\n175\t            validation: validateDraftDefinition(draft.sourcePath, draft.conflict),\n176\t        })\n177\t        this.findOpenDocument(actionId)?.replaceDraft(draft.conflict)\n178\t        this.host.dispatchDraftChanged(actionId)\n179\t        this.host.dispatchPersistenceChanged()\n180\t    }\n181\t\n182\t    recreateDeletedDraft(actionId: string) {\n183\t        const draft = this.requireDraft(actionId)\n184\t        if (!draft.deleted) throw new Error(`Cannot recreate action draft that is not deleted: ${actionId}`)\n185\t        if (!draft.validation.valid) throw new Error(`Cannot recreate invalid action draft: ${actionId}`)\n186\t\n187\t        this.queueDraftSave(actionId, draft.definition, draft.revision, draft.targetPath, true)\n188\t    }\n189\t\n190\t    discardDeletedDraft(actionId: string) {\n191\t        const draft = this.requireDraft(actionId)\n192\t        if (!draft.deleted) throw new Error(`Cannot discard action draft that is not deleted: ${actionId}`)\n193\t\n194\t        const document = this.findOpenDocument(actionId)\n195\t        this.host.persistenceGateway().discardPendingFile?.(draft.sourcePath)\n196\t        this.drafts.delete(actionId)\n197\t        if (document) openFilesService.discardDocument(document)\n198\t        this.host.dispatchDraftChanged(actionId)\n199\t        this.host.dispatchPersistenceChanged()\n200\t    }\n201\t\n202\t    getDeletedDraftActions() {\n203\t        return [...this.drafts.values()]\n204\t            .filter(({ deleted }) => deleted)\n205\t            .map(({ action }) => action)\n206\t    }\n207\t\n208\t    hasPendingDrafts() {\n209\t        return [...this.drafts.values()].some((draft) => (",
+          "providerItemId": "toolu_01LSq9TcpuYxAtvUt8T6MAa5",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:17:04.193Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgmtwHRRWHzWBbSakuVbs:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:17:07.877Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\use_action_editor_controller.test.ts",
+          "deletions": 0,
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-27",
+          "insertions": 30,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\use_action_editor_controller.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01WyEsW9ddE2LHmYdo8AQRv8",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:17:16.116Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\use_action_editor_controller.test.ts",
+          "deletions": 0,
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-28",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\use_action_editor_controller.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_019LKFTfT9eGx86DobJD1DNZ",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:17:16.150Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\use_action_editor_controller.test.ts",
+          "deletions": 0,
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-29",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\use_action_editor_controller.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Jmy6LtSWFtBWEacgsppgk3",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:17:16.178Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-30",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgmtxAB8c1XJUSeV1wsnw:thinking:0",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:17:18.318Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"command\":\"npm run test -- src/components/actions/editor/use_action_editor_controller.test.ts src/components/actions/editor/action_phrase_editor_state.node.test.ts\",\"description\":\"Run controller and reconcile tests\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-31",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "Exit code 1\n> app@0.11.0 test\n> vitest run src/components/actions/editor/use_action_editor_controller.test.ts src/components/actions/editor/action_phrase_editor_state.node.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n ❯ |ui| src/components/actions/editor/use_action_editor_controller.test.ts (3 tests | 1 failed) 34ms\n     × keeps the selected phrase target when a draft change arrives while typing 10ms\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  |ui| src/components/actions/editor/use_action_editor_controller.test.ts > useActionEditorController > keeps the selected phrase target when a draft change arrives while typing\nAssertionError: expected { …(2) } to be { …(2) } // Object.is equality\n\nIf it should pass with deep equality, replace \"toBe\" with \"toStrictEqual\"\n\nExpected: { …(2) }\nReceived: serializes to the same string\n\n\nCompared values have no visual difference.\n\n ❯ src/components/actions/editor/use_action_editor_controller.test.ts:113:47\n    111|\n    112|         expect(result.current.editorState.selectedTab).toBe(phraseIden…\n    113|         expect(result.current.markdownTarget).toBe(phraseTarget)\n       |                                               ^\n    114|         expect(actionService.draftStore.getDraft('review-action').defi…\n    115|             .toEqual([{ text: 'Run all tests now', title: 'Tests' }])\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n\n Test Files  1 failed | 1 passed (2)\n      Tests  1 failed | 8 passed (9)\n   Start at  16:17:20\n   Duration  2.24s (transform 655ms, setup 114ms, import 1.05s, tests 39ms, environment 797ms)",
+          "providerItemId": "toolu_01Xg8XR9NFa5diZ7hpCDJE1Q",
+          "sequence": 31,
+          "status": "failed",
+          "timestamp": "2026-11-06T15:17:22.637Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-32",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgmtxdiqQBd2k9XGU9b3p:thinking:0",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:17:25.092Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nReference differs because `markdownTarget` memo depends on `selectedPhrase`, a new object per draft. Value is same; spec wants target unchanged in value. Switch to `toEqual`.",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 33,
+          "timestamp": "2026-11-06T15:17:25.092Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\use_action_editor_controller.test.ts",
+          "deletions": 1,
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-34",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\editor\\use_action_editor_controller.test.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01QwCKuzGkjmz7B83vJqhD1o",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:17:27.251Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"command\":\"npm run test -- src/components/actions/editor/use_action_editor_controller.test.ts src/components/actions/editor/action_phrase_editor_state.node.test.ts\",\"description\":\"Rerun controller and reconcile tests\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-35",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.11.0 test\n> vitest run src/components/actions/editor/use_action_editor_controller.test.ts src/components/actions/editor/action_phrase_editor_state.node.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  2 passed (2)\n      Tests  9 passed (9)\n   Start at  16:17:28\n   Duration  2.13s (transform 644ms, setup 107ms, import 1.03s, tests 33ms, environment 737ms)",
+          "providerItemId": "toolu_01U5m1ri9dfGxEgGUQB91eLq",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:17:30.458Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow check regression test fails without fix (temp-restore old source, then put fix back).",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-11-06T15:17:31.668Z"
+        },
+        {
+          "content": "{\"command\":\"Copy-Item src/components/actions/editor/action_phrase_editor_state.ts $env:TEMP/b343_fixed.ts; git show HEAD:app/src/components/actions/editor/action_phrase_editor_state.ts | Out-File -Encoding utf8 $env:TEMP/b343_old.ts; Copy-Item $env:TEMP/b343_old.ts src/components/actions/editor/action_phrase_editor_state.ts; npm run test -- src/components/actions/editor/use_action_editor_controller.test.ts; Copy-Item $env:TEMP/b343_fixed.ts src/components/actions/editor/action_phrase_editor_state.ts -Force; git diff --stat\",\"description\":\"Verify regression test fails on old code, then restore fix\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-37",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.11.0 test\n> vitest run src/components/actions/editor/use_action_editor_controller.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n ❯ |ui| src/components/actions/editor/use_action_editor_controller.test.ts (3 tests | 1 failed) 30ms\n     × keeps the selected phrase target when a draft change arrives while typing 7ms\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  |ui| src/components/actions/editor/use_action_editor_controller.test.ts > useActionEditorController > keeps the selected phrase target when a draft change arrives while typing\nAssertionError: expected 'prompt' to be 'phrase-cc38608f-0462-42d3-a543-54efbf…' // Object.is equality\n\nExpected: \"phrase-cc38608f-0462-42d3-a543-54efbf62563a\"\nReceived: \"prompt\"\n\n ❯ src/components/actions/editor/use_action_editor_controller.test.ts:112:56\n    110|         act(() => actionMarkdownDataSource.edit('list-action', result.…\n    111|\n    112|         expect(result.current.editorState.selectedTab).toBe(phraseIden…\n       |                                                        ^\n    113|         expect(result.current.markdownTarget).toEqual(phraseTarget)\n    114|         expect(actionService.draftStore.getDraft('review-action').defi…\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n\n Test Files  1 failed (1)\n      Tests  1 failed | 2 passed (3)\n   Start at  16:17:35\n   Duration  2.02s (transform 653ms, setup 89ms, import 1.06s, tests 30ms, environment 715ms)\n\n .../editor/action_phrase_editor_state.node.test.ts | 32 ++++++++++++\n .../actions/editor/action_phrase_editor_state.ts   | 58 +++++++++++++++++++---\n .../editor/use_action_editor_controller.test.ts    | 32 ++++++++++++\n 3 files changed, 114 insertions(+), 8 deletions(-)",
+          "providerItemId": "toolu_01V9GYs3QdtEMM8WxkpHLWJN",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:17:38.124Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgmtyn4vRiDsTBHDBZyci:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:17:39.971Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRegression test fails on the old code (it drops to `prompt`), and the fix has been put back. Next: lint.",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-11-06T15:17:39.971Z"
+        },
+        {
+          "content": "{\"command\":\"npx eslint src/components/actions/editor/action_phrase_editor_state.ts src/components/actions/editor/action_phrase_editor_state.node.test.ts src/components/actions/editor/use_action_editor_controller.test.ts\",\"description\":\"Lint changed files\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-40",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "(PowerShell completed with no output)",
+          "providerItemId": "toolu_0115oY6TCB8N6ryuNMRKZCYS",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:17:44.354Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nLint clean. Set spec status.",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 41,
+          "timestamp": "2026-11-06T15:17:45.204Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_343_error_unknown_action_phrase_section_phrase_00f9d.md",
+          "deletions": 1,
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-42",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_343_error_unknown_action_phrase_section_phrase_00f9d.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01PvrY3pB5DsgREN1w474vuH",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:17:47.038Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-43",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgmtzS3gPbUZSWubpb5Zy:thinking:0",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:17:53.761Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nB_343 is fixed: typing in a phrase no longer loses the tab or throws `Unknown action phrase section` when a save finishes mid-edit. The two related test files pass (9 tests).\n\n**The fix** (`app/src/components/actions/editor/action_phrase_editor_state.ts`): `reconcileActionPhraseEditorState` now matches phrases to their tabs in three passes. Each existing tab identity is used at most once.\n1. A phrase at the same position with the same content keeps that tab.\n2. Otherwise, it takes the first unused tab with the same content. This keeps reorder and duplicate behavior as before.\n3. Otherwise, it takes the first unused tab in order, because the phrase was edited rather than replaced. A new tab identity is created only when no unused tab is left.\n\nSo while you type, the edited phrase keeps its tab, nothing new is published, and the editor stays on that phrase.\n\n**Tests:**\n- `action_phrase_editor_state.node.test.ts`: the existing reorder, insert, delete, duplicate and selection tests still pass. I added three cases:\n  - an edited phrase keeps its tab and stays selected;\n  - editing a phrase to match another phrase keeps both tabs;\n  - when one phrase is edited and another inserted, the inserted one gets a new tab.\n- `use_action_editor_controller.test.ts`: added a regression test. It selects a phrase, types, fires a draft-changed event, then types again. It checks that the same phrase tab is still selected, the editor target is unchanged, the text was saved to that phrase, and no error dialog was reported. I checked that this test fails on the old code: the editor falls back to the Prompt tab.\n\n**Two things to know:**\n- **Target check:** the regression test compares the editor target by value, not by reference. The controller builds a new target object whenever the draft changes, even when it points to the same phrase. The spec rules out controller changes, so I left that behavior alone.\n- **Lint:** I ran eslint only on the three changed files, and it is clean. I did not run the full `npm run lint`.\n\nI set `status: ready` in the spec file under `md2/design/feature_descriptions`. Nothing is committed.",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 44,
+          "timestamp": "2026-11-06T15:17:54.129Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -945,17 +1274,17 @@
           "agent": "claude",
           "conversationId": "23613142-a5cd-42a9-b4b6-96582de82f22",
           "createdAt": "2026-11-06T15:13:32.583Z",
-          "lastUsedAt": "2026-11-06T15:16:32.679Z",
-          "synchronizedThroughMessageId": "submission-c5b6bece-3a88-445b-8b11-c9a7e6922967",
+          "lastUsedAt": "2026-11-06T15:17:54.129Z",
+          "synchronizedThroughMessageId": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-turn-2-assistant-6",
           "usageBaseline": {
-            "costUsd": 0.45768060000000005,
-            "resultId": "4df153e7-8471-4916-94a7-9281a9120e3a",
+            "costUsd": 0.8730023999999998,
+            "resultId": "b19c4b7a-9aa2-4086-8062-8ae4bfc83902",
             "tokens": {
-              "cachedInputTokens": 396046,
-              "inputTokens": 15,
-              "outputTokens": 2789,
+              "cachedInputTokens": 1191144,
+              "inputTokens": 41,
+              "outputTokens": 10502,
               "reasoningTokens": 0,
-              "totalTokens": 398850
+              "totalTokens": 1201687
             }
           }
         }
@@ -967,40 +1296,40 @@
           {
             "id": "1",
             "subject": "Block 1: three-pass reconcile in action_phrase_editor_state.ts",
-            "status": "pending",
+            "status": "completed",
             "activeForm": "Rewriting phrase reconcile"
           },
           {
             "id": "2",
             "subject": "Block 2: controller regression test",
-            "status": "pending",
+            "status": "completed",
             "activeForm": "Adding controller regression test"
           },
           {
             "id": "3",
             "subject": "Block 3: run related tests + lint, set spec status ready",
-            "status": "pending",
+            "status": "completed",
             "activeForm": "Verifying and updating status"
           }
         ],
-        "updatedAt": "2026-11-06T15:13:51.575Z"
+        "updatedAt": "2026-11-06T15:17:46.666Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 9286,
-          "toolMs": 5871
+          "reasoningMs": 31526,
+          "toolMs": 53144
         },
         "elapsedMs": 29026,
         "runningStartedAt": "2026-11-06T15:16:31.511Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 396046,
-        "inputTokens": 15,
-        "outputTokens": 2789,
+        "cachedInputTokens": 1191144,
+        "inputTokens": 41,
+        "outputTokens": 10502,
         "reasoningTokens": 0,
-        "totalTokens": 398850,
-        "costUsd": 0.45768060000000005
+        "totalTokens": 1201687,
+        "costUsd": 0.8730023999999998
       },
       "usageSchemaVersion": 1,
       "viewed": true
