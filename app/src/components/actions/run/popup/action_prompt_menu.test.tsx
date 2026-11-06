@@ -235,4 +235,19 @@ describe('ActionPromptMenu', () => {
         await user.click(screen.getByRole('menuitem', { name: 'Compact' }));
         expect(dialogService.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'There is nothing to compact' }), expect.any(Object));
     });
+
+    it('displays missing historical provider session without reporting an application error', async () => {
+        const displayError = vi.spyOn(dialogService, 'displayError').mockReturnValue({
+            critical: false, id: 2, message: 'Missing provider session for compact', severity: 'error', title: 'Error',
+        });
+        const user = userEvent.setup();
+        const { conversationStore } = renderMenu();
+        conversationStore.updateConversation({ ...conversation(), providerSessions: [] });
+
+        await user.click(screen.getByRole('button', { name: 'Prompt menu' }));
+        await user.click(screen.getByRole('menuitem', { name: 'Compact' }));
+
+        expect(displayError).toHaveBeenCalledWith('Missing provider session for compact');
+        expect(dialogService.error).not.toHaveBeenCalled();
+    });
 });

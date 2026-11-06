@@ -8,7 +8,10 @@ import type { ActionContext } from '../../../../data/action_context';
 import type { ActionForEachConfig, JsonValue } from '../../../../data/action_run_types';
 import { getElectronActionBridge } from '../../../../data/electron_action_bridge';
 import { generateUuid } from '../../../../data/uuid';
-import { actionCompactService } from '../../../../services/actions/action_compact_service';
+import {
+    actionCompactService,
+    MISSING_PROVIDER_SESSION_FOR_COMPACT,
+} from '../../../../services/actions/action_compact_service';
 import type { ActionPromptDraft } from '../../../../services/actions/action_prompt_draft_service';
 import { attachFilesToCardMarkdown, attachFilesToOriginalMarkdown } from '../../../../services/attachments/attachment_workflow';
 import { dialogService } from '../../../../services/dialog_service';
@@ -121,7 +124,10 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
                 (latest, candidate) => !latest || candidate.lastUsedAt > latest.lastUsedAt ? candidate : latest, null,
             );
             const provider = displayed.id === liveConversation?.id ? liveProvider ?? session?.agent : session?.agent;
-            if (!provider) throw new Error('Missing provider session for compact');
+            if (!provider) {
+                dialogService.displayError(MISSING_PROVIDER_SESSION_FOR_COMPACT);
+                return;
+            }
             const request = {
                 actionId, context: { ...context }, conversationId: displayed.id, provider,
                 reference: displayed.path, requestId: generateUuid(),

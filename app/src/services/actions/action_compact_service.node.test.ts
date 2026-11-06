@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ActionCompactRequest, ActionCompactState, ActionRunEvent } from '../../data/action_run_types';
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge';
 import { dialogService } from '../dialog_service';
-import { ActionCompactService } from './action_compact_service';
+import { ActionCompactService, MISSING_PROVIDER_SESSION_FOR_COMPACT } from './action_compact_service';
 import { actionRunRegistry } from './action_run_registry';
 import { remoteConnectionService } from '../data/remote_connection_service';
 
@@ -93,6 +93,23 @@ describe('ActionCompactService', () => {
         expect(error).toHaveBeenCalledTimes(1);
         service.handleEvent(event('failed', 'Not enough messages to compact.'));
         expect(error).toHaveBeenCalledTimes(1);
+    });
+
+    it('displays missing historical provider session without reporting an application error', async () => {
+        const error = vi.spyOn(dialogService, 'error').mockReturnValue(errorDialog);
+        const displayError = vi.spyOn(dialogService, 'displayError').mockReturnValue(errorDialog);
+        const compactActionConversation = vi.fn(async () => { throw new Error(MISSING_PROVIDER_SESSION_FOR_COMPACT); });
+        setActionBridgeOverride({ compactActionConversation, onActionRun: vi.fn(() => vi.fn()) } as unknown as ElectronActionBridge);
+        const service = new ActionCompactService();
+
+        await service.request(request);
+
+        expect(service.getSnapshot(request.conversationId)[0]).toMatchObject({
+            message: MISSING_PROVIDER_SESSION_FOR_COMPACT,
+            state: 'failed',
+        });
+        expect(displayError).toHaveBeenCalledWith(MISSING_PROVIDER_SESSION_FOR_COMPACT);
+        expect(error).not.toHaveBeenCalled();
     });
 
     it('fails outstanding work on backend replacement without resubmitting', async () => {

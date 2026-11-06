@@ -7,6 +7,7 @@ import { remoteConnectionService } from '../data/remote_connection_service';
 import { actionRunRegistry } from './action_run_registry';
 
 const EMPTY_REQUESTS: ActionCompactState[] = [];
+export const MISSING_PROVIDER_SESSION_FOR_COMPACT = 'Missing provider session for compact';
 
 /** Owns compact requests independently of popup lifetime and selection. */
 export class ActionCompactService extends EventTarget {
@@ -95,7 +96,9 @@ export class ActionCompactService extends EventTarget {
         this.requests.set(request.conversationId, next);
         this.dispatchEvent(new Event(`compact:${request.conversationId}`));
         if (request.state === 'failed') {
-            dialogService.error(new Error(request.message ?? 'Compaction failed'), { fallbackMessage: 'Compaction failed' });
+            const message = request.message ?? 'Compaction failed';
+            if (message === MISSING_PROVIDER_SESSION_FOR_COMPACT) dialogService.displayError(message);
+            else dialogService.error(new Error(message), { fallbackMessage: 'Compaction failed' });
         }
     }
 }
