@@ -3,7 +3,7 @@ author:
 id: B_348
 internalId: 22edc81f-6888-44c5-8d8b-48207057c653
 title: Error: Maximum update depth exceeded. This can hap
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,6 +11,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 159129008
 sentryOrganization: elastetic
+after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 ---
 
 ## Sentry issue
