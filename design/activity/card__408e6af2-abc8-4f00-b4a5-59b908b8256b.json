@@ -353,6 +353,14 @@
           "role": "assistant",
           "sequence": 26,
           "timestamp": "2026-11-06T09:33:13.971Z"
+        },
+        {
+          "content": "lets use 800ms",
+          "id": "submission-487c3cf8-fea0-462b-ba88-5c377f689f05",
+          "kind": "message",
+          "role": "user",
+          "sequence": 27,
+          "timestamp": "2026-11-06T09:55:57.554Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -368,7 +376,7 @@
         }
       ],
       "startedAt": "2026-11-06T09:31:56.151Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -400,7 +408,7 @@
           "toolMs": 3826
         },
         "elapsedMs": 77820,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T09:55:57.554Z"
       },
       "title": "complete",
       "usage": {
@@ -411,7 +419,7 @@
         "totalTokens": 679006
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
