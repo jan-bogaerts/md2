@@ -57,4 +57,4 @@ after: ac32ed09-2e05-4ae3-9a90-8a03bba61616
 
 # More details
 
-This bug occurred while I was editing a generic markdown file in the list&#x20;
+This bug occurred while I was editing a generic markdown file in `list view`. So the markdown file did not (and should not) have a header section with an `internal id`.&#x20;
