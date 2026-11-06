@@ -943,6 +943,14 @@
           "role": "assistant",
           "sequence": 71,
           "timestamp": "2026-11-06T12:40:33.182Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_346_error_missing_provider_session_for_compact.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-5c296d47-e97e-4fc2-bf78-fb417ddbe448",
+          "kind": "message",
+          "role": "user",
+          "sequence": 72,
+          "timestamp": "2026-11-06T12:41:28.932Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -958,7 +966,7 @@
         }
       ],
       "startedAt": "2026-11-06T12:25:57.619Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -985,7 +993,7 @@
           "toolMs": 8474
         },
         "elapsedMs": 254137,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T12:41:28.932Z"
       },
       "title": "investigate",
       "usage": {
