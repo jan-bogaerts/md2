@@ -5,7 +5,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "6c050c79-a3b5-4f21-bd75-e0a82e6bde7d",
       "cardPath": "design/feature_descriptions/B_346_error_missing_provider_session_for_compact.md",
-      "completedAt": null,
+      "completedAt": "2026-11-06T12:42:36.658Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 121530
@@ -1156,7 +1156,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 88,
-          "timestamp": "2026-11-06T12:42:36.307Z"
+          "timestamp": "2026-11-06T12:42:36.658Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1167,12 +1167,12 @@
           "agent": "codex",
           "conversationId": "01a1b0d2-a86d-74d3-a01f-32301f66d621",
           "createdAt": "2026-11-06T12:28:13.080Z",
-          "lastUsedAt": "2026-11-06T12:42:36.307Z",
+          "lastUsedAt": "2026-11-06T12:42:36.658Z",
           "synchronizedThroughMessageId": "agent-turn-b4b44cd2-e33c-485a-868f-8c5a6b00be8b-turn-5-assistant-3"
         }
       ],
       "startedAt": "2026-11-06T12:25:57.619Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -1198,8 +1198,8 @@
           "reasoningMs": 562,
           "toolMs": 9341
         },
-        "elapsedMs": 254137,
-        "runningStartedAt": "2026-11-06T12:41:28.932Z"
+        "elapsedMs": 321863,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
