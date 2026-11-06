@@ -20,7 +20,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "885c223a-31ec-48c3-8390-f85015ab9c23",
       "cardPath": "design/feature_descriptions/B_339_error_missing_referenced_activity_file_c_users.md",
-      "completedAt": null,
+      "completedAt": "2026-11-06T15:38:08.395Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 115875
@@ -1043,7 +1043,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 81,
-          "timestamp": "2026-11-06T15:38:07.562Z"
+          "timestamp": "2026-11-06T15:38:08.395Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1054,7 +1054,7 @@
           "agent": "claude",
           "conversationId": "4189244f-c551-4c98-85b9-4ce01b763212",
           "createdAt": "2026-11-06T15:31:24.621Z",
-          "lastUsedAt": "2026-11-06T15:38:07.562Z",
+          "lastUsedAt": "2026-11-06T15:38:08.395Z",
           "synchronizedThroughMessageId": "agent-turn-bc3b79c7-860c-4627-8a89-128920bfd7a1-turn-2-assistant-4",
           "usageBaseline": {
             "costUsd": 1.6091980000000001,
@@ -1070,14 +1070,14 @@
         }
       ],
       "startedAt": "2026-11-06T15:31:21.735Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 69054,
           "toolMs": 71014
         },
-        "elapsedMs": 66056,
-        "runningStartedAt": "2026-11-06T15:36:24.396Z"
+        "elapsedMs": 170055,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
