@@ -3,7 +3,7 @@ author:
 id: B_346
 internalId: 6c050c79-a3b5-4f21-bd75-e0a82e6bde7d
 title: Error: Missing provider session for compact
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
@@ -12,6 +12,8 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 159105123
 sentryOrganization: elastetic
+branch: b_346_error_missing_provider_session_for_compact
+worktree: 1
 ---
 ## Sentry issue
 
@@ -48,3 +50,29 @@ sentryOrganization: elastetic
 * `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz1fWlUi.js:2612:1960` — onClick
 
 This occured after freshly starting the app, just opened the action popup and selected a historical conversation for the action, so no active conversation yet, but it was an existing one.
+
+## Current state
+
+The provider reports its Codex thread ID or Claude session ID through `sessionStarted`. `handleSessionStarted` stores that ID only on the in-memory agent run. The persisted `AgentConversation.providerSessions` entry is created later, after a successful turn completes.
+
+Pressing Stop marks the run as cancelled. The terminal close path persists the transcript but updates the provider session only for a successful run. If Stop occurs after the provider session starts but before `turnCompleted` is handled, messages and tool activity are saved while the provider session ID is lost. After restart, normal prompting can reconstruct context in a new provider session, but Compact cannot resume the original provider session and reports `Missing provider session for compact`.
+
+The missing-session condition is passed to `dialogService.error`, so this expected limitation is also reported to Sentry as an application failure.
+
+## Implementation details
+
+* When `turnStarted` is handled, require the provider session ID, update the conversation's provider session through the existing `updateProviderSession` path, and persist a checkpoint. Use the current user message as `synchronizedThroughMessageId` because the provider has accepted that turn.
+* Keep the existing successful-turn update so `synchronizedThroughMessageId`, `lastUsedAt`, usage, and the final assistant message advance together after completion.
+* Let Stop and application shutdown wait for queued protocol handling and checkpoint persistence before writing the terminal cancelled conversation. Do not require the run to succeed before retaining an already established provider session.
+* Do not create a provider session when the provider never acknowledged a turn, and do not synthesize provider IDs or use transcript reconstruction for Compact.
+* Keep backend compact identity and ownership validation. Show a genuinely missing historical provider session as an expected user-facing error without reporting it to Sentry.
+* Add focused regression coverage for stopping after `sessionStarted` and `turnStarted` but before `turnCompleted`, then reloading and compacting the same Codex or Claude provider session. Retain coverage for stopping before a provider turn starts.
+
+## Acceptance criteria
+
+* Stopping an acknowledged Codex or Claude turn persists its provider session ID even when the turn does not complete successfully.
+* Reloading the application after Stop allows Compact to resume the same persisted provider session.
+* A successful turn still advances the provider session synchronization cursor to its final message and preserves existing usage accounting.
+* Stopping before the provider acknowledges a turn does not create a false provider session.
+* Compact continues to reject conversations that genuinely have no resumable provider session, with a clear user-facing message and no Sentry event.
+* Existing compact identity, ownership, cancellation, transcript, and prompt-continuation behavior remains unchanged.
