@@ -3,7 +3,7 @@ author:
 id: B_344
 internalId: ccfe3916-896c-4754-b38a-584d9fbfe3dd
 title: Error: Sequence schedule-1792151322013-3q929cfh fa
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 154083512
 sentryOrganization: elastetic
-after: a06f0f67-81e6-428d-85bb-d90688e44d4c
 ---
 
 ## Sentry issue
