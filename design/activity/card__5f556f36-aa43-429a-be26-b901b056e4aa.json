@@ -1174,8 +1174,8 @@
           "agent": "codex",
           "conversationId": "01a1b118-7700-7771-8379-7c40d6f6c25c",
           "createdAt": "2026-11-06T13:42:13.970Z",
-          "lastUsedAt": "2026-11-06T13:44:06.516Z",
-          "synchronizedThroughMessageId": "agent-turn-46da1347-8a1d-4e0d-a9ad-5c97a3ad02a2-turn-1-assistant-2"
+          "lastUsedAt": "2026-11-06T13:44:19.319Z",
+          "synchronizedThroughMessageId": "submission-f8bb0910-02a6-4e8c-aa8d-5be43815a560"
         }
       ],
       "startedAt": "2026-11-06T13:42:12.423Z",
