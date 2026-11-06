@@ -3,7 +3,7 @@ author:
 id: F_458
 internalId: c9a462cf-7874-4ada-a2f3-df08cf1793b2
 title: add for-each feature
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,42 @@ policy:
 after: c406d6e4-8d5d-4036-8b27-264485b2fbe3
 branch: f_458_add_for_each_feature
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/action_for_each_menu.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
+  - app/src/components/actions/run/popup/action_popup_content.tsx
+  - app/src/components/actions/run/popup/action_popup_frame.tsx
+  - app/src/components/actions/run/popup/action_popup_operations.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_operations.ts
+  - app/src/components/actions/run/popup/action_prompt_menu.test.tsx
+  - app/src/components/actions/run/popup/action_prompt_menu.tsx
+  - app/src/components/actions/run/popup/action_selector.test.tsx
+  - app/src/components/actions/run/popup/action_selector.tsx
+  - app/src/components/actions/run/popup/action_selector_button.tsx
+  - app/src/components/actions/run/state/action_run_input_store.node.test.ts
+  - app/src/components/actions/run/state/action_run_input_store.ts
+  - app/src/components/editor/placeholders/markdown_placeholder_typeahead_plugin.tsx
+  - app/src/data/action_placeholders.ts
+  - app/src/data/action_run_types.ts
+  - app/src/data/data_types.ts
+  - app/src/data/electron_action_bridge.ts
+  - app/src/services/agents/agent_conversation_service.node.test.ts
+  - desktop/main.js
+  - desktop/src/actions/action/action_agent_executor.js
+  - desktop/src/actions/action/action_for_each.test.mjs
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run.test.mjs
+  - desktop/src/actions/action/action_run_request.js
+  - desktop/src/actions/action/action_run_request.test.mjs
+  - desktop/src/actions/action/action_text.js
+  - desktop/src/actions/action/action_text.test.mjs
+  - desktop/src/actions/activity/activity_files.js
+  - desktop/src/actions/agent/agent_conversation.js
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/preload.js
+  - shared/action_for_each.d.mts
+  - shared/action_for_each.mjs
+  - shared/agent_conversations.mjs
 ---
 # General feature description
 
