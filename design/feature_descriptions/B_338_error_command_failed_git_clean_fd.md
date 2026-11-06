@@ -3,7 +3,7 @@ author:
 id: B_338
 internalId: 495dac3d-c52b-4ae4-bae5-765b7434e0f6
 title: Error: Command failed: git clean -fd
-status: design
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 155925092
 sentryOrganization: elastetic
+after: ccfe3916-896c-4754-b38a-584d9fbfe3dd
 ---
 ## Sentry issue
 
