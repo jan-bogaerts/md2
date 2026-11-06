@@ -3,7 +3,7 @@ author:
 id: F_460
 internalId: 408e6af2-abc8-4f00-b4a5-59b908b8256b
 title: start search automatically after 1st letter
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,14 @@ policy:
 after: 204e1fa2-8e5e-4fd1-b63c-06c9c762c080
 branch: f_460_start_search_automatically_after_1st_letter
 worktree: 3
+changedFiles:
+  - app/src/components/actions/conversation/search/action_conversation_search_controls.test.tsx
+  - app/src/components/actions/conversation/search/action_conversation_search_service.test.ts
+  - app/src/components/actions/conversation/search/action_conversation_search_service.ts
+  - app/src/components/editor/local_search/markdown_local_text_search_plugin.tsx
+  - app/src/components/editor/markdown_editor_local_text_search.test.tsx
+  - app/src/components/shell/search/search_control.test.tsx
+  - app/src/components/shell/search/search_panel.tsx
 ---
 
 all search components (global search and the local searches) currently work on the principle that the search starts after pressing enter.
