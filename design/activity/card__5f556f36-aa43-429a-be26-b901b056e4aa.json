@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "5f556f36-aa43-429a-be26-b901b056e4aa",
       "cardPath": "design/feature_descriptions/B_347_error_cannot_resolve_this_card_placeholder_withou.md",
-      "completedAt": null,
+      "completedAt": "2026-11-06T13:39:48.681Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 107406
@@ -456,7 +456,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 34,
-          "timestamp": "2026-11-06T13:39:48.281Z"
+          "timestamp": "2026-11-06T13:39:48.681Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -467,12 +467,12 @@
           "agent": "codex",
           "conversationId": "01a1b114-2f20-7861-a8ee-04a7ca2e9e49",
           "createdAt": "2026-11-06T13:39:48.281Z",
-          "lastUsedAt": "2026-11-06T13:39:48.281Z",
+          "lastUsedAt": "2026-11-06T13:39:48.681Z",
           "synchronizedThroughMessageId": "agent-turn-836d2cf9-1cd3-47ee-ba6c-9571b78491b1-turn-1-assistant-4"
         }
       ],
       "startedAt": "2026-11-06T13:37:31.900Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -503,8 +503,8 @@
           "reasoningMs": 202,
           "toolMs": 2913
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-11-06T13:37:31.900Z"
+        "elapsedMs": 136781,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
