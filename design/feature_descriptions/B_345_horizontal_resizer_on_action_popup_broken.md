@@ -3,7 +3,7 @@ author:
 id: B_345
 internalId: 1fd111b2-7f00-4b67-a356-4d6ec2a4f7d7
 title: horizontal resizer on action popup broken
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,9 @@ agents:
 policy:
 branch: b_345_horizontal_resizer_on_action_popup_broken
 worktree: 1
+changedFiles:
+  - app/src/components/actions/agent/action_agent_prompt.test.tsx
+  - app/src/components/actions/agent/action_agent_prompt.tsx
 ---
 
 The resizer on the action popup is broken. it is no longer possible to resize it. This used to work, got broken with recent refactors
