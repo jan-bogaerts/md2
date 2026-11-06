@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "22edc81f-6888-44c5-8d8b-48207057c653",
+      "cardPath": "design/feature_descriptions/B_348_error_maximum_update_depth_exceeded_this_can_hap.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_348_error_maximum_update_depth_exceeded_this_can_hap.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-a1e8554d-ed9a-4beb-9c45-881cb3b49fd1",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-06T13:44:00.138Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-09570c07-d8f6-4486-9464-edd8f82fc9bd",
+      "providerSessions": [],
+      "startedAt": "2026-11-06T13:44:00.138Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-06T13:44:00.138Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "22edc81f-6888-44c5-8d8b-48207057c653",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
