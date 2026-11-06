@@ -515,8 +515,8 @@
           "agent": "codex",
           "conversationId": "01a1b183-5dab-7662-a369-d00c8ec25ab4",
           "createdAt": "2026-11-06T15:39:00.034Z",
-          "lastUsedAt": "2026-11-06T15:40:57.396Z",
-          "synchronizedThroughMessageId": "agent-turn-25970703-d1c2-4f4a-8dc2-ec01d3ec08d1-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-06T15:42:08.655Z",
+          "synchronizedThroughMessageId": "submission-0ac9b6f0-8961-4b78-b8af-74b37d45d53d"
         }
       ],
       "startedAt": "2026-11-06T15:38:58.136Z",
