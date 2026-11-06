@@ -3,7 +3,7 @@ author:
 id: B_339
 internalId: 885c223a-31ec-48c3-8390-f85015ab9c23
 title: Error: Missing referenced activity file: C:\Users\
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 155181382
 sentryOrganization: elastetic
-after: 4a44a852-c5fe-4648-a39c-e1d1da9a506c
 ---
 
 ## Sentry issue
