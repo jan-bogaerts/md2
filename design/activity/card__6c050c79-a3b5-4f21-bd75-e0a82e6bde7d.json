@@ -553,6 +553,14 @@
           "role": "assistant",
           "sequence": 40,
           "timestamp": "2026-11-06T12:28:13.080Z"
+        },
+        {
+          "content": "euhm, why can't we compact the conversation? it did have messages",
+          "id": "submission-5569482f-f586-4c11-940b-31f8d95c9a6b",
+          "kind": "message",
+          "role": "user",
+          "sequence": 41,
+          "timestamp": "2026-11-06T12:35:22.777Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -568,7 +576,7 @@
         }
       ],
       "startedAt": "2026-11-06T12:25:57.619Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -595,7 +603,7 @@
           "toolMs": 7118
         },
         "elapsedMs": 135461,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T12:35:22.777Z"
       },
       "title": "investigate",
       "usage": {
