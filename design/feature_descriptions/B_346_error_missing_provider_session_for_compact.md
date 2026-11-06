@@ -3,7 +3,7 @@ author:
 id: B_346
 internalId: 6c050c79-a3b5-4f21-bd75-e0a82e6bde7d
 title: Error: Missing provider session for compact
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -14,6 +14,14 @@ sentryIssueId: 159105123
 sentryOrganization: elastetic
 branch: b_346_error_missing_provider_session_for_compact
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/action_prompt_menu.test.tsx
+  - app/src/components/actions/run/popup/action_prompt_menu.tsx
+  - app/src/services/actions/action_compact_service.node.test.ts
+  - app/src/services/actions/action_compact_service.ts
+  - desktop/src/actions/action/action_agent_executor.test.mjs
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
+  - desktop/src/actions/agent/agent_streaming_event_handlers.js
 ---
 ## Sentry issue
 

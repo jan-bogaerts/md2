@@ -10195,3 +10195,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-06T12:56:41.858Z,account_usage,codex,codex,primary,10080,2026-11-11T10:03:58.000Z,,,,,,10,1,codex-initial
 2026-11-06T12:56:25.108Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,22,0,claude-initial
 2026-11-06T12:58:36.873Z,token_usage,codex,,,,,70343,1044608,3137,2027,1120115,,,codex-initial
+2026-11-06T13:03:34.487Z,token_usage,codex,,,,,18056,2355200,5810,3683,2382749,,,codex-initial
