@@ -146,7 +146,7 @@ export function DiagramView({
         <Alert severity="warning">Diagram unavailable: {currentDiagramError}</Alert>
     ) : (
         <Box aria-label="Active diagram" sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
-            <DiagramBreadcrumbBar service={service} session={editSession} />
+            <DiagramBreadcrumbBar selection={selection} service={service} session={editSession} />
             <Box aria-label="Diagram content" sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
                 {currentDiagram ? (
                     editSessionSnapshot?.creationSourceDiagramId ? (
