@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 72659
+        "usedTokens": 72775
       },
       "entries": [
         {
@@ -505,6 +505,15 @@
           "role": "user",
           "sequence": 37,
           "timestamp": "2026-11-06T15:42:08.589Z"
+        },
+        {
+          "agent": "codex",
+          "content": "It concerns links in the agent conversation output—the chat log shown after running a prompt.\n\nFor example, if the agent response contains:\n\n```markdown\n[Open file](C:\\outside-repo\\file.js)\n```\n\nclicking that rendered link triggers the validation error.\n\nIt is not about links inside project Markdown files, nor the prompt text itself. The relevant component is `ActionConversationLink`, which renders Markdown links in conversation messages.\n\n",
+          "id": "agent-turn-25970703-d1c2-4f4a-8dc2-ec01d3ec08d1-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 38,
+          "timestamp": "2026-11-06T15:42:12.065Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -515,8 +524,8 @@
           "agent": "codex",
           "conversationId": "01a1b183-5dab-7662-a369-d00c8ec25ab4",
           "createdAt": "2026-11-06T15:39:00.034Z",
-          "lastUsedAt": "2026-11-06T15:42:08.655Z",
-          "synchronizedThroughMessageId": "submission-0ac9b6f0-8961-4b78-b8af-74b37d45d53d"
+          "lastUsedAt": "2026-11-06T15:42:12.065Z",
+          "synchronizedThroughMessageId": "agent-turn-25970703-d1c2-4f4a-8dc2-ec01d3ec08d1-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-11-06T15:38:58.136Z",
@@ -551,11 +560,11 @@
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 1028736,
-        "inputTokens": 59899,
-        "outputTokens": 2881,
+        "cachedInputTokens": 1101184,
+        "inputTokens": 60135,
+        "outputTokens": 2972,
         "reasoningTokens": 1125,
-        "totalTokens": 1092641
+        "totalTokens": 1165416
       },
       "usageSchemaVersion": 1,
       "viewed": true
