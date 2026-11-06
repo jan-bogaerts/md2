@@ -229,6 +229,8 @@ export class CardOperationContext {
         message = `Update ${path}`,
     ) {
         const { commitBatcher, config, project } = this.requireProject('save a card')
+        const currentCard = this.dependencies.requireCard(path)
+        if (!currentCard.header.internalId) throw new Error(`Cannot save a card without an internal ID: ${path}`)
         const openDocument = this.findOpenCardDocument(path)
         const card = this.mutateCardPreservingOpenBody(path, mutation, config.workingFolder)
         const cardInternalId = card.header.internalId

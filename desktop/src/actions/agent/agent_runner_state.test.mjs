@@ -52,6 +52,36 @@ function streamingRunService() {
     return { onEvent, run, service };
 }
 
+function acknowledgedTurnRun(service, agent) {
+    const run = createRun({
+        agent,
+        child: { pid: 10 },
+        conversation: {
+            completedAt: null,
+            entries: [{ content: 'Current request', id: 'user-1', kind: 'message', role: 'user', timestamp: 'now' }],
+            id: 'conversation-1',
+            providerSessions: [],
+            status: 'running',
+        },
+        environment: {},
+        executable: `/tools/${agent}`,
+        id: 'run-1',
+        nextSequence: 2,
+        onComplete: vi.fn(),
+        onCompletionError: vi.fn(),
+        onEvent: vi.fn(),
+        reference: 'activity.json#conversation=conversation-1',
+        request: { agent, command: [agent], prompt: 'Current request' },
+        rootPath: 'C:/repo',
+        startedAt: '2026-11-06T12:00:00.000Z',
+        streaming: true,
+    });
+    service.processes.set(run.id, run);
+    service.runningConversationIds.add(run.conversation.id);
+
+    return run;
+}
+
 function toolEvent(providerItemId) {
     return {
         event: {content: '', label: 'Command', providerItemId, status: 'inProgress', type: 'commandExecution'},
@@ -343,6 +373,60 @@ describe('AgentRunnerService published run status', () => {
 });
 
 describe('AgentRunnerService state handling', () => {
+    it.each(['codex', 'claude'])('persists acknowledged %s session before a cancelled terminal conversation', async (agent) => {
+        const checkpoint = Promise.withResolvers();
+        const persistConversationCheckpoint = vi.fn(() => checkpoint.promise);
+        const persistConversation = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversation, persistConversationCheckpoint });
+        const run = acknowledgedTurnRun(service, agent);
+
+        await service.handleStreamingEvent(run.id, { conversationId: `${agent}-session`, type: 'sessionStarted' });
+        const turnStarting = service.handleStreamingEvent(run.id, { type: 'turnStarted' });
+        run.protocolHandling = turnStarting;
+        run.cancelled = true;
+        const closing = service.handleClose(run.id, 1);
+        await Promise.resolve();
+
+        expect(persistConversation).not.toHaveBeenCalled();
+        checkpoint.resolve();
+        await turnStarting;
+        await closing;
+
+        expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({
+                providerSessions: [expect.objectContaining({
+                    agent,
+                    conversationId: `${agent}-session`,
+                    synchronizedThroughMessageId: 'user-1',
+                })],
+            }),
+        }));
+        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({
+                providerSessions: [expect.objectContaining({
+                    agent,
+                    conversationId: `${agent}-session`,
+                    synchronizedThroughMessageId: 'user-1',
+                })],
+                status: 'cancelled',
+            }),
+        }));
+    });
+
+    it.each(['codex', 'claude'])('does not persist %s session before provider turn acknowledgement', async (agent) => {
+        const persistConversationCheckpoint = vi.fn(async () => undefined);
+        const persistConversation = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversation, persistConversationCheckpoint });
+        const run = acknowledgedTurnRun(service, agent);
+
+        await service.handleStreamingEvent(run.id, { conversationId: `${agent}-session`, type: 'sessionStarted' });
+        run.cancelled = true;
+        await service.handleClose(run.id, 1);
+
+        expect(persistConversationCheckpoint).not.toHaveBeenCalled();
+        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({conversation: expect.objectContaining({ providerSessions: [], status: 'cancelled' })}));
+    });
+
     it('stores and publishes a streaming Codex plan update', async () => {
         const { onEvent, run, service } = streamingRunService();
         const adapter = createAgentStreamingAdapter(

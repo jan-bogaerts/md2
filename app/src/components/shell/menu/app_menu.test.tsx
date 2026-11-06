@@ -330,6 +330,44 @@ describe('AppMenu', () => {
         expect(commit).toHaveBeenCalledTimes(2)
     })
 
+    it('enables Home Commit for queued diagram copy and index changes and flushes both', async () => {
+        const bridge = createBridge()
+        await activateLocalProject(bridge)
+        const onDiagramPersisted = vi.fn()
+        const diagramPath = 'design/diagrams/edited-copy.json'
+        const indexPath = 'design/diagrams/diagram-view.json'
+        renderMenu()
+
+        act(() => {
+            dataService.scheduleDiagramCommit(
+                'diagram-copy',
+                diagramPath,
+                { content: '{"nodes":[]}', path: diagramPath },
+                'Save edited diagram copy',
+                onDiagramPersisted,
+            )
+            dataService.scheduleFileCommit(
+                { content: '{"diagrams":{}}', path: indexPath },
+                'Update diagram index',
+            )
+        })
+
+        const commitButton = screen.getByRole('button', { name: 'Commit' })
+        await waitFor(() => expect(commitButton).toBeEnabled())
+        fireEvent.click(commitButton)
+
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalledOnce())
+        expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({
+            branch: 'main',
+            files: expect.arrayContaining([
+                { content: '{"nodes":[]}', path: diagramPath },
+                { content: '{"diagrams":{}}', path: indexPath },
+            ]),
+        }))
+        expect(onDiagramPersisted).toHaveBeenCalledOnce()
+        await waitFor(() => expect(commitButton).toBeDisabled())
+    })
+
     it('prevents exact Ctrl+S without committing while Commit is disabled', async () => {
         const commit = vi.spyOn(projectSessionService, 'commit').mockResolvedValue()
         const bridge = createBridge()

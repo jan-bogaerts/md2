@@ -123,6 +123,8 @@ const ACTION_METHODS = [
     'startAction',
     'startUnattendedAction',
     'updateActionConversationViewed',
+    'updateActionConversationForEach',
+    'viewActionForEachData',
     'updateCardActionSettings',
 ];
 const AGENT_ACCOUNT_METHODS = [

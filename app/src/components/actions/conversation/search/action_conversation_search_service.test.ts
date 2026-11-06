@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
     ActionConversationSearchService,
     createConversationSearchDocument,
@@ -42,6 +42,84 @@ describe('ActionConversationSearchService', () => {
         document.body.replaceChildren()
         window.getSelection()?.removeAllRanges()
         Element.prototype.scrollIntoView = vi.fn()
+    })
+
+    describe('automatic search debounce', () => {
+        beforeEach(() => vi.useFakeTimers())
+        afterEach(() => vi.useRealTimers())
+
+        it('restarts the delay and searches only the latest draft after 800 ms', () => {
+            const service = new ActionConversationSearchService()
+            service.registerTranscript(transcript(), 'conversation-1')
+
+            service.setDraftTerm('alpha')
+            vi.advanceTimersByTime(799)
+            expect(service.getSubmittedTerm()).toBe('')
+            expect(service.getResultCount()).toBeNull()
+
+            service.setDraftTerm('beta')
+            vi.advanceTimersByTime(799)
+            expect(service.getSubmittedTerm()).toBe('')
+
+            vi.advanceTimersByTime(1)
+            expect(service.getSubmittedTerm()).toBe('beta')
+            expect(service.getResultCount()).toBe(1)
+            expect(window.getSelection()?.toString()).toBe('beta')
+        })
+
+        it('clears completed state immediately and cancels pending work', () => {
+            const service = new ActionConversationSearchService()
+            service.registerTranscript(transcript(), 'conversation-1')
+            service.setDraftTerm('alpha')
+            vi.advanceTimersByTime(800)
+            expect(service.getResultCount()).toBe(2)
+
+            service.setDraftTerm('beta')
+            service.setDraftTerm('')
+
+            expect(service.getSubmittedTerm()).toBe('')
+            expect(service.getResultCount()).toBeNull()
+            expect(service.getActiveMatchIndex()).toBeNull()
+            expect(window.getSelection()?.rangeCount).toBe(0)
+            vi.advanceTimersByTime(800)
+            expect(service.getResultCount()).toBeNull()
+        })
+
+        it('submits immediately and cancels the delayed duplicate', () => {
+            const service = new ActionConversationSearchService()
+            service.registerTranscript(transcript(), 'conversation-1')
+            service.setDraftTerm('alpha')
+
+            service.submitSearch()
+            service.selectNext()
+            expect(service.getActiveMatchIndex()).toBe(1)
+            vi.advanceTimersByTime(800)
+
+            expect(service.getActiveMatchIndex()).toBe(1)
+        })
+
+        it('reruns the current draft immediately when case mode changes', () => {
+            const service = new ActionConversationSearchService()
+            service.registerTranscript(transcript(), 'conversation-1')
+            service.setDraftTerm('Alpha')
+
+            service.toggleCaseSensitive()
+
+            expect(service.getSubmittedTerm()).toBe('Alpha')
+            expect(service.getResultCount()).toBe(1)
+        })
+
+        it('cancels pending work when transcript unmounts', () => {
+            const service = new ActionConversationSearchService()
+            const unregister = service.registerTranscript(transcript(), 'conversation-1')
+            service.setDraftTerm('alpha')
+
+            unregister()
+            vi.advanceTimersByTime(800)
+
+            expect(service.getSubmittedTerm()).toBe('')
+            expect(service.getResultCount()).toBeNull()
+        })
     })
 
     it('selects a match spanning text nodes and wraps navigation', () => {

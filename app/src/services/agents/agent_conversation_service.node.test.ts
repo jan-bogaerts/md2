@@ -117,6 +117,16 @@ describe('parseAgentConversationLog', () => {
             .toEqual(parseAgentConversation(JSON.stringify(source), 'design/logs/one.json'))
     })
 
+    it('keeps validated for-each data and settings across reloads', () => {
+        const forEach = {
+            failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt',
+            value: [{ country: 'Belgium' }],
+        } as const
+        const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
+
+        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach).toEqual(forEach)
+    })
+
     it('keeps a valid task list across reloads', () => {
         const taskList = {
             tasks: [

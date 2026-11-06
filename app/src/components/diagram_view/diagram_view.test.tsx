@@ -10,8 +10,8 @@ import type { DiagramScaleField } from '../../services/diagrams/diagram_formatti
 import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type {
-    DiagramItemMenuRequest, DiagramItemSubmenuKind, DiagramLegendPosition, DiagramViewSnapshot, DiagramViewService,
-    DiagramViewSourceSnapshot,
+    CurrentDiagramSelection, DiagramItemMenuRequest, DiagramItemSubmenuKind, DiagramLegendPosition,
+    DiagramViewSnapshot, DiagramViewService, DiagramViewSourceSnapshot,
 } from '../../services/diagrams/diagram_view_service'
 import { layout } from '../../services/diagrams/diagram_layout'
 import { DEFAULT_DIAGRAM_ZOOM } from '../../services/diagrams/diagram_zoom'
@@ -258,17 +258,16 @@ function createService(initial = initialSnapshot()) {
             rootMenu = { anchorElement }
             snapshotEvents.dispatchEvent(new Event('rootMenu'))
         }),
-        openSelectedItemPopup: vi.fn((anchorElement: HTMLElement) => {
-            if (!currentSelection) return
+        openSelectedItemPopup: vi.fn((anchorElement: HTMLElement, selection: CurrentDiagramSelection) => {
             publish({
                 ...snapshot,
                 popup: {
                     anchorElement,
                     context: {
-                        diagramId: currentSelection.activeDiagramId,
-                        diagramItemId: currentSelection.itemId,
+                        diagramId: selection.activeDiagramId,
+                        diagramItemId: selection.itemId,
                         kind: 'diagram',
-                        parentNode: currentSelection.itemLabel,
+                        parentNode: selection.itemLabel,
                         type: 'child',
                     },
                     id: 'selected-item-popup',

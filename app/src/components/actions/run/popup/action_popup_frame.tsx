@@ -2,7 +2,7 @@ import { Box, IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material
 import ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'
 import ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'
 import Close from 'mdi-material-ui/Close'
-import type { KeyboardEvent, ReactNode } from 'react'
+import { useCallback, useSyncExternalStore, type KeyboardEvent, type ReactNode } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
 import { ResizablePopper } from '../../../resizable_popper'
 import type { WorktreeAssignmentTarget } from '../../../worktree_selector'
@@ -14,6 +14,9 @@ import type { ActionConversationSearchService } from '../../conversation/search/
 import { ActionConversationSearchButton } from '../../conversation/search/action_conversation_search_button'
 import { ActionConversationSearchRow } from '../../conversation/search/action_conversation_search_row'
 import type { ActionRunBindingStore } from '../state/action_run_binding_store'
+import type { ActionRunInputStore } from '../state/action_run_input_store'
+import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
+import { resolveDisplayedConversation } from '../../conversation/state/action_conversation_store'
 import { ActionSelector } from './action_selector'
 import type { ActionPopupContentProps } from './action_popup_types'
 import { ActionPopupTargetBadge } from './action_popup_target_badge'
@@ -29,6 +32,7 @@ interface ActionPopupFrameProps {
     contentProps: ActionPopupContentProps
     conversationSearchService: ActionConversationSearchService
     conversationStore: ActionConversationStore
+    inputStore: ActionRunInputStore
 }
 
 function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget | null {
@@ -42,7 +46,7 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
 
 /** Shared popup surface, toolbar, and action selector. */
 export function ActionPopupFrame(
-    { bindingStore, children, contentProps, conversationSearchService, conversationStore }: ActionPopupFrameProps,
+    { bindingStore, children, contentProps, conversationSearchService, conversationStore, inputStore }: ActionPopupFrameProps,
 ) {
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,
@@ -50,6 +54,16 @@ export function ActionPopupFrame(
         subscribeFocusRequest, titleId,
     } = contentProps
     const theme = useTheme()
+    const boundRunId = useBoundRunId(bindingStore)
+    const liveConversation = useRunSelector(boundRunId, (run) => run?.conversation ?? null)
+    const getSelectedConversation = useCallback(
+        () => conversationStore.getSnapshot().selectedConversation,
+        [conversationStore],
+    )
+    const selectedConversation = useSyncExternalStore(conversationStore.subscribe, getSelectedConversation, getSelectedConversation)
+    const input = useSyncExternalStore(inputStore.subscribe, inputStore.getSnapshot, inputStore.getSnapshot)
+    const displayedConversation = resolveDisplayedConversation(liveConversation, selectedConversation)
+    const selectedHasForEach = !!(displayedConversation?.forEach ?? input.forEachByAction[action.id])
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const sizeStorageKey = baseContext.kind === 'project'
         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY
@@ -163,6 +177,7 @@ export function ActionPopupFrame(
                             context={assignmentContext}
                             onSelect={onSelectAction}
                             selectedAction={action}
+                            selectedHasForEach={selectedHasForEach}
                         />
                         <ActionConversationSearchRow service={conversationSearchService} />
                     </Box>

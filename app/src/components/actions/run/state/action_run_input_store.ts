@@ -1,6 +1,9 @@
+import type { ActionForEachConfig } from '../../../../data/action_run_types'
+
 interface ActionRunInputSnapshot {
     actionLabel: string
     convertMessage: string | null
+    forEachByAction: Readonly<Record<string, ActionForEachConfig>>
 }
 
 type Listener = () => void
@@ -8,6 +11,7 @@ type Listener = () => void
 const INITIAL_SNAPSHOT: ActionRunInputSnapshot = {
     actionLabel: '',
     convertMessage: null,
+    forEachByAction: {},
 }
 
 /** Owns editable run options without subscribing popup roots. */
@@ -29,6 +33,13 @@ export class ActionRunInputStore {
 
     setConvertMessage(convertMessage: string | null) {
         this.publish({ ...this.snapshot, convertMessage })
+    }
+
+    setForEach(actionId: string, forEach: ActionForEachConfig | null) {
+        const forEachByAction = { ...this.snapshot.forEachByAction }
+        if (forEach) forEachByAction[actionId] = forEach
+        else delete forEachByAction[actionId]
+        this.publish({ ...this.snapshot, forEachByAction })
     }
 
     private publish(snapshot: ActionRunInputSnapshot) {

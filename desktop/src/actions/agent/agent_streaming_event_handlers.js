@@ -41,7 +41,7 @@ async function handleCompactRejected(service, run, event) {
     service.settleCompact(run, event.error);
 }
 
-function handleTurnStarted(service, run) {
+async function handleTurnStarted(service, run, event, timestamp) {
     run.turnActive = true;
     run.assistantItemIndex = 0;
     run.assistantItems.clear();
@@ -49,6 +49,13 @@ function handleTurnStarted(service, run) {
     run.currentAssistantMessageId = null;
     run.liveTurnUsage = null;
     run.turnStarted = true;
+    if (run.activeCompact) return;
+
+    requireString(run.providerConversationId, 'provider session id');
+    const userMessage = lastMessageEntry(run.conversation);
+    if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message at turn start');
+    updateProviderSession(run, userMessage.id, timestamp);
+    await service.persistCheckpoint(run);
 }
 
 /**

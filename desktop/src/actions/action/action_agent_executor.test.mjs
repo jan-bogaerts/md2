@@ -86,11 +86,16 @@ function executionInput(overrides = {}) {
 }
 
 describe('ActionAgentExecutor', () => {
-    it.each(['codex', 'claude'])('resumes %s solely to compact without prompt, transcript replay, or card references', async (provider) => {
+    it.each(['codex', 'claude'])('reloads stopped acknowledged %s session solely to compact', async (provider) => {
         const { agentRunnerService, executor, localGitService } = createExecutor();
         localGitService.loadAgentConversation.mockResolvedValue(conversation({
             actionId: action.id,
-            providerSessions: [{ agent: provider, conversationId: 'provider-session', synchronizedThroughMessageId: 'm1' }],
+            entries: [
+                { content: 'old answer', id: 'm1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' },
+                { content: 'stopped request', id: 'm2', kind: 'message', role: 'user', timestamp: '2026-01-01T00:01:00.000Z' },
+            ],
+            providerSessions: [{ agent: provider, conversationId: 'provider-session', synchronizedThroughMessageId: 'm2' }],
+            status: 'cancelled',
         }));
         const input = executionInput({
             compactOnly: true,

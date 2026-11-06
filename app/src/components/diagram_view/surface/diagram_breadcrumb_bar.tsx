@@ -6,8 +6,13 @@ import { useMemo, useSyncExternalStore } from 'react';
 import { actionsForContext, diagramContext } from '../../../data/action_context';
 import { dialogService } from '../../../services/dialog_service';
 import type { DiagramRecord } from '../../../services/diagrams/diagram_index';
-import type { DiagramViewService } from '../../../services/diagrams/diagram_view_service';
+import {
+    resolveCurrentDiagramSelection, type DiagramViewService,
+} from '../../../services/diagrams/diagram_view_service';
 import { diagramEditSessionService, type DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service';
+import {
+    diagramSelectionService, type DiagramSelectionService,
+} from '../../../services/diagrams/diagram_selection_service';
 import { DiagramBreadcrumbMetadataField } from './diagram_breadcrumb_metadata_field';
 import { DiagramCurrentSubtitle } from './diagram_current_subtitle';
 import { useActions } from '../../hooks/use_actions';
@@ -25,13 +30,23 @@ function diagramTitle(record: DiagramRecord, actions: ReturnType<typeof useActio
 }
 
 interface DiagramBreadcrumbBarProps {
+    selection?: DiagramSelectionService;
     service: DiagramViewService;
     session?: DiagramEditSessionService;
 }
 
 /** Overlay navigation and action controls for active diagram path. */
-export function DiagramBreadcrumbBar({ service, session = diagramEditSessionService }: DiagramBreadcrumbBarProps) {
+export function DiagramBreadcrumbBar({
+    selection = diagramSelectionService,
+    service,
+    session = diagramEditSessionService,
+}: DiagramBreadcrumbBarProps) {
     const index = useSyncExternalStore(service.subscribeIndex, service.getIndexSnapshot, service.getIndexSnapshot);
+    const currentDiagram = useSyncExternalStore(
+        service.subscribeCurrentDiagram,
+        service.getCurrentDiagramSnapshot,
+        service.getCurrentDiagramSnapshot,
+    );
     const rootMenu = useSyncExternalStore(
         service.subscribeRootMenu,
         service.getRootMenuSnapshot,
@@ -45,11 +60,21 @@ export function DiagramBreadcrumbBar({ service, session = diagramEditSessionServ
     const editSession = useSyncExternalStore(
         session.read.subscribeSession, session.read.getSessionSnapshot, session.read.getSessionSnapshot,
     );
+    const editorSelection = useSyncExternalStore(
+        selection.subscribeSelection,
+        selection.getSelectionSnapshot,
+        selection.getSelectionSnapshot,
+    );
     const { actions } = useActions();
     const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions]);
     const activeRecords = index.activePath.map((id) => index.diagrams[id]);
     const activeRecord = activeRecords.at(-1);
     const editingActive = !!activeRecord && editSession?.sourceDiagramId === activeRecord.id;
+    const selectedParent = editingActive && editorSelection.length > 0
+        ? editorSelection.length === 1
+            ? resolveCurrentDiagramSelection(currentDiagram, activeRecord.id, editorSelection[0])
+            : null
+        : selectedItem;
     const rootDiagrams = service.getRootDiagrams();
 
     const handleBack = () => {
@@ -81,8 +106,9 @@ export function DiagramBreadcrumbBar({ service, session = diagramEditSessionServ
             .catch((error: unknown) => reportFailure(error, 'Diagram navigation failed'));
     };
     const handleAdd = (event: MouseEvent<HTMLButtonElement>) => {
+        if (!selectedParent) return;
         try {
-            service.openSelectedItemPopup(event.currentTarget);
+            service.openSelectedItemPopup(event.currentTarget, selectedParent);
         } catch (error) {
             reportFailure(error, 'Child diagram action could not be opened');
         }
@@ -145,9 +171,9 @@ export function DiagramBreadcrumbBar({ service, session = diagramEditSessionServ
                         );
                     })}
                 </Breadcrumbs>
-                <Tooltip title={selectedItem ? 'Add child diagram' : 'Select a diagram item to add a child diagram'}>
+                <Tooltip title={selectedParent ? 'Add child diagram' : 'Select a diagram item to add a child diagram'}>
                     <span>
-                        <IconButton aria-label="Add child diagram" disabled={!selectedItem} onClick={handleAdd} size="small">
+                        <IconButton aria-label="Add child diagram" disabled={!selectedParent} onClick={handleAdd} size="small">
                             <AddOutlined />
                         </IconButton>
                     </span>

@@ -6,7 +6,10 @@ import { parseDiagramData, type DiagramData } from '../../../services/diagrams/d
 import { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service';
 import type { DiagramIndex, DiagramRecord } from '../../../services/diagrams/diagram_index';
 import { layout, type PositionedDiagramData } from '../../../services/diagrams/diagram_layout';
-import type { DiagramRootMenuState, DiagramViewService, DiagramViewSourceSnapshot } from '../../../services/diagrams/diagram_view_service';
+import { DiagramSelectionService } from '../../../services/diagrams/diagram_selection_service';
+import type {
+    CurrentDiagramSelection, DiagramRootMenuState, DiagramViewService, DiagramViewSourceSnapshot,
+} from '../../../services/diagrams/diagram_view_service';
 import { DiagramBreadcrumbBar } from './diagram_breadcrumb_bar';
 
 const actions = vi.hoisted(() => [
@@ -27,6 +30,50 @@ function diagramData(title: string, description: string): DiagramData {
     return { edges: [], groups: [], meta: { description, legend: [], title, type: 'architecture', version: 3 }, nodes: [] };
 }
 
+function architectureDiagram(): DiagramData {
+    return {
+        edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', legendEntryId: 'connection', to: 'store' }],
+        groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
+        meta: {
+            description: 'Orders architecture',
+            legend: [
+                { id: 'focal', label: 'Focal', role: 'focal' },
+                { id: 'store', label: 'Store', role: 'store' },
+                { id: 'connection', kind: 'connection', label: 'Connection', useLabelAsDefault: false },
+            ],
+            title: 'Orders',
+            type: 'architecture',
+            version: 3,
+        },
+        nodes: [
+            { id: 'orders', label: 'Orders', legendEntryId: 'focal', role: 'focal' },
+            { id: 'store', label: 'Store', legendEntryId: 'store', role: 'store' },
+        ],
+    };
+}
+
+function mindmapDiagram(): DiagramData {
+    return {
+        edges: [{ from: 'root', id: 'root-topic', kind: 'connection', legendEntryId: 'connection', to: 'topic' }],
+        groups: [],
+        meta: {
+            description: 'Ideas',
+            legend: [
+                { id: 'root', label: 'Root', nodeKind: 'root' },
+                { id: 'topic', label: 'Topic', nodeKind: 'topic' },
+                { id: 'connection', kind: 'connection', label: 'Connection', useLabelAsDefault: false },
+            ],
+            title: 'Ideas',
+            type: 'mindmap',
+            version: 3,
+        },
+        nodes: [
+            { height: 128, id: 'root', kind: 'root', label: 'Root', legendEntryId: 'root', role: 'focal', width: 128 },
+            { height: 96, id: 'topic', kind: 'topic', label: 'Persisted topic', legendEntryId: 'topic', role: 'backend', width: 96 },
+        ],
+    };
+}
+
 function diagramIndex(activePath: string[]): DiagramIndex {
     return {
         activePath,
@@ -40,7 +87,7 @@ function diagramIndex(activePath: string[]): DiagramIndex {
 /** Minimal view service exposing the breadcrumb bar's subscriptions and navigation commands. */
 class ViewServiceStub extends EventTarget {
     private currentDiagram: PositionedDiagramData;
-    private readonly currentSelectedItem = null;
+    private currentSelectedItem: CurrentDiagramSelection | null = null;
     private index: DiagramIndex;
     private readonly rootDiagrams = [rootRecord, otherRecord];
     private rootMenu: DiagramRootMenuState | null = null;
@@ -69,6 +116,11 @@ class ViewServiceStub extends EventTarget {
         this.currentDiagram = layout(data);
         this.dispatchEvent(new Event('index'));
         this.dispatchEvent(new Event('currentDiagram'));
+    }
+
+    selectCurrent(selection: CurrentDiagramSelection | null) {
+        this.currentSelectedItem = selection;
+        this.dispatchEvent(new Event('currentSelectedItem'));
     }
 
     subscribeCurrentDiagram = (listener: () => void) => this.listen('currentDiagram', listener);
@@ -113,8 +165,21 @@ function createEditSession(record: DiagramRecord, data: DiagramData) {
     return session;
 }
 
-function renderBar(stub: ViewServiceStub, session: DiagramEditSessionService) {
-    return render(<DiagramBreadcrumbBar service={stub as unknown as DiagramViewService} session={session} />);
+function renderBar(
+    stub: ViewServiceStub,
+    session: DiagramEditSessionService,
+    selection = new DiagramSelectionService(session),
+) {
+    return {
+        ...render(
+            <DiagramBreadcrumbBar
+                selection={selection}
+                service={stub as unknown as DiagramViewService}
+                session={session}
+            />,
+        ),
+        selection,
+    };
 }
 
 afterEach(cleanup);
@@ -209,5 +274,85 @@ describe('DiagramBreadcrumbBar', () => {
         expect(dropdown).toHaveAttribute('aria-expanded', 'true');
         expect(title).toHaveValue('Overview draft');
         expect(session.read.getMetadataFieldSnapshot('title')).toBe('Overview');
+    });
+
+    it('opens a child action for one persisted node selected in an editable mind map', async () => {
+        const data = mindmapDiagram();
+        const stub = new ViewServiceStub(['root-1'], data);
+        const session = createEditSession(rootRecord, data);
+        const { selection } = renderBar(stub, session);
+        const user = userEvent.setup();
+
+        act(() => {
+            session.objects.setNodeField('topic', 'label', 'Draft topic');
+            selection.replace([{ objectId: 'topic', objectKind: 'node' }]);
+        });
+        const add = screen.getByRole('button', { name: 'Add child diagram' });
+        expect(add).toBeEnabled();
+
+        await user.click(add);
+
+        const persistedTopic = { activeDiagramId: 'root-1', itemId: 'topic', itemLabel: 'Persisted topic', objectKind: 'node' };
+        expect(stub.openSelectedItemPopup).toHaveBeenCalledWith(expect.any(HTMLElement), persistedTopic);
+    });
+
+    it('opens a child action for a persisted connection in another editable diagram type', async () => {
+        const data = architectureDiagram();
+        const stub = new ViewServiceStub(['root-1'], data);
+        const session = createEditSession(rootRecord, data);
+        const { selection } = renderBar(stub, session);
+        const user = userEvent.setup();
+
+        act(() => selection.replace([{ objectId: 'orders-store', objectKind: 'edge' }]));
+        await user.click(screen.getByRole('button', { name: 'Add child diagram' }));
+
+        const persistedConnection = { activeDiagramId: 'root-1', itemId: 'orders-store', itemLabel: 'Orders to Store', objectKind: 'edge' };
+        expect(stub.openSelectedItemPopup).toHaveBeenCalledWith(expect.any(HTMLElement), persistedConnection);
+    });
+
+    it('uses Current selection when an active editor has no selection', async () => {
+        const data = architectureDiagram();
+        const stub = new ViewServiceStub(['root-1'], data);
+        const session = createEditSession(rootRecord, data);
+        const currentSelection = { activeDiagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node' } as const;
+        stub.selectCurrent(currentSelection);
+        renderBar(stub, session);
+        const user = userEvent.setup();
+
+        await user.click(screen.getByRole('button', { name: 'Add child diagram' }));
+
+        expect(stub.openSelectedItemPopup).toHaveBeenCalledWith(expect.any(HTMLElement), currentSelection);
+    });
+
+    it.each([
+        ['multiple objects', [
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'store', objectKind: 'node' },
+        ]],
+        ['a group', [{ objectId: 'backend', objectKind: 'group' }]],
+    ] as const)('disables child action for %s selected in the editor', (_case, editorSelection) => {
+        const data = architectureDiagram();
+        const stub = new ViewServiceStub(['root-1'], data);
+        const session = createEditSession(rootRecord, data);
+        const { selection } = renderBar(stub, session);
+
+        act(() => selection.replace(editorSelection));
+
+        expect(screen.getByRole('button', { name: 'Add child diagram' })).toBeDisabled();
+    });
+
+    it('disables child action for a newly added editor item missing from Current', () => {
+        const data = architectureDiagram();
+        const stub = new ViewServiceStub(['root-1'], data);
+        const editorData = {
+            ...data,
+            nodes: [...data.nodes, { id: 'new-node', label: 'New node', legendEntryId: 'focal', role: 'focal' as const }],
+        };
+        const session = createEditSession(rootRecord, editorData);
+        const { selection } = renderBar(stub, session);
+
+        act(() => selection.replace([{ objectId: 'new-node', objectKind: 'node' }]));
+
+        expect(screen.getByRole('button', { name: 'Add child diagram' })).toBeDisabled();
     });
 });

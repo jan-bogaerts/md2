@@ -17,12 +17,14 @@ class TestActionService extends EventTarget {
 }
 
 class TestDataService extends EventTarget {
+    private readonly persistenceCallbacks: (() => void)[] = []
     private readonly saveReferences: OpenDocumentSaveReference[] = []
     snapshot: DataPersistenceSnapshot = { hasPendingFileCommit: false, hasPendingPush: false, isSaving: false }
     pendingFileCommits: string[] = []
     readonly cards = {
         flushPendingCommits: vi.fn(async () => {
             this.saveReferences.splice(0).forEach(({ acknowledge }) => acknowledge())
+            this.persistenceCallbacks.splice(0).forEach((onPersisted) => onPersisted())
             this.snapshot = { ...this.snapshot, hasPendingFileCommit: false }
         }),
         updateCardBody: vi.fn((_path: string, _content: string, saveReference?: OpenDocumentSaveReference) => {
@@ -34,6 +36,16 @@ class TestDataService extends EventTarget {
     })
     readonly scheduleFileCommit = vi.fn((_file: MarkdownFile, _message: string, saveReference?: OpenDocumentSaveReference) => {
         if (saveReference) this.saveReferences.push(saveReference)
+        this.snapshot = { ...this.snapshot, hasPendingFileCommit: true }
+    })
+    readonly scheduleDiagramCommit = vi.fn((
+        _diagramId: string,
+        _sourcePath: string,
+        _file: MarkdownFile,
+        _message: string,
+        onPersisted: () => void,
+    ) => {
+        this.persistenceCallbacks.push(onPersisted)
         this.snapshot = { ...this.snapshot, hasPendingFileCommit: true }
     })
     getPersistenceSnapshot() { return this.snapshot }
@@ -137,6 +149,32 @@ describe('ProjectPersistenceService', () => {
         await service.flushPendingChanges()
 
         expect(calls).toEqual(['actions', 'card-draft', 'batch'])
+    })
+
+    it('marks queued diagram copy and index changes dirty and flushes them through shared persistence', async () => {
+        const { dataService, service } = initService()
+        const onDiagramPersisted = vi.fn()
+        const diagramPath = 'design/diagrams/edited-copy.json'
+        dataService.scheduleDiagramCommit(
+            'diagram-copy',
+            diagramPath,
+            { content: '{"nodes":[]}', path: diagramPath },
+            'Save edited diagram copy',
+            onDiagramPersisted,
+        )
+        dataService.scheduleFileCommit(
+            { content: '{"diagrams":{}}', path: 'design/diagrams/diagram-view.json' },
+            'Update diagram index',
+        )
+        dataService.publishPersistenceChange()
+
+        expect(service.getSnapshot()).toEqual({ hasPendingPush: false, hasPendingSave: true, localSaveState: 'dirty' })
+
+        await service.flushPendingChanges()
+
+        expect(dataService.cards.flushPendingCommits).toHaveBeenCalledOnce()
+        expect(onDiagramPersisted).toHaveBeenCalledOnce()
+        expect(service.getSnapshot()).toEqual({ hasPendingPush: false, hasPendingSave: false, localSaveState: 'saved' })
     })
 
     it('stages dirty instruction documents with save acknowledgement', async () => {

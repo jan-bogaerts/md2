@@ -544,13 +544,16 @@ describe('DiagramViewService', () => {
         service.selectCurrentObject({ activeDiagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node' })
         const anchorElement = document.createElement('button')
 
-        service.openSelectedItemPopup(anchorElement)
+        const draftSelection = { activeDiagramId: 'root-1', itemId: 'orders', itemLabel: 'Draft orders', objectKind: 'node' } as const
+        service.openSelectedItemPopup(anchorElement, draftSelection)
 
         expect(service.getPopupSnapshot()).toEqual({
             anchorElement,
             context: { diagramId: 'root-1', diagramItemId: 'orders', kind: 'diagram', parentNode: 'Orders', type: 'child' },
             id: 'popup-1',
         })
+        const currentSelection = { activeDiagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node' }
+        expect(service.getCurrentSelectedItemSnapshot()).toEqual(currentSelection)
 
         run(completedEvent({ diagramPath: 'design/diagrams/overview-2.json', runId: 'run-2' }))
         await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-2'))
@@ -559,7 +562,10 @@ describe('DiagramViewService', () => {
         await service.navigateToSavedDiagram('root-1')
 
         expect(service.getCurrentSelectedItemSnapshot()).toBeNull()
-        expect(() => service.openSelectedItemPopup(anchorElement)).toThrow('without a selected Current item')
+        const staleParent = { activeDiagramId: 'root-2', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node' } as const
+        const missingParent = { activeDiagramId: 'root-1', itemId: 'missing', itemLabel: 'Missing', objectKind: 'node' } as const
+        expect(() => service.openSelectedItemPopup(anchorElement, staleParent)).toThrow('stale persisted parent')
+        expect(() => service.openSelectedItemPopup(anchorElement, missingParent)).toThrow('missing persisted item')
     })
 
     it('owns transient legend state and resets it only when project changes or service clears', async () => {

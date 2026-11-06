@@ -152,6 +152,7 @@ function createConversation(request, id, startedAt, reference) {
         cardPath: request.cardPath ?? null,
         completedAt: null,
         entries: [],
+        ...(request.forEach ? { forEach: request.forEach } : {}),
         hasExplicitTitle: true,
         id,
         path: reference,

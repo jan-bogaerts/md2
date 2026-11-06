@@ -90,7 +90,7 @@ describe('DiagramMenuTab', () => {
         const session = createSession(source);
         session.start();
         render(<DiagramMenuTab session={session} viewService={source as unknown as DiagramViewService} />);
-        const names = ['Select', 'Pan', 'Add tool', 'Cut', 'Copy', 'Paste', 'Format Paste', 'Delete', 'Saved', 'Metadata', 'Legend'];
+        const names = ['Select', 'Pan', 'Add tool', 'Cut', 'Copy', 'Paste', 'Format Paste', 'Delete', 'Metadata', 'Legend'];
         const buttons = screen.getAllByRole('button');
         const indexes = names.map((name) => buttons.indexOf(screen.getByRole('button', { name })));
         expect(indexes).toEqual([...indexes].sort((left, right) => left - right));
@@ -101,6 +101,7 @@ describe('DiagramMenuTab', () => {
         expect(toolButtons.filter((button) => button.getAttribute('aria-pressed') === 'true')).toHaveLength(1);
         expect(screen.getByRole('button', { name: 'Add Component' })).toHaveAttribute('aria-pressed', 'true');
         expect(screen.queryByText('Add', { selector: 'button' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^(Save|Saved)$/u })).not.toBeInTheDocument();
     });
 
     it('shows Edit only with a current diagram, then shows editing controls', async () => {
@@ -111,6 +112,7 @@ describe('DiagramMenuTab', () => {
 
         expect(screen.getByRole('button', { name: 'Edit diagram' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^(Save|Saved)$/u })).not.toBeInTheDocument();
         for (const label of ['font size', 'box size', 'spacing']) {
             expect(screen.getByRole('button', { name: `Adjust Current ${label}` })).toBeInTheDocument();
             expect(screen.queryByRole('button', { name: `Adjust New ${label}` })).not.toBeInTheDocument();
@@ -119,9 +121,10 @@ describe('DiagramMenuTab', () => {
         await user.click(screen.getByRole('button', { name: 'Edit diagram' }));
 
         expect(screen.queryByRole('button', { name: 'Edit diagram' })).not.toBeInTheDocument();
-        for (const name of ['Select', 'Pan', 'Cut', 'Copy', 'Paste', 'Format Paste', 'Delete', 'Saved', 'Metadata', 'Legend']) {
+        for (const name of ['Select', 'Pan', 'Cut', 'Copy', 'Paste', 'Format Paste', 'Delete', 'Metadata', 'Legend']) {
             expect(screen.getByRole('button', { name })).toBeInTheDocument();
         }
+        expect(screen.queryByRole('button', { name: /^(Save|Saved)$/u })).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Choose Add tool' })).toHaveAttribute('aria-expanded', 'false');
         expect(screen.getByRole('group', { name: 'Diagram comparison layout' })).toBeInTheDocument();
     });
@@ -175,5 +178,6 @@ describe('DiagramMenuTab', () => {
         expect(screen.getByRole('button', { name: 'Adjust New font size' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Adjust Current font size' })).not.toBeInTheDocument();
         expect(screen.queryByRole('group', { name: 'Diagram comparison layout' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^(Save|Saved)$/u })).not.toBeInTheDocument();
     });
 });

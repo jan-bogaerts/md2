@@ -208,6 +208,14 @@ export class CardOperations {
     }
 
     updateCardBody(path: string, body: string, saveReference?: OpenDocumentSaveReference) {
+        const card = this.context.dependencies.requireCard(path)
+        if (!card.header.internalId) {
+            const sourceFile = this.context.dependencies.requireFile(path)
+            const file = { ...sourceFile, content: markdownParsingService.replaceBody(sourceFile.content, body) }
+
+            return this.context.saveFile(file, saveReference)
+        }
+
         return this.context.saveCardChange(path, (card) => setCardBody(card, body), saveReference)
     }
 

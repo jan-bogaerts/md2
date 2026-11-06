@@ -1,5 +1,7 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell } = require('electron');
 const { existsSync } = require('node:fs');
+const { writeFile } = require('node:fs/promises');
+const crypto = require('node:crypto');
 const https = require('node:https');
 const path = require('node:path');
 
@@ -199,6 +201,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     uncommittedProjectWrites,
     updateCodexCli,
     usageMetricsService,
+    viewActionForEachData,
     worktreeService,
 });
 const remoteControlService = new RemoteControlService(localBridgeDispatch);
@@ -263,6 +266,15 @@ async function openAgentAccountFolder(window) {
     if (result.canceled || result.filePaths.length === 0) return null;
 
     return result.filePaths[0];
+}
+
+async function viewActionForEachData(fileName, value) {
+    if (typeof fileName !== 'string' || fileName.length === 0) throw new Error('Missing for-each file name');
+    const safeName = path.basename(fileName).replace(/[^a-zA-Z0-9._-]/gu, '_');
+    const filePath = path.join(app.getPath('temp'), `md2-for-each-${crypto.randomUUID()}-${safeName}`);
+    await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+    const openError = await shell.openPath(filePath);
+    if (openError) throw new Error(openError);
 }
 
 function subscriptionKey(webContents, subscriptionId) {

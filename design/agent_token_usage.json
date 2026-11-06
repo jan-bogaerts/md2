@@ -1,12 +1,12 @@
 {
   "projectUsage": {
-    "cachedInputTokens": 2988033832,
-    "inputTokens": 71201609,
+    "cachedInputTokens": 3043547463,
+    "inputTokens": 72972087,
     "legacyTotalTokens": 102187118,
-    "outputTokens": 10936808,
-    "reasoningTokens": 3160961,
-    "totalTokens": 3175520328,
-    "costUsd": 670.6279426499997
+    "outputTokens": 11121845,
+    "reasoningTokens": 3232835,
+    "totalTokens": 3233061348,
+    "costUsd": 673.6962904499998
   },
   "releases": {
     "0_1_0": {
@@ -106,6 +106,15 @@
       "reasoningTokens": 257123,
       "totalTokens": 402442562,
       "costUsd": 78.66265480000001
+    },
+    "0.11.0": {
+      "cachedInputTokens": 55556511,
+      "inputTokens": 1767858,
+      "legacyTotalTokens": 0,
+      "outputTokens": 184908,
+      "reasoningTokens": 71275,
+      "totalTokens": 57580552,
+      "costUsd": 3.068347799999999
     }
   },
   "schemaVersion": 1

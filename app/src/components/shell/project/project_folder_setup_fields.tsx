@@ -82,7 +82,7 @@ const FOLDER_GROUPS: FolderGroupDescriptor[] = [
         title: 'Project folder',
     },
     {
-        description: 'These folders contain files MD² reads or writes while work on the project is active.',
+        description: 'These folders contain currently active files that MD² shows in the kanban, diagram editor and action popups.',
         group: 'current',
         id: 'project-folder-setup-current',
         title: 'Current project files',

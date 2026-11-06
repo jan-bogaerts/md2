@@ -157,6 +157,21 @@ export function getMarkdownSearchSeed(editor: LexicalEditor) {
     })
 }
 
+function $selectTextMatch(match: MarkdownTextMatch, document: MarkdownSearchDocument) {
+    const points = matchPoints(match, document.segments)
+    if (!points) return null
+
+    const selection = $createRangeSelection()
+    selection.anchor.set(points.anchor.key, points.anchor.offset, 'text')
+    selection.focus.set(points.focus.key, points.focus.offset, 'text')
+    $setSelection(selection)
+    return selection
+}
+
+function scrollNodeIntoView(editor: LexicalEditor, key: NodeKey | null) {
+    if (key) editor.getElementByKey(key)?.scrollIntoView?.({ block: 'nearest' })
+}
+
 /** Selects one match without changing editor content or history. */
 export function selectMarkdownTextMatch(
     editor: LexicalEditor,
@@ -175,21 +190,85 @@ export function selectMarkdownTextMatch(
         const match = findMarkdownTextMatch(matches, offset, direction)
         if (!match) return
 
-        const points = matchPoints(match, document.segments)
-        if (!points) return
+        const selection = $selectTextMatch(match, document)
+        if (!selection) return
 
-        const selection = $createRangeSelection()
-        selection.anchor.set(points.anchor.key, points.anchor.offset, 'text')
-        selection.focus.set(points.focus.key, points.focus.offset, 'text')
-        $setSelection(selection)
-        selectedKey = points.anchor.key
+        selectedKey = selection.anchor.key
         result.match = match
     }, {
         discrete: true,
-        onUpdate: () => {
-            if (selectedKey) editor.getElementByKey(selectedKey)?.scrollIntoView?.({ block: 'nearest' })
-        },
+        onUpdate: () => scrollNodeIntoView(editor, selectedKey),
     })
 
     return result
+}
+
+/**
+ * Replaces current match when it still exists, then selects next remaining match after inserted text.
+ * Result count and match describe document after replacement.
+ */
+export function replaceMarkdownTextMatch(
+    editor: LexicalEditor,
+    term: string,
+    currentMatch: MarkdownTextMatch,
+    caseSensitive: boolean,
+    replacement: string,
+) {
+    let selectedKey: NodeKey | null = null
+    const result: MarkdownTextSearchResult = { count: 0, match: null }
+
+    editor.update(() => {
+        const document = createSearchDocument()
+        const matches = findMarkdownTextMatches(document.text, term, caseSensitive)
+        result.count = matches.length
+        const match = matches.find(({ end, start }) => start === currentMatch.start && end === currentMatch.end)
+        if (!match) return
+
+        const selection = $selectTextMatch(match, document)
+        if (!selection) return
+
+        selection.insertText(replacement)
+        const nextDocument = createSearchDocument()
+        const nextMatches = findMarkdownTextMatches(nextDocument.text, term, caseSensitive)
+        result.count = nextMatches.length
+        const nextMatch = findMarkdownTextMatch(nextMatches, match.start + replacement.length, 'next')
+        if (!nextMatch) return
+
+        const nextSelection = $selectTextMatch(nextMatch, nextDocument)
+        if (!nextSelection) return
+
+        selectedKey = nextSelection.anchor.key
+        result.match = nextMatch
+    }, {
+        discrete: true,
+        onUpdate: () => scrollNodeIntoView(editor, selectedKey),
+    })
+
+    return result
+}
+
+/**
+ * Replaces every match present before the action in one editor update, from document end toward start,
+ * so earlier offsets stay valid and inserted text is never searched again. Returns remaining match count.
+ */
+export function replaceAllMarkdownTextMatches(
+    editor: LexicalEditor,
+    term: string,
+    caseSensitive: boolean,
+    replacement: string,
+) {
+    let count = 0
+
+    editor.update(() => {
+        const matches = findMarkdownTextMatches($getRoot().getTextContent(), term, caseSensitive)
+        for (const match of matches.toReversed()) {
+            const selection = $selectTextMatch(match, createSearchDocument())
+            if (!selection) throw new Error(`Markdown replace could not map match at ${match.start}`)
+
+            selection.insertText(replacement)
+        }
+        count = findMarkdownTextMatches($getRoot().getTextContent(), term, caseSensitive).length
+    }, { discrete: true })
+
+    return count
 }

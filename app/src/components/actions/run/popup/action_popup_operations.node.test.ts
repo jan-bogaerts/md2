@@ -237,6 +237,27 @@ describe('runPopupAction waiting follow-up', () => {
         expect(draft.getSnapshot()).toBe('Newer editor text')
     })
 
+    it('submits draft for-each configuration with a new conversation', async () => {
+        runAction.mockResolvedValue({ changedPaths: [], logs: [], status: 'completed' })
+        const inputStore = new ActionRunInputStore()
+        const forEach = {
+            failurePolicy: 'logAndContinue' as const, fileName: 'records.json', mode: 'addPrompt' as const,
+            value: [{ name: 'first' }],
+        }
+        inputStore.setForEach(action.id, forEach)
+        const operation = operationInput(inputStore, undefined, {
+            continuationPath: () => null,
+            getSnapshot: () => ({ conversations: [], loading: false, pinningConversationId: null, selectedConversation: null }),
+            load: vi.fn(async () => undefined),
+        })
+        operation.bindingStore.setRunId(null)
+        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('{{data name}}')
+
+        await runPopupAction(operation)
+
+        expect(runAction).toHaveBeenCalledWith(action, expect.any(Object), expect.objectContaining({ forEach }), expect.any(Function))
+    })
+
     it('keeps a newer history selection when a pending run starts', async () => {
         const completion = deferred<{ changedPaths: string[], logs: [], status: 'completed' }>()
         let started: ((runId: string) => void) | null = null

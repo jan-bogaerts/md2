@@ -47,6 +47,7 @@ import {
 import { layout, type PositionedDiagramData } from './diagram_layout'
 import { DEFAULT_DIAGRAM_ZOOM } from './diagram_zoom'
 import { createEmptyDiagramData, type EmptyDiagramChoice } from './empty_diagram_factory'
+import type { DiagramSelectionIdentity } from './diagram_selection_service'
 
 const DIAGRAM_INDEX_COMMIT_MESSAGE = 'Update diagram view'
 const EMPTY_DIAGRAM_COMMIT_MESSAGE = 'Create empty diagram'
@@ -105,6 +106,30 @@ export interface CurrentDiagramSelection {
     itemId: string
     itemLabel: string
     objectKind: 'edge' | 'node'
+}
+
+/** Resolves an editor identity to its canonical item in the active persisted diagram. */
+export function resolveCurrentDiagramSelection(
+    diagram: PositionedDiagramData | null,
+    activeDiagramId: string | undefined,
+    identity: DiagramSelectionIdentity,
+): CurrentDiagramSelection | null {
+    if (!diagram || !activeDiagramId || identity.objectKind === 'group') return null
+
+    if (identity.objectKind === 'node') {
+        const node = diagram.nodes.find(({ id }) => id === identity.objectId)
+        if (!node) return null
+
+        return { activeDiagramId, itemId: node.id, itemLabel: node.label, objectKind: 'node' }
+    }
+
+    const edge = diagram.edges.find(({ id }) => id === identity.objectId)
+    if (!edge) return null
+    const fromLabel = diagram.nodes.find(({ id }) => id === edge.from)?.label ?? edge.from
+    const toLabel = diagram.nodes.find(({ id }) => id === edge.to)?.label ?? edge.to
+    const itemLabel = edge.label ?? `${fromLabel} to ${toLabel}`
+
+    return { activeDiagramId, itemId: edge.id, itemLabel, objectKind: 'edge' }
 }
 
 export interface DiagramLegendPosition {
@@ -602,15 +627,20 @@ export class DiagramViewService extends EventTarget {
         this.setPopup(this.createPopupState(menu.anchorElement, context, actionId))
     }
 
-    openSelectedItemPopup(anchorElement: HTMLElement) {
+    openSelectedItemPopup(anchorElement: HTMLElement, selection: CurrentDiagramSelection) {
         this.requireReady()
-        const selection = this.currentSelection
-        if (!selection) throw new Error('Cannot open a child diagram action without a selected Current item')
         const activeDiagramId = this.snapshot.index.activePath.at(-1)
         if (selection.activeDiagramId !== activeDiagramId) {
-            throw new Error('Cannot open a child diagram action for a stale Current selection')
+            throw new Error('Cannot open a child diagram action for a stale persisted parent')
         }
-        const context = diagramContext('child', selection.activeDiagramId, selection.itemId, selection.itemLabel)
+        const persistedParent = resolveCurrentDiagramSelection(this.snapshot.currentDiagram, activeDiagramId, {
+            objectId: selection.itemId,
+            objectKind: selection.objectKind,
+        })
+        if (!persistedParent) throw new Error('Cannot open a child diagram action for a missing persisted item')
+        const context = diagramContext(
+            'child', persistedParent.activeDiagramId, persistedParent.itemId, persistedParent.itemLabel,
+        )
         this.setMenu(null)
         this.setRootMenu(null)
         this.setPopup(this.createPopupState(anchorElement, context))

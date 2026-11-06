@@ -16,6 +16,8 @@ import {
     getMarkdownSearchSeed,
     getMarkdownSearchSelectionEnd,
     getMarkdownSearchSelectionStart,
+    replaceAllMarkdownTextMatches,
+    replaceMarkdownTextMatch,
     selectMarkdownTextMatch,
 } from './markdown_local_text_search'
 
@@ -43,6 +45,10 @@ function setTextSelection(editor: LexicalEditor, nodeIndex: number, start: numbe
         selection.focus.set(node.getKey(), end, 'text')
         $setSelection(selection)
     }, { discrete: true })
+}
+
+function documentText(editor: LexicalEditor) {
+    return editor.getEditorState().read(() => $getRoot().getTextContent())
 }
 
 function selectedText(editor: LexicalEditor) {
@@ -127,5 +133,89 @@ describe('Markdown local text search', () => {
         const result = selectMarkdownTextMatch(editor, 'one', 3, false)
 
         expect(result).toEqual({ count: 3, match: { end: 7, start: 4 } })
+    })
+
+    it('replaces only the current match and selects the next remaining match', () => {
+        const editor = editorWithTextNodes('one two one two')
+
+        const result = replaceMarkdownTextMatch(editor, 'two', { end: 7, start: 4 }, false, 'X')
+
+        expect(documentText(editor)).toBe('one X one two')
+        expect(result).toEqual({ count: 1, match: { end: 13, start: 10 } })
+        expect(selectedText(editor)).toBe('two')
+    })
+
+    it('replaces a current match spanning adjacent Lexical text nodes', () => {
+        const editor = editorWithTextNodes('cross', 'node boundary')
+
+        const result = replaceMarkdownTextMatch(editor, 'ssnode', { end: 9, start: 3 }, false, '-')
+
+        expect(documentText(editor)).toBe('cro- boundary')
+        expect(result).toEqual({ count: 0, match: null })
+    })
+
+    it('leaves the document unchanged when the current match no longer exists', () => {
+        const editor = editorWithTextNodes('one two')
+
+        const result = replaceMarkdownTextMatch(editor, 'two', { end: 3, start: 0 }, false, 'X')
+
+        expect(documentText(editor)).toBe('one two')
+        expect(result).toEqual({ count: 1, match: null })
+    })
+
+    it('replaces all initial matches from end to start including cross-node matches', () => {
+        const editor = editorWithTextNodes('ab a', 'b ab')
+
+        const count = replaceAllMarkdownTextMatches(editor, 'ab', false, 'long')
+
+        expect(documentText(editor)).toBe('long long long')
+        expect(count).toBe(0)
+    })
+
+    it('deletes matches when replacement is empty', () => {
+        const editor = editorWithTextNodes('a-b-c')
+
+        replaceAllMarkdownTextMatches(editor, '-', false, '')
+
+        expect(documentText(editor)).toBe('abc')
+    })
+
+    it('applies the selected case mode to replacement', () => {
+        const caseSensitiveEditor = editorWithTextNodes('Alpha alpha')
+        const caseInsensitiveEditor = editorWithTextNodes('Alpha alpha')
+
+        replaceAllMarkdownTextMatches(caseSensitiveEditor, 'alpha', true, 'beta')
+        replaceAllMarkdownTextMatches(caseInsensitiveEditor, 'alpha', false, 'beta')
+
+        expect(documentText(caseSensitiveEditor)).toBe('Alpha beta')
+        expect(documentText(caseInsensitiveEditor)).toBe('beta beta')
+    })
+
+    it('does not process matches created by replacement text', () => {
+        const editor = editorWithTextNodes('a a')
+
+        const count = replaceAllMarkdownTextMatches(editor, 'a', false, 'aa')
+
+        expect(documentText(editor)).toBe('aa aa')
+        expect(count).toBe(4)
+    })
+
+    it('skips inserted text when selecting the next match after single replacement', () => {
+        const editor = editorWithTextNodes('a b a')
+
+        const result = replaceMarkdownTextMatch(editor, 'a', { end: 1, start: 0 }, false, 'ba')
+
+        expect(documentText(editor)).toBe('ba b a')
+        expect(result.match).toEqual({ end: 6, start: 5 })
+    })
+
+    it('leaves the document unchanged when replace all has zero matches', () => {
+        const editor = editorWithTextNodes('unchanged')
+        const stateBefore = editor.getEditorState()
+
+        const count = replaceAllMarkdownTextMatches(editor, 'missing', false, 'X')
+
+        expect(editor.getEditorState()).toBe(stateBefore)
+        expect(count).toBe(0)
     })
 })

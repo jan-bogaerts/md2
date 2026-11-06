@@ -16,6 +16,14 @@ export type ActionRunTerminalStatus = 'cancelled' | 'completed' | 'failed' | 'ok
 export type ActionRunStatus = ActionRunTerminalStatus | 'queued' | 'running' | 'waitingForInput'
 export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
+export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
+export interface ActionForEachConfig {
+    failurePolicy: 'logAndContinue' | 'stopOnFirstFailure'
+    fileName: string
+    mode: 'addPrompt' | 'compact' | 'newConversation'
+    value: JsonValue
+}
+
 export type ActionUserInputResponse = { type: 'version', value: string }
 
 export interface ActionRunInput {
@@ -26,6 +34,7 @@ export interface ActionRunInput {
     continueFrom?: string
     diagramPath?: string
     extraPrompt?: string
+    forEach?: ActionForEachConfig
     model?: string
     permissionMode?: PermissionMode
     prompt?: string

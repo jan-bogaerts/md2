@@ -1,14 +1,17 @@
 import ArrowDownwardOutlined from '@mui/icons-material/ArrowDownwardOutlined'
 import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
+import ChevronRightOutlined from '@mui/icons-material/ChevronRightOutlined'
+import ExpandMoreOutlined from '@mui/icons-material/ExpandMoreOutlined'
 import Close from 'mdi-material-ui/Close'
 import SearchOutlined from '@mui/icons-material/SearchOutlined'
-import { Box, IconButton, InputAdornment, Paper, Popper, TextField, ToggleButton, Tooltip, Typography } from '@mui/material'
+import { Box, Button, IconButton, InputAdornment, Paper, Popper, TextField, ToggleButton, Tooltip, Typography } from '@mui/material'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useCellValue } from '@mdxeditor/editor'
 import { COMMAND_PRIORITY_HIGH, KEY_DOWN_COMMAND } from 'lexical'
 import {
     useCallback,
     useEffect,
+    useRef,
     useState,
     type ChangeEvent,
     type KeyboardEvent as ReactKeyboardEvent,
@@ -18,7 +21,10 @@ import {
     getMarkdownSearchSeed,
     getMarkdownSearchSelectionEnd,
     getMarkdownSearchSelectionStart,
+    replaceAllMarkdownTextMatches,
+    replaceMarkdownTextMatch,
     selectMarkdownTextMatch,
+    type MarkdownTextMatch,
 } from './markdown_local_text_search'
 import { OPEN_MARKDOWN_LOCAL_TEXT_SEARCH_COMMAND } from './markdown_local_text_search_command'
 import { markdownLocalTextSearchConfig$ } from './markdown_local_text_search_config_cell'
@@ -28,21 +34,32 @@ import {
     markdownLocalSearchKeyboardService,
 } from '../../../services/shortcuts/markdown_local_search_keyboard_service'
 
-function isOpenSearchShortcut(event: KeyboardEvent) {
-    return event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'f'
+const SEARCH_POPUP_WIDTH = 460
+const SEARCH_DEBOUNCE_MS = 800
+// Aligns replacement field with search field: popup padding plus expansion button and gap.
+const REPLACE_ROW_INDENT = 5.25
+
+function isControlShortcut(event: KeyboardEvent, key: string) {
+    return event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === key
 }
 
-/** Editor-local search keyboard handling and popup. */
+/** Editor-local search and replace keyboard handling and popup. */
 export function MarkdownLocalTextSearchPlugin() {
     const config = useCellValue(markdownLocalTextSearchConfig$)
     const [editor] = useLexicalComposerContext()
     const [activeCaseSensitive, setActiveCaseSensitive] = useState(false)
     const [activeTerm, setActiveTerm] = useState<string | null>(null)
+    const [currentMatch, setCurrentMatch] = useState<MarkdownTextMatch | null>(null)
     const [draftCaseSensitive, setDraftCaseSensitive] = useState(false)
     const [draftTerm, setDraftTerm] = useState('')
     const [open, setOpen] = useState(false)
+    const [replaceExpanded, setReplaceExpanded] = useState(false)
+    const [replacement, setReplacement] = useState('')
     const [resultCount, setResultCount] = useState<number | null>(null)
     const [searchOrigin, setSearchOrigin] = useState(0)
+    const searchInputRef = useRef<HTMLInputElement | null>(null)
+    const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const readOnly = !!config?.readOnly
     const rootElement = editor.getRootElement()
     const editorContainer = rootElement?.closest('[data-sticky-toolbar]')
     const toolbarElement = editorContainer?.querySelector<HTMLElement>('.mdxeditor-toolbar') ?? null
@@ -53,36 +70,68 @@ export function MarkdownLocalTextSearchPlugin() {
     const configError = config ? null : new Error('Cannot register Markdown local text search without configuration')
     useDialogError(configError, 'Local text search is unavailable')
 
-    const closeSearch = useCallback(() => {
-        setOpen(false)
+    const cancelPendingSearch = useCallback(() => {
+        if (searchTimer.current === null) return
+
+        clearTimeout(searchTimer.current)
+        searchTimer.current = null
     }, [])
 
+    useEffect(() => cancelPendingSearch, [cancelPendingSearch])
+
+    const clearCompletedSearch = useCallback(() => {
+        setActiveTerm(null)
+        setActiveCaseSensitive(false)
+        setCurrentMatch(null)
+        setResultCount(null)
+    }, [])
+
+    const closeSearch = useCallback(() => {
+        cancelPendingSearch()
+        setOpen(false)
+    }, [cancelPendingSearch])
+
     const handleDraftReset = useCallback(() => {
+        cancelPendingSearch();
         setOpen(false);
         setActiveTerm(null);
         setActiveCaseSensitive(false);
+        setCurrentMatch(null);
         setDraftTerm('');
         setDraftCaseSensitive(false);
+        setReplaceExpanded(false);
+        setReplacement('');
         setResultCount(null);
         setSearchOrigin(0);
         return false;
-    }, []);
+    }, [cancelPendingSearch]);
     useEffect(() => editor.registerCommand(RESET_MARKDOWN_DRAFT_COMMAND, handleDraftReset, COMMAND_PRIORITY_HIGH),
         [editor, handleDraftReset]);
 
-    const openSearch = useCallback(() => {
+    const openSearchPopup = useCallback((expanded: boolean) => {
         const selectedText = getMarkdownSearchSeed(editor)
         setSearchOrigin(getMarkdownSearchSelectionEnd(editor))
         if (selectedText) setDraftTerm(selectedText)
+        setReplaceExpanded(expanded)
         setOpen(true)
-        return true
     }, [editor])
+
+    const openSearch = useCallback(() => {
+        openSearchPopup(false)
+        return true
+    }, [openSearchPopup])
+
+    const openReplace = useCallback(() => {
+        openSearchPopup(true)
+        searchInputRef.current?.focus()
+    }, [openSearchPopup])
 
     const selectNextMatch = useCallback(() => {
         if (!activeTerm) return
         const offset = getMarkdownSearchSelectionEnd(editor)
         const result = selectMarkdownTextMatch(editor, activeTerm, offset, activeCaseSensitive)
         setResultCount(result.count)
+        setCurrentMatch(result.match)
     }, [activeCaseSensitive, activeTerm, editor])
 
     const selectPreviousMatch = useCallback(() => {
@@ -90,15 +139,37 @@ export function MarkdownLocalTextSearchPlugin() {
         const offset = getMarkdownSearchSelectionStart(editor)
         const result = selectMarkdownTextMatch(editor, activeTerm, offset, activeCaseSensitive, 'previous')
         setResultCount(result.count)
+        setCurrentMatch(result.match)
     }, [activeCaseSensitive, activeTerm, editor])
 
-    const submitSearch = useCallback(() => {
-        if (!draftTerm) return
-        setActiveTerm(draftTerm)
-        setActiveCaseSensitive(draftCaseSensitive)
-        const result = selectMarkdownTextMatch(editor, draftTerm, searchOrigin, draftCaseSensitive)
+    const runSearch = useCallback((term: string, caseSensitive: boolean) => {
+        if (!term) return
+
+        setActiveTerm(term)
+        setActiveCaseSensitive(caseSensitive)
+        const result = selectMarkdownTextMatch(editor, term, searchOrigin, caseSensitive)
         setResultCount(result.count)
-    }, [draftCaseSensitive, draftTerm, editor, searchOrigin])
+        setCurrentMatch(result.match)
+    }, [editor, searchOrigin])
+
+    const submitSearch = useCallback(() => {
+        cancelPendingSearch()
+        runSearch(draftTerm, draftCaseSensitive)
+    }, [cancelPendingSearch, draftCaseSensitive, draftTerm, runSearch])
+
+    const replaceCurrentMatch = useCallback(() => {
+        if (!activeTerm || !currentMatch || readOnly) return
+        const result = replaceMarkdownTextMatch(editor, activeTerm, currentMatch, activeCaseSensitive, replacement)
+        setResultCount(result.count)
+        setCurrentMatch(result.match)
+    }, [activeCaseSensitive, activeTerm, currentMatch, editor, readOnly, replacement])
+
+    const replaceAllMatches = useCallback(() => {
+        if (!activeTerm || readOnly) return
+        const count = replaceAllMarkdownTextMatches(editor, activeTerm, activeCaseSensitive, replacement)
+        setResultCount(count)
+        setCurrentMatch(null)
+    }, [activeCaseSensitive, activeTerm, editor, readOnly, replacement])
 
     const handleSearchEscapeRequested = useCallback((event: Event) => {
         if (!open || event.defaultPrevented) return
@@ -108,9 +179,14 @@ export function MarkdownLocalTextSearchPlugin() {
     }, [closeSearch, open])
 
     const handleKeyDown = useCallback((event: KeyboardEvent) => {
-        if (isOpenSearchShortcut(event)) {
+        if (isControlShortcut(event, 'f')) {
             event.preventDefault()
             openSearch()
+            return true
+        }
+        if (isControlShortcut(event, 'h')) {
+            event.preventDefault()
+            openReplace()
             return true
         }
         if (event.key !== 'F3') return false
@@ -118,7 +194,7 @@ export function MarkdownLocalTextSearchPlugin() {
         event.preventDefault()
         selectNextMatch()
         return true
-    }, [openSearch, selectNextMatch])
+    }, [openReplace, openSearch, selectNextMatch])
 
     useEffect(() => {
         const unregisterOpen = editor.registerCommand(
@@ -149,11 +225,32 @@ export function MarkdownLocalTextSearchPlugin() {
     }, [handleSearchEscapeRequested])
 
     const handleTermChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setDraftTerm(event.target.value)
+        const nextTerm = event.target.value
+        setDraftTerm(nextTerm)
+        cancelPendingSearch()
+        if (!nextTerm) {
+            clearCompletedSearch()
+            return
+        }
+        searchTimer.current = setTimeout(() => {
+            searchTimer.current = null
+            runSearch(nextTerm, draftCaseSensitive)
+        }, SEARCH_DEBOUNCE_MS)
+    }
+
+    const handleReplacementChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setReplacement(event.target.value)
+    }
+
+    const handleReplaceToggle = () => {
+        setReplaceExpanded((current) => !current)
     }
 
     const handleCaseToggle = () => {
-        setDraftCaseSensitive((current) => !current)
+        const nextCaseSensitive = !draftCaseSensitive
+        setDraftCaseSensitive(nextCaseSensitive)
+        cancelPendingSearch()
+        runSearch(draftTerm, nextCaseSensitive)
     }
 
     const handleInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -168,6 +265,8 @@ export function MarkdownLocalTextSearchPlugin() {
         selectNextMatch()
     }
 
+    const replaceToggleLabel = replaceExpanded ? 'Hide replace' : 'Show replace'
+
     return (
         <Popper
             anchorEl={anchorElement}
@@ -178,10 +277,23 @@ export function MarkdownLocalTextSearchPlugin() {
             sx={{ zIndex: 'modal' }}
         >
             <Paper sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '14px' }}>
-                <Box sx={{ alignItems: 'center', display: 'flex', gap: 0.75, p: 1, width: 420 }}>
+                <Box sx={{ alignItems: 'center', display: 'flex', gap: 0.75, p: 1, width: SEARCH_POPUP_WIDTH }}>
+                    <Tooltip title={replaceToggleLabel}>
+                        <IconButton
+                            aria-expanded={replaceExpanded}
+                            aria-label={replaceToggleLabel}
+                            onClick={handleReplaceToggle}
+                            size="small"
+                        >
+                            {replaceExpanded
+                                ? <ExpandMoreOutlined fontSize="small" />
+                                : <ChevronRightOutlined fontSize="small" />}
+                        </IconButton>
+                    </Tooltip>
                     <TextField
                         autoFocus
                         fullWidth
+                        inputRef={searchInputRef}
                         onChange={handleTermChange}
                         onKeyDown={handleInputKeyDown}
                         placeholder="Find text"
@@ -248,6 +360,36 @@ export function MarkdownLocalTextSearchPlugin() {
                         </IconButton>
                     </Tooltip>
                 </Box>
+                {replaceExpanded ? (
+                    <Box sx={{ alignItems: 'center', display: 'flex', gap: 0.75, pb: 1, pl: REPLACE_ROW_INDENT, pr: 1 }}>
+                        <TextField
+                            fullWidth
+                            onChange={handleReplacementChange}
+                            placeholder="Replace with"
+                            size="small"
+                            slotProps={{ htmlInput: { 'aria-label': 'Replace with' } }}
+                            value={replacement}
+                        />
+                        <Button
+                            disabled={!activeTerm || !currentMatch || readOnly}
+                            onClick={replaceCurrentMatch}
+                            size="small"
+                            sx={{ flexShrink: 0 }}
+                            variant="outlined"
+                        >
+                            Replace
+                        </Button>
+                        <Button
+                            disabled={!activeTerm || readOnly}
+                            onClick={replaceAllMatches}
+                            size="small"
+                            sx={{ flexShrink: 0 }}
+                            variant="outlined"
+                        >
+                            Replace all
+                        </Button>
+                    </Box>
+                ) : null}
             </Paper>
         </Popper>
     )

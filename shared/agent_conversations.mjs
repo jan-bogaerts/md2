@@ -1,4 +1,5 @@
 import { normalizeAgentTokenUsage, validateAgentTokenUsage } from './agent_usage_math.mjs';
+import { validateForEachConfig } from './action_for_each.mjs';
 
 const AGENT_MESSAGE_ROLES = new Set(['assistant', 'user']);
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput']);
@@ -437,6 +438,7 @@ export function parseAgentConversationValue(parsed, referencePath) {
         completedAt: optionalString(parsed.completedAt),
         ...(contextWindowUsage ? { contextWindowUsage } : {}),
         entries: normalizeEntries(parsed.entries),
+        ...(parsed.forEach !== undefined ? { forEach: validateForEachConfig(parsed.forEach, 'agent conversation forEach') } : {}),
         hasExplicitTitle,
         id,
         path: referencePath,
