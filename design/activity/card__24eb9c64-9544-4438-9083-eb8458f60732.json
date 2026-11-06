@@ -350,7 +350,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "24eb9c64-9544-4438-9083-eb8458f60732",
       "cardPath": "design/feature_descriptions/B_349_aptabase_reports_usage_double.md",
-      "completedAt": null,
+      "completedAt": "2026-11-06T14:00:52.004Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 58634
@@ -1128,7 +1128,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 60,
-          "timestamp": "2026-11-06T14:00:51.470Z"
+          "timestamp": "2026-11-06T14:00:52.004Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1139,12 +1139,12 @@
           "agent": "codex",
           "conversationId": "01a1b123-ccd8-74b0-8f88-ab67e586ef89",
           "createdAt": "2026-11-06T13:54:36.534Z",
-          "lastUsedAt": "2026-11-06T14:00:51.470Z",
+          "lastUsedAt": "2026-11-06T14:00:52.004Z",
           "synchronizedThroughMessageId": "agent-turn-86443e35-145d-4160-82aa-00a9ac88d43c-turn-2-assistant-6"
         }
       ],
       "startedAt": "2026-11-06T13:54:35.317Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -1175,8 +1175,8 @@
           "reasoningMs": 445,
           "toolMs": 58857
         },
-        "elapsedMs": 79321,
-        "runningStartedAt": "2026-11-06T13:57:04.974Z"
+        "elapsedMs": 306351,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
