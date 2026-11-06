@@ -10180,3 +10180,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-06T11:56:49.845Z,token_usage,codex,,,,,9464,1022720,3433,2150,1037767,,,codex-initial
 2026-11-06T12:02:24.963Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,22,0,claude-initial
 2026-11-06T12:04:24.971Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,22,0,claude-initial
+2026-11-06T12:11:26.370Z,account_usage,codex,codex,primary,10080,2026-11-11T10:03:58.000Z,,,,,,9,1,codex-initial
