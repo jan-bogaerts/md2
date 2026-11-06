@@ -3,7 +3,7 @@ author:
 id: B_348
 internalId: 22edc81f-6888-44c5-8d8b-48207057c653
 title: Error: Maximum update depth exceeded. This can hap
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -14,6 +14,16 @@ sentryIssueId: 159129008
 sentryOrganization: elastetic
 branch: b_348_error_maximum_update_depth_exceeded_this_can_hap
 worktree: 2
+changedFiles:
+  - app/src/components/actions/conversation/transcript/action_conversation_chatlog_tracker.node.test.ts
+  - app/src/services/actions/action_run_registry.submissions.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
+  - desktop/src/actions/agent/agent_run_state.js
+  - desktop/src/actions/agent/agent_runner_service.js
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
+  - desktop/src/actions/agent/agent_streaming_adapter.test.mjs
+  - desktop/src/actions/agent/agent_streaming_event_publisher.js
+  - desktop/src/actions/agent/agent_streaming_event_publisher.test.mjs
 ---
 
 ## Current state
