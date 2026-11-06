@@ -12,7 +12,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 155925092
 sentryOrganization: elastetic
 ---
-
 ## Sentry issue
 
 **Title:** Error: Command failed: git clean -fd
@@ -20,6 +19,8 @@ sentryOrganization: elastetic
 **Message:** Not provided
 
 **Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/155925092/)
+
+public link: [https://elastetic.sentry.io/share/issue/40e74fcc0da84f259f44fa8371efc52b/](https://elastetic.sentry.io/share/issue/40e74fcc0da84f259f44fa8371efc52b/)
 
 **First seen:** 2026-10-24T16:27:09Z
 
@@ -37,9 +38,9 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:724:91352` — async ye
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:13239` — async EventTarget.discardAndUnassignCardWorktree
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:509:24369` — async gye.discardWorktreeChanges
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2554` — gre
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2422` — Bm
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2274` — mre
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:724:91352` — async ye
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:13239` — async EventTarget.discardAndUnassignCardWorktree
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:509:24369` — async gye.discardWorktreeChanges
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2554` — gre
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2422` — Bm
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2274` — mre
