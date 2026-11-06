@@ -12,7 +12,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 159110069
 sentryOrganization: elastetic
 ---
-
 ## Sentry issue
 
 **Title:** Error: Cannot resolve this-card placeholder without a file context
@@ -37,8 +36,10 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz1fWlUi.js:146:67451` — async Sie.prepare
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz1fWlUi.js:734:44584` — async FVe
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz1fWlUi.js:146:2554` — Rre
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz1fWlUi.js:146:2422` — Wm
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz1fWlUi.js:146:2274` — Ire
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz1fWlUi.js:146:67451` — async Sie.prepare
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz1fWlUi.js:734:44584` — async FVe
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz1fWlUi.js:146:2554` — Rre
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz1fWlUi.js:146:2422` — Wm
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Cz1fWlUi.js:146:2274` — Ire
+
+This is a legit error, but we should improve the message a little bit. It occurred because I activated an action in the project-agent-popup that had a prompt which used the placeholder { { this } } (added extra spaces to prevent the placeholder from being replaced). So we should inform the user of this in the error message. it should also not be sent to sentry
