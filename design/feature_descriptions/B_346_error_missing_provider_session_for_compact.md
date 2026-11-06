@@ -3,7 +3,7 @@ author:
 id: B_346
 internalId: 6c050c79-a3b5-4f21-bd75-e0a82e6bde7d
 title: Error: Missing provider session for compact
-status: new
+status: design
 owner: 
 affects:
 agents:

@@ -2540,6 +2540,34 @@
       "startedAt": "2026-11-06T11:54:24.221Z",
       "status": "completed",
       "rootConversationId": "agent-1f931390-e433-4680-83dd-6a6ca24f7e2e"
+    },
+    {
+      "commits": [
+        {
+          "commit": "e92874bfc6ddaf17cd84aa17547539c95da73d9a",
+          "committedAt": "2026-11-06T13:24:33+01:00",
+          "deletions": 29,
+          "filePaths": [
+            "app/src/components/actions/conversation/search/action_conversation_search_controls.test.tsx",
+            "app/src/components/actions/conversation/search/action_conversation_search_service.test.ts",
+            "app/src/components/actions/conversation/search/action_conversation_search_service.ts",
+            "app/src/components/editor/local_search/markdown_local_text_search_plugin.tsx",
+            "app/src/components/editor/markdown_editor_local_text_search.test.tsx",
+            "app/src/components/shell/search/search_control.test.tsx",
+            "app/src/components/shell/search/search_panel.tsx"
+          ],
+          "filesChanged": 7,
+          "insertions": 384,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-06T13:24:33+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "408e6af2-abc8-4f00-b4a5-59b908b8256b",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

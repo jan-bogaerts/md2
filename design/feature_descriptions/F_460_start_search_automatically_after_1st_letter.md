@@ -10,8 +10,6 @@ agents:
   - design/activity/card__408e6af2-abc8-4f00-b4a5-59b908b8256b.json
 policy:
 after: 204e1fa2-8e5e-4fd1-b63c-06c9c762c080
-branch: f_460_start_search_automatically_after_1st_letter
-worktree: 3
 changedFiles:
   - app/src/components/actions/conversation/search/action_conversation_search_controls.test.tsx
   - app/src/components/actions/conversation/search/action_conversation_search_service.test.ts
