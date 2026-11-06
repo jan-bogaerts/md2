@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "6c050c79-a3b5-4f21-bd75-e0a82e6bde7d",
+      "cardPath": "design/feature_descriptions/B_346_error_missing_provider_session_for_compact.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_346_error_missing_provider_session_for_compact.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-0da8f14b-06b7-4c9a-91a0-94c0b0b263fb",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-06T12:25:57.619Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-7f35e050-80b9-4d1c-bc34-178ca70ade43",
+      "providerSessions": [],
+      "startedAt": "2026-11-06T12:25:57.619Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-06T12:25:57.619Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "6c050c79-a3b5-4f21-bd75-e0a82e6bde7d",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
