@@ -12,8 +12,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 159105123
 sentryOrganization: elastetic
-branch: b_346_error_missing_provider_session_for_compact
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/popup/action_prompt_menu.test.tsx
   - app/src/components/actions/run/popup/action_prompt_menu.tsx
