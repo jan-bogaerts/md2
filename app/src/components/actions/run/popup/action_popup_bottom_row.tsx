@@ -20,7 +20,7 @@ interface ActionPopupBottomRowProps {
 /** Agent settings and run controls for the popup footer. */
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const { action, assignmentContext, embedded = false, runtime } = props;
-    const { bindingStore, conversationStore, settingsStore } = runtime;
+    const { bindingStore, conversationStore, inputStore, settingsStore } = runtime;
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const boundRunId = useBoundRunId(bindingStore);
@@ -59,7 +59,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                     <Box sx={{ alignItems: 'center', display: isMobile ? 'flex' : 'contents', gap: 0, minWidth: 0 }}>
                         <ActionPromptMenu
                             actionId={action.id} bindingStore={bindingStore} context={assignmentContext}
-                            conversationStore={conversationStore} promptDraft={promptDraft}
+                            conversationStore={conversationStore} inputStore={inputStore} promptDraft={promptDraft}
                         />
                         <Box data-footer-selectors sx={{ flexShrink: 1, minWidth: 158, overflow: 'hidden' }}>
                             <ActionAgentSelectors action={action} bindingStore={bindingStore} settingsStore={settingsStore} />

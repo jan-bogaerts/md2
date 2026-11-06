@@ -6,6 +6,7 @@ import type { AgentConversation, AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
 import type { PermissionMode, ThinkingLevel } from './agent_profiles'
 import type {
+    ActionForEachConfig,
     ActionCompactRequest,
     ActionCompactState,
     ActionRunEvent,
@@ -221,6 +222,8 @@ export interface ElectronActionBridge {
     startAction(request: ActionStartRequest): Promise<string>
     startUnattendedAction?(request: ActionStartRequest): Promise<string>
     updateActionConversationViewed?(reference: string, viewed: boolean): Promise<AgentConversation>
+    updateActionConversationForEach?(reference: string, forEach: ActionForEachConfig | null): Promise<AgentConversation>
+    viewActionForEachData?(fileName: string, value: import('./action_run_types').JsonValue): Promise<void>
     updateCardActionSettings?(request: CardActionSettingsRequest): Promise<void>
 }
 

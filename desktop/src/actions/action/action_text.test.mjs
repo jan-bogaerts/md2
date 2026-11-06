@@ -204,6 +204,29 @@ describe('resolveAgentPrompt', () => {
 });
 
 describe('resolvePopupPrompt', () => {
+    it('resolves data placeholders from one for-each record', () => {
+        expect(resolvePopupPrompt(
+            'City: {{data countries.0.city}}',
+            { kind: 'project' },
+            project,
+            project,
+            projectFolder,
+            releasesFolder,
+            actionsFolder,
+            activeCardsFolder,
+            null,
+            null,
+            { countries: [{ city: 'Brussels' }] },
+        )).toBe('City: Brussels');
+    });
+
+    it('rejects a data placeholder outside a for-each record', () => {
+        expect(() => resolvePopupPrompt(
+            '{{data city}}', { kind: 'project' }, project, project, projectFolder,
+            releasesFolder, actionsFolder, activeCardsFolder,
+        )).toThrow('Cannot resolve data placeholder without a for-each record');
+    });
+
     it('resolves popup context against linked worktree without rescanning resolved values', () => {
         const context = { file: 'design/card.md', title: '{{card-file}}' };
 

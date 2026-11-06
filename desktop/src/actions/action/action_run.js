@@ -7,6 +7,7 @@ const { resolveDiagramFile } = require('./action_diagram_output');
 const { ActionDiagramOutputWatcher } = require('./action_diagram_output_watcher');
 const { resolvePopupPrompt } = require('./action_text');
 const { validateVersion } = require('./action_run_request');
+const { forEachRecords } = require('../../../../shared/action_for_each.mjs');
 const {
     captureCommitReferences,
     combineOutput,
@@ -626,11 +627,13 @@ class ActionRun {
             const commitReferences = await captureCommitReferences(this.localGitService, historyInput);
             this.collectCommitReferences(commitReferences);
             if (isRoot) {
-                this.rootDetails = details;
+                if (action.type !== 'agent' || typeof committedResult.conversationId === 'string') this.rootDetails = details;
                 if (action.type === 'agent') this.rootConversationId = committedResult.conversationId;
             }
-            if (action.type === 'agent' && typeof committedResult.conversationId === 'string') {
-                this.conversationIds.push(committedResult.conversationId);
+            if (action.type === 'agent') {
+                for (const conversationId of committedResult.conversationIds ?? [committedResult.conversationId]) {
+                    if (typeof conversationId === 'string') this.conversationIds.push(conversationId);
+                }
             }
 
             return committedResult;
@@ -731,6 +734,108 @@ class ActionRun {
     }
 
     async executeAgentAction(action, phase, isRoot, project) {
+        if (!isRoot || !this.runInput.forEach || this.compactOnly) {
+            return this.executeAgentActionOnce(action, phase, isRoot, project);
+        }
+
+        return this.executeAgentForEach(action, phase, project);
+    }
+
+    async executeAgentForEach(action, phase, project) {
+        const config = this.runInput.forEach;
+        const records = forEachRecords(config.value);
+        if (records.length === 0) {
+            return { changedPaths: [], command: '', conversationId: null, conversationIds: [], exitCode: 0, stderr: '', stdout: '' };
+        }
+
+        const changedPaths = new Set();
+        const conversationIds = [];
+        let firstConversationId = null;
+        let previousResult = null;
+        let stderr = '';
+        let stdout = '';
+        for (const [index, record] of records.entries()) {
+            this.throwIfCancelled();
+            const continueConversation = config.mode !== 'newConversation' && previousResult?.reference;
+            const runInput = {
+                ...this.runInput,
+                ...(continueConversation ? { continueFrom: previousResult.reference, conversationId: previousResult.conversationId } : {}),
+                ...(!continueConversation && index > 0 ? { conversationId: `agent-${crypto.randomUUID()}` } : {}),
+            };
+            if (config.mode === 'newConversation') {
+                delete runInput.continueFrom;
+                if (index > 0 || this.runInput.continueFrom) runInput.conversationId = `agent-${crypto.randomUUID()}`;
+            }
+            try {
+                const result = await this.executeAgentActionOnce(
+                    action,
+                    phase,
+                    true,
+                    project,
+                    runInput,
+                    record,
+                    index === 0 ? this.conversationReservation : null,
+                );
+                if (!firstConversationId && result.conversationId) firstConversationId = result.conversationId;
+                if (result.conversationId) conversationIds.push(result.conversationId);
+                for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);
+                stderr += result.stderr ?? '';
+                stdout += result.stdout ?? '';
+                previousResult = result;
+                if (result.exitCode !== 0) {
+                    await this.recordLoopFailure(result.reference, index, result.stderr || 'Agent turn failed');
+                    if (config.failurePolicy === 'stopOnFirstFailure') {
+                        return { ...result, changedPaths: [...changedPaths], conversationIds, stderr, stdout };
+                    }
+                    continue;
+                }
+                if (config.mode === 'compact' && index < records.length - 1) {
+                    const compactInput = {
+                        agent: result.agent,
+                        conversationId: result.conversationId,
+                        continueFrom: result.reference,
+                        extraPrompt: '',
+                    };
+                    const compactResult = await this.executeAgentActionOnce(
+                        action, phase, true, project, compactInput, undefined, null, true,
+                    );
+                    if (compactResult.exitCode !== 0) throw new Error(compactResult.stderr || 'Loop compaction failed');
+                }
+            } catch (error) {
+                const message = errorMessage(error, 'For-each record failed');
+                await this.recordLoopFailure(previousResult?.reference, index, message);
+                stderr += `${message}\n`;
+                if (config.failurePolicy === 'stopOnFirstFailure') throw error;
+            }
+        }
+
+        const result = previousResult ?? { command: '', exitCode: 0, reference: null };
+        return {
+            ...result,
+            changedPaths: [...changedPaths],
+            conversationId: firstConversationId ?? result.conversationId,
+            conversationIds,
+            exitCode: 0,
+            stderr,
+            stdout,
+        };
+    }
+
+    async recordLoopFailure(reference, recordIndex, message) {
+        if (!reference) return;
+        await this.localGitService.appendActivityConversationEvent(this.project, reference, {
+            content: `For-each record ${recordIndex + 1} failed: ${message}`,
+            id: `loop-failure-${crypto.randomUUID()}`,
+            kind: 'event',
+            timestamp: new Date().toISOString(),
+            type: 'loopFailure',
+        });
+    }
+
+    async executeAgentActionOnce(
+        action, phase, isRoot, project, runInputOverride = null, forEachRecord = undefined,
+        conversationReservationOverride = this.conversationReservation, compactOnlyOverride = this.compactOnly,
+    ) {
         this.activeAgentProject = project;
         this.promptQueueClosed = false;
         const onActiveRunChange = (runId) => {
@@ -882,22 +987,23 @@ class ActionRun {
                 : { content: agentEvent.content, kind: 'error' };
             this.publish(action, phase, agentEvent.status, { type: 'update', update });
         };
-        const runInput = isRoot ? this.runInput : { extraPrompt: '' };
+        const runInput = isRoot ? runInputOverride ?? this.runInput : { extraPrompt: '' };
         const diagramFile = action.output?.kind === 'diagram' && this.diagramPath
             ? resolveDiagramFile(project, this.diagramsFolder, this.diagramPath)
             : null;
 
         const input = {
-            compactOnly: this.compactOnly,
+            compactOnly: compactOnlyOverride,
             action,
             actionsFolder: this.actionsFolder,
             activeCardsFolder: this.activeCardsFolder,
             activityOrigin: this.activityOrigin,
             context: this.context,
-            conversationReservation: isRoot ? this.conversationReservation : null,
+            conversationReservation: isRoot ? conversationReservationOverride : null,
             diagramFile,
             diagramFooter: this.diagramFooter,
             runId: this.runId,
+            ...(forEachRecord !== undefined ? { forEachRecord } : {}),
             onActiveRunChange,
             ...(isRoot ? { onConversationSaved: this.markInitialConversationSaved.bind(this) } : {}),
             onEvent,
@@ -909,7 +1015,7 @@ class ActionRun {
             signal: this.controller.signal,
             version: this.version,
         };
-        const watcher = !this.compactOnly && action.autoFinish?.when === 'diagram-created'
+        const watcher = !compactOnlyOverride && action.autoFinish?.when === 'diagram-created'
             ? this.diagramOutputWatcherFactory({
                 diagramFile,
                 handleError: (error) => this.handleDiagramWatcherFailure(error),

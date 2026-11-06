@@ -90,6 +90,7 @@ class ActionAgentExecutor {
                     input.diagramFooter,
                     input.diagramFile,
                     input.version,
+                    input.forEachRecord,
                 )
                 : resolvePopupPrompt(
                     input.runInput.prompt,
@@ -102,6 +103,7 @@ class ActionAgentExecutor {
                     input.activeCardsFolder,
                     input.diagramFile,
                     input.version,
+                    input.forEachRecord,
                 )
             : sourceConversation
                 ? input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT
@@ -118,6 +120,7 @@ class ActionAgentExecutor {
                     input.diagramFooter,
                     input.diagramFile,
                     input.version,
+                    input.forEachRecord,
                 );
         const prompt = await appendCurrentCardReferences(
             basePrompt,
@@ -142,6 +145,7 @@ class ActionAgentExecutor {
             ...(input.context.file ? { cardPath: input.context.file } : {}),
             command,
             executionSettings: resolvedAgent.executionSettings,
+            ...(input.runInput.forEach ? { forEach: input.runInput.forEach } : {}),
             ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),
             ...(!sourceConversation ? {
                 conversationId: input.conversationReservation?.conversationId ?? input.runInput.conversationId,

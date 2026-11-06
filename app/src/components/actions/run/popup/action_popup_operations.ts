@@ -127,6 +127,8 @@ async function runWithPrompt(
         const diagramPath = submittedDiagramPath ?? currentActionPromptDraft(
             action, context, bindingStore, conversationStore, false,
         ).getDiagramPath()
+        const forEach = conversationStore.getSnapshot().selectedConversation?.forEach
+            ?? input.inputStore.getSnapshot().forEachByAction[action.id]
         const runInput = action.type === 'agent'
             ? {
                 ...(settings.accountId ? { accountId: settings.accountId } : {}),
@@ -134,6 +136,7 @@ async function runWithPrompt(
                 ...(continuationPath ? { continueFrom: continuationPath } : {}),
                 ...(submittedConversationId ? { conversationId: submittedConversationId } : {}),
                 ...(diagramPath ? { diagramPath } : {}),
+                ...(forEach ? { forEach } : {}),
                 prompt,
                 ...(submissionId ? { submissionId } : {}),
                 ...(settings.model ? { model: settings.model } : {}),

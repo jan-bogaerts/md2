@@ -106,6 +106,7 @@ function createLocalBridgeDispatch(dependencies) {
         uncommittedProjectWrites,
         updateCodexCli,
         usageMetricsService,
+        viewActionForEachData,
         worktreeService,
     } = dependencies;
     let currentLocalProject = null;
@@ -667,6 +668,10 @@ function createLocalBridgeDispatch(dependencies) {
 
             return conversation;
         },
+        updateActionConversationForEach: (reference, forEach) => (
+            localGitService.updateActivityConversationForEach(currentLocalProject, reference, forEach)
+        ),
+        viewActionForEachData: (fileName, value) => viewActionForEachData(fileName, value),
         onActionConversationViewed: (callback) => conversationViewEvents.subscribe(callback),
         updateCardActionSettings: async (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');

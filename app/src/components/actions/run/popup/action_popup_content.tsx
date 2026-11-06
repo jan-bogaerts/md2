@@ -18,10 +18,10 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     if (!selected) return null;
 
     const contentProps = { ...props, action: selected.action, assignmentContext: selected.context };
-    const { bindingStore, conversationSearchService, conversationStore } = selected.runtime;
+    const { bindingStore, conversationSearchService, conversationStore, inputStore } = selected.runtime;
     return (
         <ActionPopupFrame bindingStore={bindingStore} contentProps={contentProps}
-            conversationSearchService={conversationSearchService} conversationStore={conversationStore}>
+            conversationSearchService={conversationSearchService} conversationStore={conversationStore} inputStore={inputStore}>
             <ActionPopupSession {...contentProps} runtime={selected.runtime} />
         </ActionPopupFrame>
     );

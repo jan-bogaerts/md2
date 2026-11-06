@@ -25,11 +25,12 @@ interface ActionSelectorProps {
     context: ActionContext
     onSelect: (actionId: string) => void
     selectedAction: ActionDefinition
+    selectedHasForEach?: boolean
 }
 
 /** Horizontally scrollable, mutually exclusive action selector used by the card Run popup. */
 export function ActionSelector(props: ActionSelectorProps) {
-    const { actions, context, onSelect, selectedAction } = props
+    const { actions, context, onSelect, selectedAction, selectedHasForEach = false } = props
     const activeRuns = useActiveActionRunsForContext(context)
     const groupRef = useRef<HTMLDivElement>(null)
     const activeActionStatuses: Record<string, ActionRunStatus> = {}
@@ -62,6 +63,7 @@ export function ActionSelector(props: ActionSelectorProps) {
                         context={context}
                         key={action.id}
                         liveStatus={activeActionStatuses[action.id]}
+                        hasForEach={action.id === selectedAction.id && selectedHasForEach}
                     />
                 ))}
             </ToggleButtonGroup>

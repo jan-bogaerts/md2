@@ -37,6 +37,17 @@ describe('validateStartRequest', () => {
         expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput }).runInput).toEqual({ ...runInput, version: undefined });
     });
 
+    it('accepts valid for-each input and rejects invalid settings', () => {
+        const forEach = {failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [{ id: 1 }]};
+        const valid = validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput: { forEach } });
+
+        expect(valid.runInput.forEach).toEqual(forEach);
+        expect(() => validateStartRequest({
+            actionId: 'main', context: { kind: 'project' },
+            runInput: { forEach: { ...forEach, mode: 'parallel' } },
+        })).toThrow('Invalid action run input forEach.mode');
+    });
+
     it('accepts free-form versions and rejects blank ones', () => {
         expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput: { version: 'candidate 1' } }).runInput.version)
             .toBe('candidate 1');

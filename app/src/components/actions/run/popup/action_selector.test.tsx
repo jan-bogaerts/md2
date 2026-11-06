@@ -87,6 +87,20 @@ describe('ActionSelector', () => {
         expect(within(actionGroup).getAllByRole('button')).toHaveLength(actions.length)
     })
 
+    it('shows loop icon after selected action label only', () => {
+        render(
+            <ThemeProvider theme={createAppTheme('light')}>
+                <ActionSelector actions={actions} context={context} onSelect={vi.fn()}
+                    selectedAction={actions[0]} selectedHasForEach />
+            </ThemeProvider>,
+        )
+
+        expect(within(screen.getByRole('button', { name: 'Selected action' })).getByTestId('AllInclusiveOutlinedIcon'))
+            .toBeInTheDocument()
+        expect(within(screen.getByRole('button', { name: 'Unselected action' })).queryByTestId('AllInclusiveOutlinedIcon'))
+            .not.toBeInTheDocument()
+    })
+
     it('scrolls the selected action into view on first render and when the selection changes', () => {
         const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
         const theme = createAppTheme('light')

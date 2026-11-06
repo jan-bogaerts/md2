@@ -1,5 +1,6 @@
 const path = require('node:path');
 const { requireRootPath } = require('../../git/git_commands');
+const { resolveDataPlaceholders } = require('../../../../shared/action_for_each.mjs');
 
 const PLACEHOLDER_NAMES = [
     'active-cards-folder', 'worktree-folder', 'repository-folder', 'project-folder',
@@ -8,6 +9,14 @@ const PLACEHOLDER_NAMES = [
 ].join('|');
 const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
+const DATA_PLACEHOLDER_PATTERN = /\{\{\s*data\s+[^{}]+\}\}/u;
+
+function resolveRecordPlaceholders(text, dataRecord) {
+    if (dataRecord !== undefined) return resolveDataPlaceholders(text, dataRecord);
+    if (DATA_PLACEHOLDER_PATTERN.test(text)) throw new Error('Cannot resolve data placeholder without a for-each record');
+
+    return text;
+}
 
 function resolvePlaceholders(
     text,
@@ -21,8 +30,9 @@ function resolvePlaceholders(
     extraPrompt,
     diagramFile,
     version,
+    dataRecord,
 ) {
-    return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
+    const resolved = text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
         if (name === 'version') {
             if (typeof version !== 'string' || version.trim().length === 0) throw new Error('Cannot resolve version placeholder without a version');
 
@@ -107,6 +117,8 @@ function resolvePlaceholders(
 
         return context.file;
     });
+
+    return resolveRecordPlaceholders(resolved, dataRecord);
 }
 
 function composeAgentPrompt(prompt, output, diagramFooter) {
@@ -129,6 +141,7 @@ function resolveAgentPrompt(
     diagramFooter,
     diagramFile,
     version,
+    dataRecord,
 ) {
     const composedPrompt = composeAgentPrompt(action.prompt, action.output, diagramFooter);
     const prompt = resolvePlaceholders(
@@ -143,6 +156,7 @@ function resolveAgentPrompt(
         extraPrompt,
         diagramFile,
         version,
+        dataRecord,
     );
     if (CARD_PROMPT_PLACEHOLDER_PATTERN.test(action.prompt) || extraPrompt.trim().length === 0) return prompt;
 
@@ -151,7 +165,8 @@ function resolveAgentPrompt(
 
 /** Resolves recognized placeholders entered in the editable agent popup prompt. */
 function resolvePopupPrompt(
-    text, context, runProject, primaryProject, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, diagramFile, version,
+    text, context, runProject, primaryProject, projectFolder, releasesFolder, actionsFolder,
+    activeCardsFolder, diagramFile, version, dataRecord,
 ) {
     return resolvePlaceholders(
         text,
@@ -165,6 +180,7 @@ function resolvePopupPrompt(
         '',
         diagramFile,
         version,
+        dataRecord,
     );
 }
 

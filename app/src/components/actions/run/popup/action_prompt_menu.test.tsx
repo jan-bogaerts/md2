@@ -14,6 +14,7 @@ import { dialogService } from '../../../../services/dialog_service';
 import { AppThemeProvider } from '../../../../theme/theme_provider';
 import { ActionConversationStore } from '../../conversation/state/action_conversation_store';
 import { ActionRunBindingStore } from '../state/action_run_binding_store';
+import { ActionRunInputStore } from '../state/action_run_input_store';
 import { ActionPromptMenu } from './action_prompt_menu';
 
 vi.mock('../../../../services/attachments/attachment_workflow', () => ({attachFilesToCardMarkdown: vi.fn(async () => undefined), attachFilesToOriginalMarkdown: vi.fn(async () => undefined)}));
@@ -47,15 +48,16 @@ function renderMenu(hasConversation = true, cardFile?: string, conversationId = 
         conversationStore.addAndSelectConversation({ ...conversation(conversationId), cardInternalId: menuContext.cardInternalId ?? null });
     }
     const promptDraft = new ActionPromptDraft('Keep draft and ![attachment](asset.png)', false);
+    const inputStore = new ActionRunInputStore();
     const rendered = render(
         <AppThemeProvider>
             <ActionPromptMenu
                 actionId="review" bindingStore={bindingStore} context={menuContext}
-                conversationStore={conversationStore} promptDraft={promptDraft}
+                conversationStore={conversationStore} inputStore={inputStore} promptDraft={promptDraft}
             />
         </AppThemeProvider>,
     );
-    return { ...rendered, conversationStore, promptDraft };
+    return { ...rendered, conversationStore, inputStore, promptDraft };
 }
 
 beforeEach(() => {
@@ -72,6 +74,28 @@ afterEach(() => {
 });
 
 describe('ActionPromptMenu', () => {
+    it('attaches valid JSON to a new-conversation draft and keeps it when replacement is invalid', async () => {
+        const user = userEvent.setup();
+        const { inputStore } = renderMenu(false);
+        await user.upload(screen.getByLabelText('For-each JSON'), new File(['[{"name":"first"}]'], 'records.json', { type: 'application/json' }));
+
+        expect(inputStore.getSnapshot().forEachByAction.review)
+            .toEqual({failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [{ name: 'first' }]});
+
+        await user.upload(screen.getByLabelText('For-each JSON'), new File(['{broken'], 'broken.json', { type: 'application/json' }));
+        expect(inputStore.getSnapshot().forEachByAction.review?.fileName).toBe('records.json');
+        expect(dialogService.error).toHaveBeenCalled();
+    });
+
+    it('restores persisted loop configuration and exposes its menu', async () => {
+        const { conversationStore } = renderMenu();
+        conversationStore.updateConversation({
+            ...conversation(),
+            forEach: { failurePolicy: 'stopOnFirstFailure', fileName: 'saved.json', mode: 'compact', value: { id: 1 } },
+        });
+
+        expect(await screen.findByRole('button', { name: 'For each: saved.json' })).toBeInTheDocument();
+    });
     it.each(['completed', 'failed'] as const)('disables Compact while running, then enables it after %s without a subline', async (state) => {
         const conversationId = generateUuid();
         const { conversationStore } = renderMenu(true, undefined, conversationId);
@@ -159,7 +183,7 @@ describe('ActionPromptMenu', () => {
         expect(screen.getByRole('button', { name: 'Prompt menu' })).toHaveFocus();
         await user.keyboard('{Enter}');
         const items = screen.getAllByRole('menuitem');
-        expect(items.map((item) => item.textContent)).toEqual(['Compact', 'Add file']);
+        expect(items.map((item) => item.textContent)).toEqual(['Compact', 'Add file', 'For each']);
         expect(items[0]).toHaveFocus();
         await user.keyboard('{ArrowDown}');
         expect(items[1]).toHaveFocus();

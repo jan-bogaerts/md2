@@ -456,6 +456,7 @@ export interface AgentConversation {
     completedAt: string | null
     contextWindowUsage?: AgentContextWindowUsage
     entries: AgentConversationEntry[]
+    forEach?: import('./action_run_types').ActionForEachConfig
     hasExplicitTitle: boolean
     id: string
     path: string

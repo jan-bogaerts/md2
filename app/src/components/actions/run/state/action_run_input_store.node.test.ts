@@ -7,6 +7,6 @@ describe('ActionRunInputStore', () => {
         store.setActionLabel('Review')
         store.setConvertMessage('Saved action')
 
-        expect(store.getSnapshot()).toEqual({ actionLabel: 'Review', convertMessage: 'Saved action' })
+        expect(store.getSnapshot()).toEqual({ actionLabel: 'Review', convertMessage: 'Saved action', forEachByAction: {} })
     })
 })

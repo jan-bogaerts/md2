@@ -1,6 +1,7 @@
 const { validateSpeedMode } = require('../../../../shared/agent_profiles.mjs');
+const { validateForEachConfig } = require('../../../../shared/action_for_each.mjs');
 const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'conversationReservation', 'runInput']);
-const ALLOWED_RUN_INPUT_FIELDS = new Set(['accountId', 'agent', 'command', 'conversationId', 'continueFrom', 'diagramPath', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'submissionId', 'thinkingLevel', 'speedMode', 'version']);
+const ALLOWED_RUN_INPUT_FIELDS = new Set(['accountId', 'agent', 'command', 'conversationId', 'continueFrom', 'diagramPath', 'extraPrompt', 'forEach', 'model', 'permissionMode', 'prompt', 'submissionId', 'thinkingLevel', 'speedMode', 'version']);
 const CONTEXT_KINDS = new Set(['card', 'diagram', 'file', 'folder', 'merge-conflict', 'project']);
 
 function readOptionalString(value, fieldName) {
@@ -42,6 +43,7 @@ function validateRunInput(runInput = {}) {
         continueFrom: readOptionalString(runInput.continueFrom, 'continueFrom'),
         diagramPath: readOptionalString(runInput.diagramPath, 'diagramPath'),
         extraPrompt: readOptionalString(runInput.extraPrompt, 'extraPrompt') ?? '',
+        ...(runInput.forEach !== undefined ? { forEach: validateForEachConfig(runInput.forEach, 'action run input forEach') } : {}),
         model: readOptionalString(runInput.model, 'model'),
         permissionMode: readOptionalString(runInput.permissionMode, 'permissionMode'),
         ...readPrompt(runInput),

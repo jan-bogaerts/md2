@@ -3,6 +3,7 @@ import Circle from 'mdi-material-ui/Circle'
 import HelpCircleOutline from 'mdi-material-ui/HelpCircleOutline'
 import Play from 'mdi-material-ui/Play'
 import TimerOutlined from '@mui/icons-material/TimerOutlined'
+import AllInclusiveOutlined from '@mui/icons-material/AllInclusiveOutlined'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunStatus } from '../../../../data/action_run_types'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
@@ -13,10 +14,11 @@ interface ActionSelectorButtonProps {
     action: ActionDefinition
     context: ActionContext
     liveStatus?: ActionRunStatus
+    hasForEach?: boolean
 }
 
 /** One action selector leaf, including scoped live and persisted agent state. */
-export function ActionSelectorButton({ action, context, liveStatus }: ActionSelectorButtonProps) {
+export function ActionSelectorButton({ action, context, hasForEach = false, liveStatus }: ActionSelectorButtonProps) {
     const persistedState = useContextActionAgentState(action.id, context)
     const scheduled = usePendingActionScheduleForCardAndAction(context.cardInternalId, action.id)
     const hasLiveState = liveStatus === 'queued' || liveStatus === 'running' || liveStatus === 'waitingForInput'
@@ -94,6 +96,7 @@ export function ActionSelectorButton({ action, context, liveStatus }: ActionSele
                     {isRunning ? <Play aria-hidden sx={{ fontSize: 13 }} /> : null}
                     {showScheduled ? <TimerOutlined aria-hidden sx={{ fontSize: 13 }} /> : null}
                     {action.label}
+                    {hasForEach ? <AllInclusiveOutlined aria-hidden sx={{ fontSize: 13 }} /> : null}
                 </Box>
                 {hasUnseenResult ? (
                     <Circle
