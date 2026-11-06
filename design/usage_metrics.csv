@@ -10189,3 +10189,9 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-06T12:40:33.182Z,token_usage,codex,,,,,19482,1372928,2120,2244,1396774,,,codex-initial
 2026-11-06T12:42:36.307Z,token_usage,codex,,,,,11608,1034880,1598,1154,1049240,,,codex-initial
 2026-11-06T12:52:25.098Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,22,0,claude-initial
+2026-11-06T12:56:05.375Z,account_usage,codex,codex,primary,10080,2026-11-11T10:03:59.000Z,,,,,,9,0,codex-initial
+2026-11-06T12:56:12.763Z,account_usage,codex,codex,primary,10080,2026-11-11T10:03:58.000Z,,,,,,9,0,codex-initial
+2026-11-06T12:54:25.104Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,22,0,claude-initial
+2026-11-06T12:56:41.858Z,account_usage,codex,codex,primary,10080,2026-11-11T10:03:58.000Z,,,,,,10,1,codex-initial
+2026-11-06T12:56:25.108Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,22,0,claude-initial
+2026-11-06T12:58:36.873Z,token_usage,codex,,,,,70343,1044608,3137,2027,1120115,,,codex-initial
