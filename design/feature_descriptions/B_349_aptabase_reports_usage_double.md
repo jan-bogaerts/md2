@@ -12,6 +12,7 @@ policy:
 changedFiles:
   - app/src/services/telemetry/telemetry_service.service.test.ts
   - app/src/services/telemetry/telemetry_service.ts
+after: 5f556f36-aa43-429a-be26-b901b056e4aa
 ---
 
 I think we report for both desktop and renderer usage. this is not really needed, preferably, it is the desktop only
