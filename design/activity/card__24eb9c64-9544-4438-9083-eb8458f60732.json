@@ -162,6 +162,14 @@
           "role": "assistant",
           "sequence": 11,
           "timestamp": "2026-11-06T13:50:59.022Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_349_aptabase_reports_usage_double.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-b71b0351-99cd-40f6-b0f7-b9627b092687",
+          "kind": "message",
+          "role": "user",
+          "sequence": 12,
+          "timestamp": "2026-11-06T13:52:15.518Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -188,14 +196,14 @@
         }
       ],
       "startedAt": "2026-11-06T13:50:23.288Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 9620,
           "toolMs": 17163
         },
         "elapsedMs": 35734,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T13:52:15.518Z"
       },
       "title": "investigate",
       "usage": {
