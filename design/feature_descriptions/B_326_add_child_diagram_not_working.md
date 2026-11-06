@@ -3,7 +3,7 @@ author:
 id: B_326
 internalId: 204e1fa2-8e5e-4fd1-b63c-06c9c762c080
 title: add child diagram not working
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,13 @@ policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 branch: b_326_add_child_diagram_not_working
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/components/diagram_view/surface/diagram_breadcrumb_bar.test.tsx
+  - app/src/components/diagram_view/surface/diagram_breadcrumb_bar.tsx
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
 ---
 
 While in diagram-view mode, editing a mind map, I have a node selected, then want to use the + sign next to the breadcrumbs -bar, but this is disabled. don't know why.&#x20;
