@@ -2963,6 +2963,24 @@
       "startedAt": "2026-11-05T09:22:55.760Z",
       "status": "cancelled",
       "rootConversationId": "40c4eb99-d1db-444e-8758-24a8db45a7b0"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-06T13:06:13.477Z",
+      "conversationIds": [],
+      "details": {
+        "command": "npm run build:windows",
+        "output": "",
+        "type": "command"
+      },
+      "runId": "action-3bc8dec9-7f6b-476c-9cd7-391f41da20e6",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "edcbc3cf-20de-415c-97fe-b36ca9953fdc",
+      "rootActionLabel": "build",
+      "startedAt": "2026-11-06T13:05:45.014Z",
+      "status": "failed"
     }
   ],
   "version": 5
