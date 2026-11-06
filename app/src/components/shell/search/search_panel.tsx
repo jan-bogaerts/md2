@@ -31,6 +31,7 @@ const RESULTS_MAX_HEIGHT = 420
 const RESULTS_WIDTH = 460
 const RESULTS_SIZE_STORAGE_KEY = 'search-panel-results-size'
 const SEARCH_DROPDOWN_LABEL_ID = 'search-dropdown-label'
+const SEARCH_DEBOUNCE_MS = 800
 const EMPTY_RESULTS: SearchResultsData = { active: [], actions: [], backgroundGroups: [] }
 const SEARCH_ACTION_CONTEXT: ActionContext = { folder: '', kind: 'folder' }
 
@@ -74,6 +75,7 @@ export function SearchPanel(props: SearchPanelProps) {
     const [previewMatch, setPreviewMatch] = useState<SearchMatch | null>(null)
     const [controlElement, setControlElement] = useState<HTMLDivElement | null>(null)
     const resultsElement = useRef<HTMLDivElement | null>(null)
+    const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const shortcutLabel = formatShortcut(GLOBAL_SEARCH_SHORTCUT_BINDING)
 
     const hasQuery = query.trim().length > 0
@@ -83,6 +85,17 @@ export function SearchPanel(props: SearchPanelProps) {
     useEffect(() => {
         controlElement?.querySelector<HTMLInputElement>('input')?.focus()
     }, [controlElement])
+
+    useEffect(() => () => {
+        if (searchTimer.current) clearTimeout(searchTimer.current)
+    }, [])
+
+    const cancelPendingSearch = () => {
+        if (!searchTimer.current) return
+
+        clearTimeout(searchTimer.current)
+        searchTimer.current = null
+    }
 
     const updateResults = (nextResults: SearchResultsData) => {
         setResults(nextResults)
@@ -129,10 +142,19 @@ export function SearchPanel(props: SearchPanelProps) {
         setQuery(nextQuery)
         onQueryChange(nextQuery)
         setIsDismissed(false)
-        applySearch(nextQuery, mode, includeBackgroundBody, includeActions)
+        cancelPendingSearch()
+        if (nextQuery.trim().length === 0) {
+            updateResults(EMPTY_RESULTS)
+            return
+        }
+        searchTimer.current = setTimeout(() => {
+            searchTimer.current = null
+            applySearch(nextQuery, mode, includeBackgroundBody, includeActions)
+        }, SEARCH_DEBOUNCE_MS)
     }
 
     const handleClearSearch = () => {
+        cancelPendingSearch()
         setQuery('')
         onQueryChange('')
         updateResults(EMPTY_RESULTS)
@@ -141,6 +163,7 @@ export function SearchPanel(props: SearchPanelProps) {
     }
 
     const handleToggleRegexp = () => {
+        cancelPendingSearch()
         const nextMode: SearchMode = mode === 'regexp' ? 'text' : 'regexp'
         setMode(nextMode)
         const nextOptions: SearchOptions = { includeActions, includeBackgroundBody, mode: nextMode }
@@ -150,6 +173,7 @@ export function SearchPanel(props: SearchPanelProps) {
     }
 
     const handleToggleBackgroundBody = () => {
+        cancelPendingSearch()
         const nextIncludeBackgroundBody = !includeBackgroundBody
         setIncludeBackgroundBody(nextIncludeBackgroundBody)
         const nextOptions: SearchOptions = { includeActions, includeBackgroundBody: nextIncludeBackgroundBody, mode }
@@ -159,6 +183,7 @@ export function SearchPanel(props: SearchPanelProps) {
     }
 
     const handleToggleActions = () => {
+        cancelPendingSearch()
         const nextIncludeActions = !includeActions
         setIncludeActions(nextIncludeActions)
         const nextOptions: SearchOptions = { includeActions: nextIncludeActions, includeBackgroundBody, mode }
@@ -170,6 +195,7 @@ export function SearchPanel(props: SearchPanelProps) {
     const handleAskAgent = async () => {
         if (!hasQuery) return
 
+        cancelPendingSearch()
         setIsAgentBusy(true)
         try {
             const expression = await regexpAgent(query)

@@ -33,6 +33,7 @@ const OPEN_CHANGED_EVENT = 'open-changed'
 const RESULT_COUNT_CHANGED_EVENT = 'result-count-changed'
 const SUBMITTED_TERM_CHANGED_EVENT = 'submitted-term-changed'
 const TRANSCRIPT_MOUNTED_CHANGED_EVENT = 'transcript-mounted-changed'
+const SEARCH_DEBOUNCE_MS = 800
 
 function elementIsVisible(element: Element, viewport: HTMLElement) {
     for (let current: Element | null = element; current && current !== viewport; current = current.parentElement) {
@@ -154,6 +155,7 @@ export class ActionConversationSearchService extends EventTarget {
     private open = false
     private resultCount: number | null = null
     private searchOrigin = 0
+    private searchTimer: ReturnType<typeof setTimeout> | null = null
     private submittedTerm = ''
     private viewport: HTMLElement | null = null
 
@@ -192,6 +194,7 @@ export class ActionConversationSearchService extends EventTarget {
             if (this.viewport !== viewport) return
 
             const mounted = this.getTranscriptMounted()
+            this.cancelPendingSearch()
             this.disconnectObserver()
             this.clearOwnedSelection()
             this.viewport = null
@@ -203,6 +206,7 @@ export class ActionConversationSearchService extends EventTarget {
     updateConversation(conversationId: string | null) {
         if (this.conversationId === conversationId) return
 
+        this.cancelPendingSearch()
         const wasMounted = this.getTranscriptMounted()
         this.clearOwnedSelection()
         this.conversationId = conversationId
@@ -231,6 +235,7 @@ export class ActionConversationSearchService extends EventTarget {
     }
 
     closeSearch() {
+        this.cancelPendingSearch()
         if (!this.open) return
 
         this.open = false
@@ -242,15 +247,30 @@ export class ActionConversationSearchService extends EventTarget {
 
         this.draftTerm = term
         this.publish(DRAFT_TERM_CHANGED_EVENT)
+        this.cancelPendingSearch()
+        if (!term) {
+            this.clearCompletedSearch()
+            return
+        }
+        this.searchTimer = setTimeout(() => {
+            this.searchTimer = null
+            this.runDraftSearch()
+        }, SEARCH_DEBOUNCE_MS)
     }
 
     toggleCaseSensitive() {
         this.caseSensitive = !this.caseSensitive
         this.publish(CASE_SENSITIVE_CHANGED_EVENT)
-        if (this.submittedTerm) this.searchFrom(this.activeMatch?.start ?? 0, 'next')
+        this.cancelPendingSearch()
+        if (this.draftTerm) this.runDraftSearch()
     }
 
     submitSearch() {
+        this.cancelPendingSearch()
+        this.runDraftSearch()
+    }
+
+    private runDraftSearch() {
         if (!this.draftTerm) return
 
         if (this.submittedTerm !== this.draftTerm) {
@@ -336,6 +356,23 @@ export class ActionConversationSearchService extends EventTarget {
         if (!this.activeMatch) return
 
         window.getSelection()?.removeAllRanges()
+    }
+
+    private cancelPendingSearch() {
+        if (this.searchTimer === null) return
+
+        clearTimeout(this.searchTimer)
+        this.searchTimer = null
+    }
+
+    private clearCompletedSearch() {
+        this.clearOwnedSelection()
+        this.setActiveMatch(null)
+        this.setResultCount(null)
+        if (!this.submittedTerm) return
+
+        this.submittedTerm = ''
+        this.publish(SUBMITTED_TERM_CHANGED_EVENT)
     }
 
     private setActiveMatch(match: ConversationTextMatch | null) {

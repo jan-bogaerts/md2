@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionConversationSearchButton } from './action_conversation_search_button'
 import { ActionConversationSearchRow } from './action_conversation_search_row'
@@ -36,6 +36,29 @@ describe('conversation search controls', () => {
         document.body.replaceChildren()
         window.getSelection()?.removeAllRanges()
         Element.prototype.scrollIntoView = vi.fn()
+    })
+
+    describe('immediate submission controls', () => {
+        beforeEach(() => vi.useFakeTimers())
+        afterEach(() => vi.useRealTimers())
+
+        it.each(['Enter', 'Search button'])('%s cancels delayed duplicate search', (submission) => {
+            const service = new ActionConversationSearchService()
+            mountTranscript(service)
+            render(<SearchHarness service={service} />)
+            fireEvent.click(screen.getByRole('button', { name: 'Find in conversation' }))
+            const search = screen.getByRole('search', { name: 'Conversation search' })
+            const field = within(search).getByRole('textbox', { name: 'Find in conversation' })
+            fireEvent.change(field, { target: { value: 'alpha' } })
+
+            if (submission === 'Enter') fireEvent.keyDown(field, { key: 'Enter' })
+            else fireEvent.click(within(search).getByRole('button', { name: 'Search' }))
+            service.selectNext()
+            expect(service.getActiveMatchIndex()).toBe(1)
+            vi.advanceTimersByTime(800)
+
+            expect(service.getActiveMatchIndex()).toBe(1)
+        })
     })
 
     it('disables entry until a conversation transcript is mounted', () => {

@@ -35,6 +35,7 @@ import {
 } from '../../../services/shortcuts/markdown_local_search_keyboard_service'
 
 const SEARCH_POPUP_WIDTH = 460
+const SEARCH_DEBOUNCE_MS = 800
 // Aligns replacement field with search field: popup padding plus expansion button and gap.
 const REPLACE_ROW_INDENT = 5.25
 
@@ -57,6 +58,7 @@ export function MarkdownLocalTextSearchPlugin() {
     const [resultCount, setResultCount] = useState<number | null>(null)
     const [searchOrigin, setSearchOrigin] = useState(0)
     const searchInputRef = useRef<HTMLInputElement | null>(null)
+    const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const readOnly = !!config?.readOnly
     const rootElement = editor.getRootElement()
     const editorContainer = rootElement?.closest('[data-sticky-toolbar]')
@@ -68,11 +70,29 @@ export function MarkdownLocalTextSearchPlugin() {
     const configError = config ? null : new Error('Cannot register Markdown local text search without configuration')
     useDialogError(configError, 'Local text search is unavailable')
 
-    const closeSearch = useCallback(() => {
-        setOpen(false)
+    const cancelPendingSearch = useCallback(() => {
+        if (searchTimer.current === null) return
+
+        clearTimeout(searchTimer.current)
+        searchTimer.current = null
     }, [])
 
+    useEffect(() => cancelPendingSearch, [cancelPendingSearch])
+
+    const clearCompletedSearch = useCallback(() => {
+        setActiveTerm(null)
+        setActiveCaseSensitive(false)
+        setCurrentMatch(null)
+        setResultCount(null)
+    }, [])
+
+    const closeSearch = useCallback(() => {
+        cancelPendingSearch()
+        setOpen(false)
+    }, [cancelPendingSearch])
+
     const handleDraftReset = useCallback(() => {
+        cancelPendingSearch();
         setOpen(false);
         setActiveTerm(null);
         setActiveCaseSensitive(false);
@@ -84,7 +104,7 @@ export function MarkdownLocalTextSearchPlugin() {
         setResultCount(null);
         setSearchOrigin(0);
         return false;
-    }, []);
+    }, [cancelPendingSearch]);
     useEffect(() => editor.registerCommand(RESET_MARKDOWN_DRAFT_COMMAND, handleDraftReset, COMMAND_PRIORITY_HIGH),
         [editor, handleDraftReset]);
 
@@ -122,14 +142,20 @@ export function MarkdownLocalTextSearchPlugin() {
         setCurrentMatch(result.match)
     }, [activeCaseSensitive, activeTerm, editor])
 
-    const submitSearch = useCallback(() => {
-        if (!draftTerm) return
-        setActiveTerm(draftTerm)
-        setActiveCaseSensitive(draftCaseSensitive)
-        const result = selectMarkdownTextMatch(editor, draftTerm, searchOrigin, draftCaseSensitive)
+    const runSearch = useCallback((term: string, caseSensitive: boolean) => {
+        if (!term) return
+
+        setActiveTerm(term)
+        setActiveCaseSensitive(caseSensitive)
+        const result = selectMarkdownTextMatch(editor, term, searchOrigin, caseSensitive)
         setResultCount(result.count)
         setCurrentMatch(result.match)
-    }, [draftCaseSensitive, draftTerm, editor, searchOrigin])
+    }, [editor, searchOrigin])
+
+    const submitSearch = useCallback(() => {
+        cancelPendingSearch()
+        runSearch(draftTerm, draftCaseSensitive)
+    }, [cancelPendingSearch, draftCaseSensitive, draftTerm, runSearch])
 
     const replaceCurrentMatch = useCallback(() => {
         if (!activeTerm || !currentMatch || readOnly) return
@@ -199,7 +225,17 @@ export function MarkdownLocalTextSearchPlugin() {
     }, [handleSearchEscapeRequested])
 
     const handleTermChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setDraftTerm(event.target.value)
+        const nextTerm = event.target.value
+        setDraftTerm(nextTerm)
+        cancelPendingSearch()
+        if (!nextTerm) {
+            clearCompletedSearch()
+            return
+        }
+        searchTimer.current = setTimeout(() => {
+            searchTimer.current = null
+            runSearch(nextTerm, draftCaseSensitive)
+        }, SEARCH_DEBOUNCE_MS)
     }
 
     const handleReplacementChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -211,7 +247,10 @@ export function MarkdownLocalTextSearchPlugin() {
     }
 
     const handleCaseToggle = () => {
-        setDraftCaseSensitive((current) => !current)
+        const nextCaseSensitive = !draftCaseSensitive
+        setDraftCaseSensitive(nextCaseSensitive)
+        cancelPendingSearch()
+        runSearch(draftTerm, nextCaseSensitive)
     }
 
     const handleInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {

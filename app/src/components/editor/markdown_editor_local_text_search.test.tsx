@@ -175,6 +175,79 @@ describe('MarkdownEditor local text search', () => {
         expect(screen.getByText('2 results')).toBeInTheDocument()
     })
 
+    describe('automatic search debounce', () => {
+        beforeEach(() => vi.useFakeTimers())
+        afterEach(() => vi.useRealTimers())
+
+        it('restarts the delay and searches only after 800 ms without another change', () => {
+            renderSearchEditor('Alpha beta')
+            const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+            fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+            const searchField = screen.getByRole('textbox', { name: 'Find text' })
+
+            fireEvent.change(searchField, { target: { value: 'Alpha' } })
+            act(() => vi.advanceTimersByTime(799))
+            expect(screen.queryByText(/results?$/)).not.toBeInTheDocument()
+
+            fireEvent.change(searchField, { target: { value: 'beta' } })
+            act(() => vi.advanceTimersByTime(799))
+            expect(screen.queryByText(/results?$/)).not.toBeInTheDocument()
+
+            act(() => vi.advanceTimersByTime(1))
+            expect(screen.getByText('1 result')).toBeInTheDocument()
+            expect(editor.selectionStart).toBe(6)
+            expect(editor.selectionEnd).toBe(10)
+        })
+
+        it('submits immediately on Enter and cancels the delayed duplicate', () => {
+            renderSearchEditor('one two one')
+            const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+            fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+            const searchField = screen.getByRole('textbox', { name: 'Find text' })
+            fireEvent.change(searchField, { target: { value: 'one' } })
+
+            fireEvent.keyDown(searchField, { key: 'Enter' })
+            expect(editor.selectionStart).toBe(0)
+            selectText(editor, 4)
+            act(() => vi.advanceTimersByTime(800))
+
+            expect(editor.selectionStart).toBe(4)
+            expect(editor.selectionEnd).toBe(4)
+        })
+
+        it('clears completed state immediately and cancels pending work', () => {
+            renderSearchEditor('Alpha beta')
+            const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
+            fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+            const searchField = screen.getByRole('textbox', { name: 'Find text' })
+            fireEvent.change(searchField, { target: { value: 'Alpha' } })
+            act(() => vi.advanceTimersByTime(800))
+            expect(screen.getByText('1 result')).toBeInTheDocument()
+
+            fireEvent.change(searchField, { target: { value: 'beta' } })
+            fireEvent.change(searchField, { target: { value: '' } })
+
+            expect(screen.queryByText(/results?$/)).not.toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Next result' })).toBeDisabled()
+            act(() => vi.advanceTimersByTime(800))
+            expect(screen.queryByText(/results?$/)).not.toBeInTheDocument()
+        })
+
+        it('cancels pending work when search closes', () => {
+            renderSearchEditor('Alpha')
+            const editor = screen.getAllByRole('textbox')[0]
+            fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+            fireEvent.change(screen.getByRole('textbox', { name: 'Find text' }), { target: { value: 'Alpha' } })
+
+            fireEvent.click(screen.getByRole('button', { name: 'Close search' }))
+            act(() => vi.advanceTimersByTime(800))
+            fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+
+            expect(screen.queryByText(/results?$/)).not.toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Next result' })).toBeDisabled()
+        })
+    })
+
     it('submits search from the accessible popup button', async () => {
         renderSearchEditor('before target')
         const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
@@ -191,7 +264,7 @@ describe('MarkdownEditor local text search', () => {
         expect(editor.selectionEnd).toBe(13)
     })
 
-    it('does not search on match-case changes and submits the selected case mode', async () => {
+    it('reruns the non-empty draft immediately when match case changes', () => {
         renderSearchEditor('Alpha ALPHA')
         const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
         selectText(editor, 0)
@@ -203,14 +276,10 @@ describe('MarkdownEditor local text search', () => {
         expect(matchCase).toHaveAttribute('aria-pressed', 'false')
         fireEvent.click(matchCase)
 
-        expect(editor.selectionStart).toBe(0)
-        expect(editor.selectionEnd).toBe(0)
-        expect(matchCase).toHaveAttribute('aria-pressed', 'true')
-
-        fireEvent.keyDown(searchField, { key: 'Enter' })
-
-        await waitFor(() => expect(editor.selectionStart).toBe(6))
+        expect(editor.selectionStart).toBe(6)
         expect(editor.selectionEnd).toBe(11)
+        expect(screen.getByText('1 result')).toBeInTheDocument()
+        expect(matchCase).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('leaves editor selection unchanged when an empty term is submitted', () => {
@@ -227,7 +296,7 @@ describe('MarkdownEditor local text search', () => {
         expect(editor.selectionEnd).toBe(3)
     })
 
-    it('uses submitted term and case mode for F3 despite later draft changes', async () => {
+    it('uses the latest search completed by a case change for F3', async () => {
         renderSearchEditor('Alpha alpha Alpha')
         const editor = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement
         fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
@@ -239,15 +308,15 @@ describe('MarkdownEditor local text search', () => {
 
         fireEvent.change(searchField, { target: { value: 'alpha' } })
         fireEvent.click(screen.getByRole('button', { name: 'Match case' }))
-        expect(screen.getByText('2 results')).toBeInTheDocument()
+        expect(screen.getByText('3 results')).toBeInTheDocument()
+        fireEvent.keyDown(searchField, { key: 'F3' })
+
+        await waitFor(() => expect(editor.selectionStart).toBe(6))
+        expect(editor.selectionEnd).toBe(11)
+
         fireEvent.keyDown(searchField, { key: 'F3' })
 
         await waitFor(() => expect(editor.selectionStart).toBe(12))
-        expect(editor.selectionEnd).toBe(17)
-
-        fireEvent.keyDown(searchField, { key: 'F3' })
-
-        await waitFor(() => expect(editor.selectionStart).toBe(0))
     })
 
     it('navigates both directions with accessible arrow buttons and wraps', async () => {

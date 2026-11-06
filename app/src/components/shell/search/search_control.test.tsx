@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CardHeader, Card, ProjectSnapshot } from '../../../data/data_types'
 import { actionService } from '../../../services/actions/action_service'
 import { ACTIONS_CHANGED_EVENT } from '../../../services/actions/action_service_events'
@@ -78,9 +78,24 @@ function focusSearch() {
     fireEvent.focus(screen.getByRole('textbox', { name: 'Search project' }))
 }
 
-function typeQuery(value: string) {
+function changeQuery(value: string) {
     focusSearch()
     fireEvent.change(screen.getByRole('textbox', { name: 'Search project' }), { target: { value } })
+}
+
+function advanceSearchDelay() {
+    act(() => vi.advanceTimersByTime(800))
+}
+
+async function waitForSearchDelay() {
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 800)))
+}
+
+function typeQuery(value: string) {
+    vi.useFakeTimers()
+    changeQuery(value)
+    advanceSearchDelay()
+    vi.useRealTimers()
 }
 
 function setClientPlatform(platform: string, userAgent: string) {
@@ -164,6 +179,7 @@ describe('SearchControl', () => {
         const { rerender } = render(<SearchControl presentation="full" />);
         await user.click(screen.getByRole('textbox', { name: 'Search project' }));
         await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Beta');
+        await waitForSearchDelay();
 
         rerender(<SearchControl presentation="icon" />);
 
@@ -192,6 +208,7 @@ describe('SearchControl', () => {
         const { rerender } = render(<SearchControl presentation="full" />);
         await user.click(screen.getByRole('textbox', { name: 'Search project' }));
         await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Beta');
+        await waitForSearchDelay();
 
         rerender(<SearchControl presentation="icon" />);
 
@@ -209,6 +226,7 @@ describe('SearchControl', () => {
         const { rerender } = render(<SearchControl presentation="full" />);
         await user.click(screen.getByRole('textbox', { name: 'Search project' }));
         await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Hidden secret');
+        await waitForSearchDelay();
         await user.click(screen.getByRole('button', { name: 'RegExp mode' }));
         await user.click(screen.getByRole('button', { name: 'Search released and archived file bodies' }));
         await user.click(screen.getByRole('button', { name: 'Search actions' }));
@@ -221,6 +239,7 @@ describe('SearchControl', () => {
         expect(screen.getByRole('button', { name: /History note/ })).toBeInTheDocument();
 
         await user.type(screen.getByRole('textbox', { name: 'Search project' }), '.*text');
+        await waitForSearchDelay();
 
         expect(screen.getByRole('button', { name: /History note/ })).toBeInTheDocument();
     });
@@ -272,6 +291,7 @@ describe('SearchControl', () => {
         render(<SearchControl />)
         await user.click(screen.getByRole('textbox', { name: 'Search project' }))
         await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Beta')
+        await waitForSearchDelay()
 
         await user.click(screen.getByRole('button', { name: 'Close search' }))
 
@@ -286,6 +306,7 @@ describe('SearchControl', () => {
         render(<SearchControl />)
         await user.click(screen.getByRole('textbox', { name: 'Search project' }))
         await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Beta')
+        await waitForSearchDelay()
 
         expect(screen.getByText('Beta feature')).toBeInTheDocument()
         await user.click(screen.getByRole('button', { name: 'Clear search' }))
@@ -306,6 +327,7 @@ describe('SearchControl', () => {
         render(<SearchControl isMobile />)
         await user.click(screen.getByRole('button', { name: 'Search' }))
         await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Beta')
+        await waitForSearchDelay()
 
         await user.click(screen.getByRole('button', { name: 'Clear search' }))
 
@@ -353,6 +375,63 @@ describe('SearchControl', () => {
 
         expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
         expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument()
+    })
+
+    describe('automatic search debounce', () => {
+        beforeEach(() => vi.useFakeTimers())
+        afterEach(() => vi.useRealTimers())
+
+        it('restarts the 800 ms delay and searches only the latest query', () => {
+            render(<SearchControl />)
+
+            changeQuery('Alpha')
+            act(() => vi.advanceTimersByTime(799))
+            expect(screen.queryByRole('button', { name: /Alpha feature/ })).not.toBeInTheDocument()
+
+            changeQuery('Beta')
+            act(() => vi.advanceTimersByTime(799))
+            expect(screen.queryByRole('button', { name: /Beta feature/ })).not.toBeInTheDocument()
+
+            act(() => vi.advanceTimersByTime(1))
+            expect(screen.getByRole('button', { name: /Beta feature/ })).toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: /Alpha feature/ })).not.toBeInTheDocument()
+        })
+
+        it('clears immediately and cannot run the canceled query later', () => {
+            render(<SearchControl />)
+            changeQuery('Beta')
+            advanceSearchDelay()
+            expect(screen.getByRole('button', { name: /Beta feature/ })).toBeInTheDocument()
+
+            changeQuery('Alpha')
+            changeQuery('')
+
+            expect(screen.queryByRole('button', { name: /Beta feature/ })).not.toBeInTheDocument()
+            advanceSearchDelay()
+            expect(screen.queryByRole('button', { name: /Alpha feature/ })).not.toBeInTheDocument()
+        })
+
+        it('runs an option change immediately and cancels pending typed search', () => {
+            render(<SearchControl />)
+
+            changeQuery('Hidden secret')
+            fireEvent.click(screen.getByRole('button', { name: 'Search released and archived file bodies' }))
+
+            expect(screen.getByRole('button', { name: /History note/ })).toBeInTheDocument()
+        })
+
+        it('cancels pending work when the panel unmounts', () => {
+            render(<DialogDisplay />)
+            const { unmount } = render(<SearchControl />)
+            focusSearch()
+            fireEvent.click(screen.getByRole('button', { name: 'RegExp mode' }))
+            changeQuery('(invalid')
+
+            unmount()
+            advanceSearchDelay()
+
+            expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        })
     })
 
     it('highlights a case-insensitive plain text match while preserving its context', () => {
@@ -500,6 +579,7 @@ describe('SearchControl', () => {
         if (isMobile) await user.click(screen.getByRole('button', { name: 'Search' }))
         else await user.click(screen.getByRole('textbox', { name: 'Search project' }))
         await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Alpha')
+        await waitForSearchDelay()
 
         const result = screen.getByRole('button', { name: /Alpha feature/ })
         await user.click(result)
@@ -517,6 +597,7 @@ describe('SearchControl', () => {
         if (isMobile) await user.click(screen.getByRole('button', { name: 'Search' }))
         else await user.click(screen.getByRole('textbox', { name: 'Search project' }))
         await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Alpha')
+        await waitForSearchDelay()
 
         await user.click(screen.getByRole('button', { name: 'RegExp mode' }))
         expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument()
@@ -538,6 +619,7 @@ describe('SearchControl', () => {
         if (isMobile) await user.click(screen.getByRole('button', { name: 'Search' }))
         else await user.click(screen.getByRole('textbox', { name: 'Search project' }))
         await user.type(screen.getByRole('textbox', { name: 'Search project' }), title)
+        await waitForSearchDelay()
         await user.click(screen.getByRole('button', { name: new RegExp(title, 'u') }))
 
         if (isPreview) {
@@ -567,6 +649,7 @@ describe('SearchControl', () => {
         if (isMobile) await user.click(screen.getByRole('button', { name: 'Search' }))
         else await user.click(screen.getByRole('textbox', { name: 'Search project' }))
         await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Searchable action')
+        await waitForSearchDelay()
         await user.click(screen.getByRole('button', { name: 'Search actions' }))
         await user.click(screen.getByRole('button', { name: /Run search job/ }))
 
