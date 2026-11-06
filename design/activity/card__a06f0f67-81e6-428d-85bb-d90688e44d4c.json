@@ -714,6 +714,10 @@
       "cardInternalId": "a06f0f67-81e6-428d-85bb-d90688e44d4c",
       "cardPath": "design/feature_descriptions/B_343_error_unknown_action_phrase_section_phrase_00f9d.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 59663
+      },
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_343_error_unknown_action_phrase_section_phrase_00f9d.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_343_error_unknown_action_phrase_section_phrase_00f9d.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -722,6 +726,207 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-11-06T15:13:29.899Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-2",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgmtfcvVzcAweCYpkuw9N:thinking:0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:13:33.163Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_343_error_unknown_action_phrase_section_phrase_00f9d.md\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-3",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_343\n4\tinternalId: a06f0f67-81e6-428d-85bb-d90688e44d4c\n5\ttitle: Error: Unknown action phrase section: phrase-00f9d\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__a06f0f67-81e6-428d-85bb-d90688e44d4c.json\n11\tpolicy:\n12\tsentryBaseUrl: https://sentry.io\n13\tsentryIssueId: 154937872\n14\tsentryOrganization: elastetic\n15\tafter: 22edc81f-6888-44c5-8d8b-48207057c653\n16\tbranch: b_343_error_unknown_action_phrase_section_phrase_00f9d\n17\tworktree: 1\n18\t---\n19\t\n20\t## Sentry issue\n21\t\n22\t**Title:** Error: Unknown action phrase section: phrase-00f9d704-009b-4a5a-b513-05c0afc48951\n23\t\n24\t**Message:** Not provided\n25\t\n26\t**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/154937872/)\n27\t\n28\t**First seen:** 2026-10-20T15:30:15Z\n29\t\n30\t**Last seen:** 2026-10-20T15:30:15Z\n31\t\n32\t**Occurrences:** 1\n33\t\n34\t**Release:** Not provided\n35\t\n36\t**Environment:** production\n37\t\n38\t**Culprit:** Xd(/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js)\n39\t\n40\t**Event ID:** 1366763f86d44bc9981268ff9e6e2d56\n41\t\n42\t### Application stack frames\n43\t\n44\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:856:10921` — unknown function\n45\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:856:7058` — OR\n46\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:856:6371` — unknown function\n47\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:856:7207` — kR\n48\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:882:16309` — unknown function\n49\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:847:41772` — HQe.pub\n50\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:847:41524` — HQe.pubIn\n51\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:882:19781` — unknown function\n52\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:2592:17697` — Object.onChange\n53\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:25:48047` — e.edit\n54\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:25:47574` — Zd\n55\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-B84YnJpl.js:25:47374` — Xd\n56\t\n57\t## Current state\n58\t\n59\t* Phrase tabs are identified by a transient `phrase-<uuid>` identity stored in `action.editorState.phrases`, together with a snapshot of the phrase (`text`, `title`).\n60\t* `reconcileActionPhraseEditorState` (`app/src/components/actions/editor/action_phrase_editor_state.ts`) runs on every render of `useActionEditorController` and pairs identities with draft phrases by comparing content (`text` and `title`). A phrase without a content match gets a new identity, and a selected phrase tab that no longer exists falls back to `prompt`. The controller effect then publishes the result through `actionService.setActionEditorState`.\n61\t* Typing in a phrase body (`ActionMarkdownDataSource.edit`) or title (`handlePhraseTitleEdit`) only calls `draftStore.stageDraft`, which sends no event. The `editorState` snapshot is only synced on commit (`ActionMarkdownDataSource.updatePhraseEditorState`, `handlePhraseTitleCommit`) or tab change. During typing, the draft phrase and its snapshot differ.\n62\t* Any re-render during typing makes the edited phrase lose its identity. A confirmed trigger is the save of an earlier commit finishing: `ActionDraftStore.queueDraftSave` and `acknowledgeDraftPersistence` call `dispatchDraftChanged`, and the controller re-renders against the newer staged text.\n63\t* `MarkdownEditor` still holds the old target. The next keystroke calls `ActionMarkdownDataSource.edit`, `requirePhrase` throws `Unknown action phrase section`, and `dialogService.error` reports it to Sentry through `telemetryService.captureError`. This matches the Sentry stack (editor `onChange` → `edit` → `updatedDefinition` → `requirePhrase`).\n64\t* The fallback switch to the Prompt tab also fails: `prepareDocumentSwitch` calls `flush`, which commits to the stale target and throws the same error, so the switch is aborted. The editor stays bound to the stale identity and reports an error on every keystroke.\n65\t\n66\t## Implementation details\n67\t\n68\t1. `reconcileActionPhraseEditorState`: replace the single content-matching pass with three passes over the draft phrases. Each current entry is used at most once.\n69\t   1. Same index with equal content keeps the entry at that index.\n70\t   2. Remaining phrases take the first unused entry with equal content (keeps current reorder and duplicate behavior).\n71\t   3. Remaining phrases take the first unused entry in order (the phrase was edited, not replaced). Only when no unused entry is left does a phrase get a new identity.\n72\t   * Returned entries keep their stored `phrase` snapshot; the snapshot is still updated on commit and tab change. The existing `unchanged` check (identity and selected tab only) then returns `current`, so no `setActionEditorState` is published while typing.\n73\t2. Call sites: `useActionEditorController` render and `handleAddPhrase`. Both get the new behavior. In `handleAddPhrase` the appended empty phrase has no unused entry left, so it still gets a new identity.\n74\t3. No changes in `ActionMarkdownDataSource`, `MarkdownEditor`, or `ActionDraftStore`.\n75\t\n76\tEdge cases:\n77\t\n78\t* Phrase edited to equal another phrase's content: pass 1 keeps the other phrase on its own identity, pass 3 keeps the edited phrase on its own identity.\n79\t* External reload that changes content and count at the same time: unchanged phrases match by content; changed or new phrases take leftover entries in order or new identities. The selected tab falls back to `prompt` only when its identity is gone.\n80\t* External change that edits one phrase and reorders others: content-matched phrases keep their identities, and the edited phrase takes the leftover entry.\n81\t\n82\tTests:\n83\t\n84\t* `action_phrase_editor_state.node.test.ts`: existing reorder, duplicate, insert, delete, and selection tests keep passing. Add: an edited phrase keeps its identity and the selected tab; editing a phrase to equal another phrase's content keeps both identities; with one phrase edited and another inserted, the inserted phrase gets a new identity.\n85\t* `use_action_editor_controller.test.ts`: regression test. Select a phrase, stage an edited body through `actionMarkdownDataSource.edit`, dispatch a draft-changed event, then assert the selected phrase identity and `markdownTarget` are unchanged and no `dialogService.error` was reported.\n86\t\n87\t## Acceptance criteria\n88\t\n89\t* Typing in a phrase body or title while an earlier save completes does not report `Unknown action phrase section`.\n90\t* The phrase tab stays selected while typing; the editor does not switch to the Prompt tab.\n91\t* Phrase body and title edits are saved to the correct phrase.\n92\t* Adding, deleting, and reordering phrases keep the current tab and identity behavior.\n93\t* Duplicate phrases keep distinct tabs.",
+          "providerItemId": "toolu_01CZib2YAWkhZUZw5tRJkXLv",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:13:33.660Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\actions\\\\editor\\\\action_phrase_editor_state.ts\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-4",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport type { ActionEditorState, ActionPhrase, ActionPhraseEditorState } from '../../../data/action_types'\n2\timport { generateUuid } from '../../../data/uuid'\n3\t\n4\texport const ACTION_DEFINITION_TAB = 'definition'\n5\tconst PHRASE_TAB_PREFIX = 'phrase-'\n6\texport const ACTION_PROMPT_TAB = 'prompt'\n7\t\n8\tfunction phraseMatches(left: ActionPhrase, right: ActionPhrase) {\n9\t    return left.text === right.text && left.title === right.title\n10\t}\n11\t\n12\tfunction newPhraseEditorState(phrase: ActionPhrase): ActionPhraseEditorState {\n13\t    return { identity: `${PHRASE_TAB_PREFIX}${generateUuid()}`, phrase }\n14\t}\n15\t\n16\t/** Reconcile transient editor identities with current persisted phrase values. */\n17\texport function reconcileActionPhraseEditorState(\n18\t    current: ActionEditorState | undefined,\n19\t    phrases: ActionPhrase[],\n20\t): ActionEditorState {\n21\t    const unmatched = [...(current?.phrases ?? [])]\n22\t    const nextPhrases = phrases.map((phrase) => {\n23\t        const matchingIndex = unmatched.findIndex((entry) => phraseMatches(entry.phrase, phrase))\n24\t        if (matchingIndex < 0) return newPhraseEditorState(phrase)\n25\t\n26\t        const [matching] = unmatched.splice(matchingIndex, 1)\n27\t        return matching\n28\t    })\n29\t    const selectedTab = current?.selectedTab ?? ACTION_DEFINITION_TAB\n30\t    const selectedPhraseExists = nextPhrases.some(({ identity }) => identity === selectedTab)\n31\t    const nextSelectedTab = selectedTab.startsWith(PHRASE_TAB_PREFIX) && !selectedPhraseExists\n32\t        ? ACTION_PROMPT_TAB\n33\t        : selectedTab\n34\t\n35\t    const unchanged = current\n36\t        && current.selectedTab === nextSelectedTab\n37\t        && current.phrases.length === nextPhrases.length\n38\t        && current.phrases.every(({ identity }, index) => identity === nextPhrases[index].identity)\n39\t\n40\t    return unchanged ? current : { phrases: nextPhrases, selectedTab: nextSelectedTab }\n41\t}\n42\t",
+          "providerItemId": "toolu_012dnSzd8ryeTo8q9iHvL79u",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:13:35.339Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"app/src/components/actions/editor/*{phrase_editor_state,use_action_editor_controller}*\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-5",
+          "kind": "event",
+          "label": "Glob",
+          "output": "app\\src\\components\\actions\\editor\\action_phrase_editor_state.node.test.ts\napp\\src\\components\\actions\\editor\\action_phrase_editor_state.ts\napp\\src\\components\\actions\\editor\\use_action_editor_controller.test.ts\napp\\src\\components\\actions\\editor\\use_action_editor_controller.ts",
+          "providerItemId": "toolu_01NSw71vTz1eu3BcrhE2Jj52",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:13:36.369Z",
+          "type": "tool.Glob"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-6",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgmtfxNXxz4brjCmkKkSG:thinking:0",
+          "sequence": 6,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:13:37.625Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\actions\\\\editor\\\\action_phrase_editor_state.node.test.ts\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-7",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { describe, expect, it, vi } from 'vitest'\n2\timport type { ActionEditorState, ActionPhrase } from '../../../data/action_types'\n3\timport { reconcileActionPhraseEditorState } from './action_phrase_editor_state'\n4\t\n5\tconst ALPHA = { text: 'Alpha text', title: 'Alpha' }\n6\tconst BETA = { text: 'Beta text', title: 'Beta' }\n7\tconst GAMMA = { text: 'Gamma text', title: 'Gamma' }\n8\t\n9\tfunction identities(state: ActionEditorState) {\n10\t    return state.phrases.map(({ identity }) => identity)\n11\t}\n12\t\n13\tdescribe('reconcileActionPhraseEditorState', () => {\n14\t    it('keeps phrase identities through insertion, deletion, and reordering', () => {\n15\t        vi.spyOn(crypto, 'randomUUID')\n16\t            .mockReturnValueOnce('00000000-0000-4000-8000-000000000001')\n17\t            .mockReturnValueOnce('00000000-0000-4000-8000-000000000002')\n18\t            .mockReturnValueOnce('00000000-0000-4000-8000-000000000003')\n19\t            .mockReturnValueOnce('00000000-0000-4000-8000-000000000004')\n20\t        const initial = reconcileActionPhraseEditorState(undefined, [ALPHA, BETA, GAMMA])\n21\t        const [alphaIdentity, betaIdentity, gammaIdentity] = identities(initial)\n22\t        const reordered = reconcileActionPhraseEditorState(initial, [GAMMA, ALPHA, BETA])\n23\t        const inserted = reconcileActionPhraseEditorState(reordered, [GAMMA, ALPHA, { text: 'Delta text', title: 'Delta' }, BETA])\n24\t        const deleted = reconcileActionPhraseEditorState(inserted, [GAMMA, { text: 'Delta text', title: 'Delta' }, BETA])\n25\t\n26\t        expect(identities(reordered)).toEqual([gammaIdentity, alphaIdentity, betaIdentity])\n27\t        expect(identities(inserted)).toEqual([gammaIdentity, alphaIdentity, 'phrase-00000000-0000-4000-8000-000000000004', betaIdentity])\n28\t        expect(identities(deleted)).toEqual([gammaIdentity, 'phrase-00000000-0000-4000-8000-000000000004', betaIdentity])\n29\t    })\n30\t\n31\t    it('keeps duplicate phrases distinct by occurrence', () => {\n32\t        const duplicate: ActionPhrase = { text: 'Same text', title: 'Same title' }\n33\t        const initial = reconcileActionPhraseEditorState(undefined, [duplicate, duplicate])\n34\t        const reconciled = reconcileActionPhraseEditorState(initial, [duplicate, duplicate])\n35\t\n36\t        expect(new Set(identities(initial)).size).toBe(2)\n37\t        expect(identities(reconciled)).toEqual(identities(initial))\n38\t    })\n39\t\n40\t    it('keeps selected phrase through reordering and selects Prompt when removed', () => {\n41\t        const initial = reconcileActionPhraseEditorState(undefined, [ALPHA, BETA])\n42\t        const selected = { ...initial, selectedTab: initial.phrases[1].identity }\n43\t        const reordered = reconcileActionPhraseEditorState(selected, [BETA, ALPHA])\n44\t        const removed = reconcileActionPhraseEditorState(reordered, [ALPHA])\n45\t\n46\t        expect(reordered.selectedTab).toBe(initial.phrases[1].identity)\n47\t        expect(removed.selectedTab).toBe('prompt')\n48\t    })\n49\t})\n50\t",
+          "providerItemId": "toolu_01M7hBsCAWN6qvjC5LhowcZD",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:13:38.202Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\actions\\\\editor\\\\use_action_editor_controller.ts\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-8",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { useCallback, useEffect, useMemo, useState, type SyntheticEvent } from 'react'\n2\timport type { ActionDefinition } from '../../../data/action_types'\n3\timport {\n4\t    ACTION_DRAFT_CHANGED_EVENT,\n5\t    actionService,\n6\t    type ActionDraftChangedDetail,\n7\t} from '../../../services/actions/action_service'\n8\timport { openFilesService } from '../../../services/open_files_service'\n9\timport type { ActionOpenDocument } from '../../../services/open_files_service'\n10\timport type { MarkdownDocumentTarget } from '../../editor/data_sources/markdown_data_source'\n11\timport {\n12\t    ACTION_DEFINITION_TAB,\n13\t    ACTION_PROMPT_TAB,\n14\t    reconcileActionPhraseEditorState,\n15\t} from './action_phrase_editor_state'\n16\t\n17\texport interface ActionEditorControllerOptions {\n18\t    action: ActionDefinition\n19\t    actions: ActionDefinition[]\n20\t    discardMarkdownTarget: (target: MarkdownDocumentTarget) => void\n21\t    openDocument: ActionOpenDocument\n22\t    sourcePath: string\n23\t}\n24\t\n25\t/** Bridge ActionService-owned draft state into ActionEditor presentation. */\n26\texport function useActionEditorController(options: ActionEditorControllerOptions) {\n27\t    const { action, actions, discardMarkdownTarget, openDocument, sourcePath } = options\n28\t    const actionId = action.id\n29\t\n30\t    const [, setEditorRevision] = useState(0)\n31\t    useEffect(() => {\n32\t        let previousAction = actionService.getEditableActionById(actionId)\n33\t        let previousDraft = actionService.draftStore.getDraft(actionId)\n34\t        let previousEditorState = previousAction?.editorState\n35\t        const handleChanged = (event: Event) => {\n36\t            const { actionId: changedActionId } = (event as CustomEvent<ActionDraftChangedDetail>).detail\n37\t            if (changedActionId !== actionId) return\n38\t\n39\t            const nextAction = actionService.getEditableActionById(actionId)\n40\t            const nextDraft = actionService.draftStore.getDraft(actionId)\n41\t            const nextEditorState = nextAction?.editorState\n42\t            if (nextAction === previousAction && nextDraft === previousDraft && nextEditorState === previousEditorState) return\n43\t\n44\t            previousAction = nextAction\n45\t            previousDraft = nextDraft\n46\t            previousEditorState = nextEditorState\n47\t            setEditorRevision((current) => current + 1)\n48\t        }\n49\t        actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)\n50\t\n51\t        return () => actionService.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)\n52\t    }, [actionId])\n53\t\n54\t    const draft = actionService.draftStore.getDraft(actionId)\n55\t    const { conflict, definition, deleted, error: saveError, saving, validation } = draft\n56\t    useEffect(() => () => {\n57\t        const actionExists = !!actionService.getEditableActionById(actionId)\n58\t        const deletedDraftExists = actionService.draftStore.getDeletedDraftActions()\n59\t            .some((candidate) => candidate.id === actionId)\n60\t        if (actionExists || deletedDraftExists) actionService.draftStore.commitDraft(actionId)\n61\t    }, [actionId])\n62\t    const phrases = useMemo(() => definition.phrases ?? [], [definition.phrases])\n63\t    const publishedAction = actionService.getEditableActionById(actionId) ?? action\n64\t    const editorState = reconcileActionPhraseEditorState(publishedAction.editorState, phrases)\n65\t    const { phrases: phraseEditorStates, selectedTab } = editorState\n66\t\n67\t    useEffect(() => {\n68\t        if (publishedAction.editorState !== editorState) actionService.setActionEditorState(actionId, editorState)\n69\t    }, [actionId, editorState, publishedAction.editorState])\n70\t\n71\t    const errors = useMemo(() => (\n72\t        validation.error && validation.field ? { [validation.field]: validation.error } : {}\n73\t    ), [validation.error, validation.field])\n74\t    const selectedPhraseIndex = phraseEditorStates.findIndex(({ identity }) => identity === selectedTab)\n75\t    const selectedPhrase = selectedPhraseIndex < 0 ? null : phrases[selectedPhraseIndex]\n76\t    const activeTab = sele\n[2244 characters omitted]\nates, selectedTab: value })\n118\t    }\n119\t\n120\t    const handlePhraseTitleEdit = useCallback((title: string) => {\n121\t        if (selectedPhraseIndex < 0) return\n122\t        const currentDefinition = actionService.draftStore.getDraft(actionId).definition\n123\t        const currentPhrases = currentDefinition.phrases ?? []\n124\t        const nextPhrases = currentPhrases.map((phrase, index) => index === selectedPhraseIndex ? { ...phrase, title } : phrase)\n125\t        actionService.draftStore.stageDraft(actionId, { ...currentDefinition, phrases: nextPhrases })\n126\t    }, [actionId, selectedPhraseIndex])\n127\t\n128\t    const handlePhraseTitleCommit = useCallback((title: string) => {\n129\t        handlePhraseTitleEdit(title)\n130\t        const currentDefinition = actionService.draftStore.getDraft(actionId).definition\n131\t        const currentPhrases = currentDefinition.phrases ?? []\n132\t        storeEditorState({\n133\t            ...editorState,\n134\t            phrases: phraseEditorStates.map((entry, index) => (\n135\t                index === selectedPhraseIndex ? { ...entry, phrase: currentPhrases[index] } : entry\n136\t            )),\n137\t        })\n138\t        actionService.draftStore.commitDraft(actionId)\n139\t    }, [actionId, editorState, handlePhraseTitleEdit, phraseEditorStates, selectedPhraseIndex, storeEditorState])\n140\t\n141\t    const handleDeletePhrase = useCallback(() => {\n142\t        if (selectedPhraseIndex < 0) return\n143\t        discardMarkdownTarget(markdownTarget)\n144\t        const currentDefinition = actionService.draftStore.getDraft(actionId).definition\n145\t        const currentPhrases = currentDefinition.phrases ?? []\n146\t        const nextPhrases = currentPhrases.filter((_phrase, index) => index !== selectedPhraseIndex)\n147\t        const nextDefinition = { ...currentDefinition, phrases: nextPhrases }\n148\t        actionService.draftStore.updateDraft(actionId, nextDefinition)\n149\t        storeEditorState({\n150\t            phrases: phraseEditorStates.filter((_entry, index) => index !== selectedPhraseIndex),\n151\t            selectedTab: ACTION_PROMPT_TAB,\n152\t        })\n153\t    }, [\n154\t        discardMarkdownTarget,\n155\t        markdownTarget,\n156\t        phraseEditorStates,\n157\t        selectedPhraseIndex,\n158\t        actionId,\n159\t        storeEditorState,\n160\t    ])\n161\t\n162\t    const handleDiscardDeleted = () => {\n163\t        actionService.draftStore.discardDeletedDraft(actionId)\n164\t        const document = openFilesService.getSnapshot().documents.find((candidate) => (\n165\t            candidate.kind === 'action' && candidate.getObject().id === action.id\n166\t        ))\n167\t        if (document) openFilesService.closeDocument(document)\n168\t    }\n169\t    const dirty = openDocument.dirty\n170\t    const canRetry = !!saveError && dirty && !conflict && !saving\n171\t\n172\t    return {\n173\t        activeTab,\n174\t        canRetry,\n175\t        conflict,\n176\t        definition,\n177\t        deleted,\n178\t        draft,\n179\t        editorState,\n180\t        errors,\n181\t        handleDeletePhrase,\n182\t        handleDiscardDeleted,\n183\t        handleKeepMine: () => actionService.draftStore.keepDraft(actionId),\n184\t        handlePhraseTitleCommit,\n185\t        handlePhraseTitleEdit,\n186\t        handleRecreateDeleted: () => actionService.draftStore.recreateDeletedDraft(actionId),\n187\t        handleReloadExternal: () => actionService.draftStore.reloadDraft(actionId),\n188\t        handleRetry: () => {\n189\t            if (canRetry) actionService.draftStore.retryDraft(actionId)\n190\t        },\n191\t        handleTabChange,\n192\t        markdownTarget,\n193\t        phraseEditorStates,\n194\t        phrases,\n195\t        saveError,\n196\t        saving,\n197\t        selectableActions: actions.filter(({ id }) => id !== action.id),\n198\t        selectedPhrase,\n199\t        sourcePath,\n200\t        status: saveError ? 'Save failed. Retry to save changes.' : validation.valid ? null : 'Saved action cannot run until validation errors are fixed.',\n201\t        validation,\n202\t    }\n203\t}\n204\t\n205\texport { ACTION_DEFINITION_TAB, ACTION_PROMPT_TAB }\n206\t",
+          "providerItemId": "toolu_016Fv4BE324iw5uy9ao2WQGg",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:13:38.805Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\actions\\\\editor\\\\use_action_editor_controller.test.ts\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-9",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { act, cleanup, renderHook } from '@testing-library/react'\n2\timport type { SyntheticEvent } from 'react'\n3\timport { afterEach, describe, expect, it, vi } from 'vitest'\n4\timport type { ActionDefinition } from '../../../data/action_types'\n5\timport { actionService } from '../../../services/actions/action_service'\n6\timport { dataService } from '../../../services/data/data_service'\n7\timport { openFilesService } from '../../../services/open_files_service'\n8\timport { useActionEditorController } from './use_action_editor_controller'\n9\t\n10\tfunction loadAction(): ActionDefinition {\n11\t    actionService.loadFromFiles([{\n12\t        content: JSON.stringify({\n13\t            description: 'Review the selected file',\n14\t            id: 'review-action',\n15\t            label: 'Review',\n16\t            phrases: [{ text: 'Run tests', title: 'Tests' }],\n17\t            prompt: 'Review it',\n18\t            type: 'agent',\n19\t        }),\n20\t        path: 'actions/review.json',\n21\t    }, {\n22\t        content: JSON.stringify({description: 'Other action', id: 'other-action', label: 'Other', prompt: 'Other prompt', type: 'agent'}),\n23\t        path: 'actions/other.json',\n24\t    }])\n25\t    const action = actionService.getActionByPath('actions/review.json')\n26\t    if (!action) throw new Error('Missing test action')\n27\t\n28\t    return action\n29\t}\n30\t\n31\tdescribe('useActionEditorController', () => {\n32\t    afterEach(() => {\n33\t        cleanup()\n34\t        actionService.clear()\n35\t        vi.restoreAllMocks()\n36\t    })\n37\t\n38\t    it('owns prompt and phrase sections on one canonical action document', () => {\n39\t        vi.spyOn(dataService, 'persistActionFile').mockResolvedValue(undefined)\n40\t        const action = loadAction()\n41\t        openFilesService.init({ actionService, dataService })\n42\t        const document = openFilesService.openDocument(action)\n43\t        if (document.kind !== 'action') throw new Error('Expected action document')\n44\t        const discardMarkdownTarget = vi.fn()\n45\t        const { result } = renderHook(() => useActionEditorController({\n46\t            action,\n47\t            actions: actionService.getActions(),\n48\t            discardMarkdownTarget,\n49\t            openDocument: document,\n50\t            sourcePath: 'actions/review.json',\n51\t        }))\n52\t\n53\t        expect(result.current.markdownTarget).toEqual({ document, section: { kind: 'prompt' } })\n54\t\n55\t        const phraseIdentity = action.editorState?.phrases[0].identity\n56\t        if (!phraseIdentity) throw new Error('Missing phrase editor identity')\n57\t        act(() => result.current.handleTabChange({} as SyntheticEvent, phraseIdentity))\n58\t        const phraseTarget = result.current.markdownTarget\n59\t        act(() => result.current.handleDeletePhrase())\n60\t        expect(discardMarkdownTarget).toHaveBeenCalledWith(phraseTarget)\n61\t        expect(actionService.draftStore.getDraft('review-action').definition.phrases).toEqual([])\n62\t    })\n63\t\n64\t    it('does not rerender for an unrelated action editor-state event', () => {\n65\t        const action = loadAction()\n66\t        openFilesService.init({ actionService, dataService })\n67\t        const document = openFilesService.openDocument(action)\n68\t        if (document.kind !== 'action') throw new Error('Expected action document')\n69\t        let renderCount = 0\n70\t        renderHook(() => {\n71\t            renderCount += 1\n72\t            return useActionEditorController({\n73\t                action,\n74\t                actions: actionService.getActions(),\n75\t                discardMarkdownTarget: vi.fn(),\n76\t                openDocument: document,\n77\t                sourcePath: 'actions/review.json',\n78\t            })\n79\t        })\n80\t        const initialRenderCount = renderCount\n81\t\n82\t        act(() => actionService.setActionEditorState('other-action', { phrases: [], selectedTab: 'prompt' }))\n83\t\n84\t        expect(renderCount).toBe(initialRenderCount)\n85\t    })\n86\t})\n87\t",
+          "providerItemId": "toolu_01FdjET4wzpZRvArpVREAM7y",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:13:39.376Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-10",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgmtgBADdNSEuSUykCEPj:thinking:0",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:13:40.700Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"actionMarkdownDataSource|dispatchDraftChanged|Unknown action phrase section\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-11",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\components\\text_view\\text_view.grouped.test.tsx:17:import { actionMarkdownDataSource } from '../editor/data_sources/action_markdown_data_source'\napp\\src\\components\\text_view\\text_view.grouped.test.tsx:231:        actionMarkdownDataSource.init(actionService)\napp\\src\\components\\editor\\data_sources\\action_markdown_data_source.ts:39:    if (phraseIndex < 0 || !phrase) throw new Error(`Unknown action phrase section: ${section.identity}`)\napp\\src\\components\\editor\\data_sources\\action_markdown_data_source.ts:144:export const actionMarkdownDataSource = new ActionMarkdownDataSource()\napp\\src\\services\\application_startup_service.ts:1:import { actionMarkdownDataSource } from '../components/editor/data_sources/action_markdown_data_source'\napp\\src\\services\\application_startup_service.ts:59:    actionMarkdownDataSource.init(actionService)\napp\\src\\services\\actions\\action_draft_store.ts:102:        this.host.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_draft_store.ts:136:        this.host.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_draft_store.ts:155:        this.host.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_draft_store.ts:178:        this.host.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_draft_store.ts:198:        this.host.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_draft_store.ts:318:        this.host.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_draft_store.ts:373:            this.host.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_draft_store.ts:398:            this.host.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_draft_store.ts:409:        this.host.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_service.ts:159:        this.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_service.ts:187:        for (const actionId of draftActionIds) this.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_service.ts:329:        this.dispatchDraftChanged(actionId)\napp\\src\\services\\actions\\action_service.ts:477:    dispatchDraftChanged(actionId: string) {\napp\\src\\components\\actions\\editor\\list_action_editor.tsx:4:import { actionMarkdownDataSource } from '../../editor/data_sources/action_markdown_data_source'\napp\\src\\components\\actions\\editor\\list_action_editor.tsx:39:        const activeTarget = actionMarkdownDataSource.getActiveTarget('list-action')\napp\\src\\components\\actions\\editor\\list_action_editor.tsx:40:        if (sameMarkdownTarget(activeTarget, target)) actionMarkdownDataSource.setActiveActionTarget(null, true)\napp\\src\\components\\actions\\editor\\list_action_editor.tsx:49:            const activeTarget = actionMarkdownDataSource.getActiveTarget('list-action')\napp\\src\\components\\actions\\editor\\list_action_editor.tsx:51:                actionMarkdownDataSource.setActiveActionTarget(null)\napp\\src\\components\\actions\\editor\\list_action_editor.tsx:60:    useEffect(() => () => actionMarkdownDataSource.setActiveActionTarget(null), [])\napp\\src\\components\\actions\\editor\\list_action_editor.tsx:81:                    dataSource={actionMarkdownDataSource}\napp\\src\\components\\actions\\editor\\action_editor_navigation.tsx:7:import { actionMarkdownDataSource } from '../../editor/data_sources/action_markdown_data_source'\napp\\src\\components\\actions\\editor\\action_editor_navigation.tsx:48:        actionMarkdownDataSource.setActiveActionTarget(target)\napp\\src\\components\\actions\\editor\\action_editor_navigation.tsx:57:        actionMarkdownDataSource.setActiveActionTarget(null)\napp\\src\\components\\actions\\editor\\action_editor.real.test.tsx:11:import { actionMarkdownDataSource } from '../../editor/data_sources/action_markdown_data_source'\napp\\src\\components\\actions\\editor\\action_editor.real.test.tsx:56:        actionMarkdownDataSource.init(actionService)\napp\\src\\components\\actions\\editor\\action_editor.real.test.tsx:127:        EventTarget.prototype.addEventListener.call(actionMarkdownDataSource, 'activeDocumentChanged', () => {\napp\\src\\components\\actions\\editor\\action_editor.real.test.tsx:130:        const addEventListener = actionMarkdownDataSource.addEventListener.bind(actionMarkdownDataSource)\napp\\src\\components\\actions\\editor\\action_editor.real.test.tsx:131:        vi.spyOn(actionMarkdownDataSource, 'addEventListener').mockImplementation((type, listener, options) => {\napp\\src\\components\\actions\\editor\\action_editor.grouped.test.tsx:14:import { actionMarkdownDataSource } from '../../editor/data_sources/action_markdown_data_source'\napp\\src\\components\\actions\\editor\\action_editor.grouped.test.tsx:103:        actionMarkdownDataSource.init(actionService)",
+          "providerItemId": "toolu_01SodCKHJrnxjBiq4N9fyYaK",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:13:41.605Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\editor\\\\data_sources\\\\action_markdown_data_source.ts\"}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-12",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport type { ActionEditorState, RawActionDefinition } from '../../../data/action_types'\n2\timport type { ActionService } from '../../../services/actions/action_service'\n3\timport { dialogService } from '../../../services/dialog_service'\n4\timport { openFilesService, type OpenDocumentChangedDetail } from '../../../services/open_files_service'\n5\timport {\n6\t    MarkdownDataSourceBase,\n7\t    type ActionMarkdownSection,\n8\t    type MarkdownBindingKind,\n9\t    type MarkdownDocumentTarget,\n10\t} from './markdown_data_source'\n11\t\n12\ttype ActionMarkdownTarget = Extract<MarkdownDocumentTarget, { section: ActionMarkdownSection }>\n13\t\n14\ttype ActionMarkdownOwner = EventTarget & Pick<ActionService, 'draftStore' | 'setActionEditorState'>\n15\t\n16\tfunction actionTarget(target: MarkdownDocumentTarget): asserts target is ActionMarkdownTarget {\n17\t    if (target.document.kind !== 'action') throw new Error('Action Markdown source requires an action document')\n18\t}\n19\t\n20\tfunction sectionMarkdown(\n21\t    definition: RawActionDefinition,\n22\t    section: ActionMarkdownSection,\n23\t    document: import('../../../services/open_files_service').ActionOpenDocument,\n24\t) {\n25\t    if (section.kind === 'prompt') return definition.prompt ?? ''\n26\t    const phrase = requirePhrase(definition, section, document)\n27\t    return phrase.phrase.text\n28\t}\n29\t\n30\tfunction requirePhrase(\n31\t    definition: RawActionDefinition,\n32\t    section: ActionMarkdownSection,\n33\t    document: import('../../../services/open_files_service').ActionOpenDocument,\n34\t) {\n35\t    if (section.kind !== 'phrase') throw new Error(`Expected action phrase section: ${document.path}`)\n36\t    const phraseIndex = document.getObject().editorState?.phrases\n37\t        .findIndex(({ identity }) => identity === section.identity) ?? -1\n38\t    const phrase = definition.phrases?.[phraseIndex]\n39\t    if (phraseIndex < 0 || !phrase) throw new Error(`Unknown action phrase section: ${section.identity}`)\n40\t\n41\t    return { phrase, phraseIndex }\n42\t}\n43\t\n44\tfunction updatedDefinition(target: ActionMarkdownTarget, markdown: string) {\n45\t    const definition = target.document.getDraft()\n46\t    if (target.section.kind === 'prompt') return { ...definition, prompt: markdown }\n47\t    const { phraseIndex } = requirePhrase(definition, target.section, target.document)\n48\t    const phrases = definition.phrases ?? []\n49\t    return {\n50\t        ...definition,\n51\t        phrases: phrases.map((phrase, index) => index === phraseIndex ? { ...phrase, text: markdown } : phrase),\n52\t    }\n53\t}\n54\t\n55\tfunction readActionMarkdown(target: MarkdownDocumentTarget) {\n56\t    actionTarget(target)\n57\t    return sectionMarkdown(target.document.getDraft(), target.section, target.document)\n58\t}\n59\t\n60\t/** Reads and writes prompt/phrase sections through one canonical action document. */\n61\texport class ActionMarkdownDataSource extends MarkdownDataSourceBase {\n62\t    private service: ActionMarkdownOwner | null = null\n63\t\n64\t    init(service: ActionMarkdownOwner) {\n65\t        if (this.service) return\n66\t        this.service = service\n67\t        openFilesService.addEventListener('documentChanged', this.handleDocumentChanged)\n68\t    }\n69\t\n70\t    readonly getMarkdown = readActionMarkdown\n71\t\n72\t    setActiveActionTarget(target: MarkdownDocumentTarget | null, discard = false) {\n73\t        if (target) actionTarget(target)\n74\t        this.setActiveTarget('list-action', target, discard)\n75\t    }\n76\t\n77\t    edit(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string) {\n78\t        ActionMarkdownDataSource.requireActionBinding(binding)\n79\t        actionTarget(target)\n80\t        try {\n81\t            const definition = updatedDefinition(target, markdown)\n82\t            target.document.updateDraft(definition, binding)\n83\t            this.requireService().draftStore.stageDraft(target.document.getObject().id, definition)\n84\t        } catch (error) {\n85\t            dialogService.error(error, { fallbackMessage: `Action update failed: ${target.document.path}` })\n86\t        }\n87\t    }\n88\t\n89\t    commit(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string) {\n90\t        ActionMarkdownDataSource.requireActionBinding(binding)\n91\t        actionTarget(target)\n92\t        try {\n93\t            const definition = updatedDefinition(target, markdown)\n94\t            target.document.updateDraft(definition, binding)\n95\t            this.requireService().draftStore.stageDraft(target.document.getObject().id, definition)\n96\t            if (target.section.kind === 'phrase') this.updatePhraseEditorState(target, definition)\n97\t            this.requireService().draftStore.commitDraft(target.document.getObject().id)\n98\t            return true\n99\t        } catch (error) {\n100\t            dialogService.error(error, { fallbackMessage: `Action update failed: ${target.document.path}` })\n101\t            return false\n102\t        }\n103\t    }\n104\t\n105\t    private updatePhraseEditorState(\n106\t        target: ActionMarkdownTarget,\n107\t        definition: RawActionDefinition,\n108\t    ) {\n109\t        if (target.section.kind !== 'phrase') return\n110\t        const action = target.document.getObject()\n111\t        const editorState = action.editorState\n112\t        if (!editorState) throw new Error(`Missing phrase editor state for action: ${action.id}`)\n113\t        const { phraseIndex } = requirePhrase(definition, target.section, target.document)\n114\t        const phrases = definition.phrases ?? []\n115\t        const nextEditorState: ActionEditorState = {\n116\t            ...editorState,\n117\t            phrases: editorState.phrases.map((entry, index) => (\n118\t                index === phraseIndex ? { ...entry, phrase: phrases[index] } : entry\n119\t            )),\n120\t        }\n121\t        this.requireService().setActionEditorState(action.id, nextEditorState)\n122\t    }\n123\t\n124\t    private readonly handleDocumentChanged = (event: Event) => {\n125\t        const { document, origin, type } = (event as CustomEvent<OpenDocumentChangedDetail>).detail\n126\t        if (document.kind !== 'action' || type !== 'draft') return\n127\t        const target = this.getActiveTarget('list-action')\n128\t        if (!target || target.document !== document) return\n129\t\n130\t        const originBinding = typeof origin === 'string' ? origin as MarkdownBindingKind : null\n131\t        this.dispatchMarkdownReplaced({ originBinding, target })\n132\t    }\n133\t\n134\t    private static requireActionBinding(binding: MarkdownBindingKind) {\n135\t        if (binding !== 'list-action') throw new Error(`Action Markdown source cannot use ${binding} binding`)\n136\t    }\n137\t\n138\t    private requireService() {\n139\t        if (!this.service) throw new Error('Action Markdown data source is not initialized')\n140\t        return this.service\n141\t    }\n142\t}\n143\t\n144\texport const actionMarkdownDataSource = new ActionMarkdownDataSource()\n145\t",
+          "providerItemId": "toolu_01E9TX1EX2p9m1ctebmKy41m",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:13:42.839Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgmtgSB7QivT76mii98kt:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:13:46.046Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Spec + code read. Now plan, then tasks.",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 14,
+          "timestamp": "2026-11-06T15:13:46.047Z"
+        },
+        {
+          "content": "{\"query\":\"select:TaskCreate,TaskUpdate\",\"max_results\":2}",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-15",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskCreate\"},{\"type\":\"tool_reference\",\"tool_name\":\"TaskUpdate\"}]",
+          "providerItemId": "toolu_01N1J7zEEMH8xmr6uNxewDqE",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-11-06T15:13:46.491Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgmth5TTV5DJgujin6C8W:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T15:13:57.850Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\n## Change Plan for B_343\n\n**Root cause (confirmed in code):** `reconcileActionPhraseEditorState` in `app/src/components/actions/editor/action_phrase_editor_state.ts` matches tabs to phrases only by content (`text` + `title`). While you type, the draft text changes but the stored snapshot does not. When anything re-renders the controller (for example, an earlier save finishing and firing a draft-changed event), the phrase being edited finds no match, so it gets a new `phrase-<uuid>` identity. The editor still holds the old identity, so the next keystroke throws `Unknown action phrase section`.\n\n**Block 1: three-pass reconcile** (`action_phrase_editor_state.ts`)\n- Replace the single pass with three passes. Each current entry is used at most once:\n  1. Same index and equal content → keep that entry.\n  2. Still unmatched → first unused entry with equal content. This keeps the current reorder and duplicate behavior.\n  3. Still unmatched → first unused entry in order. Only when none is left does the phrase get a new identity.\n- Matched entries keep their stored `phrase` snapshot. The existing `unchanged` check then returns `current`, so nothing is published while you type.\n- Add tests to `action_phrase_editor_state.node.test.ts`:\n  - An edited phrase keeps its identity and its selected tab.\n  - Editing a phrase to match another phrase's content keeps both identities.\n  - When one phrase is edited and another is inserted, the inserted phrase gets a new identity.\n- Both call sites (the controller render and `handleAddPhrase`) get the new behavior. No flag is needed.\n\n**Block 2: controller regression test** (`use_action_editor_controller.test.ts`)\n- Steps: initialize `actionMarkdownDataSource`, select a phrase tab, call `actionMarkdownDataSource.edit` with new body text, then fire `actionService.dispatchDraftChanged('review-action')`.\n- Assert that the selected identity and `markdownTarget` are unchanged and that `dialogService.error` was not called.\n\n**Block 3: verify and set status**\n- Run the two test files and `npm run lint` in `app/`.\n- Then set `status: ready` in `C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_343_...md`.\n\nPer the spec, there are no changes to `ActionMarkdownDataSource`, `MarkdownEditor` or `ActionDraftStore`.\n\nI've created one task per block. Approve to start?",
+          "id": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 17,
+          "timestamp": "2026-11-06T15:13:58.925Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -732,27 +937,63 @@
           "agent": "claude",
           "conversationId": "23613142-a5cd-42a9-b4b6-96582de82f22",
           "createdAt": "2026-11-06T15:13:32.583Z",
-          "lastUsedAt": "2026-11-06T15:13:32.583Z",
-          "synchronizedThroughMessageId": "submission-7ed1eeef-ff85-40a1-9908-2f1ecf61720d",
+          "lastUsedAt": "2026-11-06T15:13:58.925Z",
+          "synchronizedThroughMessageId": "agent-turn-c84839a2-384f-4076-a53a-726bdc6d3b4b-turn-1-assistant-2",
           "usageBaseline": {
-            "costUsd": 0,
+            "costUsd": 0.45768060000000005,
+            "resultId": "4df153e7-8471-4916-94a7-9281a9120e3a",
             "tokens": {
-              "cachedInputTokens": 0,
-              "inputTokens": 0,
-              "outputTokens": 0,
+              "cachedInputTokens": 396046,
+              "inputTokens": 15,
+              "outputTokens": 2789,
               "reasoningTokens": 0,
-              "totalTokens": 0
+              "totalTokens": 398850
             }
           }
         }
       ],
       "startedAt": "2026-11-06T15:13:29.899Z",
       "status": "running",
+      "taskList": {
+        "tasks": [
+          {
+            "id": "1",
+            "subject": "Block 1: three-pass reconcile in action_phrase_editor_state.ts",
+            "status": "pending",
+            "activeForm": "Rewriting phrase reconcile"
+          },
+          {
+            "id": "2",
+            "subject": "Block 2: controller regression test",
+            "status": "pending",
+            "activeForm": "Adding controller regression test"
+          },
+          {
+            "id": "3",
+            "subject": "Block 3: run related tests + lint, set spec status ready",
+            "status": "pending",
+            "activeForm": "Verifying and updating status"
+          }
+        ],
+        "updatedAt": "2026-11-06T15:13:51.575Z"
+      },
       "timer": {
+        "breakdown": {
+          "reasoningMs": 9286,
+          "toolMs": 5871
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-11-06T15:13:29.899Z"
       },
       "title": "implement",
+      "usage": {
+        "cachedInputTokens": 396046,
+        "inputTokens": 15,
+        "outputTokens": 2789,
+        "reasoningTokens": 0,
+        "totalTokens": 398850,
+        "costUsd": 0.45768060000000005
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
