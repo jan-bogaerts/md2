@@ -12,7 +12,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 154083512
 sentryOrganization: elastetic
 ---
-
 ## Sentry issue
 
 **Title:** Error: Sequence schedule-1792151322013-3q929cfh failed: Sequence checkout has uncommitted changes: C:\Users\janbo\Documents\dev\md2_workers\dev1
@@ -37,7 +36,9 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:210:9` — ScheduledCardSequenceEngine.applyRunResult
-- `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:224:38` — ScheduledCardSequenceEngine.applyStepResult
-- `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:291:13` — ScheduledCardSequenceEngine.advanceOrComplete
-- `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:323:30` — ScheduledCardSequenceEngine.failSequence
+* `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:210:9` — ScheduledCardSequenceEngine.applyRunResult
+* `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:224:38` — ScheduledCardSequenceEngine.applyStepResult
+* `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:291:13` — ScheduledCardSequenceEngine.advanceOrComplete
+* `app:///desktop/src/actions/schedule/scheduled_card_sequence_engine.js:323:30` — ScheduledCardSequenceEngine.failSequence
+
+we now have a commit function, perhaps that can help.
