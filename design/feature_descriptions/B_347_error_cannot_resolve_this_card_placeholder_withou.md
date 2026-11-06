@@ -3,7 +3,7 @@ author:
 id: B_347
 internalId: 5f556f36-aa43-429a-be26-b901b056e4aa
 title: Error: Cannot resolve this-card placeholder withou
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -14,6 +14,20 @@ sentryIssueId: 159110069
 sentryOrganization: elastetic
 branch: b_347_error_cannot_resolve_this_card_placeholder_withou
 worktree: 1
+changedFiles:
+  - app/src/components/actions/agent/action_agent_prompt.test.tsx
+  - app/src/components/actions/agent/action_agent_prompt.tsx
+  - app/src/components/actions/run/popup/action_popup_operations.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_operations.ts
+  - app/src/data/electron_action_bridge.node.test.ts
+  - app/src/services/actions/action_error_reporting.node.test.ts
+  - app/src/services/actions/action_error_reporting.ts
+  - app/src/services/data/remote_control_storage_service.node.test.ts
+  - app/src/services/data/remote_control_storage_service.ts
+  - desktop/src/actions/action/action_text.js
+  - desktop/src/actions/action/action_text.test.mjs
+  - shared/action_errors.d.mts
+  - shared/action_errors.mjs
 ---
 ## Sentry issue
 
