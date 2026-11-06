@@ -12,8 +12,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 155181382
 sentryOrganization: elastetic
-branch: b_339_error_missing_referenced_activity_file_c_users
-worktree: 1
 changedFiles:
   - app/src/services/agents/agent_integration.test.ts
   - app/src/services/agents/agent_integration.ts

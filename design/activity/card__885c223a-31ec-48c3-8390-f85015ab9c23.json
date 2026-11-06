@@ -3054,6 +3054,38 @@
       "startedAt": "2026-11-06T15:41:03.511Z",
       "status": "completed",
       "rootConversationId": "agent-154e1241-5759-47e7-8670-ea449d5db03f"
+    },
+    {
+      "commits": [
+        {
+          "commit": "c26a4bd2eb44aed076797e079f3d85841b77ed61",
+          "committedAt": "2026-11-06T16:49:12+01:00",
+          "deletions": 9,
+          "filePaths": [
+            "app/src/services/agents/agent_integration.test.ts",
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/data/external_card_import_service.node.test.ts",
+            "app/src/services/data/external_card_import_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "app/src/services/project/project_loading.ts",
+            "desktop/src/actions/activity/activity_files.js",
+            "desktop/src/actions/activity/activity_files.test.mjs",
+            "shared/card_activity.d.mts",
+            "shared/card_activity.mjs"
+          ],
+          "filesChanged": 11,
+          "insertions": 172,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-06T16:49:12+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "885c223a-31ec-48c3-8390-f85015ab9c23",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
