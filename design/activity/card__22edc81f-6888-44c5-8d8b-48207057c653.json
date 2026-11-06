@@ -480,6 +480,14 @@
           "role": "assistant",
           "sequence": 35,
           "timestamp": "2026-11-06T13:46:04.086Z"
+        },
+        {
+          "content": "no, we need to solve the root of the problem. we did not have this in the past, so there must have been a recent change that is causing many more events.\n\nwe should find out why there are so many events being fired in such a short time and find a way to minimize it",
+          "id": "submission-c5cc185c-f0a8-4197-8099-8d62933944c6",
+          "kind": "message",
+          "role": "user",
+          "sequence": 36,
+          "timestamp": "2026-11-06T13:49:51.691Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -495,7 +503,7 @@
         }
       ],
       "startedAt": "2026-11-06T13:44:00.138Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -522,7 +530,7 @@
           "toolMs": 8607
         },
         "elapsedMs": 123948,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-06T13:49:51.691Z"
       },
       "title": "investigate",
       "usage": {
