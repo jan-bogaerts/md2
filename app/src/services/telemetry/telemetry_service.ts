@@ -1,4 +1,5 @@
-import { init as initAptabase, trackEvent as trackAptabaseEvent } from '@aptabase/web'
+import { trackEvent as trackElectronAptabaseEvent } from '@aptabase/electron/renderer'
+import { init as initAptabase, trackEvent as trackWebAptabaseEvent } from '@aptabase/web'
 import * as Sentry from '@sentry/react'
 import { getElectronDataBridge } from '../../data/electron_data_bridge'
 import { register } from '../service_injector'
@@ -54,6 +55,7 @@ export class TelemetryService {
     private pendingEvents: Set<Promise<void>>
     private runtime: TelemetryRuntime
     private sentryEnabled: boolean
+    private trackAptabaseEvent: typeof trackWebAptabaseEvent
 
     constructor() {
         this.aptabaseEnabled = false
@@ -61,6 +63,7 @@ export class TelemetryService {
         this.pendingEvents = new Set()
         this.runtime = 'react_web'
         this.sentryEnabled = false
+        this.trackAptabaseEvent = trackWebAptabaseEvent
         this.handleBeforeUnload = this.handleBeforeUnload.bind(this)
         register('telemetryService', this)
     }
@@ -71,6 +74,9 @@ export class TelemetryService {
 
         this.isStarted = true
         this.runtime = getRuntime()
+        this.trackAptabaseEvent = this.runtime === 'react_electron'
+            ? trackElectronAptabaseEvent
+            : trackWebAptabaseEvent
         this.aptabaseEnabled = hasValue(import.meta.env.MD2_APTABASE_APP_KEY)
         this.sentryEnabled = import.meta.env.PROD && hasValue(import.meta.env.MD2_SENTRY_DSN)
 
@@ -82,7 +88,7 @@ export class TelemetryService {
             }
         }
 
-        if (this.aptabaseEnabled) {
+        if (this.aptabaseEnabled && this.runtime === 'react_web') {
             try {
                 initAptabase(import.meta.env.MD2_APTABASE_APP_KEY)
             } catch {
@@ -99,7 +105,7 @@ export class TelemetryService {
         if (!this.aptabaseEnabled) return
 
         try {
-            const pendingEvent = Promise.resolve(trackAptabaseEvent(eventName, { runtime: this.runtime }))
+            const pendingEvent = Promise.resolve(this.trackAptabaseEvent(eventName, { runtime: this.runtime }))
             this.pendingEvents.add(pendingEvent)
             pendingEvent.finally(() => this.pendingEvents.delete(pendingEvent))
         } catch {

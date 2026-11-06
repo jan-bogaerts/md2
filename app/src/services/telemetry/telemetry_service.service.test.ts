@@ -3,17 +3,20 @@ import type { ElectronDataBridge } from '../../data/electron_data_bridge'
 import { TelemetryService } from './telemetry_service'
 
 const telemetryMocks = vi.hoisted(() => ({
-    aptabaseInit: vi.fn(),
-    aptabaseTrackEvent: vi.fn(async () => undefined),
+    aptabaseElectronTrackEvent: vi.fn(async () => undefined),
+    aptabaseWebInit: vi.fn(),
+    aptabaseWebTrackEvent: vi.fn(async () => undefined),
     sentryCaptureException: vi.fn(),
     sentryFlush: vi.fn(async () => true),
     sentryInit: vi.fn(),
 }))
 
 vi.mock('@aptabase/web', () => ({
-    init: telemetryMocks.aptabaseInit,
-    trackEvent: telemetryMocks.aptabaseTrackEvent,
+    init: telemetryMocks.aptabaseWebInit,
+    trackEvent: telemetryMocks.aptabaseWebTrackEvent,
 }))
+
+vi.mock('@aptabase/electron/renderer', () => ({ trackEvent: telemetryMocks.aptabaseElectronTrackEvent }))
 
 vi.mock('@sentry/react', () => ({
     captureException: telemetryMocks.sentryCaptureException,
@@ -52,8 +55,9 @@ describe('TelemetryService', () => {
         vi.stubEnv('MD2_APTABASE_APP_KEY', 'aptabase-key')
         vi.stubEnv('MD2_SENTRY_DSN', 'sentry-dsn')
         vi.stubEnv('PROD', true)
-        telemetryMocks.aptabaseInit.mockReset()
-        telemetryMocks.aptabaseTrackEvent.mockReset().mockResolvedValue(undefined)
+        telemetryMocks.aptabaseElectronTrackEvent.mockReset().mockResolvedValue(undefined)
+        telemetryMocks.aptabaseWebInit.mockReset()
+        telemetryMocks.aptabaseWebTrackEvent.mockReset().mockResolvedValue(undefined)
         telemetryMocks.sentryCaptureException.mockReset()
         telemetryMocks.sentryFlush.mockReset().mockResolvedValue(true)
         telemetryMocks.sentryInit.mockReset()
@@ -74,10 +78,11 @@ describe('TelemetryService', () => {
 
         expect(telemetryMocks.sentryInit).toHaveBeenCalledOnce()
         expect(telemetryMocks.sentryInit).toHaveBeenCalledWith({ dsn: 'sentry-dsn' })
-        expect(telemetryMocks.aptabaseInit).toHaveBeenCalledOnce()
-        expect(telemetryMocks.aptabaseInit).toHaveBeenCalledWith('aptabase-key')
-        expect(telemetryMocks.aptabaseTrackEvent).toHaveBeenCalledOnce()
-        expect(telemetryMocks.aptabaseTrackEvent).toHaveBeenCalledWith('react_start', { runtime: 'react_web' })
+        expect(telemetryMocks.aptabaseWebInit).toHaveBeenCalledOnce()
+        expect(telemetryMocks.aptabaseWebInit).toHaveBeenCalledWith('aptabase-key')
+        expect(telemetryMocks.aptabaseWebTrackEvent).toHaveBeenCalledOnce()
+        expect(telemetryMocks.aptabaseWebTrackEvent).toHaveBeenCalledWith('react_start', { runtime: 'react_web' })
+        expect(telemetryMocks.aptabaseElectronTrackEvent).not.toHaveBeenCalled()
     })
 
     it('classifies usage as Electron-connected when the preload bridge exists', () => {
@@ -86,7 +91,12 @@ describe('TelemetryService', () => {
 
         service.start()
 
-        expect(telemetryMocks.aptabaseTrackEvent).toHaveBeenCalledWith('react_start', { runtime: 'react_electron' })
+        expect(telemetryMocks.aptabaseWebInit).not.toHaveBeenCalled()
+        expect(telemetryMocks.aptabaseWebTrackEvent).not.toHaveBeenCalled()
+        expect(telemetryMocks.aptabaseElectronTrackEvent).toHaveBeenCalledWith(
+            'react_start',
+            { runtime: 'react_electron' },
+        )
     })
 
     it('does not initialize Sentry in development', () => {
@@ -96,12 +106,16 @@ describe('TelemetryService', () => {
         service.start()
 
         expect(telemetryMocks.sentryInit).not.toHaveBeenCalled()
-        expect(telemetryMocks.aptabaseInit).toHaveBeenCalledWith('aptabase-key')
+        expect(telemetryMocks.aptabaseWebInit).toHaveBeenCalledWith('aptabase-key')
     })
 
-    it('no-ops when telemetry keys are absent', async () => {
+    it.each([
+        { electronConnected: false, runtime: 'web' },
+        { electronConnected: true, runtime: 'Electron' },
+    ])('no-ops in $runtime runtime when telemetry keys are absent', async ({ electronConnected }) => {
         vi.stubEnv('MD2_APTABASE_APP_KEY', '')
         vi.stubEnv('MD2_SENTRY_DSN', '')
+        if (electronConnected) window.md2Data = createBridge()
         const service = new TelemetryService()
 
         service.start()
@@ -110,9 +124,26 @@ describe('TelemetryService', () => {
         await service.flush()
 
         expect(telemetryMocks.sentryInit).not.toHaveBeenCalled()
-        expect(telemetryMocks.aptabaseInit).not.toHaveBeenCalled()
-        expect(telemetryMocks.aptabaseTrackEvent).not.toHaveBeenCalled()
+        expect(telemetryMocks.aptabaseWebInit).not.toHaveBeenCalled()
+        expect(telemetryMocks.aptabaseWebTrackEvent).not.toHaveBeenCalled()
+        expect(telemetryMocks.aptabaseElectronTrackEvent).not.toHaveBeenCalled()
         expect(telemetryMocks.sentryCaptureException).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        { electronConnected: false, runtime: 'web' },
+        { electronConnected: true, runtime: 'Electron' },
+    ])('isolates synchronous Aptabase failures in $runtime runtime', ({ electronConnected }) => {
+        const trackEvent = electronConnected
+            ? telemetryMocks.aptabaseElectronTrackEvent
+            : telemetryMocks.aptabaseWebTrackEvent
+        if (electronConnected) window.md2Data = createBridge()
+        trackEvent.mockImplementationOnce(() => {
+            throw new Error('Aptabase failed')
+        })
+        const service = new TelemetryService()
+
+        expect(() => service.start()).not.toThrow()
     })
 
     it('rejects unsupported usage events before they can leak payload data', () => {
@@ -120,14 +151,14 @@ describe('TelemetryService', () => {
         service.start()
 
         expect(() => service.trackEvent('design/F-1.md' as never)).toThrow('Unsupported telemetry event')
-        expect(telemetryMocks.aptabaseTrackEvent).toHaveBeenCalledOnce()
+        expect(telemetryMocks.aptabaseWebTrackEvent).toHaveBeenCalledOnce()
     })
 
     it('captures handled errors and uses a bounded flush', async () => {
         vi.useFakeTimers()
         const service = new TelemetryService()
         service.start()
-        telemetryMocks.aptabaseTrackEvent.mockImplementation(() => new Promise(() => undefined))
+        telemetryMocks.aptabaseWebTrackEvent.mockImplementation(() => new Promise(() => undefined))
         const error = new Error('failed')
 
         service.trackEvent('react_stop')
