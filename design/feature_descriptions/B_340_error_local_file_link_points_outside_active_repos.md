@@ -3,7 +3,7 @@ author:
 id: B_340
 internalId: e624b075-cb06-452d-a838-dc64137918d8
 title: Error: Local file link points outside active repos
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 155397337
 sentryOrganization: elastetic
-after: 4a44a852-c5fe-4648-a39c-e1d1da9a506c
 ---
 
 ## Sentry issue
