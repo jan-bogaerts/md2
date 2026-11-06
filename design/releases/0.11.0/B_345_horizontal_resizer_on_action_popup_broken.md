@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__1fd111b2-7f00-4b67-a356-4d6ec2a4f7d7.json
+  - design/releases/0.11.0/card__1fd111b2-7f00-4b67-a356-4d6ec2a4f7d7.json
 policy:
 changedFiles:
   - app/src/components/actions/agent/action_agent_prompt.test.tsx

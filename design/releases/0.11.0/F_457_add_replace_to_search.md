@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__2abaa832-8652-4464-aca4-963549cdbac2.json
+  - design/releases/0.11.0/card__2abaa832-8652-4464-aca4-963549cdbac2.json
 policy:
 after: ac32ed09-2e05-4ae3-9a90-8a03bba61616
 changedFiles:

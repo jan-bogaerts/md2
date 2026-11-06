@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__ac32ed09-2e05-4ae3-9a90-8a03bba61616.json
+  - design/releases/0.11.0/card__ac32ed09-2e05-4ae3-9a90-8a03bba61616.json
 policy:
 changedFiles:
   - app/src/components/diagram_view/commands/diagram_menu_tab.test.tsx

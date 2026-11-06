@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__cf2c723d-9757-4eca-b718-2f5508f1b4ee.json
+  - design/releases/0.11.0/card__cf2c723d-9757-4eca-b718-2f5508f1b4ee.json
 policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 158900983
