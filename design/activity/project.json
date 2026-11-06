@@ -884,7 +884,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 24313
+        "usedTokens": 41047
       },
       "entries": [
         {
@@ -992,6 +992,213 @@
           "role": "assistant",
           "sequence": 9,
           "timestamp": "2026-11-06T13:29:04.120Z"
+        },
+        {
+          "content": "yes, go",
+          "id": "submission-a82ca8ca-5387-4c9f-8f88-ea4d4316e61d",
+          "kind": "message",
+          "role": "user",
+          "sequence": 10,
+          "timestamp": "2026-11-06T13:29:34.509Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll use `design\\releases\\0.11.0`, review every release item, and save the notes there.\n\n",
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 11,
+          "timestamp": "2026-11-06T13:29:39.049Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files 'design\\\\releases\\\\0.11.0'\"",
+          "content": "design\\releases\\0.11.0\\project.json\ndesign\\releases\\0.11.0\\J_66_diagram_save.md\ndesign\\releases\\0.11.0\\F_460_start_search_automatically_after_1st_letter.md\ndesign\\releases\\0.11.0\\F_458_add_for_each_feature.md\ndesign\\releases\\0.11.0\\F_457_add_replace_to_search.md\ndesign\\releases\\0.11.0\\card__cf2c723d-9757-4eca-b718-2f5508f1b4ee.json\ndesign\\releases\\0.11.0\\card__c9a462cf-7874-4ada-a2f3-df08cf1793b2.json\ndesign\\releases\\0.11.0\\card__ac32ed09-2e05-4ae3-9a90-8a03bba61616.json\ndesign\\releases\\0.11.0\\card__6c050c79-a3b5-4f21-bd75-e0a82e6bde7d.json\ndesign\\releases\\0.11.0\\card__408e6af2-abc8-4f00-b4a5-59b908b8256b.json\ndesign\\releases\\0.11.0\\card__2abaa832-8652-4464-aca4-963549cdbac2.json\ndesign\\releases\\0.11.0\\card__204e1fa2-8e5e-4fd1-b63c-06c9c762c080.json\ndesign\\releases\\0.11.0\\card__1fd111b2-7f00-4b67-a356-4d6ec2a4f7d7.json\ndesign\\releases\\0.11.0\\B_346_error_missing_provider_session_for_compact.md\ndesign\\releases\\0.11.0\\B_345_horizontal_resizer_on_action_popup_broken.md\ndesign\\releases\\0.11.0\\B_331_error_cannot_save_a_card_without_an_internal_id.md\ndesign\\releases\\0.11.0\\B_326_add_child_diagram_not_working.md\n",
+          "durationMs": 87,
+          "exitCode": 0,
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-12",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files 'design\\\\releases\\\\0.11.0'\"",
+          "providerItemId": "exec-ed3afdae-c7d0-4825-817f-6de06e808853",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-11-06T13:29:40.704Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-13",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_08d8f7fa4cedcab6016aedd647544887d2baad4476507a0653",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T13:29:42.311Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\releases\\\\0.11.0\\\\*.md'\"",
+          "content": "---\nauthor: \nid: B_326\ninternalId: 204e1fa2-8e5e-4fd1-b63c-06c9c762c080\ntitle: add child diagram not working\nstatus: ready\nowner: \naffects:\nagents:\n  - design/releases/0.11.0/card__204e1fa2-8e5e-4fd1-b63c-06c9c762c080.json\npolicy:\nafter: 41d340e6-afae-44bd-82e7-41ab673c94e0\nchangedFiles:\n  - app/src/components/diagram_view/diagram_view.test.tsx\n  - app/src/components/diagram_view/diagram_view.tsx\n  - app/src/components/diagram_view/surface/diagram_breadcrumb_bar.test.tsx\n  - app/src/components/diagram_view/surface/diagram_breadcrumb_bar.tsx\n  - app/src/services/diagrams/diagram_view_service.test.ts\n  - app/src/services/diagrams/diagram_view_service.ts\n---\n\nWhile in diagram-view mode, editing a mind map, I have a node selected, then want to use the + sign next to the breadcrumbs -bar, but this is disabled. don't know why.&#x20;\n\nI believe it should be possible to add sub diagrams also from mind maps.\n\n## Current state\n\nThe breadcrumb **Add child diagram** button observes only the selected item in the saved Current diagram. Editing uses `DiagramSelectionService`, which owns a separate selection for the editable New diagram. Selecting an editable node therefore does not enable the button. This affects every editable diagram type, not only mind maps.\n\nChild diagrams are indexed by a persisted parent diagram ID and item ID. A newly added editable item cannot be a child-diagram parent until the edited copy containing it has been saved and opened.\n\n## Implementation details\n\n* Pass `DiagramSelectionService` to `DiagramBreadcrumbBar` and subscribe to its selection with `useSyncExternalStore` while the active diagram is being edited.\n* When the editor selection is non-empty, enable the button only when exactly one selected node or connection has the same ID and kind in the saved Current diagram. Resolve its label from Current so the child context matches its persisted parent. A group, multiple selection, or newly added item remains ineligible.\n* When the editor selection is empty, retain the existing Current-selection behavior.\n* Open the child action through `DiagramViewService` with the resolved persisted parent. The service must validate that the diagram is active and that the item still exists before creating the child context. Do not copy editor selection into the service's Current selection state.\n* Update the breadcrumb and view-service tests. Cover an existing editable mind-map node, another diagram type, Current-selection fallback, multiple selection, group selection, a newly added item, and a stale or missing persisted item.\n\n## Acceptance criteria\n\n* Selecting one existing node in an editable mind map enables **Add child diagram** and opens a child action for that node in the active persisted diagram.\n* The same behavior works for one existing node or connection in every supported editable diagram type.\n* With no editor selection, a valid Current selection continues to enable the button and open the child action.\n* The button is disabled when the editor selection contains multiple objects, a group, or an item that does not exist in Current.\n* A newly added editable item cannot receive a child diagram until the edited copy containing it is saved and opened.\n* The child action uses the persisted parent diagram ID, item ID, and Current item label.\n\r\n---\nauthor: \nid: B_331\ninternalId: cf2c723d-9757-4eca-b718-2f5508f1b4ee\ntitle: Error: Cannot save a card without an internal ID: \nstatus: ready\nowner: \naffects:\nagents:\n  - design/releases/0.11.0/card__cf2c723d-9757-4eca-b718-2f5508f1b4ee.json\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 158900983\nsentryOrganization: elastetic\nafter: ac32ed09-2e05-4ae3-9a90-8a03bba61616\nchangedFiles:\n  - app/src/services/data/card_operation_context.ts\n  - app/src/services/data/card_operations.test.ts\n  - app/src/services/data/card_operations.ts\n---\n## Sentry issue\n\n**Title:** Error: Cannot save a card without an internal ID: design/more details.md\n\n**Message:** Not provided\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/158900983/)\n\n**First seen:*\n[37074 characters omitted]\ntsx\n  - app/src/components/diagram_view/commands/diagram_save_button.test.tsx\n  - app/src/components/diagram_view/commands/diagram_save_button.tsx\n  - app/src/components/shell/menu/app_menu.test.tsx\n  - app/src/services/project/project_persistence_service.node.test.ts\n---\n\nwe currently have a separate button on the diagram tab of the app bar to save the diagram separately. not certain what the value is of this.\n\nWe should remove this and instead use the default save button on the 'home' tab. When a user edits the diagram, it should, like all other cards and actions and such be saved automatically through the [commit_batcher.ts](app/src/data/commit_batcher.ts)\n\n## Current state\n\nDuring diagram editing, the Diagram tab shows a separate `DiagramSaveButton`. It calls `DiagramSaveService.save()`, which queues current edited diagram copy and diagram index, then immediately flushes shared commit batch.\n\nDiagram edits already enter normal persistence automatically. `DiagramSaveService` subscribes to model mutations, serializes canonical diagram data, and asks `DiagramViewService` to queue diagram copy and index changes. `DataService.scheduleDiagramCommit()` sends them to `CommitBatcher`, which commits after configured automatic delay. Home-tab Commit button and `Ctrl+S` also flush same pending batch through `ProjectPersistenceService`.\n\n`DiagramSaveService.save()` has two other workflow uses: Review dialog saves before closing, and New diagram creation saves dirty current diagram before switching. Those uses protect workflow transitions and are not duplicate toolbar controls.\n\n## Implementation details\n\n* Remove `DiagramSaveButton` from `DiagramMenuTab`, then remove unused button component and its focused component test.\n* Update `DiagramMenuTab` tests to require edit, clipboard, review, metadata, legend, formatting, and comparison controls without a diagram-specific Save/Saved button.\n* Keep automatic model-mutation subscription and existing persistence chain: `DiagramSaveService` queues canonical diagram copy plus diagram index through `DiagramViewService`, `DataService`, and `CommitBatcher`. Do not add direct file writes or another diagram persistence path.\n* Keep `DiagramSaveService.save()` for Review and New diagram transition workflows. Those operations still require an immediate flush before their next step.\n* Keep Home-tab Commit button and `Ctrl+S` as manual immediate-flush entry points. Automatic `CommitBatcher` timer remains normal background persistence path.\n* Preserve failure behavior. Queue failures use diagram error dialog; commit failures remain pending, keep edit session dirty, and use project persistence error reporting.\n* Retain service tests proving model mutation queues without explicit Save and acknowledgement occurs only after persistence. Add or adjust menu and project-persistence coverage proving diagram changes enable and flush through shared Commit action.\n\n## Acceptance criteria\n\n* Diagram tab contains no diagram-specific Save or Saved control before, during, or after an edit.\n* Editing diagram automatically queues canonical diagram copy and diagram index in shared `CommitBatcher`; user does not need to open Home tab or press Save first.\n* Queued diagram changes make shared project persistence dirty, enable Home-tab Commit action, and can be flushed with Home Commit or `Ctrl+S`.\n* If user takes no manual action, configured automatic commit delay flushes queued diagram and index changes through normal batch flow.\n* Successful persistence acknowledges saved copy and clears diagram dirty state only for data included in that commit. Edits made during persistence remain dirty and queue again.\n* Commit failure leaves diagram changes pending and editable, with existing user-visible error reporting.\n* Review dialog Save and dirty-diagram handling before New diagram creation still complete immediate persistence before closing or switching diagrams.\n* Cards, actions, other files, diagram Review behavior, diagram creation, commit batching, push behavior, and read-only behavior remain unchanged.\n\r\n",
+          "durationMs": 41,
+          "exitCode": 0,
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-14",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\releases\\\\0.11.0\\\\*.md'\"",
+          "providerItemId": "exec-daf8058f-06c9-4596-a6ae-c9e2109e8700",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-11-06T13:29:44.411Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-15",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_08d8f7fa4cedcab6016aedd64caa4c87d2812cbfa245eedcf5",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T13:29:47.654Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\releases\\\\0.11.0\\\\F_457_add_replace_to_search.md'; Get-Content -Raw 'design\\\\releases\\\\0.11.0\\\\F_458_add_for_each_feature.md'; if (Test-Path 'design\\\\releases\\\\0.10.0\\\\release_notes.md') { Get-Content -Raw 'design\\\\releases\\\\0.10.0\\\\release_notes.md' }\"",
+          "content": "---\nauthor: \nid: F_457\ninternalId: 2abaa832-8652-4464-aca4-963549cdbac2\ntitle: add replace to search\nstatus: ready\nowner: \naffects:\nagents:\n  - design/releases/0.11.0/card__2abaa832-8652-4464-aca4-963549cdbac2.json\npolicy:\nafter: ac32ed09-2e05-4ae3-9a90-8a03bba61616\nchangedFiles:\n  - app/src/components/editor/local_search/markdown_local_text_search.ts\n  - app/src/components/editor/local_search/markdown_local_text_search_plugin.tsx\n  - app/src/components/editor/markdown_editor_local_text_search.test.tsx\n  - app/src/test/mdx_editor_stub.tsx\n---\nIn the markdown editor, we have a local search function. We should also include a `replace` feature. So the text that was searched for, can be replaced.\n\n* activated through shortcut ctrl+h. this opens the search box expanded so it also contains the `replace` input\n* or if the search box is already open, through a dropdown icon, in front of the search text. when expanded, the user can enter the text that needs to replace the selection.\n* user can replace selected text or all at once. there should be a button for this\n\n## Current state\n\n`MarkdownEditor` installs `MarkdownLocalTextSearchPlugin` by default. The action-prompt editor opts out because its containing popup owns `Ctrl+F`. Source mode also hides the local visible-text search control. Toolbarless and read-only rich-text editors keep search through `Ctrl+F`.\n\nThe plugin opens a non-blocking popup, submits search only on `Enter` or the Search button, and stores submitted term and case mode separately from draft input. It selects next or previous non-overlapping visible-text match, wraps at document boundaries, reports total matches, and supports matches spanning adjacent Lexical text nodes. Search changes selection only; it does not change Markdown, dirty state, history, or persistence.\n\nNo replace input, `Ctrl+H` handler, replacement action, or read-only replacement guard exists. Normal Lexical edits already flow through `MarkdownEditor.handleEditorChange` into draft or data-source editing, dirty state, document history, and existing commit behavior.\n\n## Implementation details\n\n* Define **current match** as match selected by last submitted search or later result navigation. Define **Replace all** as replacing every non-overlapping match present when action starts. Replacement text is literal text and is not searched again during same action; an empty replacement is allowed and deletes matches.\n* Add an expand/collapse chevron before search field. This is an expansion control, not a menu. Expanded popup adds replacement input plus accessible `Replace` and `Replace all` buttons. Keep existing find controls and non-blocking `Popper` placement.\n* Register `Ctrl+H` in editor-local Lexical keyboard handling. Prevent browser history, open popup expanded, preserve selected-text search seeding, and focus search input. `Ctrl+F` and toolbar search button continue opening find-only state.\n* Keep draft find term, submitted find term, replacement text, and current match as separate plugin state. Typing either input must not navigate, replace, or change active result count. Search submission remains required before replacement.\n* Extend local-search helper with editor operations that replace current matched Lexical range and all current matches, including matches spanning adjacent text nodes. `Replace all` must process initial matches from document end toward start in one editor update so offset changes cannot skip later matches and one undo restores whole action.\n* `Replace` changes only current match, then recalculates remaining count and selects next match from end of inserted text, wrapping when needed. Disable replacement actions when no submitted term exists, no current match exists for `Replace`, or editor is read-only. `Replace all` with zero matches leaves document unchanged.\n* Pass `readOnly` through local-search plugin configuration. Read-only editors retain find behavior; expanded replacement fields may be viewed, but mutation buttons remain disabled and no edit occurs.\n* Let Lexical updates use existing `MarkdownEdi\n[9197 characters omitted]\nw a loop icon after the action label and before the prompt-menu button when the displayed conversation or new-conversation draft has for-each data. The icon opens a menu with `Remove`, `View`, loop mode, and failure policy. Disable configuration changes while the loop is running.\n- `Remove` clears the conversation's for-each data and settings. `View` opens the persisted JSON content externally through Electron; it must not depend on the originally selected file still existing.\n- Keep normal single-run behavior, action-definition validation, and non-agent actions unchanged.\n- Add focused renderer tests for file selection, restored conversation state, icon/menu behavior, and submitted run input. Add shared-schema tests for persisted conversation data. Add Electron tests for record normalization, data-path resolution, all loop modes, both failure policies, cancellation, invalid JSON, empty arrays, and restart recovery.\n\n## acceptance criteria\n\n- User can attach exactly one JSON file from `For each` in an agent-action popup. Selecting another file replaces the current attachment only after the new file validates.\n- Invalid JSON shows an error and leaves current conversation configuration unchanged.\n- Attached data and selected settings survive closing and reopening the popup and restarting the application.\n- Root object produces one iteration. Root array produces one iteration per item in source order. Empty root array starts no agent turn.\n- `{{data <path>}}` resolves from the current record in every editor that supports action placeholders. Object keys and array indexes work; missing paths fail only the current record.\n- Default mode runs the first record in the selected conversation and adds each later record as a new prompt in that same conversation.\n- `compact` mode compacts the same conversation after each record before the next prompt starts.\n- `new conversation` mode creates one conversation per record and never continues a previous record's conversation.\n- Loop mode offers exactly one selected value: `add prompt`, `compact`, or `new conversation`.\n- Failure policy defaults to `log and continue`. Each failed record adds a visible failure event to its conversation, and the next record starts.\n- `stop on first failure` records the failure and starts no later record.\n- Cancelling a loop stops the active work and starts no later record.\n- Loop icon appears after the action label and before the prompt-menu button while the displayed conversation has for-each data. Its menu can view persisted JSON, remove it, and change loop settings while idle.\n- Removing for-each data restores normal single-run behavior without changing the action definition.\n- Existing actions and conversations without for-each data keep current behavior.\n\r\n---\ninternalId: 9615d510-82e2-4e8d-a9f4-6e51ff03828f\n---\n\n# MDÂ² 0.10.0\n\n## New features\n\n* Manage multiple Codex and Claude accounts and choose an account for each action, run, or schedule.\n* Track running task progress from card popups; completed task lists now start collapsed.\n* Use the actions-folder placeholder in prompts.\n* Edit diagram titles and subtitles directly from the breadcrumb bar.\n* Copy formatting between diagram items with the new format painter.\n* Turn reviewed diagram changes into implementation cards.\n\n## Improvements and fixes\n\n* Diagram editing now has better keyboard controls, selection, labels, legends, colors, and add-item dialogs.\n* Switch between card popups with Ctrl+Tab and enjoy more consistent keyboard shortcuts throughout the app.\n* Agent tasks, scheduled follow-ups, sequences, and conversation finishing now work more reliably.\n* Agent usage, task activity, and changes from parallel work are tracked more accurately.\n* Worktree integration and discarding changes now provide clearer, more reliable handling of pending files.\n* Cards and pasted images load reliably after reopening.\n* Project background colors are applied to the correct views immediately after saving.\n* Action prompts and project-folder setup have clearer layouts and respond more smoothly.\n\r\n",
+          "durationMs": 49,
+          "exitCode": 0,
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-16",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\releases\\\\0.11.0\\\\F_457_add_replace_to_search.md'; Get-Content -Raw 'design\\\\releases\\\\0.11.0\\\\F_458_add_for_each_feature.md'; if (Test-Path 'design\\\\releases\\\\0.10.0\\\\release_notes.md') { Get-Content -Raw 'design\\\\releases\\\\0.10.0\\\\release_notes.md' }\"",
+          "providerItemId": "exec-85e960de-a792-4f7b-971e-09df2fcff0b4",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-11-06T13:29:51.206Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-17",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_08d8f7fa4cedcab6016aedd653597c87d2bf6010ac33bf3bef",
+          "sequence": 17,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T13:29:54.336Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem 'design\\\\releases' -Recurse -Filter 'release_notes.md' | ForEach-Object { Write-Output ('FILE: ' + \"'$_.FullName); Get-Content $_.FullName -TotalCount 12 }'",
+          "content": "FILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0.10.0\\release_notes.md\r\n---\r\ninternalId: 9615d510-82e2-4e8d-a9f4-6e51ff03828f\r\n---\r\n\r\n# MDÂ² 0.10.0\r\n\r\n## New features\r\n\r\n* Manage multiple Codex and Claude accounts and choose an account for each action, run, or schedule.\r\n* Track running task progress from card popups; completed task lists now start collapsed.\r\n* Use the actions-folder placeholder in prompts.\r\n* Edit diagram titles and subtitles directly from the breadcrumb bar.\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0.8.3\\release_notes.md\r\n---\r\ninternalId: d666045f-557f-4c36-bd67-5654a1e3a418\r\n---\r\n# MDÂ² 0.8.3\r\n\r\n* Create and run multi-card action sequences, with optional worktree support.\r\n* Paste and edit content containing HTML without losing text or being forced into Source mode.\r\n* Enjoy clearer markdown toolbar icons and improved chat log table layouts.\r\n* Find prompt placeholders more easily when creating cards and actions.\r\n* Release completion, action startup, queued messages, and project integration now work more reliably.\r\n* File attachment choices stay visible above open card popups.\r\n* Typing in action prompts no longer refreshes unrelated controls.\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0.9.0\\release_notes.md\r\n---\r\ninternalId: 5b65ca2a-682e-4afd-bbea-acdecd79e503\r\n---\r\n# MDÂ² 0.9.0\r\n\r\n## New features\r\n\r\n* Track agent tasks directly in conversations.\r\n* Choose the agent, model, and reasoning settings for sequences.\r\n* Open projects from a command or the Windows taskbar.\r\n* View active schedules from the status bar.\r\n\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0_0_3\\release_notes.md\r\n---\r\ninternalId: bd5a56d1-b155-4892-ba42-22324448b8e2\r\n---\r\n\r\n# MDÂ² 0.0.3\r\n\r\n- speed improvements\r\n- Open local Git projects directly and restore the last opened project.\r\n- See the open project in the app bar and a spinner while it loads.\r\n- Manage linked worktrees from the project configuration.\r\n- Assign worktrees to cards and choose a worktree from the action popup.\r\n- Commit, update, and integrate assigned worktrees from a card.\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0_0_4\\release_notes.md\r\n---\r\ninternalId: a3b5f476-2249-4562-99ad-b1aa21da8699\r\n---\r\n\r\n# MDÂ² 0.0.4\r\n\r\n- Respond to agent approval requests directly in conversations.\r\n- Open project file links from conversations in MDÂ² or Visual Studio Code.\r\n- Create cards with a redesigned dialog and choose their type, template, and target column.\r\n- Return to a new conversation after viewing conversation history.\r\n- Use dedicated placeholders for project, worktree, and release folders.\r\n- See integrated worktree changes in card commit history.\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0_0_5\\release_notes.md\r\n---\r\ninternalId: 5e6a273f-4bfa-401a-9ed2-f69096beadfe\r\n---\r\n\r\n- Deleting cards is now faster and smoother.\r\n- Improved scrolling in the mobile card view.\r\n- Card updates now appear automatically on connected mobile devices.\r\n- Action timers now pause while waiting for your input.\r\n- Added access-level and approval options for agents.\r\n- Unread action results now open automatically and are marked as viewed.\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0_1_0\\release_notes.md\r\n---\r\ninternalId: d236cbab-4e80-42aa-86fe-e69cb7edc032\r\n---\r\n\r\n# MDÂ² 0.1.0\r\n\r\n- Change a cardâ€™s type after creation.\r\n- Find and link project files by typing `@`.\r\n- Insert placeholders into action prompts.\r\n- Keep editor toolbars visible while scrolling.\r\n- See which card or project an action popup belongs to.\r\n- Bring the active action popup to the front automatically.\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0_2_0\\release_notes.md\r\n---\r\ninternalId: 7f49495a-b9e8-4a6e-b605-849c3b54d2cf\r\n---\r\n\r\n# MDÂ² 0.2.0\r\n\r\n## New features\r\n\r\n- See the number of changed lines in agent file updates.\r\n- Copy a cardâ€™s full or repository-relative file path.\r\n- Resolve merge conflicts with external tools or agents.\r\n- Use `{{this-card}}` in action prompts.\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0_3_0\\release_notes.md\r\n---\r\ninternalId: 72944489-a92a-4b96-bae1-7f9e0aa97d75\r\n---\r\n\r\n# MDÂ² 0.3.0\r\n\r\n## New features\r\n\r\n- Search text directly in the Markdown editor.\r\n- See queued steering prompts and send them immediately.\r\n- See how much conversation context is in use.\r\n- Find agent-reported commits in card history.\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0_4_0\\release_notes.md\r\n---\r\ninternalId: fdb5febb-4dc1-4f10-9f8a-6d4060e7943e\r\n---\r\n\r\n# MDÂ² 0.4.0\r\n\r\n## New features\r\n\r\n- Attach files to cards and agent prompts.\r\n- Import Sentry issues as bug cards.\r\n- Paste images directly into card editors.\r\n- Indent and outdent lists on small screens.\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0_5_0\\release_notes.md\r\n---\r\ninternalId: d4b16165-9dca-4c45-8d29-9bd620bfd21a\r\n---\r\n# MD2 0.5.0\r\n\r\n## New features\r\n\r\n* Archive cards directly from the card menu.\r\n* Track files changed by agents on each card.\r\n* Answer agent questions with custom responses or dismiss them.\r\n* View and follow Codex and Claude sub-agent activity.\r\n* Set preferred models and thinking levels for each agent.\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0_6_0\\release_notes.md\r\n---\r\ninternalId: 3573e4ad-48cc-4ca3-a569-3fe10041be35\r\n---\r\n\r\n# MD2 0.6.0\r\n\r\n## New features\r\n\r\n* View, explore, and run actions from interactive diagrams.\r\n* Edit diagrams and review changes before saving a copy.\r\n* Format diagram items, connections, spacing, and text.\r\n* Zoom and pan saved and edited diagrams independently.\r\nFILE: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0_7_0\\release_notes.md\r\n---\r\ninternalId: 95c868e6-f9b9-41b2-bee7-db272d949a6e\r\n---\r\n# MD2 0.7.0\r\n\r\n## New features\r\n\r\n* Create and edit mind maps.\r\n* Create blank diagrams in the app.\r\n* Pin conversations for quick access.\r\n* View project agent instructions in one place.\r\n* Schedule actions by time, account reset, or card status.\r\n",
+          "durationMs": 128,
+          "exitCode": 0,
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-18",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem 'design\\\\releases' -Recurse -Filter 'release_notes.md' | ForEach-Object { Write-Output ('FILE: ' + \"'$_.FullName); Get-Content $_.FullName -TotalCount 12 }'",
+          "providerItemId": "exec-36557d79-ad70-4ac5-bea2-11584b4e7bb5",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-11-06T13:29:56.969Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-19",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_08d8f7fa4cedcab6016aedd65b1db087d2a2bb4598b4a3ce31",
+          "sequence": 19,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T13:30:02.161Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '[guid]::NewGuid().ToString()'",
+          "content": "e2cbc694-84d3-49ea-b5d1-f73dc0003c14\r\n",
+          "durationMs": 28,
+          "exitCode": 0,
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-20",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '[guid]::NewGuid().ToString()'",
+          "providerItemId": "exec-00013b53-c47c-4899-9ecd-066f42cbb388",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-11-06T13:30:03.949Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "add: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0.11.0\\release_notes.md",
+          "deletions": 0,
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-21",
+          "insertions": 19,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-898d7dc0-7286-44b9-a53d-9fec288405e5",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-11-06T13:30:09.601Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-22",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_08d8f7fa4cedcab6016aedd664531c87d2b8c01f7ec5c14ee0",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T13:30:11.307Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw -Encoding UTF8 'design\\\\releases\\\\0.11.0\\\\release_notes.md'; git diff --check -- 'design/releases/0.11.0/release_notes.md'; git status --short -- 'design/releases/0.11.0/release_notes.md'\"",
+          "content": "---\ninternalId: e2cbc694-84d3-49ea-b5d1-f73dc0003c14\n---\n\n# MD² 0.11.0\n\n## New features\n\n* Run an agent action for every item in an attached JSON file.\n* Find and replace text in the Markdown editor.\n* Search automatically after you pause typing.\n\n## Improvements and fixes\n\n* Diagrams now save automatically with the rest of the project.\n* Add child diagrams from selected items while editing a diagram.\n* Edit and save regular Markdown files reliably.\n* Resize the prompt area in action popups again.\n* Compact conversations reliably after stopping and restarting the app.\n\r\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n?? design/releases/0.11.0/release_notes.md\n",
+          "durationMs": 100,
+          "exitCode": 0,
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-23",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw -Encoding UTF8 'design\\\\releases\\\\0.11.0\\\\release_notes.md'; git diff --check -- 'design/releases/0.11.0/release_notes.md'; git status --short -- 'design/releases/0.11.0/release_notes.md'\"",
+          "providerItemId": "exec-c6358bc9-1b34-4699-9d41-2eaeaba4dd03",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-11-06T13:30:14.345Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-event-24",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_08d8f7fa4cedcab6016aedd668ee8087d28fc017f4b92c7fb5",
+          "sequence": 24,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T13:30:15.964Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Created and verified the release notes for version 0.11.0:\n\n[release_notes.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0.11.0\\release_notes.md)\n\n",
+          "id": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 25,
+          "timestamp": "2026-11-06T13:30:21.192Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1002,8 +1209,8 @@
           "agent": "codex",
           "conversationId": "01a1b10b-f41c-76b1-bcf6-d206255ec7dc",
           "createdAt": "2026-11-06T13:29:04.120Z",
-          "lastUsedAt": "2026-11-06T13:29:04.120Z",
-          "synchronizedThroughMessageId": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-06T13:30:21.192Z",
+          "synchronizedThroughMessageId": "agent-turn-ce9d88f5-6786-4519-849a-fe7b2908027b-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-11-06T13:28:32.884Z",
@@ -1018,31 +1225,31 @@
           {
             "id": "1",
             "subject": "Review release items and draft concise end-user bullets",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Save and verify release_notes.md",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-06T13:29:01.673Z"
+        "updatedAt": "2026-11-06T13:30:17.725Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 24,
-          "toolMs": 214
+          "reasoningMs": 82,
+          "toolMs": 1202
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-11-06T13:28:32.884Z"
+        "elapsedMs": 31236,
+        "runningStartedAt": "2026-11-06T13:29:34.509Z"
       },
       "title": "write release note",
       "usage": {
-        "cachedInputTokens": 136704,
-        "inputTokens": 2437,
-        "outputTokens": 579,
-        "reasoningTokens": 227,
-        "totalTokens": 139947
+        "cachedInputTokens": 443648,
+        "inputTokens": 19216,
+        "outputTokens": 1602,
+        "reasoningTokens": 721,
+        "totalTokens": 465187
       },
       "usageSchemaVersion": 1,
       "viewed": true
