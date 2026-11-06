@@ -1,0 +1,54 @@
+{
+  "actionSettings": {
+    "a82ceffa-4aa0-4d06-b6db-ac3edb008575": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "495dac3d-c52b-4ae4-bae5-765b7434e0f6",
+      "cardPath": "design/feature_descriptions/B_338_error_command_failed_git_clean_fd.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_338_error_command_failed_git_clean_fd.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-cd945498-f260-4bd3-973a-49c9f891f3ce",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-06T14:15:18.717Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-0b4c3b42-208b-4bb8-9a2c-1809f05b2206",
+      "providerSessions": [],
+      "startedAt": "2026-11-06T14:15:18.717Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-06T14:15:18.717Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "495dac3d-c52b-4ae4-bae5-765b7434e0f6",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
