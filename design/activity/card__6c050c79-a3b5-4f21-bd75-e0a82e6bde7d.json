@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 87078
+        "usedTokens": 87616
       },
       "entries": [
         {
@@ -591,6 +591,28 @@
           "role": "user",
           "sequence": 44,
           "timestamp": "2026-11-06T12:36:37.412Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-b4b44cd2-e33c-485a-868f-8c5a6b00be8b-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0a3ed839c987b59e016aedc9ddbb6c87d2a7bdddd654ae7213",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T12:36:44.874Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Because md2 supports two different meanings of “resume”:\n\n- If a provider thread ID exists, it resumes the actual Codex/Claude session.\n- If it does not, sending a prompt starts a new provider session and reconstructs context from md2’s saved transcript.\n\nThe second path makes the conversation appear to resume normally, but the provider sees a new thread. Compaction cannot use that fallback because there is no existing provider-side context to compact. It would only compact a newly created session containing reconstructed history.\n\nThe missing ID can occur when a conversation was split, predates session tracking, or ended before its provider session was persisted. Thus, having messages and being continuable does not necessarily mean the original provider thread remains identifiable.\n\n",
+          "id": "agent-turn-b4b44cd2-e33c-485a-868f-8c5a6b00be8b-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-11-06T12:36:47.618Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -601,8 +623,8 @@
           "agent": "codex",
           "conversationId": "01a1b0d2-a86d-74d3-a01f-32301f66d621",
           "createdAt": "2026-11-06T12:28:13.080Z",
-          "lastUsedAt": "2026-11-06T12:35:27.676Z",
-          "synchronizedThroughMessageId": "agent-turn-b4b44cd2-e33c-485a-868f-8c5a6b00be8b-turn-2-assistant-1"
+          "lastUsedAt": "2026-11-06T12:36:47.618Z",
+          "synchronizedThroughMessageId": "agent-turn-b4b44cd2-e33c-485a-868f-8c5a6b00be8b-turn-3-assistant-1"
         }
       ],
       "startedAt": "2026-11-06T12:25:57.619Z",
@@ -629,7 +651,7 @@
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 349,
+          "reasoningMs": 358,
           "toolMs": 7118
         },
         "elapsedMs": 140360,
@@ -637,11 +659,11 @@
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 1350656,
-        "inputTokens": 74059,
-        "outputTokens": 3302,
-        "reasoningTokens": 1409,
-        "totalTokens": 1429426
+        "cachedInputTokens": 1437568,
+        "inputTokens": 74274,
+        "outputTokens": 3455,
+        "reasoningTokens": 1745,
+        "totalTokens": 1517042
       },
       "usageSchemaVersion": 1,
       "viewed": true
