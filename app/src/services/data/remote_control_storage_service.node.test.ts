@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../../shared/action_errors.mjs'
 import { RemoteControlStorageService } from './remote_control_storage_service'
 import { MissingWorkingFolderError } from '../../data/data_types'
 import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
@@ -787,6 +788,32 @@ describe('RemoteControlStorageService', () => {
         socket.receive({ id: sentRequest.id, result: { prompt: 'Prepared prompt' } })
 
         await expect(preparation).resolves.toEqual({ prompt: 'Prepared prompt' })
+    })
+
+    it('preserves the missing this-card context error through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const request = { actionId: 'action-test', context: { kind: 'project' as const } }
+        const preparation = service.prepareActionPrompt(request)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
+        socket.receive({
+            error: {
+                code: MISSING_THIS_CARD_CONTEXT_ERROR,
+                fields: {},
+                message: 'Missing card context',
+                name: 'Error',
+            },
+            id: sentRequest.id,
+        })
+
+        const error = await preparation.catch((failure: unknown) => failure) as Error & { code?: string }
+
+        expect(error.message).toBe('Missing card context')
+        expect(error.code).toBe(MISSING_THIS_CARD_CONTEXT_ERROR)
     })
 
     it.each([

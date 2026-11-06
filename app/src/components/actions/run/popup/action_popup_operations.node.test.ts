@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../../../../shared/action_errors.mjs'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
 import type { ActionDefinition } from '../../../../data/action_types'
@@ -122,10 +123,61 @@ function emitWaitingRun(listener: (event: ActionRunEvent) => void) {
     listener({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
 }
 
+describe('runPopupAction startup errors', () => {
+    beforeEach(() => {
+        runAction.mockReset()
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([{
+            branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:/feature',
+            status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },
+            valid: true,
+        }])
+    })
+
+    afterEach(() => {
+        actionPromptDraftService.clearAll()
+        vi.restoreAllMocks()
+    })
+
+    it('displays missing this-card context without reporting or starting an agent', async () => {
+        const projectContext: ActionContext = { kind: 'project' }
+        const input = operationInput(new ActionRunInputStore())
+        input.bindingStore.setRunId(null)
+        input.context = projectContext
+        actionPromptDraftService.getDraft(action.id, projectContext, null, { prepare: false }).edit('{{this-card}}')
+        const error = new Error('Missing card context') as Error & { code: string }
+        error.code = MISSING_THIS_CARD_CONTEXT_ERROR
+        runAction.mockRejectedValue(error)
+        const displayError = vi.spyOn(dialogService, 'displayError').mockImplementation(() => ({}) as never)
+        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as never)
+
+        await runPopupAction(input)
+
+        expect(runAction).toHaveBeenCalledTimes(1)
+        expect(displayError).toHaveBeenCalledWith('Missing card context', { fallbackMessage: 'Action run failed' })
+        expect(reportError).not.toHaveBeenCalled()
+        expect(input.bindingStore.getSnapshot()).toBeNull()
+    })
+
+    it('continues reporting unrelated action-start failures', async () => {
+        const commandAction = { command: 'npm test', id: 'build', label: 'Build', type: 'command' } as ActionDefinition
+        const input = operationInput(new ActionRunInputStore())
+        input.action = commandAction
+        input.bindingStore.setRunId(null)
+        const error = new Error('Process start failed')
+        runAction.mockRejectedValue(error)
+        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as never)
+
+        await runPopupAction(input)
+
+        expect(reportError).toHaveBeenCalledWith(error, { fallbackMessage: 'Action run failed' })
+    })
+})
+
 describe('runPopupAction waiting follow-up', () => {
     let bridge: ElectronActionBridge
 
     beforeEach(() => {
+        runAction.mockReset()
         vi.spyOn(worktreeService, 'getRecords').mockReturnValue([{
             branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:/feature',
             status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },

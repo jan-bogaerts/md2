@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../shared/action_errors.mjs'
 import { serializeBridgeError } from '../../../shared/bridge_errors.mjs'
 import type { PreparedActionPrompt } from './action_run_types'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from './electron_action_bridge'
@@ -52,6 +53,23 @@ describe('getElectronActionBridge', () => {
 
         await expect(getElectronActionBridge()?.prepareActionPrompt({ actionId: 'main', context: ACTION_CONTEXT }))
             .rejects.toThrow('Action runner is not available')
+    })
+
+    it('preserves the missing this-card context code from the main process', async () => {
+        const preloadBridge = createBridge()
+        const mainError = new Error('Missing card context') as Error & { code: string }
+        mainError.code = MISSING_THIS_CARD_CONTEXT_ERROR
+        preloadBridge.prepareActionPrompt = vi.fn(async () => (
+            serializeBridgeError(mainError) as unknown as PreparedActionPrompt
+        ))
+        window.md2Actions = preloadBridge
+
+        const error = await getElectronActionBridge()
+            ?.prepareActionPrompt({ actionId: 'main', context: ACTION_CONTEXT })
+            .catch((failure: unknown) => failure) as Error & { code?: string }
+
+        expect(error.message).toBe('Missing card context')
+        expect(error.code).toBe(MISSING_THIS_CARD_CONTEXT_ERROR)
     })
 
     it('returns the override before the preload bridge', () => {

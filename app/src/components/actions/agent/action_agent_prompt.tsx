@@ -8,6 +8,7 @@ import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { AgentQuestion } from '../../../data/data_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
+import { reportActionError } from '../../../services/actions/action_error_reporting'
 import { dialogService } from '../../../services/dialog_service'
 import { remoteConnectionService } from '../../../services/data/remote_connection_service'
 import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
@@ -131,7 +132,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
         if (remoteStatus === 'connecting' || remoteStatus === 'reconnecting') return
 
         void promptDraft.prepare(() => defaultPreparePrompt(action, context)).catch((error: unknown) => {
-            dialogService.error(error, { fallbackMessage: 'Could not prepare action prompt' })
+            reportActionError(error, { fallbackMessage: 'Could not prepare action prompt' })
         })
     }, [action, context, prepare, promptDraft, remoteStatus])
 

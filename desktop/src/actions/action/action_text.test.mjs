@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../../shared/action_errors.mjs';
 
 const require = createRequire(import.meta.url);
 const { resolveAgentPrompt, resolvePlaceholders, resolvePopupPrompt } = require('./action_text');
@@ -66,9 +67,25 @@ describe('resolvePlaceholders', () => {
         expect(() => resolvePlaceholders('{{active-cards-folder}}', {}, project, {}, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, '')).toThrow('Missing local Git project rootPath');
     });
 
-    it.each(['card-file', 'this-card'])('rejects %s placeholder without file context', (placeholderName) => {
-        expect(() => resolvePlaceholders(`{{${placeholderName}}}`, { kind: 'project' }, project, project, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, ''))
-            .toThrow(`Cannot resolve ${placeholderName} placeholder without a file context`);
+    it('marks this-card without file context as an expected action configuration error', () => {
+        const resolve = () => resolvePlaceholders(
+            '{{this-card}}', { kind: 'project' }, project, project,
+            projectFolder, releasesFolder, actionsFolder, activeCardsFolder, '',
+        );
+
+        expect(resolve).toThrow(
+            'Cannot prepare action prompt: {{this-card}} requires a card or file context, but this action was opened from the project. Open the action from a card or remove {{this-card}} from the action prompt.',
+        );
+        try {
+            resolve();
+        } catch (error) {
+            expect(error).toMatchObject({ code: MISSING_THIS_CARD_CONTEXT_ERROR });
+        }
+    });
+
+    it('keeps card-file validation unchanged without file context', () => {
+        expect(() => resolvePlaceholders('{{card-file}}', { kind: 'project' }, project, project, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, ''))
+            .toThrow('Cannot resolve card-file placeholder without a file context');
     });
 
     it('rejects card-title placeholder without card title', () => {

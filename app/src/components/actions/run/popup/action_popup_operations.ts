@@ -3,6 +3,7 @@ import type { AgentQuestion } from '../../../../data/data_types'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { generateUuid } from '../../../../data/uuid'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
+import { isMissingThisCardContextError, reportActionError } from '../../../../services/actions/action_error_reporting'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import type {
     ActionRunSettingsStore,
@@ -188,7 +189,9 @@ async function runWithPrompt(
             }],
             status: 'failed',
         })
-        if (!submissionId || started) dialogService.error(error, { fallbackMessage: 'Action run failed' })
+        if (!submissionId || started || isMissingThisCardContextError(error)) {
+            reportActionError(error, { fallbackMessage: 'Action run failed' })
+        }
     }
 }
 

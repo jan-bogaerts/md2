@@ -1,6 +1,7 @@
 const path = require('node:path');
 const { requireRootPath } = require('../../git/git_commands');
 const { resolveDataPlaceholders } = require('../../../../shared/action_for_each.mjs');
+const { MISSING_THIS_CARD_CONTEXT_ERROR } = require('../../../../shared/action_errors.mjs');
 
 const PLACEHOLDER_NAMES = [
     'active-cards-folder', 'worktree-folder', 'repository-folder', 'project-folder',
@@ -10,6 +11,13 @@ const PLACEHOLDER_NAMES = [
 const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
 const DATA_PLACEHOLDER_PATTERN = /\{\{\s*data\s+[^{}]+\}\}/u;
+
+function missingThisCardContextError() {
+    const error = new Error('Cannot prepare action prompt: {{this-card}} requires a card or file context, but this action was opened from the project. Open the action from a card or remove {{this-card}} from the action prompt.');
+    error.code = MISSING_THIS_CARD_CONTEXT_ERROR;
+
+    return error;
+}
 
 function resolveRecordPlaceholders(text, dataRecord) {
     if (dataRecord !== undefined) return resolveDataPlaceholders(text, dataRecord);
@@ -113,7 +121,11 @@ function resolvePlaceholders(
 
             return context.title;
         }
-        if (!context.file) throw new Error(`Cannot resolve ${name} placeholder without a file context`);
+        if (!context.file) {
+            if (name === 'this-card') throw missingThisCardContextError();
+
+            throw new Error(`Cannot resolve ${name} placeholder without a file context`);
+        }
 
         return context.file;
     });

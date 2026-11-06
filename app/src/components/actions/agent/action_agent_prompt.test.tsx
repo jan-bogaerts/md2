@@ -1,4 +1,5 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../../../shared/action_errors.mjs'
 import { ActionInputSplitter } from '../run/popup/action_input_splitter';
 import { ActionLayoutSurface } from '../run/popup/action_layout_surface';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -8,6 +9,7 @@ import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { AgentConversation, AgentQuestion } from '../../../data/data_types'
 import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
+import { dialogService } from '../../../services/dialog_service'
 import type { MarkdownDraftBinding } from '../../../services/markdown/markdown_draft'
 import { createTestPopupRuntime } from '../../../test/action_popup_runtime_fixture'
 import type { ActionConversationStore } from '../conversation/state/action_conversation_store'
@@ -15,6 +17,7 @@ import { dismissRestoredConversationQuestions, runPopupAction } from '../run/pop
 import type { ActionPopupRuntime } from '../run/popup/action_popup_types'
 
 const editorRender = vi.hoisted(() => vi.fn());
+const preparePrompt = vi.hoisted(() => vi.fn());
 const promptDraftState = vi.hoisted(() => ({ current: null as ActionPromptDraft | null }));
 /** Called once per ActionAgentPrompt render through its run-settings hook. */
 const promptRender = vi.hoisted(() => vi.fn());
@@ -33,6 +36,12 @@ vi.mock('../run/popup/action_popup_operations', async (importOriginal) => {
         dismissRestoredConversationQuestions: vi.fn(async () => undefined),
         runPopupAction: vi.fn(async () => undefined),
     }
+})
+
+vi.mock('../run/popup/action_popup_defaults', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../run/popup/action_popup_defaults')>()
+
+    return { ...actual, defaultPreparePrompt: preparePrompt }
 })
 
 vi.mock('../shared/use_action_run_settings', () => ({
@@ -230,7 +239,11 @@ function mockAvailablePromptHeight(height: number, questionsHeight = 96) {
     })
 }
 
-beforeEach(() => window.localStorage.clear())
+beforeEach(() => {
+    window.localStorage.clear()
+    preparePrompt.mockReset()
+    preparePrompt.mockResolvedValue({ prompt: 'Prepared prompt' })
+})
 
 afterEach(() => {
     cleanup()
@@ -276,6 +289,38 @@ describe('ActionAgentPrompt', () => {
 
         expect(prompt).not.toHaveAttribute('readonly')
         expect(prompt).toHaveValue('Prepared prompt')
+    })
+
+    it('displays missing this-card preparation context without reporting it', async () => {
+        const error = new Error('Missing card context') as Error & { code: string }
+        error.code = MISSING_THIS_CARD_CONTEXT_ERROR
+        preparePrompt.mockRejectedValue(error)
+        const displayError = vi.spyOn(dialogService, 'displayError').mockImplementation(() => ({}) as never)
+        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as never)
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: null })
+
+        renderPrompt(new ActionPromptDraft('', true), { conversationStore })
+
+        await waitFor(() => expect(displayError).toHaveBeenCalledWith(
+            'Missing card context',
+            { fallbackMessage: 'Could not prepare action prompt' },
+        ))
+        expect(reportError).not.toHaveBeenCalled()
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('readonly')
+    })
+
+    it('reports unrelated prompt preparation failures', async () => {
+        const error = new Error('Preparation failed')
+        preparePrompt.mockRejectedValue(error)
+        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as never)
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: null })
+
+        renderPrompt(new ActionPromptDraft('', true), { conversationStore })
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(
+            error,
+            { fallbackMessage: 'Could not prepare action prompt' },
+        ))
     })
 
     it('passes a card attachment handler to the hidden-toolbar agent prompt editor', () => {

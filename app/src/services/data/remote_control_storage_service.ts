@@ -70,6 +70,7 @@ import type {
     WriteFilesRequest,
 } from '../../data/data_types'
 import { MissingWorkingFolderError } from '../../data/data_types'
+import { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../../shared/action_errors.mjs'
 import type { BridgeErrorPayload } from '../../../../shared/bridge_errors.mjs'
 import { rehydrateBridgeError } from '../../data/bridge_error_rehydration'
 import { readRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'
@@ -1046,7 +1047,9 @@ export class RemoteControlStorageService implements
             const failure = new Error(`Remote method ${pending.method} failed: ${response.error.message}`, { cause }) as Error & { code?: string }
             if (response.error.code !== undefined) failure.code = response.error.code
             Object.assign(failure, response.error.fields ?? {})
-            pending.reject(cause instanceof MissingWorkingFolderError ? cause : failure)
+            const expectedError = cause instanceof MissingWorkingFolderError
+                || response.error.code === MISSING_THIS_CARD_CONTEXT_ERROR
+            pending.reject(expectedError ? cause : failure)
             return
         }
 
