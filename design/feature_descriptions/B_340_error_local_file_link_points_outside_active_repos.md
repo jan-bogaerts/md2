@@ -3,7 +3,7 @@ author:
 id: B_340
 internalId: e624b075-cb06-452d-a838-dc64137918d8
 title: Error: Local file link points outside active repos
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
@@ -42,3 +42,27 @@ sentryOrganization: elastetic
 - `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2554` — gre
 - `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2422` — Bm
 - `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2274` — mre
+
+## Current state
+
+Markdown links in conversation messages, including submitted prompts and agent responses, are handled by `ActionConversationLink`. Repository files open in the internal editor or the configured external editor. The desktop `openInEditor` path rejects targets outside the primary repository and registered worktrees, and the renderer reports that expected rejection to Sentry through `dialogService.error`.
+
+The desktop already uses Electron's `shell.openPath` elsewhere, but conversation links do not expose an operating-system open path. Links rendered in project Markdown documents are not affected.
+
+## Implementation details
+
+- Keep the existing internal-editor and configured-editor routing for files inside the primary repository or a registered worktree.
+- Add a narrow desktop bridge operation that opens an existing outside-repository file with Electron's `shell.openPath`. Do not build or execute a shell command.
+- Resolve and decode the clicked local path in the desktop process. Relative paths remain relative to the conversation repository root; absolute paths retain their location. Remove a numeric line suffix before operating-system opening.
+- Verify that the resolved target exists and is a regular file before opening it. Missing, malformed, and directory targets return a clear expected validation error.
+- Treat expected local-link validation failures as user-facing errors through `dialogService.displayError`, without reporting them to Sentry. Continue reporting unexpected bridge and operating-system launch failures through `dialogService.error`.
+- Add focused tests for path resolution, repository routing, outside-repository operating-system opening, missing targets, directories, and telemetry routing.
+
+## Acceptance criteria
+
+- Clicking an agent-conversation link to a file inside the primary repository or a registered worktree keeps the current internal-editor or configured-editor behavior.
+- Clicking an absolute or relative agent-conversation link that resolves to an existing file outside those repositories opens it with the operating system's default application.
+- A numeric line suffix does not become part of the path passed to the operating system.
+- Missing, malformed, and directory targets show a clear error and do not open anything.
+- Expected link-validation failures are not reported to Sentry, while unexpected launch failures are reported.
+- The behavior applies to links in submitted prompts and agent responses. Links rendered in project Markdown documents remain unchanged.

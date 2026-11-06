@@ -3,7 +3,7 @@ author:
 id: B_339
 internalId: 885c223a-31ec-48c3-8390-f85015ab9c23
 title: Error: Missing referenced activity file: C:\Users\
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -14,6 +14,18 @@ sentryIssueId: 155181382
 sentryOrganization: elastetic
 branch: b_339_error_missing_referenced_activity_file_c_users
 worktree: 1
+changedFiles:
+  - app/src/services/agents/agent_integration.test.ts
+  - app/src/services/agents/agent_integration.ts
+  - app/src/services/data/data_service.ts
+  - app/src/services/data/external_card_import_service.node.test.ts
+  - app/src/services/data/external_card_import_service.ts
+  - app/src/services/project/project_loading.test.ts
+  - app/src/services/project/project_loading.ts
+  - desktop/src/actions/activity/activity_files.js
+  - desktop/src/actions/activity/activity_files.test.mjs
+  - shared/card_activity.d.mts
+  - shared/card_activity.mjs
 ---
 
 ## Sentry issue
