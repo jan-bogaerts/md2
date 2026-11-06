@@ -18,7 +18,16 @@
       ],
       "hasExplicitTitle": true,
       "id": "agent-c3f9ce02-b6c4-40cf-a915-c6e2fa74ea4f",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "accountId": "codex-initial",
+          "agent": "codex",
+          "conversationId": "01a1b18b-a17a-78c3-a0ab-d137a3f58404",
+          "createdAt": "2026-11-06T15:48:01.603Z",
+          "lastUsedAt": "2026-11-06T15:48:01.603Z",
+          "synchronizedThroughMessageId": "submission-bbdde860-365e-4ca7-a6d9-d24a7bc149a3"
+        }
+      ],
       "startedAt": "2026-11-06T15:47:59.923Z",
       "status": "running",
       "timer": {
