@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 76852
+        "usedTokens": 84175
       },
       "entries": [
         {
@@ -361,6 +361,117 @@
           "role": "user",
           "sequence": 27,
           "timestamp": "2026-11-06T09:55:57.554Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e3ed4fde-cab5-4c53-b191-3664acddde4d-event-28",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04ab4df21d2e098a016aeda438f14887d29a0a6960bf4c9827",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:56:08.842Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "800 ms set. Debounce means each keystroke cancels pending search; search runs 800 ms after latest query change. Empty query clears immediately. Enter/Search button stays immediate.\n\n",
+          "id": "agent-turn-e3ed4fde-cab5-4c53-b191-3664acddde4d-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 29,
+          "timestamp": "2026-11-06T09:56:09.543Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e3ed4fde-cab5-4c53-b191-3664acddde4d-event-30",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04ab4df21d2e098a016aeda4463ca887d28bf5455098ded014",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:56:21.830Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e3ed4fde-cab5-4c53-b191-3664acddde4d-event-31",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04ab4df21d2e098a016aeda44e112887d2ab79e4d6de289290",
+          "sequence": 31,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:56:29.650Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_460_start_search_automatically_after_1st_letter.md",
+          "deletions": 2,
+          "id": "agent-turn-e3ed4fde-cab5-4c53-b191-3664acddde4d-event-32",
+          "insertions": 37,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-b901be06-de57-4b22-97b0-f20aad032473",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:56:52.421Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e3ed4fde-cab5-4c53-b191-3664acddde4d-event-33",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04ab4df21d2e098a016aeda467642887d2a772ea25c242e23a",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:56:55.150Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_460_start_search_automatically_after_1st_letter.md'; git diff -- 'design/feature_descriptions/F_460_start_search_automatically_after_1st_letter.md'; git status --short -- 'design/feature_descriptions/F_460_start_search_automatically_after_1st_letter.md'\"",
+          "content": "diff --git a/design/feature_descriptions/F_460_start_search_automatically_after_1st_letter.md b/design/feature_descriptions/F_460_start_search_automatically_after_1st_letter.md\nindex b97d50e41..72076069e 100644\n--- a/design/feature_descriptions/F_460_start_search_automatically_after_1st_letter.md\n+++ b/design/feature_descriptions/F_460_start_search_automatically_after_1st_letter.md\n@@ -3,7 +3,7 @@ author:\n id: F_460\n internalId: 408e6af2-abc8-4f00-b4a5-59b908b8256b\n title: start search automatically after 1st letter\n-status: design\n+status: ready for implementation\n owner: \n affects:\n agents:\n@@ -14,4 +14,39 @@ after: 204e1fa2-8e5e-4fd1-b63c-06c9c762c080\n \n all search components (global search and the local searches) currently work on the principle that the search starts after pressing enter.\n \n-We should improve this by starting the search after the first letter has been entered, but with a short delay, so that, while the user is typing, we wait, once he pauses, the search starts automatically. If he continues to type, we do the delay again until he stops typing so we can do the search again.\n\\ No newline at end of file\n+We should improve this by starting the search after the first letter has been entered, but with a short delay, so that, while the user is typing, we wait, once he pauses, the search starts automatically. If he continues to type, we do the delay again until he stops typing so we can do the search again.\n+\n+## Current state\n+\n+Global project search in `app/src/components/shell/search/search_panel.tsx` already searches on every query change. It has no delay, so each keystroke searches active cards, background-card headers and enabled bodies, and enabled actions immediately. Empty input clears results immediately. Search-option changes and an agent-generated RegExp also run immediately. Invalid RegExp input keeps previous results and reports an error through `dialogService`.\n+\n+Two local visible-text searches still separate draft input from submitted input and require `Enter` or the Search button:\n+\n+* `MarkdownLocalTextSearchPlugin` searches visible rich-text editor content, selects and counts matches, supports next/previous navigation and case matching, and supplies submitted matches to replace actions.\n+* `ActionConversationSearchService` searches one mounted action-conversation transcript, owns submitted term, result count, active match, and DOM selection, and exposes controls through `ActionConversationSearchRow`.\n+\n+Markdown `@` file search already filters its typeahead options as query text changes. It does not require `Enter` to start searching and is outside this change. Desktop code has no search timing responsibility.\n+\n+## implementation details\n+\n+* Define **debounce** as postponing a search until 800 ms has elapsed since latest query-input change. Every later change within that interval cancels previous pending search and starts a new 800 ms interval.\n+* Apply same 800 ms debounce to global project-search input, Markdown local visible-text input, and action-conversation local-search input. First eligible character schedules search; no minimum length beyond each search's existing non-empty-term rule is added.\n+* Keep `Enter` and Search button as immediate submission paths for both local searches. They cancel pending timer before running, so one user action cannot cause a duplicate search 800 ms later.\n+* Clear pending timer when query becomes empty, search UI closes, owning component or service is disposed, Markdown draft resets, or conversation transcript is unmounted. Empty input clears active/submitted search state and result count immediately; it must not wait 800 ms or run stale query later.\n+* Keep option changes immediate. Global RegExp, background-body, and action toggles rerun current query immediately. Local case toggle reruns current non-empty draft term immediately. These controls are deliberate commands, not typing pauses.\n+* Preserve current search origins and navigation: automatic local search selects first match from same origin used by current submission; next, previous, `F3`, wrapping, result count, and selected-text seeding keep current behavior.\n+* Preserve replace separation in Markdown search. Automatic search updates active term, active case mode, current match, and count after 800 ms, but never changes Markdown. `Replace` and `Replace all` continue using latest completed search, remain unavailable before one completes, and keep existing read-only guards and undo/persistence flow.\n+* Preserve global invalid-RegExp behavior: only latest debounced query is evaluated; invalid pattern keeps previous results and reports through `dialogService`. Agent-generated RegExp remains immediate because it follows an explicit agent action, not typing.\n+* Keep debounce ownership with each existing search owner. `SearchPanel` and `MarkdownLocalTextSearchPlugin` cancel their component timers during cleanup; `ActionConversationSearchService` owns and cancels its transcript-search timer. Do not add a service class or compatibility mode solely for timer handling.\n+* Update focused tests with fake timers. Cover cancellation and restart during typing, execution at 800 ms, immediate empty clearing, immediate `Enter`/button submission without later duplicate, cleanup cancellation, option changes, invalid RegExp handling, local navigation, and Markdown replacement state. Do not change file-search typeahead tests or desktop tests.\n+\n+## acceptance criteria\n+\n+* After first eligible query character is entered in global project search, Markdown local search, or action-conversation local search, no search runs before 800 ms; latest query runs when 800 ms passes without another input change.\n+* Each input change before 800 ms cancels prior pending search. Only latest query runs, once, 800 ms after final change.\n+* `Enter` or Search button in either local search runs current non-empty draft immediately and cancels pending automatic search, preventing delayed duplicate execution.\n+* Clearing query cancels pending work and clears results, count, and active/submitted search state immediately. Closing, resetting, unmounting, or changing transcript cannot run stale pending query.\n+* Global search still covers active cards, configured background content, and enabled actions. Global option toggles and successful agent-generated RegExp rerun immediately; invalid RegExp keeps previous results and reports error after debounce.\n+* Markdown and conversation searches still select from existing search origin, report count, wrap during next/previous navigation, honor case mode, support `F3`, and close through existing Escape behavior.\n+* Markdown automatic search never edits document. Replace controls use latest completed search and retain existing current-match, read-only, dirty-state, persistence, and undo behavior.\n+* Markdown `@` file-search typeahead and all desktop behavior remain unchanged.\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n M design/feature_descriptions/F_460_start_search_automatically_after_1st_letter.md\n",
+          "durationMs": 174,
+          "exitCode": 0,
+          "id": "agent-turn-e3ed4fde-cab5-4c53-b191-3664acddde4d-event-34",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_460_start_search_automatically_after_1st_letter.md'; git diff -- 'design/feature_descriptions/F_460_start_search_automatically_after_1st_letter.md'; git status --short -- 'design/feature_descriptions/F_460_start_search_automatically_after_1st_letter.md'\"",
+          "providerItemId": "exec-fa88f4ec-0855-4b87-90ef-2b6896b475e8",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:56:58.827Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e3ed4fde-cab5-4c53-b191-3664acddde4d-event-35",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04ab4df21d2e098a016aeda473ea8487d2bcddeda9ac79b627",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:57:07.493Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_460_start_search_automatically_after_1st_letter.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_460_start_search_automatically_after_1st_letter.md).\n\nAdded:\n\n- Current state\n- 800 ms debounce implementation details\n- Acceptance criteria\n- Status: `ready for implementation`\n\nNo staging, commit, code, or test changes.\n\n",
+          "id": "agent-turn-e3ed4fde-cab5-4c53-b191-3664acddde4d-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-11-06T09:57:12.600Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -371,8 +482,8 @@
           "agent": "codex",
           "conversationId": "01a1b033-5611-7653-b772-442f1fc7700f",
           "createdAt": "2026-11-06T09:33:13.971Z",
-          "lastUsedAt": "2026-11-06T09:33:13.971Z",
-          "synchronizedThroughMessageId": "agent-turn-e3ed4fde-cab5-4c53-b191-3664acddde4d-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-06T09:57:12.600Z",
+          "synchronizedThroughMessageId": "agent-turn-e3ed4fde-cab5-4c53-b191-3664acddde4d-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-11-06T09:31:56.151Z",
@@ -382,41 +493,41 @@
           {
             "id": "0",
             "subject": "Read feature document and every referenced non-agent file",
-            "status": "inProgress"
+            "status": "completed"
           },
           {
             "id": "1",
             "subject": "Inspect current search implementation, affected components, edge cases, and tests",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Update feature sections and status",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Review diff for scope and accuracy",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-06T09:32:04.163Z"
+        "updatedAt": "2026-11-06T09:57:09.541Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 329,
-          "toolMs": 3826
+          "reasoningMs": 397,
+          "toolMs": 4566
         },
         "elapsedMs": 77820,
         "runningStartedAt": "2026-11-06T09:55:57.554Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 599936,
-        "inputTokens": 76664,
-        "outputTokens": 1661,
-        "reasoningTokens": 745,
-        "totalTokens": 679006
+        "cachedInputTokens": 1003648,
+        "inputTokens": 81376,
+        "outputTokens": 3400,
+        "reasoningTokens": 2555,
+        "totalTokens": 1090979
       },
       "usageSchemaVersion": 1,
       "viewed": true
