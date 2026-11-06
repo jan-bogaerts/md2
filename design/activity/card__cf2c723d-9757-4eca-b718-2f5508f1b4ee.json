@@ -1000,7 +1000,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 81175
+        "usedTokens": 98111
       },
       "entries": [
         {
@@ -1578,6 +1578,479 @@
           "role": "user",
           "sequence": 42,
           "timestamp": "2026-11-06T09:54:41.953Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-43",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda3ed13ac87d289e7933a5cc38add",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:54:52.653Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Approval received. Starting Block 1. `caveman` skill keeps updates terse. First change: route body save using loaded record identity; no other operation gains regular-Markdown behavior.\n\n",
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 44,
+          "timestamp": "2026-11-06T09:54:53.705Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda3f37e9887d2ab87064ad67ef441",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:54:59.066Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app\\src\\services\\data\\card_operation_context.ts\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app\\src\\services\\data\\card_operations.ts",
+          "deletions": 1,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-46",
+          "insertions": 11,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-3b96ac4b-82ff-457c-897f-1a1ab73c6c05",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:55:07.465Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda3fd2dec87d29a8e768e8437e018",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:55:08.747Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 12 \\\"updateCardBody\\\\(|saveCardChange\\\\(\\\" app/src/services/data/card_operations.ts app/src/services/data/card_operation_context.ts\"",
+          "content": "app/src/services/data/card_operation_context.ts-213-        const existingFile = this.dependencies.requireFile(file.path)\napp/src/services/data/card_operation_context.ts-214-        if (existingFile.content === file.content) return existingFile\napp/src/services/data/card_operation_context.ts-215-\napp/src/services/data/card_operation_context.ts-216-        this.replaceUpdatedFiles([file])\napp/src/services/data/card_operation_context.ts-217-        const change = { ...attachSaveReference(file, saveReference), kind: 'file' as const }\napp/src/services/data/card_operation_context.ts-218-        commitBatcher.schedule(project.branch, [change], `Update ${file.path}`)\napp/src/services/data/card_operation_context.ts-219-        this.dependencies.dispatchChanged()\napp/src/services/data/card_operation_context.ts-220-\napp/src/services/data/card_operation_context.ts-221-        return file\napp/src/services/data/card_operation_context.ts-222-    }\napp/src/services/data/card_operation_context.ts-223-\napp/src/services/data/card_operation_context.ts-224-    /** Mutates one owned card and queues its reference for serialization at flush. */\napp/src/services/data/card_operation_context.ts:225:    saveCardChange(\napp/src/services/data/card_operation_context.ts-226-        path: string,\napp/src/services/data/card_operation_context.ts-227-        mutation: (card: Card) => void,\napp/src/services/data/card_operation_context.ts-228-        saveReference?: OpenDocumentSaveReference,\napp/src/services/data/card_operation_context.ts-229-        message = `Update ${path}`,\napp/src/services/data/card_operation_context.ts-230-    ) {\napp/src/services/data/card_operation_context.ts-231-        const { commitBatcher, config, project } = this.requireProject('save a card')\napp/src/services/data/card_operation_context.ts-232-        const currentCard = this.dependencies.requireCard(path)\napp/src/services/data/card_operation_context.ts-233-        if (!currentCard.header.internalId) throw new Error(`Cannot save a card without an internal ID: ${path}`)\napp/src/services/data/card_operation_context.ts-234-        const openDocument = this.findOpenCardDocument(path)\napp/src/services/data/card_operation_context.ts-235-        const card = this.mutateCardPreservingOpenBody(path, mutation, config.workingFolder)\napp/src/services/data/card_operation_context.ts-236-        const cardInternalId = card.header.internalId\napp/src/services/data/card_operation_context.ts-237-        if (!cardInternalId) throw new Error(`Card mutation removed the internal ID: ${path}`)\n--\napp/src/services/data/card_operations.ts-198-    deleteCopiedAttachments(paths: string[]) {\napp/src/services/data/card_operations.ts-199-        return this.attachments.delete(paths)\napp/src/services/data/card_operations.ts-200-    }\napp/src/services/data/card_operations.ts-201-\napp/src/services/data/card_operations.ts-202-    createFolder(parentDirectory: string, name: string) {\napp/src/services/data/card_operations.ts-203-        return this.projectFiles.createFolder(parentDirectory, name)\napp/src/services/data/card_operations.ts-204-    }\napp/src/services/data/card_operations.ts-205-\napp/src/services/data/card_operations.ts-206-    createMarkdownFile(parentDirectory: string, name: string) {\napp/src/services/data/card_operations.ts-207-        return this.projectFiles.createMarkdownFile(parentDirectory, name)\napp/src/services/data/card_operations.ts-208-    }\napp/src/services/data/card_operations.ts-209-\napp/src/services/data/card_operations.ts:210:    updateCardBody(path: string, body: string, saveReference?: OpenDocumentSaveReference) {\napp/src/services/data/card_operations.ts-211-        const card = this.context.dependencies.requireCard(path)\napp/src/services/data/card_operations.ts-212-        if (!card.header.internalId) {\napp/src/services/data/card_operations.ts-213-            const sourceFile = this.context.dependencies.requireFile(path)\napp/src/services/data/card_operations.ts-214-            const file = { ...sourceFile, content: markdownParsingService.replaceBody(sourceFile.content\n[4380 characters omitted]\nices/data/card_operations.ts:260:        return this.context.saveCardChange(path, (card) => setCardWorktree(card, worktree))\napp/src/services/data/card_operations.ts-261-    }\napp/src/services/data/card_operations.ts-262-\napp/src/services/data/card_operations.ts-263-    assignCardWorktree(path: string, worktree: number, branch: string) {\napp/src/services/data/card_operations.ts:264:        return this.context.saveCardChange(path, (card) => setCardWorktreeAssignment(card, worktree, branch))\napp/src/services/data/card_operations.ts-265-    }\napp/src/services/data/card_operations.ts-266-\napp/src/services/data/card_operations.ts-267-    clearCardBranch(path: string) {\napp/src/services/data/card_operations.ts:268:        return this.context.saveCardChange(path, clearCardBranch)\napp/src/services/data/card_operations.ts-269-    }\napp/src/services/data/card_operations.ts-270-\napp/src/services/data/card_operations.ts-271-    toggleCardPolicy(path: string, policyKey: string, saveReference?: OpenDocumentSaveReference): Card {\napp/src/services/data/card_operations.ts:272:        return this.context.saveCardChange(path, (card) => toggleCardPolicy(card, policyKey), saveReference)\napp/src/services/data/card_operations.ts-273-    }\napp/src/services/data/card_operations.ts-274-\napp/src/services/data/card_operations.ts-275-    addAgentLogReference(path: string, reference: string) {\napp/src/services/data/card_operations.ts-276-        const activityPath = activityPathForCardReference(reference)\napp/src/services/data/card_operations.ts-277-        const card = this.context.dependencies.requireCard(path)\napp/src/services/data/card_operations.ts-278-        if (card.header.agentLogReferences.includes(activityPath)) return card.header.internalId\napp/src/services/data/card_operations.ts-279-\napp/src/services/data/card_operations.ts-280-        const references = [...new Set([...card.header.agentLogReferences, activityPath])]\napp/src/services/data/card_operations.ts:281:        this.context.saveCardChange(path, (currentCard) => setCardAgentLogReferences(currentCard, references))\napp/src/services/data/card_operations.ts-282-\napp/src/services/data/card_operations.ts-283-        return card.header.internalId\napp/src/services/data/card_operations.ts-284-    }\napp/src/services/data/card_operations.ts-285-\napp/src/services/data/card_operations.ts-286-    setAgentLogReferences(path: string, references: string[], message = `Update ${path}`) {\napp/src/services/data/card_operations.ts-287-        const card = this.context.dependencies.requireCard(path)\napp/src/services/data/card_operations.ts-288-        const currentReferences = card.header.agentLogReferences\napp/src/services/data/card_operations.ts-289-        const unchanged = currentReferences.length === references.length\napp/src/services/data/card_operations.ts-290-            && currentReferences.every((reference, index) => reference === references[index])\napp/src/services/data/card_operations.ts-291-        if (unchanged) return card\napp/src/services/data/card_operations.ts-292-\napp/src/services/data/card_operations.ts:293:        return this.context.saveCardChange(\napp/src/services/data/card_operations.ts-294-            path,\napp/src/services/data/card_operations.ts-295-            (currentCard) => setCardAgentLogReferences(currentCard, references),\napp/src/services/data/card_operations.ts-296-            undefined,\napp/src/services/data/card_operations.ts-297-            message,\napp/src/services/data/card_operations.ts-298-        )\napp/src/services/data/card_operations.ts-299-    }\napp/src/services/data/card_operations.ts-300-\napp/src/services/data/card_operations.ts-301-    ensureCardInternalIds(deferredPersistencePaths: string[] = []) {\napp/src/services/data/card_operations.ts-302-        return this.internalIds.ensureCardInternalIds(deferredPersistencePaths)\napp/src/services/data/card_operations.ts-303-    }\napp/src/services/data/card_operations.ts-304-\napp/src/services/data/card_operations.ts-305-    /** Drops card-operation tracking scoped to the previously open project. */\n",
+          "durationMs": 70,
+          "exitCode": 0,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 12 \\\"updateCardBody\\\\(|saveCardChange\\\\(\\\" app/src/services/data/card_operations.ts app/src/services/data/card_operation_context.ts\"",
+          "providerItemId": "exec-74cead63-02f8-40c4-b6bf-043917d41936",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:55:11.050Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-49",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda40acfe887d2ac00b7c195031784",
+          "sequence": 49,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:55:22.390Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Blocks 1–2 implemented. Body path now branches before mutation. Card-only call sites still reject regular Markdown. Next: focused integration tests, including exact content and dirty-state behavior.\n\n",
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 50,
+          "timestamp": "2026-11-06T09:55:23.485Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda41a582087d2831483aee6a4a13c",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:55:37.926Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-52",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda421b95c87d2bb72f05f18ece8c2",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:55:45.300Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 12 \\\"projectPersistenceService\\\\.init|openFilesService\\\\.init\\\" app/src/services/data/data_service.ts app/src/services/test_support/data_service_test_support.ts\"",
+          "content": "app/src/services/test_support/data_service_test_support.ts-5-    MarkdownFile,\napp/src/services/test_support/data_service_test_support.ts-6-    StorageService,\napp/src/services/test_support/data_service_test_support.ts-7-} from '../../data/data_types'\napp/src/services/test_support/data_service_test_support.ts-8-import { actionService } from '../actions/action_service'\napp/src/services/test_support/data_service_test_support.ts-9-import { DataService } from '../data/data_service'\napp/src/services/test_support/data_service_test_support.ts-10-import { projectPersistenceService } from '../project/project_persistence_service'\napp/src/services/test_support/data_service_test_support.ts-11-import { openFilesService } from '../open_files_service'\napp/src/services/test_support/data_service_test_support.ts-12-import { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../shared/agent_token_usage_summary.mjs'\napp/src/services/test_support/data_service_test_support.ts-13-import { agentInstructionsService } from '../agent_instructions/agent_instructions_service'\napp/src/services/test_support/data_service_test_support.ts-14-\napp/src/services/test_support/data_service_test_support.ts-15-export function createDataService() {\napp/src/services/test_support/data_service_test_support.ts-16-    const service = new DataService()\napp/src/services/test_support/data_service_test_support.ts:17:    openFilesService.init({ actionService, agentInstructionsService, dataService: service })\napp/src/services/test_support/data_service_test_support.ts:18:    projectPersistenceService.init({ actionService, dataService: service, openFilesService })\napp/src/services/test_support/data_service_test_support.ts-19-\napp/src/services/test_support/data_service_test_support.ts-20-    return service\napp/src/services/test_support/data_service_test_support.ts-21-}\napp/src/services/test_support/data_service_test_support.ts-22-\napp/src/services/test_support/data_service_test_support.ts-23-export const files: MarkdownFile[] = [\napp/src/services/test_support/data_service_test_support.ts-24-    { content: '---\\nid: F-1\\ninternalId: root-card\\ntitle: Root\\nstatus: active\\naffects:\\n  - app/src/app.tsx\\n---\\n\\n# Root', path: 'design/F-1-root.md' },\napp/src/services/test_support/data_service_test_support.ts-25-    { content: '---\\ninternalId: old-card\\n---\\n\\n# Old', path: 'design/history/F-3-old.md' },\napp/src/services/test_support/data_service_test_support.ts-26-    { content: '# Imported', path: 'design/free note.md' },\napp/src/services/test_support/data_service_test_support.ts-27-]\napp/src/services/test_support/data_service_test_support.ts-28-export const storageFiles = files.filter((file) => file.path !== 'design/free note.md')\napp/src/services/test_support/data_service_test_support.ts-29-\napp/src/services/test_support/data_service_test_support.ts-30-export const githubProject = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }\n",
+          "durationMs": 51,
+          "exitCode": 0,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-53",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 12 \\\"projectPersistenceService\\\\.init|openFilesService\\\\.init\\\" app/src/services/data/data_service.ts app/src/services/test_support/data_service_test_support.ts\"",
+          "providerItemId": "exec-7d469584-2fc1-4b22-97df-a0fcf2427788",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:55:47.648Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-54",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda42a507c87d2826774508fa0fa39",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:55:53.890Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/services/data/markdown_parsing_service.ts' | Select-Object -First 90\"",
+          "content": "import type { HeaderValue, MarkdownHeaderFields } from '../../../../shared/markdown_header_fields.mjs'\r\nimport { parseHeaderFields, splitHeader } from '../../../../shared/markdown_header_fields.mjs'\r\nimport type { Card, CardHeader, MarkdownFile } from '../../data/data_types'\r\nimport { generateUuid } from '../../data/uuid'\r\n\r\nconst HEADER_DELIMITER = '---'\r\nconst MARKDOWN_EXTENSION = '.md'\r\nconst DEFAULT_IMPORTED_STATUS = 'new'\r\nconst DEFAULT_IMPORTED_ID = 'F_0'\r\nconst TITLE_PREFIX = '# '\r\nconst LIST_ITEM_PREFIX = '  - '\r\nconst CHILD_INDENT = '  '\r\n\r\nexport type { HeaderValue, MarkdownHeaderFields }\r\n\r\nexport interface ParsedMarkdown {\r\n    body: string\r\n    header: MarkdownHeaderFields\r\n    rawHeader: string\r\n}\r\n\r\nexport interface CardParseError {\r\n    error: unknown\r\n    path: string\r\n}\r\n\r\nexport interface NewCardHeader {\r\n    affects?: string[]\r\n    /** Activity conversation references serialized through the existing `agents` frontmatter field. */\r\n    agentLogReferences?: string[]\r\n    author?: string | null\r\n    changedFiles?: string[]\r\n    id: string\r\n    internalId: string\r\n    owner?: string | null\r\n    policy?: Record<string, boolean>\r\n    references?: string[]\r\n    sentryBaseUrl?: string\r\n    sentryIssueId?: string\r\n    sentryOrganization?: string\r\n    status?: string | null\r\n    title: string\r\n}\r\n\r\ninterface CardSourceState {\r\n    body: string\r\n    content: string\r\n    header: CardHeader\r\n    headerFields: MarkdownHeaderFields\r\n}\r\n\r\nconst sourceByCard = new WeakMap<Card, CardSourceState>()\r\n\r\nfunction cloneCardHeader(header: CardHeader): CardHeader {\r\n    return {\r\n        ...header,\r\n        affects: [...header.affects],\r\n        agentLogReferences: [...header.agentLogReferences],\r\n        changedFiles: [...header.changedFiles],\r\n        policy: { ...header.policy },\r\n        references: [...header.references],\r\n    }\r\n}\r\n\r\nfunction requireCardSource(card: Card) {\r\n    const source = sourceByCard.get(card)\r\n    if (!source) throw new Error(`Cannot serialize card without parser source metadata: ${card.path}`)\r\n\r\n    return source\r\n}\r\n\r\nfunction sameStringArray(left: string[], right: string[]) {\r\n    return left.length === right.length && left.every((value, index) => value === right[index])\r\n}\r\n\r\nfunction sameBooleanMap(left: Record<string, boolean>, right: Record<string, boolean>) {\r\n    const leftEntries = Object.entries(left)\r\n    const rightEntries = Object.entries(right)\r\n\r\n    return leftEntries.length === rightEntries.length && leftEntries.every(([key, value]) => right[key] === value)\r\n}\r\n\r\nfunction serializePolicy(policy: Record<string, boolean>) {\r\n    return Object.fromEntries(Object.entries(policy).map(([key, enabled]) => [key, enabled ? 'true' : 'false']))\r\n}\r\n\r\nfunction setNullableHeaderField(fields: MarkdownHeaderFields, key: string, value: string | null) {\r\n    if (value === null) delete fields[key]\r\n    else fields[key] = value\r\n}\r\n",
+          "durationMs": 152,
+          "exitCode": 0,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-55",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/services/data/markdown_parsing_service.ts' | Select-Object -First 90\"",
+          "providerItemId": "exec-0bdc0224-9900-4fa0-bc9a-da195b706a31",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:55:56.249Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-56",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda42f733487d2a3340f2d58e041df",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:55:59.032Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'shared/markdown_header_fields.mjs'\"",
+          "content": "const HEADER_DELIMITER = '---'\nconst LIST_ITEM_PREFIX = '  - '\nconst CHILD_INDENT = '  '\n\n/**\n * Splits markdown into its frontmatter header and its body. Content without a well-formed\n * header is reported as a body-only document rather than treated as an error, because plain\n * markdown documents live next to cards in the same folders.\n */\nexport function splitHeader(content) {\n    if (!content.startsWith(`${HEADER_DELIMITER}\\n`) && !content.startsWith(`${HEADER_DELIMITER}\\r\\n`)) {\n        return { body: content, hasHeader: false, rawHeader: '' }\n    }\n\n    const closingDelimiter = /\\r?\\n---\\r?\\n/g\n    closingDelimiter.lastIndex = HEADER_DELIMITER.length\n    const closingMatch = closingDelimiter.exec(content)\n\n    if (!closingMatch) return { body: content, hasHeader: false, rawHeader: '' }\n\n    const headerStart = content.indexOf('\\n') + 1\n    const rawHeader = content.slice(headerStart, closingMatch.index).replace(/\\r\\n/gu, '\\n')\n    const body = content.slice(closingMatch.index + closingMatch[0].length)\n\n    return { body, hasHeader: true, rawHeader }\n}\n\nfunction parseListValue(lines, startIndex) {\n    const values = []\n    let index = startIndex + 1\n\n    while (index < lines.length && lines[index].startsWith(LIST_ITEM_PREFIX)) {\n        values.push(lines[index].slice(LIST_ITEM_PREFIX.length).trim())\n        index += 1\n    }\n\n    return { nextIndex: index, values }\n}\n\nfunction parseMapValue(lines, startIndex) {\n    const value = {}\n    let index = startIndex + 1\n\n    while (index < lines.length && lines[index].startsWith(CHILD_INDENT) && !lines[index].startsWith(LIST_ITEM_PREFIX)) {\n        const childLine = lines[index].trim()\n        const separatorIndex = childLine.indexOf(':')\n\n        if (separatorIndex === -1) break\n\n        value[childLine.slice(0, separatorIndex).trim()] = childLine.slice(separatorIndex + 1).trim()\n        index += 1\n    }\n\n    return { nextIndex: index, value }\n}\n\n/** Parses frontmatter lines into scalar, list and map fields. */\nexport function parseHeaderFields(headerText) {\n    const fields = {}\n    const lines = headerText.split(/\\r?\\n/u)\n    let index = 0\n\n    while (index < lines.length) {\n        const line = lines[index]\n        const separatorIndex = line.indexOf(':')\n\n        if (separatorIndex === -1 || line.startsWith(' ')) {\n            index += 1\n            continue\n        }\n\n        const key = line.slice(0, separatorIndex).trim()\n        const value = line.slice(separatorIndex + 1).trim()\n\n        if (value.length > 0) {\n            fields[key] = value\n            index += 1\n            continue\n        }\n\n        const nextLine = lines[index + 1] ?? ''\n\n        if (nextLine.startsWith(LIST_ITEM_PREFIX)) {\n            const listValue = parseListValue(lines, index)\n            fields[key] = listValue.values\n            index = listValue.nextIndex\n            continue\n        }\n\n        if (nextLine.startsWith(CHILD_INDENT)) {\n            const mapValue = parseMapValue(lines, index)\n            fields[key] = mapValue.value\n            index = mapValue.nextIndex\n            continue\n        }\n\n        fields[key] = ''\n        index += 1\n    }\n\n    return fields\n}\n\n/**\n * Reads the card identity and status straight from markdown content. Returns null when the\n * content carries no frontmatter or no `internalId`, which is how non-card markdown is told apart.\n */\nexport function readCardIdentity(content) {\n    const { hasHeader, rawHeader } = splitHeader(content)\n    if (!hasHeader) return null\n\n    const fields = parseHeaderFields(rawHeader)\n    const internalId = typeof fields.internalId === 'string' ? fields.internalId.trim() : ''\n    if (internalId.length === 0) return null\n    const status = typeof fields.status === 'string' ? fields.status.trim() : ''\n\n    return { internalId, status }\n}\n\r\n",
+          "durationMs": 105,
+          "exitCode": 0,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-57",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'shared/markdown_header_fields.mjs'\"",
+          "providerItemId": "exec-8077874f-d8a4-4f68-be38-44038ecfac2a",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:56:01.399Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-58",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda4358c3487d2a347f22aa491c360",
+          "sequence": 58,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:56:05.191Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app\\src\\services\\data\\card_operation_context.ts\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app\\src\\services\\data\\card_operations.test.ts",
+          "deletions": 1,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-59",
+          "insertions": 137,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-f22c25db-45dd-4fb7-8b97-61dddba44b47",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:56:47.108Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-60",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda460f62487d295fb0200f49b18f6",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:56:48.527Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Focused tests added. Running only `card_operations.test.ts` now. Expected checks: auto commit, manual flush, project flush, retry state, frontmatter/CRLF, pre-mutation rejection.\n\n",
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 61,
+          "timestamp": "2026-11-06T09:56:49.706Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/data/card_operations.test.ts'",
+          "content": "\n> app@0.10.0 test\n> vitest run src/services/data/card_operations.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/app\n\n ❯ |ui| src/services/data/card_operations.test.ts (75 tests | 1 failed) 793ms\n     × automatically persists a direct editor save for headerless regular Markdown 62ms\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  |ui| src/services/data/card_operations.test.ts > CardOperations > automatically persists a direct editor save for headerless regular Markdown\nError: Config value project.autoCommitDelayMs is below 1000\n ❯ validateValue src/services/config/config_service.ts:224:71\n    222|         const numberValue = requireNumber(value, entry.key)\n    223|         if (entry.integer && !Number.isInteger(numberValue)) throw new…\n    224|         if (entry.min !== undefined && numberValue < entry.min) throw …\n       |                                                                       ^\n    225|         if (entry.max !== undefined && numberValue > entry.max) throw …\n    226|\n ❯ mergeValue src/services/config/config_service.ts:285:32\n ❯ ConfigService.set src/services/config/config_service.ts:428:23\n ❯ src/services/data/card_operations.test.ts:1666:23\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n\n Test Files  1 failed (1)\n      Tests  1 failed | 74 passed (75)\n   Start at  10:56:52\n   Duration  3.56s (transform 806ms, setup 144ms, import 1.21s, tests 793ms, environment 1.26s)\n\n",
+          "durationMs": 4437,
+          "exitCode": 1,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-62",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/data/card_operations.test.ts'",
+          "providerItemId": "exec-2862b3dc-84ad-4b1c-ac98-3394dbb773d1",
+          "sequence": 62,
+          "status": "failed",
+          "timestamp": "2026-11-06T09:56:55.704Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-63",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda4699b5087d2b910aa3e04429198",
+          "sequence": 63,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:56:57.182Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "One test setup violated config minimum: auto-commit delay must be at least `1000ms`. Production behavior fine. Adjusting test clock to valid minimum, then rerun same file.\n\n",
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 64,
+          "timestamp": "2026-11-06T09:56:58.126Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app\\src\\services\\data\\card_operations.test.ts",
+          "deletions": 2,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-65",
+          "insertions": 2,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-c438ab42-d952-4654-b929-276e3c36f882",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:57:01.866Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/data/card_operations.test.ts'",
+          "content": "\n> app@0.10.0 test\n> vitest run src/services/data/card_operations.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/app\n\n\n Test Files  1 passed (1)\n      Tests  75 passed (75)\n   Start at  10:57:06\n   Duration  3.17s (transform 856ms, setup 107ms, import 1.24s, tests 855ms, environment 836ms)\n\n",
+          "durationMs": 3999,
+          "exitCode": 0,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-66",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/data/card_operations.test.ts'",
+          "providerItemId": "exec-140e8b39-c07b-4772-bb99-529e1affe00f",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:57:09.646Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-67",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda47a7fe487d2b042663188f7a34d",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:57:14.077Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "New regression tests pass: 75/75. Running one existing flush-service test file, then app lint. No full suite.\n\n",
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 68,
+          "timestamp": "2026-11-06T09:57:14.891Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/project/project_persistence_service.node.test.ts'",
+          "content": "\n> app@0.10.0 test\n> vitest run src/services/project/project_persistence_service.node.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/app\n\n\n Test Files  1 passed (1)\n      Tests  14 passed (14)\n   Start at  10:57:22\n   Duration  223ms (transform 51ms, setup 22ms, import 52ms, tests 13ms, environment 0ms)\n\n",
+          "durationMs": 1103,
+          "exitCode": 0,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-69",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/project/project_persistence_service.node.test.ts'",
+          "providerItemId": "exec-91932162-d8aa-4b7b-a690-b43786834b24",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:57:23.014Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> app@0.10.0 lint\n> eslint .\n\n",
+          "durationMs": 46393,
+          "exitCode": 0,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-70",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-b044176c-8534-4587-b48d-14bff0b5dcd6",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:58:11.789Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda4a54ee087d2a86d59b48bac735e",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:57:56.875Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-72",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda4b86f3487d2bf199310b8a6132f",
+          "sequence": 72,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:58:15.999Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Related tests and lint pass. Final Block 5: change only feature frontmatter `status` from `ready for implementation` to `ready` in requested `md2` path.\n\n",
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 73,
+          "timestamp": "2026-11-06T09:58:16.946Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_331_error_cannot_save_a_card_without_an_internal_id.md",
+          "deletions": 1,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-74",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-4f7e5ccc-1d53-4036-a893-965129072558",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:58:30.516Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-75",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda4cce14887d28c0ac03df3c7ffbf",
+          "sequence": 75,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:58:36.445Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^status:\" '\"'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_331_error_cannot_save_a_card_without_an_internal_id.md'\"",
+          "content": "6:status: ready\n",
+          "durationMs": 110,
+          "exitCode": 0,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-76",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^status:\" '\"'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_331_error_cannot_save_a_card_without_an_internal_id.md'\"",
+          "providerItemId": "exec-56337553-e829-494d-b1a9-70413883f693",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:58:41.004Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"const card = this.context.dependencies.requireCard|markdownParsingService.replaceBody|const currentCard = this.dependencies.requireCard\" app/src/services/data/card_operations.ts app/src/services/data/card_operation_context.ts'",
+          "content": "app/src/services/data/card_operation_context.ts:232:        const currentCard = this.dependencies.requireCard(path)\napp/src/services/data/card_operations.ts:211:        const card = this.context.dependencies.requireCard(path)\napp/src/services/data/card_operations.ts:214:            const file = { ...sourceFile, content: markdownParsingService.replaceBody(sourceFile.content, body) }\napp/src/services/data/card_operations.ts:228:        const card = this.context.dependencies.requireCardByInternalId(cardInternalId)\napp/src/services/data/card_operations.ts:238:        const card = this.context.dependencies.requireCard(path)\napp/src/services/data/card_operations.ts:246:        const card = this.context.dependencies.requireCard(path)\napp/src/services/data/card_operations.ts:277:        const card = this.context.dependencies.requireCard(path)\napp/src/services/data/card_operations.ts:287:        const card = this.context.dependencies.requireCard(path)\n",
+          "durationMs": 67,
+          "exitCode": 0,
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-77",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"const card = this.context.dependencies.requireCard|markdownParsingService.replaceBody|const currentCard = this.dependencies.requireCard\" app/src/services/data/card_operations.ts app/src/services/data/card_operation_context.ts'",
+          "providerItemId": "exec-eb78da92-853a-473d-af90-85aeeb4f55a3",
+          "sequence": 77,
+          "status": "completed",
+          "timestamp": "2026-11-06T09:58:41.269Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-event-78",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bef2f2072bff924016aeda4d9429087d2b8788ee982ac9748",
+          "sequence": 78,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-06T09:58:48.842Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Implemented B_331.\n\n- Regular Markdown body saves now use path-based file commits; no `internalId` or frontmatter added.\n- Existing frontmatter and CRLF preserved.\n- Card-only saves validate `internalId` before mutation.\n- Failed saves remain dirty and pending.\n- Added focused tests for auto/manual saves, project flush, acknowledgement, retry, and mutation safety.\n- Feature status changed to `ready`.\n\nFiles:\n\n- [card_operations.ts](C:/Users/janbo/Documents/dev/md2_workers/dev2/app/src/services/data/card_operations.ts:210)\n- [card_operation_context.ts](C:/Users/janbo/Documents/dev/md2_workers/dev2/app/src/services/data/card_operation_context.ts:225)\n- [card_operations.test.ts](C:/Users/janbo/Documents/dev/md2_workers/dev2/app/src/services/data/card_operations.test.ts:1650)\n- [B_331 feature](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_331_error_cannot_save_a_card_without_an_internal_id.md:6)\n\nChecks:\n\n- `card_operations.test.ts`: 75 passed\n- `project_persistence_service.node.test.ts`: 14 passed\n- `npm run lint`: passed\n\n",
+          "id": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-turn-2-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 79,
+          "timestamp": "2026-11-06T09:58:53.622Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1588,8 +2061,8 @@
           "agent": "codex",
           "conversationId": "01a1b033-277a-7123-91d8-ea0fe54a6a88",
           "createdAt": "2026-11-06T09:33:31.642Z",
-          "lastUsedAt": "2026-11-06T09:33:31.642Z",
-          "synchronizedThroughMessageId": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-turn-1-assistant-2"
+          "lastUsedAt": "2026-11-06T09:58:53.622Z",
+          "synchronizedThroughMessageId": "agent-turn-2ffb3fe8-1b79-4e49-9582-b285e5dc07db-turn-2-assistant-7"
         }
       ],
       "startedAt": "2026-11-06T09:31:44.313Z",
@@ -1599,51 +2072,51 @@
           {
             "id": "0",
             "subject": "Block 1 — Route body saves by loaded record identity: cards use card commit; regular Markdown uses path-based file commit with body-only replacement",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "1",
             "subject": "Block 2 — Validate internalId before mutation in card-only save flow; preserve existing behavior for all card-only call sites",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 3 — Add focused tests for editor save, pending-change flush, frontmatter/CRLF preservation, acknowledgement, failure retry, and pre-mutation rejection",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Block 4 — Run only related tests plus required app lint; fix relevant failures",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "4",
             "subject": "Block 5 — Set B_331 feature status to ready in C:\\Users\\janbo\\Documents\\dev\\md2 after implementation passes",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "5",
             "subject": "Approval gate — wait for user approval before any edit",
-            "status": "inProgress"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-06T09:33:17.506Z"
+        "updatedAt": "2026-11-06T09:58:47.154Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 355,
-          "toolMs": 3475
+          "reasoningMs": 504,
+          "toolMs": 69050
         },
         "elapsedMs": 107329,
         "runningStartedAt": "2026-11-06T09:54:41.953Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 641152,
-        "inputTokens": 79310,
-        "outputTokens": 2249,
-        "reasoningTokens": 1709,
-        "totalTokens": 724420
+        "cachedInputTokens": 2483456,
+        "inputTokens": 91408,
+        "outputTokens": 7803,
+        "reasoningTokens": 4503,
+        "totalTokens": 2587170
       },
       "usageSchemaVersion": 1,
       "viewed": true
