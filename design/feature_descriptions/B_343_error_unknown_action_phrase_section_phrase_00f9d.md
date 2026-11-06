@@ -3,7 +3,7 @@ author:
 id: B_343
 internalId: a06f0f67-81e6-428d-85bb-d90688e44d4c
 title: Error: Unknown action phrase section: phrase-00f9d
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 154937872
 sentryOrganization: elastetic
-after: 65a76f7c-abcf-4ef8-b5cb-81255208dc51
 ---
 
 ## Sentry issue
