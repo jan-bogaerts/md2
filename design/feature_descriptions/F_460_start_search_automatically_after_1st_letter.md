@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 204e1fa2-8e5e-4fd1-b63c-06c9c762c080
 ---
 
 all search components (global search and the local searches) currently work on the principle that the search starts after pressing enter.

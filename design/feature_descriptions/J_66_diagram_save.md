@@ -9,7 +9,8 @@ affects:
 agents:
   - design/activity/card__ac32ed09-2e05-4ae3-9a90-8a03bba61616.json
 policy:
-after: 204e1fa2-8e5e-4fd1-b63c-06c9c762c080
+branch: j_66_diagram_save
+worktree: 1
 ---
 
 we currently have a separate button on the diagram tab of the app bar to save the diagram separately. not certain what the value is of this.
