@@ -5,7 +5,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "449b8fa8-9d5e-4d00-9b81-66a018e55285",
       "cardPath": "design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md",
-      "completedAt": null,
+      "completedAt": "2026-11-07T15:16:50.768Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 80063
@@ -650,7 +650,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 49,
-          "timestamp": "2026-11-07T15:16:50.214Z"
+          "timestamp": "2026-11-07T15:16:50.768Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -661,12 +661,12 @@
           "agent": "codex",
           "conversationId": "01a1b67a-a13c-7681-8732-a3b9e33e14b3",
           "createdAt": "2026-11-07T14:47:33.058Z",
-          "lastUsedAt": "2026-11-07T15:16:50.214Z",
+          "lastUsedAt": "2026-11-07T15:16:50.768Z",
           "synchronizedThroughMessageId": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-turn-2-assistant-3"
         }
       ],
       "startedAt": "2026-11-07T14:47:31.803Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -692,8 +692,8 @@
           "reasoningMs": 491,
           "toolMs": 5183
         },
-        "elapsedMs": 102799,
-        "runningStartedAt": "2026-11-07T15:15:56.286Z"
+        "elapsedMs": 157281,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
