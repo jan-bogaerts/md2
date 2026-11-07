@@ -6,13 +6,13 @@ Use **Diagrams** beside **Board** and **List** to explore a project visually. Yo
 
 Select **New diagram**, then choose **Architecture**, **Dependency**, **Sequence**, **Flowchart**, **State diagram**, **Entity**, or **Mindmap**. md² saves an empty root diagram and opens it for editing. Flowchart and State diagram are two presets of the flow diagram type.
 
-The **Add** menu offers objects appropriate to the chosen type. For example, an entity diagram offers entities and relationships; a sequence diagram offers participants, connections, and fragments. A mindmap starts with a root, then offers topics. Use **Select** to choose objects or **Pan** to move around the surface. The Diagram tab also has cut, copy, paste, delete, metadata, legend, and formatting controls.
+The **Add** menu offers objects appropriate to the chosen type. For example, an entity diagram offers entities and relationships; a sequence diagram offers participants, connections, and fragments. A mindmap starts with a root, then offers topics. Use **Select** to choose objects or **Pan** to move around the surface. The Diagram tab also has cut, copy, paste, Format Paste, delete, metadata, legend, and formatting controls.
 
 To generate a diagram with an agent or command, run a project-level diagram action from the diagram view. The action must target a diagram context and declare diagram output. Its prompt or command receives an output path through {% raw %}`{{diagram-file}}`{% endraw %}. See [Action definition](../actions/action-definition.md) and [Placeholders](../actions/placeholders.md).
 
 ## Explore saved diagrams
 
-Open a saved root diagram from the diagram view. Select an item to make it active. Use its context menu to run a child diagram action or open a saved child diagram. Breadcrumbs show the current path and let you return to a parent or choose another root diagram. The item menu also offers **Emphasize** to focus attention on an object.
+Open a saved root diagram from the diagram view. Select an item to make it active. Use its context menu to run a child diagram action or open a saved child diagram. Breadcrumbs show the current path and let you return to a parent or choose another root diagram; the current diagram's subtitle appears below them. While editing, change the current title and subtitle directly in this breadcrumb bar. The item menu also offers **Emphasize** to focus attention on an object.
 
 ## Edit and review
 
@@ -20,9 +20,13 @@ With a saved diagram open, choose **Edit diagram** on the **Diagram** tab. The e
 
 Choose a tool from **Add** to place nodes, draw connections or groups, or add sequence fragments. Double-click a node, connection, or group to edit its details, or use the formatting controls. Moving, resizing, and changing diagram content appear in the change review; selection, pan, and zoom do not count as changes.
 
-Select **Review** to see changes grouped by diagram, nodes, connections, groups, and fragments. Selecting a change highlights its affected objects. The review also shows generated change text and any validation problems. Resolve blocking items before using **Save** or **Send to agent**; both require at least one change.
+To copy semantic formatting, copy exactly one node or connection, select one or more objects of the same kind, and choose **Format Paste**. Select which available fields to apply: **Legend**, **Kind**, and **Label**. The operation updates all compatible selected targets together. Normal **Paste** still creates copied objects; Format Paste changes the existing selection and can be reused after one copy.
 
-**Save** writes an edited copy. The original diagram remains available, and later saves in the same edit session update that copy. **Send to agent** opens a diagram action with the reviewed change text, so the agent can implement the proposed changes. It does not save the editable diagram by itself.
+Select **Add card to implement diagram** to see changes grouped by diagram, nodes, connections, groups, and fragments. Selecting a change highlights its affected objects. The dialog also shows editable Markdown implementation instructions and any blocking validation problems.
+
+Choose the card title, card type, and target column, then edit the instructions as needed. **Add card** creates a normal project card containing those instructions. For a newly created diagram, the instructions include a relative link to the complete diagram, so you can create an implementation card even when there are no remaining semantic changes. The dialog is resizable on desktop.
+
+**Save** writes an edited copy. The original diagram remains available, and later saves in the same edit session update that copy. Saving and adding the implementation card are separate actions: adding a card does not save diagram edits, and closing the dialog does neither.
 
 ## Diagram files and settings
 

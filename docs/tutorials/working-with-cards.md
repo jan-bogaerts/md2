@@ -48,7 +48,7 @@ Reference: [Board view](../guide/board-view.md), [List view](../guide/text-view.
 Drag the card to `design` and press **Run**. The action popup opens with the column's default action selected.
 
 1. Add run-specific instructions in the prompt box if you want. They reach the prompt through {% raw %}`{{card-prompt}}`{% endraw %}.
-2. Check the agent, model, and reasoning level. Changes here apply to this run only.
+2. Check the agent, account, model, and reasoning level. Changes here apply to this run only.
 3. Press **Run**.
 
 For a streaming action, the conversation stays open: answer the agent's questions, then press **Finish**. An action with `autoFinish` finishes by itself when the agent moves the card to the configured column.
@@ -61,7 +61,7 @@ Reference: [Running actions](../actions/running-actions.md), [Actions and agents
 
 Drag the card to `ready for implementation` and press **Run** again. For parallel work, assign a worktree first; see [Git worktrees](git-worktrees.md).
 
-While the agent runs, the card shows **Running** and its other action entry points are disabled. One action at a time per card.
+While the agent runs, the card shows **Running** and its other action entry points are disabled. One action at a time per card. If the agent publishes a task list, a progress bar below **Run** shows how many tasks are complete.
 
 ## 5. Follow the conversation
 

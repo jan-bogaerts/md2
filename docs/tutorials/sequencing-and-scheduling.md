@@ -59,7 +59,7 @@ In the action popup, press **Schedule** and choose the trigger:
 | Trigger | Starts the action |
 | --- | --- |
 | **Set date and time** | At the chosen moment. |
-| **When account usage resets** | When the chosen agent's usage limit window resets. Use it to queue work until you have capacity again. |
+| **When account usage resets** | When the chosen agent account's usage limit window resets. Pick the agent and account, then the limit and window. Use it to queue work until that account has capacity again. |
 | **When another card enters state** | When the chosen card reaches the chosen column. This is how one card waits for another. |
 
 Schedules are stored in the repository. The desktop app registers them when the project loads, so they survive a restart.

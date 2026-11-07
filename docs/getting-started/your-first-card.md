@@ -39,7 +39,7 @@ Type {% raw %}`{{`{% endraw %} in the prompt for the placeholder list. The actio
 
 ## 5. Run it
 
-Press **Run** on the card. The action popup opens: add a sentence of run-specific instructions if you want, check the agent, model, and reasoning level, and press **Run**.
+Press **Run** on the card. The action popup opens: add a sentence of run-specific instructions if you want, check the agent, account, model, and reasoning level, and press **Run**.
 
 Output streams into the popup while the agent works. The card shows **Running**, and its other action entry points are disabled until the run ends.
 

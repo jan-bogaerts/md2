@@ -28,6 +28,8 @@ Each tab has:
 
 Undo history is kept per document, so switching tabs does not throw it away.
 
+Press Ctrl+Tab to select the next open document or Ctrl+Shift+Tab to select the previous one.
+
 ## Editing actions
 
 Action tabs use the same layout, with structured controls instead of raw JSON. Agent actions get a Markdown editor for the `prompt`, with {% raw %}`{{`{% endraw %} typeahead for placeholders; command actions edit their command line as a field. Sub-tabs at the bottom switch between **Definition**, **Prompt**, and any phrases the action defines.

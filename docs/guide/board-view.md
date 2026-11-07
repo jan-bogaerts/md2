@@ -16,7 +16,7 @@ Each card shows:
 
 - the card id chip and the type color bar down its left edge;
 - the title, editable inline;
-- the run status (`Idle`, `Running`) and a **Run** button for the card's default action;
+- the run status (`Idle`, `Running`) and a **Run** button for the card's default action; while a running agent has a task list, a progress bar appears below the button;
 - an icon for the card's conversation and run history;
 - the worktree indicator, when a worktree is assigned;
 - an overflow menu with actions, policy toggles, worktree assignment, and delete.
@@ -32,6 +32,8 @@ Dropping a card into a state that some action declares as its `onState` starts t
 ## Opening a card
 
 Click a card to open the card popup: the Markdown editor with its formatting toolbar, plus **Delete**, **Affects**, **Open in file mode**, token usage, and save status. **Open in file mode** switches to list view with the card open in a tab.
+
+Several card, action, and sequence popups can stay open at once. Press Ctrl+Tab to bring the bottom-most popup to the front, or Ctrl+Shift+Tab to cycle in the opposite direction. Focus moves into the newly active popup.
 
 When commits were recorded for the card, a commit icon appears in the popup. Pick a commit to see its diff in place.
 

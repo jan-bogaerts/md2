@@ -65,15 +65,17 @@ To draw instead of generate:
 3. md² saves an empty diagram and opens the editor.
 4. Use **Add** to place objects that fit the type: components, participants and fragments, steps and decisions, entities and relationships, topics.
 5. Double-click an object to edit its details. **Select** and **Pan** switch between choosing and moving around.
+6. Edit the diagram title and subtitle directly in the breadcrumb bar.
 
 ## 4. Edit and review
 
 For a saved diagram, **Diagram** tab → **Edit diagram**. The editor shows **Current** (the saved source) next to **New** (your copy). Choose a vertical, horizontal, or tabbed comparison.
 
 1. Change nodes, connections, groups, or fragments in **New**.
-2. Press **Review**. Changes are grouped by diagram, nodes, connections, groups, and fragments. Selecting one highlights it.
-3. Fix any blocking validation problems listed there.
-4. **Save** writes the edited copy. The original stays available.
+2. To repeat a node or connection's semantic formatting, copy one source object, select compatible targets, and press **Format Paste**. Choose **Legend**, **Kind**, or **Label**, then **Apply**.
+3. Press **Add card to implement diagram**. Changes are grouped by diagram, nodes, connections, groups, and fragments. Selecting one highlights it.
+4. Fix any blocking validation problems listed there.
+5. **Save** writes the edited copy. The original stays available.
 
 Reference: [Diagrams](../guide/diagrams.md).
 
@@ -81,31 +83,15 @@ Reference: [Diagrams](../guide/diagrams.md).
 
 Use a diagram as the specification: draw the change, then let an agent build it.
 
-Create an implement action for reviewed diagram changes. It applies to root diagrams and has no diagram output, because it changes code, not the diagram:
+Turn the diagram into normal tracked work:
 
-{% raw %}
-```json
-{
-  "id": "implement-diagram-changes",
-  "label": "Implement diagram changes",
-  "description": "Implement the reviewed diagram changes in the codebase",
-  "type": "agent",
-  "prompt": "Implement the following changes to the system, as drawn in the diagram:\n\n{{diagram-changes}}\n\nPropose a plan first and wait for approval.",
-  "appliesTo": { "kind": "diagram", "type": "root" },
-  "streaming": true
-}
-```
-{% endraw %}
+1. Edit the diagram (step 4) and press **Add card to implement diagram**.
+2. Review the generated Markdown instructions. You can edit them directly in the dialog.
+3. Change the default title (`implement <diagram title>`), card type, or target column if needed.
+4. Press **Add card**.
+5. Open the new card and run your normal implementation action.
 
-Then:
-
-1. Edit the diagram (step 4) and press **Review**.
-2. Press **Send to agent**. The action popup opens with the reviewed changes attached.
-3. Pick the implement action and press **Run**.
-
-{% raw %}`{{diagram-changes}}`{% endraw %} holds the generated change text from the review. It only resolves after **Send to agent**: the same action started from the diagram action button fails before it runs. **Send to agent** does not save the diagram; press **Save** as well if you want to keep the drawing.
-
-For larger work, write the change into a card instead and link the diagram from it, so the implementation follows the normal card process ([Working with cards](working-with-cards.md)).
+For a newly drawn diagram, the instructions link to the complete diagram JSON even when the semantic-change list is empty. **Add card** does not save the diagram itself; press **Save** separately if you want to persist the edited copy.
 
 ## Next
 
