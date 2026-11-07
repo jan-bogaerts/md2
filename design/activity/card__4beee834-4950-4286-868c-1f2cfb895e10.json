@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 77753
+        "usedTokens": 89894
       },
       "entries": [
         {
@@ -517,6 +517,261 @@
           "role": "assistant",
           "sequence": 40,
           "timestamp": "2026-11-07T16:06:06.996Z"
+        },
+        {
+          "content": "ok, that is a much better approach. update design/feature_descriptions/B_351_project_initialization_creates_an_f_0_file_everywhere.md",
+          "id": "submission-c2428889-eccf-4328-8787-39d98a805beb",
+          "kind": "message",
+          "role": "user",
+          "sequence": 41,
+          "timestamp": "2026-11-07T16:06:50.008Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-42",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09e03b45744e9eb5016aef4ca1685087d28160a433fddb6cf4",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:06:55.738Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updating design to remove repository placeholders entirely. Need include loading change: configured empty folders must count as valid even when repository contains no path under them.\n\n",
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 43,
+          "timestamp": "2026-11-07T16:06:56.508Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw -Encoding UTF8 'design\\\\feature_descriptions\\\\B_351_project_initialization_creates_an_f_0_file_everywhere.md'; rg -n \\\"missing-working-folder|Working folder is missing|loadProject\\\\(|existingFolders|resolvedSetupFolders|folderPathsOf\\\" app\\\\src\\\\services\\\\project app\\\\src\\\\services\\\\github desktop\\\\src\\\\project --glob '\"'!**/*.test.*'\"'\"",
+          "content": "---\nauthor: \nid: B_351\ninternalId: 4beee834-4950-4286-868c-1f2cfb895e10\ntitle: project initialization creates an f_0 file everywhere\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__4beee834-4950-4286-868c-1f2cfb895e10.json\npolicy:\nafter: 41d340e6-afae-44bd-82e7-41ab673c94e0\n---\n\nthe project initialization seems to create F_0_MD².md files everywhere. this is not needed.\n\n## Current state\n\nProject-folder setup passes every missing configured folder to `StorageService.createProject()`. `ProjectLoading.createProject()` also uses that operation for a missing working folder. Local storage creates each directory and writes `README.md`; GitHub storage commits the same file. The README exists only because Git cannot track an empty directory.\n\nEach generated README contains Markdown but no card frontmatter or card-style filename. `MarkdownParsingService` therefore assigns it fallback ID `F_0`, meaning the ID used for imported Markdown without an explicit card ID. The initializer does not create a file named `F_0`; generated `README.md` files appear in MD² as `F_0` entries. A README in the working-folder root is classified as an active card, while README files in other project folders are loaded as regular Markdown documents.\n\nManual folder creation already uses an empty `.gitkeep` file. `.gitkeep` is a conventional non-Markdown placeholder that lets Git retain an otherwise empty directory.\n\n## implementation details\n\n* In local project-folder creation, replace generated `README.md` and `PROJECT_README_TEMPLATE` with an empty `.gitkeep` placeholder. Keep directory creation, duplicate-folder removal, existing-folder checks, ignored-folder handling, staging, and commit behavior unchanged.\n* In `GithubStorageWriter.createProject()`, commit `<folder>/.gitkeep` with empty content for each requested folder. Keep validation, folder de-duplication, one-commit behavior, and commit message unchanged.\n* Remove initializer-only README template exports and imports after both storage paths use `.gitkeep`.\n* Do not change Markdown parsing, fallback ID `F_0`, configured folder calculation, default action creation, or project configuration persistence. Existing user-created `README.md` files remain untouched and continue to load normally.\n* Update focused local and GitHub storage tests to assert empty `.gitkeep` files, no generated `README.md`, unchanged handling of existing folders, and no staging or commit for ignored local folders.\n\n## acceptance criteria\n\n* Initializing a local or GitHub project creates empty `.gitkeep` placeholders in missing configured folders and creates no placeholder `README.md` files.\n* Opening initialized project shows no `F_0` entry caused by folder placeholders, including in working, archived, actions, releases, and diagrams folders.\n* Existing folders and their files are not overwritten or given another placeholder.\n* Ignored local folders are created on disk, but their `.gitkeep` files are not staged or committed.\n* Tracked local folders and GitHub folders remain represented in Git after initialization.\n* Default actions, project configuration, folder selection, and explicit user-created Markdown files keep current behavior.\n\r\napp\\src\\services\\github\\github_storage_service.ts:50:    async loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string) {\napp\\src\\services\\github\\github_storage_service.ts:52:            return await this.loader.loadProject(project, workingFolder, excludedRootFolder)\napp\\src\\services\\github\\github_storage_loader.ts:66:    async loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string) {\ndesktop\\src\\project\\project_files.js:110:    const error = new Error(`Working folder is missing: ${workingFolder}`);\ndesktop\\src\\project\\project_files.js:111:    error.code = 'missing-working-folder';\ndesktop\\src\\project\\project_files.js:147:async function loadProject(project, workingFolder, excludedRootFolder) {\napp\\src\\services\\project\\project_session_service.ts:166:export function resolvedSetupFolders(config: ProjectConfig) {\napp\\src\\services\\project\\project_session_service.ts:179:function folderPathsOf(files: string[]) {\napp\\src\\services\\project\\project_session_service.ts:196:        return folderPathsOf(await storage.listRepositoryFiles(project))\napp\\src\\services\\project\\project_session_service.ts:523:            const existingFolders = new Set(folderPathsOf([...existingFilePaths]))\napp\\src\\services\\project\\project_session_service.ts:524:            const missingFolders = resolvedSetupFolders(projectConfig).filter((folder) => !existingFolders.has(folder))\napp\\src\\services\\project\\project_loading.ts:356:        const projectFiles = await storage.loadProject(currentProject, config.projectFolder)\napp\\src\\services\\project\\project_loading.ts:438:        const projectFiles = await storage.loadProject(currentProject, config.projectFolder)\napp\\src\\services\\project\\project_loading.ts:638:            storage.loadProject(project, projectFolder, workingFolder),\napp\\src\\services\\project\\project_loading.ts:777:            const projectFiles = await storage.loadProject(currentProject, config.projectFolder)\n",
+          "durationMs": 149,
+          "exitCode": 0,
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-44",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw -Encoding UTF8 'design\\\\feature_descriptions\\\\B_351_project_initialization_creates_an_f_0_file_everywhere.md'; rg -n \\\"missing-working-folder|Working folder is missing|loadProject\\\\(|existingFolders|resolvedSetupFolders|folderPathsOf\\\" app\\\\src\\\\services\\\\project app\\\\src\\\\services\\\\github desktop\\\\src\\\\project --glob '\"'!**/*.test.*'\"'\"",
+          "providerItemId": "exec-aa90cc89-717c-4712-b2e4-5534a885f313",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:07:01.010Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09e03b45744e9eb5016aef4ca84c0887d282721def92f083f2",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:07:02.645Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\services\\\\project\\\\project_session_service.ts' | Select-Object -Skip 140 -First 75; Get-Content 'app\\\\src\\\\services\\\\github\\\\github_storage_loader.ts' | Select-Object -Skip 45 -First 65; Get-Content 'desktop\\\\src\\\\project\\\\project_files.js' | Select-Object -Skip 100 -First 75; Get-Content 'app\\\\src\\\\services\\\\project\\\\project_loading.ts' | Select-Object -Skip 620 -First 35\"",
+          "content": "export function requireSubFolder(label: string, folderPath: string) {\r\n    if (isAbsoluteFolderValue(folderPath)) throw new Error(`${label} must stay inside the project folder`)\r\n\r\n    const normalizedFolder = normalizeFolderValue(folderPath)\r\n    if (normalizedFolder.length === 0) throw new Error(`${label} is required`)\r\n    if (normalizedFolder.split('/').some((segment) => segment === '.' || segment === '..' || segment.length === 0)) {\r\n        throw new Error(`${label} must stay inside the project folder`)\r\n    }\r\n\r\n    return normalizedFolder\r\n}\r\n\r\n/** Validates all five folder values together, as the setup dialog submits them. */\r\nexport function requireProjectFolderValues(values: ProjectFolderValues): ProjectFolderValues {\r\n    return {\r\n        actionsFolder: requireSubFolder('Actions folder', values.actionsFolder),\r\n        archivedFolder: requireSubFolder('Archived folder', values.archivedFolder),\r\n        diagramsFolder: requireSubFolder('Diagrams folder', values.diagramsFolder),\r\n        projectFolder: requireProjectFolder(values.projectFolder),\r\n        releasesFolder: requireSubFolder('Releases folder', values.releasesFolder),\r\n        workingFolder: requireSubFolder('Working folder', values.workingFolder),\r\n    }\r\n}\r\n\r\n/** Resolved sub-folder paths, in the order the setup dialog lists them. */\r\nexport function resolvedSetupFolders(config: ProjectConfig) {\r\n    const resolvedConfig = resolveProjectConfigPaths(config)\r\n\r\n    return [\r\n        resolvedConfig.workingFolder,\r\n        resolvedConfig.archivedFolder,\r\n        resolvedConfig.actionsFolder,\r\n        resolvedConfig.releasesFolder,\r\n        resolvedConfig.diagramsFolder,\r\n    ]\r\n}\r\n\r\n/** Folder paths represented by repository files. */\r\nfunction folderPathsOf(files: string[]) {\r\n    const folderPaths = new Set<string>()\r\n    for (const filePath of files) {\r\n        const segments = filePath.split('/')\r\n        segments.pop()\r\n        let currentPath = ''\r\n        for (const segment of segments) {\r\n            currentPath = currentPath.length === 0 ? segment : `${currentPath}/${segment}`\r\n            folderPaths.add(currentPath)\r\n        }\r\n    }\r\n\r\n    return [...folderPaths].sort((left, right) => left.localeCompare(right))\r\n}\r\n\r\nasync function listExistingFolderPaths(storage: StorageService, project: ProjectReference) {\r\n    try {\r\n        return folderPathsOf(await storage.listRepositoryFiles(project))\r\n    } catch {\r\n        return []\r\n    }\r\n}\r\n\r\nexport function folderValuesOf(config: ProjectConfig): ProjectFolderValues {\r\n    return {\r\n        actionsFolder: config.actionsFolder,\r\n        archivedFolder: config.archivedFolder,\r\n        diagramsFolder: config.diagramsFolder,\r\n        projectFolder: config.projectFolder,\r\n        releasesFolder: config.releasesFolder,\r\n        workingFolder: config.workingFolder,\r\n    }\r\n}\r\n\r\nasync function listTopLevelFolders(storage: StorageService, project: ProjectReference) {\r\n    try {\r\n        return await storage.listTopLevelFolders(project)\r\n}\r\n\r\nfunction isJsonActionBlob(entry: NormalizedGithubTreeEntry, actionsFolder: string) {\r\n    const fileName = entry.path.split('/').pop()\r\n\r\n    return entry.type === 'blob'\r\n        && fileName !== ACTION_SCHEDULES_FILE\r\n        && entry.path.toLowerCase().endsWith('.json')\r\n        && isDirectFileInFolder(entry.path, actionsFolder)\r\n}\r\n\r\nexport class GithubStorageLoader {\r\n    private readonly context: GithubStorageContext\r\n    private readonly gitData: GithubStorageGitData\r\n\r\n    constructor(context: GithubStorageContext, gitData: GithubStorageGitData) {\r\n        this.context = context\r\n        this.gitData = gitData\r\n    }\r\n\r\n    async loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string) {\r\n        this.context.requireGithubProject(project)\r\n        const files = await this.readDirectory(project, workingFolder, true, excludedRootFolder)\r\n\r\n        return { files, workingFolder }\r\n    }\r\n\r\n    async loadProjectRoot(project: ProjectReference, workingFolder: string) {\r\n        this.context.requireGithubProject(project\n[2270 characters omitted]\nd folder that is still missing, in one commit.\r\n *\r\n * Git cannot represent an empty directory, so each created folder gets a placeholder README.\r\n * Folders that already exist are left untouched.\r\n */\r\nasync function createProjectNow(project, folders) {\r\n    const rootPath = requireRootPath(project);\r\n    await assertGitRoot(rootPath);\r\n    const createdFolders = await createMissingProjectFolders(rootPath, folders);\r\n    const ignoredFolders = await listIgnoredPaths(rootPath, createdFolders);\r\n    const committableFolders = createdFolders.filter((folder) => !ignoredFolders.has(folder));\r\n\r\n    if (committableFolders.length > 0) {\r\n        await runGit(rootPath, ['add', '--', ...committableFolders]);\r\n        await commitStagedChanges(rootPath, `Create ${committableFolders.join(', ')} workspace`);\r\n    }\r\n\r\n    return project;\r\n}\r\n\r\nfunction createProject(project, folders) {\r\n    if (!Array.isArray(folders)) throw new Error('Project folders must be an array');\r\n    if (folders.length === 0) return Promise.resolve(project);\r\n\r\n    const rootPath = requireRootPath(project);\r\n\r\n    return holdProjectMutation(rootPath, () => createProjectNow(project, folders));\r\n}\r\n\r\nasync function loadProject(project, workingFolder, excludedRootFolder) {\r\n    const rootPath = requireRootPath(project);\r\n    await assertGitRoot(rootPath);\r\n    const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder));\r\n    const excludedRootFolderPath = excludedRootFolder === undefined\r\n        ? null\r\n        : ensureInsideRoot(rootPath, path.join(rootPath, excludedRootFolder));\r\n\r\n    if (!await pathExists(workingFolderPath)) {\r\n        throw createMissingWorkingFolderError(workingFolder);\r\n    }\r\n\r\n    return {\r\n        files: await readMarkdownFiles(rootPath, workingFolderPath, excludedRootFolderPath),\r\n        workingFolder,\r\n    };\r\n}\r\n\r\nasync function loadProjectRoot(project, workingFolder) {\r\n    const rootPath = requireRootPath(project);\r\n    await assertGitRoot(rootPath);\r\n    const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder));\r\n\r\n    if (!await pathExists(workingFolderPath)) {\r\n        throw createMissingWorkingFolderError(workingFolder);\r\n    }\r\n\r\n    return {\r\n        files: await readRootMarkdownFiles(rootPath, workingFolderPath),\r\n\r\n        const message = `Import ${changes.length} external ${changes.length === 1 ? 'file' : 'files'}`\r\n        commitBatcher.schedule(currentProject.branch, changes, message)\r\n        if (imports.length === 0) return\r\n\r\n        reportWorkspaceNotice(importedNoticeMessage(imports.length))\r\n        telemetryService.trackEvent('external_file_import')\r\n    }\r\n\r\n    private async loadFullProjectInBackground(\r\n        project: ProjectReference,\r\n        projectFolder: string,\r\n        workingFolder: string,\r\n        projectLoadToken: number,\r\n    ) {\r\n        const { storage } = this.dependencies.requireDependencies()\r\n        const [projectFilesResult, repositoryFilesResult] = await Promise.allSettled([\r\n            storage.loadProject(project, projectFolder, workingFolder),\r\n            storage.listRepositoryFiles(project),\r\n        ])\r\n        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return\r\n\r\n        let nextFiles = this.dependencies.files()\r\n        let loadedFiles: MarkdownFile[] | null = null\r\n        let projectFilesLoaded = false\r\n        if (projectFilesResult.status === 'fulfilled') {\r\n            const classificationPaths = repositoryFilesResult.status === 'fulfilled'\r\n                ? repositoryFilesResult.value\r\n                : projectFilesResult.value.files.map(({ path }) => path)\r\n            const projectCardFiles = excludeAgentInstructionFiles(projectFilesResult.value.files, classificationPaths)\r\n            loadedFiles = mergeFiles(projectCardFiles, this.dependencies.files())\r\n            projectFilesLoaded = true\r\n        } else {\r\n            reportWorkspaceError(backgroundProjectLoadFailureMessage(projectFilesResult.reason))\r\n            telemetryService.captureError(projectFilesResult.reason)\r\n",
+          "durationMs": 128,
+          "exitCode": 0,
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-46",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\services\\\\project\\\\project_session_service.ts' | Select-Object -Skip 140 -First 75; Get-Content 'app\\\\src\\\\services\\\\github\\\\github_storage_loader.ts' | Select-Object -Skip 45 -First 65; Get-Content 'desktop\\\\src\\\\project\\\\project_files.js' | Select-Object -Skip 100 -First 75; Get-Content 'app\\\\src\\\\services\\\\project\\\\project_loading.ts' | Select-Object -Skip 620 -First 35\"",
+          "providerItemId": "exec-41594396-787e-4242-9bf4-ed7a68de28e5",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:07:08.499Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09e03b45744e9eb5016aef4cb0176087d28fbbbabd2c0ebc39",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:07:10.421Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"async readDirectory|readDirectory\\\\(\\\" app\\\\src\\\\services\\\\github\\\\github_storage_loader.ts; Get-Content 'app\\\\src\\\\services\\\\github\\\\github_storage_loader.ts' | Select-Object -Skip 175 -First 90; rg -n \\\"missing-working-folder|MissingWorkingFolder|createWorkingFolder\\\" app\\\\src\\\\services\\\\project app\\\\src\\\\components --glob '\"'!**/*.test.*'\"'\"",
+          "content": "68:        const files = await this.readDirectory(project, workingFolder, true, excludedRootFolder)\n178:    private async readDirectory(\n    }\r\n\r\n    private async readDirectory(\r\n        project: ProjectReference,\r\n        path: string,\r\n        isWorkingFolder = false,\r\n        excludedRootFolder?: string,\r\n    ): Promise<MarkdownFile[]> {\r\n        const folderPath = normalizeFolderPath(path)\r\n        const excludedRootFolderPath = excludedRootFolder === undefined ? null : normalizeFolderPath(excludedRootFolder)\r\n        const entries = await this.gitData.getProjectRecursiveTreeEntries(project)\r\n        const folderExists = folderPath.length === 0 || entries.some((entry) => isEntryInFolder(entry.path, folderPath))\r\n        if (!folderExists && isWorkingFolder) throw new MissingWorkingFolderError(path)\r\n\r\n        const markdownEntries = entries.filter((entry) => isMarkdownBlob(entry)\r\n            && isEntryInFolder(entry.path, folderPath)\r\n            && (excludedRootFolderPath === null || !isDirectFileInFolder(entry.path, excludedRootFolderPath)))\r\n\r\n        return this.gitData.readBlobFiles(project, markdownEntries)\r\n    }\r\n\r\n    private async readRootMarkdownFiles(project: ProjectReference, path: string): Promise<MarkdownFile[]> {\r\n        const folderPath = normalizeFolderPath(path)\r\n        const entries = await this.gitData.getProjectRecursiveTreeEntries(project)\r\n        const folderExists = folderPath.length === 0 || entries.some((entry) => isEntryInFolder(entry.path, folderPath))\r\n        if (!folderExists) throw new MissingWorkingFolderError(path)\r\n\r\n        const markdownEntries = entries.filter((entry) => isMarkdownBlob(entry) && isDirectFileInFolder(entry.path, folderPath))\r\n\r\n        return this.gitData.readBlobFiles(project, markdownEntries)\r\n    }\r\n}\r\napp\\src\\services\\project\\project_session_service.ts:4:    isMissingWorkingFolderError,\napp\\src\\services\\project\\project_session_service.ts:259:        if (!isMissingWorkingFolderError(error)) throw error\napp\\src\\services\\project\\project_loading.ts:5:import { isMissingWorkingFolderError, resolveProjectConfigPaths, type AgentConversation, type MarkdownFile, type MoveFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../../data/data_types'\napp\\src\\services\\project\\project_loading.ts:295:            if (isMissingWorkingFolderError(error)) throw error\n",
+          "durationMs": 411,
+          "exitCode": 0,
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"async readDirectory|readDirectory\\\\(\\\" app\\\\src\\\\services\\\\github\\\\github_storage_loader.ts; Get-Content 'app\\\\src\\\\services\\\\github\\\\github_storage_loader.ts' | Select-Object -Skip 175 -First 90; rg -n \\\"missing-working-folder|MissingWorkingFolder|createWorkingFolder\\\" app\\\\src\\\\services\\\\project app\\\\src\\\\components --glob '\"'!**/*.test.*'\"'\"",
+          "providerItemId": "exec-f4765895-0193-49ad-81b6-c601f1b7c9bb",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:07:14.516Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-49",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09e03b45744e9eb5016aef4cbb5f5487d2b49775901a4333d2",
+          "sequence": 49,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:07:21.738Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\services\\\\project\\\\project_session_service.ts' | Select-Object -Skip 225 -First 155; rg -n \\\"existingFolderPaths|resolvedSetupFolders|createFolderSetupResolution\\\" app\\\\src\\\\services\\\\project\\\\project_session_service.ts app\\\\src\\\\components --glob '\"'!**/*.test.*'\"'\"",
+          "content": "): Promise<ProjectFolderSetupResolution> {\r\n    const [folders, existingFolderPaths] = await Promise.all([\r\n        listTopLevelFolders(storage, project),\r\n        listExistingFolderPaths(storage, project),\r\n    ])\r\n    const includeProjectFolderInGit = hasProjectConfig\r\n        ? configService.getProjectConfig().includeProjectFolderInGit\r\n        : storageType !== 'local'\r\n\r\n    return {\r\n        existingFolderPaths,\r\n        folders,\r\n        hasProjectConfig,\r\n        includeProjectFolderInGit,\r\n        kind: 'project-folder-setup',\r\n        project,\r\n        storageType,\r\n        values: folderValuesOf(hasProjectConfig ? configService.getProjectConfig() : DEFAULT_PROJECT_CONFIG),\r\n    }\r\n}\r\n\r\nasync function loadProjectSession(\r\n    storage: StorageService,\r\n    storageType: StorageType,\r\n    project: ProjectReference,\r\n    onActivated: () => void,\r\n) {\r\n    try {\r\n        await activateProjectSession(storage, storageType, project)\r\n        onActivated()\r\n\r\n        return null\r\n    } catch (error) {\r\n        if (!isMissingWorkingFolderError(error)) throw error\r\n\r\n        return createFolderSetupResolution(storage, storageType, project, true)\r\n    }\r\n}\r\n\r\nasync function activateProjectSession(storage: StorageService, storageType: StorageType, project: ProjectReference) {\r\n    await projectPersistenceService.flushPendingChanges()\r\n    projectAccessService.setReadOnly(storageType === 'github-readonly')\r\n    const activeStorage = await activateStorageService(storageType, storage)\r\n    dataService.init({ storage: activeStorage })\r\n    await dataService.projectLoading.openProject(project)\r\n    remoteConnectionService.setProjectStorageActive(storageType === 'remote')\r\n    writeLastProject(storageType, project)\r\n}\r\n\r\nasync function resolveRestoredProject(storageType: StorageType, storage: StorageService, project: ProjectReference) {\r\n    if (storageType === 'remote') {\r\n        if (!(storage instanceof RemoteControlStorageService)) throw new Error('Remote project lookup is not available')\r\n\r\n        await activateStorageService('remote', storage)\r\n\r\n        return await storage.getActiveProject() ?? project\r\n    }\r\n    if (storageType === 'local') {\r\n        if (!storage.resolveProject) throw new Error('Local project validation is not available')\r\n\r\n        return storage.resolveProject(project)\r\n    }\r\n\r\n    return project\r\n}\r\n\r\nexport class ProjectSessionService extends EventTarget {\r\n    private cardCreationState: CardCreationState = { isCreatingCard: false }\r\n    private readonly newCardAttachmentPaths = new Set<string>()\r\n    private readonly newCardAttachmentSaves = new Set<Promise<unknown>>()\r\n    private readonly newCardImageSaves = new Set<Promise<void>>()\r\n    private readonly newCardImagePaths = new Set<string>()\r\n    readonly newCardMarkdownDraft = new MarkdownDraft('')\r\n    private readonly projectAccess = projectAccessService\r\n    private state: ProjectSessionState = {\r\n        errorMessage: null,\r\n        isCommitting: false,\r\n        isLoading: false,\r\n        isProjectLoading: false,\r\n        isPulling: false,\r\n        isPushing: false,\r\n        pendingGithubConflictProject: null,\r\n    }\r\n\r\n    constructor() {\r\n        super()\r\n        register('projectSessionService', this)\r\n    }\r\n\r\n    getSnapshot(): ProjectSessionState {\r\n        return this.state\r\n    }\r\n\r\n    getCardCreationSnapshot(): CardCreationState {\r\n        return this.cardCreationState\r\n    }\r\n\r\n    get isReadOnly() {\r\n        return this.projectAccess.getSnapshot()\r\n    }\r\n\r\n    hasNewCardDraftImages() {\r\n        return this.hasNewCardDraftAssets()\r\n    }\r\n\r\n    hasNewCardDraftAssets() {\r\n        return this.newCardAttachmentPaths.size > 0\r\n            || this.newCardAttachmentSaves.size > 0\r\n            || this.newCardImagePaths.size > 0\r\n            || this.newCardImageSaves.size > 0\r\n    }\r\n\r\n    async pasteNewCardImage(file: File, insertMarkdown: (markdown: string) => void) {\r\n        const operation = this.saveAndInsertNewCardImage(file, insertMarkdown)\r\n        this.newCardImageSaves.add(operation)\r\n        try {\r\n            await operation\r\n        } finally {\r\n            this.newCardImageSaves.delete(operation)\r\n        }\r\n    }\r\n\r\n    async waitForNewCardImageSaves() {\r\n        await this.waitForNewCardAssetSaves()\r\n    }\r\n\r\n    async copyNewCardAttachments(files: File[]) {\r\n        const operation = dataService.cards.copyAttachmentsForNewCard(files)\r\n        this.newCardAttachmentSaves.add(operation)\r\n        try {\r\n            const attachments = await operation\r\n            attachments.forEach(({ path }) => this.newCardAttachmentPaths.add(path))\r\n\r\n            return attachments\r\n        } finally {\r\n            this.newCardAttachmentSaves.delete(operation)\r\n        }\r\n    }\r\n\r\n    async deleteNewCardDraftAttachments(paths: string[]) {\r\n        for (const path of paths) {\r\n            await dataService.cards.deleteCopiedAttachments([path])\r\n            this.newCardAttachmentPaths.delete(path)\r\n        }\r\n    }\r\n\r\n    async waitForNewCardAssetSaves() {\r\n        while (this.newCardAttachmentSaves.size > 0 || this.newCardImageSaves.size > 0) {\r\n            await Promise.allSettled([...this.newCardAttachmentSaves, ...this.newCardImageSaves])\r\n        }\r\n    }\r\n\r\n    async discardNewCardDraftImages() {\r\n        await this.discardNewCardDraftAssets()\r\n    }\r\napp\\src\\services\\project\\project_session_service.ts:50:    existingFolderPaths: string[]\napp\\src\\services\\project\\project_session_service.ts:166:export function resolvedSetupFolders(config: ProjectConfig) {\napp\\src\\services\\project\\project_session_service.ts:221:async function createFolderSetupResolution(\napp\\src\\services\\project\\project_session_service.ts:227:    const [folders, existingFolderPaths] = await Promise.all([\napp\\src\\services\\project\\project_session_service.ts:236:        existingFolderPaths,\napp\\src\\services\\project\\project_session_service.ts:261:        return createFolderSetupResolution(storage, storageType, project, true)\napp\\src\\services\\project\\project_session_service.ts:478:                return createFolderSetupResolution(storage, storageType, project, false)\napp\\src\\services\\project\\project_session_service.ts:524:            const missingFolders = resolvedSetupFolders(projectConfig).filter((folder) => !existingFolders.has(folder))\napp\\src\\components\\shell\\project\\project_folder_setup_fields.tsx:8:    resolvedSetupFolders,\napp\\src\\components\\shell\\project\\project_folder_setup_fields.tsx:105:    const [workingFolder, archivedFolder, actionsFolder, releasesFolder, diagramsFolder] = resolvedSetupFolders(config)\napp\\src\\components\\shell\\project\\project_folder_setup_fields.tsx:117:    const existingFolders = new Set(resolution.existingFolderPaths)\napp\\src\\components\\shell\\project\\project_folder_setup_fields.tsx:120:    const subFolderOptions = resolution.existingFolderPaths\n",
+          "durationMs": 136,
+          "exitCode": 0,
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-50",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\services\\\\project\\\\project_session_service.ts' | Select-Object -Skip 225 -First 155; rg -n \\\"existingFolderPaths|resolvedSetupFolders|createFolderSetupResolution\\\" app\\\\src\\\\services\\\\project\\\\project_session_service.ts app\\\\src\\\\components --glob '\"'!**/*.test.*'\"'\"",
+          "providerItemId": "exec-8ac32a79-85eb-44f0-a727-cc57710ea117",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:07:25.324Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09e03b45744e9eb5016aef4cc0834087d2ab7eea1b91a168b7",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:07:26.862Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\shell\\\\project\\\\project_folder_setup_fields.tsx' | Select-Object -Skip 90 -First 75; Get-Content 'app\\\\src\\\\services\\\\project\\\\project_loading.ts' | Select-Object -Skip 270 -First 105; Get-Content 'app\\\\src\\\\services\\\\project\\\\project_loading.ts' | Select-Object -Skip 420 -First 35\"",
+          "content": "    },\r\n    {\r\n        description: 'These folders contain completed releases and cards archived outside a release.',\r\n        group: 'history',\r\n        id: 'project-folder-setup-history',\r\n        title: 'History',\r\n    },\r\n]\r\n\r\n/** Resolved repository path of one field, so the form can show what will be created. */\r\nfunction resolvedFolderPath(values: ProjectFolderValues, field: FolderField) {\r\n    const config = { ...DEFAULT_PROJECT_CONFIG, ...values }\r\n    if (field === 'projectFolder') return values.projectFolder.trim()\r\n\r\n    const [workingFolder, archivedFolder, actionsFolder, releasesFolder, diagramsFolder] = resolvedSetupFolders(config)\r\n    if (field === 'workingFolder') return workingFolder\r\n    if (field === 'archivedFolder') return archivedFolder\r\n    if (field === 'actionsFolder') return actionsFolder\r\n    if (field === 'diagramsFolder') return diagramsFolder\r\n\r\n    return releasesFolder\r\n}\r\n\r\n/** Six editable folder fields grouped into project, current-file, and history cards. */\r\nexport function ProjectFolderSetupFields(props: ProjectFolderSetupFieldsProps) {\r\n    const { isLoading, onBrowseFolder, onValuesChange, resolution, values } = props\r\n    const existingFolders = new Set(resolution.existingFolderPaths)\r\n    const topLevelFolderOptions = resolution.folders.map(({ path }) => path)\r\n    const projectFolderPrefix = `${values.projectFolder.trim().replace(/\\/+$/u, '')}/`\r\n    const subFolderOptions = resolution.existingFolderPaths\r\n        .filter((folderPath) => folderPath.startsWith(projectFolderPrefix))\r\n        .map((folderPath) => folderPath.slice(projectFolderPrefix.length))\r\n\r\n    const handleBrowseClick = (event: MouseEvent<HTMLButtonElement>) => {\r\n        if (!onBrowseFolder) return\r\n\r\n        onBrowseFolder(event.currentTarget.value as FolderField)\r\n    }\r\n\r\n    const renderFolderInput = (descriptor: FolderFieldDescriptor) => {\r\n        function renderInput(params: AutocompleteRenderInputParams) {\r\n            return (\r\n                <TextField\r\n                    {...params}\r\n                    fullWidth\r\n                    helperText={descriptor.description}\r\n                    size=\"small\"\r\n                    slotProps={{\r\n                        ...params.slotProps,\r\n                        htmlInput: { ...params.slotProps.htmlInput, 'aria-label': descriptor.label },\r\n                        input: {\r\n                            ...params.slotProps.input,\r\n                            endAdornment: onBrowseFolder ? (\r\n                                <InputAdornment position=\"end\">\r\n                                    <Tooltip title={`Choose ${descriptor.label.toLowerCase()}`}>\r\n                                        <span>\r\n                                            <IconButton\r\n                                                aria-label={`Choose ${descriptor.label.toLowerCase()}`}\r\n                                                disabled={isLoading}\r\n                                                edge=\"end\"\r\n                                                onClick={handleBrowseClick}\r\n                                                value={descriptor.field}\r\n                                            >\r\n                                                <FolderOpen />\r\n                                            </IconButton>\r\n                                        </span>\r\n                                    </Tooltip>\r\n                                </InputAdornment>\r\n                            ) : params.slotProps.input.endAdornment,\r\n                        },\r\n                    }}\r\n                    variant=\"outlined\"\r\n                />\r\n            )\r\n        }\r\n                .filter((file) => isExternalCardImportCandidate(file, config.workingFolder))\r\n                .map(({ path }) => path)\r\n            const repositoryFiles: string[] = []\r\n            this.dependencies.replaceProjectFiles(cardFiles, config.workingFolder, repositoryFiles)\r\n            await this.ensureCardInternalIds(externalImportPaths)\r\n            await this.dependencies.migrateAgen\n[2816 characters omitted]\nCannot save project config before a project is open')\r\n        if (!storage.saveProjectFolderGitInclusion) throw new Error('Current storage cannot keep the project folder out of Git')\r\n\r\n        await storage.saveProjectFolderGitInclusion(currentProject, config, removeTrackedFiles)\r\n        this.dependencies.dispatchPersistenceChanged()\r\n    }\r\n\r\n    async waitForPinnedLocations() {\r\n        const hasLegacyProjectPins = configService.getProjectConfig().pinnedConversations.some((locator) => (\r\n            locator.contextKind === 'project' && !locator.activityPath\r\n        ))\r\n        if (hasLegacyProjectPins) await this.backgroundProjectLoad\r\n    }\r\n\r\n    async updateCardSeparator(previousSeparator: CardSeparator, nextSeparator: CardSeparator) {\r\n        projectAccessService.requireWritable()\r\n        if (previousSeparator === nextSeparator) return 0\r\n\r\n        const { config, storage } = this.dependencies.requireDependencies()\r\n        const currentProject = this.dependencies.project()\r\n        if (!currentProject) throw new Error('Cannot rename card files before a project is open')\r\n\r\n        await this.dependencies.flushPendingChanges()\r\n        const projectFiles = await storage.loadProject(currentProject, config.projectFolder)\r\n        const moves = planCardSeparatorMigration(projectFiles.files, previousSeparator, nextSeparator)\r\n        if (moves.length === 0) return 0\r\n\r\n        globalProgressService.start('Preparing card file names', moves.length)\r\n        try {\r\n            for (const [index, move] of moves.entries()) {\r\n                globalProgressService.update(index, `Renaming ${move.fromPath}`)\r\n                await storage.moveFiles({\r\n                    branch: currentProject.branch,\r\n                    message: `Rename card file ${index + 1} of ${moves.length}`,\r\n                    moves: [move],\r\n                })\r\n                globalProgressService.update(index + 1, `Renamed ${move.toPath}`)\r\n            }\r\n\r\n            if (config.pushMode === 'auto') await storage.push(currentProject)\r\n            await this.dependencies.flushPendingChanges()\r\n            await this.reloadCurrentProjectSnapshot()\r\n\r\n        projectAccessService.requireWritable()\r\n        const { storage } = this.dependencies.requireDependencies()\r\n        const currentProject = this.dependencies.project()\r\n        if (!currentProject) throw new Error('Cannot pull before a project is open')\r\n        if (!storage.pull) throw new Error('Pulling the primary worktree is not available')\r\n\r\n        await storage.pull(currentProject)\r\n    }\r\n\r\n    async reloadCurrentProjectSnapshot() {\r\n        const { config, storage } = this.dependencies.requireDependencies()\r\n        const currentProject = this.dependencies.project()\r\n        if (!currentProject) throw new Error('Cannot reload project snapshot before a project is open')\r\n\r\n        const projectLoadToken = this.dependencies.beginProjectLoad()\r\n        this.prepareAgentConversationLoading(projectLoadToken)\r\n        void this.hydrateProjectConversations()\r\n        const projectFiles = await storage.loadProject(currentProject, config.projectFolder)\r\n        const repositoryFiles = await storage.listRepositoryFiles(currentProject)\r\n        await agentInstructionsService.load(currentProject, repositoryFiles, storage)\r\n        if (!this.dependencies.isCurrentLoad(currentProject, projectLoadToken)) return this.dependencies.snapshot()\r\n        const cardFiles = excludeAgentInstructionFiles(projectFiles.files, repositoryFiles)\r\n        const cardRepositoryFiles = excludeAgentInstructionPaths(repositoryFiles)\r\n        this.dependencies.replaceProjectFiles(cardFiles, config.workingFolder, cardRepositoryFiles)\r\n        await this.ensureCardInternalIds()\r\n        await this.dependencies.migrateAgentLogReferences()\r\n        this.dependencies.markFullProjectLoaded()\r\n        this.dependencies.dispatchChanged()\r\n        void this.hydrateActiveCardConversations()\r\n        return this.dependencies.snapshot()\r\n    }\r\n\r\n    stopProjectWatch() {\r\n        if (!this.watchCleanup) return\r\n\r\n",
+          "durationMs": 113,
+          "exitCode": 0,
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-52",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\components\\\\shell\\\\project\\\\project_folder_setup_fields.tsx' | Select-Object -Skip 90 -First 75; Get-Content 'app\\\\src\\\\services\\\\project\\\\project_loading.ts' | Select-Object -Skip 270 -First 105; Get-Content 'app\\\\src\\\\services\\\\project\\\\project_loading.ts' | Select-Object -Skip 420 -First 35\"",
+          "providerItemId": "exec-08a8d2dc-a3d5-4f2a-87f2-01efc0fb7600",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:07:30.306Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-53",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09e03b45744e9eb5016aef4ccdfb3087d2a7505f1a8effd002",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:07:40.310Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-54",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09e03b45744e9eb5016aef4cd3e2a887d2835920a96a41277e",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:07:46.219Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Verified dependency: loaders currently throw when configured working folder has no repository entry, reopening setup. Design must make absent configured folders valid empty folders, then remove initialization `createProject` storage path. Explicit user-created folders still use `.gitkeep`; different intent.\n\n",
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 55,
+          "timestamp": "2026-11-07T16:07:47.405Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_351_project_initialization_creates_an_f_0_file_everywhere.md",
+          "deletions": 14,
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-56",
+          "insertions": 19,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-b8573917-990b-4921-a1e3-a4b9ea65f725",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:08:10.016Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-57",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09e03b45744e9eb5016aef4cecd49c87d29d05bbc1d4348131",
+          "sequence": 57,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:08:11.156Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw -Encoding UTF8 'design\\\\feature_descriptions\\\\B_351_project_initialization_creates_an_f_0_file_everywhere.md'\"",
+          "content": "---\nauthor: \nid: B_351\ninternalId: 4beee834-4950-4286-868c-1f2cfb895e10\ntitle: project initialization creates an f_0 file everywhere\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__4beee834-4950-4286-868c-1f2cfb895e10.json\npolicy:\nafter: 41d340e6-afae-44bd-82e7-41ab673c94e0\n---\n\nthe project initialization seems to create F_0_MD².md files everywhere. this is not needed.\n\n## Current state\n\nProject-folder setup passes every missing configured folder to `StorageService.createProject()`. `ProjectLoading.createProject()` also uses that operation for the configured working folder. Local storage creates each directory and writes `README.md`; GitHub storage commits the same file. Git cannot store an empty directory, so the README makes each configured folder part of the repository.\n\nEach generated README contains Markdown but no card frontmatter or card-style filename. `MarkdownParsingService` therefore assigns it fallback ID `F_0`, meaning the ID used for imported Markdown without an explicit card ID. The initializer does not create a file named `F_0`; generated `README.md` files appear in MD² as `F_0` entries. A README in the working-folder root is classified as an active card, while README files in other project folders are loaded as regular Markdown documents.\n\nConfigured folder paths already exist in `md2.config.json`. They do not need repository entries while empty: writing the first real file can create the path. Current local and GitHub loaders instead treat an absent configured working folder as an error, which sends the user back to folder setup. This loader requirement is why initialization creates placeholder files.\n\nExplicit folder creation from the file tree is different. The user asked for that empty folder to exist in the repository, so its current `.gitkeep` behavior remains valid.\n\n## implementation details\n\n* Treat a configured folder with no repository entries as an empty folder. Local and GitHub project loading must return an empty file list instead of `missing-working-folder` when the configured working or project path is absent. Configuration, not a placeholder file, establishes that these paths are valid.\n* Remove configured-folder creation from `ProjectSessionService.confirmProjectFolderSetup()`. Keep repository-file loading there because it is still needed to avoid overwriting existing default action files.\n* Remove the `storage.createProject()` call from `ProjectLoading.createProject()`. Keep project activation, default action creation, token-usage file creation, configuration persistence, and telemetry unchanged. Those real files create their parent paths when needed.\n* After both verified call sites stop using it, remove the folder-placeholder `createProject` operation from storage interfaces and local, remote-control, Electron bridge, and GitHub implementations. Remove `createMissingProjectFolders`, `PROJECT_README_TEMPLATE`, and their focused placeholder tests. Do not leave an unused compatibility operation.\n* Keep manual `ProjectFileOperations.createFolder()` behavior unchanged. It continues to create `.gitkeep` because this command explicitly persists an otherwise empty user-created folder.\n* Do not change Markdown parsing or fallback ID `F_0`. Existing user-created `README.md` files remain untouched and continue to load normally.\n* Update focused project-session and project-loading tests to prove initialization makes no folder-placeholder commit. Update local and GitHub loading tests to prove absent configured paths load as empty. Keep tests showing existing default actions are not overwritten and real files still create their parent paths.\n\n## acceptance criteria\n\n* Initializing a local or GitHub project creates no `README.md`, `.gitkeep`, or other file solely to represent an empty configured folder.\n* Opening a project succeeds when its configured working, archived, releases, or diagrams folder has no repository entries. Each absent path behaves as an empty folder.\n* Opening initialized project shows no `F_0` entry caused by folder initialization.\n* Creating the first real file under a configured folder creates that path locally or in the GitHub tree without a prior placeholder.\n* Default actions, token-usage data, project configuration, folder selection, Git inclusion settings, and existing files keep current behavior.\n* Excluding a local project folder from Git creates no placeholder that must later be untracked or removed.\n* Explicitly creating an empty folder from the file tree still persists that folder with `.gitkeep`.\n\r\n",
+          "durationMs": 23,
+          "exitCode": 0,
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-58",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw -Encoding UTF8 'design\\\\feature_descriptions\\\\B_351_project_initialization_creates_an_f_0_file_everywhere.md'\"",
+          "providerItemId": "exec-57b1a696-2113-4942-94c7-c7cf58baa7ce",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:08:13.544Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09e03b45744e9eb5016aef4cf0399487d2aec6622bb4a534da",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:08:14.549Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_351_project_initialization_creates_an_f_0_file_everywhere.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_351_project_initialization_creates_an_f_0_file_everywhere.md).\n\nDesign now:\n\n- Creates no placeholders for configured empty folders.\n- Treats absent configured paths as valid empty folders.\n- Removes unused storage `createProject` placeholder operation.\n- Preserves `.gitkeep` only for explicit user-created empty folders.\n- Keeps status `ready for implementation`.\n\nNo Git operations run.\n\n",
+          "id": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-turn-3-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 60,
+          "timestamp": "2026-11-07T16:08:19.236Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -527,8 +782,8 @@
           "agent": "codex",
           "conversationId": "01a1b6bc-c616-7513-bb87-6060c74b2a46",
           "createdAt": "2026-11-07T15:59:48.202Z",
-          "lastUsedAt": "2026-11-07T16:06:06.996Z",
-          "synchronizedThroughMessageId": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-turn-2-assistant-1"
+          "lastUsedAt": "2026-11-07T16:08:19.236Z",
+          "synchronizedThroughMessageId": "agent-turn-5b75b626-8ce7-47f3-b497-ab47aef735dd-turn-3-assistant-3"
         }
       ],
       "startedAt": "2026-11-07T15:59:46.437Z",
@@ -537,42 +792,37 @@
         "tasks": [
           {
             "id": "0",
-            "subject": "Read skill, feature file, and every referenced file except header agents",
+            "subject": "Recheck empty-folder loading and setup dependencies",
             "status": "completed"
           },
           {
             "id": "1",
-            "subject": "Analyze current implementation, affected components, edge cases, and tests",
+            "subject": "Rewrite design for placeholder-free configured folders",
             "status": "completed"
           },
           {
             "id": "2",
-            "subject": "Update feature sections and status",
-            "status": "completed"
-          },
-          {
-            "id": "3",
-            "subject": "Verify document change without staging or committing",
+            "subject": "Verify document only",
             "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-07T16:01:53.545Z"
+        "updatedAt": "2026-11-07T16:08:15.870Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 377,
-          "toolMs": 3591
+          "reasoningMs": 540,
+          "toolMs": 5048
         },
-        "elapsedMs": 146050,
-        "runningStartedAt": "2026-11-07T16:06:00.361Z"
+        "elapsedMs": 152685,
+        "runningStartedAt": "2026-11-07T16:06:50.008Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1080192,
-        "inputTokens": 52873,
-        "outputTokens": 4107,
-        "reasoningTokens": 2148,
-        "totalTokens": 1139320
+        "cachedInputTokens": 1830656,
+        "inputTokens": 62611,
+        "outputTokens": 6534,
+        "reasoningTokens": 3695,
+        "totalTokens": 1903496
       },
       "usageSchemaVersion": 1,
       "viewed": true
