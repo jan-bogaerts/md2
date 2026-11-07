@@ -403,8 +403,8 @@
           "agent": "codex",
           "conversationId": "01a1b18b-a17a-78c3-a0ab-d137a3f58404",
           "createdAt": "2026-11-06T15:48:01.603Z",
-          "lastUsedAt": "2026-11-06T15:49:26.140Z",
-          "synchronizedThroughMessageId": "agent-turn-d78cdbc2-efe6-4998-83da-794344af688b-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-07T10:54:45.361Z",
+          "synchronizedThroughMessageId": "submission-6fca51b9-0394-4a51-b27c-9039624dac37"
         }
       ],
       "startedAt": "2026-11-06T15:47:59.923Z",
