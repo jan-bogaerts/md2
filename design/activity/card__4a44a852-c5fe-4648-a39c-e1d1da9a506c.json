@@ -1836,14 +1836,14 @@
         }
       ],
       "startedAt": "2026-11-07T10:59:25.562Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
-          "reasoningMs": 108629,
+          "reasoningMs": 114358,
           "toolMs": 779237
         },
-        "elapsedMs": 744567,
-        "runningStartedAt": "2026-11-07T14:10:01.392Z"
+        "elapsedMs": 958659,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
@@ -1855,7 +1855,7 @@
         "costUsd": 2.9073019999999996
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
