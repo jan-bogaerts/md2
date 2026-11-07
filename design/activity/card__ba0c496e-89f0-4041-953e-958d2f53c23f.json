@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "ba0c496e-89f0-4041-953e-958d2f53c23f",
+      "cardPath": "design/feature_descriptions/B_308_error_linked_worktree_has_uncommitted_changes_c.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_308_error_linked_worktree_has_uncommitted_changes_c.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-3d09c086-9990-4c00-809e-cf8b273df3e6",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-07T14:41:27.048Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-1a175bda-105f-4964-b024-43d7fb2ac45b",
+      "providerSessions": [],
+      "startedAt": "2026-11-07T14:41:27.048Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-07T14:41:27.048Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "ba0c496e-89f0-4041-953e-958d2f53c23f",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
