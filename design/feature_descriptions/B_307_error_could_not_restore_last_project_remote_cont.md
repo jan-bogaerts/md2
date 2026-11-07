@@ -13,8 +13,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 144540255
 sentryOrganization: elastetic
 after: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092
-branch: b_307_error_could_not_restore_last_project_remote_cont
-worktree: 1
 changedFiles:
   - app/src/App.test.tsx
   - app/src/components/shell/remote_connect_button.grouped.test.tsx

@@ -2058,6 +2058,32 @@
       "startedAt": "2026-11-07T15:23:17.149Z",
       "status": "completed",
       "rootConversationId": "agent-153bdc1b-231a-4d21-8ccf-12b149f11fa2"
+    },
+    {
+      "commits": [
+        {
+          "commit": "6f46f9d155f6cd19745acc8789aecdf7b3259a95",
+          "committedAt": "2026-11-07T16:31:17+01:00",
+          "deletions": 2,
+          "filePaths": [
+            "app/src/App.test.tsx",
+            "app/src/components/shell/remote_connect_button.test.tsx",
+            "app/src/components/shell/remote_connect_button.tsx",
+            "app/src/services/application_startup_service.test.ts",
+            "app/src/services/application_startup_service.ts"
+          ],
+          "filesChanged": 5,
+          "insertions": 133,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-07T16:31:17+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "449b8fa8-9d5e-4d00-9b81-66a018e55285",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
