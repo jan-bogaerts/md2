@@ -3,7 +3,7 @@ author:
 id: B_307
 internalId: 449b8fa8-9d5e-4d00-9b81-66a018e55285
 title: Error: Could not restore last project: Remote-cont
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -15,6 +15,13 @@ sentryOrganization: elastetic
 after: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092
 branch: b_307_error_could_not_restore_last_project_remote_cont
 worktree: 1
+changedFiles:
+  - app/src/App.test.tsx
+  - app/src/components/shell/remote_connect_button.grouped.test.tsx
+  - app/src/components/shell/remote_connect_button.test.tsx
+  - app/src/components/shell/remote_connect_button.tsx
+  - app/src/services/application_startup_service.test.ts
+  - app/src/services/application_startup_service.ts
 ---
 
 ## Current state
