@@ -3,7 +3,7 @@ author:
 id: B_308
 internalId: ba0c496e-89f0-4041-953e-958d2f53c23f
 title: Error: Linked worktree has uncommitted changes: C:
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 144956120
 sentryOrganization: elastetic
-after: 449b8fa8-9d5e-4d00-9b81-66a018e55285
+after: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092
 ---
 
 ## Sentry issue

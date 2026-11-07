@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: ba0c496e-89f0-4041-953e-958d2f53c23f
+after: 449b8fa8-9d5e-4d00-9b81-66a018e55285
 ---
 
 When user selects a folder to open that is not yet a git repository, propose to create a local git repository in that folder and provide an option to also commit all files in the folder as an initial commit
