@@ -931,6 +931,14 @@
           "role": "assistant",
           "sequence": 66,
           "timestamp": "2026-11-07T15:33:23.740Z"
+        },
+        {
+          "content": "if it is a focusing issue, can't we move the focus to the card before or after? would that solve the issue?",
+          "id": "submission-cc183066-f591-4c69-a1e2-80addea1547d",
+          "kind": "message",
+          "role": "user",
+          "sequence": 67,
+          "timestamp": "2026-11-07T15:45:05.172Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -946,7 +954,7 @@
         }
       ],
       "startedAt": "2026-11-07T15:30:43.814Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -973,7 +981,7 @@
           "toolMs": 4836
         },
         "elapsedMs": 159926,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-07T15:45:05.172Z"
       },
       "title": "investigate",
       "usage": {
