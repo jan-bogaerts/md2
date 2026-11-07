@@ -505,6 +505,14 @@
           "role": "assistant",
           "sequence": 36,
           "timestamp": "2026-11-07T14:42:48.561Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_308_error_linked_worktree_has_uncommitted_changes_c.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-732f5916-cfaf-446a-8ed6-8caf08d8010a",
+          "kind": "message",
+          "role": "user",
+          "sequence": 37,
+          "timestamp": "2026-11-07T14:43:16.632Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -520,7 +528,7 @@
         }
       ],
       "startedAt": "2026-11-07T14:41:27.048Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -547,7 +555,7 @@
           "toolMs": 2768
         },
         "elapsedMs": 81513,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-07T14:43:16.632Z"
       },
       "title": "investigate",
       "usage": {
