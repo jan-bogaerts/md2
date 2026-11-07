@@ -3,7 +3,7 @@ author:
 id: F_461
 internalId: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092
 title: add option to exclude design folder from git
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,23 @@ agents:
 policy:
 branch: f_461_add_option_to_exclude_design_folder_from_git
 worktree: 2
+changedFiles:
+  - app/src/components/config/config_page.test.tsx
+  - app/src/components/hooks/use_project_folder_git_removal.ts
+  - app/src/components/project_folder_git_removal_dialog.test.tsx
+  - app/src/components/project_folder_git_removal_dialog.tsx
+  - app/src/components/shell/project/project_folder_git_inclusion_checkbox.tsx
+  - app/src/components/shell/project/project_open_dialog.test.tsx
+  - app/src/services/config/config_service.service.test.ts
+  - app/src/services/config/config_service.ts
+  - app/src/services/project/project_folder_git_inclusion_service.test.ts
+  - app/src/services/project/project_folder_git_inclusion_service.ts
+  - desktop/src/git/git_commands.js
+  - desktop/src/project/gitignore_managed_block.js
+  - desktop/src/project/gitignore_managed_block.test.mjs
+  - desktop/src/project/project_files.js
+  - desktop/src/project/project_folder_git_inclusion.js
+  - desktop/src/project/project_folder_git_inclusion.test.mjs
 ---
 
 We currently have the [commit_batcher.ts](app/src/data/commit_batcher.ts), it saves all files and commits them to git.

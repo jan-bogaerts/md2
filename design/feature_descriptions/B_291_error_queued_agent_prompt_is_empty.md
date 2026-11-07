@@ -3,7 +3,7 @@ author:
 id: B_291
 internalId: 985eabb4-1032-49e3-9523-580c67467696
 title: Error: Queued agent prompt is empty
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -15,6 +15,12 @@ sentryOrganization: elastetic
 after: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092
 branch: b_291_error_queued_agent_prompt_is_empty
 worktree: 1
+changedFiles:
+  - app/src/components/actions/agent/action_agent_prompt.test.tsx
+  - app/src/components/actions/agent/action_agent_prompt.tsx
+  - app/src/components/actions/run/popup/action_popup_operations.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_operations.ts
+  - desktop/src/actions/action/action_run.test.mjs
 ---
 
 ## Current state
