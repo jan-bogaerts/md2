@@ -2750,8 +2750,8 @@
           "agent": "codex",
           "conversationId": "01a1b6a3-0e8d-7b40-b93f-2bb607f43117",
           "createdAt": "2026-11-07T15:31:42.570Z",
-          "lastUsedAt": "2026-11-07T15:33:10.626Z",
-          "synchronizedThroughMessageId": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-turn-1-assistant-2"
+          "lastUsedAt": "2026-11-07T15:43:38.879Z",
+          "synchronizedThroughMessageId": "submission-b7119baf-b6cc-4525-8ab3-fd160dcc8ae1"
         }
       ],
       "startedAt": "2026-11-07T15:31:41.283Z",
