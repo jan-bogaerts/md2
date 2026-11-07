@@ -1139,7 +1139,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 93691
+        "usedTokens": 103060
       },
       "entries": [
         {
@@ -2014,6 +2014,300 @@
           "role": "user",
           "sequence": 63,
           "timestamp": "2026-11-07T15:27:44.687Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-64",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05caac31201c1f83016aef43742d1c87d282d6291d865e3922",
+          "sequence": 64,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:27:46.610Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll use the technical-writer skill to add the three concise sections based on the investigation, then set the feature status exactly to `ready for implementation`.\n\n",
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 65,
+          "timestamp": "2026-11-07T15:27:47.544Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "durationMs": 52,
+          "exitCode": 0,
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-66",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "providerItemId": "exec-a6157c71-d7c0-43a9-8360-407a1a4a70b3",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:27:49.627Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-67",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05caac31201c1f83016aef4378bf7087d2b46805f45625ddc6",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:27:51.187Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md'\"",
+          "content": "---\nauthor: \nid: B_291\ninternalId: 985eabb4-1032-49e3-9523-580c67467696\ntitle: Error: Queued agent prompt is empty\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__985eabb4-1032-49e3-9523-580c67467696.json\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 145990654\nsentryOrganization: elastetic\n---\n## Sentry issue\n\n**Title:** Error: Queued agent prompt is empty\n\n**Message:** Not provided\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/145990654/)\n\n**First seen:** 2026-09-16T12:11:52Z\n\n**Last seen:** 2026-09-16T12:11:52Z\n\n**Occurrences:** 1\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** V2(/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js)\n\n**Event ID:** 7f3de1034fef41a0ad455de66decdf70\n\n### Application stack frames\n\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:25:6718` â€” HTMLBodyElement.r\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:11:28324` â€” kf\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:11:28503` â€” Af\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:127780` â€” Zu\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:15085` â€” Zt\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:131553` â€” unknown function\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:126356` â€” Gu\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2319:18194` â€” onKeyDownCapture\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2321:9090` â€” onRunShortcut\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2319:22034` â€” V2\n\nI think this was part of a scheduling issue: we had a prompt scheduled to be sent (to an existing conversation) once the account usage was reset. the scheduler triggered the action, but did not properly reuse the conversation. this should be at least partially fixed. there might still be a UI problem where a new conversation appears to be triggered, but the desktop seems to use the correct conversation?&#x20;\r\n",
+          "durationMs": 61,
+          "exitCode": 0,
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-68",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md'\"",
+          "providerItemId": "exec-b8780681-5240-4576-a20b-0d579f14968b",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:27:58.789Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -l --glob '*.md' \\\"\"'^status: ready for implementation$\" design/feature_descriptions | Select-Object -First 8'",
+          "content": "design/feature_descriptions\\B_307_error_could_not_restore_last_project_remote_cont.md\r\ndesign/feature_descriptions\\F_461_add_option_to_exclude_design_folder_from_git.md\r\n",
+          "durationMs": 120,
+          "exitCode": 0,
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-69",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -l --glob '*.md' \\\"\"'^status: ready for implementation$\" design/feature_descriptions | Select-Object -First 8'",
+          "providerItemId": "exec-d18f6521-a062-4bda-9111-38f092a96a2c",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:27:58.865Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -l --glob '*.md' \\\"\"'^## Current state$\" design/feature_descriptions | Select-Object -First 8'",
+          "content": "design/feature_descriptions\\B_307_error_could_not_restore_last_project_remote_cont.md\r\ndesign/feature_descriptions\\B_308_error_linked_worktree_has_uncommitted_changes_c.md\r\ndesign/feature_descriptions\\B_340_error_local_file_link_points_outside_active_repos.md\r\ndesign/feature_descriptions\\B_334_error_local_git_project_validation_failed_for_c.md\r\ndesign/feature_descriptions\\B_335_error_assigned_worktree_branch_j_23_create_the_s.md\r\ndesign/feature_descriptions\\B_343_error_unknown_action_phrase_section_phrase_00f9d.md\r\ndesign/feature_descriptions\\B_347_error_cannot_resolve_this_card_placeholder_withou.md\r\ndesign/feature_descriptions\\B_348_error_maximum_update_depth_exceeded_this_can_hap.md\r\n",
+          "durationMs": 115,
+          "exitCode": 1,
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-70",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -l --glob '*.md' \\\"\"'^## Current state$\" design/feature_descriptions | Select-Object -First 8'",
+          "providerItemId": "exec-dd5b6eb2-52ac-475d-9d13-f6f54d7cc140",
+          "sequence": 70,
+          "status": "failed",
+          "timestamp": "2026-11-07T15:27:58.876Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05caac31201c1f83016aef438188bc87d297d2c24611a4ac3e",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:27:59.972Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md'\"",
+          "content": "---\nauthor: \nid: B_307\ninternalId: 449b8fa8-9d5e-4d00-9b81-66a018e55285\ntitle: Error: Could not restore last project: Remote-cont\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__449b8fa8-9d5e-4d00-9b81-66a018e55285.json\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 144540255\nsentryOrganization: elastetic\nafter: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092\nbranch: b_307_error_could_not_restore_last_project_remote_cont\nworktree: 1\n---\n\n## Current state\n\nWhen the last project uses remote storage, startup creates a `RemoteControlStorageService` and attempts to restore the WebSocket connection before opening the project. If the remote desktop is unavailable, the connection rejects with `RemoteControlConnectionError: Remote-control connection failed`.\n\n`ApplicationStartupService` treats this expected connectivity failure like any other project restoration failure. `App` then passes the composed restore message to `dialogService.error`, which reports it to Sentry. Because the reported value is a string rather than the original error, the event has no application stack frames.\n\n`RemoteConnectionService` already owns remote connection status and its user-visible error. `RemoteConnectButton` also attempts the same-origin connection when it mounts and opens its connection dialog when that attempt fails. The generic restore dialog and Sentry event therefore duplicate the remote connection flow.\n\n## Implementation details\n\n- In `ApplicationStartupService`, treat `RemoteControlConnectionError` from initial project restoration as a recoverable startup outcome. Continue startup with no restored project resolution instead of setting `bootstrap.error`.\n- Continue the remaining startup work, including the startup model-catalog refresh, after a recoverable remote connection failure.\n- Keep the error in `RemoteConnectionService`, which already publishes the disconnected state and connection message.\n- Make `RemoteConnectButton` open the remote connection dialog when it mounts with a disconnected snapshot containing an error. The existing same-origin connection attempt and manual retry behavior remain responsible for reconnecting and opening the remote project.\n- Do not suppress other project restoration errors. They must continue through the existing bootstrap error dialog and Sentry reporting path.\n- Add focused tests for recoverable remote startup failure, completion of the remaining startup work, connection-dialog presentation, retry, and continued reporting of unexpected restore failures.\n\nNo desktop-host or remote-control protocol change is required.\n\n## Acceptance criteria\n\n- An unavailable remote desktop during last-project restoration does not show `Could not restore last project: Remote-control connection failed`.\n- The expected initial remote connection failure is not reported to Sentry.\n- Startup completes and the main window becomes available after the connection failure.\n- The remote connection dialog shows the connection failure and allows the user to retry.\n- A successful retry connects to the remote desktop and opens its active project through the existing flow.\n- Startup work after project restoration still runs when the remote connection is unavailable.\n- Non-connection project restoration failures retain the existing restore dialog and Sentry reporting behavior.\n\n## Sentry issue\n\n**Title:** Error: Could not restore last project: Remote-control connection failed\n\n**Message:** Could not restore last project: Remote-control connection failed\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/144540255/)\n\n**First seen:** 2026-09-24T16:49:10Z\n\n**Last seen:** 2026-10-13T19:41:46Z\n\n**Occurrences:** 3\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** Not provided\n\n**Event ID:** 9e9e421695db42d1ba85a12e6dc2d826\n\n### Application stack frames\n\n- No application stack frames provided.\n\r\n",
+          "durationMs": 20,
+          "exitCode": 0,
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-72",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md'\"",
+          "providerItemId": "exec-76374e1c-5728-4eb0-8257-295734cccf1b",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:28:01.927Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-73",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05caac31201c1f83016aef4387588887d2b6d1cb859b4ab14d",
+          "sequence": 73,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:28:05.792Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/components/actions/agent/action_agent_prompt.tsx' | Select-Object -Skip 150 -First 70; Get-Content 'app/src/components/actions/run/popup/action_popup_operations.ts' | Select-Object -Skip 195 -First 50\"",
+          "content": "\r\n    const handleRestoredAnswer = async (questions: AgentQuestion[], answers: Record<string, string[]>) => {\r\n        try {\r\n            await answerRestoredConversationQuestions(operationInput, questions, answers)\r\n        } catch (error) {\r\n            dialogService.error(error, { fallbackMessage: 'Could not answer the agent question' })\r\n        }\r\n    }\r\n    const handleRestoredDismiss = async () => {\r\n        try {\r\n            await dismissRestoredConversationQuestions(operationInput)\r\n        } catch (error) {\r\n            dialogService.error(error, { fallbackMessage: 'Could not dismiss the agent questions' })\r\n        }\r\n    }\r\n    const restoredQuestions: RestoredAgentQuestions | null = restoredQuestionList\r\n        ? { onAnswer: handleRestoredAnswer, onDismiss: handleRestoredDismiss, questions: restoredQuestionList }\r\n        : null\r\n\r\n    const handlePromptBlock = useCallback((surface: HTMLElement | null) => {\r\n        layoutStore.attachPromptBlock(surface);\r\n    }, [layoutStore]);\r\n    const handleQuestionsSurface = useCallback((surface: HTMLElement | null) => {\r\n        layoutStore.attachQuestions(surface);\r\n    }, [layoutStore]);\r\n    const handleLiveChange = layoutStore.activatePrompt;\r\n    const handleQuestionsActivate = () => layoutStore.activateQuestions();\r\n\r\n    const handleRunShortcut = () => {\r\n        const run = currentActionRun(bindingStore)\r\n        const runState = {\r\n            agentActive: sessionActive && activeActionType === 'agent',\r\n            interactionReady: !!run?.interactionReady,\r\n            runDisabledMessage: settings.runDisabledMessage,\r\n            runStatus,\r\n        }\r\n        if (actionPopupRunDisabled(\r\n            action,\r\n            runState,\r\n            promptDraft.getSnapshot(),\r\n            promptDraft.getEditorSnapshot().preparationStatus,\r\n        )) return\r\n\r\n        void runPopupAction(operationInput)\r\n    }\r\n    const handlePromptKeyDownCapture = (event: KeyboardEvent<HTMLDivElement>) => {\r\n        if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey)) return\r\n\r\n        event.preventDefault()\r\n        event.stopPropagation()\r\n        promptEditorRef.current?.flush()\r\n        handleRunShortcut()\r\n    }\r\n\r\n    const activeBlockHeight = hasQuestions ? layout.blockHeight : null;\r\n    // Automatic question layout: questions take their content height up to the cap, the prompt fills the rest.\r\n    const automaticQuestions = hasQuestions && activeBlockHeight === null\r\n    const editorFills = !promptEmpty || automaticQuestions\r\n    const primaryRegion = layout.primaryRegion;\r\n\r\n    return (\r\n        <>\r\n            <ActionScheduleOwner\r\n                accountId={settings.accountId}\r\n                action={action}\r\n                conversationId={displayedConversationId}\r\n                context={scheduleContext}\r\n                promptDraft={promptDraft}\r\n                selectionValidationError={settings.selectionValidationError}\r\n                store={scheduleStore}\r\n}\r\n\r\nexport async function runPopupAction(input: ActionPopupOperationInput) {\r\n    const { action, bindingStore, context, conversationStore, settingsStore } = input\r\n    const run = currentActionRun(bindingStore)\r\n    if (activeRunHasHistoricalDisplay(run, conversationStore)) return\r\n    const executionContext = currentCardExecutionContext(context)\r\n\r\n    const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'\r\n    const agentActive = sessionActive && run?.activeActionType === 'agent'\r\n    const promptDraft = currentActionPromptDraft(action, context, bindingStore, conversationStore, false, agentActive ? '' : undefined)\r\n    const prompt = promptDraft.getSnapshot()\r\n\r\n    if (agentActive && run) {\r\n        if (\r\n            run.status === 'waitingForInput'\r\n            && !run.question\r\n            && run.approvals.length === 0\r\n            && settingsStore.getSnapshot().settingsChangedWhileWaiting\r\n        ) {\r\n            const conversationId = run.conversation?.id ?? conversationStore.getSnapshot().selectedConversation?.id\r\n            if (!conversationId) throw new Error('Restart requires a conversation ID')\r\n            const submissionId = actionRunRegistry.beginSubmission(action.id, executionContext, prompt, null, conversationId);\r\n            const diagramPath = promptDraft.getDiagramPath()\r\n            promptDraft.clearForSend()\r\n            await runWithPrompt(input, prompt, run.runId, submissionId, diagramPath, conversationId, executionContext)\r\n            return\r\n        }\r\n        let submissionId: string | null = null\r\n        try {\r\n            if (!run.activeActionId) throw new Error('Action run has no active agent')\r\n            if (prompt.trim().length === 0) throw new Error('Queued agent prompt is empty')\r\n\r\n            submissionId = actionRunRegistry.beginSubmission(action.id, executionContext, prompt, run.runId, run.conversation?.id ?? null);\r\n            promptDraft.clearForSend()\r\n            await actionRunRegistry.enqueueSubmission(submissionId);\r\n        } catch (error) {\r\n            if (!submissionId) dialogService.error(error, { fallbackMessage: 'Could not send agent message' })\r\n        }\r\n        return\r\n    }\r\n\r\n    const conversationId = action.type === 'agent'\r\n        ? conversationStore.getSnapshot().selectedConversation?.id ?? run?.conversation?.id ?? `agent-${generateUuid()}`\r\n        : null\r\n    const submissionId = action.type === 'agent' && prompt.trim().length > 0 && conversationId\r\n        ? actionRunRegistry.beginSubmission(action.id, executionContext, prompt, null, conversationId)\r\n        : null;\r\n    const diagramPath = promptDraft.getDiagramPath()\r\n    if (submissionId) promptDraft.clearForSend()\r\n",
+          "durationMs": 163,
+          "exitCode": 0,
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-74",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/components/actions/agent/action_agent_prompt.tsx' | Select-Object -Skip 150 -First 70; Get-Content 'app/src/components/actions/run/popup/action_popup_operations.ts' | Select-Object -Skip 195 -First 50\"",
+          "providerItemId": "exec-347abd4c-896e-4c59-b996-b92f340cb684",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:28:08.527Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-75",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05caac31201c1f83016aef43908b1487d299471ad4d25c2d29",
+          "sequence": 75,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:28:14.982Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-76",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05caac31201c1f83016aef43a0dbb087d281b9ed3def9c722b",
+          "sequence": 76,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:28:31.341Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_291_error_queued_agent_prompt_is_empty.md",
+          "deletions": 2,
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-77",
+          "insertions": 28,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-ea87f867-a40b-4990-a87f-7a77afc6d927",
+          "sequence": 77,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:28:42.564Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-78",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05caac31201c1f83016aef43ad763887d2ab1f336bb4fdf482",
+          "sequence": 78,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:28:43.892Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md' | Select-Object -Last 8\"",
+          "content": "* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:15085` â€” Zt\r\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:131553` â€” unknown function\r\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:126356` â€” Gu\r\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2319:18194` â€” onKeyDownCapture\r\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2321:9090` â€” onRunShortcut\r\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2319:22034` â€” V2\r\n\r\nI think this was part of a scheduling issue: we had a prompt scheduled to be sent (to an existing conversation) once the account usage was reset. the scheduler triggered the action, but did not properly reuse the conversation. this should be at least partially fixed. there might still be a UI problem where a new conversation appears to be triggered, but the desktop seems to use the correct conversation?&#x20;\r\n",
+          "durationMs": 68,
+          "exitCode": 0,
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-79",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md' | Select-Object -Last 8\"",
+          "providerItemId": "exec-7541baca-326a-4178-95d8-ad5e774e2c0f",
+          "sequence": 79,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:28:45.954Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-80",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05caac31201c1f83016aef43b0d16087d2a052cf8ff4e74e11",
+          "sequence": 80,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:28:47.244Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_291_error_queued_agent_prompt_is_empty.md",
+          "deletions": 2,
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-81",
+          "insertions": 0,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-f894d268-e7d5-45e7-92c6-b0764dfd661a",
+          "sequence": 81,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:28:50.484Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-82",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05caac31201c1f83016aef43b5947487d2abc3148c380ca6fe",
+          "sequence": 82,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:28:52.012Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md'; git diff -- 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md'\"",
+          "content": "diff --git a/design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md b/design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md\nindex 795b92000..2079c0de4 100644\n--- a/design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md\n+++ b/design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md\n@@ -3,7 +3,7 @@ author:\n id: B_291\n internalId: 985eabb4-1032-49e3-9523-580c67467696\n title: Error: Queued agent prompt is empty\n-status: design\n+status: ready for implementation\n owner: \n affects:\n agents:\n@@ -13,6 +13,32 @@ sentryBaseUrl: https://sentry.io\n sentryIssueId: 145990654\n sentryOrganization: elastetic\n ---\n+\n+## Current state\n+\n+The exception is raised in `runPopupAction` when a live agent run is detected but the prompt draft selected for that run is empty. The Sentry stack shows that the path was entered through the prompt editor's `Ctrl/Cmd+Enter` shortcut.\n+\n+The shortcut handler reads part of its run state from the last React render. A scheduled run can become active before React rerenders, so the shortcut can pass validation using stale idle state. `runPopupAction` then reads the current active run, switches to the active conversation draft, and reports `Queued agent prompt is empty`.\n+\n+The scheduler previously created a replacement conversation for every scheduled run. That defect is already fixed. Schedule registration now stores the displayed `AgentConversation.id`, and scheduled execution validates and continues that conversation with its persisted reference. The desktop and renderer therefore use the same canonical conversation identity.\n+\n+## Implementation details\n+\n+- In the prompt shortcut handler, derive the complete run state from a fresh `currentActionRun(bindingStore)` snapshot immediately before dispatch. Do not combine a fresh run with render-captured status or action-type values.\n+- In `runPopupAction`, treat an empty prompt discovered after an agent run becomes active as a stale UI interaction. Return without creating a submission, enqueueing a prompt, or reporting an error.\n+- Keep the desktop queue validation that rejects empty prompts. It remains the defensive boundary for invalid bridge calls.\n+- Do not change scheduler conversation continuation. It already persists `conversationId`, validates the conversation's action and card ownership, and supplies `continueFrom` when the schedule fires.\n+- Add focused renderer tests for an externally started or scheduled run becoming active before the shortcut handler rerenders.\n+\n+## Acceptance criteria\n+\n+- Pressing `Ctrl/Cmd+Enter` after a scheduled agent run becomes active but before the prompt UI rerenders does not report `Queued agent prompt is empty`.\n+- The stale shortcut does not create a submission or call the queued-prompt bridge.\n+- A non-empty prompt entered for an active agent run is still queued normally.\n+- Empty queued prompts sent directly to the desktop bridge are still rejected.\n+- A schedule created for an existing conversation continues the same `AgentConversation.id` and does not create a replacement conversation.\n+- Scheduled runs without an existing conversation continue to allocate one new conversation identity.\n+\n ## Sentry issue\n \n **Title:** Error: Queued agent prompt is empty\n@@ -47,5 +73,3 @@ sentryOrganization: elastetic\n * `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2319:18194` — onKeyDownCapture\n * `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2321:9090` — onRunShortcut\n * `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2319:22034` — V2\n-\n-I think this was part of a scheduling issue: we had a prompt scheduled to be sent (to an existing conversation) once the account usage was reset. the scheduler triggered the action, but did not properly reuse the conversation. this should be at least partially fixed. there might still be a UI problem where a new conversation appears to be triggered, but the desktop seems to use the correct conversation?&#x20;\n\\ No newline at end of file\n",
+          "durationMs": 132,
+          "exitCode": 0,
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-83",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md'; git diff -- 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md'\"",
+          "providerItemId": "exec-435d16bb-8e5b-4efe-818e-518e040b37d5",
+          "sequence": 83,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:28:54.609Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-event-84",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_05caac31201c1f83016aef43bb55c487d28cf12694afe9e0f0",
+          "sequence": 84,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:28:57.774Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_291_error_queued_agent_prompt_is_empty.md](/C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md) with:\n\n- `status: ready for implementation`\n- `Current state`\n- `Implementation details`\n- `Acceptance criteria`\n\nAlso replaced the speculative closing note with the verified findings. `git diff --check` passes.\n\n",
+          "id": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 85,
+          "timestamp": "2026-11-07T15:29:02.322Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2024,8 +2318,8 @@
           "agent": "codex",
           "conversationId": "01a1b69b-d524-7322-9c8a-f9acafd15856",
           "createdAt": "2026-11-07T15:23:49.387Z",
-          "lastUsedAt": "2026-11-07T15:27:44.743Z",
-          "synchronizedThroughMessageId": "submission-6128212a-5c1a-4295-96b5-6f3df311118d"
+          "lastUsedAt": "2026-11-07T15:29:02.322Z",
+          "synchronizedThroughMessageId": "agent-turn-843fadfd-98ca-4cef-a4e9-fa66f20d8c93-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-11-07T15:23:47.897Z",
@@ -2034,37 +2328,37 @@
         "tasks": [
           {
             "id": "0",
-            "subject": "Read the feature description and identify referenced behavior",
+            "subject": "Review the target document and nearby feature-description structure",
             "status": "completed"
           },
           {
             "id": "1",
-            "subject": "Trace the relevant implementation, call sites, and tests",
+            "subject": "Update status and add the requested implementation sections",
             "status": "completed"
           },
           {
             "id": "2",
-            "subject": "Report findings and propose a scoped solution",
+            "subject": "Verify the final Markdown diff",
             "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-07T15:26:07.650Z"
+        "updatedAt": "2026-11-07T15:28:59.416Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 377,
-          "toolMs": 7120
+          "reasoningMs": 521,
+          "toolMs": 8666
         },
         "elapsedMs": 152732,
         "runningStartedAt": "2026-11-07T15:27:44.687Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 1167104,
-        "inputTokens": 78095,
-        "outputTokens": 4222,
-        "reasoningTokens": 1961,
-        "totalTokens": 1251382
+        "cachedInputTokens": 2346624,
+        "inputTokens": 86336,
+        "outputTokens": 6771,
+        "reasoningTokens": 2674,
+        "totalTokens": 2442405
       },
       "usageSchemaVersion": 1,
       "viewed": true
