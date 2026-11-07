@@ -9,7 +9,6 @@ affects:
 agents:
   - design/activity/card__f3b7a6f7-0cc4-4d30-994b-026f9d5d8092.json
 policy:
-after: ba0c496e-89f0-4041-953e-958d2f53c23f
 branch: f_461_add_option_to_exclude_design_folder_from_git
 worktree: 2
 ---
