@@ -1047,6 +1047,10 @@
       "cardInternalId": "3cf661d6-03c8-463b-9216-91fb1efc98e0",
       "cardPath": "design/feature_descriptions/B_335_error_assigned_worktree_branch_j_23_create_the_s.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 68839
+      },
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_335_error_assigned_worktree_branch_j_23_create_the_s.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_335_error_assigned_worktree_branch_j_23_create_the_s.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -1055,6 +1059,171 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-11-07T14:22:41.228Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-2",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgoibnpYcqvbZaK7g9Su9:thinking:0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:22:44.368Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"skill\":\"caveman\"}",
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-3",
+          "kind": "event",
+          "label": "Skill",
+          "output": "Launching skill: caveman",
+          "providerItemId": "toolu_01VwgWPGigKTPQxZi8H4Q9Mh",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:22:44.540Z",
+          "type": "tool.Skill"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_335_error_assigned_worktree_branch_j_23_create_the_s.md\"}",
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-4",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_335\n4\tinternalId: 3cf661d6-03c8-463b-9216-91fb1efc98e0\n5\ttitle: Error: Assigned worktree branch \"j_23_create_the_s\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__3cf661d6-03c8-463b-9216-91fb1efc98e0.json\n11\tpolicy:\n12\tsentryBaseUrl: https://sentry.io\n13\tsentryIssueId: 155870542\n14\tsentryOrganization: elastetic\n15\tbranch: b_335_error_assigned_worktree_branch_j_23_create_the_s\n16\tworktree: 1\n17\t---\n18\t\n19\t## Sentry issue\n20\t\n21\t**Title:** Error: Assigned worktree branch \"j_23_create_the_shared_analysis_result_buffer\" is unavailable. Select a worktree again.\n22\t\n23\t**Message:** Not provided\n24\t\n25\t**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/155870542/)\n26\t\n27\t**First seen:** 2026-10-24T09:37:22Z\n28\t\n29\t**Last seen:** 2026-10-29T15:44:48Z\n30\t\n31\t**Occurrences:** 2\n32\t\n33\t**Release:** Not provided\n34\t\n35\t**Environment:** production\n36\t\n37\t**Culprit:** mre(/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js)\n38\t\n39\t**Event ID:** fcfb7193fca342fe86be7583ed1ed5f2\n40\t\n41\t### Application stack frames\n42\t\n43\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:64355` — async eie.prepare\n44\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:724:44221` — async HRe\n45\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2554` — gre\n46\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2422` — Bm\n47\t- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2274` — mre\n48\t\n49\t## Current state\n50\t\n51\tThe card stores `j_23_create_the_shared_analysis_result_buffer` as its assigned worktree branch, but that branch is absent from the current linked-worktree records. `resolveWorktreeAssignment` correctly treats this as a stale assignment so an action cannot run in a different checkout.\n52\t\n53\tThe action popup already derives the resulting validation message through `worktreeValidationMessage`, displays it, and disables execution. `ActionAgentPrompt` nevertheless starts automatic prompt preparation for a new conversation. The desktop resolves the same worktree in `ActionWorktreeRunService`, throws the expected validation error, and the preparation catch reports it to Sentry through `reportActionError`.\n54\t\n55\t## Implementation details\n56\t\n57\t- In `ActionAgentPrompt`, do not start automatic prompt preparation while `runValidationError` is present. Include the validation value in the effect dependencies so preparation is reconsidered when the assignment becomes valid.\n58\t- Keep the prompt draft in its existing loading state while the assignment is invalid. The draft retains its pending preparation, so selecting a valid worktree lets the existing effect prepare it without a new service or compatibility path.\n59\t- Keep `resolveWorktreeAssignment`, `worktreeValidationMessage`, and the desktop worktree validation unchanged. They correctly prevent execution against the wrong checkout.\n60\t- Add a focused `action_agent_prompt.test.tsx` regression test that supplies a worktree validation error and verifies that `defaultPreparePrompt` is not called. Verify that removing the validation error allows preparation to proceed.\n61\t\n62\t## Acceptance criteria\n63\t\n64\t- Opening an agent action for a stale or unavailable worktree assignment displays the existing validation message.\n65\t- Automatic prompt preparation does not call the desktop bridge while the worktree assignment is invalid.\n66\t- The expected stale-assignment state is not reported to Sentry as a prompt-preparation failure.\n67\t- Selecting a valid worktree prepares the prompt without closing or reopening the popup.\n68\t- Valid assignments and actions that do not require a worktree retain their current prompt-preparation behavior.\n69\t- The desktop continues to reject stale worktree assignments if a request reaches it through another path.\n70\t",
+          "providerItemId": "toolu_01Dgjt4bZHgKLtGyjxtZHQ4e",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:22:45.104Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"app/src/**/action_agent_prompt*\"}",
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-5",
+          "kind": "event",
+          "label": "Glob",
+          "output": "app\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx",
+          "providerItemId": "toolu_01HKSbfMtLJmBBvNUaJpz1gN",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:22:46.919Z",
+          "type": "tool.Glob"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_prompt.tsx\"}",
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-6",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Box, Typography } from '@mui/material'\n2\timport {\n3\t    useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore,\n4\t    type KeyboardEvent,\n5\t} from 'react'\n6\timport type { ActionContext } from '../../../data/action_context'\n7\timport { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'\n8\timport type { ActionDefinition } from '../../../data/action_types'\n9\timport type { AgentQuestion } from '../../../data/data_types'\n10\timport type { ActionRun } from '../../../services/actions/action_run_registry'\n11\timport { reportActionError } from '../../../services/actions/action_error_reporting'\n12\timport { dialogService } from '../../../services/dialog_service'\n13\timport { remoteConnectionService } from '../../../services/data/remote_connection_service'\n14\timport { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'\n15\timport { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown_editor'\n16\timport { pendingConversationQuestions } from '../conversation/state/action_conversation_chat_selectors'\n17\timport { ActionPhraseButtonsOwner } from '../editor/action_phrase_buttons_owner'\n18\timport { defaultPreparePrompt } from '../run/popup/action_popup_defaults'\n19\timport { ActionPopupBottomRow } from '../run/popup/action_popup_bottom_row'\n20\timport {\n21\t    answerRestoredConversationQuestions,\n22\t    currentActionPromptDraft,\n23\t    currentActionRun,\n24\t    dismissRestoredConversationQuestions,\n25\t    runPopupAction,\n26\t} from '../run/popup/action_popup_operations'\n27\timport { actionPopupRunDisabled } from '../run/popup/action_popup_run_disabled'\n28\timport type { ActionPopupRuntime } from '../run/popup/action_popup_types'\n29\timport { ActionScheduleOwner } from '../run/schedule/action_schedule_owner'\n30\timport { useActionRunSettings } from '../shared/use_action_run_settings'\n31\timport { ActionAgentQuestionOwner, type RestoredAgentQuestions } from './action_agent_question_owner'\n32\t\n33\tconst EMPTY_PROMPT_EDITOR_HEIGHT = 56;\n34\t\n35\tinterface ActionAgentPromptProps {\n36\t    action: ActionDefinition\n37\t    assignmentContext: ActionContext\n38\t    questionsEnabled: boolean\n39\t    runtime: ActionPopupRuntime\n40\t    /** Base context used for scheduling, independent of the selected worktree assignment. */\n41\t    scheduleContext: ActionContext\n42\t}\n43\t\n44\tfunction selectRunStatus(run: ActionRun | null) {\n45\t    return run?.status ?? 'idle'\n46\t}\n47\t\n48\tfunction selectActiveActionType(run: ActionRun | null) {\n49\t    return run?.activeActionType ?? null\n50\t}\n51\t\n52\tfunction selectLiveConversationId(run: ActionRun | null) {\n53\t    return run?.conversation?.id ?? null\n54\t}\n55\t\n56\tfunction selectQuestion(run: ActionRun | null) {\n57\t    return run?.question ?? null\n58\t}\n59\t\n60\tfunction getRemoteConnectionStatus() {\n61\t    return remoteConnectionService.getSnapshot().status\n62\t}\n63\t\n64\t/** Prompt editor, questions, phrases, scheduling, and run controls for one popup runtime. */\n65\texport function ActionAgentPrompt(props: ActionAgentPromptProps) {\n66\t    const { action, assignmentContext: context, questionsEnabled, runtime, scheduleContext } = props\n67\t    const {\n68\t        agentLayoutStore, bindingStore, commandLayoutStore, conversationStore, historyStore, inputStore, resultStore,\n69\t        runValidationError, scheduleStore, settingsStore,\n70\t    } = runtime\n71\t    // Agent layouts host questions; command input layouts never do.\n72\t    const layoutStore = questionsEnabled ? agentLayoutStore : commandLayoutStore\n73\t    const commandAction = action.type === 'command'\n74\t    const promptEditorRef = useRef<MarkdownEditorHandle>(null)\n75\t    const boundRunId = useBoundRunId(bindingStore)\n76\t    const runStatus = useRunSelector(boundRunId, selectRunStatus)\n77\t    const activeActionType = useRunSelector(boundRunId, selectActiveActionType)\n78\t    const liveConversationId = useRunSelector(boundRunId, selectLiveConversationId)\n79\t    const question = useRunSelector(boundRunId, selectQuestion)\n80\t    const getSelectedConversation = useCallback(() => conversationStore.getSnapshot().s\n[7955 characters omitted]\n               sx={{\n238\t                        borderRadius: '9px',\n239\t                        border: 1,\n240\t                        borderColor: 'custom.borderStrong',\n241\t                        display: 'flex',\n242\t                        flexDirection: 'column',\n243\t                        flex: automaticQuestions ? 1 : '0 0 auto',\n244\t                        height: automaticQuestions || (promptEmpty && activeBlockHeight === null) ? 'auto' : layout.promptHeight,\n245\t                        minHeight: hasQuestions ? layout.promptMinHeight : undefined,\n246\t                        overflow: 'hidden',\n247\t                        '&:focus-within': {\n248\t                            borderColor: 'primary.main',\n249\t                            boxShadow: (theme) => `0 0 0 3px ${theme.palette.action.selected}`,\n250\t                        },\n251\t                    }}\n252\t                >\n253\t                    <Box\n254\t                        data-testid=\"action-prompt-editor-region\"\n255\t                        sx={{\n256\t                            flex: editorFills ? 1 : '0 0 auto',\n257\t                            height: editorFills ? undefined : EMPTY_PROMPT_EDITOR_HEIGHT,\n258\t                            mb: editorFills ? 1 : -1.5,\n259\t                            minHeight: 0,\n260\t                            overflowY: 'auto',\n261\t                            px: 1,\n262\t                        }}\n263\t                    >\n264\t                        <MarkdownEditor\n265\t                            attachmentHandler={attachmentHandler}\n266\t                            draft={promptDraft.editorDraft}\n267\t                            flushOnBlur\n268\t                            hideAttachmentControl\n269\t                            hideToolbar\n270\t                            localTextSearch={false}\n271\t                            monospace={commandAction}\n272\t                            onLiveChange={handleLiveChange}\n273\t                            placeholders={ACTION_PROMPT_PLACEHOLDERS}\n274\t                            plainText={commandAction}\n275\t                            readOnly={preparationStatus !== 'ready'}\n276\t                            ref={promptEditorRef}\n277\t                        />\n278\t                    </Box>\n279\t                    {action.type === 'agent' ? <ActionPhraseButtonsOwner action={action} context={context} runtime={runtime} /> : null}\n280\t                    <ActionPopupBottomRow action={action} assignmentContext={context} embedded runtime={runtime} />\n281\t                </Box>\n282\t                {hasQuestions ? (\n283\t                    <Box\n284\t                        data-testid=\"action-questions-region\"\n285\t                        onFocusCapture={handleQuestionsActivate}\n286\t                        onPointerDown={handleQuestionsActivate}\n287\t                        ref={handleQuestionsSurface}\n288\t                        sx={{\n289\t                            flex: automaticQuestions\n290\t                                ? '0 1 auto'\n291\t                                : primaryRegion === 'questions' ? 1 : '0 0 auto',\n292\t                            height: !automaticQuestions && primaryRegion === 'prompt'\n293\t                                ? layout.questionsMinHeight\n294\t                                : undefined,\n295\t                            maxHeight: automaticQuestions ? layout.questionsMaxHeight : 'fit-content',\n296\t                            minHeight: automaticQuestions ? 0 : layout.questionsMinHeight,\n297\t                            overflowY: 'auto',\n298\t                        }}\n299\t                    >\n300\t                        <ActionAgentQuestionOwner bindingStore={bindingStore} restored={restoredQuestions} />\n301\t                    </Box>\n302\t                ) : null}\n303\t            </Box>\n304\t            {convertMessage ? (\n305\t                <Typography color=\"text.secondary\" role=\"status\" variant=\"caption\">\n306\t                    {convertMessage}\n307\t                </Typography>\n308\t            ) : null}\n309\t        </>\n310\t    )\n311\t}\n312\t",
+          "providerItemId": "toolu_01JZayvPERMwSzPdHq457V7M",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:22:48.627Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_prompt.test.tsx\"}",
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-7",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'\n2\timport { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../../../shared/action_errors.mjs'\n3\timport { ActionInputSplitter } from '../run/popup/action_input_splitter';\n4\timport { ActionLayoutSurface } from '../run/popup/action_layout_surface';\n5\timport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\n6\timport { ActionAgentPrompt } from './action_agent_prompt'\n7\timport { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'\n8\timport type { ActionContext } from '../../../data/action_context'\n9\timport type { ActionDefinition } from '../../../data/action_types'\n10\timport type { AgentConversation, AgentQuestion } from '../../../data/data_types'\n11\timport { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'\n12\timport { dialogService } from '../../../services/dialog_service'\n13\timport type { MarkdownDraftBinding } from '../../../services/markdown/markdown_draft'\n14\timport { createTestPopupRuntime } from '../../../test/action_popup_runtime_fixture'\n15\timport type { ActionConversationStore } from '../conversation/state/action_conversation_store'\n16\timport { dismissRestoredConversationQuestions, runPopupAction } from '../run/popup/action_popup_operations'\n17\timport type { ActionPopupRuntime } from '../run/popup/action_popup_types'\n18\t\n19\tconst editorRender = vi.hoisted(() => vi.fn());\n20\tconst preparePrompt = vi.hoisted(() => vi.fn());\n21\tconst promptDraftState = vi.hoisted(() => ({ current: null as ActionPromptDraft | null }));\n22\t/** Called once per ActionAgentPrompt render through its run-settings hook. */\n23\tconst promptRender = vi.hoisted(() => vi.fn());\n24\t\n25\tvi.mock('../run/popup/action_popup_operations', async (importOriginal) => {\n26\t    const actual = await importOriginal<typeof import('../run/popup/action_popup_operations')>()\n27\t\n28\t    return {\n29\t        ...actual,\n30\t        answerRestoredConversationQuestions: vi.fn(async () => undefined),\n31\t        currentActionPromptDraft: () => {\n32\t            if (!promptDraftState.current) throw new Error('Test prompt draft is not configured')\n33\t\n34\t            return promptDraftState.current\n35\t        },\n36\t        dismissRestoredConversationQuestions: vi.fn(async () => undefined),\n37\t        runPopupAction: vi.fn(async () => undefined),\n38\t    }\n39\t})\n40\t\n41\tvi.mock('../run/popup/action_popup_defaults', async (importOriginal) => {\n42\t    const actual = await importOriginal<typeof import('../run/popup/action_popup_defaults')>()\n43\t\n44\t    return { ...actual, defaultPreparePrompt: preparePrompt }\n45\t})\n46\t\n47\tvi.mock('../shared/use_action_run_settings', () => ({\n48\t    useActionRunSettings: () => {\n49\t        promptRender()\n50\t\n51\t        return { backendAvailable: true, runDisabledMessage: null }\n52\t    },\n53\t}))\n54\t\n55\tvi.mock('../editor/action_phrase_buttons_owner', () => ({ActionPhraseButtonsOwner: () => <div>Predefined phrases</div>}))\n56\t\n57\tvi.mock('../run/popup/action_popup_bottom_row', () => ({ActionPopupBottomRow: () => <div>Controls</div>}))\n58\t\n59\tvi.mock('../../editor/markdown_editor', async () => {\n60\t    const { forwardRef, useEffect, useImperativeHandle, useRef, useState } = await import('react')\n61\t\n62\t    return {\n63\t        MarkdownEditor: forwardRef(function MarkdownEditorMock(props: {\n64\t            attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>\n65\t            draft: MarkdownDraftBinding\n66\t            flushOnBlur?: boolean\n67\t            hideAttachmentControl?: boolean\n68\t            imagePasteHandler?: (file: File, insertMarkdown: (markdown: string) => void) => Promise<void>\n69\t            localTextSearch?: boolean\n70\t            monospace?: boolean\n71\t            onChange?: (markdown: string) => void\n72\t            onLiveChange?: (markdown: string) => void\n73\t            placeholders?: readonly { name: string }[]\n74\t            plainText?: boolean\n75\t            readOnly?: boolean\n76\t        }, ref) {\n77\t            editorRender();\n78\n[30021 characters omitted]\npx' })\n684\t\n685\t        fireEvent.keyDown(separator, { key: 'ArrowDown' })\n686\t\n687\t        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '232px' })\n688\t        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '136px' })\n689\t        expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBe('232')\n690\t        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('140')\n691\t    })\n692\t\n693\t    it('preserves question primary while keyboard resize changes the block total', () => {\n694\t        window.localStorage.setItem('md2.actionQuestionsBlockHeight', '260')\n695\t        mockAvailablePromptHeight(400)\n696\t\n697\t        renderPendingQuestion()\n698\t        const separator = screen.getByRole('separator', { name: 'Resize prompt and questions' })\n699\t\n700\t        fireEvent.keyDown(separator, { key: 'ArrowUp' })\n701\t\n702\t        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '284px' })\n703\t        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '72px' })\n704\t        expect(screen.getByTestId('action-questions-region')).toHaveStyle({ flex: '1' })\n705\t        expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBe('284')\n706\t    })\n707\t\n708\t    it('stops at both region floors and the chat minimum', () => {\n709\t        window.localStorage.setItem('md2.actionQuestionsBlockHeight', '300')\n710\t        mockAvailablePromptHeight(400)\n711\t\n712\t        renderPendingQuestion()\n713\t        const separator = screen.getByRole('separator', { name: 'Resize prompt and questions' })\n714\t\n715\t        fireEvent.pointerDown(separator, { clientY: 300, pointerId: 4 })\n716\t        fireEvent.pointerMove(separator, { clientY: 900, pointerId: 4 })\n717\t        fireEvent.pointerUp(separator, { clientY: 900, pointerId: 4 })\n718\t\n719\t        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '168px' })\n720\t        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '72px' })\n721\t        expect(screen.getByTestId('action-questions-region')).toHaveStyle({ minHeight: '96px' })\n722\t\n723\t        fireEvent.pointerDown(separator, { clientY: 300, pointerId: 5 })\n724\t        fireEvent.pointerMove(separator, { clientY: -500, pointerId: 5 })\n725\t        fireEvent.pointerUp(separator, { clientY: -500, pointerId: 5 })\n726\t\n727\t        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '304px' })\n728\t        expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBe('304')\n729\t    })\n730\t\n731\t    it('keeps the resize bar active while the prompt is empty', () => {\n732\t        mockAvailablePromptHeight(400)\n733\t\n734\t        renderPendingQuestion()\n735\t        const separator = screen.getByRole('separator', { name: 'Resize prompt and questions' })\n736\t\n737\t        expect(separator).not.toHaveAttribute('aria-disabled')\n738\t        expect(separator).toHaveAttribute('tabindex', '0')\n739\t        expect(separator).toHaveAttribute('aria-valuemin', '168')\n740\t    })\n741\t\n742\t    it('ignores pending questions and question storage when questions are disabled', () => {\n743\t        window.localStorage.setItem('md2.commandActionInputHeight', '160')\n744\t        mockAvailablePromptHeight(400)\n745\t        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: waitingConversation(questions) })\n746\t        renderPrompt(new ActionPromptDraft('npm test', false), { action: commandAction, conversationStore, questionsEnabled: false })\n747\t        const separator = screen.getByRole('separator', { name: 'Resize command input' })\n748\t\n749\t        fireEvent.keyDown(separator, { key: 'ArrowUp' })\n750\t\n751\t        expect(screen.queryByTestId('action-questions-region')).not.toBeInTheDocument()\n752\t        expect(separator).toHaveAttribute('aria-valuemin', '72')\n753\t        expect(window.localStorage.getItem('md2.commandActionInputHeight')).toBe('136')\n754\t        expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBeNull()\n755\t    })\n756\t})\n757\t",
+          "providerItemId": "toolu_01NHFdY8U22HnL7hdsYZ6yKn",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:22:49.342Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgoicGSxKnWM73sqkn8Dn:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:22:51.296Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"runValidationError\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-9",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\test\\action_popup_runtime_fixture.ts:45:        runValidationError: null,\napp\\src\\components\\actions\\editor\\action_phrase_buttons_owner.tsx:27:    const {bindingStore, conversationStore, historyStore, inputStore, resultStore, runValidationError, settingsStore} = runtime\napp\\src\\components\\actions\\editor\\action_phrase_buttons_owner.tsx:68:            runValidationError,\napp\\src\\components\\actions\\run\\popup\\action_popup_types.ts:51:    runValidationError: string | null\napp\\src\\components\\actions\\run\\popup\\command_action.tsx:27:    const { bindingStore, commandLayoutStore, historyStore, resultStore, runValidationError, settingsStore } = runtime\napp\\src\\components\\actions\\run\\popup\\command_action.tsx:53:                {runValidationError ? (\napp\\src\\components\\actions\\run\\popup\\command_action.tsx:55:                        {runValidationError}\napp\\src\\components\\actions\\run\\popup\\action_popup_session_service.ts:50:        const runtime = { ...bindings, runValidationError: worktreeValidationMessage(action, context), settingsStore };\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.ts:44:    runValidationError: string | null\napp\\src\\components\\actions\\run\\popup\\action_popup_operations.node.test.ts:78:        runValidationError: null,\napp\\src\\components\\actions\\run\\popup\\agent_action.tsx:31:        runValidationError, settingsStore, usageValuesService,\napp\\src\\components\\actions\\run\\popup\\agent_action.tsx:56:            {runValidationError ? (\napp\\src\\components\\actions\\run\\popup\\agent_action.tsx:58:                    {runValidationError}\napp\\src\\components\\actions\\run\\popup\\action_popup_run_controls.tsx:33:        bindingStore, conversationStore, focusRequest, historyStore, inputStore, resultStore, runValidationError, scheduleStore,\napp\\src\\components\\actions\\run\\popup\\action_popup_run_controls.tsx:108:        runValidationError,\napp\\src\\components\\actions\\run\\popup\\action_popup_runtime.ts:19:type ActionPopupBindings = Omit<ActionPopupRuntime, 'runValidationError' | 'settingsStore'>\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:69:        runValidationError, scheduleStore, settingsStore,\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:104:        runValidationError,\napp\\src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:23:    runValidationError: string | null\napp\\src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:31:        runValidationError, settingsStore,\napp\\src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:65:            runValidationError,",
+          "providerItemId": "toolu_01L6fpR43zsq8f9USjYe2TPo",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:22:52.166Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_session_service.ts\"}",
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-10",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { actionContextIdentity, type ActionContext } from '../../../../data/action_context';\n2\timport type { ActionDefinition } from '../../../../data/action_types';\n3\timport type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge';\n4\timport { actionRunSettingsService } from '../../../../services/actions/action_run_settings_service';\n5\timport { createActionPopupBindings, worktreeValidationMessage } from './action_popup_runtime';\n6\timport type { ActionPopupRuntime } from './action_popup_types';\n7\t\n8\tinterface ActionPopupSessionSnapshot {\n9\t    action: ActionDefinition;\n10\t    context: ActionContext;\n11\t    historicalEntries: ActionRunHistoryEntry[] | null;\n12\t    identity: string;\n13\t    runtime: ActionPopupRuntime;\n14\t}\n15\t\n16\t/** Owns the selected action's bindings independently of the mounted popup surface. */\n17\texport class ActionPopupSessionService extends EventTarget {\n18\t    private snapshot: ActionPopupSessionSnapshot | null = null;\n19\t\n20\t    readonly getSnapshot = () => this.snapshot;\n21\t\n22\t    readonly subscribe = (listener: () => void) => {\n23\t        this.addEventListener('selectionChanged', listener);\n24\t        return () => this.removeEventListener('selectionChanged', listener);\n25\t    };\n26\t\n27\t    select(\n28\t        action: ActionDefinition,\n29\t        context: ActionContext,\n30\t        initialRunId?: string,\n31\t        initialConversationPath?: string,\n32\t        historicalEntries: ActionRunHistoryEntry[] | null = null,\n33\t    ) {\n34\t        const contextIdentity = actionContextIdentity(context);\n35\t        const identity = `${action.id}\\u0000${contextIdentity}`;\n36\t        const current = this.snapshot;\n37\t        if (current?.action === action && current.context === context && current.historicalEntries === historicalEntries) return;\n38\t\n39\t        const sameSelection = current?.identity === identity;\n40\t        if (!sameSelection) this.dispose();\n41\t        const bindings = sameSelection\n42\t            ? current.runtime\n43\t            : createActionPopupBindings(action, context, initialRunId, initialConversationPath, historicalEntries);\n44\t        bindings.conversationStore.setContext(context);\n45\t        bindings.historyStore.configure(action, context, historicalEntries);\n46\t        bindings.usageValuesService.setContext(context);\n47\t        const settingsStore = context.cardInternalId\n48\t            ? actionRunSettingsService.getCardStore(context.cardInternalId, action.id)\n49\t            : actionRunSettingsService.getSessionStore(action.id, contextIdentity, context.kind);\n50\t        const runtime = { ...bindings, runValidationError: worktreeValidationMessage(action, context), settingsStore };\n51\t        this.snapshot = { action, context, historicalEntries, identity, runtime };\n52\t        if (!sameSelection) bindings.usageValuesService.start();\n53\t        this.dispatchEvent(new Event('selectionChanged'));\n54\t    }\n55\t\n56\t    dispose() {\n57\t        this.snapshot?.runtime.usageValuesService.stop();\n58\t        this.snapshot?.runtime.bindingStore.dispose();\n59\t        this.snapshot = null;\n60\t    }\n61\t}\n62\t",
+          "providerItemId": "toolu_01GUEHgfHYJohXW3pWiNJgVn",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:22:53.548Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "The stale worktree's validation error is making the prompt effect call prepare anyway, which the desktop rejects and reports to Sentry. I'm adding a guard in action_agent_prompt.tsx and two regression tests next.\n\n",
+          "details": [
+            "The stale worktree's validation error is making the prompt effect call prepare anyway, which the desktop rejects and reports to Sentry. I'm adding a guard in action_agent_prompt.tsx and two regression tests next.\n\n"
+          ],
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgoicaTB7V9fRGgiX1R4z:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:23:00.591Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "The stale worktree's validation error is making the prompt effect call prepare anyway, which the desktop rejects and reports to Sentry. I'm adding a guard in action_agent_prompt.tsx and two regression tests next.\n\n",
+          "details": [
+            "The stale worktree's validation error is making the prompt effect call prepare anyway, which the desktop rejects and reports to Sentry. I'm adding a guard in action_agent_prompt.tsx and two regression tests next.\n\n"
+          ],
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgoicaTB7V9fRGgiX1R4z:thinking:1",
+          "sequence": 12,
+          "status": "inProgress",
+          "summary": [],
+          "timestamp": "2026-11-07T14:23:00.591Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"query\":\"select:TaskCreate\",\"max_results\":1}",
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-event-13",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskCreate\"}]",
+          "providerItemId": "toolu_01LVevn76anotbpP4J5vprLe",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:23:00.596Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "agent": "claude",
+          "content": "I made a plan with two blocks and created a task for each. Nothing is edited yet; waiting for your approval.\n\n**Root cause:** in `app/src/components/actions/agent/action_agent_prompt.tsx`, the effect that prepares the prompt for a new conversation runs even when the worktree validation error is set (`runtime.runValidationError`, set when the card's assigned worktree branch no longer exists). The popup shows the validation message, but the effect still calls `defaultPreparePrompt`. The desktop rejects the stale worktree, and the effect's error handler sends that expected rejection to Sentry through `reportActionError`.\n\n**Why the fix is small:** `ActionPopupSessionService.select` recalculates the validation error every time the action's card or worktree selection changes. Selecting a valid worktree therefore produces a runtime with no validation error. Because it's the same action and card, the popup keeps the same prompt draft, which still has preparation pending. With the validation error in the effect's dependency list, preparation runs at that point without closing or reopening the popup.\n\n**Block 1 — stop preparation while the worktree is invalid** (`action_agent_prompt.tsx`)\n- In the preparation effect, return early when `runValidationError` is set, and add it to the effect's dependencies.\n- No changes to `resolveWorktreeAssignment`, `worktreeValidationMessage` or the desktop worktree check, so the desktop still rejects stale worktrees that reach it another way.\n\n**Block 2 — regression tests** (`action_agent_prompt.test.tsx`)\n- With a validation error set: check that `defaultPreparePrompt` is not called, `dialogService.error` (the call that reaches Sentry) is not called, and the editor stays read-only.\n- After re-rendering with no validation error and the same draft: check that preparation runs and the prepared prompt appears.\n\nWhen both blocks are done I'll run only these related tests and lint, then set `status: ready` in `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_335_error_assigned_worktree_branch_j_23_create_the_s.md`.\n\nApprove?",
+          "id": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 14,
+          "timestamp": "2026-11-07T14:23:11.598Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1065,27 +1234,57 @@
           "agent": "claude",
           "conversationId": "2bdda2dd-3d64-4e71-be26-1a3d74e9f451",
           "createdAt": "2026-11-07T14:22:43.599Z",
-          "lastUsedAt": "2026-11-07T14:22:43.599Z",
-          "synchronizedThroughMessageId": "submission-ce2fa663-2721-461a-8437-769d04dba555",
+          "lastUsedAt": "2026-11-07T14:23:11.598Z",
+          "synchronizedThroughMessageId": "agent-turn-72c1d472-5f03-489b-9bd2-0d04b2d14e78-turn-1-assistant-1",
           "usageBaseline": {
-            "costUsd": 0,
+            "costUsd": 0.541715,
+            "resultId": "b2c83ff7-0fdb-4876-8910-cc2c2da5c728",
             "tokens": {
-              "cachedInputTokens": 0,
-              "inputTokens": 0,
-              "outputTokens": 0,
+              "cachedInputTokens": 454091,
+              "inputTokens": 18,
+              "outputTokens": 2528,
               "reasoningTokens": 0,
-              "totalTokens": 0
+              "totalTokens": 456637
             }
           }
         }
       ],
       "startedAt": "2026-11-07T14:22:41.228Z",
       "status": "running",
+      "taskList": {
+        "tasks": [
+          {
+            "id": "1",
+            "subject": "Block 1: Guard prompt preparation on runValidationError",
+            "status": "pending",
+            "activeForm": "Guarding prompt preparation"
+          },
+          {
+            "id": "2",
+            "subject": "Block 2: Regression tests in action_agent_prompt.test.tsx",
+            "status": "pending",
+            "activeForm": "Adding regression tests"
+          }
+        ],
+        "updatedAt": "2026-11-07T14:23:04.183Z"
+      },
       "timer": {
+        "breakdown": {
+          "reasoningMs": 8060,
+          "toolMs": 4420
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-11-07T14:22:41.228Z"
       },
       "title": "implement",
+      "usage": {
+        "cachedInputTokens": 454091,
+        "inputTokens": 18,
+        "outputTokens": 2528,
+        "reasoningTokens": 0,
+        "totalTokens": 456637,
+        "costUsd": 0.541715
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
