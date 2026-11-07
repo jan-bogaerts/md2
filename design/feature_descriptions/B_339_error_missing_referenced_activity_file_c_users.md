@@ -24,6 +24,7 @@ changedFiles:
   - desktop/src/actions/activity/activity_files.test.mjs
   - shared/card_activity.d.mts
   - shared/card_activity.mjs
+after: 22edc81f-6888-44c5-8d8b-48207057c653
 ---
 
 ## Sentry issue

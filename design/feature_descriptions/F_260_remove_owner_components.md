@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__2775052a-2e84-4466-a320-155c8ec05bac.json
 policy:
-after: 548342cd-192a-4ca4-9821-cb69c901f1f6
+after: 4a44a852-c5fe-4648-a39c-e1d1da9a506c
 ---
 
 we currently have a lot of components that wrap another component, have the same name as the componet they wrap with '\_owner' appended and just wrap those components in order to pass a prop into them.
