@@ -1980,6 +1980,176 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": null,
+      "cardPath": null,
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 47215
+      },
+      "entries": [
+        {
+          "content": "check this github repo: [https://github.com/dr-mushtaq/Awesome-AI-Tools-Resources](https://github.com/dr-mushtaq/Awesome-AI-Tools-Resources)\n\nis it a good candidate to add our md2 tool to (https://github.com/jan-bogaerts/md2)?",
+          "id": "submission-49a94219-e642-4160-b293-2f4c07e8c240",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-07T15:33:55.377Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll inspect the repository’s scope, contribution process, and existing categories, then compare md2’s positioning against what it accepts.\n\n",
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-11-07T15:33:59.607Z"
+        },
+        {
+          "content": "site:github.com/dr-mushtaq/Awesome-AI-Tools-Resources README contribution guidelines ...",
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-3",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"search\",\"query\":null,\"queries\":[\"site:github.com/dr-mushtaq/Awesome-AI-Tools-Resources README contribution guidelines\",\"site:github.com/jan-bogaerts/md2 README\"]}",
+          "providerItemId": "exec-78b3582c-f5dc-4e0b-afcb-c7be9b315f60",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:34:02.775Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-4",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09c307d2a5a2ff4d016aef44eda2cc87d2b10382575dd17d28",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:34:04.055Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "https://github.com/dr-mushtaq/Awesome-AI-Tools-Resources",
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-5",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"openPage\",\"url\":\"https://github.com/dr-mushtaq/Awesome-AI-Tools-Resources\"}",
+          "providerItemId": "exec-33fd5d50-c862-49ff-85f4-322b377529da",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:34:07.424Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-6",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09c307d2a5a2ff4d016aef44f26e8087d2a5622521c2535d22",
+          "sequence": 6,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:34:08.888Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "'Coding'",
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-7",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"findInPage\",\"url\":null,\"pattern\":\"Coding\"}",
+          "providerItemId": "exec-8e7d829b-8601-4e4f-9936-8b5c2e953a93",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:34:12.311Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-8",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09c307d2a5a2ff4d016aef44f7c74487d2841711d4b4d70ea7",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:34:14.200Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "site:github.com/dr-mushtaq/Awesome-AI-Tools-Resources/pull \"Code & AI Model Tools\" ...",
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-9",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"search\",\"query\":null,\"queries\":[\"site:github.com/dr-mushtaq/Awesome-AI-Tools-Resources/pull \\\"Code & AI Model Tools\\\"\",\"site:github.com/dr-mushtaq/Awesome-AI-Tools-Resources/issues md2\"]}",
+          "providerItemId": "exec-2aeabf76-897c-4488-bb3c-339f99d0a616",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:34:18.652Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-10",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09c307d2a5a2ff4d016aef4500df4487d2971802c040594b2f",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:34:23.296Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes—md² is a good topical candidate, but this repository is probably a low-impact promotion channel.\n\nWhy it fits:\n\n- The list explicitly accepts AI tools and open-source projects.\n- Its **Code & AI Model Tools** section already includes coding-agent orchestrators, desktop agent workspaces, and Git-worktree tools.\n- md² supports Codex and Claude Code, so its AI connection is direct rather than incidental.\n- Contributions are welcomed through pull requests or issues and only require a link, a 15–20-word description, and tags. [Repository and contribution instructions](https://github.com/dr-mushtaq/Awesome-AI-Tools-Resources)\n\nWhy expectations should remain modest:\n\n- The repository currently shows only four stars, despite 40 forks.\n- The README is broad and inconsistently curated, with duplicate entries, broken links, formatting errors, and non-AI tools.\n- Consequently, inclusion may provide a backlink and some discoverability, but probably little meaningful traffic or credibility.\n\nI would still submit it because the effort is minimal. Place it alphabetically under **💻 Code & AI Model Tools**:\n\n```md\n[md²](https://github.com/jan-bogaerts/md2) | Local-first desktop workspace organizing Codex and Claude Code work by Markdown cards, Git worktrees, conversations, and costs. `Coding Agents, Desktop, Open-Source`\n```\n\nThat description is accurate, fits the requested 15–20 words, and differentiates md² from coding agents themselves: it organizes their work rather than replacing them. See the [md² repository](https://github.com/jan-bogaerts/md2).\n\n",
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 11,
+          "timestamp": "2026-11-07T15:34:29.491Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-c1bf5402-4445-4a91-b2ca-131b09980894",
+      "providerSessions": [
+        {
+          "accountId": "codex-initial",
+          "agent": "codex",
+          "conversationId": "01a1b6a5-18ff-7531-93d8-7a0d2fb5a845",
+          "createdAt": "2026-11-07T15:33:56.781Z",
+          "lastUsedAt": "2026-11-07T15:34:29.491Z",
+          "synchronizedThroughMessageId": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-turn-1-assistant-2"
+        }
+      ],
+      "startedAt": "2026-11-07T15:33:55.377Z",
+      "status": "running",
+      "timer": {
+        "breakdown": {
+          "reasoningMs": 46,
+          "toolMs": 7188
+        },
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-07T15:33:55.377Z"
+      },
+      "title": "+",
+      "usage": {
+        "cachedInputTokens": 135808,
+        "inputTokens": 34381,
+        "outputTokens": 797,
+        "reasoningTokens": 298,
+        "totalTokens": 171284
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -2019,14 +2189,14 @@
         "agent-7fa4628b-47d9-4726-a8a1-4d4e8f76dc58"
       ],
       "details": {
+        "type": "agent",
         "accountId": "codex-initial",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-dd7c5d79-99d4-4226-93a8-28b55de99cff",
       "origin": {
@@ -2034,9 +2204,9 @@
       },
       "rootActionId": "babd3e90-6a91-4f4b-9a58-70463771833f",
       "rootActionLabel": "largest files",
-      "rootConversationId": "agent-7fa4628b-47d9-4726-a8a1-4d4e8f76dc58",
       "startedAt": "2026-11-07T14:10:52.852Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-7fa4628b-47d9-4726-a8a1-4d4e8f76dc58"
     }
   ],
   "version": 5
