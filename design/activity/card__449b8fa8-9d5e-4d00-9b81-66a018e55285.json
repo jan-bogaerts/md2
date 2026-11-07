@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 69586
+        "usedTokens": 80063
       },
       "entries": [
         {
@@ -460,6 +460,197 @@
           "role": "user",
           "sequence": 34,
           "timestamp": "2026-11-07T15:15:56.286Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-35",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_007fcbdaadc22b71016aef40af9f0c87d293c3ac650d3d19d3",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:15:58.267Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’m using the technical-writer skill because this is a feature-document update. I’ll preserve the existing Sentry evidence, add only the requested sections, and set the requested status.\n\n",
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-11-07T15:15:59.145Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "durationMs": 37,
+          "exitCode": 0,
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-37",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "providerItemId": "exec-eb6ca9a9-a462-4ddf-aa04-06027c625604",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:16:05.720Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_007fcbdaadc22b71016aef40b82ff087d2bfbfe43c4cb4af8e",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:16:06.681Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem 'design/feature_descriptions' -Filter 'B_*.md' | Select-Object -First 8 -ExpandProperty FullName; rg -n \\\"\"'^status: ready for implementation$|''^## Current state$|''^## Implementation details$|''^## Acceptance criteria$\" design/feature_descriptions --glob '\"'*.md' | Select-Object -First 80\"",
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_158_remotecontrolconnectionerror_remote_control_connection_was_replaced.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_198_remotecontrolconnectionerror_remote_control_connection_closed.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_206_codex_account_usage.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_273_error_cannot_update_a_card_that_is_not_loaded_24.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_274_error_agent_conversation_loading_has_not_started.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_277_error_primary_worktree_changed_after_pending_save.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_278_error_unsupported_project_asset_type_json.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_279_error_markdown_editor_is_not_mounted.md\r\ndesign/feature_descriptions\\F_180_add_extra_event_logging.md:21:## Current state\r\ndesign/feature_descriptions\\F_180_add_extra_event_logging.md:35:## Implementation details\r\ndesign/feature_descriptions\\F_180_add_extra_event_logging.md:46:## Acceptance criteria\r\ndesign/feature_descriptions\\B_340_error_local_file_link_points_outside_active_repos.md:58:## Current state\r\ndesign/feature_descriptions\\B_340_error_local_file_link_points_outside_active_repos.md:64:## Implementation details\r\ndesign/feature_descriptions\\B_340_error_local_file_link_points_outside_active_repos.md:73:## Acceptance criteria\r\ndesign/feature_descriptions\\B_339_error_missing_referenced_activity_file_c_users.md:68:## Current state\r\ndesign/feature_descriptions\\B_339_error_missing_referenced_activity_file_c_users.md:78:## Implementation details\r\ndesign/feature_descriptions\\B_339_error_missing_referenced_activity_file_c_users.md:110:## Acceptance criteria\r\ndesign/feature_descriptions\\F_461_add_option_to_exclude_design_folder_from_git.md:6:status: ready for implementation\r\ndesign/feature_descriptions\\F_461_add_option_to_exclude_design_folder_from_git.md:25:## Current state\r\ndesign/feature_descriptions\\F_461_add_option_to_exclude_design_folder_from_git.md:31:## Implementation details\r\ndesign/feature_descriptions\\F_461_add_option_to_exclude_design_folder_from_git.md:44:## Acceptance criteria\r\ndesign/feature_descriptions\\J_68_split_action_run_history_into_focused_units.md:16:## Current state\r\ndesign/feature_descriptions\\J_68_split_action_run_history_into_focused_units.md:24:## Implementation details\r\ndesign/feature_descriptions\\J_68_split_action_run_history_into_focused_units.md:44:## Acceptance criteria\r\ndesign/feature_descriptions\\F_381_check_for_codex_cli_updates_at_startup.md:11:## Current state\r\ndesign/feature_descriptions\\B_308_error_linked_worktree_has_uncommitted_changes_c.md:26:## Current state\r\ndesign/feature_descriptions\\B_308_error_linked_worktree_has_uncommitted_changes_c.md:32:## Implementation details\r\ndesign/feature_descriptions\\B_308_error_linked_worktree_has_uncommitted_changes_c.md:42:## Acceptance criteria\r\ndesign/feature_descriptions\\B_334_error_local_git_project_validation_failed_for_c.md:64:## Current state\r\ndesign/feature_descriptions\\B_334_error_local_git_project_validation_failed_for_c.md:70:## Implementation details\r\ndesign/feature_descriptions\\B_334_error_local_git_project_validation_failed_for_c.md:80:## Acceptance criteria\r\ndesign/feature_descriptions\\B_335_error_assigned_worktree_branch_j_23_create_the_s.md:50:## Current state\r\ndesign/feature_descriptions\\B_335_error_assigned_worktree_branch_j_23_create_the_s.md:56:## Implementation details\r\ndesign/feature_descriptions\\B_335_error_assigned_worktree_branch_j_23_create_the_s.md:63:## Acceptance criteria\r\ndesign/feature_descriptions\\B_347_error_cannot_resolve_this_card_placeholder_withou.md:63:## Current state\r\ndesign/feature_descriptions\\diagram_edit_refactor\\field_editors.md:3:## Current state\r\ndesign/feature_descriptions\\B_348_error_maximum_update_depth_exceeded_this_can_hap.md:28:## Current state\r\ndesign/feature_descriptions\\B_348_error_maximum_update_depth_exceeded_this_can_hap.md:36:## Implementation details\r\ndesign/feature_descriptions\\B_348_error_maximum_update_depth_exceeded_this_can_hap.md:60:## Acceptance criteria\r\ndesign/feature_descriptions\\B_343_error_unknown_action_phrase_section_phrase_00f9d.md:59:## Current state\r\ndesign/feature_descriptions\\B_343_error_unknown_action_phrase_section_phrase_00f9d.md:68:## Implementation details\r\ndesign/feature_descriptions\\B_343_error_unknown_action_phrase_section_phrase_00f9d.md:89:## Acceptance criteria\r\ndesign/feature_descriptions\\B_349_aptabase_reports_usage_double.md:20:## Current state\r\ndesign/feature_descriptions\\diagram_edit_refactor\\transaction_context.md:3:## Current state\r\ndesign/feature_descriptions\\diagram_edit_refactor\\read_api.md:3:## Current state\r\ndesign/feature_descriptions\\diagram_edit_refactor\\structure_editor.md:3:## Current state\r\ndesign/feature_descriptions\\diagram_edit_refactor\\structure_editor.md:14:## Acceptance criteria\r\n",
+          "durationMs": 262,
+          "exitCode": 0,
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-39",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem 'design/feature_descriptions' -Filter 'B_*.md' | Select-Object -First 8 -ExpandProperty FullName; rg -n \\\"\"'^status: ready for implementation$|''^## Current state$|''^## Implementation details$|''^## Acceptance criteria$\" design/feature_descriptions --glob '\"'*.md' | Select-Object -First 80\"",
+          "providerItemId": "exec-3e94f590-50e0-4b04-afab-35fa7ce6c6a0",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:16:10.086Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-40",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_007fcbdaadc22b71016aef40bcc6c087d2b2114cf560414ea4",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:16:11.244Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_308_error_linked_worktree_has_uncommitted_changes_c.md'; Get-Content -Raw 'design/feature_descriptions/B_340_error_local_file_link_points_outside_active_repos.md'\"",
+          "content": "---\nauthor: \nid: B_308\ninternalId: ba0c496e-89f0-4041-953e-958d2f53c23f\ntitle: Error: Linked worktree has uncommitted changes: C:\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__ba0c496e-89f0-4041-953e-958d2f53c23f.json\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 144956120\nsentryOrganization: elastetic\nbranch: b_308_error_linked_worktree_has_uncommitted_changes_c\nworktree: 1\nchangedFiles:\n  - app/src/components/worktree_selector.test.tsx\n  - app/src/components/worktree_selector.tsx\n  - app/src/data/bridge_error_rehydration.node.test.ts\n  - desktop/src/git/worktree_resolution.test.mjs\n  - desktop/src/git/worktree_service.js\n  - shared/worktree_errors.d.mts\n  - shared/worktree_errors.mjs\n---\n## Current state\n\nAssigning a linked worktree to a card calls `WorktreeService.setCardWorktree`, which asks the desktop host to prepare the selected checkout. The desktop service revalidates the checkout and intentionally rejects the operation when it contains uncommitted changes. The checkout and its changes remain untouched.\n\n`WorktreeSelector` catches the rejection and calls `dialogService.error`. That method reports every error to Sentry before showing it to the user. The expected dirty-worktree guard is therefore recorded as an application failure.\n\n## Implementation details\n\nAdd a shared error code for the expected dirty linked-worktree condition. Set this code on the error thrown by the desktop worktree cleanliness guard. The existing bridge error envelope already preserves string error codes, so the renderer can identify the condition without matching its message.\n\nIn the worktree assignment UI, show this coded error with `dialogService.displayError`, retaining the current user-visible message without sending telemetry. Continue using `dialogService.error` for all other preparation failures.\n\nThe cleanliness guard is also used by pull, rebase, integration, conflict recovery, synchronization, and parking operations. Adding the code must preserve their current rejection behavior; this change only alters telemetry handling for the card-assignment path covered by this issue.\n\nAdd focused tests that verify the desktop rejection carries the error code, the bridge preserves it, the assignment UI displays the message without reporting telemetry, and an unexpected preparation error is still reported.\n\n## Acceptance criteria\n\n- Assigning a dirty linked worktree to a card is rejected before any branch switch or file change.\n- The user sees that the linked worktree has uncommitted changes.\n- The expected dirty-worktree rejection is not sent to Sentry from the card-assignment flow.\n- Dirty-worktree checks for other worktree operations retain their existing behavior.\n- Unexpected worktree preparation failures remain visible to the user and are sent to Sentry.\n\n## Sentry issue\n\n**Title:** Error: Linked worktree has uncommitted changes: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\n\n**Message:** Not provided\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/144956120/)\n\n**First seen:** 2026-09-25T15:36:13Z\n\n**Last seen:** 2026-09-25T15:36:13Z\n\n**Occurrences:** 1\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** wm(/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js)\n\n**Event ID:** a7947d64478a41309c2fd53f6fd5fb8d\n\n### Application stack frames\n\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:2334:29687` â€” async le\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:2334:28968` â€” async se\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:139:35668` â€” async EventTarget.setCardWorktree\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:283:24628` â€” async xve.prepareWorktree\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/i\n[831 characters omitted]\nversation_link_navigation.node.test.ts\n  - app/src/components/actions/conversation/messages/action_conversation_link_navigation.ts\n  - app/src/data/electron_action_bridge.ts\n  - desktop/main.js\n  - desktop/src/git/diff_service.js\n  - desktop/src/shell/local_bridge_dispatch.js\n  - desktop/src/shell/preload.js\n  - shared/local_file_link_errors.d.mts\n  - shared/local_file_link_errors.mjs\nafter: 885c223a-31ec-48c3-8390-f85015ab9c23\n---\n\n## Sentry issue\n\n**Title:** Error: Local file link points outside active repository and registered worktrees\n\n**Message:** Not provided\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/155397337/)\n\n**First seen:** 2026-10-22T08:28:00Z\n\n**Last seen:** 2026-10-22T08:28:00Z\n\n**Occurrences:** 1\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** mre(/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js)\n\n**Event ID:** 5c3a32cea3c44731be790c5d012b8f70\n\n### Application stack frames\n\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:780:24106` â€” async DYe\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2554` â€” gre\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2422` â€” Bm\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-DeUuw8S2.js:136:2274` â€” mre\n\n## Current state\n\nMarkdown links in conversation messages, including submitted prompts and agent responses, are handled by `ActionConversationLink`. Repository files open in the internal editor or the configured external editor. The desktop `openInEditor` path rejects targets outside the primary repository and registered worktrees, and the renderer reports that expected rejection to Sentry through `dialogService.error`.\n\nThe desktop already uses Electron's `shell.openPath` elsewhere, but conversation links do not expose an operating-system open path. Links rendered in project Markdown documents are not affected.\n\n## Implementation details\n\n- Keep the existing internal-editor and configured-editor routing for files inside the primary repository or a registered worktree.\n- Add a narrow desktop bridge operation that opens an existing outside-repository file with Electron's `shell.openPath`. Do not build or execute a shell command.\n- Resolve and decode the clicked local path in the desktop process. Relative paths remain relative to the conversation repository root; absolute paths retain their location. Remove a numeric line suffix before operating-system opening.\n- Verify that the resolved target exists and is a regular file before opening it. Missing, malformed, and directory targets return a clear expected validation error.\n- Treat expected local-link validation failures as user-facing errors through `dialogService.displayError`, without reporting them to Sentry. Continue reporting unexpected bridge and operating-system launch failures through `dialogService.error`.\n- Add focused tests for path resolution, repository routing, outside-repository operating-system opening, missing targets, directories, and telemetry routing.\n\n## Acceptance criteria\n\n- Clicking an agent-conversation link to a file inside the primary repository or a registered worktree keeps the current internal-editor or configured-editor behavior.\n- Clicking an absolute or relative agent-conversation link that resolves to an existing file outside those repositories opens it with the operating system's default application.\n- A numeric line suffix does not become part of the path passed to the operating system.\n- Missing, malformed, and directory targets show a clear error and do not open anything.\n- Expected link-validation failures are not reported to Sentry, while unexpected launch failures are reported.\n- The behavior applies to links in submitted prompts and agent responses. Links rendered in project Markdown documents remain unchanged.\n\r\n",
+          "durationMs": 62,
+          "exitCode": 0,
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-41",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_308_error_linked_worktree_has_uncommitted_changes_c.md'; Get-Content -Raw 'design/feature_descriptions/B_340_error_local_file_link_points_outside_active_repos.md'\"",
+          "providerItemId": "exec-76f77e53-2fbd-46ed-a60a-0eec9fc10161",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:16:14.029Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-42",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_007fcbdaadc22b71016aef40c9846087d2a1a9ad8a7dcc8332",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:16:24.137Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-43",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_007fcbdaadc22b71016aef40cd306487d2b0e9436ab1b94276",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:16:27.655Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The technical-writer guidance reinforces a concise, implementation-oriented structure. I’ll document the existing failure path, classify the connection error as recoverable at startup, and keep unexpected restore failures on the current reporting path.\n\n",
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 44,
+          "timestamp": "2026-11-07T15:16:28.853Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_307_error_could_not_restore_last_project_remote_cont.md",
+          "deletions": 2,
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-45",
+          "insertions": 31,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-4bbabde1-4e1e-47cf-8fef-5981cc17f02b",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:16:40.465Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-46",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_007fcbdaadc22b71016aef40daf05087d2bc7ba585c42a1e9b",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:16:41.400Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md'; git diff -- 'design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md'\"",
+          "content": "diff --git a/design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md b/design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md\nindex f4ed34bdb..001747858 100644\n--- a/design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md\n+++ b/design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md\n@@ -3,7 +3,7 @@ author:\n id: B_307\n internalId: 449b8fa8-9d5e-4d00-9b81-66a018e55285\n title: Error: Could not restore last project: Remote-cont\n-status: design\n+status: ready for implementation\n owner: \n affects:\n agents:\n@@ -14,6 +14,35 @@ sentryIssueId: 144540255\n sentryOrganization: elastetic\n ---\n \n+## Current state\n+\n+When the last project uses remote storage, startup creates a `RemoteControlStorageService` and attempts to restore the WebSocket connection before opening the project. If the remote desktop is unavailable, the connection rejects with `RemoteControlConnectionError: Remote-control connection failed`.\n+\n+`ApplicationStartupService` treats this expected connectivity failure like any other project restoration failure. `App` then passes the composed restore message to `dialogService.error`, which reports it to Sentry. Because the reported value is a string rather than the original error, the event has no application stack frames.\n+\n+`RemoteConnectionService` already owns remote connection status and its user-visible error. `RemoteConnectButton` also attempts the same-origin connection when it mounts and opens its connection dialog when that attempt fails. The generic restore dialog and Sentry event therefore duplicate the remote connection flow.\n+\n+## Implementation details\n+\n+- In `ApplicationStartupService`, treat `RemoteControlConnectionError` from initial project restoration as a recoverable startup outcome. Continue startup with no restored project resolution instead of setting `bootstrap.error`.\n+- Continue the remaining startup work, including the startup model-catalog refresh, after a recoverable remote connection failure.\n+- Keep the error in `RemoteConnectionService`, which already publishes the disconnected state and connection message.\n+- Make `RemoteConnectButton` open the remote connection dialog when it mounts with a disconnected snapshot containing an error. The existing same-origin connection attempt and manual retry behavior remain responsible for reconnecting and opening the remote project.\n+- Do not suppress other project restoration errors. They must continue through the existing bootstrap error dialog and Sentry reporting path.\n+- Add focused tests for recoverable remote startup failure, completion of the remaining startup work, connection-dialog presentation, retry, and continued reporting of unexpected restore failures.\n+\n+No desktop-host or remote-control protocol change is required.\n+\n+## Acceptance criteria\n+\n+- An unavailable remote desktop during last-project restoration does not show `Could not restore last project: Remote-control connection failed`.\n+- The expected initial remote connection failure is not reported to Sentry.\n+- Startup completes and the main window becomes available after the connection failure.\n+- The remote connection dialog shows the connection failure and allows the user to retry.\n+- A successful retry connects to the remote desktop and opens its active project through the existing flow.\n+- Startup work after project restoration still runs when the remote connection is unavailable.\n+- Non-connection project restoration failures retain the existing restore dialog and Sentry reporting behavior.\n+\n ## Sentry issue\n \n **Title:** Error: Could not restore last project: Remote-control connection failed\n@@ -38,4 +67,4 @@ sentryOrganization: elastetic\n \n ### Application stack frames\n \n-- No application stack frames provided.\n\\ No newline at end of file\n+- No application stack frames provided.\n",
+          "durationMs": 88,
+          "exitCode": 0,
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-47",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md'; git diff -- 'design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md'\"",
+          "providerItemId": "exec-81a8dd9d-cd88-4959-96f9-e83b861f7d43",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:16:43.823Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-event-48",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_007fcbdaadc22b71016aef40de73ec87d296df202b702d2b28",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:16:44.914Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_307_error_could_not_restore_last_project_remote_cont.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_307_error_could_not_restore_last_project_remote_cont.md) with:\n\n- Status: `ready for implementation`\n- Current state\n- Implementation details\n- Acceptance criteria\n\n`git diff --check` passes.\n\n",
+          "id": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 49,
+          "timestamp": "2026-11-07T15:16:50.214Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -470,8 +661,8 @@
           "agent": "codex",
           "conversationId": "01a1b67a-a13c-7681-8732-a3b9e33e14b3",
           "createdAt": "2026-11-07T14:47:33.058Z",
-          "lastUsedAt": "2026-11-07T15:15:56.386Z",
-          "synchronizedThroughMessageId": "submission-201f0a54-6024-4e00-99ff-439bf2f591b9"
+          "lastUsedAt": "2026-11-07T15:16:50.214Z",
+          "synchronizedThroughMessageId": "agent-turn-442806e4-5bbf-4c9d-8fec-cc22426a6af6-turn-2-assistant-3"
         }
       ],
       "startedAt": "2026-11-07T14:47:31.803Z",
@@ -480,37 +671,37 @@
         "tasks": [
           {
             "id": "0",
-            "subject": "Read the feature description and identify the implicated flow",
+            "subject": "Read the technical-writer instructions and relevant documentation conventions",
             "status": "completed"
           },
           {
             "id": "1",
-            "subject": "Trace relevant implementation, call sites, and tests",
+            "subject": "Update B_307 with current state, implementation details, acceptance criteria, and status",
             "status": "completed"
           },
           {
             "id": "2",
-            "subject": "Report findings and propose a focused solution",
+            "subject": "Review the diff for scope and accuracy",
             "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-07T14:49:09.823Z"
+        "updatedAt": "2026-11-07T15:16:47.134Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 426,
-          "toolMs": 4236
+          "reasoningMs": 491,
+          "toolMs": 5183
         },
         "elapsedMs": 102799,
         "runningStartedAt": "2026-11-07T15:15:56.286Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 786944,
-        "inputTokens": 51862,
-        "outputTokens": 2439,
-        "reasoningTokens": 1328,
-        "totalTokens": 842573
+        "cachedInputTokens": 1386496,
+        "inputTokens": 61581,
+        "outputTokens": 3890,
+        "reasoningTokens": 2153,
+        "totalTokens": 1454120
       },
       "usageSchemaVersion": 1,
       "viewed": true
