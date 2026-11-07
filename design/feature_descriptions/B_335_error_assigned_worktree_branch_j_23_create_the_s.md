@@ -12,8 +12,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 155870542
 sentryOrganization: elastetic
-branch: b_335_error_assigned_worktree_branch_j_23_create_the_s
-worktree: 1
 after: 3d6ec998-7fae-40b4-a894-4606092f34e0
 changedFiles:
   - app/src/components/actions/agent/action_agent_prompt.tsx

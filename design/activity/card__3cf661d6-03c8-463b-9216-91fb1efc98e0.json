@@ -1504,6 +1504,29 @@
       "startedAt": "2026-11-07T14:22:39.860Z",
       "status": "completed",
       "rootConversationId": "agent-8e991df7-066f-4b83-af1e-99e54e28a898"
+    },
+    {
+      "commits": [
+        {
+          "commit": "f7764c6a047700f64fe408a1784ce33f2513f702",
+          "committedAt": "2026-11-07T15:30:07+01:00",
+          "deletions": 21,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/actions/agent/action_agent_prompt.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 54,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-07T15:30:07+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "3cf661d6-03c8-463b-9216-91fb1efc98e0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
