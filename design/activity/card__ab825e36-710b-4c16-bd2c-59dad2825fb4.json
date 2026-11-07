@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "ab825e36-710b-4c16-bd2c-59dad2825fb4",
+      "cardPath": "design/feature_descriptions/B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-e0053058-f1c6-4bec-a3f2-14f4cacd6d29",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-07T15:30:43.814Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-f91c9c92-2668-476c-9999-f9e35ad9aa43",
+      "providerSessions": [],
+      "startedAt": "2026-11-07T15:30:43.814Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-07T15:30:43.814Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "ab825e36-710b-4c16-bd2c-59dad2825fb4",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
