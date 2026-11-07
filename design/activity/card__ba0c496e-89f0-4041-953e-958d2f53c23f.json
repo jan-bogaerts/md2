@@ -795,7 +795,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "ba0c496e-89f0-4041-953e-958d2f53c23f",
       "cardPath": "design/feature_descriptions/B_308_error_linked_worktree_has_uncommitted_changes_c.md",
-      "completedAt": null,
+      "completedAt": "2026-11-07T14:54:21.896Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 101630
@@ -2004,7 +2004,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 93,
-          "timestamp": "2026-11-07T14:54:20.844Z"
+          "timestamp": "2026-11-07T14:54:21.896Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2015,12 +2015,12 @@
           "agent": "codex",
           "conversationId": "01a1b679-eaea-78f0-a4f0-b12f25d9c9fe",
           "createdAt": "2026-11-07T14:46:46.312Z",
-          "lastUsedAt": "2026-11-07T14:54:20.844Z",
+          "lastUsedAt": "2026-11-07T14:54:21.896Z",
           "synchronizedThroughMessageId": "agent-turn-d1a33a14-f86f-4731-8b65-2f7c3255f3cb-turn-2-assistant-10"
         }
       ],
       "startedAt": "2026-11-07T14:46:45.295Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -2066,8 +2066,8 @@
           "reasoningMs": 660,
           "toolMs": 67329
         },
-        "elapsedMs": 89890,
-        "runningStartedAt": "2026-11-07T14:49:15.334Z"
+        "elapsedMs": 396452,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
