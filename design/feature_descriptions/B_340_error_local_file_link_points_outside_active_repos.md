@@ -3,7 +3,7 @@ author:
 id: B_340
 internalId: e624b075-cb06-452d-a838-dc64137918d8
 title: Error: Local file link points outside active repos
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,17 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 155397337
 sentryOrganization: elastetic
+changedFiles:
+  - app/src/components/actions/conversation/messages/action_conversation_link.tsx
+  - app/src/components/actions/conversation/messages/action_conversation_link_navigation.node.test.ts
+  - app/src/components/actions/conversation/messages/action_conversation_link_navigation.ts
+  - app/src/data/electron_action_bridge.ts
+  - desktop/main.js
+  - desktop/src/git/diff_service.js
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/preload.js
+  - shared/local_file_link_errors.d.mts
+  - shared/local_file_link_errors.mjs
 ---
 
 ## Sentry issue
