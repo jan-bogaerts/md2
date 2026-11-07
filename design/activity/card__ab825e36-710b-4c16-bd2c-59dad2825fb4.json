@@ -1238,7 +1238,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "ab825e36-710b-4c16-bd2c-59dad2825fb4",
       "cardPath": "design/feature_descriptions/B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md",
-      "completedAt": null,
+      "completedAt": "2026-11-07T16:03:05.809Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 113094
@@ -2344,7 +2344,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 87,
-          "timestamp": "2026-11-07T16:03:05.099Z"
+          "timestamp": "2026-11-07T16:03:05.809Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2355,7 +2355,7 @@
           "agent": "claude",
           "conversationId": "b081d652-59c8-4c7f-8a09-6ad64e8fd039",
           "createdAt": "2026-11-07T15:54:07.797Z",
-          "lastUsedAt": "2026-11-07T16:03:05.099Z",
+          "lastUsedAt": "2026-11-07T16:03:05.809Z",
           "synchronizedThroughMessageId": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-turn-2-assistant-8",
           "usageBaseline": {
             "costUsd": 1.8779058000000002,
@@ -2371,7 +2371,7 @@
         }
       ],
       "startedAt": "2026-11-07T15:54:05.120Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -2402,8 +2402,8 @@
           "reasoningMs": 86466,
           "toolMs": 176358
         },
-        "elapsedMs": 103010,
-        "runningStartedAt": "2026-11-07T15:59:34.347Z"
+        "elapsedMs": 314472,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
