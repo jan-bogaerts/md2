@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__f3b7a6f7-0cc4-4d30-994b-026f9d5d8092.json
 policy:
-branch: f_461_add_option_to_exclude_design_folder_from_git
-worktree: 2
 changedFiles:
   - app/src/components/config/config_page.test.tsx
   - app/src/components/hooks/use_project_folder_git_removal.ts
