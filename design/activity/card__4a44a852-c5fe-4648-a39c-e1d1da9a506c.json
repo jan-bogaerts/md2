@@ -421,14 +421,14 @@
         }
       ],
       "startedAt": "2026-11-07T10:59:25.562Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 28920,
           "toolMs": 18070
         },
-        "elapsedMs": 46224,
-        "runningStartedAt": "2026-11-07T13:53:29.605Z"
+        "elapsedMs": 66546,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
