@@ -10535,3 +10535,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-07T15:56:07.121Z,account_usage,claude,default,weekly,10080,2026-11-08T16:59:00.000Z,,,,,,36,0,claude-initial
 2026-11-07T15:58:07.134Z,account_usage,claude,default,weekly,10080,2026-11-08T17:00:00.000Z,,,,,,36,0,claude-initial
 2026-11-07T16:01:56.237Z,token_usage,codex,,,,,52503,926336,3669,1615,984123,,,codex-initial
+2026-11-07T16:03:05.099Z,token_usage,claude,,,,,50,2388564,14443,0,2403057,,,claude-initial

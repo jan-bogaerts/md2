@@ -3,7 +3,7 @@ author:
 id: B_350
 internalId: ab825e36-710b-4c16-bd2c-59dad2825fb4
 title: deleting a card jumps the scrollbar back to start
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,16 @@ agents:
 policy:
 branch: b_350_deleting_a_card_jumps_the_scrollbar_back_to_start
 worktree: 1
+changedFiles:
+  - app/src/components/card_view/card_column.tsx
+  - app/src/components/card_view/card_delete_dialog.test.tsx
+  - app/src/components/card_view/card_delete_dialog.tsx
+  - app/src/components/card_view/card_deletion_focus.test.ts
+  - app/src/components/card_view/card_deletion_focus.ts
+  - app/src/components/card_view/card_view.test.tsx
+  - app/src/components/card_view/card_view.tsx
+  - app/src/components/card_view/project_card_drag_container.tsx
+  - app/src/components/card_view/project_card_view.tsx
 ---
 
 ## Current state
