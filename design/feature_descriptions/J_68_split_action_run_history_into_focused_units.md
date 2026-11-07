@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 4d9d28b2-8ce4-431a-b101-52749040bbc7
+after: b3d4732c-6b1a-41d7-88bf-0347982fc7a9
 ---
 
 `app/src/components/actions/run/state/action_run_history.tsx` currently owns the history section layout, entry ordering, agent and command summary formatting, account-name resolution, error reporting, and entry rendering. Split these responsibilities into focused units without changing run-history behavior.
