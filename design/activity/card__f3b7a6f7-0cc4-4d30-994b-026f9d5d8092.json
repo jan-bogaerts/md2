@@ -1523,8 +1523,8 @@
           "agent": "claude",
           "conversationId": "13f7dd03-ba58-4e55-ab70-9c0bec45f66b",
           "createdAt": "2026-11-07T15:14:42.483Z",
-          "lastUsedAt": "2026-11-07T15:18:19.661Z",
-          "synchronizedThroughMessageId": "agent-turn-277f8c42-f82c-4dbf-b6ea-b9f5bc57c5d0-turn-1-assistant-6",
+          "lastUsedAt": "2026-11-07T15:22:53.874Z",
+          "synchronizedThroughMessageId": "submission-9b09a451-78ff-4a69-955e-7675de6bd36b",
           "usageBaseline": {
             "costUsd": 1.9513870000000009,
             "resultId": "b0cfd223-a9e8-470c-98f2-616002c796dd",
