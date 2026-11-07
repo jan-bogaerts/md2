@@ -1650,8 +1650,8 @@
           "agent": "claude",
           "conversationId": "b081d652-59c8-4c7f-8a09-6ad64e8fd039",
           "createdAt": "2026-11-07T15:54:07.797Z",
-          "lastUsedAt": "2026-11-07T15:55:48.130Z",
-          "synchronizedThroughMessageId": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-turn-1-assistant-3",
+          "lastUsedAt": "2026-11-07T15:59:35.538Z",
+          "synchronizedThroughMessageId": "submission-03d18974-e151-4fd3-bad3-0e15f33b4d5f",
           "usageBaseline": {
             "costUsd": 0.9033176,
             "resultId": "40372702-070b-4f4f-8a28-4c7f0e3ffc22",
