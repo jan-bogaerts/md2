@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__b97071c8-d9a2-4039-8fbf-c313219a761c.json
 policy:
-after: c466633a-3cec-405b-8233-a3e85037b7f5
+after: 6c9bb01f-be19-43a2-af08-c2bfc5ab72bc
 ---
 we need to check if it is possible to integrate the `opencodex` agent  runner in a similar way as we did for codex and claude
 
