@@ -1159,8 +1159,8 @@
           "agent": "codex",
           "conversationId": "01a1b679-eaea-78f0-a4f0-b12f25d9c9fe",
           "createdAt": "2026-11-07T14:46:46.312Z",
-          "lastUsedAt": "2026-11-07T14:48:15.185Z",
-          "synchronizedThroughMessageId": "agent-turn-d1a33a14-f86f-4731-8b65-2f7c3255f3cb-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-07T14:49:15.390Z",
+          "synchronizedThroughMessageId": "submission-f589f557-3889-43db-86aa-4276ebf8eaca"
         }
       ],
       "startedAt": "2026-11-07T14:46:45.295Z",
