@@ -2139,6 +2139,34 @@
       "startedAt": "2026-11-07T14:46:43.967Z",
       "status": "completed",
       "rootConversationId": "agent-b0aab882-1272-4365-8511-f27703e19033"
+    },
+    {
+      "commits": [
+        {
+          "commit": "9d3cf75d09d7701113d66c0ccb3b5c195544825d",
+          "committedAt": "2026-11-07T16:16:17+01:00",
+          "deletions": 3,
+          "filePaths": [
+            "app/src/components/worktree_selector.test.tsx",
+            "app/src/components/worktree_selector.tsx",
+            "app/src/data/bridge_error_rehydration.node.test.ts",
+            "desktop/src/git/worktree_resolution.test.mjs",
+            "desktop/src/git/worktree_service.js",
+            "shared/worktree_errors.d.mts",
+            "shared/worktree_errors.mjs"
+          ],
+          "filesChanged": 7,
+          "insertions": 102,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-07T16:16:17+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "ba0c496e-89f0-4041-953e-958d2f53c23f",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

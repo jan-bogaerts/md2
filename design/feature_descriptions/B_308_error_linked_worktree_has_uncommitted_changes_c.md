@@ -12,8 +12,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 144956120
 sentryOrganization: elastetic
-branch: b_308_error_linked_worktree_has_uncommitted_changes_c
-worktree: 1
 changedFiles:
   - app/src/components/worktree_selector.test.tsx
   - app/src/components/worktree_selector.tsx
