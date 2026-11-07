@@ -3,7 +3,7 @@ author:
 id: B_337
 internalId: 4a44a852-c5fe-4648-a39c-e1d1da9a506c
 title: Error: ENOENT: no such file or directory, open 'C:
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 155925414
 sentryOrganization: elastetic
-after: d7e5d777-7f5b-4caf-8593-dd962594bae0
 ---
 
 ## Sentry issue
