@@ -3,7 +3,7 @@ author:
 id: B_308
 internalId: ba0c496e-89f0-4041-953e-958d2f53c23f
 title: Error: Linked worktree has uncommitted changes: C:
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
@@ -12,8 +12,33 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 144956120
 sentryOrganization: elastetic
-after: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092
+branch: b_308_error_linked_worktree_has_uncommitted_changes_c
+worktree: 1
 ---
+## Current state
+
+Assigning a linked worktree to a card calls `WorktreeService.setCardWorktree`, which asks the desktop host to prepare the selected checkout. The desktop service revalidates the checkout and intentionally rejects the operation when it contains uncommitted changes. The checkout and its changes remain untouched.
+
+`WorktreeSelector` catches the rejection and calls `dialogService.error`. That method reports every error to Sentry before showing it to the user. The expected dirty-worktree guard is therefore recorded as an application failure.
+
+## Implementation details
+
+Add a shared error code for the expected dirty linked-worktree condition. Set this code on the error thrown by the desktop worktree cleanliness guard. The existing bridge error envelope already preserves string error codes, so the renderer can identify the condition without matching its message.
+
+In the worktree assignment UI, show this coded error with `dialogService.displayError`, retaining the current user-visible message without sending telemetry. Continue using `dialogService.error` for all other preparation failures.
+
+The cleanliness guard is also used by pull, rebase, integration, conflict recovery, synchronization, and parking operations. Adding the code must preserve their current rejection behavior; this change only alters telemetry handling for the card-assignment path covered by this issue.
+
+Add focused tests that verify the desktop rejection carries the error code, the bridge preserves it, the assignment UI displays the message without reporting telemetry, and an unexpected preparation error is still reported.
+
+## Acceptance criteria
+
+- Assigning a dirty linked worktree to a card is rejected before any branch switch or file change.
+- The user sees that the linked worktree has uncommitted changes.
+- The expected dirty-worktree rejection is not sent to Sentry from the card-assignment flow.
+- Dirty-worktree checks for other worktree operations retain their existing behavior.
+- Unexpected worktree preparation failures remain visible to the user and are sent to Sentry.
+
 ## Sentry issue
 
 **Title:** Error: Linked worktree has uncommitted changes: C:\Users\janbo\Documents\dev\md2_workers\dev2
