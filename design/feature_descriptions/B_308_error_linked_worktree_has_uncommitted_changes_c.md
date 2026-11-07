@@ -13,7 +13,6 @@ sentryIssueId: 144956120
 sentryOrganization: elastetic
 after: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092
 ---
-
 ## Sentry issue
 
 **Title:** Error: Linked worktree has uncommitted changes: C:\Users\janbo\Documents\dev\md2_workers\dev2
@@ -38,10 +37,12 @@ after: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092
 
 ### Application stack frames
 
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:2334:29687` — async le
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:2334:28968` — async se
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:139:35668` — async EventTarget.setCardWorktree
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:283:24628` — async xve.prepareWorktree
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:120:28764` — Tre
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:120:28633` — Tm
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:120:28485` — wm
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:2334:29687` — async le
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:2334:28968` — async se
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:139:35668` — async EventTarget.setCardWorktree
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:283:24628` — async xve.prepareWorktree
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:120:28764` — Tre
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:120:28633` — Tm
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-0itPY5Od.js:120:28485` — wm
+
+Don't think we should send this to sentry
