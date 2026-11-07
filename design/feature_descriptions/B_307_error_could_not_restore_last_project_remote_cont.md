@@ -3,7 +3,7 @@ author:
 id: B_307
 internalId: 449b8fa8-9d5e-4d00-9b81-66a018e55285
 title: Error: Could not restore last project: Remote-cont
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 144540255
 sentryOrganization: elastetic
-after: b6df6526-3cec-4077-a31e-03269835f435
 ---
 
 ## Sentry issue
