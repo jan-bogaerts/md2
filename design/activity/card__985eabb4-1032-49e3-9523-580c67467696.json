@@ -2006,6 +2006,14 @@
           "role": "assistant",
           "sequence": 62,
           "timestamp": "2026-11-07T15:26:20.629Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-6128212a-5c1a-4295-96b5-6f3df311118d",
+          "kind": "message",
+          "role": "user",
+          "sequence": 63,
+          "timestamp": "2026-11-07T15:27:44.687Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2021,7 +2029,7 @@
         }
       ],
       "startedAt": "2026-11-07T15:23:47.897Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -2048,7 +2056,7 @@
           "toolMs": 7120
         },
         "elapsedMs": 152732,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-07T15:27:44.687Z"
       },
       "title": "investigate",
       "usage": {
