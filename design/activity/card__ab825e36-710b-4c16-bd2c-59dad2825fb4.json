@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 110287
+        "usedTokens": 118228
       },
       "entries": [
         {
@@ -969,6 +969,201 @@
           "role": "user",
           "sequence": 70,
           "timestamp": "2026-11-07T15:45:51.217Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_090d67e070949c71016aef47b2dec487d29f966e2a2a673380",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:45:53.565Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll use the technical-writer skill to structure the feature document consistently. I’ll base the sections on the deletion, focus-restoration, and board-scroll paths already investigated, then change only this feature document.\n\n",
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 72,
+          "timestamp": "2026-11-07T15:45:54.276Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "durationMs": 38,
+          "exitCode": 0,
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-73",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "providerItemId": "exec-b7a7b7cf-86b0-4189-9516-b236bfc6c585",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:45:59.406Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-74",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_090d67e070949c71016aef47ba449887d2b08f8a6a87175690",
+          "sequence": 74,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:46:00.653Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -l -i \"''^## (Current state|Implementation details|Acceptance criteria)\" design/feature_descriptions | Select-Object -First 8'",
+          "content": "design/feature_descriptions\\B_334_error_local_git_project_validation_failed_for_c.md\r\ndesign/feature_descriptions\\B_308_error_linked_worktree_has_uncommitted_changes_c.md\r\ndesign/feature_descriptions\\B_307_error_could_not_restore_last_project_remote_cont.md\r\ndesign/feature_descriptions\\F_180_add_extra_event_logging.md\r\ndesign/feature_descriptions\\B_291_error_queued_agent_prompt_is_empty.md\r\ndesign/feature_descriptions\\B_335_error_assigned_worktree_branch_j_23_create_the_s.md\r\ndesign/feature_descriptions\\B_343_error_unknown_action_phrase_section_phrase_00f9d.md\r\ndesign/feature_descriptions\\B_339_error_missing_referenced_activity_file_c_users.md\r\n",
+          "durationMs": 107,
+          "exitCode": 1,
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-75",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -l -i \"''^## (Current state|Implementation details|Acceptance criteria)\" design/feature_descriptions | Select-Object -First 8'",
+          "providerItemId": "exec-22ecc52d-3f02-4330-bf83-2a4d4e09c837",
+          "sequence": 75,
+          "status": "failed",
+          "timestamp": "2026-11-07T15:46:03.482Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_334_error_local_git_project_validation_failed_for_c.md'\"",
+          "content": "---\nauthor: \nid: B_334\ninternalId: 8e0b5ae2-76a2-4101-86e8-9d19f8736ae0\ntitle: Error: Local Git project validation failed for \"C:\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__8e0b5ae2-76a2-4101-86e8-9d19f8736ae0.json\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 158497657\nsentryOrganization: elastetic\nchangedFiles:\n  - app/src/components/shell/menu/app_menu.tsx\n  - app/src/components/shell/project/project_open_dialog.test.tsx\n  - app/src/components/shell/project/project_open_dialog.tsx\n  - app/src/data/electron_data_bridge.ts\n  - app/src/services/project/project_open_flow_service.test.ts\n  - app/src/services/project/project_open_flow_service.ts\n  - desktop/src/git/git_commands.js\n  - desktop/src/git/git_commands.test.mjs\n  - desktop/src/git/git_process.js\n  - desktop/src/git/git_process.test.mjs\n  - desktop/src/shell/bridge_invoke.test.mjs\n  - desktop/src/shell/local_bridge_dispatch.js\n  - desktop/src/shell/local_bridge_dispatch.test.mjs\n  - desktop/src/shell/preload.js\n  - desktop/src/shell/preload.test.mjs\n  - shared/bridge_errors.d.mts\n  - shared/bridge_errors.mjs\nafter: 548342cd-192a-4ca4-9821-cb69c901f1f6\n---\n\n## Sentry issue\n\n**Title:** Error: Local Git project validation failed for \"C:\\Users\\janbo\\Documents\\marketing\\vidsy\": Command failed: git rev-parse --is-inside-work-tree\n\n**Message:** Not provided\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/158497657/)\n\n**First seen:** 2026-11-04T08:31:15Z\n\n**Last seen:** 2026-11-04T08:31:15Z\n\n**Occurrences:** 1\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** vre(/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-D90FAwtc.js)\n\n**Event ID:** 321c63772dbc4afc99a5c05bc70f5901\n\n### Application stack frames\n\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-D90FAwtc.js:509:46680` â€” EventTarget.chooseLocalFolder\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-D90FAwtc.js:136:2419` â€” Im\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-D90FAwtc.js:136:2271` â€” vre\n\n## Current state\n\nThe local project picker and the typed, recent, and startup local-project flows validate a folder through `resolveLocalProject`. It runs `git rev-parse --is-inside-work-tree` and treats every failure as an unexpected error. `ProjectOpenFlowService` then passes that error to `dialogService.error`, which displays it and reports it to Sentry.\n\nThe reported folder was not a Git repository when it was selected. Its `.git` directory was created about two minutes after the Sentry event. This is a recoverable user choice, but the application currently offers no way to initialize the folder and continue. The Git process wrapper also discards `stderr` on unsuccessful commands, preventing reliable classification of the failure.\n\n## Implementation details\n\n- Preserve `stdout` and `stderr` on errors returned by `GitProcess`. This enriches failures for all desktop Git callers without changing their success or failure behavior.\n- Add a shared, bridge-safe error code for a selected folder that is not a Git repository. Include the selected root path in the serialized error fields. Classify only Git's known â€œnot a git repositoryâ€ response this way; permission, executable, timeout, ownership, and other Git failures remain unexpected errors.\n- Add a desktop bridge operation that initializes the selected folder with `git init`, using the folder as the process working directory and without constructing a shell command. Resolve the resulting local project through the existing validation path.\n- Add a Git-initialization confirmation state to `ProjectOpenFlowService`. Use it for picker, typed, recent, and startup local-folder validation. Keep the selected path in the service while confirmation is open.\n- Render the confirmation in the project-open dialog with the selected path and explicit Yes and No actions. If the user selects Yes, initialize the repository and continue the existing project-open flow. If the user selects No, clear the confirmation and return to local project selection without opening the project, showing another error, or reporting to Sentry.\n- Report initialization failures and every other unexpected validation failure through `dialogService.error`. Do not report the expected not-a-repository result through Sentry.\n- Add focused tests for failed Git output preservation, error classification and bridge transport, repository initialization, all local-project entry paths, confirmation actions, and expected versus unexpected telemetry routing.\n\n## Acceptance criteria\n\n- Selecting or entering a folder that is not a Git repository asks whether to create a local Git repository in that folder.\n- Selecting Yes runs `git init`, validates the new repository, and continues opening the project through the existing flow.\n- Selecting No does not initialize or open the project, does not show another error, and does not report the choice to Sentry.\n- Picker, typed, recent, and startup local-folder flows use the same confirmation behavior.\n- An existing Git repository opens without an initialization prompt and retains its current behavior.\n- A failed `git init` does not open the project, shows the actionable Git failure, and is reported to Sentry.\n- Permission, missing executable, timeout, dubious ownership, and other unexpected Git failures remain user-visible and are reported to Sentry.\n\r\n",
+          "durationMs": 121,
+          "exitCode": 0,
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-76",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_334_error_local_git_project_validation_failed_for_c.md'\"",
+          "providerItemId": "exec-770faf8b-d823-4a9d-b461-ad3f8e40de47",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:46:08.176Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md'\"",
+          "content": "---\nauthor: \nid: B_307\ninternalId: 449b8fa8-9d5e-4d00-9b81-66a018e55285\ntitle: Error: Could not restore last project: Remote-cont\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__449b8fa8-9d5e-4d00-9b81-66a018e55285.json\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 144540255\nsentryOrganization: elastetic\nafter: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092\nchangedFiles:\n  - app/src/App.test.tsx\n  - app/src/components/shell/remote_connect_button.grouped.test.tsx\n  - app/src/components/shell/remote_connect_button.test.tsx\n  - app/src/components/shell/remote_connect_button.tsx\n  - app/src/services/application_startup_service.test.ts\n  - app/src/services/application_startup_service.ts\n---\n\n## Current state\n\nWhen the last project uses remote storage, startup creates a `RemoteControlStorageService` and attempts to restore the WebSocket connection before opening the project. If the remote desktop is unavailable, the connection rejects with `RemoteControlConnectionError: Remote-control connection failed`.\n\n`ApplicationStartupService` treats this expected connectivity failure like any other project restoration failure. `App` then passes the composed restore message to `dialogService.error`, which reports it to Sentry. Because the reported value is a string rather than the original error, the event has no application stack frames.\n\n`RemoteConnectionService` already owns remote connection status and its user-visible error. `RemoteConnectButton` also attempts the same-origin connection when it mounts and opens its connection dialog when that attempt fails. The generic restore dialog and Sentry event therefore duplicate the remote connection flow.\n\n## Implementation details\n\n- In `ApplicationStartupService`, treat `RemoteControlConnectionError` from initial project restoration as a recoverable startup outcome. Continue startup with no restored project resolution instead of setting `bootstrap.error`.\n- Continue the remaining startup work, including the startup model-catalog refresh, after a recoverable remote connection failure.\n- Keep the error in `RemoteConnectionService`, which already publishes the disconnected state and connection message.\n- Make `RemoteConnectButton` open the remote connection dialog when it mounts with a disconnected snapshot containing an error. The existing same-origin connection attempt and manual retry behavior remain responsible for reconnecting and opening the remote project.\n- Do not suppress other project restoration errors. They must continue through the existing bootstrap error dialog and Sentry reporting path.\n- Add focused tests for recoverable remote startup failure, completion of the remaining startup work, connection-dialog presentation, retry, and continued reporting of unexpected restore failures.\n\nNo desktop-host or remote-control protocol change is required.\n\n## Acceptance criteria\n\n- An unavailable remote desktop during last-project restoration does not show `Could not restore last project: Remote-control connection failed`.\n- The expected initial remote connection failure is not reported to Sentry.\n- Startup completes and the main window becomes available after the connection failure.\n- The remote connection dialog shows the connection failure and allows the user to retry.\n- A successful retry connects to the remote desktop and opens its active project through the existing flow.\n- Startup work after project restoration still runs when the remote connection is unavailable.\n- Non-connection project restoration failures retain the existing restore dialog and Sentry reporting behavior.\n\n## Sentry issue\n\n**Title:** Error: Could not restore last project: Remote-control connection failed\n\n**Message:** Could not restore last project: Remote-control connection failed\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/144540255/)\n\n**First seen:** 2026-09-24T16:49:10Z\n\n**Last seen:** 2026-10-13T19:41:46Z\n\n**Occurrences:** 3\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** Not provided\n\n**Event ID:** 9e9e421695db42d1ba85a12e6dc2d826\n\n### Application stack frames\n\n- No application stack frames provided.\n\r\n",
+          "durationMs": 99,
+          "exitCode": 0,
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-77",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md'\"",
+          "providerItemId": "exec-3234ea5f-3949-459c-9302-6d6a23b50342",
+          "sequence": 77,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:46:08.160Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md'\"",
+          "content": "---\nauthor: \nid: B_291\ninternalId: 985eabb4-1032-49e3-9523-580c67467696\ntitle: Error: Queued agent prompt is empty\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__985eabb4-1032-49e3-9523-580c67467696.json\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 145990654\nsentryOrganization: elastetic\nafter: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092\nbranch: b_291_error_queued_agent_prompt_is_empty\nworktree: 1\n---\n\n## Current state\n\nThe exception is raised in `runPopupAction` when a live agent run is detected but the prompt draft selected for that run is empty. The Sentry stack shows that the path was entered through the prompt editor's `Ctrl/Cmd+Enter` shortcut.\n\nThe shortcut handler reads part of its run state from the last React render. A scheduled run can become active before React rerenders, so the shortcut can pass validation using stale idle state. `runPopupAction` then reads the current active run, switches to the active conversation draft, and reports `Queued agent prompt is empty`.\n\nThe scheduler previously created a replacement conversation for every scheduled run. That defect is already fixed. Schedule registration now stores the displayed `AgentConversation.id`, and scheduled execution validates and continues that conversation with its persisted reference. The desktop and renderer therefore use the same canonical conversation identity.\n\n## Implementation details\n\n- In the prompt shortcut handler, derive the complete run state from a fresh `currentActionRun(bindingStore)` snapshot immediately before dispatch. Do not combine a fresh run with render-captured status or action-type values.\n- In `runPopupAction`, treat an empty prompt discovered after an agent run becomes active as a stale UI interaction. Return without creating a submission, enqueueing a prompt, or reporting an error.\n- Keep the desktop queue validation that rejects empty prompts. It remains the defensive boundary for invalid bridge calls.\n- Do not change scheduler conversation continuation. It already persists `conversationId`, validates the conversation's action and card ownership, and supplies `continueFrom` when the schedule fires.\n- Add focused renderer tests for an externally started or scheduled run becoming active before the shortcut handler rerenders.\n\n## Acceptance criteria\n\n- Pressing `Ctrl/Cmd+Enter` after a scheduled agent run becomes active but before the prompt UI rerenders does not report `Queued agent prompt is empty`.\n- The stale shortcut does not create a submission or call the queued-prompt bridge.\n- A non-empty prompt entered for an active agent run is still queued normally.\n- Empty queued prompts sent directly to the desktop bridge are still rejected.\n- A schedule created for an existing conversation continues the same `AgentConversation.id` and does not create a replacement conversation.\n- Scheduled runs without an existing conversation continue to allocate one new conversation identity.\n\n## Sentry issue\n\n**Title:** Error: Queued agent prompt is empty\n\n**Message:** Not provided\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/145990654/)\n\n**First seen:** 2026-09-16T12:11:52Z\n\n**Last seen:** 2026-09-16T12:11:52Z\n\n**Occurrences:** 1\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** V2(/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js)\n\n**Event ID:** 7f3de1034fef41a0ad455de66decdf70\n\n### Application stack frames\n\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:25:6718` â€” HTMLBodyElement.r\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:11:28324` â€” kf\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:11:28503` â€” Af\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:127780` â€” Zu\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:15085` â€” Zt\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:131553` â€” unknown function\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:126356` â€” Gu\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2319:18194` â€” onKeyDownCapture\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2321:9090` â€” onRunShortcut\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2319:22034` â€” V2\n\r\n",
+          "durationMs": 117,
+          "exitCode": 0,
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-78",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md'\"",
+          "providerItemId": "exec-78817a3f-3e0d-417e-9578-31039d221109",
+          "sequence": 78,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:46:08.193Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-79",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_090d67e070949c71016aef47cbe4c487d2a3cf095bb373c7ec",
+          "sequence": 79,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:46:18.558Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The documentation pattern confirms these sections should define the verified behavior, the exact ownership change, and testable outcomes. The technical-writer guidance keeps the proposal focused: disable automatic restoration to a disappearing control, then focus a surviving sibling with `preventScroll`.\n\n",
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 80,
+          "timestamp": "2026-11-07T15:46:19.531Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md",
+          "deletions": 3,
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-81",
+          "insertions": 24,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-f55958bc-820e-477e-bc18-6d80e5448670",
+          "sequence": 81,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:46:30.945Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-82",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_090d67e070949c71016aef47d9d0fc87d28f60e364a312bc8c",
+          "sequence": 82,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:46:32.240Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md'; git diff --check -- 'design/feature_descriptions/B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md'; git diff --stat -- 'design/feature_descriptions/B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md'\"",
+          "content": "---\nauthor: \nid: B_350\ninternalId: ab825e36-710b-4c16-bd2c-59dad2825fb4\ntitle: deleting a card jumps the scrollbar back to start\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__ab825e36-710b-4c16-bd2c-59dad2825fb4.json\npolicy:\nafter: 41d340e6-afae-44bd-82e7-41ab673c94e0\n---\n\n## Current state\n\nDeleting a card from a long column can move the board scrollbar back to the start. The board and its scroll container are not remounted: card deletion emits granular lifecycle events, `useCardColumnCards` updates only the affected column, and the remaining cards keep stable keys.\n\nThe delete confirmation dialog closes before the asynchronous deletion completes. Its automatic focus restoration can target a control owned by the card or card-details popup that is being removed. The deletion flow does not select a stable replacement focus target, so browser focus restoration can move the shared board scroll container.\n\n## Implementation details\n\n- Before deletion, determine the next card in the deleted card's column. Use the previous card when the deleted card is last.\n- Disable automatic focus restoration in `CardDeleteDialog` so the dialog does not focus a control that is being removed.\n- After the card has been removed from the rendered column, focus the replacement card with `focus({ preventScroll: true })`. Identify the card by `Card.header.internalId`, not by its path.\n- If the column has no remaining cards, focus its Add card button with `preventScroll`.\n- Apply the same behavior when deletion starts from a board card menu or the card-details popup.\n- Keep the existing granular card and column subscriptions. Do not remount the board or add a general snapshot refresh.\n- Add focused tests for replacement selection, empty-column fallback, both deletion entry points, and focus with `preventScroll`.\n\n## Acceptance criteria\n\n- Deleting a card while scrolled down a long column does not move the board scrollbar back to the start.\n- After deletion, focus moves to the next card in the same column without scrolling it. If there is no next card, focus moves to the previous card.\n- Deleting the only card in a column moves focus to that column's Add card button without changing the board scroll position beyond the browser's required range.\n- Deletion from the board card menu and the card-details popup has the same focus and scroll behavior.\n- Cancelling the confirmation dialog retains the existing focus restoration behavior and does not delete the card.\n- Only the affected column membership and deleted card are rerendered; the board scroll container remains mounted.\n\r\n ...ing_a_card_jumps_the_scrollbar_back_to_start.md | 27 +++++++++++++++++++---\n 1 file changed, 24 insertions(+), 3 deletions(-)\n",
+          "durationMs": 105,
+          "exitCode": 0,
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-83",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md'; git diff --check -- 'design/feature_descriptions/B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md'; git diff --stat -- 'design/feature_descriptions/B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md'\"",
+          "providerItemId": "exec-b6e5655e-d46d-413d-b777-ab29ab982899",
+          "sequence": 83,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:46:35.605Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-event-84",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_090d67e070949c71016aef47e12a7887d29dff08f05a80a147",
+          "sequence": 84,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:46:39.576Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md) with:\n\n- `Current state`\n- `Implementation details`\n- `Acceptance criteria`\n- Status set to `ready for implementation`\n\nNo code files were changed.\n\n",
+          "id": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-turn-3-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 85,
+          "timestamp": "2026-11-07T15:46:44.274Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -979,8 +1174,8 @@
           "agent": "codex",
           "conversationId": "01a1b6a2-2e78-7a81-a3fd-9d5a9c639911",
           "createdAt": "2026-11-07T15:30:45.291Z",
-          "lastUsedAt": "2026-11-07T15:45:51.269Z",
-          "synchronizedThroughMessageId": "submission-ae6fe6ef-bd8c-4ac1-af51-0013a0b4195f"
+          "lastUsedAt": "2026-11-07T15:46:44.274Z",
+          "synchronizedThroughMessageId": "agent-turn-baf1c3a7-92b5-4a7e-b6a8-b062b3ea42aa-turn-3-assistant-3"
         }
       ],
       "startedAt": "2026-11-07T15:30:43.814Z",
@@ -989,37 +1184,37 @@
         "tasks": [
           {
             "id": "0",
-            "subject": "Read the feature description and identify the implicated UI flow",
+            "subject": "Read the technical-writer instructions and nearby feature-document conventions",
             "status": "completed"
           },
           {
             "id": "1",
-            "subject": "Trace deletion, list state, selection, and scroll behavior in the codebase",
+            "subject": "Add the requested sections and update the feature status",
             "status": "completed"
           },
           {
             "id": "2",
-            "subject": "Report the root cause and a focused solution",
+            "subject": "Review the resulting document for scope and precision",
             "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-07T15:33:10.414Z"
+        "updatedAt": "2026-11-07T15:46:41.646Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 368,
-          "toolMs": 4836
+          "reasoningMs": 422,
+          "toolMs": 5798
         },
         "elapsedMs": 165027,
         "runningStartedAt": "2026-11-07T15:45:51.217Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 1745792,
-        "inputTokens": 95793,
-        "outputTokens": 3074,
-        "reasoningTokens": 3202,
-        "totalTokens": 1847861
+        "cachedInputTokens": 2652800,
+        "inputTokens": 103136,
+        "outputTokens": 4550,
+        "reasoningTokens": 3839,
+        "totalTokens": 2764325
       },
       "usageSchemaVersion": 1,
       "viewed": true
