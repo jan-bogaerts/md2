@@ -10528,3 +10528,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-07T15:45:47.311Z,token_usage,claude,,,,,226,24906082,83088,0,24989396,,,claude-initial
 2026-11-07T15:46:15.838Z,token_usage,codex,,,,,10130,1671680,4075,2435,1688320,,,codex-initial
 2026-11-07T15:46:44.274Z,token_usage,codex,,,,,7343,907008,1476,637,916464,,,codex-initial
+2026-11-07T15:49:09.345Z,token_usage,codex,,,,,25357,300928,837,402,327524,,,codex-initial
