@@ -3,7 +3,7 @@ author:
 id: B_334
 internalId: 8e0b5ae2-76a2-4101-86e8-9d19f8736ae0
 title: Error: Local Git project validation failed for "C:
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -14,6 +14,24 @@ sentryIssueId: 158497657
 sentryOrganization: elastetic
 branch: b_334_error_local_git_project_validation_failed_for_c
 worktree: 1
+changedFiles:
+  - app/src/components/shell/menu/app_menu.tsx
+  - app/src/components/shell/project/project_open_dialog.test.tsx
+  - app/src/components/shell/project/project_open_dialog.tsx
+  - app/src/data/electron_data_bridge.ts
+  - app/src/services/project/project_open_flow_service.test.ts
+  - app/src/services/project/project_open_flow_service.ts
+  - desktop/src/git/git_commands.js
+  - desktop/src/git/git_commands.test.mjs
+  - desktop/src/git/git_process.js
+  - desktop/src/git/git_process.test.mjs
+  - desktop/src/shell/bridge_invoke.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.js
+  - desktop/src/shell/preload.test.mjs
+  - shared/bridge_errors.d.mts
+  - shared/bridge_errors.mjs
 ---
 
 ## Sentry issue
