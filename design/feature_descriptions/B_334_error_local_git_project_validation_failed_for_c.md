@@ -12,8 +12,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 158497657
 sentryOrganization: elastetic
-branch: b_334_error_local_git_project_validation_failed_for_c
-worktree: 1
 changedFiles:
   - app/src/components/shell/menu/app_menu.tsx
   - app/src/components/shell/project/project_open_dialog.test.tsx
