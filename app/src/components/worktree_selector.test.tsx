@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { DIRTY_LINKED_WORKTREE_ERROR } from '../../../shared/worktree_errors.mjs'
 import type { WorktreeRecord } from '../data/data_types'
 import { dialogService } from '../services/dialog_service'
 import { configService } from '../services/config/config_service'
@@ -145,6 +146,54 @@ describe('WorktreeSelector', () => {
         fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }));
         expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', 'feature');
     });
+
+    it('displays a dirty linked-worktree assignment error without reporting it', async () => {
+        const error = new Error('Linked worktree has uncommitted changes: C:\\feature') as Error & { code?: string }
+        error.code = DIRTY_LINKED_WORKTREE_ERROR
+        vi.spyOn(worktreeService, 'setCardWorktree').mockRejectedValue(error)
+        const displayError = vi.spyOn(dialogService, 'displayError')
+        const reportError = vi.spyOn(dialogService, 'error')
+        withRecords(worktrees)
+        render(
+            <AppThemeProvider>
+                <WorktreeSelector
+                    assignment={{ worktree: null }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                    primaryPath={'C:\\primary'}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Primary worktree: C:\\primary' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /1 .* C:\\feature/u }))
+
+        await vi.waitFor(() => expect(displayError).toHaveBeenCalledWith(error.message))
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
+    it('reports an unexpected worktree assignment error', async () => {
+        const error = new Error('preparation failed')
+        vi.spyOn(worktreeService, 'setCardWorktree').mockRejectedValue(error)
+        const displayError = vi.spyOn(dialogService, 'displayError')
+        const reportError = vi.spyOn(dialogService, 'error')
+        withRecords(worktrees)
+        render(
+            <AppThemeProvider>
+                <WorktreeSelector
+                    assignment={{ worktree: null }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                    primaryPath={'C:\\primary'}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Primary worktree: C:\\primary' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /1 .* C:\\feature/u }))
+
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(error,
+            { fallbackMessage: 'Could not update worktree assignment' }))
+        expect(displayError).not.toHaveBeenCalled()
+    })
 
     it('lists Primary and valid linked worktrees while retaining the current invalid assignment', () => {
         withRecords(worktrees)

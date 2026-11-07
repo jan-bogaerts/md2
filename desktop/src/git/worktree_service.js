@@ -4,6 +4,7 @@ const path = require('node:path');
 
 const { withGitIndexMutations } = require('./git_index_coordinator');
 const { resolveWorktreeAssignment } = require('../../../shared/worktree_assignment.mjs');
+const { DIRTY_LINKED_WORKTREE_ERROR } = require('../../../shared/worktree_errors.mjs');
 
 const PARKING_BRANCH_PREFIX = 'md2/parking/';
 const REMOVAL_MODES = new Set(['files', 'folder', 'unregister']);
@@ -885,7 +886,10 @@ class WorktreeService {
         const refreshedRecord = await this.revalidateRecord(record, projectBranch);
         if (!refreshedRecord.status.dirty) return refreshedRecord;
 
-        throw new Error(`Linked worktree has uncommitted changes: ${record.path}`);
+        const error = new Error(`Linked worktree has uncommitted changes: ${record.path}`);
+        error.code = DIRTY_LINKED_WORKTREE_ERROR;
+
+        throw error;
     }
 
     async deleteBranchNow(project, branchName) {

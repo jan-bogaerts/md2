@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { serializeBridgeError } from '../../../shared/bridge_errors.mjs'
+import { DIRTY_LINKED_WORKTREE_ERROR } from '../../../shared/worktree_errors.mjs'
 import { MissingWorkingFolderError } from './data_types'
 import { rehydrateBridgeError, unwrapBridgeResult, withBridgeErrorRehydration } from './bridge_error_rehydration'
 import { LocalGitStorageService } from '../services/data/local_git_storage_service'
@@ -45,6 +46,17 @@ describe('bridge error rehydration across the IPC boundary', () => {
 
         expect(rehydrated.code).toBe('outside-repository-root')
         expect(rehydrated.message).toBe('Working folder is outside the repository')
+    })
+
+    it('keeps the dirty linked-worktree code across the IPC boundary', () => {
+        const dirtyWorktree = new Error('Linked worktree has uncommitted changes: C:\\worktree') as Error & { code?: string }
+        dirtyWorktree.code = DIRTY_LINKED_WORKTREE_ERROR
+        const envelope = crossIpcBoundary(serializeBridgeError(dirtyWorktree))
+
+        expect(() => unwrapBridgeResult(envelope)).toThrow(expect.objectContaining({
+            code: DIRTY_LINKED_WORKTREE_ERROR,
+            message: 'Linked worktree has uncommitted changes: C:\\worktree',
+        }))
     })
 
     it('passes ordinary bridge results through untouched', () => {
