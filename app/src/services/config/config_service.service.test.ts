@@ -318,6 +318,7 @@ describe('ConfigService', () => {
                 persistedConfigs.push(config)
                 if (persistedConfigs.length === 1) await firstSavePending
             }),
+            saveProjectFolderGitInclusion: vi.fn(),
         })
         const locator = { contextKind: 'project' as const, conversationId: 'conversation-1' }
         const pinSave = service.setConversationPinned(locator, true)
@@ -451,7 +452,7 @@ describe('ConfigService', () => {
     it('persists one project preference through the project config boundary and into an open draft', async () => {
         const saveProjectConfig = vi.fn(async () => undefined)
         service.init()
-        service.connectProjectConfigPersistence({ saveProjectConfig })
+        service.connectProjectConfigPersistence({ saveProjectConfig, saveProjectFolderGitInclusion: vi.fn() })
         service.loadProjectConfig(null)
         service.loadDraft()
 
@@ -462,10 +463,52 @@ describe('ConfigService', () => {
         expect(service.getDraft()?.['project.deleteBranchesAfterRelease']).toBe(true)
     })
 
+    it('includes the project folder in Git when the project config file omits the field', () => {
+        service.init()
+        service.loadProjectConfig({ workingFolder: 'docs' })
+
+        expect(service.get('project.includeProjectFolderInGit')).toBe(true)
+    })
+
+    it('rejects keeping the repository root out of Git', () => {
+        service.init()
+
+        expect(() => service.loadProjectConfig({ includeProjectFolderInGit: false, projectFolder: '' }))
+            .toThrow('The project folder cannot be kept out of Git when it is the repository root')
+    })
+
+    it('publishes the project folder Git inclusion only after the host saved it', async () => {
+        const saveProjectFolderGitInclusion = vi.fn(async () => undefined)
+        service.init()
+        service.connectProjectConfigPersistence({ saveProjectConfig: vi.fn(), saveProjectFolderGitInclusion })
+        service.loadProjectConfig(null)
+        service.loadDraft()
+
+        await service.setProjectFolderGitInclusion('design', false, true)
+
+        expect(saveProjectFolderGitInclusion).toHaveBeenCalledWith(
+            expect.objectContaining({ includeProjectFolderInGit: false, projectFolder: 'design' }),
+            true,
+        )
+        expect(service.get('project.includeProjectFolderInGit')).toBe(false)
+        expect(service.getDraft()?.['project.includeProjectFolderInGit']).toBe(false)
+    })
+
+    it('keeps the last persisted Git inclusion when the host operation fails', async () => {
+        const saveProjectFolderGitInclusion = vi.fn(async () => { throw new Error('git rm failed') })
+        service.init()
+        service.connectProjectConfigPersistence({ saveProjectConfig: vi.fn(), saveProjectFolderGitInclusion })
+        service.loadProjectConfig(null)
+
+        await expect(service.setProjectFolderGitInclusion('design', false, false)).rejects.toThrow('git rm failed')
+
+        expect(service.get('project.includeProjectFolderInGit')).toBe(true)
+    })
+
     it('persists last confirmed version and restores it from project config', async () => {
         const saveProjectConfig = vi.fn(async () => undefined)
         service.init()
-        service.connectProjectConfigPersistence({ saveProjectConfig })
+        service.connectProjectConfigPersistence({ saveProjectConfig, saveProjectFolderGitInclusion: vi.fn() })
         service.loadProjectConfig(null)
 
         await service.setProjectPreference('project.lastVersion', 'candidate 1')
@@ -477,7 +520,7 @@ describe('ConfigService', () => {
     it('ignores a project preference write while no project is open', async () => {
         const saveProjectConfig = vi.fn(async () => undefined)
         service.init()
-        service.connectProjectConfigPersistence({ saveProjectConfig })
+        service.connectProjectConfigPersistence({ saveProjectConfig, saveProjectFolderGitInclusion: vi.fn() })
 
         await service.setProjectPreference('project.deleteBranchAfterIntegration', true)
 

@@ -15,6 +15,7 @@ import { actionService } from '../actions/action_service'
 import { dataService } from '../data/data_service'
 import { ProjectSessionService, requireProjectFolderValues } from './project_session_service'
 import { projectPersistenceService } from './project_persistence_service'
+import { projectFolderGitInclusionService } from './project_folder_git_inclusion_service'
 import { openFilesService } from '../open_files_service'
 import { createDeferred } from '../test_support/data_service_test_support'
 import { agentCapabilitiesService } from '../agents/agent_capabilities_service'
@@ -295,6 +296,7 @@ describe('ProjectSessionService storage activation', () => {
         await expect(service.restoreLastProject(null)).resolves.toMatchObject({
             existingFolderPaths: ['design', 'design/archived'],
             hasProjectConfig: true,
+            includeProjectFolderInGit: true,
             kind: 'project-folder-setup',
             project,
             storageType: 'local',
@@ -561,6 +563,7 @@ describe('ProjectSessionService storage activation', () => {
             existingFolderPaths: [],
             folders: [{ name: 'docs', path: 'docs' }],
             hasProjectConfig: false,
+            includeProjectFolderInGit: false,
             kind: 'project-folder-setup',
             project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
             storageType: 'local',
@@ -597,6 +600,7 @@ describe('ProjectSessionService storage activation', () => {
             existingFolderPaths: [],
             folders: [{ name: 'docs', path: 'docs' }],
             hasProjectConfig: false,
+            includeProjectFolderInGit: true,
             kind: 'project-folder-setup',
             project,
             storageType: 'github',
@@ -637,12 +641,13 @@ describe('ProjectSessionService storage activation', () => {
                 existingFolderPaths: [],
                 folders: [],
                 hasProjectConfig: false,
+                includeProjectFolderInGit: false,
                 kind: 'project-folder-setup',
                 project,
                 storageType: 'local',
                 values: DEFAULT_FOLDER_VALUES,
             },
-            DEFAULT_FOLDER_VALUES,
+            { folderValues: DEFAULT_FOLDER_VALUES, includeProjectFolderInGit: true },
             null,
         )
 
@@ -669,6 +674,84 @@ describe('ProjectSessionService storage activation', () => {
         expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(project)
     })
 
+    it('keeps the project folder of a new local project out of Git while committing the config', async () => {
+        mockProjectOpen()
+        configService.init()
+        const bridge = {
+            ...createDataBridge(),
+            hasTrackedProjectFolderFiles: vi.fn(async () => false),
+            saveProjectFolderGitInclusion: vi.fn(async () => undefined),
+        }
+        window.md2Data = bridge
+        const service = new ProjectSessionService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const resolution = {
+            existingFolderPaths: [],
+            folders: [],
+            hasProjectConfig: false,
+            includeProjectFolderInGit: false,
+            kind: 'project-folder-setup' as const,
+            project,
+            storageType: 'local' as const,
+            values: DEFAULT_FOLDER_VALUES,
+        }
+
+        const confirmed = await service.confirmProjectFolderSetup(
+            resolution,
+            { folderValues: DEFAULT_FOLDER_VALUES, includeProjectFolderInGit: false },
+            null,
+        )
+
+        expect(confirmed).toBe(true)
+        expect(bridge.saveProjectFolderGitInclusion).toHaveBeenCalledWith(
+            project,
+            expect.objectContaining({ includeProjectFolderInGit: false, projectFolder: 'design' }),
+            false,
+        )
+        expect(bridge.commit).not.toHaveBeenCalled()
+        expect(bridge.writeFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            files: expect.arrayContaining([expect.objectContaining({ path: 'design/actions/implement.json' })]),
+        })
+        expect(bridge.saveProjectConfig).toHaveBeenLastCalledWith(project, expect.objectContaining({ includeProjectFolderInGit: false }))
+    })
+
+    it('writes nothing when the user cancels removing a tracked project folder from Git during setup', async () => {
+        mockProjectOpen()
+        configService.init()
+        const bridge = {
+            ...createDataBridge(),
+            hasTrackedProjectFolderFiles: vi.fn(async () => true),
+            saveProjectFolderGitInclusion: vi.fn(async () => undefined),
+        }
+        window.md2Data = bridge
+        const confirmation = vi.spyOn(projectFolderGitInclusionService, 'requestRemovalConfirmation').mockResolvedValue(false)
+        const service = new ProjectSessionService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const resolution = {
+            existingFolderPaths: [],
+            folders: [],
+            hasProjectConfig: false,
+            includeProjectFolderInGit: false,
+            kind: 'project-folder-setup' as const,
+            project,
+            storageType: 'local' as const,
+            values: DEFAULT_FOLDER_VALUES,
+        }
+
+        const confirmed = await service.confirmProjectFolderSetup(
+            resolution,
+            { folderValues: DEFAULT_FOLDER_VALUES, includeProjectFolderInGit: false },
+            null,
+        )
+
+        expect(confirmed).toBe(false)
+        expect(confirmation).toHaveBeenCalledWith('design')
+        expect(bridge.saveProjectFolderGitInclusion).not.toHaveBeenCalled()
+        expect(bridge.saveProjectConfig).not.toHaveBeenCalled()
+        expect(bridge.createProject).not.toHaveBeenCalled()
+    })
+
     it('seeds only missing default actions and leaves existing folders untouched', async () => {
         mockProjectOpen()
         configService.init()
@@ -689,12 +772,13 @@ describe('ProjectSessionService storage activation', () => {
                 existingFolderPaths: ['design', 'design/actions', 'design/active', 'design/archived', 'design/history', 'design/diagrams'],
                 folders: [{ name: 'design', path: 'design' }],
                 hasProjectConfig: false,
+                includeProjectFolderInGit: false,
                 kind: 'project-folder-setup',
                 project,
                 storageType: 'local',
                 values: DEFAULT_FOLDER_VALUES,
             },
-            DEFAULT_FOLDER_VALUES,
+            { folderValues: DEFAULT_FOLDER_VALUES, includeProjectFolderInGit: true },
             null,
         )
 

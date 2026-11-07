@@ -270,6 +270,42 @@ describe('ConfigPage', () => {
         vi.useRealTimers()
     })
 
+    it('hides the project folder Git option for storage that cannot keep the folder local', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        const supportsLocalOnly = vi.spyOn(dataService.projectLoading, 'supportsLocalOnlyProjectFolder').mockReturnValue(false)
+
+        renderConfigPage('')
+
+        expect(screen.queryByRole('switch', { name: 'Include project folder in Git' })).toBeNull()
+        supportsLocalOnly.mockRestore()
+    })
+
+    it('shows the project folder Git option on for a local project without the field', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig({ workingFolder: 'active' })
+        const supportsLocalOnly = vi.spyOn(dataService.projectLoading, 'supportsLocalOnlyProjectFolder').mockReturnValue(true)
+
+        renderConfigPage('')
+
+        expect(screen.getByRole('switch', { name: 'Include project folder in Git' })).toBeChecked()
+        supportsLocalOnly.mockRestore()
+    })
+
+    it('does not allow keeping a repository-root project folder out of Git', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig({ projectFolder: '' })
+        const supportsLocalOnly = vi.spyOn(dataService.projectLoading, 'supportsLocalOnlyProjectFolder').mockReturnValue(true)
+
+        renderConfigPage('')
+
+        expect(screen.getByRole('switch', { name: 'Include project folder in Git' })).toBeDisabled()
+        supportsLocalOnly.mockRestore()
+    })
+
     it('saves draft edits into active config', () => {
         mockMatchMedia(false)
         configService.init()

@@ -66,6 +66,8 @@ export interface ProjectConfig {
     diffCommand: string
     diagramFooter: string
     diagramsFolder: string
+    /** False keeps `projectFolder` local: ignored by Git and never staged or committed. */
+    includeProjectFolderInGit: boolean
     pinnedConversations: PinnedConversationLocator[]
     projectFolder: string
     pushMode: PushMode
@@ -521,6 +523,8 @@ export interface StorageService {
     discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<void>
     discardPendingCommits?(project: ProjectReference): void
     hasPendingPush?(project: ProjectReference): boolean
+    /** Present only where the project folder can be kept local (desktop local Git storage). */
+    hasTrackedProjectFolderFiles?(project: ProjectReference, projectFolder: string): Promise<boolean>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     listAgentConversationReferences?(project: ProjectReference, projectFolder: string): Promise<string[]>
     listRepositories(): Promise<RepositoryReference[]>
@@ -565,6 +569,8 @@ export interface StorageService {
     refreshWorktrees?(project: ProjectReference): Promise<void>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: AnySchedule[]): Promise<AnySchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    /** Saves the config with the matching `.gitignore` rule; `removeTrackedFiles` untracks the project folder. */
+    saveProjectFolderGitInclusion?(project: ProjectReference, config: ProjectConfig, removeTrackedFiles: boolean): Promise<void>
     selectWorktreeFolder?(): Promise<string | null>
     removeWorktree?(project: ProjectReference, folderPath: string, mode: WorktreeRemovalMode): Promise<void>
     stopAgent?(project: ProjectReference, runId: string): Promise<void>
@@ -626,6 +632,7 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     diffCommand: DEFAULT_DIFF_COMMAND,
     diagramFooter: DEFAULT_DIAGRAM_FOOTER,
     diagramsFolder: DEFAULT_DIAGRAMS_FOLDER,
+    includeProjectFolderInGit: true,
     pinnedConversations: [],
     projectFolder: DEFAULT_PROJECT_FOLDER,
     pushMode: 'manual',

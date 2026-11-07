@@ -760,7 +760,10 @@ describe('WorktreeSelector', () => {
     })
 
     it('restores and applies the persisted delete-branch integration choice', async () => {
-        configService.connectProjectConfigPersistence({ saveProjectConfig: vi.fn(async () => undefined) })
+        configService.connectProjectConfigPersistence({
+            saveProjectConfig: vi.fn(async () => undefined),
+            saveProjectFolderGitInclusion: vi.fn(),
+        })
         configService.loadProjectConfig({ deleteBranchAfterIntegration: true })
         const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
         const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })

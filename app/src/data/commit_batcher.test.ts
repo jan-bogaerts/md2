@@ -17,13 +17,74 @@ function createBatcher(
     delayMs = 30000,
     requireCardByInternalId: (internalId: string) => Card = () => { throw new Error('Unexpected card lookup') },
     writeFiles: WriteCallback = vi.fn(async () => undefined),
+    isLocalOnlyPath: (path: string) => boolean = () => false,
 ) {
-    const cardOperations = { commitFiles: commit, pushCommittedFiles: push, requireCardByInternalId, writeFiles }
+    const cardOperations = { commitFiles: commit, isLocalOnlyPath, pushCommittedFiles: push, requireCardByInternalId, writeFiles }
 
     return new CommitBatcher(cardOperations, () => delayMs)
 }
 
+function isDesignPath(path: string) {
+    return path.startsWith('design/')
+}
+
 describe('CommitBatcher', () => {
+    it('writes a batch kept entirely in a local-only project folder without committing or pushing it', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const push = vi.fn<PushCallback>(async () => undefined)
+        const writeFiles = vi.fn<WriteCallback>(async () => undefined)
+        const persisted = vi.fn()
+        const throwOnCardLookup = () => { throw new Error('Unexpected card lookup') }
+        const batcher = createBatcher(commit, push, 30000, throwOnCardLookup, writeFiles, isDesignPath)
+        batcher.schedule('main', [
+            { content: 'card', kind: 'file', onPersisted: persisted, path: 'design/active/card.md' },
+            { content: 'action', actionId: 'review', kind: 'action', path: 'design/actions/review.json', sourcePath: 'design/actions/new.json' },
+        ], 'Update design')
+
+        await batcher.flush()
+
+        expect(commit).not.toHaveBeenCalled()
+        expect(push).not.toHaveBeenCalled()
+        expect(writeFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content: 'card', path: 'design/active/card.md' }],
+            moves: [{ content: 'action', fromPath: 'design/actions/new.json', toPath: 'design/actions/review.json' }],
+        })
+        expect(persisted).toHaveBeenCalledOnce()
+        expect(batcher.hasPending()).toBe(false)
+    })
+
+    it('commits and pushes a batch that also touches paths outside the local-only project folder', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const push = vi.fn<PushCallback>(async () => undefined)
+        const writeFiles = vi.fn<WriteCallback>(async () => undefined)
+        const throwOnCardLookup = () => { throw new Error('Unexpected card lookup') }
+        const batcher = createBatcher(commit, push, 30000, throwOnCardLookup, writeFiles, isDesignPath)
+        batcher.schedule('main', [
+            { content: 'card', kind: 'file', path: 'design/active/card.md' },
+            { content: 'readme', kind: 'file', path: 'README.md' },
+        ], 'Update files')
+
+        await batcher.flush()
+
+        expect(writeFiles).not.toHaveBeenCalled()
+        expect(commit).toHaveBeenCalledOnce()
+        expect(push).toHaveBeenCalledOnce()
+    })
+
+    it('keeps a failed local-only write pending', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const writeFiles = vi.fn<WriteCallback>(async () => { throw new Error('disk full') })
+        const throwOnCardLookup = () => { throw new Error('Unexpected card lookup') }
+        const batcher = createBatcher(commit, vi.fn(async () => undefined), 30000, throwOnCardLookup, writeFiles, isDesignPath)
+        batcher.schedule('main', [{ content: 'card', kind: 'file', path: 'design/active/card.md' }], 'Update card')
+
+        await expect(batcher.flush()).rejects.toThrow('disk full')
+
+        expect(commit).not.toHaveBeenCalled()
+        expect(batcher.hasPendingFile('design/active/card.md')).toBe(true)
+    })
+
     it('batches renamed diagram JSON and index under stable diagram identity', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const persisted = vi.fn()

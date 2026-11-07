@@ -47,6 +47,7 @@ export interface ConfigValueTypes {
     'project.diagramFooter': string
     'project.lastVersion': string
     'project.diagramsFolder': string
+    'project.includeProjectFolderInGit': boolean
     'project.pinnedConversations': PinnedConversationLocator[]
     'project.projectFolder': string
     'project.pushMode': PushMode
@@ -231,6 +232,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'project',
         source: 'project',
         type: 'select',
+    },
+    {
+        defaultValue: true,
+        description: 'Commit the project folder to Git. When off, the folder is added to .gitignore and its files stay local.',
+        editable: true,
+        key: 'project.includeProjectFolderInGit',
+        label: 'Include project folder in Git',
+        section: 'project',
+        source: 'project',
+        type: 'boolean',
     },
     {
         defaultValue: false,

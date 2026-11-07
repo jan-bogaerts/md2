@@ -82,6 +82,7 @@ export interface ElectronDataBridge {
     markMergeConflictResolved?(request: MergeConflictPathRequest): Promise<MergeConflictSession>
     onMergeConflictSessionChanged?(callback: (session: MergeConflictSession | null) => void): () => void
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
+    hasTrackedProjectFolderFiles?(project: ProjectReference, projectFolder: string): Promise<boolean>
     listAgentConversationReferences?(project: ProjectReference, projectFolder: string): Promise<string[]>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
@@ -99,6 +100,7 @@ export interface ElectronDataBridge {
     resolveProject(project: ProjectReference): Promise<ProjectReference>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: AnySchedule[]): Promise<AnySchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    saveProjectFolderGitInclusion?(project: ProjectReference, config: ProjectConfig, removeTrackedFiles: boolean): Promise<void>
     selectProjectSubFolder?(rootPath: string): Promise<string | null>
     selectWorktreeFolder?(): Promise<string | null>
     showInFileExplorer?(request: ShowInFileExplorerRequest): Promise<void>

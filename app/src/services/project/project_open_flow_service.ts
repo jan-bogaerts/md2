@@ -30,6 +30,7 @@ export interface ProjectOpenFlowState {
     source: ProjectOpenSource | null
     resolution: ProjectOpenResolution | null
     folderValues: ProjectFolderValues | null
+    includeProjectFolderInGit: boolean
     branches: BranchReference[]
     repositories: RepositoryReference[]
     recentLocalRepositories: string[]
@@ -81,6 +82,7 @@ export class ProjectOpenFlowService extends EventTarget {
         source: null,
         resolution: null,
         folderValues: null,
+        includeProjectFolderInGit: true,
         branches: [],
         repositories: [],
         recentLocalRepositories: [],
@@ -120,6 +122,7 @@ export class ProjectOpenFlowService extends EventTarget {
             source: entry.source ?? null,
             resolution,
             folderValues: folderSetup?.values ?? null,
+            includeProjectFolderInGit: folderSetup?.includeProjectFolderInGit ?? true,
             branches: [],
             repositories: [],
             recentLocalRepositories: readRecentLocalRepositories(),
@@ -142,6 +145,10 @@ export class ProjectOpenFlowService extends EventTarget {
 
     setFolderValues(values: ProjectFolderValues) {
         this.update({ folderValues: values })
+    }
+
+    setIncludeProjectFolderInGit(includeProjectFolderInGit: boolean) {
+        this.update({ includeProjectFolderInGit })
     }
 
     async loadRepositories() {
@@ -276,7 +283,13 @@ export class ProjectOpenFlowService extends EventTarget {
 
         this.update({ phase: 'loading', folderValues: values })
         try {
-            await projectSessionService.confirmProjectFolderSetup(resolution, values, this.accessToken)
+            const setupValues = { folderValues: values, includeProjectFolderInGit: this.state.includeProjectFolderInGit }
+            const confirmed = await projectSessionService.confirmProjectFolderSetup(resolution, setupValues, this.accessToken)
+            if (!confirmed) {
+                this.update({ phase: 'folder-setup' })
+
+                return
+            }
             await this.recordOpenedLocalProject()
             this.update({ phase: 'closed', resolution: null, folderValues: null })
         } catch {
@@ -376,7 +389,12 @@ export class ProjectOpenFlowService extends EventTarget {
             this.pendingLocalRootPath = project.rootPath ?? null
             const folderSetup = folderSetupOf(resolution)
             if (folderSetup) {
-                this.update({ phase: 'folder-setup', resolution: folderSetup, folderValues: folderSetup.values })
+                this.update({
+                    phase: 'folder-setup',
+                    resolution: folderSetup,
+                    folderValues: folderSetup.values,
+                    includeProjectFolderInGit: folderSetup.includeProjectFolderInGit,
+                })
 
                 return
             }
@@ -399,6 +417,7 @@ export class ProjectOpenFlowService extends EventTarget {
                     phase: folderSetup ? 'folder-setup' : 'selecting',
                     resolution,
                     folderValues: folderSetup?.values ?? null,
+                    includeProjectFolderInGit: folderSetup?.includeProjectFolderInGit ?? true,
                 })
 
                 return

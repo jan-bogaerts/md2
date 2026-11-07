@@ -257,6 +257,7 @@ describe('AppMenu', () => {
             existingFolderPaths: [],
             folders: [],
             hasProjectConfig: false,
+            includeProjectFolderInGit: false,
             kind: 'project-folder-setup',
             project: LOCAL_PROJECT,
             storageType: 'local',

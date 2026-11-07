@@ -310,6 +310,33 @@ export class ProjectLoading {
         this.dependencies.dispatchPersistenceChanged()
     }
 
+    /** Whether the active storage can keep the project folder local, which only desktop local Git storage can. */
+    supportsLocalOnlyProjectFolder() {
+        const storage = this.dependencies.storage()
+
+        return !!storage?.saveProjectFolderGitInclusion && !!storage.hasTrackedProjectFolderFiles
+    }
+
+    async hasTrackedProjectFolderFiles(projectFolder: string) {
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot inspect the project folder before a project is open')
+        if (!storage.hasTrackedProjectFolderFiles) throw new Error('Current storage cannot keep the project folder out of Git')
+
+        return storage.hasTrackedProjectFolderFiles(currentProject, projectFolder)
+    }
+
+    async saveProjectFolderGitInclusion(config: ProjectConfig, removeTrackedFiles: boolean) {
+        projectAccessService.requireWritable()
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot save project config before a project is open')
+        if (!storage.saveProjectFolderGitInclusion) throw new Error('Current storage cannot keep the project folder out of Git')
+
+        await storage.saveProjectFolderGitInclusion(currentProject, config, removeTrackedFiles)
+        this.dependencies.dispatchPersistenceChanged()
+    }
+
     async waitForPinnedLocations() {
         const hasLegacyProjectPins = configService.getProjectConfig().pinnedConversations.some((locator) => (
             locator.contextKind === 'project' && !locator.activityPath

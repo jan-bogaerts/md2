@@ -11,6 +11,8 @@ const { projectOperationCoordinator } = require('./project_operation_coordinator
 const {
     commit,
     commitNow,
+    createProjectNow,
+    deleteFileNow,
     isWatchedProjectPath,
     listRepositoryFiles,
     loadImageFile,
@@ -94,7 +96,7 @@ describe('project-files', () => {
             const gitCommands = runGitProcess.mock.instances.map(({ args }) => args);
             await expect(readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8')).resolves.toBe('{"version":3}');
             expect(gitCommands).toContainEqual(['add', '--', 'design/activity/card__card-1.json']);
-            expect(gitCommands.some((args) => args.includes('design/activity/card__deleted.json'))).toBe(false);
+            expect(gitCommands.some((args) => args[0] === 'add' && args.includes('design/activity/card__deleted.json'))).toBe(false);
             expect(gitCommands).toContainEqual(['commit', '-m', 'Update conversation view state']);
         } finally {
             vi.restoreAllMocks();
@@ -137,6 +139,83 @@ describe('project-files', () => {
             expect(gitArguments).toContainEqual(['add', 'actions/review.json']);
             expect(gitArguments).toContainEqual(['add', 'design/F-001.md']);
             expect(gitArguments.some(([command]) => command === 'commit')).toBe(true);
+        } finally {
+            vi.restoreAllMocks();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('writes ignored project-folder files without staging them and commits only the rest', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const stagedChanges = Object.assign(new Error('staged changes'), { code: 1 });
+            const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockImplementation(async function run() {
+                if (this.args[0] === 'diff') throw stagedChanges;
+                if (this.args[0] === 'check-ignore') return { stderr: '', stdout: 'design/active/F-1.md\0' };
+
+                return { stderr: '', stdout: '' };
+            });
+
+            await commitNow({
+                branch: 'main',
+                files: [{ content: '# Card', path: 'design/active/F-1.md' }, { content: '# Readme', path: 'README.md' }],
+                message: 'Save',
+            }, { branch: 'main', id: 'local', rootPath });
+
+            const gitCommands = runGitProcess.mock.instances.map(({ args }) => args);
+            await expect(readFile(join(rootPath, 'design', 'active', 'F-1.md'), 'utf8')).resolves.toBe('# Card');
+            expect(gitCommands).toContainEqual(['check-ignore', '-z', '--', 'design/active/F-1.md', 'README.md']);
+            expect(gitCommands).toContainEqual(['add', 'README.md']);
+            expect(gitCommands.some((args) => args[0] === 'add' && args.includes('design/active/F-1.md'))).toBe(false);
+        } finally {
+            vi.restoreAllMocks();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('creates ignored project folders without staging their placeholders', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockImplementation(async function run() {
+                if (this.args[0] === 'check-ignore') return { stderr: '', stdout: 'design/active\0' };
+
+                return { stderr: '', stdout: '' };
+            });
+
+            await createProjectNow({ branch: 'main', id: 'local', rootPath }, ['design/active']);
+
+            await expect(readFile(join(rootPath, 'design', 'active', 'README.md'), 'utf8')).resolves.toBeTruthy();
+            const gitCommands = runGitProcess.mock.instances.map(({ args }) => args);
+            expect(gitCommands.some(([command]) => command === 'add' || command === 'commit')).toBe(false);
+        } finally {
+            vi.restoreAllMocks();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('deletes an untracked file from disk without git rm or an empty commit', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await mkdir(join(rootPath, 'design'));
+            await writeFile(join(rootPath, 'design', 'F-1.md'), '# Card');
+            const untracked = Object.assign(new Error('untracked'), { code: 1 });
+            const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockImplementation(async function run() {
+                if (this.args.includes('--error-unmatch')) throw untracked;
+
+                return { stderr: '', stdout: '' };
+            });
+
+            await deleteFileNow({ branch: 'main', message: 'Delete card', path: 'design/F-1.md' }, { branch: 'main', id: 'local', rootPath });
+
+            await expect(readFile(join(rootPath, 'design', 'F-1.md'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+            const gitCommands = runGitProcess.mock.instances.map(({ args }) => args);
+            expect(gitCommands.some(([command]) => command === 'rm' || command === 'commit')).toBe(false);
         } finally {
             vi.restoreAllMocks();
             await rm(rootPath, { force: true, recursive: true });

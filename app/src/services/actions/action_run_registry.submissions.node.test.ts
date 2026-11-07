@@ -287,9 +287,7 @@ describe('registry-owned submissions', () => {
     });
 
     it('keeps submission notifications for local failure and queue-response changes', async () => {
-        const { registry } = setup({
-            enqueueActionPrompt: vi.fn(async (_runId, content, id) => ({ content, dispatchState: 'queued' as const, id, revision: 0 })),
-        });
+        const { registry } = setup({enqueueActionPrompt: vi.fn(async (_runId, content, id) => ({ content, dispatchState: 'queued' as const, id, revision: 0 }))});
         const listener = vi.fn();
         const unsubscribe = registry.subscribeSubmissions(action.id, context, listener);
         const queuedId = registry.beginSubmission(action.id, context, 'Queue', eventBase.runId, conversation.id);

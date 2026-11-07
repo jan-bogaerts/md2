@@ -160,6 +160,7 @@ describe('App', () => {
             existingFolderPaths: ['design'],
             folders: [{ name: 'design', path: 'design' }],
             hasProjectConfig: true,
+            includeProjectFolderInGit: true,
             kind: 'project-folder-setup' as const,
             project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
             storageType: 'local' as const,

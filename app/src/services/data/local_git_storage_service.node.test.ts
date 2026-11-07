@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from '../../data/electron_data_bridge'
-import type { AgentConversation, CommitRequest, DeleteFileRequest, DeleteFolderRequest } from '../../data/data_types'
+import { DEFAULT_PROJECT_CONFIG, type AgentConversation, type CommitRequest, type DeleteFileRequest, type DeleteFolderRequest } from '../../data/data_types'
 import { LocalGitStorageService } from './local_git_storage_service'
 
 function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronDataBridge {
@@ -372,5 +372,30 @@ describe('LocalGitStorageService binary write path', () => {
 
         expect(loadImageFile).toHaveBeenCalledWith('C:/images/photo.png')
         expect(asset).toEqual(imageAsset)
+    })
+})
+
+describe('LocalGitStorageService project folder Git inclusion', () => {
+    it('forwards tracked-file checks and inclusion saves to the Electron bridge', async () => {
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const hasTrackedProjectFolderFiles = vi.fn().mockResolvedValue(true)
+        const saveProjectFolderGitInclusion = vi.fn().mockResolvedValue(undefined)
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge({ hasTrackedProjectFolderFiles, saveProjectFolderGitInclusion }) })
+        const config = { ...DEFAULT_PROJECT_CONFIG, includeProjectFolderInGit: false }
+
+        await expect(service.hasTrackedProjectFolderFiles(project, 'design')).resolves.toBe(true)
+        await service.saveProjectFolderGitInclusion(project, config, true)
+
+        expect(hasTrackedProjectFolderFiles).toHaveBeenCalledWith(project, 'design')
+        expect(saveProjectFolderGitInclusion).toHaveBeenCalledWith(project, config, true)
+    })
+
+    it('fails clearly when the bridge cannot keep the project folder out of Git', async () => {
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge() })
+
+        await expect(service.saveProjectFolderGitInclusion({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, DEFAULT_PROJECT_CONFIG, false))
+            .rejects.toThrow('Electron local Git bridge cannot keep the project folder out of Git')
     })
 })

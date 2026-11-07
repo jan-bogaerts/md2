@@ -27,6 +27,7 @@ function folderSetupResolution(): ProjectOpenResolution {
         existingFolderPaths: [],
         folders: [],
         hasProjectConfig: false,
+        includeProjectFolderInGit: false,
         kind: 'project-folder-setup',
         project: LOCAL_PROJECT,
         storageType: 'local',
@@ -208,7 +209,7 @@ describe('ProjectOpenFlowService', () => {
         const service = new ProjectOpenFlowService()
         const resolution = folderSetupResolution()
         vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(resolution)
-        const confirm = vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(undefined)
+        const confirm = vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(true)
         service.setAuthentication('token', false)
         service.show()
 
@@ -217,7 +218,7 @@ describe('ProjectOpenFlowService', () => {
         expect(service.getSnapshot().folderValues).toEqual(resolution.values)
 
         await service.confirmFolders(resolution.values)
-        expect(confirm).toHaveBeenCalledWith(resolution, resolution.values, 'token')
+        expect(confirm).toHaveBeenCalledWith(resolution, { folderValues: resolution.values, includeProjectFolderInGit: false }, 'token')
         expect(window.localStorage.getItem(RECENT_LOCAL_REPOSITORIES_STORAGE_KEY)).toContain('C:/repo')
         expect(service.getPhase()).toBe('closed')
     })
@@ -266,7 +267,7 @@ describe('ProjectOpenFlowService', () => {
         it('records a startup folder needing setup only after the folders are confirmed', async () => {
             const resolution = folderSetupResolution()
             vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(resolution)
-            vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(undefined)
+            vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(true)
             const service = new ProjectOpenFlowService()
 
             await service.openStartupProject('C:/repo')

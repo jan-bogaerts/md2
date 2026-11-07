@@ -6,6 +6,8 @@ const {
     assertGitRoot,
     commitStagedChanges,
     ensureInsideRoot,
+    hasTrackedFiles,
+    listIgnoredPaths,
     listWorkingTreeFiles,
     pathExists,
     requireRootPath,
@@ -122,10 +124,12 @@ async function createProjectNow(project, folders) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const createdFolders = await createMissingProjectFolders(rootPath, folders);
+    const ignoredFolders = await listIgnoredPaths(rootPath, createdFolders);
+    const committableFolders = createdFolders.filter((folder) => !ignoredFolders.has(folder));
 
-    if (createdFolders.length > 0) {
-        await runGit(rootPath, ['add', '--', ...createdFolders]);
-        await commitStagedChanges(rootPath, `Create ${createdFolders.join(', ')} workspace`);
+    if (committableFolders.length > 0) {
+        await runGit(rootPath, ['add', '--', ...committableFolders]);
+        await commitStagedChanges(rootPath, `Create ${committableFolders.join(', ')} workspace`);
     }
 
     return project;
@@ -281,8 +285,22 @@ async function listTopLevelFolders(project) {
     return readTopLevelFolders(rootPath);
 }
 
+/** Repository-relative paths a commit or move request stages, so ignored ones can be skipped in one Git call. */
+function requestedRepositoryPaths(rootPath, request) {
+    const requestedPaths = [
+        ...(request.moves ?? []).map(({ toPath }) => toPath),
+        ...(request.files ?? []).map(({ path: filePath }) => filePath),
+        ...(request.paths ?? []),
+    ].filter((requestedPath) => typeof requestedPath === 'string' && requestedPath.length > 0);
+
+    return requestedPaths.map((requestedPath) => (
+        normalizePath(path.relative(rootPath, ensureInsideRoot(rootPath, path.join(rootPath, requestedPath))))
+    ));
+}
+
 async function commitNow(request, project) {
     const rootPath = requireRootPath(project);
+    const ignoredPaths = await listIgnoredPaths(rootPath, requestedRepositoryPaths(rootPath, request));
 
     for (const move of request.moves ?? []) {
         if (!move || typeof move.fromPath !== 'string' || move.fromPath.length === 0) throw new Error('Missing commit move source path');
@@ -305,7 +323,7 @@ async function commitNow(request, project) {
             await runGit(rootPath, ['add', '-u', '--', sourceRepositoryPath]);
         }
         await fs.promises.writeFile(targetPath, data);
-        await runGit(rootPath, ['add', targetRepositoryPath]);
+        if (!ignoredPaths.has(targetRepositoryPath)) await runGit(rootPath, ['add', targetRepositoryPath]);
     }
 
     for (const file of request.files) {
@@ -313,16 +331,17 @@ async function commitNow(request, project) {
         const data = file.encoding === 'base64' ? Buffer.from(file.content, 'base64') : file.content;
         await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
         await fs.promises.writeFile(filePath, data);
-        await runGit(rootPath, ['add', file.path]);
+        if (!ignoredPaths.has(normalizePath(path.relative(rootPath, filePath)))) await runGit(rootPath, ['add', file.path]);
     }
 
     for (const repositoryPath of request.paths ?? []) {
         if (typeof repositoryPath !== 'string' || repositoryPath.length === 0) throw new Error('Missing commit path');
 
         const fullPath = ensureInsideRoot(rootPath, path.join(rootPath, repositoryPath));
-        if (!(await pathExists(fullPath))) continue;
+        const normalizedRepositoryPath = normalizePath(path.relative(rootPath, fullPath));
+        if (!(await pathExists(fullPath)) || ignoredPaths.has(normalizedRepositoryPath)) continue;
 
-        await runGit(rootPath, ['add', '--', normalizePath(path.relative(rootPath, fullPath))]);
+        await runGit(rootPath, ['add', '--', normalizedRepositoryPath]);
     }
 
     await commitStagedChanges(rootPath, request.message);
@@ -373,8 +392,9 @@ async function deleteFileNow(request, project) {
 
     const filePath = ensureInsideRoot(rootPath, path.join(rootPath, request.path));
     const repositoryPath = normalizePath(path.relative(rootPath, filePath));
-    await runGit(rootPath, ['rm', repositoryPath]);
-    await runGit(rootPath, ['commit', '-m', request.message]);
+    if (await isTrackedFile(rootPath, repositoryPath)) await runGit(rootPath, ['rm', repositoryPath]);
+    else await fs.promises.rm(filePath);
+    await commitStagedChanges(rootPath, request.message);
 }
 
 function deleteFile(request, project) {
@@ -391,8 +411,9 @@ async function deleteFolderNow(request, project) {
 
     const folderPath = ensureInsideRoot(rootPath, path.join(rootPath, request.path));
     const repositoryPath = normalizePath(path.relative(rootPath, folderPath));
-    await runGit(rootPath, ['rm', '-r', repositoryPath]);
-    await runGit(rootPath, ['commit', '-m', request.message]);
+    if (await hasTrackedFiles(rootPath, repositoryPath)) await runGit(rootPath, ['rm', '-r', repositoryPath]);
+    else await fs.promises.rm(folderPath, { recursive: true });
+    await commitStagedChanges(rootPath, request.message);
 }
 
 function deleteFolder(request, project) {
@@ -406,6 +427,7 @@ async function moveFilesNow(request, project) {
     await assertGitRoot(rootPath);
     if (!request || typeof request.message !== 'string' || request.message.length === 0) throw new Error('Missing move commit message');
     if (!Array.isArray(request.moves) || request.moves.length === 0) throw new Error('Missing files to move');
+    const ignoredPaths = await listIgnoredPaths(rootPath, requestedRepositoryPaths(rootPath, { files: [], moves: request.moves }));
 
     for (const move of request.moves) {
         if (!move || typeof move.fromPath !== 'string' || move.fromPath.length === 0) throw new Error('Missing move source path');
@@ -428,10 +450,10 @@ async function moveFilesNow(request, project) {
             await runGit(rootPath, ['add', '-u', '--', sourceRepositoryPath]);
         }
         await fs.promises.writeFile(targetPath, data);
-        await runGit(rootPath, ['add', targetRepositoryPath]);
+        if (!ignoredPaths.has(targetRepositoryPath)) await runGit(rootPath, ['add', targetRepositoryPath]);
     }
 
-    await runGit(rootPath, ['commit', '-m', request.message]);
+    await commitStagedChanges(rootPath, request.message);
 }
 
 function moveFiles(request, project) {
@@ -440,12 +462,17 @@ function moveFiles(request, project) {
     return holdProjectMutation(rootPath, () => moveFilesNow(request, project));
 }
 
-async function saveProjectConfigNow(project, config) {
-    const rootPath = requireRootPath(project);
-    await assertGitRoot(rootPath);
+/** Writes `md2.config.json` and stages it without committing. */
+async function writeProjectConfigFile(rootPath, config) {
     const configPath = ensureInsideRoot(rootPath, path.join(rootPath, PROJECT_CONFIG_PATH));
     await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
     await runGit(rootPath, ['add', PROJECT_CONFIG_PATH]);
+}
+
+async function saveProjectConfigNow(project, config) {
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    await writeProjectConfigFile(rootPath, config);
     await commitStagedChanges(rootPath, 'Update MD² project config');
 }
 
@@ -548,8 +575,11 @@ module.exports = {
     commit,
     commitNow,
     createProject,
+    createProjectNow,
     deleteFile,
+    deleteFileNow,
     deleteFolder,
+    holdProjectMutation,
     listRepositoryFiles,
     listTopLevelFolders,
     loadFile,
@@ -567,4 +597,5 @@ module.exports = {
     watchProject,
     writeFiles,
     writeFilesNow,
+    writeProjectConfigFile,
 };

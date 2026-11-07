@@ -16,6 +16,7 @@ const firstConfig: ProjectConfig = {
     diagramFooter: 'Save to {{diagram-file}}.',
     diagramsFolder: 'diagrams',
     diffCommand: 'git show {{commit}}',
+    includeProjectFolderInGit: true,
     pinnedConversations: [],
     projectFolder: '',
     pushMode: 'auto',

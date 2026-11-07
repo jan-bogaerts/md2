@@ -208,7 +208,12 @@ export class DataService extends EventTarget {
         this.fullProjectLoaded = false
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = this.trackStorage(dependencies.storage)
-        configService.connectProjectConfigPersistence({ saveProjectConfig: (config) => this.projectLoading.saveProjectConfig(config) })
+        configService.connectProjectConfigPersistence({
+            saveProjectConfig: (config) => this.projectLoading.saveProjectConfig(config),
+            saveProjectFolderGitInclusion: (config, removeTrackedFiles) => (
+                this.projectLoading.saveProjectFolderGitInclusion(config, removeTrackedFiles)
+            ),
+        })
         this.initializeStorageServices()
         worktreeService.init({
             assignCardWorktree: (path, worktree, branch) => this.cards.assignCardWorktree(path, worktree, branch),

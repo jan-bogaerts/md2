@@ -4,11 +4,13 @@ import type { ConfigSectionProps } from './config_section_props'
 import { ConfigSubsection } from './config_subsection'
 import { ConfigValueEditor } from './config_value_editor'
 import { worktreeService } from '../../services/project/worktree_service'
+import { dataService } from '../../services/data/data_service'
 import { WorktreeConfigList } from './worktree_config_list'
 
 const CONFIG_SECTION_SCROLL_MARGIN_TOP = 3
 const PROJECT_CONFIG_SECTION_ID = 'project'
 const PROJECT_CONFIG_SECTION_LABEL = 'Project'
+const INCLUDE_PROJECT_FOLDER_IN_GIT_KEY: ConfigKey = 'project.includeProjectFolderInGit'
 
 interface ProjectConfigGroup {
     description: string
@@ -38,9 +40,10 @@ const PROJECT_CONFIG_GROUPS: ProjectConfigGroup[] = [
         label: 'Cards',
     },
     {
-        description: 'How MD² talks to Git for this project: diff command, push mode, branch cleanup, and how long auto-commit waits.',
+        description: 'How MD² talks to Git for this project: whether the project folder is committed, diff command, push mode, branch cleanup, and how long auto-commit waits.',
         id: 'project-git',
         keys: [
+            'project.includeProjectFolderInGit',
             'project.diffCommand',
             'project.pushMode',
             'project.deleteBranchAfterIntegration',
@@ -71,13 +74,19 @@ interface ProjectConfigSectionProps extends ConfigSectionProps {
 
 export function ProjectConfigSection(props: ProjectConfigSectionProps) {
     const { disabled = false, draft, entries, onChange, onValidityChange } = props
-    const sectionEntries = entries.filter((entry) => entry.section === PROJECT_CONFIG_SECTION_ID)
+    const supportsLocalOnlyProjectFolder = dataService.projectLoading.supportsLocalOnlyProjectFolder()
+    const sectionEntries = entries.filter((entry) => (
+        entry.section === PROJECT_CONFIG_SECTION_ID
+        && (entry.key !== INCLUDE_PROJECT_FOLDER_IN_GIT_KEY || supportsLocalOnlyProjectFolder)
+    ))
+    // The repository root cannot be kept out of Git, so exclusion needs a separate project folder.
+    const isRootProjectFolderIncluded = draft['project.projectFolder'].length === 0 && draft[INCLUDE_PROJECT_FOLDER_IN_GIT_KEY] === true
     const ungroupedEntries = sectionEntries.filter((entry) => entry.editable && !GROUPED_PROJECT_CONFIG_KEYS.has(entry.key))
     const headingId = `${PROJECT_CONFIG_SECTION_ID}-config-heading`
 
     const renderEntry = (entry: ConfigEntry) => (
         <ConfigValueEditor
-            disabled={disabled}
+            disabled={disabled || (entry.key === INCLUDE_PROJECT_FOLDER_IN_GIT_KEY && isRootProjectFolderIncluded)}
             entry={entry}
             key={entry.key}
             onChange={onChange}

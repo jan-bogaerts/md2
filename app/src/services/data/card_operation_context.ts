@@ -155,6 +155,15 @@ export class CardOperationContext {
         ])
     }
 
+    /** Whether a repository path lies in a project folder kept out of Git, so it is written but never committed. */
+    isLocalOnlyPath(path: string) {
+        const { config, storage } = this.dependencies.requireDependencies()
+        if (config.includeProjectFolderInGit || config.projectFolder.length === 0) return false
+        if (!storage.saveProjectFolderGitInclusion) return false
+
+        return path.startsWith(`${config.projectFolder}/`)
+    }
+
     /** Commits and merges the result into local state. */
     async commitFiles(request: CommitRequest) {
         const { config } = this.dependencies.requireDependencies()

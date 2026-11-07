@@ -173,6 +173,13 @@ export class LocalGitStorageService implements StorageService {
         await bridge.stopAgent(runId)
     }
 
+    async hasTrackedProjectFolderFiles(project: ProjectReference, projectFolder: string): Promise<boolean> {
+        const bridge = this.requireBridge()
+        if (!bridge.hasTrackedProjectFolderFiles) throw new Error('Electron local Git bridge cannot inspect the project folder')
+
+        return bridge.hasTrackedProjectFolderFiles(project, projectFolder)
+    }
+
     async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {
         return this.requireBridge().loadProjectConfig(project)
     }
@@ -393,6 +400,13 @@ export class LocalGitStorageService implements StorageService {
     async saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void> {
         await this.requireBridge().saveProjectConfig(project, config)
         this.pendingPushBranches.add(project.branch)
+    }
+
+    async saveProjectFolderGitInclusion(project: ProjectReference, config: ProjectConfig, removeTrackedFiles: boolean): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.saveProjectFolderGitInclusion) throw new Error('Electron local Git bridge cannot keep the project folder out of Git')
+
+        await bridge.saveProjectFolderGitInclusion(project, config, removeTrackedFiles)
     }
 
     async selectWorktreeFolder(): Promise<string | null> {

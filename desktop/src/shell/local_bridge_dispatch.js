@@ -281,6 +281,7 @@ function createLocalBridgeDispatch(dependencies) {
         },
         getActiveProject: () => currentLocalProject,
         hasPendingPush: (project) => localGitService.hasPendingPush(project),
+        hasTrackedProjectFolderFiles: (project, projectFolder) => localGitService.hasTrackedProjectFolderFiles(project, projectFolder),
         listBranches: (project) => localGitService.listBranches(project),
         listAgentConversationReferences: (project, projectFolder) => (
             localGitService.listAgentConversationReferences(project, projectFolder)
@@ -466,6 +467,10 @@ function createLocalBridgeDispatch(dependencies) {
         saveProjectConfig: async (project, config) => {
             await localGitService.saveProjectConfig(project, config);
             // Reload paths and states on the next activation, without interrupting running actions here.
+            if (isCurrentProject(project)) projectServicesReady = false;
+        },
+        saveProjectFolderGitInclusion: async (project, config, removeTrackedFiles) => {
+            await localGitService.saveProjectFolderGitInclusion(project, config, removeTrackedFiles);
             if (isCurrentProject(project)) projectServicesReady = false;
         },
         saveDesktopConfig: (values) => saveDesktopConfig(desktopConfigStore, values),

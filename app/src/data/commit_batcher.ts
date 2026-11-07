@@ -8,6 +8,7 @@ type DelayId = number
 
 interface CommitBatcherOperations {
     commitFiles(request: CommitRequest): Promise<unknown>
+    isLocalOnlyPath(path: string): boolean
     pushCommittedFiles(request: CommitRequest): Promise<unknown>
     requireCardByInternalId(internalId: string): Card
     writeFiles(request: WriteFilesRequest): Promise<unknown>
@@ -136,6 +137,13 @@ function buildBatchRequest(branch: string, batch: Map<string, PendingChange>, ca
     const request: WriteFilesRequest = { branch, files, ...(moves.length > 0 ? { moves } : {}), ...(paths.length > 0 ? { paths } : {}) }
 
     return { request, serializedChanges }
+}
+
+/** Whether every path a batch touches stays local, so the batch is written to disk and never committed or pushed. */
+function isLocalOnlyBatch(batch: Map<string, PendingChange>, cardOperations: CommitBatcherOperations) {
+    return [...batch.values()].every(({ change }) => (
+        cardOperations.isLocalOnlyPath(changeSourcePath(change)) && cardOperations.isLocalOnlyPath(changeTargetPath(change))
+    ))
 }
 
 function createCommitMessage(changes: Map<string, PendingChange>) {
@@ -330,9 +338,11 @@ export class CommitBatcher extends EventTarget {
     private async commitActiveBatch(branch: string, activeBatch: Map<string, PendingChange>) {
         const { request: writeRequest, serializedChanges } = buildBatchRequest(branch, activeBatch, this.cardOperations)
         const request: CommitRequest = { ...writeRequest, message: createCommitMessage(activeBatch) }
+        const localOnly = isLocalOnlyBatch(activeBatch, this.cardOperations)
 
         try {
-            await this.cardOperations.commitFiles(request)
+            if (localOnly) await this.cardOperations.writeFiles(writeRequest)
+            else await this.cardOperations.commitFiles(request)
         } catch (error) {
             this.restoreFailedBatch(branch, activeBatch)
             throw error
@@ -356,7 +366,7 @@ export class CommitBatcher extends EventTarget {
             onPathCommitted?.(sourcePath, file.path)
         }
         this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
-        await this.cardOperations.pushCommittedFiles(request)
+        if (!localOnly) await this.cardOperations.pushCommittedFiles(request)
     }
 
     private restoreFailedBatch(branch: string, activeBatch: Map<string, PendingChange>) {

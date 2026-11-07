@@ -65,6 +65,7 @@ function folderSetupResolution(): ProjectOpenResolution {
         existingFolderPaths: [],
         folders: [{ name: 'design', path: 'design' }],
         hasProjectConfig: false,
+        includeProjectFolderInGit: false,
         kind: 'project-folder-setup',
         project: LOCAL_PROJECT,
         storageType: 'local',
@@ -351,7 +352,7 @@ describe('ProjectOpenDialog', () => {
     it('stays hidden after folder setup while recording the opened local project', async () => {
         setDesktopBridge()
         vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(folderSetupResolution())
-        vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(undefined)
+        vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(true)
         const write = createDeferred<void>()
         const recordRecent = vi.spyOn(applicationStorage, 'writeCurrentItem').mockReturnValue(write.promise)
         renderDialog()
@@ -385,13 +386,36 @@ describe('ProjectOpenDialog', () => {
     })
 
     it('shows folder setup, validates the values, and confirms through the project session', async () => {
-        const confirm = vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(undefined)
+        const confirm = vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(true)
         renderDialog({ initialProjectOpenResolution: folderSetupResolution() })
         expect(screen.getByRole('dialog', { name: 'Project folders' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Open' }))
 
-        await waitFor(() => expect(confirm).toHaveBeenCalledWith(folderSetupResolution(), folderSetupResolution().values, 'token'))
+        await waitFor(() => expect(confirm).toHaveBeenCalledWith(folderSetupResolution(), { folderValues: folderSetupResolution().values, includeProjectFolderInGit: false }, 'token'))
         expect(projectOpenFlowService.getPhase()).toBe('closed')
+    })
+
+    it('offers keeping the project folder out of Git for a new local project, off by default', async () => {
+        const confirm = vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(true)
+        renderDialog({ initialProjectOpenResolution: folderSetupResolution() })
+        const checkbox = screen.getByRole('checkbox', { name: 'Include project folder in Git' })
+        expect(checkbox).not.toBeChecked()
+
+        await userEvent.click(checkbox)
+        fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+
+        await waitFor(() => expect(confirm).toHaveBeenCalledWith(
+            folderSetupResolution(),
+            { folderValues: folderSetupResolution().values, includeProjectFolderInGit: true },
+            'token',
+        ))
+    })
+
+    it('does not offer the project folder Git option when the project already has a config', () => {
+        const resolution = { ...folderSetupResolution(), hasProjectConfig: true, includeProjectFolderInGit: true }
+        renderDialog({ initialProjectOpenResolution: resolution })
+
+        expect(screen.queryByRole('checkbox', { name: 'Include project folder in Git' })).toBeNull()
     })
 
     it('disables confirmation for an empty folder value', async () => {
