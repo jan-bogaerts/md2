@@ -10,6 +10,8 @@ agents:
   - design/activity/card__4beee834-4950-4286-868c-1f2cfb895e10.json
 policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
+branch: b_351_project_initialization_creates_an_f_0_file_everywhere
+worktree: 2
 ---
 
 the project initialization seems to create F_0_MD².md files everywhere. this is not needed.
