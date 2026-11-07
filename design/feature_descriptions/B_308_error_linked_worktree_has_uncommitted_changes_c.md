@@ -3,7 +3,7 @@ author:
 id: B_308
 internalId: ba0c496e-89f0-4041-953e-958d2f53c23f
 title: Error: Linked worktree has uncommitted changes: C:
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -14,6 +14,14 @@ sentryIssueId: 144956120
 sentryOrganization: elastetic
 branch: b_308_error_linked_worktree_has_uncommitted_changes_c
 worktree: 1
+changedFiles:
+  - app/src/components/worktree_selector.test.tsx
+  - app/src/components/worktree_selector.tsx
+  - app/src/data/bridge_error_rehydration.node.test.ts
+  - desktop/src/git/worktree_resolution.test.mjs
+  - desktop/src/git/worktree_service.js
+  - shared/worktree_errors.d.mts
+  - shared/worktree_errors.mjs
 ---
 ## Current state
 
