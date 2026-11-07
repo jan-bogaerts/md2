@@ -1936,7 +1936,7 @@
         }
       ],
       "startedAt": "2026-11-07T14:10:52.853Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
@@ -1967,8 +1967,8 @@
           "reasoningMs": 288,
           "toolMs": 2934
         },
-        "elapsedMs": 93807,
-        "runningStartedAt": "2026-11-07T14:19:26.077Z"
+        "elapsedMs": 186411,
+        "runningStartedAt": null
       },
       "title": "largest files",
       "usage": {
@@ -1979,7 +1979,7 @@
         "totalTokens": 1173925
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
