@@ -3,7 +3,7 @@ author:
 id: B_335
 internalId: 3cf661d6-03c8-463b-9216-91fb1efc98e0
 title: Error: Assigned worktree branch "j_23_create_the_s
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 155870542
 sentryOrganization: elastetic
-after: b19d82f8-c32a-40a4-9312-9e139dd06ce2
 ---
 
 ## Sentry issue
