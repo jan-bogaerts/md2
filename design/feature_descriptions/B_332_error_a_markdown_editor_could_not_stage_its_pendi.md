@@ -3,7 +3,7 @@ author:
 id: B_332
 internalId: 3d6ec998-7fae-40b4-a894-4606092f34e0
 title: Error: A Markdown editor could not stage its pendi
-status: new
+status: ready
 owner: 
 affects:
 agents:
@@ -11,7 +11,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 154937926
 sentryOrganization: elastetic
-after: 4d9d28b2-8ce4-431a-b101-52749040bbc7
+after: b19d82f8-c32a-40a4-9312-9e139dd06ce2
 ---
 
 ## Sentry issue

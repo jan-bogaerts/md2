@@ -3,7 +3,7 @@ author:
 id: B_335
 internalId: 3cf661d6-03c8-463b-9216-91fb1efc98e0
 title: Error: Assigned worktree branch "j_23_create_the_s
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -14,6 +14,9 @@ sentryIssueId: 155870542
 sentryOrganization: elastetic
 branch: b_335_error_assigned_worktree_branch_j_23_create_the_s
 worktree: 1
+after: 3d6ec998-7fae-40b4-a894-4606092f34e0
+changedFiles:
+  - app/src/components/actions/agent/action_agent_prompt.tsx
 ---
 
 ## Sentry issue
