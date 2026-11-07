@@ -25,6 +25,7 @@ import { initDefaultSentryConnectionService, sentryConnectionService } from './s
 import { sentryImportService } from './sentry/sentry_import_service'
 import { agentInstructionsService } from './agent_instructions/agent_instructions_service'
 import { keyboardShortcutService } from './shortcuts/keyboard_shortcut_service'
+import { isRemoteControlConnectionError } from './data/remote_control_storage_service'
 
 export type ApplicationStartupPhase = 'ready' | 'starting'
 
@@ -131,7 +132,15 @@ export class ApplicationStartupService extends EventTarget {
     /** The command-line folder wins over the last project; the open flow service shows its own dialogs. */
     private async openInitialProject() {
         const startupProjectPath = this.dependencies.readStartupProjectPath()
-        if (!startupProjectPath) return this.dependencies.restoreLastProject(this.dependencies.getGithubAccessToken())
+        if (!startupProjectPath) {
+            try {
+                return await this.dependencies.restoreLastProject(this.dependencies.getGithubAccessToken())
+            } catch (error) {
+                if (isRemoteControlConnectionError(error)) return null
+
+                throw error
+            }
+        }
 
         await this.dependencies.openStartupProject(startupProjectPath)
 

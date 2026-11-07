@@ -8,6 +8,8 @@ import {
 } from './services/application_startup_service'
 import { configService } from './services/config/config_service'
 import { dataService } from './services/data/data_service'
+import { RemoteControlConnectionError } from './services/data/remote_control_storage_service'
+import { dialogService } from './services/dialog_service'
 import { createDeferred } from './services/test_support/data_service_test_support'
 
 vi.mock('./auth/use_github_auth', () => ({
@@ -135,6 +137,22 @@ describe('App', () => {
 
         expect(await screen.findByRole('heading', { name: 'No project open' })).toBeInTheDocument()
         expect(screen.queryByText(/Could not restore last project/)).toBeNull()
+    })
+
+    it('does not report a remote connection restore failure through the generic restore dialog', async () => {
+        const reportError = vi.spyOn(dialogService, 'error')
+        const startupService = createStartupService({
+            restoreLastProject: vi.fn(async () => {
+                throw new RemoteControlConnectionError('Remote-control connection failed')
+            }),
+        })
+        void startupService.start()
+
+        render(<App startupService={startupService} />)
+
+        expect(await screen.findByRole('heading', { name: 'No project open' })).toBeInTheDocument()
+        expect(screen.queryByText(/Could not restore last project/)).toBeNull()
+        expect(reportError).not.toHaveBeenCalled()
     })
 
     it('opens folder setup after startup restores a project with a missing working folder', async () => {

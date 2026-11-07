@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ApplicationStartupService, type ApplicationStartupDependencies } from './application_startup_service'
+import { RemoteControlConnectionError } from './data/remote_control_storage_service'
 
 function createDependencies(overrides: Partial<ApplicationStartupDependencies> = {}): ApplicationStartupDependencies {
     return {
@@ -35,5 +36,38 @@ describe('ApplicationStartupService', () => {
 
         expect(dependencies.restoreLastProject).toHaveBeenCalledWith('token-1')
         expect(dependencies.openStartupProject).not.toHaveBeenCalled()
+    })
+
+    it('completes remaining startup work after remote last-project restoration cannot connect', async () => {
+        const dependencies = createDependencies({
+            restoreLastProject: vi.fn(async () => {
+                throw new RemoteControlConnectionError('Remote-control connection failed')
+            }),
+        })
+        const service = new ApplicationStartupService(dependencies)
+
+        await service.start()
+
+        expect(dependencies.refreshStartupModelCatalogs).toHaveBeenCalledOnce()
+        expect(dependencies.restoreLastProject).toHaveBeenCalledBefore(vi.mocked(dependencies.refreshStartupModelCatalogs))
+        expect(service.getSnapshot()).toEqual({ error: null, phase: 'ready', projectOpenResolution: null })
+    })
+
+    it('retains unexpected last-project restoration failures', async () => {
+        const dependencies = createDependencies({
+            restoreLastProject: vi.fn(async () => {
+                throw new Error('Stored project is unavailable')
+            }),
+        })
+        const service = new ApplicationStartupService(dependencies)
+
+        await service.start()
+
+        expect(dependencies.refreshStartupModelCatalogs).not.toHaveBeenCalled()
+        expect(service.getSnapshot()).toEqual({
+            error: 'Stored project is unavailable',
+            phase: 'ready',
+            projectOpenResolution: null,
+        })
     })
 })
