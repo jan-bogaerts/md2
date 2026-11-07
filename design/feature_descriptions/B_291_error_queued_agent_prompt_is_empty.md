@@ -13,8 +13,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 145990654
 sentryOrganization: elastetic
 after: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092
-branch: b_291_error_queued_agent_prompt_is_empty
-worktree: 1
 changedFiles:
   - app/src/components/actions/agent/action_agent_prompt.test.tsx
   - app/src/components/actions/agent/action_agent_prompt.tsx
