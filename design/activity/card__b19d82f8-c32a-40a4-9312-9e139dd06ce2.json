@@ -1,0 +1,54 @@
+{
+  "actionSettings": {
+    "a82ceffa-4aa0-4d06-b6db-ac3edb008575": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "b19d82f8-c32a-40a4-9312-9e139dd06ce2",
+      "cardPath": "design/feature_descriptions/B_333_error_a_markdown_editor_could_not_stage_its_pendi.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_333_error_a_markdown_editor_could_not_stage_its_pendi.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-d76612fb-3676-4848-b13b-40ebd5911dfb",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-07T14:19:43.773Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-8520237f-46fc-4674-b08c-3a49f5e7ba88",
+      "providerSessions": [],
+      "startedAt": "2026-11-07T14:19:43.773Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-07T14:19:43.773Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "b19d82f8-c32a-40a4-9312-9e139dd06ce2",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
