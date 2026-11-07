@@ -3,7 +3,7 @@ author:
 id: B_291
 internalId: 985eabb4-1032-49e3-9523-580c67467696
 title: Error: Queued agent prompt is empty
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 145990654
 sentryOrganization: elastetic
-after: fd6d10db-4ff5-4099-86a6-e9d3c263e11f
 ---
 
 ## Sentry issue
