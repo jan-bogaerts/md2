@@ -130,11 +130,13 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     useEffect(() => {
         if (!prepare || promptDraft.hasLocalEdits()) return
         if (remoteStatus === 'connecting' || remoteStatus === 'reconnecting') return
+        // An invalid worktree assignment is already displayed; the desktop would reject preparation.
+        if (runValidationError) return
 
         void promptDraft.prepare(() => defaultPreparePrompt(action, context)).catch((error: unknown) => {
             reportActionError(error, { fallbackMessage: 'Could not prepare action prompt' })
         })
-    }, [action, context, prepare, promptDraft, remoteStatus])
+    }, [action, context, prepare, promptDraft, remoteStatus, runValidationError])
 
     const handleAttachments = useCallback(async (files: File[], insertMarkdown: (markdown: string) => void) => {
         const attachmentWorkflow = await import('../../../services/attachments/attachment_workflow')

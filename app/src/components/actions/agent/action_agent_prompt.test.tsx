@@ -178,11 +178,12 @@ interface RenderPromptOptions {
     action?: ActionDefinition
     conversationStore?: TestConversationStore
     questionsEnabled?: boolean
+    runValidationError?: string | null
     withSurface?: boolean
 }
 
-function createRuntime(action: ActionDefinition, conversationStore: TestConversationStore) {
-    const overrides = { conversationStore: conversationStore as unknown as ActionConversationStore }
+function createRuntime(action: ActionDefinition, conversationStore: TestConversationStore, runValidationError: string | null) {
+    const overrides = { conversationStore: conversationStore as unknown as ActionConversationStore, runValidationError }
 
     return createTestPopupRuntime(action, context, overrides)
 }
@@ -204,20 +205,21 @@ function renderPrompt(promptDraft: ActionPromptDraft, options: RenderPromptOptio
         action = agentAction,
         conversationStore = new TestConversationStore({ loading: true, selectedConversation: null }),
         questionsEnabled = true,
+        runValidationError = null,
         withSurface = true,
     } = options
     promptDraftState.current = promptDraft
-    const runtime = createRuntime(action, conversationStore)
+    const runtime = createRuntime(action, conversationStore, runValidationError)
     const layoutStore = questionsEnabled ? runtime.agentLayoutStore : runtime.commandLayoutStore
     const prompt = promptElement(action, runtime, questionsEnabled)
-    render(withSurface ? (
+    const { rerender } = render(withSurface ? (
         <ActionLayoutSurface store={layoutStore}>
             <ActionInputSplitter store={layoutStore} />
             {prompt}
         </ActionLayoutSurface>
     ) : prompt)
 
-    return { conversationStore, runtime }
+    return { conversationStore, rerender, runtime }
 }
 
 function mockAvailablePromptHeight(height: number, questionsHeight = 96) {
@@ -321,6 +323,35 @@ describe('ActionAgentPrompt', () => {
             error,
             { fallbackMessage: 'Could not prepare action prompt' },
         ))
+    })
+
+    it('does not prepare or report the prompt while the worktree assignment is invalid', async () => {
+        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as never)
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: null })
+        const runValidationError = 'Assigned worktree branch "feature" is unavailable. Select a worktree again.'
+
+        renderPrompt(new ActionPromptDraft('', true), { conversationStore, runValidationError, withSurface: false })
+        await act(async () => undefined)
+
+        expect(preparePrompt).not.toHaveBeenCalled()
+        expect(reportError).not.toHaveBeenCalled()
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('readonly')
+    })
+
+    it('prepares the prompt once the worktree assignment becomes valid', async () => {
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: null })
+        const runValidationError = 'Assigned worktree branch "feature" is unavailable. Select a worktree again.'
+        const { rerender, runtime } = renderPrompt(
+            new ActionPromptDraft('', true),
+            { conversationStore, runValidationError, withSurface: false },
+        )
+        const validRuntime = { ...runtime, runValidationError: null }
+
+        rerender(promptElement(agentAction, validRuntime, true))
+
+        await waitFor(() => expect(screen.getByLabelText('Markdown prompt')).toHaveValue('Prepared prompt'))
+        expect(preparePrompt).toHaveBeenCalledOnce()
+        expect(screen.getByLabelText('Markdown prompt')).not.toHaveAttribute('readonly')
     })
 
     it('passes a card attachment handler to the hidden-toolbar agent prompt editor', () => {
