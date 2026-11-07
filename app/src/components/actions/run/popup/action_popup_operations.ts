@@ -205,6 +205,7 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
     const agentActive = sessionActive && run?.activeActionType === 'agent'
     const promptDraft = currentActionPromptDraft(action, context, bindingStore, conversationStore, false, agentActive ? '' : undefined)
     const prompt = promptDraft.getSnapshot()
+    if (agentActive && prompt.trim().length === 0) return
 
     if (agentActive && run) {
         if (
@@ -224,7 +225,6 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
         let submissionId: string | null = null
         try {
             if (!run.activeActionId) throw new Error('Action run has no active agent')
-            if (prompt.trim().length === 0) throw new Error('Queued agent prompt is empty')
 
             submissionId = actionRunRegistry.beginSubmission(action.id, executionContext, prompt, run.runId, run.conversation?.id ?? null);
             promptDraft.clearForSend()

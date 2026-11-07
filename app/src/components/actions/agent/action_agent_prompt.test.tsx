@@ -8,17 +8,19 @@ import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { AgentConversation, AgentQuestion } from '../../../data/data_types'
+import type { ActionRun } from '../../../services/actions/action_run_registry'
 import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
 import { dialogService } from '../../../services/dialog_service'
 import type { MarkdownDraftBinding } from '../../../services/markdown/markdown_draft'
 import { createTestPopupRuntime } from '../../../test/action_popup_runtime_fixture'
 import type { ActionConversationStore } from '../conversation/state/action_conversation_store'
-import { dismissRestoredConversationQuestions, runPopupAction } from '../run/popup/action_popup_operations'
+import { currentActionRun, dismissRestoredConversationQuestions, runPopupAction } from '../run/popup/action_popup_operations'
 import type { ActionPopupRuntime } from '../run/popup/action_popup_types'
 
 const editorRender = vi.hoisted(() => vi.fn());
 const preparePrompt = vi.hoisted(() => vi.fn());
 const promptDraftState = vi.hoisted(() => ({ current: null as ActionPromptDraft | null }));
+const currentRunState = vi.hoisted(() => ({ current: undefined as ActionRun | null | undefined }));
 /** Called once per ActionAgentPrompt render through its run-settings hook. */
 const promptRender = vi.hoisted(() => vi.fn());
 
@@ -28,6 +30,9 @@ vi.mock('../run/popup/action_popup_operations', async (importOriginal) => {
     return {
         ...actual,
         answerRestoredConversationQuestions: vi.fn(async () => undefined),
+        currentActionRun: vi.fn((bindingStore) => currentRunState.current === undefined
+            ? actual.currentActionRun(bindingStore)
+            : currentRunState.current),
         currentActionPromptDraft: () => {
             if (!promptDraftState.current) throw new Error('Test prompt draft is not configured')
 
@@ -250,7 +255,9 @@ beforeEach(() => {
 afterEach(() => {
     cleanup()
     promptDraftState.current = null
+    currentRunState.current = undefined
     vi.restoreAllMocks()
+    vi.mocked(currentActionRun).mockClear()
     vi.mocked(runPopupAction).mockClear()
     vi.mocked(dismissRestoredConversationQuestions).mockClear()
 })
@@ -415,6 +422,20 @@ describe('ActionAgentPrompt', () => {
         expect(runPopupAction).toHaveBeenCalledOnce()
         expect(promptDraft.getSnapshot()).toBe('Run this')
         expect(prompt).toHaveValue('Run this')
+    })
+
+    it('does not run an empty stale shortcut after an agent run becomes active before rerender', () => {
+        renderPrompt(new ActionPromptDraft('', false))
+        currentRunState.current = {
+            activeActionType: 'agent',
+            interactionReady: true,
+            status: 'running',
+        } as ActionRun
+
+        fireEvent.keyDown(screen.getByLabelText('Markdown prompt'), { ctrlKey: true, key: 'Enter' })
+
+        expect(currentActionRun).toHaveBeenCalledOnce()
+        expect(runPopupAction).not.toHaveBeenCalled()
     })
 
     it('does not run a command through Ctrl+Enter while its input is empty', () => {

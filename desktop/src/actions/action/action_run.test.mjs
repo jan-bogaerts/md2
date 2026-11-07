@@ -937,6 +937,32 @@ describe('ActionRun', () => {
         expect(events.findLast(({ type }) => type === 'action')).toMatchObject({ status: 'completed' });
     });
 
+    it('rejects an empty prompt at the desktop queue boundary', async () => {
+        const firstCompletion = deferred();
+        const result = {
+            agent: 'codex', changedPaths: [], conversationId: 'conversation', exitCode: 0,
+            model: 'gpt', prompt: 'run', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+        };
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                input.onActiveRunChange('agent-run-1');
+                await firstCompletion.promise;
+                input.onActiveRunChange(null);
+
+                return result;
+            }),
+        };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
+        const { run } = createRun(rootAction, { agentExecutor });
+        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledOnce());
+
+        expect(() => run.enqueueAgentPrompt('   ')).toThrow('Queued agent prompt is empty');
+        expect(run.promptQueue).toEqual([]);
+
+        firstCompletion.resolve();
+        await run.completion;
+    });
+
     it('edits, deletes, and dispatches several one-shot prompts once in FIFO order', async () => {
         const firstCompletion = deferred();
         const result = {

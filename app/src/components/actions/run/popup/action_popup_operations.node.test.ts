@@ -218,6 +218,16 @@ describe('runPopupAction waiting follow-up', () => {
         expect(restartAction).not.toHaveBeenCalled()
     })
 
+    it('ignores an empty prompt after an agent run becomes active', async () => {
+        const reportError = vi.spyOn(dialogService, 'error')
+
+        await runPopupAction(operationInput(new ActionRunInputStore()))
+
+        expect(actionRunRegistry.getSubmissions(action.id, context)).toEqual([])
+        expect(bridge.enqueueActionPrompt).not.toHaveBeenCalled()
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
     it('clears the editor when the prompt is sent', async () => {
         const acceptance = deferred<void>()
         bridge.enqueueActionPrompt = vi.fn(async (_runId: string, content: string, id: string) => {

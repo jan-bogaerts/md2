@@ -178,11 +178,15 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
 
     const handleRunShortcut = () => {
         const run = currentActionRun(bindingStore)
+        const currentRunStatus = run?.status ?? 'idle'
+        const currentSessionActive = currentRunStatus === 'queued'
+            || currentRunStatus === 'running'
+            || currentRunStatus === 'waitingForInput'
         const runState = {
-            agentActive: sessionActive && activeActionType === 'agent',
+            agentActive: currentSessionActive && run?.activeActionType === 'agent',
             interactionReady: !!run?.interactionReady,
             runDisabledMessage: settings.runDisabledMessage,
-            runStatus,
+            runStatus: currentRunStatus,
         }
         if (actionPopupRunDisabled(
             action,
