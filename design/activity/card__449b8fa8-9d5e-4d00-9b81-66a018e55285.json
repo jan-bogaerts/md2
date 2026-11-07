@@ -452,6 +452,14 @@
           "role": "assistant",
           "sequence": 33,
           "timestamp": "2026-11-07T14:49:14.602Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_307_error_could_not_restore_last_project_remote_cont.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-201f0a54-6024-4e00-99ff-439bf2f591b9",
+          "kind": "message",
+          "role": "user",
+          "sequence": 34,
+          "timestamp": "2026-11-07T15:15:56.286Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -467,7 +475,7 @@
         }
       ],
       "startedAt": "2026-11-07T14:47:31.803Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -494,7 +502,7 @@
           "toolMs": 4236
         },
         "elapsedMs": 102799,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-07T15:15:56.286Z"
       },
       "title": "investigate",
       "usage": {
