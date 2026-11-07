@@ -763,13 +763,53 @@
         "totalTokens": 1812174
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "f3b7a6f7-0cc4-4d30-994b-026f9d5d8092",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "6ef93bac580e7a1f3b56de9655a3ea4c948cdb15",
+          "committedAt": "2026-11-07T15:46:58+01:00",
+          "deletions": 1,
+          "filePaths": [
+            "design/feature_descriptions/F_461_add_option_to_exclude_design_folder_from_git.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 1
+        }
+      ],
+      "completedAt": "2026-11-07T14:46:59.211Z",
+      "conversationIds": [
+        "agent-c6b736c3-353c-4b3a-b92c-32c2a960dc00"
+      ],
+      "details": {
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-b7590770-6d17-449e-92e7-6a73867d0a6e",
+      "origin": {
+        "cardInternalId": "f3b7a6f7-0cc4-4d30-994b-026f9d5d8092",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-c6b736c3-353c-4b3a-b92c-32c2a960dc00",
+      "startedAt": "2026-11-07T14:39:38.462Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
