@@ -5,7 +5,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "985eabb4-1032-49e3-9523-580c67467696",
       "cardPath": "design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md",
-      "completedAt": null,
+      "completedAt": "2026-11-07T15:23:44.122Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 112499
@@ -1071,7 +1071,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 75,
-          "timestamp": "2026-11-07T15:23:03.818Z"
+          "timestamp": "2026-11-07T15:23:44.122Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1082,12 +1082,12 @@
           "agent": "codex",
           "conversationId": "01a1b698-aea7-7ea3-b91c-bb7d4735d97a",
           "createdAt": "2026-11-07T15:20:22.935Z",
-          "lastUsedAt": "2026-11-07T15:23:03.818Z",
+          "lastUsedAt": "2026-11-07T15:23:44.122Z",
           "synchronizedThroughMessageId": "agent-turn-8e286d0b-0ab2-4df6-a704-c457f486ae55-turn-1-assistant-3"
         }
       ],
       "startedAt": "2026-11-07T15:20:21.392Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -1130,7 +1130,7 @@
         "totalTokens": 1580076
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
