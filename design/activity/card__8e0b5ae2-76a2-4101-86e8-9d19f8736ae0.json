@@ -415,6 +415,14 @@
           "role": "assistant",
           "sequence": 31,
           "timestamp": "2026-11-07T10:54:51.542Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_334_error_local_git_project_validation_failed_for_c.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-917e9fbf-0664-4288-940c-2628ca8083af",
+          "kind": "message",
+          "role": "user",
+          "sequence": 32,
+          "timestamp": "2026-11-07T10:54:56.039Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -430,7 +438,7 @@
         }
       ],
       "startedAt": "2026-11-06T15:47:59.923Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -457,7 +465,7 @@
           "toolMs": 3726
         },
         "elapsedMs": 92588,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-07T10:54:56.039Z"
       },
       "title": "investigate",
       "usage": {
