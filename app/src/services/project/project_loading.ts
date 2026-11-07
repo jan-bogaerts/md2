@@ -48,6 +48,7 @@ import {
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
 const MERGE_CONFLICT_VERIFY_DEBOUNCE_MS = 150
+const MISSING_FILE_ERROR_CODE = 'ENOENT'
 const MARKDOWN_EXTENSION = '.md'
 const PROJECT_CONFIG_PATH = 'md2.config.json'
 // The watcher already settles each path before reporting, so this only has to group
@@ -117,6 +118,11 @@ function reportOptionalProjectLoadFailure(area: string, error: unknown) {
     const detail = errorMessage(error, 'Unknown error')
     dialogService.warning(`${area} could not be loaded and was skipped. ${detail}`, { title: 'Project loaded with errors' })
     telemetryService.captureError(error)
+}
+
+/** True when a storage read failed because the file no longer exists. */
+function isMissingFileError(error: unknown) {
+    return !!error && typeof error === 'object' && 'code' in error && error.code === MISSING_FILE_ERROR_CODE
 }
 
 function reportAgentTokenUsageFailure(error: unknown) {
@@ -898,10 +904,12 @@ export class ProjectLoading {
         const normalizedPath = normalizePath(expectedOutcome.path)
 
         try {
-            const repositoryFiles = await storage.listRepositoryFiles(currentProject)
-            const persistedPath = repositoryFiles.map(normalizePath).find((path) => path === normalizedPath)
-            if (!persistedPath) return { kind: 'absent', path: normalizedPath }
-            if (expectedOutcome.kind === 'absent') return { content: '', kind: 'present', path: normalizedPath }
+            if (expectedOutcome.kind === 'absent') {
+                if (!storage.loadTextFile) return null
+                await storage.loadTextFile(currentProject, normalizedPath)
+
+                return { content: '', kind: 'present', path: normalizedPath }
+            }
 
             if (isActionDefinitionPath(normalizedPath, config.actionsFolder)) {
                 const actionFiles = await storage.loadActionFiles(currentProject, config.actionsFolder)
@@ -929,6 +937,7 @@ export class ProjectLoading {
 
             return null
         } catch (error) {
+            if (isMissingFileError(error)) return { kind: 'absent', path: normalizedPath }
             reportOptionalProjectLoadFailure(`Persistence outcome verification for ${normalizedPath}`, error)
 
             return null

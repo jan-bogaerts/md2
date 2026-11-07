@@ -57,6 +57,15 @@ class ProjectLoadingMockWebSocket extends EventTarget {
     }
 }
 
+const ACTION_RELOAD_WAIT_MS = 200
+
+function missingFileError(path: string) {
+    const error = new Error(`ENOENT: no such file or directory, open '${path}'`) as Error & { code: string }
+    error.code = 'ENOENT'
+
+    return error
+}
+
 async function flushPromises() {
     await Promise.resolve()
     await Promise.resolve()
@@ -2380,6 +2389,7 @@ describe('ProjectLoading', () => {
     })
 
     it('treats late source and target rename notifications as local without action reload', async () => {
+        vi.useFakeTimers()
         configService.init()
         const sourcePath = 'actions/review.json'
         const targetPath = 'actions/review-later.json'
@@ -2398,6 +2408,12 @@ describe('ProjectLoading', () => {
             }),
             listRepositoryFiles: vi.fn(async () => actionFiles.map(({ path }) => path)),
             loadActionFiles,
+            loadTextFile: vi.fn(async (_project, path: string) => {
+                const actionFile = actionFiles.find((candidate) => candidate.path === path)
+                if (!actionFile) throw missingFileError(path)
+
+                return actionFile
+            }),
             watchProject: vi.fn((_project, onChange) => {
                 watchChange = onChange
 
@@ -2422,7 +2438,44 @@ describe('ProjectLoading', () => {
 
         await flushPromises()
         expect(loadActionFiles).toHaveBeenCalledTimes(1)
+        expect(storage.loadTextFile).toHaveBeenCalledWith(expect.anything(), sourcePath)
+        await vi.advanceTimersByTimeAsync(ACTION_RELOAD_WAIT_MS)
         expect(reloadFromFiles).not.toHaveBeenCalled()
+    })
+
+    it('treats a tracked Markdown file that disappears before it is read as absent without a warning', async () => {
+        configService.init()
+        const persistedFile = files[0]
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const loadFile = vi.fn(async () => persistedFile)
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [persistedFile.path]),
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        const warnings = recordDialogMessages('warning')
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        try {
+            service.cards.updateCardBody(persistedFile.path, '# Root\n\nRenamed right after saving')
+            await service.cards.flushPendingCommits()
+            loadFile.mockRejectedValueOnce(missingFileError(persistedFile.path))
+            watchChange({ changeKind: 'added', path: persistedFile.path })
+
+            await vi.waitFor(() => expect(loadFile).toHaveBeenCalledOnce())
+            await flushPromises()
+            expect(warnings.messages).toEqual([])
+        } finally {
+            warnings.stop()
+        }
     })
 
     it('routes persisted content that contradicts a local outcome through external conflict handling', async () => {
