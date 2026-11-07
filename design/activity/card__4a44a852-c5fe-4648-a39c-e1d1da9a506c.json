@@ -20,10 +20,10 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "4a44a852-c5fe-4648-a39c-e1d1da9a506c",
       "cardPath": "design/feature_descriptions/B_337_error_enoent_no_such_file_or_directory_open_c.md",
-      "completedAt": "2026-11-07T14:09:49.654Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 100486
+        "usedTokens": 127768
       },
       "entries": [
         {
@@ -1302,6 +1302,514 @@
           "role": "assistant",
           "sequence": 101,
           "timestamp": "2026-11-07T14:09:49.654Z"
+        },
+        {
+          "content": "fix test",
+          "id": "submission-77ccd7b1-26d2-45e6-ace6-d612d11d66fc",
+          "kind": "message",
+          "role": "user",
+          "sequence": 102,
+          "timestamp": "2026-11-07T14:10:01.392Z"
+        },
+        {
+          "content": "{\"pattern\":\"does not rerender unrelated popup controls while conversation streams\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup.test.tsx\",\"output_mode\":\"content\",\"-n\":true}",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-103",
+          "kind": "event",
+          "label": "Grep",
+          "output": "1123:    it('does not rerender unrelated popup controls while conversation streams', async () => {",
+          "providerItemId": "toolu_01Rs6SeimLBLA26ZDC9mRWU5",
+          "sequence": 103,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:10:05.552Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup.test.tsx\",\"offset\":1123,\"limit\":80}",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-104",
+          "kind": "event",
+          "label": "Read",
+          "output": "1123\t    it('does not rerender unrelated popup controls while conversation streams', async () => {\n1124\t        actionRunRegistry.stop()\n1125\t        let runListener: ((event: ActionRunEvent) => void) | null = null\n1126\t        window.md2Actions = {\n1127\t            onActionRun: vi.fn((listener) => {\n1128\t                runListener = listener\n1129\t                return vi.fn()\n1130\t            }),\n1131\t            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),\n1132\t        } as unknown as typeof window.md2Actions\n1133\t        actionService.loadFromFiles([file(agentDefinition('review', {label: 'Review', phrases: [{ text: 'Continue', title: '' }], streaming: true}))])\n1134\t        actionRunRegistry.start()\n1135\t        renderPopup()\n1136\t        await waitFor(() => expect(runListener).not.toBeNull())\n1137\t        const event = {actionId: 'review', context, phase: 'main' as const, rootActionId: 'review', runId: 'run-1', status: 'running' as const}\n1138\t        act(() => {\n1139\t            runListener?.({ ...event, type: 'run' })\n1140\t            runListener?.({\n1141\t                ...event,\n1142\t                actionType: 'agent',\n1143\t                autoFinish: null,\n1144\t                interactionReady: true,\n1145\t                streaming: true,\n1146\t                type: 'agentState',\n1147\t            })\n1148\t            runListener?.({\n1149\t                ...event,\n1150\t                type: 'update',\n1151\t                update: {\n1152\t                    conversation: {\n1153\t                        actionId: 'review',\n1154\t                        cardInternalId: null,\n1155\t                        cardPath: context.file ?? null,\n1156\t                        completedAt: null,\n1157\t                        entries: [],\n1158\t                        hasExplicitTitle: false,\n1159\t                        id: 'conversation-1',\n1160\t                        path: 'conversation.json',\n1161\t                        providerSessions: [],\n1162\t                        startedAt: '2026-08-01T12:00:00.000Z',\n1163\t                        status: 'running',\n1164\t                        title: 'Review',\n1165\t                        viewed: true,\n1166\t                    },\n1167\t                    kind: 'agentStarted',\n1168\t                },\n1169\t            })\n1170\t        })\n1171\t        await waitFor(() => expect(renderProbes.agentPrompt).toHaveBeenCalled())\n1172\t        expect(renderProbes.agentPrompt).toHaveBeenCalled()\n1173\t        expect(renderProbes.agentSelectors).toHaveBeenCalled()\n1174\t        expect(renderProbes.conversationPicker).toHaveBeenCalled()\n1175\t        expect(renderProbes.logError).toHaveBeenCalled()\n1176\t        expect(renderProbes.phraseButtons).not.toHaveBeenCalled()\n1177\t        Object.values(renderProbes).forEach((probe) => probe.mockClear())\n1178\t\n1179\t        act(() => runListener?.({\n1180\t            ...event,\n1181\t            type: 'update',\n1182\t            update: { content: 'streamed', entryIndex: 0, kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },\n1183\t        }))\n1184\t\n1185\t        expect(renderProbes.popup).not.toHaveBeenCalled()\n1186\t        expect(renderProbes.content).not.toHaveBeenCalled()\n1187\t        expect(renderProbes.selector).not.toHaveBeenCalled()\n1188\t        expect(renderProbes.agentPrompt).not.toHaveBeenCalled()\n1189\t        expect(renderProbes.agentSelectors).not.toHaveBeenCalled()\n1190\t        expect(renderProbes.conversationPicker).not.toHaveBeenCalled()\n1191\t        expect(renderProbes.logError).not.toHaveBeenCalled()\n1192\t        expect(renderProbes.phraseButtons).not.toHaveBeenCalled()\n1193\t    })\n1194\t\n1195\t    it('owns action selection internally', () => {\n1196\t        renderPopup()\n1197\t        \n1198\t\n1199\t        fireEvent.click(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: 'Second action' }))\n1200\t\n1201\t        expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'false')\n1202\t        expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'true')",
+          "providerItemId": "toolu_01YQqT8oSHYfxVKZ3ApBreJQ",
+          "sequence": 104,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:10:07.370Z",
+          "type": "tool.Read"
+        },
+        {
+          "agent": "claude",
+          "content": "Need to find which probe fires. Running with a more detailed error line.",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 105,
+          "timestamp": "2026-11-07T14:10:08.521Z"
+        },
+        {
+          "content": "{\"command\":\"cd app; npm run test -- src/components/actions/run/popup/action_popup.test.tsx -t \\\"does not rerender unrelated popup controls\\\" 2>&1 | Select-String -Pattern \\\"action_popup.test.tsx:\\\\d+\\\" | Select-Object -First 5\",\"description\":\"Find failing assertion line\",\"timeout\":300000}",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-106",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "Exit code 1\n ❯ src/components/actions/run/popup/action_popup.test.tsx:1187:43",
+          "providerItemId": "toolu_01ULVBVJ7ggixJ1hRTjCFgLa",
+          "sequence": 106,
+          "status": "failed",
+          "timestamp": "2026-11-07T14:10:50.430Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-107",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgohhGu24y4qVZDjwpahW:thinking:0",
+          "sequence": 107,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:10:52.022Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nThe `selector` probe rerenders on streamed output. Finding which component that is.",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 108,
+          "timestamp": "2026-11-07T14:10:52.022Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"renderProbes\\b\" src/components/actions/run/popup/action_popup.test.tsx | head -5; grep -n \"selector:\" -B2 -A8 src/components/actions/run/popup/action_popup.test.tsx | head -40",
+          "content": "41:const renderProbes = vi.hoisted(() => ({\n67:            renderProbes.agentPrompt(useMarkdownTypeaheadStackPosition())\n80:            renderProbes.agentSelectors()\n92:            renderProbes.bottomRow();\n103:            renderProbes.promptMenu();\n52-    promptMenu: vi.fn(),\n53-    markdownEditor: vi.fn(),\n54:    selector: vi.fn(),\n55-}))\n56-\n57-function appRegion(element: HTMLElement) {\n58-    return (element.style as unknown as Record<string, string>).WebkitAppRegion\n59-}\n60-\n61-vi.mock('../../agent/action_agent_prompt', async (importOriginal) => {\n62-    const actual = await importOriginal<typeof import('../../agent/action_agent_prompt')>()\n--\n921-        expect(tokens).toHaveFocus()\n922-        fireEvent.mouseOver(tokens)\n923:        expect(await screen.findByText('Tokens are cumulative provider token usage.', { selector: '.MuiTooltip-tooltip *' }))\n924-            .toBeInTheDocument()\n925-    })\n926-\n927-    it('shows project token usage without card changes in project-scoped agent popups', () => {\n928-        actionService.loadFromFiles([file(agentDefinition('review', {\n929-            appliesTo: { kind: 'project' },\n930-            label: 'Review project',\n931-        }))])\n--\n3833-        expect(stopButton).toBeEnabled()\n3834-        fireEvent.mouseOver(stopButton)\n3835:        expect(await screen.findByText('Stop', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n3836-        fireEvent.click(stopButton)\n3837-        await waitFor(() => expect(cancelActionRun).toHaveBeenCalledWith('run-1'))\n3838-    })\n3839-\n3840-    it('shows agent controls for a streaming child of a command root', async () => {\n3841-        actionRunRegistry.stop()\n3842-        let runListener: ((event: ActionRunEvent) => void) | null = null\n3843-        window.md2Actions = {\n--\n4147-            fireEvent.mouseOver(badge('F-010'))\n4148-\n4149:            expect(await screen.findByText('Improve the popup', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()\n4150-        })",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-109",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"renderProbes\\b\" src/components/actions/run/popup/action_popup.test.tsx | head -5; grep -n \"selector:\" -B2 -A8 src/components/actions/run/popup/action_popup.test.tsx | head -40",
+          "providerItemId": "toolu_01B33C8VHqZzrRgPcaC9JKnx",
+          "sequence": 109,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:10:56.536Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"renderProbes.selector()\" -B12 -A4 src/components/actions/run/popup/action_popup.test.tsx",
+          "content": "172-\n173-            return actual.ActionPopupContent(props)\n174-        },\n175-    }\n176-})\n177-\n178-vi.mock('./action_selector', async (importOriginal) => {\n179-    const actual = await importOriginal<typeof import('./action_selector')>()\n180-\n181-    return {\n182-        ...actual,\n183-        ActionSelector: function ActionSelectorRenderProbe(props: Parameters<typeof actual.ActionSelector>[0]) {\n184:            renderProbes.selector()\n185-\n186-            return actual.ActionSelector(props)\n187-        },\n188-    }",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-110",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"renderProbes.selector()\" -B12 -A4 src/components/actions/run/popup/action_popup.test.tsx",
+          "providerItemId": "toolu_01HpLkRcNhjGidaTKDxaqowg",
+          "sequence": 110,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:10:58.955Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; cat src/components/actions/run/popup/action_selector.tsx; git log --oneline -5 -- src/components/actions/run/popup/action_selector.tsx",
+          "content": "import { ToggleButtonGroup } from '@mui/material'\nimport { useEffect, useRef, type MouseEvent } from 'react'\nimport type { ActionContext } from '../../../../data/action_context'\nimport type { ActionRunStatus } from '../../../../data/action_run_types'\nimport type { ActionDefinition } from '../../../../data/action_types'\nimport { useActiveActionRunsForContext } from '../../../hooks/use_action_runs'\nimport { HorizontalScrollArea } from '../../../horizontal_scroll_area'\nimport { ActionSelectorButton } from './action_selector_button'\nimport { ACTION_SELECTOR_GROUP_SX } from './action_selector_styles'\n\n/** Single-row variant of the shared group styles; buttons keep their natural width inside the scroll area. */\nconst ACTION_SELECTOR_ROW_SX = {\n    ...ACTION_SELECTOR_GROUP_SX,\n    flexWrap: 'nowrap',\n    '& .MuiToggleButtonGroup-grouped': {\n        ...ACTION_SELECTOR_GROUP_SX['& .MuiToggleButtonGroup-grouped'],\n        flexShrink: 0,\n        whiteSpace: 'nowrap',\n    },\n} as const\nconst SELECTED_BUTTON_SELECTOR = '[aria-pressed=\"true\"]'\n\ninterface ActionSelectorProps {\n    actions: ActionDefinition[]\n    context: ActionContext\n    onSelect: (actionId: string) => void\n    selectedAction: ActionDefinition\n    selectedHasForEach?: boolean\n}\n\n/** Horizontally scrollable, mutually exclusive action selector used by the card Run popup. */\nexport function ActionSelector(props: ActionSelectorProps) {\n    const { actions, context, onSelect, selectedAction, selectedHasForEach = false } = props\n    const activeRuns = useActiveActionRunsForContext(context)\n    const groupRef = useRef<HTMLDivElement>(null)\n    const activeActionStatuses: Record<string, ActionRunStatus> = {}\n    for (const { rootActionId, status } of activeRuns) {\n        if (status === 'waitingForInput' || !activeActionStatuses[rootActionId]) activeActionStatuses[rootActionId] = status\n    }\n    const handleChange = (_event: MouseEvent<HTMLElement>, actionId: string | null) => {\n        if (actionId) onSelect(actionId)\n    }\n\n    useEffect(() => {\n        const selectedButton = groupRef.current?.querySelector(SELECTED_BUTTON_SELECTOR)\n        selectedButton?.scrollIntoView({ block: 'nearest', inline: 'nearest' })\n    }, [selectedAction.id])\n\n    return (\n        <HorizontalScrollArea>\n            <ToggleButtonGroup\n                aria-label=\"Actions\"\n                exclusive\n                onChange={handleChange}\n                ref={groupRef}\n                size=\"small\"\n                sx={ACTION_SELECTOR_ROW_SX}\n                value={selectedAction.id}\n            >\n                {actions.map((action) => (\n                    <ActionSelectorButton\n                        action={action}\n                        context={context}\n                        key={action.id}\n                        liveStatus={activeActionStatuses[action.id]}\n                        hasForEach={action.id === selectedAction.id && selectedHasForEach}\n                    />\n                ))}\n            </ToggleButtonGroup>\n        </HorizontalScrollArea>\n    )\n}\n16ad35466 Integrate into project\n5ffa9a791 Integrate into project\na6c9cb215 Integrate into project\n9828a7e4b Integrate into project\n46b30aa31 Integrate into project",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-111",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; cat src/components/actions/run/popup/action_selector.tsx; git log --oneline -5 -- src/components/actions/run/popup/action_selector.tsx",
+          "providerItemId": "toolu_016P8HcmPSxAWU51hjvDrqBr",
+          "sequence": 111,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:02.185Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-112",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgohi94VeS5xPjWrZtDhZ:thinking:0",
+          "sequence": 112,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:11:03.555Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"export function useActiveActionRunsForContext\" -A30 src/components/hooks/use_action_runs.ts; git log --oneline -3 -- src/components/hooks/use_action_runs.ts",
+          "content": "88:export function useActiveActionRunsForContext(context: ActionContext) {\n89-    const contextIdentity = actionContextIdentity(context)\n90-    const subscribe = useCallback(\n91-        (listener: () => void) => actionRunRegistry.subscribeContextActiveByKey(contextIdentity, listener),\n92-        [contextIdentity],\n93-    )\n94-    const getSnapshot = useCallback(\n95-        () => actionRunRegistry.getContextActiveSnapshotByKey(contextIdentity),\n96-        [contextIdentity],\n97-    )\n98-\n99-    return useSyncExternalStore(\n100-        subscribe,\n101-        getSnapshot,\n102-        () => EMPTY_ACTIVE_RUNS,\n103-    )\n104-}\n105-\n106-export function useRunningActionForContext(context: ActionContext) {\n107-    return useActiveActionRunsForContext(context)[0] ?? null\n108-}\n109-\n110-/** Subscribe to the global active-run aggregate used by the global indicator. */\n111-export function useActiveActionRuns() {\n112-    return useSyncExternalStore(\n113-        actionRunRegistry.subscribeGlobalActive,\n114-        actionRunRegistry.getGlobalActiveSnapshot,\n115-        actionRunRegistry.getGlobalActiveSnapshot,\n116-    )\n117-}\n3d85e0178 Save project changes before worktree synchronization\ncb951452b Integrate into project\n440c8e96d Save project changes before worktree synchronization",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-113",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"export function useActiveActionRunsForContext\" -A30 src/components/hooks/use_action_runs.ts; git log --oneline -3 -- src/components/hooks/use_action_runs.ts",
+          "providerItemId": "toolu_01D7u5XMze1WyHKyQ3iYVT1M",
+          "sequence": 113,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:04.895Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; f=$(grep -rln \"getContextActiveSnapshotByKey\" src/services | grep -v test | head -3); echo \"$f\"; for x in $f; do grep -n \"getContextActiveSnapshotByKey\\|subscribeContextActiveByKey\\|contextActiveSnapshot\\|dispatchContextActive\\|notifyContextActive\" $x; done",
+          "content": "src/services/actions/action_run_registry.ts\n461:    private readonly contextActiveSnapshots = new Map<string, ActiveActionRun[]>()\n517:        this.contextActiveSnapshots.clear()\n695:        return this.getContextActiveSnapshotByKey(contextKey(context))\n698:    getContextActiveSnapshotByKey(contextIdentity: string) {\n699:        return this.contextActiveSnapshots.get(contextIdentity) ?? EMPTY_ACTIVE_RUNS\n731:        return this.subscribeContextActiveByKey(contextKey(context), listener)\n734:    subscribeContextActiveByKey(contextIdentity: string, listener: StoreListener) {\n1294:            const currentSnapshot = this.contextActiveSnapshots.get(affectedContextKey) ?? []\n1297:            if (nextSnapshot.length > 0) this.contextActiveSnapshots.set(affectedContextKey, nextSnapshot)\n1298:            else this.contextActiveSnapshots.delete(affectedContextKey)",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-114",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; f=$(grep -rln \"getContextActiveSnapshotByKey\" src/services | grep -v test | head -3); echo \"$f\"; for x in $f; do grep -n \"getContextActiveSnapshotByKey\\|subscribeContextActiveByKey\\|contextActiveSnapshot\\|dispatchContextActive\\|notifyContextActive\" $x; done",
+          "providerItemId": "toolu_01ETkE2BFAXFGiXfGRiFqgky",
+          "sequence": 114,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:07.877Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\services\\\\actions\\\\action_run_registry.ts\",\"offset\":1250,\"limit\":80}",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-115",
+          "kind": "event",
+          "label": "Read",
+          "output": "1250\t                : null\n1251\t            next = {\n1252\t                ...next,\n1253\t                conversation: output?.conversation ?? next.conversation,\n1254\t                ...(output ? { conversationChange: { entryIndex: output.entryIndex, kind: 'entry' as const } } : {}),\n1255\t                logs: updateOutputLogs(next.logs, event, event.update),\n1256\t            }\n1257\t        }\n1258\t        // Run observers read submissions while handling this store update. Reconcile first, then publish once.\n1259\t        this.reconcileSubmissions(event, false);\n1260\t        const nextStore = store ?? new ActionRunStore(next, (releasedStore) => this.handleStoreReleased(releasedStore))\n1261\t        if (!store) {\n1262\t            this.runs.set(event.runId, nextStore)\n1263\t            const bindingKey = actionContextKey(event.rootActionId, event.context)\n1264\t            const stores = this.actionContextStores.get(bindingKey) ?? []\n1265\t            this.actionContextStores.set(bindingKey, [...stores, nextStore])\n1266\t            publishKey(this.actionContextListeners, bindingKey)\n1267\t            this.dispatchEvent(new Event(runEventType(event.runId)))\n1268\t        } else {\n1269\t            nextStore.update(next)\n1270\t            const bindingKey = actionContextKey(next.rootActionId, next.context)\n1271\t            const stores = this.actionContextStores.get(bindingKey)\n1272\t            if (stores?.includes(nextStore) && conversationPickerMetadataChanged(current.conversation, next.conversation)) {\n1273\t                this.actionContextStores.set(bindingKey, [...stores])\n1274\t                publishKey(this.actionContextListeners, bindingKey)\n1275\t            }\n1276\t        }\n1277\t\n1278\t        this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))\n1279\t        this.publishScopedEvents(event)\n1280\t        if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {\n1281\t            applyTerminalCardChangedFiles(event.context, next.changedPaths)\n1282\t            this.resolveWaiters(next)\n1283\t            this.releaseTerminalRun(event.runId)\n1284\t        }\n1285\t    }\n1286\t\n1287\t    private publishActiveIndexes(previousContextKey: string, nextContextKey: string) {\n1288\t        const affectedContextKeys = new Set([previousContextKey, nextContextKey])\n1289\t        for (const affectedContextKey of affectedContextKeys) {\n1290\t            const nextSnapshot = [...this.runs.values()]\n1291\t                .map((store) => store.getSnapshot())\n1292\t                .filter((run) => contextKey(run.context) === affectedContextKey && ACTIVE_STATUSES.has(run.status))\n1293\t                .map(activeRun)\n1294\t            const currentSnapshot = this.contextActiveSnapshots.get(affectedContextKey) ?? []\n1295\t            if (sameActiveRuns(currentSnapshot, nextSnapshot)) continue\n1296\t\n1297\t            if (nextSnapshot.length > 0) this.contextActiveSnapshots.set(affectedContextKey, nextSnapshot)\n1298\t            else this.contextActiveSnapshots.delete(affectedContextKey)\n1299\t            publishKey(this.contextActiveListeners, affectedContextKey)\n1300\t        }\n1301\t        const nextGlobalSnapshot = [...this.runs.values()]\n1302\t            .map((store) => store.getSnapshot())\n1303\t            .filter((run) => ACTIVE_STATUSES.has(run.status))\n1304\t            .map(activeRun)\n1305\t        if (!sameActiveRuns(this.globalActiveSnapshot, nextGlobalSnapshot)) this.publishGlobalActive(nextGlobalSnapshot)\n1306\t    }\n1307\t\n1308\t    private publishScopedEvents(event: ActionRunEvent) {\n1309\t        const listeners = this.contextEventListeners.get(contextKey(event.context)) ?? []\n1310\t        for (const listener of listeners) listener(event)\n1311\t        for (const listener of this.activeRunEventListeners) listener(event)\n1312\t    }\n1313\t\n1314\t    private resolveWaiters(run: ActionRun) {\n1315\t        const waiters = this.waiters.get(run.runId)\n1316\t        this.waiters.delete(run.runId)\n1317\t        const result = {\n1318\t            changedPaths: run.changedPaths,\n1319\t            ...(run.diagramPath ? { diagramPath: run.diagramPath } : {}),\n1320\t            logs: run.logs,\n1321\t            status: run.status as ActionRunTerminalStatus,\n1322\t        }\n1323\t        if (!waiters && this.startsInProgress > 0) this.terminalResults.set(run.runId, result)\n1324\t        for (const resolve of waiters ?? []) resolve(result)\n1325\t    }\n1326\t\n1327\t    private handleStoreReleased(store: ActionRunStore) {\n1328\t        const { runId, status } = store.getSnapshot()\n1329\t        if (TERMINAL_STATUSES.has(status as ActionRunTerminalStatus)) this.releaseTerminalRun(runId)",
+          "providerItemId": "toolu_0186j4fjzGhjpK8zV4UJhpKH",
+          "sequence": 115,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:09.454Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-116",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgohigJhbxCBA6U5CMFv9:thinking:0",
+          "sequence": 116,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:11:11.827Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nThe registry dedupes active-run snapshots, so I'm checking what `activeRun`/`sameActiveRuns` compare.",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 117,
+          "timestamp": "2026-11-07T14:11:11.829Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"^function activeRun\\|^function sameActiveRuns\" -A18 src/services/actions/action_run_registry.ts; git log -3 --format='%h %ad %s' --date=iso -L '/^function sameActiveRuns/,+15:src/services/actions/action_run_registry.ts' | grep -E \"^[0-9a-f]{9} \" ",
+          "content": "408:function activeRun(run: ActionRun): ActiveActionRun {\n409-    return { context: run.context, rootActionId: run.rootActionId, runId: run.runId, status: run.status }\n410-}\n411-\n412:function sameActiveRuns(first: ActiveActionRun[], second: ActiveActionRun[]) {\n413-    return first.length === second.length && first.every(({ context, runId, status }, index) => (\n414-        second[index]?.runId === runId\n415-        && second[index]?.status === status\n416-        && Object.keys(context).length === Object.keys(second[index].context).length\n417-        && Object.entries(context).every(([key, value]) => second[index].context[key] === value)\n418-    ))\n419-}\n420-\n421-function conversationPickerMetadataChanged(previous: ActionRun['conversation'], current: ActionRun['conversation']) {\n422-    return previous?.actionId !== current?.actionId\n423-        || previous?.cardInternalId !== current?.cardInternalId\n424-        || previous?.hasExplicitTitle !== current?.hasExplicitTitle\n425-        || previous?.id !== current?.id\n426-        || previous?.path !== current?.path\n427-        || previous?.startedAt !== current?.startedAt\n428-        || previous?.title !== current?.title\n429-}\n430-\n83b28e739 2026-08-29 14:58:10 +0200 Integrate into project\ncb951452b 2026-08-25 20:14:35 +0200 Integrate into project\n440c8e96d 2026-08-01 15:14:23 +0200 Save project changes before worktree synchronization",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-118",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"^function activeRun\\|^function sameActiveRuns\" -A18 src/services/actions/action_run_registry.ts; git log -3 --format='%h %ad %s' --date=iso -L '/^function sameActiveRuns/,+15:src/services/actions/action_run_registry.ts' | grep -E \"^[0-9a-f]{9} \" ",
+          "providerItemId": "toolu_019ymfJ83gtW3TMRzsTFHEkF",
+          "sequence": 118,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:13.947Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-119",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgohj1DzroTviTznobtBp:thinking:0",
+          "sequence": 119,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:11:16.034Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; grep -rn \"<ActionSelector\\b\" src --include=*.tsx | grep -v test; git log --oneline -8 -- src/components/actions/run/popup/",
+          "content": "src/components/actions/run/popup/action_popup_frame.tsx:175:                        <ActionSelector\n546f90de7 Integrate into project\n90be3f263 Integrate into project\n16ad35466 Integrate into project\ne1da6daa7 Integrate into project\n53a8bea2a Integrate into project\n5b2633de5 Integrate into project\n95c649231 Integrate into project\n5aa327fa9 Integrate into project",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-120",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; grep -rn \"<ActionSelector\\b\" src --include=*.tsx | grep -v test; git log --oneline -8 -- src/components/actions/run/popup/",
+          "providerItemId": "toolu_01EQGg938kJVSgfx63SY5LkH",
+          "sequence": 120,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:18.336Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_frame.tsx\"}",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-121",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Box, IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material'\n2\timport ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'\n3\timport ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'\n4\timport Close from 'mdi-material-ui/Close'\n5\timport { useCallback, useSyncExternalStore, type KeyboardEvent, type ReactNode } from 'react'\n6\timport type { ActionContext } from '../../../../data/action_context'\n7\timport { ResizablePopper } from '../../../resizable_popper'\n8\timport type { WorktreeAssignmentTarget } from '../../../worktree_selector'\n9\timport { MarkdownTypeaheadLayerProvider } from '../../../editor/typeahead/markdown_typeahead_layer_provider'\n10\timport { NO_DRAG_REGION } from '../../../shell/drag_region'\n11\timport { ActionConversationPickerOwner } from '../../conversation/picker/action_conversation_picker_owner'\n12\timport type { ActionConversationStore } from '../../conversation/state/action_conversation_store'\n13\timport type { ActionConversationSearchService } from '../../conversation/search/action_conversation_search_service'\n14\timport { ActionConversationSearchButton } from '../../conversation/search/action_conversation_search_button'\n15\timport { ActionConversationSearchRow } from '../../conversation/search/action_conversation_search_row'\n16\timport type { ActionRunBindingStore } from '../state/action_run_binding_store'\n17\timport type { ActionRunInputStore } from '../state/action_run_input_store'\n18\timport { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'\n19\timport { resolveDisplayedConversation } from '../../conversation/state/action_conversation_store'\n20\timport { ActionSelector } from './action_selector'\n21\timport type { ActionPopupContentProps } from './action_popup_types'\n22\timport { ActionPopupTargetBadge } from './action_popup_target_badge'\n23\timport { ActionPopupTitle } from './action_popup_title'\n24\timport { ActionWorktreeSelectorOwner } from './action_worktree_selector_owner'\n25\t\n26\texport const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'\n27\texport const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'\n28\t\n29\tinterface ActionPopupFrameProps {\n30\t    bindingStore: ActionRunBindingStore\n31\t    children: ReactNode\n32\t    contentProps: ActionPopupContentProps\n33\t    conversationSearchService: ActionConversationSearchService\n34\t    conversationStore: ActionConversationStore\n35\t    inputStore: ActionRunInputStore\n36\t}\n37\t\n38\tfunction worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget | null {\n39\t    if (context.kind === 'project') return { kind: 'project' }\n40\t    if ((context.kind === 'card' || context.kind === 'file') && context.file && context.cardInternalId) {\n41\t        return { cardInternalId: context.cardInternalId, kind: 'card', path: context.file }\n42\t    }\n43\t\n44\t    return null\n45\t}\n46\t\n47\t/** Shared popup surface, toolbar, and action selector. */\n48\texport function ActionPopupFrame(\n49\t    { bindingStore, children, contentProps, conversationSearchService, conversationStore, inputStore }: ActionPopupFrameProps,\n50\t) {\n51\t    const {\n52\t        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,\n53\t        onClose, onSelectAction, onToggleFullHeight, open, primaryPath, readOnlyMessage, stackPosition,\n54\t        subscribeFocusRequest, titleId,\n55\t    } = contentProps\n56\t    const theme = useTheme()\n57\t    const boundRunId = useBoundRunId(bindingStore)\n58\t    const liveConversation = useRunSelector(boundRunId, (run) => run?.conversation ?? null)\n59\t    const getSelectedConversation = useCallback(\n60\t        () => conversationStore.getSnapshot().selectedConversation,\n61\t        [conversationStore],\n62\t    )\n63\t    const selectedConversation = useSyncExternalStore(conversationStore.subscribe, getSelectedConversation, getSelectedConversation)\n64\t    const input = useSyncExternalStore(inputStore.subscribe, inputStore.getSnapshot, inputStore.getSnapshot)\n65\t    const displayedConversation = resolveDisplayedConversation(liveConversation,\n[3055 characters omitted]\n context={baseContext} titleId={titleId} />\n125\t                    <Box\n126\t                        data-testid=\"action-popup-fixed-header\"\n127\t                        data-drag-handle={!isMobile && draggable ? 'true' : undefined}\n128\t                        sx={{\n129\t                            borderBottom: 1, borderColor: 'divider', cursor: !isMobile && draggable ? 'move' : undefined,\n130\t                            display: 'flex', flexDirection: 'column', flexShrink: 0, gap: 1, px: 1.5, py: 1.5,\n131\t                        }}\n132\t                    >\n133\t                        <Box\n134\t                            data-testid=\"action-popup-toolbar\"\n135\t                            sx={{ alignItems: 'center', display: 'flex', gap: { sm: 1, xs: 0.5 }, minWidth: 0 }}\n136\t                        >\n137\t                            <ActionPopupTargetBadge context={baseContext} />\n138\t                            {assignmentTarget && !readOnlyMessage ? (\n139\t                                <ActionWorktreeSelectorOwner\n140\t                                    assignment={worktreeAssignment}\n141\t                                    assignmentTarget={assignmentTarget}\n142\t                                    bindingStore={bindingStore}\n143\t                                    primaryPath={primaryPath}\n144\t                                    sequenceCardInternalId={baseContext.kind === 'card' ? baseContext.cardInternalId ?? null : null}\n145\t                                />\n146\t                            ) : null}\n147\t                            {action.type === 'agent' ? (\n148\t                                <ActionConversationPickerOwner\n149\t                                    actionId={action.id}\n150\t                                    bindingStore={bindingStore}\n151\t                                    context={assignmentContext}\n152\t                                    store={conversationStore}\n153\t                                />\n154\t                            ) : null}\n155\t                            <Box sx={{ flex: 1 }} />\n156\t                            <ActionConversationSearchButton service={conversationSearchService} />\n157\t                            {!isMobile ? (\n158\t                                <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>\n159\t                                    <IconButton\n160\t                                        aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}\n161\t                                        onClick={onToggleFullHeight}\n162\t                                        size=\"small\"\n163\t                                        sx={{ flexShrink: 0, height: 30, width: 30 }}\n164\t                                    >\n165\t                                        {fullHeight\n166\t                                            ? <ArrowCollapseVertical sx={{ fontSize: 18 }} />\n167\t                                            : <ArrowExpandVertical sx={{ fontSize: 18 }} />}\n168\t                                    </IconButton>\n169\t                                </Tooltip>\n170\t                            ) : null}\n171\t                            <IconButton aria-label=\"Close\" onClick={onClose} size=\"small\" sx={{ flexShrink: 0, height: 30, width: 30 }}>\n172\t                                <Close sx={{ fontSize: 18 }} />\n173\t                            </IconButton>\n174\t                        </Box>\n175\t                        <ActionSelector\n176\t                            actions={actions}\n177\t                            context={assignmentContext}\n178\t                            onSelect={onSelectAction}\n179\t                            selectedAction={action}\n180\t                            selectedHasForEach={selectedHasForEach}\n181\t                        />\n182\t                        <ActionConversationSearchRow service={conversationSearchService} />\n183\t                    </Box>\n184\t                    {children}\n185\t                </Box>\n186\t            </MarkdownTypeaheadLayerProvider>\n187\t        </ResizablePopper>\n188\t    )\n189\t}\n190\t",
+          "providerItemId": "toolu_01Bt37i1hYAC3mPcDjr9UNTC",
+          "sequence": 121,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:19.559Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "The frame re-renders on every streamed chunk just to compute `selectedHasForEach` from the whole conversation, so I'm checking `resolveDisplayedConversation` and git blame next.\n\n",
+          "details": [
+            "The frame re-renders on every streamed chunk just to compute `selectedHasForEach` from the whole conversation, so I'm checking `resolveDisplayedConversation` and git blame next.\n\n"
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-122",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgohjRJbNQD97uUpZ935h:thinking:0",
+          "sequence": 122,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:11:23.667Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "The frame re-renders on every streamed chunk just to compute `selectedHasForEach` from the whole conversation, so I'm checking `resolveDisplayedConversation` and git blame next.\n\n",
+          "details": [
+            "The frame re-renders on every streamed chunk just to compute `selectedHasForEach` from the whole conversation, so I'm checking `resolveDisplayedConversation` and git blame next.\n\n"
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-123",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgohjRJbNQD97uUpZ935h:thinking:1",
+          "sequence": 123,
+          "status": "inProgress",
+          "summary": [],
+          "timestamp": "2026-11-07T14:11:23.666Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"export function resolveDisplayedConversation\" -A15 src/components/actions/conversation/state/action_conversation_store.ts; git log -3 --format='%h %ad %s' --date=iso -S \"liveConversation\" -- src/components/actions/run/popup/action_popup_frame.tsx; grep -n \"export function useRunSelector\" -A25 src/components/hooks/use_action_runs.ts",
+          "content": "40:export function resolveDisplayedConversation<T extends ConversationIdentity>(liveConversation: T | null, selectedConversation: T | null) {\n41-    if (!selectedConversation || selectedConversation.id === liveConversation?.id) return liveConversation ?? selectedConversation\n42-\n43-    return selectedConversation\n44-}\n45-\n46-/** Identifies history display that must not route controls to an active run. */\n47-export function isBrowsingHistoricalConversation(\n48-    liveConversation: ConversationIdentity | null,\n49-    selectedConversation: ConversationIdentity | null,\n50-    sessionActive: boolean,\n51-) {\n52-    return sessionActive && !!selectedConversation && selectedConversation.id !== liveConversation?.id\n53-}\n54-\n55-export function conversationOptions<T extends ConversationPickerConversation>(\n16ad35466 2026-11-06 09:32:46 +0100 Integrate into project\n54:export function useRunSelector<T>(runId: string | null, selector: (run: ActionRun | null) => T) {\n55-    const subscribe = useCallback(\n56-        (listener: () => void) => runId ? actionRunRegistry.subscribeRun(runId, listener) : subscribeEmpty(),\n57-        [runId],\n58-    )\n59-    const getSnapshot = useCallback(\n60-        () => selector(runId ? actionRunRegistry.getRunStore(runId)?.getSnapshot() ?? null : null),\n61-        [runId, selector],\n62-    )\n63-\n64-    return useSyncExternalStore(subscribe, getSnapshot, () => selector(null))\n65-}\n66-\n67-/** Subscribe to runId selected by one popup runtime. */\n68-export function useBoundRunId(bindingStore: ActionRunBindingStore) {\n69-    return useSyncExternalStore(bindingStore.subscribe, bindingStore.getSnapshot, bindingStore.getSnapshot)\n70-}\n71-\n72-/** Subscribe to all live run stores for one root action and context. */\n73-export function useActionRunStores(actionId: string, context: ActionContext) {\n74-    const contextIdentity = actionContextIdentity(context)\n75-    const subscribe = useCallback(\n76-        (listener: () => void) => actionRunRegistry.subscribeActionRunByKey(actionId, contextIdentity, listener),\n77-        [actionId, contextIdentity],\n78-    )\n79-    const getSnapshot = useCallback(",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-124",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"export function resolveDisplayedConversation\" -A15 src/components/actions/conversation/state/action_conversation_store.ts; git log -3 --format='%h %ad %s' --date=iso -S \"liveConversation\" -- src/components/actions/run/popup/action_popup_frame.tsx; grep -n \"export function useRunSelector\" -A25 src/components/hooks/use_action_runs.ts",
+          "providerItemId": "toolu_01YBTcDyp8LuaaJeE1SFKmSB",
+          "sequence": 124,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:25.112Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; git show 16ad35466 --stat | head -30; git show 16ad35466 -- src/components/actions/run/popup/action_popup_frame.tsx src/components/actions/run/popup/action_selector.tsx | head -120",
+          "content": "commit 16ad35466aa5012aae04545a442d04599c165ab1\nAuthor: Jan Bogaerts <jb@elastetic.com>\nDate:   Fri Nov 6 09:32:46 2026 +0100\n\n    Integrate into project\n\n .../actions/run/popup/action_for_each_menu.tsx     |  78 ++++++++++++\n .../actions/run/popup/action_popup_bottom_row.tsx  |   4 +-\n .../actions/run/popup/action_popup_content.tsx     |   4 +-\n .../actions/run/popup/action_popup_frame.tsx       |  19 ++-\n .../run/popup/action_popup_operations.node.test.ts |  21 ++++\n .../actions/run/popup/action_popup_operations.ts   |   3 +\n .../actions/run/popup/action_prompt_menu.test.tsx  |  30 ++++-\n .../actions/run/popup/action_prompt_menu.tsx       |  70 ++++++++++-\n .../actions/run/popup/action_selector.test.tsx     |  14 +++\n .../actions/run/popup/action_selector.tsx          |   4 +-\n .../actions/run/popup/action_selector_button.tsx   |   5 +-\n .../run/state/action_run_input_store.node.test.ts  |   2 +-\n .../actions/run/state/action_run_input_store.ts    |  11 ++\n .../markdown_placeholder_typeahead_plugin.tsx      |   6 +-\n app/src/data/action_placeholders.ts                |   5 +-\n app/src/data/action_run_types.ts                   |   9 ++\n app/src/data/data_types.ts                         |   1 +\n app/src/data/electron_action_bridge.ts             |   3 +\n .../agents/agent_conversation_service.node.test.ts |  10 ++\n desktop/main.js                                    |  12 ++\n .../src/actions/action/action_agent_executor.js    |   4 +\n .../src/actions/action/action_for_each.test.mjs    |  28 +++++\n desktop/src/actions/action/action_run.js           | 120 +++++++++++++++++--\n desktop/src/actions/action/action_run.test.mjs     | 133 +++++++++++++++++++++\ncommit 16ad35466aa5012aae04545a442d04599c165ab1\nAuthor: Jan Bogaerts <jb@elastetic.com>\nDate:   Fri Nov 6 09:32:46 2026 +0100\n\n    Integrate into project\n\ndiff --git a/app/src/components/actions/run/popup/action_popup_frame.tsx b/app/src/components/actions/run/popup/action_popup_frame.tsx\nindex ec0bb9794..312b2097b 100644\n--- a/app/src/components/actions/run/popup/action_popup_frame.tsx\n+++ b/app/src/components/actions/run/popup/action_popup_frame.tsx\n@@ -2,7 +2,7 @@ import { Box, IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material\n import ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'\n import ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'\n import Close from 'mdi-material-ui/Close'\n-import type { KeyboardEvent, ReactNode } from 'react'\n+import { useCallback, useSyncExternalStore, type KeyboardEvent, type ReactNode } from 'react'\n import type { ActionContext } from '../../../../data/action_context'\n import { ResizablePopper } from '../../../resizable_popper'\n import type { WorktreeAssignmentTarget } from '../../../worktree_selector'\n@@ -14,6 +14,9 @@ import type { ActionConversationSearchService } from '../../conversation/search/\n import { ActionConversationSearchButton } from '../../conversation/search/action_conversation_search_button'\n import { ActionConversationSearchRow } from '../../conversation/search/action_conversation_search_row'\n import type { ActionRunBindingStore } from '../state/action_run_binding_store'\n+import type { ActionRunInputStore } from '../state/action_run_input_store'\n+import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'\n+import { resolveDisplayedConversation } from '../../conversation/state/action_conversation_store'\n import { ActionSelector } from './action_selector'\n import type { ActionPopupContentProps } from './action_popup_types'\n import { ActionPopupTargetBadge } from './action_popup_target_badge'\n@@ -29,6 +32,7 @@ interface ActionPopupFrameProps {\n     contentProps: ActionPopupContentProps\n     conversationSearchService: ActionConversationSearchService\n     conversationStore: ActionConversationStore\n+    inputStore: ActionRunInputStore\n }\n \n function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget | null {\n@@ -42,7 +46,7 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar\n \n /** Shared popup surface, toolbar, and action selector. */\n export function ActionPopupFrame(\n-    { bindingStore, children, contentProps, conversationSearchService, conversationStore }: ActionPopupFrameProps,\n+    { bindingStore, children, contentProps, conversationSearchService, conversationStore, inputStore }: ActionPopupFrameProps,\n ) {\n     const {\n         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,\n@@ -50,6 +54,16 @@ export function ActionPopupFrame(\n         subscribeFocusRequest, titleId,\n     } = contentProps\n     const theme = useTheme()\n+    const boundRunId = useBoundRunId(bindingStore)\n+    const liveConversation = useRunSelector(boundRunId, (run) => run?.conversation ?? null)\n+    const getSelectedConversation = useCallback(\n+        () => conversationStore.getSnapshot().selectedConversation,\n+        [conversationStore],\n+    )\n+    const selectedConversation = useSyncExternalStore(conversationStore.subscribe, getSelectedConversation, getSelectedConversation)\n+    const input = useSyncExternalStore(inputStore.subscribe, inputStore.getSnapshot, inputStore.getSnapshot)\n+    const displayedConversation = resolveDisplayedConversation(liveConversation, selectedConversation)\n+    const selectedHasForEach = !!(displayedConversation?.forEach ?? input.forEachByAction[action.id])\n     const isMobile = useMediaQuery(theme.breakpoints.down('md'))\n     const sizeStorageKey = baseContext.kind === 'project'\n         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY\n@@ -163,6 +177,7 @@ export function ActionPopupFrame(\n                             context={assignmentContext}\n                             onSelect={onSelectAction}\n                             selectedAction={action}\n+                            selectedHasForEach={selectedHasForEach}\n                         />\n                         <ActionConversationSearchRow service={conversationSearchService} />\n                     </Box>\ndiff --git a/app/src/components/actions/run/popup/action_selector.tsx b/app/src/components/actions/run/popup/action_selector.tsx\nindex ad5dcdf03..d002e184a 100644\n--- a/app/src/components/actions/run/popup/action_selector.tsx\n+++ b/app/src/components/actions/run/popup/action_selector.tsx\n@@ -25,11 +25,12 @@ interface ActionSelectorProps {\n     context: ActionContext\n     onSelect: (actionId: string) => void\n     selectedAction: ActionDefinition\n+    selectedHasForEach?: boolean\n }\n \n /** Horizontally scrollable, mutually exclusive action selector used by the card Run popup. */\n export function ActionSelector(props: ActionSelectorProps) {\n-    const { actions, context, onSelect, selectedAction } = props\n+    const { actions, context, onSelect, selectedAction, selectedHasForEach = false } = props\n     const activeRuns = useActiveActionRunsForContext(context)\n     const groupRef = useRef<HTMLDivElement>(null)\n     const activeActionStatuses: Record<string, ActionRunStatus> = {}\n@@ -62,6 +63,7 @@ export function ActionSelector(props: ActionSelectorProps) {\n                         context={context}\n                         key={action.id}\n                         liveStatus={activeActionStatuses[action.id]}\n+                        hasForEach={action.id === selectedAction.id && selectedHasForEach}\n                     />\n                 ))}\n             </ToggleButtonGroup>",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-125",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; git show 16ad35466 --stat | head -30; git show 16ad35466 -- src/components/actions/run/popup/action_popup_frame.tsx src/components/actions/run/popup/action_selector.tsx | head -120",
+          "providerItemId": "toolu_017yxpdEYaX6jHcZxSmytN1i",
+          "sequence": 125,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:27.636Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "The regression came from commit 16ad35466, which added a streamed conversation subscription to ActionPopupFrame; the test is right, so I'm fixing the code and leaving the test alone, starting with the forEach type check.\n\n",
+          "details": [
+            "The regression came from commit 16ad35466, which added a streamed conversation subscription to ActionPopupFrame; the test is right, so I'm fixing the code and leaving the test alone, starting with the forEach type check.\n\n"
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-126",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgohk1gJwDNhEfajYbd12:thinking:0",
+          "sequence": 126,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:11:39.926Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "The regression came from commit 16ad35466, which added a streamed conversation subscription to ActionPopupFrame; the test is right, so I'm fixing the code and leaving the test alone, starting with the forEach type check.\n\n",
+          "details": [
+            "The regression came from commit 16ad35466, which added a streamed conversation subscription to ActionPopupFrame; the test is right, so I'm fixing the code and leaving the test alone, starting with the forEach type check.\n\n"
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-127",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgohk1gJwDNhEfajYbd12:thinking:1",
+          "sequence": 127,
+          "status": "inProgress",
+          "summary": [],
+          "timestamp": "2026-11-07T14:11:39.926Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; grep -rn \"forEach?:\\|forEachByAction\" src/data/data_types.ts src/data/action_run_types.ts src/components/actions/run/state/action_run_input_store.ts | head",
+          "content": "src/data/data_types.ts:459:    forEach?: import('./action_run_types').ActionForEachConfig\nsrc/data/action_run_types.ts:37:    forEach?: ActionForEachConfig\nsrc/components/actions/run/state/action_run_input_store.ts:6:    forEachByAction: Readonly<Record<string, ActionForEachConfig>>\nsrc/components/actions/run/state/action_run_input_store.ts:14:    forEachByAction: {},\nsrc/components/actions/run/state/action_run_input_store.ts:39:        const forEachByAction = { ...this.snapshot.forEachByAction }\nsrc/components/actions/run/state/action_run_input_store.ts:40:        if (forEach) forEachByAction[actionId] = forEach\nsrc/components/actions/run/state/action_run_input_store.ts:41:        else delete forEachByAction[actionId]\nsrc/components/actions/run/state/action_run_input_store.ts:42:        this.publish({ ...this.snapshot, forEachByAction })",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-128",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; grep -rn \"forEach?:\\|forEachByAction\" src/data/data_types.ts src/data/action_run_types.ts src/components/actions/run/state/action_run_input_store.ts | head",
+          "providerItemId": "toolu_01K8iYtqt8Lv7f84E8HSwxvP",
+          "sequence": 128,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:40.820Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "The for-each value is always truthy once set, so I'm switching the frame to subscribe to the live conversation id and a boolean for whether a for-each exists.\n\n",
+          "details": [
+            "The for-each value is always truthy once set, so I'm switching the frame to subscribe to the live conversation id and a boolean for whether a for-each exists.\n\n"
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-129",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgohkzAJ2FrBUGUwxUzN3:thinking:0",
+          "sequence": 129,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:11:49.569Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "The for-each value is always truthy once set, so I'm switching the frame to subscribe to the live conversation id and a boolean for whether a for-each exists.\n\n",
+          "details": [
+            "The for-each value is always truthy once set, so I'm switching the frame to subscribe to the live conversation id and a boolean for whether a for-each exists.\n\n"
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-130",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgohkzAJ2FrBUGUwxUzN3:thinking:1",
+          "sequence": 130,
+          "status": "inProgress",
+          "summary": [],
+          "timestamp": "2026-11-07T14:11:49.569Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\run\\popup\\action_popup_frame.tsx",
+          "deletions": 0,
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-131",
+          "insertions": 8,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\run\\popup\\action_popup_frame.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Sssz1qrrzEGoPDzw4H1gWk",
+          "sequence": 131,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:56.826Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\run\\popup\\action_popup_frame.tsx",
+          "deletions": 3,
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-132",
+          "insertions": 8,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\run\\popup\\action_popup_frame.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01KsRGeC6u7bVnecAeCW4u2g",
+          "sequence": 132,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:56.851Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\run\\popup\\action_popup_frame.tsx",
+          "deletions": 0,
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-133",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\run\\popup\\action_popup_frame.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01HmVsqGhXWyQ6FuwFkFXZYe",
+          "sequence": 133,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:11:56.874Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-134",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgohnArX83geehDvJ4hsg:thinking:0",
+          "sequence": 134,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:11:58.384Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"command\":\"npm run typecheck 2>&1 | Select-Object -Last 10; npx eslint src/components/actions/run/popup/action_popup_frame.tsx\",\"description\":\"Typecheck and lint the frame\",\"timeout\":300000}",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-135",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.11.0 typecheck\r\n> tsc --noEmit\r\n\r\nsrc/components/actions/run/popup/action_popup_frame.tsx(7,15): error TS2305: Module '\"../../../../data/action_run_types\"' has no exported member 'ActionRun'.",
+          "providerItemId": "toolu_01XWP9fZdeQghzZEGSKujxFN",
+          "sequence": 135,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:12:24.316Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "{\"command\":\"npm run test -- src/components/actions/run/popup/ 2>&1 | Select-String -Pattern \\\"FAIL|×|Test Files|Tests \\\"\",\"description\":\"Run popup test folder\",\"timeout\":600000}",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-136",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": " Test Files  17 passed (17)\r\n      Tests  257 passed (257)\r\n   Duration  39.26s (transform 2.77s, setup 671ms, import 11.36s, tests 35.87s, environment 6.38s)",
+          "providerItemId": "toolu_01GzPe9DxKK75hQd5J2Ya6va",
+          "sequence": 136,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:13:05.083Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"ActionRun\\b\" src/components/hooks/use_action_runs.ts | head -3",
+          "content": "3:import { actionRunRegistry, type ActionRun } from '../../services/actions/action_run_registry'\n12:function useRunStore<T>(store: ActionRunStore | null, selector: (run: ActionRun | null) => T) {\n40:export function useActionRun(actionId: string, context: ActionContext) {",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-137",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; grep -n \"ActionRun\\b\" src/components/hooks/use_action_runs.ts | head -3",
+          "providerItemId": "toolu_01N3XddUgbnWANEjmy26Rc67",
+          "sequence": 137,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:13:07.745Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\run\\popup\\action_popup_frame.tsx",
+          "deletions": 1,
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-138",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\run\\popup\\action_popup_frame.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_0138V3YFSDAtGiKezjFWD676",
+          "sequence": 138,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:13:10.948Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"command\":\"npm run typecheck 2>&1 | Select-Object -Last 10; npx eslint src/components/actions/run/popup/action_popup_frame.tsx\",\"description\":\"Re-run typecheck and lint\",\"timeout\":300000}",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-139",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.11.0 typecheck\r\n> tsc --noEmit",
+          "providerItemId": "toolu_01EAiyQQzuj8VDvRDJQj54zm",
+          "sequence": 139,
+          "status": "completed",
+          "timestamp": "2026-11-07T14:13:29.774Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-event-140",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgohu27r9tBrkSstzbJkx:thinking:0",
+          "sequence": 140,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T14:13:35.448Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI fixed the test failure, but by changing the component, not the test. The test was right and the component had regressed.\n\n**Cause:** Commit `16ad35466` (the for-each feature, 2026-11-06) made `ActionPopupFrame` subscribe to the whole live conversation of the running action. Every streamed output chunk replaces that object, so the frame and its `ActionSelector` child re-rendered on every chunk. The frame only needed one fact from it: whether the displayed conversation has a for-each, which decides whether the selected action button shows the for-each marker. The test checks that streaming doesn't re-render unrelated popup controls, and this broke it.\n\n**Fix** (`app/src/components/actions/run/popup/action_popup_frame.tsx`):\n- The frame now subscribes to two values that don't change while output streams: the live conversation's id and whether it has a for-each. Both come from small module-level selector functions.\n- The choice between the live conversation and a history conversation the user picked still goes through `resolveDisplayedConversation`, so the for-each marker behaves exactly as before.\n\n**Checks:**\n- All 17 test files in the popup folder pass (257 tests), including the one that was failing.\n- Typecheck and lint are clean.\n\nNothing is committed yet. The working tree has this fix plus the B_337 changes in `project_loading.ts` and its test file.",
+          "id": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 141,
+          "timestamp": "2026-11-07T14:13:35.484Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1312,39 +1820,39 @@
           "agent": "claude",
           "conversationId": "2244d91b-eead-4ac3-a953-f22255523363",
           "createdAt": "2026-11-07T10:59:28.168Z",
-          "lastUsedAt": "2026-11-07T14:09:49.654Z",
-          "synchronizedThroughMessageId": "agent-turn-e9fb21b9-8941-44e1-947d-3d5ea09ad055-turn-3-assistant-8",
+          "lastUsedAt": "2026-11-07T14:13:35.484Z",
+          "synchronizedThroughMessageId": "agent-turn-85e2a02e-9c08-4162-938f-38b7dc17ed0f-turn-1-assistant-4",
           "usageBaseline": {
-            "costUsd": 2.0824787999999996,
-            "resultId": "a4078582-23f8-4004-aabf-9d1065c580d4",
+            "costUsd": 2.9073019999999996,
+            "resultId": "0e6aba37-ba9e-46c0-814a-9978d69ac507",
             "tokens": {
-              "cachedInputTokens": 3715332,
-              "inputTokens": 102,
-              "outputTokens": 19449,
+              "cachedInputTokens": 5993933,
+              "inputTokens": 139,
+              "outputTokens": 27162,
               "reasoningTokens": 0,
-              "totalTokens": 3734883
+              "totalTokens": 6021234
             }
           }
         }
       ],
       "startedAt": "2026-11-07T10:59:25.562Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 76395,
-          "toolMs": 616351
+          "reasoningMs": 108629,
+          "toolMs": 779237
         },
         "elapsedMs": 744567,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-07T14:10:01.392Z"
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 3715332,
-        "inputTokens": 102,
-        "outputTokens": 19449,
+        "cachedInputTokens": 5993933,
+        "inputTokens": 139,
+        "outputTokens": 27162,
         "reasoningTokens": 0,
-        "totalTokens": 3734883,
-        "costUsd": 2.0824787999999996
+        "totalTokens": 6021234,
+        "costUsd": 2.9073019999999996
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -1362,12 +1870,12 @@
         "agent-3d0d68d8-af8a-4bde-8dd5-1215c483fcff"
       ],
       "details": {
+        "type": "agent",
         "accountId": "claude-initial",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-21e63e6a-c3ca-4dc2-9d25-2e9e0e1bbde1",
       "origin": {
@@ -1376,9 +1884,9 @@
       },
       "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "rootActionLabel": "investigate",
-      "rootConversationId": "agent-3d0d68d8-af8a-4bde-8dd5-1215c483fcff",
       "startedAt": "2026-11-07T10:59:25.560Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-3d0d68d8-af8a-4bde-8dd5-1215c483fcff"
     }
   ],
   "version": 5
