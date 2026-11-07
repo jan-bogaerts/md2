@@ -1131,6 +1131,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "985eabb4-1032-49e3-9523-580c67467696",
+      "cardPath": "design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-2cbca10a-8055-4c99-9288-67a73f761e09",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-07T15:23:47.897Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-30d861b4-169b-48ed-97e7-6d3cf27ac221",
+      "providerSessions": [],
+      "startedAt": "2026-11-07T15:23:47.897Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-07T15:23:47.897Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -1145,14 +1173,14 @@
         "agent-e53198bc-1444-49cc-a335-2e651a622139"
       ],
       "details": {
+        "type": "agent",
         "accountId": "codex-initial",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-adce0e9b-f1d7-42a7-a67c-de4d8693845a",
       "origin": {
@@ -1161,9 +1189,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-e53198bc-1444-49cc-a335-2e651a622139",
       "startedAt": "2026-11-07T15:20:21.390Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-e53198bc-1444-49cc-a335-2e651a622139"
     }
   ],
   "version": 5
