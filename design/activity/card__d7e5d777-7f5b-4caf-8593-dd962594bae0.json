@@ -20,7 +20,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "d7e5d777-7f5b-4caf-8593-dd962594bae0",
       "cardPath": "design/feature_descriptions/B_336_error_primary_worktree_has_uncommitted_changes_c.md",
-      "completedAt": null,
+      "completedAt": "2026-11-07T14:05:52.302Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 51330
@@ -197,7 +197,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 14,
-          "timestamp": "2026-11-07T13:58:14.258Z"
+          "timestamp": "2026-11-07T14:05:52.302Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -208,7 +208,7 @@
           "agent": "claude",
           "conversationId": "83720c57-b2ed-41f4-bdbf-5fd95e9977e3",
           "createdAt": "2026-11-07T13:57:47.271Z",
-          "lastUsedAt": "2026-11-07T13:58:14.258Z",
+          "lastUsedAt": "2026-11-07T14:05:52.302Z",
           "synchronizedThroughMessageId": "agent-turn-52550208-5e15-4094-a2f4-938dccbeff2b-turn-1-assistant-2",
           "usageBaseline": {
             "costUsd": 0.3641392,
@@ -224,7 +224,7 @@
         }
       ],
       "startedAt": "2026-11-07T13:57:43.702Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 10725,
@@ -243,7 +243,7 @@
         "costUsd": 0.3641392
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
