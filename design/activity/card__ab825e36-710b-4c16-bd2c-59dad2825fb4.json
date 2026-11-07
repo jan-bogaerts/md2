@@ -961,6 +961,14 @@
           "role": "assistant",
           "sequence": 69,
           "timestamp": "2026-11-07T15:45:10.273Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-ae6fe6ef-bd8c-4ac1-af51-0013a0b4195f",
+          "kind": "message",
+          "role": "user",
+          "sequence": 70,
+          "timestamp": "2026-11-07T15:45:51.217Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -976,7 +984,7 @@
         }
       ],
       "startedAt": "2026-11-07T15:30:43.814Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -1003,7 +1011,7 @@
           "toolMs": 4836
         },
         "elapsedMs": 165027,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-07T15:45:51.217Z"
       },
       "title": "investigate",
       "usage": {
