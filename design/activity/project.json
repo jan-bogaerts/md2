@@ -2475,14 +2475,14 @@
         }
       ],
       "startedAt": "2026-11-07T15:33:55.377Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 218,
           "toolMs": 29114
         },
-        "elapsedMs": 34114,
-        "runningStartedAt": "2026-11-07T15:42:24.868Z"
+        "elapsedMs": 120335,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
@@ -2493,7 +2493,7 @@
         "totalTokens": 1119330
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
