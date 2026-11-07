@@ -100,6 +100,7 @@ function createDispatch(options = {}) {
         loadCardActivity: vi.fn(async () => ({ actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4 })),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
         loadImageFile: vi.fn(async (filePath) => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: filePath })),
+        initializeLocalProject: vi.fn(async (rootPath) => ({ branch: 'main', id: rootPath, rootPath })),
         loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', states: [{ state: 'ready' }] })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
@@ -539,6 +540,17 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadProjectConfig).toHaveBeenCalledOnce();
         expect(actionSchedulerService.startProject).toHaveBeenCalledOnce();
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), currentProject);
+    });
+
+    it('initializes a selected local project through the Git service', async () => {
+        const { dispatch, localGitService } = createDispatch();
+
+        await expect(dispatch.dataBridge.initializeLocalProject('C:/new project')).resolves.toEqual({
+            branch: 'main',
+            id: 'C:/new project',
+            rootPath: 'C:/new project',
+        });
+        expect(localGitService.initializeLocalProject).toHaveBeenCalledWith('C:/new project');
     });
 
     it('opens the project sub-folder picker at the repository root', async () => {

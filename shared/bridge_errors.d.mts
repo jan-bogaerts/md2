@@ -1,5 +1,6 @@
 export const BRIDGE_ERROR_ENVELOPE_KEY: '__md2BridgeError'
 export const BRIDGE_ERROR_FIELDS: readonly string[]
+export const NOT_A_GIT_REPOSITORY_ERROR: 'not-a-git-repository'
 
 export interface BridgeErrorPayload {
     code?: string

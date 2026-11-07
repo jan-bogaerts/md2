@@ -450,9 +450,10 @@ export function AppMenu(props: AppMenuProps) {
                     <StatsMenuTab />
                 </Box>
             ) : null}
-            {projectOpenPhase === 'selecting' || projectOpenPhase === 'folder-setup' ? (
-                <ProjectOpenDialog key={projectOpenPhase} />
-            ) : null}
+            {projectOpenPhase === 'selecting' || projectOpenPhase === 'folder-setup'
+                || projectOpenPhase === 'git-initialization' ? (
+                    <ProjectOpenDialog key={projectOpenPhase} />
+                ) : null}
             {dialogMode === 'schedules' ? (
                 <ActiveSchedulesDialog
                     onClose={closeDialog}

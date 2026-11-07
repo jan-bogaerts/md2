@@ -8,7 +8,8 @@
  */
 
 const BRIDGE_ERROR_ENVELOPE_KEY = '__md2BridgeError'
-const BRIDGE_ERROR_FIELDS = ['workingFolder']
+const BRIDGE_ERROR_FIELDS = ['rootPath', 'workingFolder']
+const NOT_A_GIT_REPOSITORY_ERROR = 'not-a-git-repository'
 
 function errorFields(error) {
     const fields = {}
@@ -58,4 +59,4 @@ export function bridgeErrorPayload(value) {
     return value[BRIDGE_ERROR_ENVELOPE_KEY]
 }
 
-export { BRIDGE_ERROR_ENVELOPE_KEY, BRIDGE_ERROR_FIELDS }
+export { BRIDGE_ERROR_ENVELOPE_KEY, BRIDGE_ERROR_FIELDS, NOT_A_GIT_REPOSITORY_ERROR }

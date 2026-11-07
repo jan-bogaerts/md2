@@ -37,4 +37,19 @@ describe('invokeWithErrorEnvelope', () => {
         expect(bridgeErrorPayload(result)).toMatchObject({ message: 'Bridge call failed' });
         expect(bridgeErrorPayload(result).code).toBeUndefined();
     });
+
+    it('keeps a selected local project root path', async () => {
+        const result = await invokeWithErrorEnvelope(() => {
+            const error = new Error('Selected folder is not a Git repository');
+            error.code = 'not-a-git-repository';
+            error.rootPath = 'C:/folder';
+
+            throw error;
+        });
+
+        expect(bridgeErrorPayload(result)).toMatchObject({
+            code: 'not-a-git-repository',
+            fields: { rootPath: 'C:/folder' },
+        });
+    });
 });

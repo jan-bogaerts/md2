@@ -44,6 +44,7 @@ const DATA_METHODS = [
     'hasPendingPush',
     'getMergeConflictSession',
     'integrateWorktree',
+    'initializeLocalProject',
     'launchMergeConflictResolver',
     'listBranches',
     'listAgentConversationReferences',

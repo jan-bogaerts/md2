@@ -2,6 +2,7 @@ const { exec } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { promisify } = require('node:util');
+const { NOT_A_GIT_REPOSITORY_ERROR } = require('../../../shared/bridge_errors.mjs');
 
 const execAsync = promisify(exec);
 const { checkoutOwnershipService } = require('./checkout_ownership_service');
@@ -12,6 +13,7 @@ const DETACHED_HEAD_BRANCH = 'HEAD (detached)';
 const LITERAL_PATHSPEC_ARGUMENT = '--literal-pathspecs';
 const FULL_COMMIT_PATTERN = /^[0-9a-f]{40}$/iu;
 const GIT_INDEX_LOCK_PATTERN = /(?:unable to create|index\.lock).*index\.lock|another git process seems to be running/iu;
+const NOT_A_GIT_REPOSITORY_PATTERN = /^fatal: not a git repository(?:\s|$)/iu;
 const GIT_INDEX_LOCK_RETRY_DELAYS_MS = [50, 100, 200, 400];
 const LIST_WORKING_TREE_FILES_MAX_BUFFER_BYTES = 32 * 1024 * 1024;
 const SHORT_STAT_PATTERNS = {
@@ -182,6 +184,21 @@ function gitErrorMessage(error) {
     return 'Unknown Git error';
 }
 
+function isNotGitRepositoryError(error) {
+    return !!error
+        && typeof error === 'object'
+        && typeof error.stderr === 'string'
+        && NOT_A_GIT_REPOSITORY_PATTERN.test(error.stderr.trim());
+}
+
+function notGitRepositoryError(rootPath, cause) {
+    const error = new Error(`Selected folder is not a Git repository: ${rootPath}`, { cause });
+    error.code = NOT_A_GIT_REPOSITORY_ERROR;
+    error.rootPath = rootPath;
+
+    return error;
+}
+
 /** Resolve a selected path to its Git work-tree root and checked-out branch. */
 async function resolveLocalProject(selectedPath) {
     if (typeof selectedPath !== 'string' || selectedPath.length === 0) throw new Error('Missing selected project folder');
@@ -195,8 +212,23 @@ async function resolveLocalProject(selectedPath) {
 
         return { branch, id: rootPath, rootPath };
     } catch (error) {
+        if (isNotGitRepositoryError(error)) throw notGitRepositoryError(selectedPath, error);
+
         throw new Error(`Local Git project validation failed for "${selectedPath}": ${gitErrorMessage(error)}`, { cause: error });
     }
+}
+
+/** Initializes the selected folder as a Git repository, then resolves it through normal validation. */
+async function initializeLocalProject(rootPath) {
+    if (typeof rootPath !== 'string' || rootPath.length === 0) throw new Error('Missing selected project folder');
+
+    try {
+        await runGit(rootPath, ['init']);
+    } catch (error) {
+        throw new Error(`Local Git repository initialization failed for "${rootPath}": ${gitErrorMessage(error)}`, { cause: error });
+    }
+
+    return resolveLocalProject(rootPath);
 }
 
 async function hasStagedChanges(rootPath) {
@@ -413,8 +445,10 @@ module.exports = {
     ensureInsideRoot,
     hasStagedChanges,
     hasPendingPush,
+    initializeLocalProject,
     isCommitAncestor,
     isGitIndexLockError,
+    isNotGitRepositoryError,
     listBranches,
     listWorkingTreeFiles,
     pathExists,

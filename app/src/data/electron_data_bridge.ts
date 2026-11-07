@@ -60,6 +60,7 @@ export interface ElectronDataBridge {
     getMergeConflictSession?(): Promise<MergeConflictSession | null>
     getStartupProjectPath?(): string | null
     integrateWorktree?(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome | DirtyPrimaryOutcome>
+    initializeLocalProject?(rootPath: string): Promise<ProjectReference>
     launchMergeConflictResolver?(request: MergeConflictPathRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     loadAgentModelCatalog?(request: AgentModelCatalogRequest): Promise<AgentModelCatalog>;

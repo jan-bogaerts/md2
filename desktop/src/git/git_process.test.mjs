@@ -78,4 +78,29 @@ describe('git process', () => {
         expect(execFile).toHaveBeenCalledWith('git', ['rev-parse', 'HEAD'], expect.objectContaining({detached: platform !== 'win32'}), complete);
         expect(terminateProcessTree).not.toHaveBeenCalled();
     });
+
+    it('preserves command output on failure', async () => {
+        let complete;
+        const process = new GitProcess({
+            args: ['rev-parse', '--is-inside-work-tree'],
+            operation: 'desktop Git rev-parse',
+            rootPath: 'C:\\folder',
+            timeoutMs: LOCAL_GIT_TIMEOUT_MS,
+        }, {
+            execFile: vi.fn((_executable, _args, _options, callback) => {
+                complete = callback;
+
+                return { pid: 42 };
+            }),
+        });
+        const result = process.run();
+        const failure = new Error('Command failed');
+
+        complete(failure, 'partial output', 'fatal: not a git repository');
+
+        await expect(result).rejects.toMatchObject({
+            stderr: 'fatal: not a git repository',
+            stdout: 'partial output',
+        });
+    });
 });
