@@ -1988,7 +1988,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 68952
+        "usedTokens": 94817
       },
       "entries": [
         {
@@ -2460,6 +2460,107 @@
           "role": "assistant",
           "sequence": 37,
           "timestamp": "2026-11-07T15:43:51.089Z"
+        },
+        {
+          "content": "how about this: [https://github.com/PierrunoYT/awesome-ai-dev-tools](https://github.com/PierrunoYT/awesome-ai-dev-tools)",
+          "id": "submission-937899f9-6e1b-4f3e-9087-876113399879",
+          "kind": "message",
+          "role": "user",
+          "sequence": 38,
+          "timestamp": "2026-11-07T15:48:36.532Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll evaluate its categories, submission rules, audience, activity, and whether it already contains close competitors to md².\n\n",
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-11-07T15:48:38.683Z"
+        },
+        {
+          "content": "https://github.com/PierrunoYT/awesome-ai-dev-tools",
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-40",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"openPage\",\"url\":\"https://github.com/PierrunoYT/awesome-ai-dev-tools\"}",
+          "providerItemId": "exec-86aa8c88-017f-467f-b65b-8e7c43cd6f3b",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:48:43.232Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09c307d2a5a2ff4d016aef485f1c7087d2b4a0bddc48a89626",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:48:45.491Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "'md²'",
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-42",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"findInPage\",\"url\":null,\"pattern\":\"md²\"}",
+          "providerItemId": "exec-b8938f8e-28fe-440e-9a2b-0568ec1cbf04",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:48:49.449Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-43",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09c307d2a5a2ff4d016aef48656f8887d2be2e0ffc3c92f05a",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:48:51.820Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-44",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"other\"}",
+          "providerItemId": "exec-cd462bee-c4c7-4350-bb5f-f49d21631373",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:48:55.407Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_09c307d2a5a2ff4d016aef486f1ffc87d296388a2184e31c81",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:49:01.664Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes—this is the strongest candidate of the three so far.\n\nWhy:\n\n- Its audience is specifically looking for AI developer tools.\n- **Agent Orchestrators** explicitly covers tools that run, coordinate, or supervise coding agents—the natural category for md².\n- It already lists close peers such as vibe-kanban, automaker, Conductor, crystal, and tools combining Codex/Claude Code with Git worktrees. That strongly validates md²’s eligibility. [See the Agent Orchestrators section](https://github.com/PierrunoYT/awesome-ai-dev-tools#agent-orchestrators).\n- It welcomes external submissions and requests concise, neutral descriptions of concrete developer capabilities.\n- It is actively maintained: 177 commits, 77 stars, 97 forks, and multiple accepted contributions. [Repository](https://github.com/PierrunoYT/awesome-ai-dev-tools)\n\nThe main drawback is saturation: the list contains hundreds of tools, including many worktree-based agent orchestrators. Inclusion will establish md² in the landscape, but the description must emphasize what makes it different—organizing development around persistent Markdown feature cards, rather than merely running parallel terminals.\n\nI would submit md² under the primary **Agent Orchestrators** section:\n\n```md\n- [md²](https://github.com/jan-bogaerts/md2) - Local-first desktop workspace that organizes Codex and Claude Code work around Markdown feature cards, Git worktrees, conversations, commits, and usage costs.\n```\n\nThat is stronger than describing it as another “parallel agent runner.” It captures md²’s distinctive feature-centered model while remaining neutral and concrete, as required by the [contribution guidelines](https://github.com/PierrunoYT/awesome-ai-dev-tools/blob/master/CONTRIBUTING.md).\n\nPriority among the three:\n\n1. **PierrunoYT/awesome-ai-dev-tools** — submit\n2. **dr-mushtaq/Awesome-AI-Tools-Resources** — submit if convenient\n3. **shvyac/awesome-ai-dev-tools** — revisit after it develops an audience\n\n",
+          "id": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-11-07T15:49:09.345Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2470,27 +2571,27 @@
           "agent": "codex",
           "conversationId": "01a1b6a5-18ff-7531-93d8-7a0d2fb5a845",
           "createdAt": "2026-11-07T15:33:56.781Z",
-          "lastUsedAt": "2026-11-07T15:43:51.089Z",
-          "synchronizedThroughMessageId": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-turn-2-assistant-2"
+          "lastUsedAt": "2026-11-07T15:49:09.345Z",
+          "synchronizedThroughMessageId": "agent-turn-e34ae726-4571-46e4-9513-44111118bffc-turn-3-assistant-2"
         }
       ],
       "startedAt": "2026-11-07T15:33:55.377Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 218,
-          "toolMs": 29114
+          "reasoningMs": 253,
+          "toolMs": 34730
         },
         "elapsedMs": 120335,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-07T15:48:36.532Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 1059456,
-        "inputTokens": 56388,
-        "outputTokens": 2483,
-        "reasoningTokens": 1003,
-        "totalTokens": 1119330
+        "cachedInputTokens": 1360384,
+        "inputTokens": 81745,
+        "outputTokens": 3320,
+        "reasoningTokens": 1405,
+        "totalTokens": 1446854
       },
       "usageSchemaVersion": 1,
       "viewed": true
