@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__d7e5d777-7f5b-4caf-8593-dd962594bae0.json
 policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 155247241
