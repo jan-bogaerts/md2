@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "548342cd-192a-4ca4-9821-cb69c901f1f6",
+      "cardPath": "design/feature_descriptions/B_290_error_provider_event_identity_mismatch_at_convers.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_290_error_provider_event_identity_mismatch_at_convers.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-362e29c9-cbe1-4683-b405-1ef53c996eee",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-07T10:58:49.263Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-e905e127-c331-4aba-b00f-f0f2dd9ee716",
+      "providerSessions": [],
+      "startedAt": "2026-11-07T10:58:49.263Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-07T10:58:49.263Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "548342cd-192a-4ca4-9821-cb69c901f1f6",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
