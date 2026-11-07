@@ -1241,7 +1241,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 86727
+        "usedTokens": 113094
       },
       "entries": [
         {
@@ -1640,6 +1640,711 @@
           "role": "user",
           "sequence": 32,
           "timestamp": "2026-11-07T15:59:34.347Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-33",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgoqzDmQ9Mpe54fof4gQn:thinking:0",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:59:37.086Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; ls src/components/card_view/ | grep -i \"delete\\|archive\\|deletion\"; grep -n \"Delete\\|focus\" src/components/overlay_lifecycle.test.tsx | head -20",
+          "content": "card_archive_dialog.tsx\ncard_delete_dialog.tsx\n34:    CardDeleteDialog: (props: { onClose: () => void }) => (\n76:                onDeleteCard={vi.fn(async () => undefined)}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-34",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; ls src/components/card_view/ | grep -i \"delete\\|archive\\|deletion\"; grep -n \"Delete\\|focus\" src/components/overlay_lifecycle.test.tsx | head -20",
+          "providerItemId": "toolu_013257Sf7cc8oYc8htEMws5e",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:59:39.080Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_delete_dialog.tsx",
+          "deletions": 3,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-35",
+          "insertions": 23,
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_delete_dialog.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_017yhMFk45dnXYSmwyNc5oS7",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:59:46.714Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-36",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgor17TvMXbmeVqUyQZM9:thinking:0",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:59:48.619Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Now dialog test.",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 37,
+          "timestamp": "2026-11-07T15:59:48.620Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; grep -rln \"userEvent\" src/components/card_view/*.test.tsx | head -3; sed -n 1,30p src/components/card_view/card_view.test.tsx",
+          "content": "src/components/card_view/card_body_editor.real.test.tsx\nimport { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'\nimport { DndContext } from '@dnd-kit/core'\nimport type { DndContextProps } from '@dnd-kit/core'\nimport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\nimport { CardView } from './card_view'\nimport { CardColumn } from './card_column'\nimport * as cardColumnModule from './card_column'\nimport { actionService } from '../../services/actions/action_service'\nimport type { ActionFile } from '../../data/action_types'\nimport type { ElectronDataBridge } from '../../data/electron_data_bridge'\nimport { DEFAULT_CARD_TYPES, type CardTypeConfig, type Card, type ProjectReference } from '../../data/data_types'\nimport { telemetryService } from '../../services/telemetry/telemetry_service'\nimport { AppThemeProvider } from '../../theme/theme_provider'\nimport { dataService } from '../../services/data/data_service'\nimport { dialogService } from '../../services/dialog_service'\nimport { worktreeService } from '../../services/project/worktree_service'\nimport { cardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'\nimport { openFilesService } from '../../services/open_files_service'\nimport { workspaceViewService } from '../../services/project/workspace_view_service'\nimport { cardDragDropService } from './card_drag_drop_service'\nimport { CardDragOverlay } from './card_drag_overlay'\nimport { attachmentChoiceService } from '../../services/attachments/attachment_choice_service'\nimport { projectAccessService } from '../../services/project/project_access_service'\nimport { cardPopupService } from '../../services/card_popup_service'\nimport { cardSequenceDraftService } from '../actions/run/sequence/card_sequence_draft_service'\nimport { CARD_SEQUENCE_DROP_ID, cardSequenceItemId } from '../actions/run/sequence/card_sequence_dnd'\nimport { CardActionPopupHost } from '../actions/run/popup/card_action_popup_host'\n\nconst dragContextHandlers = vi.hoisted(() => ({\n    onDragCancel: null as DndContextProps['onDragCancel'] | null,",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-38",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; grep -rln \"userEvent\" src/components/card_view/*.test.tsx | head -3; sed -n 1,30p src/components/card_view/card_view.test.tsx",
+          "providerItemId": "toolu_01UvhqcAS34iRiXmxFhdHxfC",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:59:49.917Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-39",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgor1M8SY38FHCTuxmeAX:thinking:0",
+          "sequence": 39,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:59:51.767Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_delete_dialog.test.tsx",
+          "deletions": 0,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-40",
+          "insertions": 0,
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_delete_dialog.test.tsx (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01V4wCu3BZVbVCSx32afrpwU",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:59:58.920Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"command\":\"npm run test -- src/components/card_view/card_delete_dialog.test.tsx 2>&1 | Select-Object -Last 30\",\"description\":\"Run delete dialog tests\",\"timeout\":300000}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-41",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.11.0 test\r\n> vitest run src/components/card_view/card_delete_dialog.test.tsx\r\n\r\n\r\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\r\n\r\n\r\n Test Files  1 passed (1)\r\n      Tests  2 passed (2)\r\n   Start at  17:00:02\r\n   Duration  2.66s (transform 53ms, setup 94ms, import 1.04s, tests 667ms, environment 751ms)",
+          "providerItemId": "toolu_01LGmLAD9yPp5w8SVb7MQpM2",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:05.494Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-42",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgor2W2VxZc8fbXymjvC5:thinking:0",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:00:07.679Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"export function buildCardColumns|export interface CardColumn|orderByAfter\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\data\\\\card_ordering.ts\",\"output_mode\":\"content\",\"-A\":12}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-43",
+          "kind": "event",
+          "label": "Grep",
+          "output": "4:export interface CardColumn {\n5-    cards: Card[]\n6-    status: string\n7-}\n8-\n9-/** Board column with its resolved configured accent. */\n10-export interface BoardColumn extends CardColumn {\n11-    color: string\n12-}\n13-\n14-/** A minimal header change produced by a drag: the fields a move rewrites. */\n15-export interface CardMoveUpdate {\n16-    after: string | null\n--\n35:export function orderByAfter(cards: Card[]): Card[] {\n36-    const byInternalId = new Map<string, Card>()\n37-    for (const card of cards) {\n38-        if (card.header.internalId) byInternalId.set(card.header.internalId, card)\n39-    }\n40-\n41-    const followerOf = new Map<string, Card>()\n42-    const heads: Card[] = []\n43-    for (const card of cards) {\n44-        const after = card.header.after\n45-        if (after && byInternalId.has(after) && !followerOf.has(after)) {\n46-            followerOf.set(after, card)\n47-        } else {\n--\n85:    return order.map((status) => ({ cards: orderByAfter(buckets.get(status) ?? []), status }))\n86-}\n87-\n88-/** Build board columns in configured state order, omitting empty states unless they are always visible. */\n89:export function buildCardColumns(cards: Card[], states: StateConfig[]): BoardColumn[] {\n90-    return states\n91-        .map(({ color, state }, index) => ({\n92:            cards: orderByAfter(cards.filter((card) => statusOf(card) === state)),\n93-            color: color ?? defaultColumnAccent(index),\n94-            status: state,\n95-        }))\n96-        .filter((column, index) => states[index].alwaysVisible || column.cards.length > 0)\n97-}\n98-\n99-/** Derive state definitions from the distinct non-empty card states in first-seen order. */\n100-export function deriveStatesFromCards(cards: Card[]): StateConfig[] {\n101-    const states = cards\n102-        .map((card) => statusOf(card))\n103-        .filter((state, index, values) => state.length > 0 && values.indexOf(state) === index)\n104-\n--\n158:    const sourceOrdered = orderByAfter(cards.filter((card) => statusOf(card) === sourceStatus))\n159-    const sourceWithoutMoved = sourceOrdered.filter((card) => card.path !== cardPath)\n160-    const targetOrdered = sourceStatus === targetStatus\n161-        ? sourceWithoutMoved\n162:        : orderByAfter(cards.filter((card) => statusOf(card) === targetStatus))\n163-    const insertIndex = clamp(targetIndex, 0, targetOrdered.length)\n164-    const nextTargetOrder = [...targetOrdered]\n165-    nextTargetOrder.splice(insertIndex, 0, moved)\n166-\n167-    addColumnOrderingUpdates(nextTargetOrder, targetStatus, updates)\n168-    if (sourceStatus !== targetStatus) addColumnOrderingUpdates(sourceWithoutMoved, sourceStatus, updates)\n169-\n170-    const byPath = new Map(cards.map((card) => [card.path, card]))\n171-\n172-    return [...updates.values()].filter((update) => {\n173-        const card = byPath.get(update.path)\n174-        if (!card) return true",
+          "providerItemId": "toolu_01X85Jhsd1Us6gfEwsqpMry7",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:09.731Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-44",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgor2p5TLJtaWhLaTRkr5:thinking:0",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:00:13.471Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"internalId\\\\??:\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\data\\\\data_types.ts\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-45",
+          "kind": "event",
+          "label": "Grep",
+          "output": "113:    internalId: string | null",
+          "providerItemId": "toolu_01PpgdcbxsVaoeYVWyVvj6uj",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:14.345Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-46",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgor39RYNbCPgS7NbY8AN:thinking:0",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:00:16.648Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_deletion_focus.ts",
+          "deletions": 0,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-47",
+          "insertions": 0,
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_deletion_focus.ts (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Bki6WGU4HKJSf6Z7RDMmp6",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:22.066Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-48",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgor3iW8BxBNTWa9K7XQY:thinking:0",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:00:24.352Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nAdding DOM markers; replacing `CSS.escape` (may be missing in jsdom) with attribute comparison.",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 49,
+          "timestamp": "2026-11-07T16:00:24.354Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_deletion_focus.ts",
+          "deletions": 4,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-50",
+          "insertions": 5,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_deletion_focus.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01FxD76qcdBv3Ut9B9ZA8212",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:31.332Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\project_card_drag_container.tsx",
+          "deletions": 0,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-51",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\project_card_drag_container.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01LkRjg1SkuUXt39nebRz3kC",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:31.352Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\project_card_drag_container.tsx",
+          "deletions": 1,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-52",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\project_card_drag_container.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01BV1bf2hYCkiK67PdA3DZQw",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:31.370Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\project_card_drag_container.tsx",
+          "deletions": 0,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-53",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\project_card_drag_container.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01RT23RRmmCz3CX7x8jCDUnD",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:31.389Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-54",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgor4Qo2tUzwXGJwYEQ5a:thinking:0",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:00:33.158Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\project_card_drag_container.tsx",
+          "deletions": 1,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-55",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\project_card_drag_container.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_012gA6d5NH59XjRxinX5VPNv",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:37.861Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\project_card_view.tsx",
+          "deletions": 0,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-56",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\project_card_view.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_019MSuxkBoNMSRHQK1pieBuE",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:37.884Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_column.tsx",
+          "deletions": 1,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-57",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_column.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01UL7bZdf92f89s2VHtxnh8Z",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:37.909Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"pattern\":\"CardDragContainer\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-58",
+          "kind": "event",
+          "label": "Grep",
+          "output": "src\\components\\overlay_lifecycle.test.tsx:25:vi.mock('./card_view/project_card_drag_container', () => ({CardDragContainer: (props: { children: ReactNode }) => <div>{props.children}</div>}))\nsrc\\components\\card_view\\project_card_drag_container.tsx:47:interface CardDragContainerProps {\nsrc\\components\\card_view\\project_card_drag_container.tsx:60:export function CardDragContainer(props: CardDragContainerProps) {\nsrc\\components\\card_view\\project_card_view.tsx:24:import { CardDragContainer } from './project_card_drag_container'\nsrc\\components\\card_view\\project_card_view.tsx:228:        <CardDragContainer\nsrc\\components\\card_view\\project_card_view.tsx:347:        </CardDragContainer>",
+          "providerItemId": "toolu_01AsRLfZLexZdTDK1cDsYKQp",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:38.003Z",
+          "type": "tool.Grep"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow unit tests for helper. Checking a Card test factory.",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 59,
+          "timestamp": "2026-11-07T16:00:39.337Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; ls src/data | grep -i ordering; grep -n \"function.*card\\|function make\\|function create\" src/data/card_ordering.test.ts | head",
+          "content": "card_ordering.node.test.ts\ncard_ordering.ts\ngrep: src/data/card_ordering.test.ts: No such file or directory",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-60",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; ls src/data | grep -i ordering; grep -n \"function.*card\\|function make\\|function create\" src/data/card_ordering.test.ts | head",
+          "providerItemId": "toolu_01LDB3wbvsQVGa1p8RqNsjm3",
+          "sequence": 60,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:40.941Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; sed -n 1,40p src/data/card_ordering.node.test.ts",
+          "content": "import { describe, expect, it } from 'vitest'\nimport { buildCardColumns, computeMove, deriveStatesFromCards, groupByStatus, mergeStatesWithDefaults, orderByAfter } from './card_ordering'\nimport { defaultColumnAccent, type Card } from './data_types'\n\nfunction card(internalId: string, options: { after?: string | null; status?: string } = {}): Card {\n    return {\n        agentConversationErrors: [],\n        agentConversations: [],\n        content: '',\n        header: {\n            affects: [],\n            after: options.after ?? null,\n            agentLogReferences: [],\n            changedFiles: [],\n            author: null,\n            id: internalId.toUpperCase(),\n            internalId,\n            owner: null,\n            policy: {},\n            references: [],\n            status: options.status ?? 'active',\n            title: internalId,\n        },\n        hasFrontmatter:true,\n        isActive: true,\n        path: `design/${internalId}.md`,\n    }\n}\n\nfunction paths(cards: Card[]) {\n    return cards.map((entry) => entry.header.internalId)\n}\n\ndescribe('orderByAfter', () => {\n    it('orders cards by their after chain regardless of input order', () => {\n        const cards = [card('c', { after: 'b' }), card('a'), card('d', { after: 'c' }), card('b', { after: 'a' })]\n\n        expect(paths(orderByAfter(cards))).toEqual(['a', 'b', 'c', 'd'])\n    })",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-61",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; sed -n 1,40p src/data/card_ordering.node.test.ts",
+          "providerItemId": "toolu_01CaHhfhPhrjHuKcvQm72yJp",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:42.937Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_deletion_focus.test.ts",
+          "deletions": 0,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-62",
+          "insertions": 0,
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_deletion_focus.test.ts (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01G6833z5TqPC9RSkcWBLGGh",
+          "sequence": 62,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:52.161Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"command\":\"npm run test -- src/components/card_view/card_deletion_focus.test.ts 2>&1 | Select-Object -Last 20\",\"description\":\"Run deletion focus helper tests\",\"timeout\":300000}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-63",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.11.0 test\r\n> vitest run src/components/card_view/card_deletion_focus.test.ts\r\n\r\n\r\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\r\n\r\n\r\n Test Files  1 passed (1)\r\n      Tests  6 passed (6)\r\n   Start at  17:00:55\r\n   Duration  1.16s (transform 42ms, setup 120ms, import 17ms, tests 23ms, environment 865ms)",
+          "providerItemId": "toolu_017ZwauABpWbnr6cUcWoD2s9",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:00:56.756Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nBlock 3: wiring CardView.",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 64,
+          "timestamp": "2026-11-07T16:00:57.789Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_view.tsx",
+          "deletions": 0,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-65",
+          "insertions": 2,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_view.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_018FNrFL5RTjJGGKJnDVjHrf",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:01:03.156Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_view.tsx",
+          "deletions": 0,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-66",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_view.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Gy7AaHy8JdoJFBvViP7HzC",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:01:03.178Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow existing delete tests in card_view.test.tsx.",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 67,
+          "timestamp": "2026-11-07T16:01:04.274Z"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\card_view\\\\card_view.test.tsx\",\"offset\":40,\"limit\":160}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-68",
+          "kind": "event",
+          "label": "Read",
+          "output": "40\t    return {\n41\t        ...actual,\n42\t        DndContext: (props: DndContextProps) => {\n43\t            dragContextHandlers.onDragCancel = props.onDragCancel ?? null\n44\t            dragContextHandlers.onDragEnd = props.onDragEnd ?? null\n45\t            dragContextHandlers.onDragOver = props.onDragOver ?? null\n46\t            dragContextHandlers.onDragStart = props.onDragStart ?? null\n47\t\n48\t            return createElement(actual.DndContext, props)\n49\t        },\n50\t    }\n51\t})\n52\t\n53\tfunction card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): Card {\n54\t    return {\n55\t        agentConversationErrors: [],\n56\t        agentConversations: [],\n57\t        content: `# ${title}\\n\\nBody of ${id}`,\n58\t        header: {\n59\t            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id, internalId: id.toLowerCase(), owner: null,\n60\t            policy, references: [], status, title,\n61\t            worktree: null, worktreeError: null, worktreeValue: null,\n62\t        },\n63\t        hasFrontmatter:true,\n64\t        isActive: true,\n65\t        path: `design/${id}.md`,\n66\t    }\n67\t}\n68\t\n69\tconst cards = [\n70\t    card('F-1', 'First', 'todo', { checkLinting: true, requireTests: false }),\n71\t    card('F-2', 'Second', 'done'),\n72\t]\n73\t\n74\tfunction setCards(\n75\t    activeCards: Card[],\n76\t    repositoryFiles = ['app/src/app.tsx', 'design/F-1.md'],\n77\t    project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\\\project' },\n78\t) {\n79\t    vi.mocked(dataService.getState).mockReturnValue({\n80\t        project,\n81\t        runningAgents: [],\n82\t        snapshot: { activeCards, backgroundCards: [], repositoryFiles, workingFolder: 'design' },\n83\t    })\n84\t}\n85\t\n86\tfunction actionFile(definition: unknown): ActionFile {\n87\t    return { content: JSON.stringify(definition), path: 'actions/action.json' }\n88\t}\n89\t\n90\tfunction createColumnHandlers() {\n91\t    return {\n92\t        onArchiveCard: vi.fn(async () => undefined),\n93\t        onDeleteCard: vi.fn(async () => undefined),\n94\t        onTitleChange: vi.fn(),\n95\t        onTogglePolicy: vi.fn(),\n96\t    }\n97\t}\n98\t\n99\tfunction renderCardView(\n100\t    overrides: Partial<Parameters<typeof CardView>[0]> = {},\n101\t    activeCards = cards,\n102\t    repositoryFiles = ['app/src/app.tsx', 'design/F-1.md'],\n103\t    project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\\\project' },\n104\t) {\n105\t    setCards(activeCards, repositoryFiles, project)\n106\t    render(\n107\t        <AppThemeProvider>\n108\t            <CardActionPopupHost />\n109\t            <CardView\n110\t                cardTypes={DEFAULT_CARD_TYPES}\n111\t                states={[\n112\t                    { alwaysVisible: false, state: 'todo' },\n113\t                    { alwaysVisible: false, state: 'done' },\n114\t                ]}\n115\t                statusColors={new Map([['todo', '#111111'], ['done', '#222222']])}\n116\t                {...overrides}\n117\t            />\n118\t        </AppThemeProvider>,\n119\t    )\n120\t}\n121\t\n122\tdescribe('CardView', () => {\n123\t    beforeEach(() => {\n124\t        projectAccessService.setReadOnly(false)\n125\t        workspaceViewService.setViewMode('cards')\n126\t        cardDragDropService.endDrag()\n127\t        cardSequenceDraftService.close()\n128\t        vi.spyOn(dataService, 'getState')\n129\t        setCards(cards)\n130\t        vi.spyOn(dataService.cards, 'deleteCard').mockResolvedValue(null)\n131\t        vi.spyOn(dataService.cards, 'moveCard').mockResolvedValue([])\n132\t        vi.spyOn(dataService.cards, 'toggleCardPolicy').mockReturnValue(cards[0])\n133\t        vi.spyOn(dataService.cards, 'updateCardAffects').mockReturnValue(cards[0])\n134\t        vi.spyOn(dataService.cards, 'updateCardTitle').mockResolvedValue(cards[0])\n135\t        vi.spyOn(openFilesService, 'openPath')\n136\t        vi.spyOn(dataService, 'hasPendingFile').mockReturnValue(false)\n137\t        vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((target) => target.document.kind === 'card'\n138\t            ? target.document.getDraft().content\n139\t            : '')\n140\t        vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)\n141\t    })\n142\t\n143\t    afterEach(() => {\n144\t        cleanup()\n145\t        cardPopupService.clear()\n146\t        attachmentChoiceService.cancel()\n147\t        cardDragDropService.endDrag()\n148\t        const { selectedPath } = workspaceViewService.getSnapshot()\n149\t        if (selectedPath) workspaceViewService.clearSelectedPath(selectedPath)\n150\t        for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)\n151\t        actionService.clear()\n152\t        vi.restoreAllMocks()\n153\t    })\n154\t\n155\t    it('keeps hidden card columns mounted without occupying layout', () => {\n156\t        workspaceViewService.setViewMode('text')\n157\t        renderCardView()\n158\t\n159\t        const cardColumns = screen.getByLabelText('Card columns')\n160\t\n161\t        expect(cardColumns).not.toBeVisible()\n162\t        expect(cardColumns.parentElement).toHaveStyle({ display: 'none' })\n163\t    })\n164\t\n165\t    it('switches visibility without rerendering card columns', () => {\n166\t        const renderCardColumn = vi.spyOn(cardColumnModule, 'CardColumn')\n167\t        renderCardView()\n168\t        const cardColumns = screen.getByLabelText('Card columns')\n169\t        renderCardColumn.mockClear()\n170\t\n171\t        act(() => workspaceViewService.setViewMode('text'))\n172\t        act(() => workspaceViewService.setViewMode('cards'))\n173\t\n174\t        expect(screen.getByLabelText('Card columns')).toBe(cardColumns)\n175\t        expect(renderCardColumn).not.toHaveBeenCalled()\n176\t    })\n177\t\n178\t    it('groups cards into a column per status with id and title', () => {\n179\t        renderCardView()\n180\t\n181\t        expect(screen.getByText('todo')).toBeInTheDocument()\n182\t        expect(screen.getByText('done')).toBeInTheDocument()\n183\t        expect(screen.getByText('F-1')).toBeInTheDocument()\n184\t        expect(screen.getByText('First')).toBeInTheDocument()\n185\t    })\n186\t\n187\t    it('hides header attachments and opens one choice for external file drop', () => {\n188\t        const referencedCard = { ...cards[0], header: { ...cards[0].header, references: ['design/report.pdf'] } }\n189\t        const copyAttachments = vi.spyOn(dataService.cards, 'copyAttachmentsForCard')\n190\t        const addReferences = vi.spyOn(dataService.cards, 'addCardReferences')\n191\t        renderCardView({}, [referencedCard, cards[1]])\n192\t\n193\t        expect(screen.queryByRole('button', { name: /Attach files to F-1/u })).not.toBeInTheDocument()\n194\t        fireEvent.contextMenu(screen.getByText('First'))\n195\t        expect(screen.queryByRole('menuitem', { name: /Attach files/u })).not.toBeInTheDocument()\n196\t        expect(screen.queryByRole('menuitem', { name: 'Open in file mode' })).not.toBeInTheDocument()\n197\t        fireEvent.keyDown(document, { key: 'Escape' })\n198\t\n199\t        const cardSurface = screen.getByText('First').closest('[data-card-path]')",
+          "providerItemId": "toolu_016HTM5AHCSQHkgDV2Hdxo4w",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:01:05.246Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\card_view\\\\card_view.test.tsx\",\"offset\":580,\"limit\":40}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-69",
+          "kind": "event",
+          "label": "Read",
+          "output": "580\t\n581\t        act(() => document.updateDraft({ content: 'Edited' }))\n582\t        expect(within(screen.getByRole('dialog')).getByText('Dirty')).toBeInTheDocument()\n583\t\n584\t        act(() => document.createSaveReference().acknowledge())\n585\t        expect(within(screen.getByRole('dialog')).getByText('Saved')).toBeInTheDocument()\n586\t    })\n587\t\n588\t    it('removes file-mode action from the card header', () => {\n589\t        renderCardView()\n590\t        expect(screen.queryByRole('button', { name: 'Open F-1 in file mode' })).not.toBeInTheDocument()\n591\t        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()\n592\t    })\n593\t\n594\t    it('confirms before deleting from the card actions menu', async () => {\n595\t        renderCardView()\n596\t\n597\t        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))\n598\t        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))\n599\t        const dialog = screen.getByRole('dialog', { name: 'Delete card' })\n600\t        fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))\n601\t\n602\t        await waitFor(() => expect(dataService.cards.deleteCard).toHaveBeenCalledWith('design/F-1.md'))\n603\t    })\n604\t\n605\t    it('does not delete from the card actions menu when confirmation is cancelled', () => {\n606\t        renderCardView()\n607\t\n608\t        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))\n609\t        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))\n610\t        const dialog = screen.getByRole('dialog', { name: 'Delete card' })\n611\t        fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))\n612\t\n613\t        expect(dataService.cards.deleteCard).not.toHaveBeenCalled()\n614\t    })\n615\t\n616\t    it('offers Archive directly above Delete from both card menu entry points', () => {\n617\t        renderCardView()\n618\t\n619\t        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))",
+          "providerItemId": "toolu_01Hu6q5CntGzQ5BmzR2MBf3o",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:01:06.095Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\card_view\\\\card_view.test.tsx\",\"offset\":770,\"limit\":45}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-70",
+          "kind": "event",
+          "label": "Read",
+          "output": "770\t        await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))\n771\t        expect(writeText).toHaveBeenNthCalledWith(1, 'design/F-1.md')\n772\t        expect(writeText).toHaveBeenNthCalledWith(2, 'design/F-1.md')\n773\t    })\n774\t\n775\t    it('reports card path clipboard failure without changing card state', async () => {\n776\t        const copyError = new Error('Clipboard denied')\n777\t        const reportError = vi.spyOn(dialogService, 'error')\n778\t        Object.assign(navigator, { clipboard: { writeText: vi.fn().mockRejectedValue(copyError) } })\n779\t        document.execCommand = vi.fn(() => { throw copyError })\n780\t        renderCardView()\n781\t\n782\t        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))\n783\t        fireEvent.click(screen.getByRole('menuitem', { name: 'Copy relative path' }))\n784\t\n785\t        await waitFor(() => expect(reportError).toHaveBeenCalledWith(\n786\t            copyError,\n787\t            { fallbackMessage: 'Path could not be copied to clipboard' },\n788\t        ))\n789\t        expect(dataService.cards.deleteCard).not.toHaveBeenCalled()\n790\t        expect(dataService.cards.updateCardTitle).not.toHaveBeenCalled()\n791\t        expect(dataService.cards.toggleCardPolicy).not.toHaveBeenCalled()\n792\t    })\n793\t\n794\t    it('confirms before deleting from the body popup', async () => {\n795\t        renderCardView()\n796\t\n797\t        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))\n798\t        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))\n799\t        const confirmDialog = screen.getByRole('dialog', { name: 'Delete card' })\n800\t        fireEvent.click(within(confirmDialog).getByRole('button', { name: 'Delete' }))\n801\t\n802\t        await waitFor(() => expect(dataService.cards.deleteCard).toHaveBeenCalledWith('design/F-1.md'))\n803\t    })\n804\t\n805\t    it('keeps desktop popup sizing, actions, resizing, and fullscreen control', () => {\n806\t        renderCardView()\n807\t\n808\t        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))\n809\t\n810\t        const dialog = screen.getByRole('dialog')\n811\t        expect(dialog).toHaveStyle({ height: '620px', width: '760px' })\n812\t        expect(within(dialog).getByRole('button', { name: 'Delete' })).toBeInTheDocument()\n813\t        expect(within(dialog).getByRole('button', { name: 'Affects' })).toBeInTheDocument()\n814\t        expect(within(dialog).queryByRole('button', { name: 'Open in file mode' })).not.toBeInTheDocument()",
+          "providerItemId": "toolu_011yk1FGbUk2iHTS1JHuGUR8",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:01:06.898Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-71",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgor728rreDitYHjxbTYb:thinking:0",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:01:09.626Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_view.test.tsx",
+          "deletions": 0,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-72",
+          "insertions": 41,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\card_view\\card_view.test.tsx has been updated successfully.",
+          "providerItemId": "toolu_012RXsBG7QyxZ2PYDc1PNJRc",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:01:19.143Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"command\":\"npm run test -- src/components/card_view/card_view.test.tsx src/components/card_view/card_delete_dialog.test.tsx src/components/card_view/card_deletion_focus.test.ts src/components/overlay_lifecycle.test.tsx 2>&1 | Select-Object -Last 40\",\"description\":\"Run card view and related tests\",\"timeout\":600000}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-73",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.11.0 test\r\n> vitest run src/components/card_view/card_view.test.tsx src/components/card_view/card_delete_dialog.test.tsx src/components/card_view/card_deletion_focus.test.ts src/components/overlay_lifecycle.test.tsx\r\n\r\n\r\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\r\n\r\n\r\n Test Files  4 passed (4)\r\n      Tests  61 passed (61)\r\n   Start at  17:01:20\r\n   Duration  11.79s (transform 1.88s, setup 338ms, import 6.41s, tests 8.60s, environment 2.98s)",
+          "providerItemId": "toolu_013hpFdNxCQ856aXg8MBDwLN",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:01:32.477Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-74",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgor8ufUL1JEhjrxcPhb4:thinking:0",
+          "sequence": 74,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:01:34.415Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nTidying duplicated fixture.",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 75,
+          "timestamp": "2026-11-07T16:01:34.416Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; f=src/components/card_view/card_view.test.tsx; sed -i \"/const nextCard = { ...card('F-3', 'Third', 'todo'), header: { ...card('F-3', 'Third', 'todo').header, after: 'f-1' } }/d\" $f; sed -i \"s/renderCardView({}, \\[cards\\[0\\], nextCard, cards\\[1\\]\\])/renderCardView({}, [cards[0], nextTodoCard, cards[1]])/\" $f; sed -i \"s/^const cards = \\[$/const nextTodoCard = { ...card('F-3', 'Third', 'todo'), header: { ...card('F-3', 'Third', 'todo').header, after: 'f-1' } }\\n\\nconst cards = [/\" $f; grep -n \"nextTodoCard\\|nextCard =\" $f; git diff --stat",
+          "content": "69:const nextTodoCard = { ...card('F-3', 'Third', 'todo'), header: { ...card('F-3', 'Third', 'todo').header, after: 'f-1' } }\n808:        renderCardView({}, [cards[0], nextTodoCard, cards[1]])\n821:        renderCardView({}, [cards[0], nextTodoCard, cards[1]])\n app/src/components/card_view/card_column.tsx       |  2 +-\n .../components/card_view/card_delete_dialog.tsx    | 26 ++++++++++++--\n app/src/components/card_view/card_view.test.tsx    | 41 ++++++++++++++++++++++\n app/src/components/card_view/card_view.tsx         |  3 ++\n .../card_view/project_card_drag_container.tsx      |  4 ++-\n app/src/components/card_view/project_card_view.tsx |  1 +\n 6 files changed, 72 insertions(+), 5 deletions(-)\n[This command modified 1 file you've previously read: src\\components\\card_view\\card_view.test.tsx. Call Read before editing.]",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-76",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; f=src/components/card_view/card_view.test.tsx; sed -i \"/const nextCard = { ...card('F-3', 'Third', 'todo'), header: { ...card('F-3', 'Third', 'todo').header, after: 'f-1' } }/d\" $f; sed -i \"s/renderCardView({}, \\[cards\\[0\\], nextCard, cards\\[1\\]\\])/renderCardView({}, [cards[0], nextTodoCard, cards[1]])/\" $f; sed -i \"s/^const cards = \\[$/const nextTodoCard = { ...card('F-3', 'Third', 'todo'), header: { ...card('F-3', 'Third', 'todo').header, after: 'f-1' } }\\n\\nconst cards = [/\" $f; grep -n \"nextTodoCard\\|nextCard =\" $f; git diff --stat",
+          "providerItemId": "toolu_0143Gztmj5tZD9FttrSsJnpU",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:01:38.484Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-77",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgor9NE9Kpv8rQvybG1B6:thinking:0",
+          "sequence": 77,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:01:40.804Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"command\":\"npm run lint 2>&1 | Select-Object -Last 30\",\"description\":\"Run app linter\",\"timeout\":600000}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-78",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.11.0 lint\r\n> eslint .",
+          "providerItemId": "toolu_01C65ywYvYuQiEc8QCSU1iQv",
+          "sequence": 78,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:02:15.065Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "{\"command\":\"npm run typecheck 2>&1 | Select-Object -Last 30\",\"description\":\"Run app typecheck\",\"timeout\":600000}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-79",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.11.0 typecheck\r\n> tsc --noEmit",
+          "providerItemId": "toolu_01JdgSKAwzEsrkdFoHfHCgHk",
+          "sequence": 79,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:02:31.880Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "{\"command\":\"npm run test -- src/components/card_view/card_view.test.tsx src/components/card_view/card_delete_dialog.test.tsx src/components/card_view/card_deletion_focus.test.ts src/components/overlay_lifecycle.test.tsx src/components/card_view/mobile_card_view.grouped.test.tsx src/components/card_view/card_body_popover_commit.test.tsx 2>&1 | Select-Object -Last 15\",\"description\":\"Rerun related tests after tidy\",\"timeout\":600000}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-80",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.11.0 test\r\n> vitest run src/components/card_view/card_view.test.tsx src/components/card_view/card_delete_dialog.test.tsx src/components/card_view/card_deletion_focus.test.ts src/components/overlay_lifecycle.test.tsx src/components/card_view/mobile_card_view.grouped.test.tsx src/components/card_view/card_body_popover_commit.test.tsx\r\n\r\n\r\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\r\n\r\n\r\n Test Files  5 passed (5)\r\n      Tests  70 passed (70)\r\n   Start at  17:02:35\r\n   Duration  12.36s (transform 2.43s, setup 429ms, import 8.09s, tests 9.94s, environment 3.79s)",
+          "providerItemId": "toolu_01UoRRCsacePeq8RzPUyq3Yw",
+          "sequence": 80,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:02:48.093Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-81",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgorEVEDGCuEhCKrboTcY:thinking:0",
+          "sequence": 81,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:02:50.701Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nLint, typecheck, tests clean. Updating spec status.",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-turn-2-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 82,
+          "timestamp": "2026-11-07T16:02:50.701Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-83",
+          "kind": "event",
+          "label": "Edit",
+          "output": "<tool_use_error>File has been modified since read, either by the user or by a linter. Read it again before attempting to write it.</tool_use_error>",
+          "providerItemId": "toolu_01QBQF1e65jA6TtZdE3pAJoi",
+          "sequence": 83,
+          "status": "failed",
+          "timestamp": "2026-11-07T16:02:51.777Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md\",\"limit\":16}",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-84",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_350\n4\tinternalId: ab825e36-710b-4c16-bd2c-59dad2825fb4\n5\ttitle: deleting a card jumps the scrollbar back to start\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__ab825e36-710b-4c16-bd2c-59dad2825fb4.json\n11\tpolicy:\n12\tbranch: b_350_deleting_a_card_jumps_the_scrollbar_back_to_start\n13\tworktree: 1\n14\t---\n15\t\n16\t## Current state",
+          "providerItemId": "toolu_01NzeT9J85djZRV2XJRxV9CE",
+          "sequence": 84,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:02:53.785Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md",
+          "deletions": 1,
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-85",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_350_deleting_a_card_jumps_the_scrollbar_back_to_start.md has been updated successfully.",
+          "providerItemId": "toolu_01SQpJbWqcbQjjm6vR23ajQx",
+          "sequence": 85,
+          "status": "completed",
+          "timestamp": "2026-11-07T16:02:56.206Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-event-86",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgorF5XUfPg5F6ka3DkxP:thinking:0",
+          "sequence": 86,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T16:03:03.082Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDeleting a card on the desktop board now moves focus to a neighbouring card (or the column's Add card button) without scrolling the board. Lint, typecheck and the related test files pass. I haven't checked the scroll behaviour in the running app; the tests confirm focus moves with `preventScroll`, not the scrollbar position. The spec status is now `ready`.\n\n**What changed:**\n- **`card_delete_dialog.tsx`:** the dialog no longer lets MUI restore focus. MUI decides that when the dialog opens, so it can't be turned off just for Delete. Instead, the dialog remembers the element that had focus before it opened.\n  - On Cancel, Escape or a backdrop click, it puts focus back on that element after closing, so cancelling behaves as before.\n  - On Delete, it restores nothing.\n- **`card_deletion_focus.ts` (new):**\n  - `resolveCardDeletionFocusTarget` runs before the delete and picks the next card in the column, the previous card if the deleted one was last, or the column's Add card button if it was the only card.\n  - `focusCardDeletionTarget` finds that element by the card's `internalId` (or the column status) and focuses it with `preventScroll: true`.\n- **Markers for finding the target:** each card's drag button now has `data-card-internal-id`, and each Add card button has `data-add-card-status`.\n- **`card_view.tsx` `handleDeleteCard`:** picks the target before deleting and focuses it after the card-details popup closes. The card menu and the card-details popup both go through this handler, so they behave the same. Column subscriptions are unchanged and nothing remounts.\n\n**Tests added:**\n- `card_delete_dialog.test.tsx`: Cancel restores focus and doesn't delete; Delete doesn't restore focus.\n- `card_deletion_focus.test.ts`: next card, previous card, Add button fallback, card not found, and focus with `preventScroll`.\n- `card_view.test.tsx`: deleting from the card menu and from the card-details popup focuses the next card; deleting a column's only card focuses its Add card button.\n\n**Things to know:**\n- **Columns that disappear when empty:** a column without `alwaysVisible` is removed once its last card is deleted, so its Add card button is gone too. In that case nothing gets focus. The spec's Add-button fallback only works for always-visible columns.\n- **Mobile board:** you didn't answer the mobile question, so I left `mobile_card_view.tsx` out. It still gets the dialog change, so after a delete on mobile nothing takes focus. Say if you want the replacement focus there too.\n- **Spec file:** while I was working, someone else removed the `after:` line from its frontmatter. I didn't touch that line; I only changed `status`.",
+          "id": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-turn-2-assistant-8",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 87,
+          "timestamp": "2026-11-07T16:03:05.099Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1650,17 +2355,17 @@
           "agent": "claude",
           "conversationId": "b081d652-59c8-4c7f-8a09-6ad64e8fd039",
           "createdAt": "2026-11-07T15:54:07.797Z",
-          "lastUsedAt": "2026-11-07T15:59:35.538Z",
-          "synchronizedThroughMessageId": "submission-03d18974-e151-4fd3-bad3-0e15f33b4d5f",
+          "lastUsedAt": "2026-11-07T16:03:05.099Z",
+          "synchronizedThroughMessageId": "agent-turn-1c54003c-00c9-4ede-aeeb-3c5ae28631e7-turn-2-assistant-8",
           "usageBaseline": {
-            "costUsd": 0.9033176,
-            "resultId": "40372702-070b-4f4f-8a28-4c7f0e3ffc22",
+            "costUsd": 1.8779058000000002,
+            "resultId": "38088f7c-43e3-4228-a828-9057f12ce179",
             "tokens": {
-              "cachedInputTokens": 908131,
-              "inputTokens": 29,
-              "outputTokens": 9542,
+              "cachedInputTokens": 3296695,
+              "inputTokens": 79,
+              "outputTokens": 23985,
               "reasoningTokens": 0,
-              "totalTokens": 917702
+              "totalTokens": 3320759
             }
           }
         }
@@ -1672,42 +2377,42 @@
           {
             "id": "1",
             "subject": "Block 1: CardDeleteDialog restore focus only on cancel",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 2: deletion focus target helper + DOM markers",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Block 3: wire focus into CardView.handleDeleteCard",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "4",
             "subject": "Block 4: lint, typecheck, related tests, set spec status ready",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-07T15:55:35.651Z"
+        "updatedAt": "2026-11-07T16:02:52.113Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 62860,
-          "toolMs": 16728
+          "reasoningMs": 86466,
+          "toolMs": 176358
         },
         "elapsedMs": 103010,
         "runningStartedAt": "2026-11-07T15:59:34.347Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 908131,
-        "inputTokens": 29,
-        "outputTokens": 9542,
+        "cachedInputTokens": 3296695,
+        "inputTokens": 79,
+        "outputTokens": 23985,
         "reasoningTokens": 0,
-        "totalTokens": 917702,
-        "costUsd": 0.9033176
+        "totalTokens": 3320759,
+        "costUsd": 1.8779058000000002
       },
       "usageSchemaVersion": 1,
       "viewed": true
