@@ -209,6 +209,7 @@ export interface ElectronActionBridge {
     onActionConversationViewed?(callback: (event: ActionConversationViewedEvent) => void): () => void
     onActionRun(callback: (event: ActionRunEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>
+    openLocalFileWithSystem?(request: OpenInEditorRequest): Promise<void>
     prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt>
     readFileAtCommit?(request: ReadFileAtCommitRequest): Promise<HistoricalFileContent>
     releaseReleaseCardLocks?(leaseId: string): Promise<void>

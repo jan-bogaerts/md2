@@ -190,6 +190,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     diffService,
     localGitService,
     mergeConflictService,
+    openPath: (filePath) => shell.openPath(filePath),
     openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),
     openProjectSubFolder: (rootPath) => openProjectSubFolder(BrowserWindow.getFocusedWindow(), rootPath),
     openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),

@@ -6,6 +6,12 @@ import { workspaceViewService } from '../../../../services/project/workspace_vie
 import { worktreeService } from '../../../../services/project/worktree_service'
 import type { ProjectSnapshot, WorktreeRecord } from '../../../../data/data_types'
 import { resolveWorktreeAssignment } from '../../../../../../shared/worktree_assignment.mjs';
+import {
+    INVALID_LOCAL_FILE_LINK_ERROR,
+    LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR,
+    isLocalFileLinkError,
+    localFileLinkError,
+} from '../../../../../../shared/local_file_link_errors.mjs'
 
 const ABSOLUTE_WINDOWS_PATH_PATTERN = /^[a-z]:\//iu
 const ENCODED_ABSOLUTE_WINDOWS_PATH_PATTERN = /^[a-z]:(?:%2f|%5c)/iu
@@ -20,7 +26,7 @@ function decodeLinkPath(href: string) {
     try {
         return decodeURIComponent(href)
     } catch {
-        throw new Error(`Invalid local file link: ${href}`)
+        throw localFileLinkError(INVALID_LOCAL_FILE_LINK_ERROR, `Invalid local file link: ${href}`)
     }
 }
 
@@ -131,7 +137,7 @@ export function resolveActionConversationLinkPath(href: string, repositoryRoot: 
     return canonicalPath.replace(/\\/gu, '/')
 }
 
-/** Open local chat link in internal project editor or configured external editor. */
+/** Open local chat link in internal project editor, configured external editor, or the operating system for outside files. */
 export async function openActionConversationLink(href: string, cardInternalId: string | null) {
     const { project, snapshot } = dataService.getState()
     if (!project || !snapshot) throw new Error('Cannot open a local file link before a project is loaded')
@@ -159,5 +165,13 @@ export async function openActionConversationLink(href: string, cardInternalId: s
     const bridge = getElectronActionBridge()
     if (!bridge) throw new Error('Opening local project files requires Electron local mode')
 
-    await bridge.openInEditor({ path: stripWindowsDriveLeadingSlash(href), repositoryRoot })
+    const request = { path: stripWindowsDriveLeadingSlash(href), repositoryRoot }
+    try {
+        await bridge.openInEditor(request)
+    } catch (error) {
+        if (!isLocalFileLinkError(error, LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR)) throw error
+        if (!bridge.openLocalFileWithSystem) throw new Error('Opening files outside the repository requires Electron local mode')
+
+        await bridge.openLocalFileWithSystem(request)
+    }
 }

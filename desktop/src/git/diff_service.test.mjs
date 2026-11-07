@@ -10,6 +10,7 @@ const {
     generateDiff,
     generateWorktreeDiff,
     openInEditor,
+    openWithSystemApplication,
     parseNameStatus,
     parseEditorTarget,
     parseUnifiedDiff,
@@ -18,6 +19,7 @@ const {
 } = require('./diff_service');
 const { runGit } = require('./git_commands');
 const { WorktreeService } = require('./worktree_service');
+const { INVALID_LOCAL_FILE_LINK_ERROR, LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR } = require('../../../shared/local_file_link_errors.mjs');
 
 const SAMPLE_DIFF = [
     'diff --git a/design/F-010.md b/design/F-010.md',
@@ -346,11 +348,23 @@ describe('diff-service', () => {
         await expect(resolveEditorTarget(project, { path: 'file.js', repositoryRoot: 'C:/other' }, [], vi.fn()))
             .rejects.toThrow('not active or registered');
         await expect(resolveEditorTarget(project, { path: '../outside.js', repositoryRoot: 'C:/repo' }, [], vi.fn()))
-            .rejects.toThrow('outside active repository');
+            .rejects.toMatchObject({ code: LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR, message: expect.stringContaining('outside active repository') });
         await expect(resolveEditorTarget(project, { path: 'missing.js', repositoryRoot: 'C:/repo' }, [], vi.fn(async () => { throw new Error('ENOENT'); })))
-            .rejects.toThrow('target does not exist');
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR, message: expect.stringContaining('target does not exist') });
         await expect(resolveEditorTarget(project, { path: 'folder', repositoryRoot: 'C:/repo' }, [], vi.fn(async () => ({ isFile: () => false }))))
-            .rejects.toThrow('not a regular file');
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR, message: expect.stringContaining('not a regular file') });
+        await expect(resolveEditorTarget(project, { path: 'file.js:abc', repositoryRoot: 'C:/repo' }, [], vi.fn()))
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR });
+        await expect(resolveEditorTarget(project, { path: '%E0%A4%A', repositoryRoot: 'C:/repo' }, [], vi.fn()))
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR });
+    });
+
+    it('keeps unregistered repository roots as unexpected errors', async () => {
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        const error = await resolveEditorTarget(project, { path: 'file.js', repositoryRoot: 'C:/other' }, [], vi.fn()).catch((rejection) => rejection);
+
+        expect(error.code).toBeUndefined();
     });
 
     it('spawns configured editor with selected worktree cwd', async () => {
@@ -388,5 +402,59 @@ describe('diff-service', () => {
         handlers.get('error')(new Error('spawn code ENOENT'));
 
         await expect(openPromise).rejects.toThrow('Editor launch failed: spawn code ENOENT');
+    });
+});
+
+describe('openWithSystemApplication', () => {
+    const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+    const fileStat = vi.fn(async () => ({ isFile: () => true }));
+
+    it('opens a relative link outside the repository relative to the conversation repository root', async () => {
+        const openPath = vi.fn(async () => '');
+
+        await openWithSystemApplication(project, { path: '../notes/todo.txt', repositoryRoot: 'C:/worktree' }, { openPath, statFile: fileStat, worktreeRoots: ['C:/worktree'] });
+
+        expect(openPath).toHaveBeenCalledWith(path.resolve('C:/notes/todo.txt'));
+    });
+
+    it('opens an absolute link outside the repository without its numeric line suffix', async () => {
+        const openPath = vi.fn(async () => '');
+
+        await openWithSystemApplication(project, { path: 'C:/Users/me/report.pdf:12', repositoryRoot: 'C:/repo' }, { openPath, statFile: fileStat });
+
+        expect(openPath).toHaveBeenCalledWith(path.resolve('C:/Users/me/report.pdf'));
+    });
+
+    it('rejects missing, directory, and malformed targets as expected link errors without opening them', async () => {
+        const openPath = vi.fn(async () => '');
+        const request = { path: 'C:/outside/target', repositoryRoot: 'C:/repo' };
+        const missingStat = vi.fn(async () => { throw new Error('ENOENT'); });
+        const directoryStat = vi.fn(async () => ({ isFile: () => false }));
+
+        await expect(openWithSystemApplication(project, request, { openPath, statFile: missingStat }))
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR, message: expect.stringContaining('does not exist') });
+        await expect(openWithSystemApplication(project, request, { openPath, statFile: directoryStat }))
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR, message: expect.stringContaining('not a regular file') });
+        await expect(openWithSystemApplication(project, { path: '%E0%A4%A', repositoryRoot: 'C:/repo' }, { openPath, statFile: fileStat }))
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR });
+        expect(openPath).not.toHaveBeenCalled();
+    });
+
+    it('refuses targets inside the repository or a registered worktree', async () => {
+        const openPath = vi.fn(async () => '');
+
+        await expect(openWithSystemApplication(project, { path: 'C:/worktree/src/file.js', repositoryRoot: 'C:/repo' }, { openPath, statFile: fileStat, worktreeRoots: ['C:/worktree'] }))
+            .rejects.toThrow('configured editor');
+        expect(openPath).not.toHaveBeenCalled();
+    });
+
+    it('reports operating system launch failures as unexpected errors', async () => {
+        const openPath = vi.fn(async () => 'No application is associated');
+
+        const error = await openWithSystemApplication(project, { path: 'C:/outside/file.xyz', repositoryRoot: 'C:/repo' }, { openPath, statFile: fileStat })
+            .catch((rejection) => rejection);
+
+        expect(error.message).toBe('Opening local file failed: No application is associated');
+        expect(error.code).toBeUndefined();
     });
 });

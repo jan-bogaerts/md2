@@ -180,7 +180,7 @@ function createDispatch(options = {}) {
     };
     const saveDesktopConfig = vi.fn((_store, values) => values);
     const agentModelCatalogService = createAgentModelCatalogStub();
-    const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn() };
+    const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn(), openWithSystemApplication: vi.fn() };
     const projectStatsWorkerService = {
         calculate: vi.fn(async () => ({ stats: { actions: [], conversations: [] }, warnings: [] })),
         cancel: vi.fn(async () => undefined),
@@ -215,6 +215,7 @@ function createDispatch(options = {}) {
         diffService,
         localGitService,
         mergeConflictService,
+        openPath: options.openPath,
         openProjectFolder: options.openProjectFolder,
         openProjectSubFolder: options.openProjectSubFolder,
         openWorktreeFolder: options.openWorktreeFolder,
@@ -402,6 +403,25 @@ describe('createLocalBridgeDispatch', () => {
 
         expect(diffService.openInEditor).toHaveBeenCalledWith(project, request, {
             editorCommand,
+            worktreeRoots: ['C:/worktree'],
+        });
+    });
+
+    it('opens outside-repository chat files through the operating system open handler', async () => {
+        const openPath = vi.fn();
+        const { diffService, dispatch, worktreeService } = createDispatch({ openPath });
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        worktreeService.getRecords.mockReturnValue([
+            { path: 'C:/worktree', valid: true },
+            { path: 'C:/broken', valid: false },
+        ]);
+        await dispatch.dataBridge.loadProject(project, 'design');
+        const request = { path: 'C:/outside/notes.txt', repositoryRoot: 'C:/repo' };
+
+        await dispatch.actionBridge.openLocalFileWithSystem(request);
+
+        expect(diffService.openWithSystemApplication).toHaveBeenCalledWith(project, request, {
+            openPath,
             worktreeRoots: ['C:/worktree'],
         });
     });

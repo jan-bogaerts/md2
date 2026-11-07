@@ -95,6 +95,7 @@ function createLocalBridgeDispatch(dependencies) {
         diffService,
         localGitService,
         mergeConflictService,
+        openPath,
         openProjectFolder,
         openProjectSubFolder,
         openWorktreeFolder,
@@ -127,6 +128,13 @@ function createLocalBridgeDispatch(dependencies) {
             }
         },
     });
+
+    /** Folder paths of the current project's valid registered worktrees. */
+    function validWorktreeRoots() {
+        return worktreeService.getRecords(currentLocalProject)
+            .filter(({ valid }) => valid)
+            .map(({ path: worktreePath }) => worktreePath);
+    }
 
     /** Runs the two consumers of one backend-detected card state transition, scheduler first. */
     async function reportCardStateTransition(transition) {
@@ -697,11 +705,14 @@ function createLocalBridgeDispatch(dependencies) {
         },
         openInEditor: async (request) => {
             const { editorCommand } = readDesktopConfig(desktopConfigStore);
-            const worktreeRoots = worktreeService.getRecords(currentLocalProject)
-                .filter(({ valid }) => valid)
-                .map(({ path: worktreePath }) => worktreePath);
+            const worktreeRoots = validWorktreeRoots();
 
             return diffService.openInEditor(currentLocalProject, request, { editorCommand, worktreeRoots });
+        },
+        openLocalFileWithSystem: (request) => {
+            const worktreeRoots = validWorktreeRoots();
+
+            return diffService.openWithSystemApplication(currentLocalProject, request, { openPath, worktreeRoots });
         },
         prepareActionPrompt: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');

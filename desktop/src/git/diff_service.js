@@ -4,6 +4,11 @@ const path = require('node:path');
 const { promisify } = require('node:util');
 
 const { requireRootPath } = require('./git_commands');
+const {
+    INVALID_LOCAL_FILE_LINK_ERROR,
+    LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR,
+    localFileLinkError,
+} = require('../../../shared/local_file_link_errors.mjs');
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -256,13 +261,15 @@ function decodeEditorPath(value) {
 
         return filePath.startsWith('/') && /^[a-z]:[\\/]/iu.test(filePath.slice(1)) ? filePath.slice(1) : filePath;
     } catch {
-        throw new Error(`Invalid local file link: ${value}`);
+        throw localFileLinkError(INVALID_LOCAL_FILE_LINK_ERROR, `Invalid local file link: ${value}`);
     }
 }
 
 /** Split optional trailing `:line` from a local link. Explicit diff lines remain authoritative. */
 function parseEditorTarget(request) {
-    if (!request || typeof request.path !== 'string' || request.path.trim().length === 0) throw new Error('Missing editor file path');
+    if (!request || typeof request.path !== 'string' || request.path.trim().length === 0) {
+        throw localFileLinkError(INVALID_LOCAL_FILE_LINK_ERROR, 'Missing editor file path');
+    }
     const decodedPath = decodeEditorPath(request.path);
     if (request.line !== undefined) {
         if (!Number.isInteger(request.line) || request.line < 1) throw new Error('Invalid editor line number');
@@ -275,7 +282,9 @@ function parseEditorTarget(request) {
     if (lastColon <= lastSeparator || (lastColon === 1 && /^[a-z]:/iu.test(decodedPath))) return { line: 1, path: decodedPath };
 
     const lineText = decodedPath.slice(lastColon + 1);
-    if (!/^\d+$/u.test(lineText) || Number(lineText) < 1) throw new Error(`Invalid editor line suffix: ${decodedPath.slice(lastColon)}`);
+    if (!/^\d+$/u.test(lineText) || Number(lineText) < 1) {
+        throw localFileLinkError(INVALID_LOCAL_FILE_LINK_ERROR, `Invalid editor line suffix: ${decodedPath.slice(lastColon)}`);
+    }
 
     return { line: Number(lineText), path: decodedPath.slice(0, lastColon) };
 }
@@ -289,7 +298,8 @@ function buildEditorLaunch(editorCommand, filePath, line) {
     return editorCommand.replaceAll('{{file}}', filePath).replaceAll('{{line}}', String(line));
 }
 
-async function resolveEditorTarget(project, request, worktreeRoots, statFile) {
+/** Resolve a local link against its active or registered repository root, without checking the file. */
+function resolveLinkTarget(project, request, worktreeRoots) {
     const primaryRoot = requireRootPath(project);
     if (!request || typeof request.repositoryRoot !== 'string' || request.repositoryRoot.length === 0) {
         throw new Error('Missing editor execution repository root');
@@ -302,19 +312,48 @@ async function resolveEditorTarget(project, request, worktreeRoots, statFile) {
 
     const parsed = parseEditorTarget(request);
     const targetPath = path.resolve(repositoryRoot, parsed.path);
-    if (!allowedRoots.some((rootPath) => isInsideRoot(targetPath, rootPath))) {
-        throw new Error('Local file link points outside active repository and registered worktrees');
-    }
+    const isInsideAllowedRoot = allowedRoots.some((rootPath) => isInsideRoot(targetPath, rootPath));
 
+    return { isInsideAllowedRoot, line: parsed.line, repositoryRoot, targetPath };
+}
+
+async function requireRegularFile(targetPath, statFile) {
     let fileStats;
     try {
         fileStats = await statFile(targetPath);
     } catch {
-        throw new Error(`Local file link target does not exist: ${targetPath}`);
+        throw localFileLinkError(INVALID_LOCAL_FILE_LINK_ERROR, `Local file link target does not exist: ${targetPath}`);
     }
-    if (!fileStats.isFile()) throw new Error(`Local file link target is not a regular file: ${targetPath}`);
+    if (!fileStats.isFile()) {
+        throw localFileLinkError(INVALID_LOCAL_FILE_LINK_ERROR, `Local file link target is not a regular file: ${targetPath}`);
+    }
+}
 
-    return { filePath: targetPath, line: parsed.line, repositoryRoot };
+async function resolveEditorTarget(project, request, worktreeRoots, statFile) {
+    const target = resolveLinkTarget(project, request, worktreeRoots);
+    if (!target.isInsideAllowedRoot) {
+        throw localFileLinkError(
+            LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR,
+            'Local file link points outside active repository and registered worktrees',
+        );
+    }
+    await requireRegularFile(target.targetPath, statFile);
+
+    return { filePath: target.targetPath, line: target.line, repositoryRoot: target.repositoryRoot };
+}
+
+/** Open an existing file outside the active repository and registered worktrees with the operating system. */
+async function openWithSystemApplication(project, request, options) {
+    const openPath = options?.openPath;
+    if (typeof openPath !== 'function') throw new Error('Missing operating system open handler');
+    const statFile = options?.statFile ?? stat;
+    const worktreeRoots = options?.worktreeRoots ?? [];
+    const target = resolveLinkTarget(project, request, worktreeRoots);
+    if (target.isInsideAllowedRoot) throw new Error('Repository files open through the configured editor');
+    await requireRegularFile(target.targetPath, statFile);
+
+    const openError = await openPath(target.targetPath);
+    if (openError) throw new Error(`Opening local file failed: ${openError}`);
 }
 
 /** Open validated local file through configured external editor. */
@@ -356,6 +395,7 @@ module.exports = {
     generateDiff,
     generateWorktreeDiff,
     openInEditor,
+    openWithSystemApplication,
     parseNameStatus,
     parseUnifiedDiff,
     parseEditorTarget,

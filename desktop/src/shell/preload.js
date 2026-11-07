@@ -110,6 +110,7 @@ const ACTION_METHODS = [
     'loadAgentAvailability',
     'loadAgentModelCatalog',
     'openInEditor',
+    'openLocalFileWithSystem',
     'prepareActionPrompt',
     'readFileAtCommit',
     'releaseReleaseCardLocks',
