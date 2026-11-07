@@ -30,6 +30,7 @@ changedFiles:
   - desktop/src/shell/preload.test.mjs
   - shared/bridge_errors.d.mts
   - shared/bridge_errors.mjs
+after: 548342cd-192a-4ca4-9821-cb69c901f1f6
 ---
 
 ## Sentry issue
