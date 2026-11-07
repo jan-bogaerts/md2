@@ -2370,7 +2370,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 89401
+        "usedTokens": 103060
       },
       "entries": [
         {
@@ -2740,6 +2740,405 @@
           "role": "user",
           "sequence": 28,
           "timestamp": "2026-11-07T15:43:38.821Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-29",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef4736baec87d296034fa3f5687984",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:43:49.127Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-30",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef473c8b5887d2b0b72b2042fe2447",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:43:54.987Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Plan approved. `caveman` skill keeps updates terse. Starting Block 1: production shortcut fix plus stale-render regression test.\n\n",
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 31,
+          "timestamp": "2026-11-07T15:43:55.743Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-32",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef4743c41487d2aa0ae5a7fcb085d4",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:44:02.153Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\agent\\action_agent_prompt.tsx",
+          "deletions": 17,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-33",
+          "insertions": 42,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-4829a04b-9d50-4bb6-af25-07c14031c5c5",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:44:16.098Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-34",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef4752c1f487d29d90d21b01eb9955",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:44:17.157Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 8 \\\"currentRunStatus|stale shortcut|currentRunState|currentActionRun:\\\" app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_prompt.tsx app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_prompt.test.tsx\"",
+          "content": "app\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-15-import { createTestPopupRuntime } from '../../../test/action_popup_runtime_fixture'\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-16-import type { ActionConversationStore } from '../conversation/state/action_conversation_store'\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-17-import { currentActionRun, dismissRestoredConversationQuestions, runPopupAction } from '../run/popup/action_popup_operations'\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-18-import type { ActionPopupRuntime } from '../run/popup/action_popup_types'\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-19-\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-20-const editorRender = vi.hoisted(() => vi.fn());\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-21-const preparePrompt = vi.hoisted(() => vi.fn());\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-22-const promptDraftState = vi.hoisted(() => ({ current: null as ActionPromptDraft | null }));\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx:23:const currentRunState = vi.hoisted(() => ({ current: undefined as ActionRun | null | undefined }));\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-24-/** Called once per ActionAgentPrompt render through its run-settings hook. */\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-25-const promptRender = vi.hoisted(() => vi.fn());\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-26-\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-27-vi.mock('../run/popup/action_popup_operations', async (importOriginal) => {\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-28-    const actual = await importOriginal<typeof import('../run/popup/action_popup_operations')>()\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-29-\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-30-    return {\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-31-        ...actual,\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-32-        answerRestoredConversationQuestions: vi.fn(async () => undefined),\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx:33:        currentActionRun: vi.fn((bindingStore) => currentRunState.current === undefined\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-34-            ? actual.currentActionRun(bindingStore)\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx:35:            : currentRunState.current),\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-36-        currentActionPromptDraft: () => {\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-37-            if (!promptDraftState.current) throw new Error('Test prompt draft is not configured')\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-38-\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-39-            return promptDraftState.current\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-40-        },\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-41-        dismissRestoredConversationQuestions: vi.fn(async () => undefined),\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-42-        runPopupAction: vi.fn(async () => undefined),\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-43-    }\r\n--\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-250-    window.localStorage.clear()\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-251-    preparePrompt.mockReset()\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-252-    preparePrompt.mockResolvedValue({ prompt: 'Prepared prompt' })\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-253-})\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-254-\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-255-afterEach(() => {\r\napp\\src\\components\\actions\\agent\\actio\n[1667 characters omitted]\nis')\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-424-        expect(prompt).toHaveValue('Run this')\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-425-    })\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-426-\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx:427:    it('does not run an empty stale shortcut after an agent run becomes active before rerender', () => {\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-428-        renderPrompt(new ActionPromptDraft('', false))\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx:429:        currentRunState.current = {\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-430-            activeActionType: 'agent',\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-431-            interactionReady: true,\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-432-            status: 'running',\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-433-        } as ActionRun\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-434-\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-435-        fireEvent.keyDown(screen.getByLabelText('Markdown prompt'), { ctrlKey: true, key: 'Enter' })\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-436-\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx-437-        expect(currentActionRun).toHaveBeenCalledOnce()\n--\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-173-    const handleQuestionsSurface = useCallback((surface: HTMLElement | null) => {\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-174-        layoutStore.attachQuestions(surface);\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-175-    }, [layoutStore]);\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-176-    const handleLiveChange = layoutStore.activatePrompt;\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-177-    const handleQuestionsActivate = () => layoutStore.activateQuestions();\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-178-\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-179-    const handleRunShortcut = () => {\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-180-        const run = currentActionRun(bindingStore)\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:181:        const currentRunStatus = run?.status ?? 'idle'\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:182:        const currentSessionActive = currentRunStatus === 'queued'\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:183:            || currentRunStatus === 'running'\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:184:            || currentRunStatus === 'waitingForInput'\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-185-        const runState = {\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-186-            agentActive: currentSessionActive && run?.activeActionType === 'agent',\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-187-            interactionReady: !!run?.interactionReady,\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-188-            runDisabledMessage: settings.runDisabledMessage,\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:189:            runStatus: currentRunStatus,\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-190-        }\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-191-        if (actionPopupRunDisabled(\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-192-            action,\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-193-            runState,\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-194-            promptDraft.getSnapshot(),\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-195-            promptDraft.getEditorSnapshot().preparationStatus,\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-196-        )) return\r\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx-197-\r\n",
+          "durationMs": 38,
+          "exitCode": 0,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-35",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 8 \\\"currentRunStatus|stale shortcut|currentRunState|currentActionRun:\\\" app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_prompt.tsx app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_prompt.test.tsx\"",
+          "providerItemId": "exec-1ddf76c2-f62c-414a-96dd-6a6b944ae110",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:44:19.802Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-36",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef475c71e087d294c73ff7fb9c3b08",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:44:26.871Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_popup_operations.node.test.ts\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\popup\\action_popup_operations.ts",
+          "deletions": 1,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-37",
+          "insertions": 11,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-a917abc9-e3e8-4e98-ac81-c9c41c76b678",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:44:36.892Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef4767cf5c87d293c8fd91a247735a",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:44:38.193Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 1 and core guard edited. Starting Blocks 2–3 tests: verify silent no-op, preserve non-empty queue, preserve desktop rejection.\n\n",
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-11-07T15:44:38.967Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop\\\\src\\\\actions\\\\action\\\\action_run.test.mjs' | Select-Object -Skip 885 -First 105\"",
+          "content": "        await run.enqueueAgentPrompt('Wait for next answer');\r\n        await Promise.resolve();\r\n        expect(run.activeAgentQuestionRequestId).toBe(8);\r\n        expect(run.agentInteractionPending()).toBe(true);\r\n        expect(events).toContainEqual(expect.objectContaining({\r\n            status: 'waitingForInput',\r\n            update: expect.objectContaining({ kind: 'agentUserMessage' }),\r\n        }));\r\n        expect(sendMessage).toHaveBeenCalledOnce();\r\n        agentCompletion.resolve();\r\n        await run.completion;\r\n    });\r\n\r\n    it('runs a queued one-shot follow-up before action completion', async () => {\r\n        const firstCompletion = deferred();\r\n        const firstResult = {\r\n            agent: 'codex', changedPaths: ['first.ts'], conversationId: 'conversation', exitCode: 0,\r\n            model: 'gpt', prompt: 'run', reference: 'run.json',\r\n            stderr: 'first error', stdout: 'first output', thinkingLevel: 'none',\r\n        };\r\n        const secondResult = {\r\n            ...firstResult,\r\n            changedPaths: ['second.ts'],\r\n            prompt: 'follow up',\r\n            stderr: 'second error',\r\n            stdout: 'second output',\r\n        };\r\n        const agentExecutor = {\r\n            execute: vi.fn()\r\n                .mockImplementationOnce(async (input) => {\r\n                    input.onActiveRunChange('agent-run-1');\r\n                    await firstCompletion.promise;\r\n                    input.onActiveRunChange(null);\r\n\r\n                    return firstResult;\r\n                })\r\n                .mockResolvedValueOnce(secondResult),\r\n        };\r\n        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });\r\n        const { events, run } = createRun(rootAction, { agentExecutor });\r\n        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledOnce());\r\n        await run.enqueueAgentPrompt('follow up');\r\n        firstCompletion.resolve();\r\n\r\n        await run.completion;\r\n\r\n        expect(agentExecutor.execute).toHaveBeenCalledTimes(2);\r\n        expect(agentExecutor.execute.mock.calls[1][0].runInput).toMatchObject({\r\n            continueFrom: 'run.json',\r\n            prompt: 'follow up',\r\n        });\r\n        expect(events.findLast(({ type }) => type === 'action')).toMatchObject({ status: 'completed' });\r\n    });\r\n\r\n    it('edits, deletes, and dispatches several one-shot prompts once in FIFO order', async () => {\r\n        const firstCompletion = deferred();\r\n        const result = {\r\n            agent: 'codex', changedPaths: [], conversationId: 'conversation', exitCode: 0,\r\n            model: 'gpt', prompt: 'run', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',\r\n        };\r\n        const agentExecutor = {\r\n            execute: vi.fn()\r\n                .mockImplementationOnce(async (input) => {\r\n                    input.onActiveRunChange('agent-run-1');\r\n                    await firstCompletion.promise;\r\n                    input.onActiveRunChange(null);\r\n\r\n                    return result;\r\n                })\r\n                .mockResolvedValue({ ...result, reference: 'continued.json' }),\r\n        };\r\n        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });\r\n        const { events, run } = createRun(rootAction, { agentExecutor });\r\n        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledOnce());\r\n        const first = await run.enqueueAgentPrompt('First', 'message-1');\r\n        const second = await run.enqueueAgentPrompt('Second', 'message-2');\r\n        const third = await run.enqueueAgentPrompt('Third', 'message-3');\r\n        const editedSecond = await run.editQueuedAgentPrompt(second.id, second.revision, 'Edited second');\r\n        await expect(run.editQueuedAgentPrompt(second.id, second.revision, 'Stale edit')).rejects.toThrow('changed before operation');\r\n        expect(() => run.editQueuedAgentPrompt(first.id, first.revision, '   ')).toThrow('cannot be empty');\r\n        await run.deleteQueuedAgentPrompt(first.id, first.revision);\r\n        firstCompletion.resolve();\r\n\r\n        await run.completion;\r\n\r\n        expect(first.id).toBe('message-1');\r\n        expect(events).toContainEqual(expect.objectContaining({ update: { kind: 'agentPromptDeleted', promptId: first.id, revision: 0 } }));\r\n        expect(editedSecond).toMatchObject({ content: 'Edited second', revision: 1 });\r\n        expect(agentExecutor.execute).toHaveBeenCalledTimes(3);\r\n        expect(agentExecutor.execute.mock.calls.slice(1).map(([input]) => input.runInput.prompt))\r\n            .toEqual(['Edited second', 'Third']);\r\n        expect(agentExecutor.execute.mock.calls.slice(1).map(([input]) => input.runInput.submissionId))\r\n            .toEqual([second.id, third.id]);\r\n    });\r\n\r\n    it('drains prompts queued before streaming completion through ordered continuations', async () => {\r\n        const firstCompletion = deferred();\r\n        const firstStarted = deferred();\r\n        const finalCompletion = deferred();\r\n        const finalStarted = deferred();\r\n        const firstResult = {\r\n            agent: 'claude', changedPaths: ['first.ts'], conversationId: 'conversation', exitCode: 0,\r\n            model: 'claude', prompt: 'run', reference: 'first.json', stderr: 'first error', stdout: 'first output',\r\n            thinkingLevel: 'none',\r\n        };\r\n",
+          "durationMs": 108,
+          "exitCode": 0,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-40",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop\\\\src\\\\actions\\\\action\\\\action_run.test.mjs' | Select-Object -Skip 885 -First 105\"",
+          "providerItemId": "exec-ebb85f0a-e4a0-4043-b2f8-58e9313b7cb0",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:44:47.284Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef47779b5087d28aa4ffdce503f6d0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:44:54.019Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\action\\action_run.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-42",
+          "insertions": 26,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-d7986e7b-7834-4856-8593-fa353ace4c1f",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:45:02.784Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-43",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef4782172087d2ab71c98a92e071cf",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:45:04.481Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/actions/agent/action_agent_prompt.test.tsx src/components/actions/run/popup/action_popup_operations.node.test.ts'",
+          "content": "\n> app@0.11.0 test\n> vitest run src/components/actions/agent/action_agent_prompt.test.tsx src/components/actions/run/popup/action_popup_operations.node.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n(node:35896) MaxListenersExceededWarning: Possible EventTarget memory leak detected. 11 run:run-1 listeners added to ActionRunRegistry. MaxListeners is 10. Use events.setMaxListeners() to increase limit\n(Use `node --trace-warnings ...` to show where the warning was created)\n\n Test Files  2 passed (2)\n      Tests  60 passed (60)\n   Start at  16:45:07\n   Duration  5.64s (transform 1.62s, setup 101ms, import 3.43s, tests 1.06s, environment 809ms)\n\n",
+          "durationMs": 6516,
+          "exitCode": 0,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-44",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/components/actions/agent/action_agent_prompt.test.tsx src/components/actions/run/popup/action_popup_operations.node.test.ts'",
+          "providerItemId": "exec-ccd4ca03-73bc-4fa8-abb2-93b04f4c4b59",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:45:13.167Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef478bfbc087d29b28284838dc63d8",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:45:14.366Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/action/action_run.test.mjs src/actions/action/action_scheduler_service.test.mjs'",
+          "content": "\n> desktop@0.11.0 test\n> vitest run src/actions/action/action_run.test.mjs src/actions/action/action_scheduler_service.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/desktop\n\n\n Test Files  2 passed (2)\n      Tests  138 passed (138)\n   Start at  16:45:17\n   Duration  1.74s (transform 183ms, setup 0ms, import 456ms, tests 2.08s, environment 0ms)\n\n",
+          "durationMs": 2428,
+          "exitCode": 0,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-46",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/action/action_run.test.mjs src/actions/action/action_scheduler_service.test.mjs'",
+          "providerItemId": "exec-a55e6153-1950-44a1-920f-67a706a9c3a8",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:45:18.898Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef4792bcc087d2938d0ccac7d85620",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:45:21.124Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Related tests pass: app 60, desktop 138. Running targeted lint now. Then external feature status update only if lint passes.\n\n",
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 48,
+          "timestamp": "2026-11-07T15:45:22.008Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm exec eslint -- src/components/actions/agent/action_agent_prompt.tsx src/components/actions/agent/action_agent_prompt.test.tsx src/components/actions/run/popup/action_popup_operations.ts src/components/actions/run/popup/action_popup_operations.node.test.ts'",
+          "content": "",
+          "durationMs": 2400,
+          "exitCode": 0,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-49",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm exec eslint -- src/components/actions/agent/action_agent_prompt.tsx src/components/actions/agent/action_agent_prompt.test.tsx src/components/actions/run/popup/action_popup_operations.ts src/components/actions/run/popup/action_popup_operations.node.test.ts'",
+          "providerItemId": "exec-806c668f-b6e5-4d3e-8948-056ab2ff56a9",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:45:33.603Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm exec eslint -- src/actions/action/action_run.test.mjs'",
+          "content": "",
+          "durationMs": 1140,
+          "exitCode": 0,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-50",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm exec eslint -- src/actions/action/action_run.test.mjs'",
+          "providerItemId": "exec-ea7eb244-c9df-44fb-8643-f5400f57dc53",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:45:37.571Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef47a59e8c87d2ba17dd7e01f64115",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:45:40.005Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Targeted lint passes. `caveman` skill causes no workflow pause. Final required action: change external feature status from `ready for implementation` to `ready`; no other spec edits.\n\n",
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 52,
+          "timestamp": "2026-11-07T15:45:41.025Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_291_error_queued_agent_prompt_is_empty.md",
+          "deletions": 1,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-53",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-21c73fe4-eef4-4ffd-b1b7-79c94352e050",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:45:45.625Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-54",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef47b33d7c87d2b5fe9c7e5be83b63",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:45:53.635Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- app/src/components/actions/agent/action_agent_prompt.tsx app/src/components/actions/agent/action_agent_prompt.test.tsx app/src/components/actions/run/popup/action_popup_operations.ts app/src/components/actions/run/popup/action_popup_operations.node.test.ts desktop/src/actions/action/action_run.test.mjs; Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_291_error_queued_agent_prompt_is_empty.md' -Pattern '\"'^status:'\"'\"",
+          "content": "\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_291_error_queued_agent_prompt_is_empty.md:6:status: \r\nready\r\n\r\n\r\n",
+          "durationMs": 135,
+          "exitCode": 0,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-55",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- app/src/components/actions/agent/action_agent_prompt.tsx app/src/components/actions/agent/action_agent_prompt.test.tsx app/src/components/actions/run/popup/action_popup_operations.ts app/src/components/actions/run/popup/action_popup_operations.node.test.ts desktop/src/actions/action/action_run.test.mjs; Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_291_error_queued_agent_prompt_is_empty.md' -Pattern '\"'^status:'\"'\"",
+          "providerItemId": "exec-1dc8090c-5327-4a6a-a960-8113795fb0d1",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:45:57.614Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-56",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef47b9a74487d28134d0651be9a68f",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:46:00.170Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_291_error_queued_agent_prompt_is_empty.md'; for (\"'$index = 0; $index -lt 12; $index++) { Write-Output (('\"'{0}: <{1}>' -f (\"'$index + 1), $lines[$index])) }'",
+          "content": "1: <--->\r\n2: <author: >\r\n3: <id: B_291>\r\n4: <internalId: 985eabb4-1032-49e3-9523-580c67467696>\r\n5: <title: Error: Queued agent prompt is empty>\r\n6: <status: ready>\r\n7: <owner: >\r\n8: <affects:>\r\n9: <agents:>\r\n10: <  - design/activity/card__985eabb4-1032-49e3-9523-580c67467696.json>\r\n11: <policy:>\r\n12: <sentryBaseUrl: https://sentry.io>\r\n",
+          "durationMs": 102,
+          "exitCode": 0,
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-57",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_291_error_queued_agent_prompt_is_empty.md'; for (\"'$index = 0; $index -lt 12; $index++) { Write-Output (('\"'{0}: <{1}>' -f (\"'$index + 1), $lines[$index])) }'",
+          "providerItemId": "exec-4c02ccc9-d68c-486d-b5e6-dd6a2d28f159",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-11-07T15:46:03.676Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-event-58",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0928615c975b9af0016aef47c11bac87d29886c94e6ea61741",
+          "sequence": 58,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-07T15:46:07.621Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Implemented B_291.\n\n- Shortcut now reads complete fresh run snapshot.\n- Empty stale interaction returns silently: no submission, bridge call, or error.\n- Non-empty active prompts still queue.\n- Desktop still rejects direct empty queued prompts.\n- Scheduler behavior unchanged and verified.\n- Feature [status updated to `ready`](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_291_error_queued_agent_prompt_is_empty.md).\n\nValidation:\n\n- App: 60 related tests passed.\n- Desktop: 138 related tests passed.\n- Targeted lint passed.\n- Diff whitespace check passed.\n\n",
+          "id": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 59,
+          "timestamp": "2026-11-07T15:46:15.838Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2750,8 +3149,8 @@
           "agent": "codex",
           "conversationId": "01a1b6a3-0e8d-7b40-b93f-2bb607f43117",
           "createdAt": "2026-11-07T15:31:42.570Z",
-          "lastUsedAt": "2026-11-07T15:43:38.879Z",
-          "synchronizedThroughMessageId": "submission-b7119baf-b6cc-4525-8ab3-fd160dcc8ae1"
+          "lastUsedAt": "2026-11-07T15:46:15.838Z",
+          "synchronizedThroughMessageId": "agent-turn-425596fc-cd1d-4d4d-8546-ae83bb4d765b-turn-2-assistant-5"
         }
       ],
       "startedAt": "2026-11-07T15:31:41.283Z",
@@ -2761,46 +3160,46 @@
           {
             "id": "0",
             "subject": "Block 1 — Fresh shortcut state: update ActionAgentPrompt Ctrl/Cmd+Enter handler to derive status, active action type, interaction readiness, and disabled state from one currentActionRun(bindingStore) snapshot; add renderer test for externally activated run before rerender",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "1",
             "subject": "Block 2 — Stale interaction guard: make runPopupAction return when newly active agent run resolves to an empty prompt; add focused operation tests proving no submission, no bridge enqueue, no dialog error, while non-empty active prompt still queues",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 3 — Boundary and schedule regression verification: add/retain focused desktop assertion that direct empty enqueue is rejected; run related renderer, operation, desktop queue, and scheduler tests covering same conversation continuation and new identity allocation",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Block 4 — Quality and handoff: run lint only against changed files/subprojects, then set external B_291 feature status to ready after all implementation/tests pass",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "4",
             "subject": "Approval gate — wait for user approval before any edit",
-            "status": "inProgress"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-07T15:32:59.802Z"
+        "updatedAt": "2026-11-07T15:46:12.496Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 284,
-          "toolMs": 1687
+          "reasoningMs": 707,
+          "toolMs": 20358
         },
         "elapsedMs": 89343,
         "runningStartedAt": "2026-11-07T15:43:38.821Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 766336,
-        "inputTokens": 71211,
-        "outputTokens": 2521,
-        "reasoningTokens": 857,
-        "totalTokens": 840925
+        "cachedInputTokens": 2438016,
+        "inputTokens": 81341,
+        "outputTokens": 6596,
+        "reasoningTokens": 3292,
+        "totalTokens": 2529245
       },
       "usageSchemaVersion": 1,
       "viewed": true
