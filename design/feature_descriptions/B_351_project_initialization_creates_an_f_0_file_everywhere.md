@@ -3,7 +3,7 @@ author:
 id: B_351
 internalId: 4beee834-4950-4286-868c-1f2cfb895e10
 title: project initialization creates an f_0 file everywhere
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,41 @@ policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 branch: b_351_project_initialization_creates_an_f_0_file_everywhere
 worktree: 2
+changedFiles:
+  - app/src/App.test.tsx
+  - app/src/components/shell/main_window.test.tsx
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/shell/remarkable_import_toolbar_button.grouped.test.tsx
+  - app/src/components/stats_view/stats_content.test.tsx
+  - app/src/components/stats_view/stats_menu_tab.test.tsx
+  - app/src/data/data_types.ts
+  - app/src/data/electron_data_bridge.ts
+  - app/src/data/project_session.service.test.ts
+  - app/src/services/data/local_git_storage_service.node.test.ts
+  - app/src/services/data/local_git_storage_service.ts
+  - app/src/services/data/remote_control_storage_service.ts
+  - app/src/services/github/github_storage_loader.ts
+  - app/src/services/github/github_storage_loading.service.test.ts
+  - app/src/services/github/github_storage_read_only.service.test.ts
+  - app/src/services/github/github_storage_service.ts
+  - app/src/services/github/github_storage_types.ts
+  - app/src/services/github/github_storage_write_operations.service.test.ts
+  - app/src/services/github/github_storage_writer.ts
+  - app/src/services/project/project_loading.test.ts
+  - app/src/services/project/project_loading.ts
+  - app/src/services/project/project_session_service.service.test.ts
+  - app/src/services/project/project_session_service.ts
+  - app/src/services/project/save_state_service.ts
+  - app/src/services/stats/project_stats_service.node.test.ts
+  - app/src/services/telemetry/telemetry_service.service.test.ts
+  - app/src/services/test_support/data_service_test_support.ts
+  - desktop/src/project/project_files.js
+  - desktop/src/project/project_files.test.mjs
+  - desktop/src/project/project_folder_creation.js
+  - desktop/src/project/project_folder_creation.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.js
 ---
 
 the project initialization seems to create F_0_MD².md files everywhere. this is not needed.
