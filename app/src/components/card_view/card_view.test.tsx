@@ -66,6 +66,8 @@ function card(id: string, title: string, status: string, policy: Record<string, 
     }
 }
 
+const nextTodoCard = { ...card('F-3', 'Third', 'todo'), header: { ...card('F-3', 'Third', 'todo').header, after: 'f-1' } }
+
 const cards = [
     card('F-1', 'First', 'todo', { checkLinting: true, requireTests: false }),
     card('F-2', 'Second', 'done'),
@@ -800,6 +802,45 @@ describe('CardView', () => {
         fireEvent.click(within(confirmDialog).getByRole('button', { name: 'Delete' }))
 
         await waitFor(() => expect(dataService.cards.deleteCard).toHaveBeenCalledWith('design/F-1.md'))
+    })
+
+    it('focuses the next card without scrolling after deleting from the card actions menu', async () => {
+        renderCardView({}, [cards[0], nextTodoCard, cards[1]])
+        const nextCardButton = screen.getByRole('button', { name: 'Drag F-3' })
+        const focusSpy = vi.spyOn(nextCardButton, 'focus')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+        fireEvent.click(within(screen.getByRole('dialog', { name: 'Delete card' })).getByRole('button', { name: 'Delete' }))
+
+        await waitFor(() => expect(nextCardButton).toHaveFocus())
+        expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
+    })
+
+    it('focuses the next card without scrolling after deleting from the body popup', async () => {
+        renderCardView({}, [cards[0], nextTodoCard, cards[1]])
+        const nextCardButton = screen.getByRole('button', { name: 'Drag F-3' })
+        const focusSpy = vi.spyOn(nextCardButton, 'focus')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+        fireEvent.click(within(screen.getByRole('dialog', { name: 'Delete card' })).getByRole('button', { name: 'Delete' }))
+
+        await waitFor(() => expect(nextCardButton).toHaveFocus())
+        expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
+    })
+
+    it('focuses the column Add card button without scrolling after deleting its only card', async () => {
+        renderCardView({ states: [{ alwaysVisible: false, state: 'todo' }, { alwaysVisible: true, state: 'done' }] })
+        const addButton = screen.getByRole('button', { name: 'Add card from done column' })
+        const focusSpy = vi.spyOn(addButton, 'focus')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-2' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+        fireEvent.click(within(screen.getByRole('dialog', { name: 'Delete card' })).getByRole('button', { name: 'Delete' }))
+
+        await waitFor(() => expect(addButton).toHaveFocus())
+        expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
     })
 
     it('keeps desktop popup sizing, actions, resizing, and fullscreen control', () => {

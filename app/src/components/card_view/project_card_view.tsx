@@ -227,6 +227,7 @@ function CardViewContent(props: CardViewContentProps) {
     return (
         <CardDragContainer
             cardId={card.header.id}
+            cardInternalId={card.header.internalId}
             cardPath={card.path}
             interactions={dragInteractions}
             isBodyOpen={isBodyOpen}
