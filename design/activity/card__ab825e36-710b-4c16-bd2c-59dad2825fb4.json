@@ -2474,6 +2474,36 @@
       "startedAt": "2026-11-07T15:54:03.563Z",
       "status": "completed",
       "rootConversationId": "agent-a5a1dbdb-184a-462e-8fd7-a55fdb94a52b"
+    },
+    {
+      "commits": [
+        {
+          "commit": "d7e32c31adf0e04576a6a80ffd1edf56f1d4b970",
+          "committedAt": "2026-11-08T15:49:59+01:00",
+          "deletions": 5,
+          "filePaths": [
+            "app/src/components/card_view/card_column.tsx",
+            "app/src/components/card_view/card_delete_dialog.test.tsx",
+            "app/src/components/card_view/card_delete_dialog.tsx",
+            "app/src/components/card_view/card_deletion_focus.test.ts",
+            "app/src/components/card_view/card_deletion_focus.ts",
+            "app/src/components/card_view/card_view.test.tsx",
+            "app/src/components/card_view/card_view.tsx",
+            "app/src/components/card_view/project_card_drag_container.tsx",
+            "app/src/components/card_view/project_card_view.tsx"
+          ],
+          "filesChanged": 9,
+          "insertions": 255,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-08T15:49:59+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "ab825e36-710b-4c16-bd2c-59dad2825fb4",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

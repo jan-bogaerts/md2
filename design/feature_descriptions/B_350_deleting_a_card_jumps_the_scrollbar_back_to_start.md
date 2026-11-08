@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__ab825e36-710b-4c16-bd2c-59dad2825fb4.json
 policy:
-branch: b_350_deleting_a_card_jumps_the_scrollbar_back_to_start
-worktree: 1
 changedFiles:
   - app/src/components/card_view/card_column.tsx
   - app/src/components/card_view/card_delete_dialog.test.tsx
