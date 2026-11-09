@@ -10,7 +10,7 @@ const PLACEHOLDER_NAMES = [
 ].join('|');
 const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
-const DATA_PLACEHOLDER_PATTERN = /\{\{\s*data\s+[^{}]+\}\}/u;
+const DATA_PLACEHOLDER_PATTERN = /\{\{\s*data(?:\s[^{}]*)?\}\}/u;
 
 function missingThisCardContextError() {
     const error = new Error('Cannot prepare action prompt: {{this-card}} requires a card or file context, but this action was opened from the project. Open the action from a card or remove {{this-card}} from the action prompt.');

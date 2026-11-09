@@ -181,6 +181,18 @@ describe('resolvePlaceholders', () => {
         expect(resolvePlaceholders('{{rootProjectFolder}} {{file}} {{prompt}}', { file: 'design/card.md' }, project, project, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, 'focus'))
             .toBe('{{rootProjectFolder}} {{file}} {{prompt}}');
     });
+
+    it('rejects a full-record placeholder without a for-each record', () => {
+        expect(() => resolvePlaceholders(
+            '{{ data }}', {}, project, project, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, '',
+        )).toThrow('Cannot resolve data placeholder without a for-each record');
+    });
+
+    it('does not treat names beginning with data as data placeholders', () => {
+        expect(resolvePlaceholders(
+            '{{database}} {{data-x}}', {}, project, project, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, '',
+        )).toBe('{{database}} {{data-x}}');
+    });
 });
 
 describe('resolveAgentPrompt', () => {
@@ -222,8 +234,10 @@ describe('resolveAgentPrompt', () => {
 
 describe('resolvePopupPrompt', () => {
     it('resolves data placeholders from one for-each record', () => {
+        const record = { countries: [{ city: 'Brussels' }] };
+
         expect(resolvePopupPrompt(
-            'City: {{data countries.0.city}}',
+            'Record: {{data}}\nCity: {{data countries.0.city}}',
             { kind: 'project' },
             project,
             project,
@@ -233,13 +247,17 @@ describe('resolvePopupPrompt', () => {
             activeCardsFolder,
             null,
             null,
-            { countries: [{ city: 'Brussels' }] },
-        )).toBe('City: Brussels');
+            record,
+        )).toBe(`Record: ${JSON.stringify(record, null, 2)}\nCity: Brussels`);
     });
 
     it('rejects a data placeholder outside a for-each record', () => {
         expect(() => resolvePopupPrompt(
             '{{data city}}', { kind: 'project' }, project, project, projectFolder,
+            releasesFolder, actionsFolder, activeCardsFolder,
+        )).toThrow('Cannot resolve data placeholder without a for-each record');
+        expect(() => resolvePopupPrompt(
+            '{{data}}', { kind: 'project' }, project, project, projectFolder,
             releasesFolder, actionsFolder, activeCardsFolder,
         )).toThrow('Cannot resolve data placeholder without a for-each record');
     });

@@ -1,7 +1,8 @@
 export const FOR_EACH_MODES = new Set(['addPrompt', 'compact', 'newConversation']);
 export const FOR_EACH_FAILURE_POLICIES = new Set(['logAndContinue', 'stopOnFirstFailure']);
 
-const DATA_PLACEHOLDER_PATTERN = /\{\{\s*data\s+([^{}]+?)\s*\}\}/gu;
+const DATA_PLACEHOLDER_PATTERN = /\{\{\s*data(?:\s+([^{}\s][^{}]*?))?\s*\}\}/gu;
+const FULL_RECORD_JSON_INDENT = 2;
 
 function validateJsonValue(value, fieldName) {
     if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
@@ -72,9 +73,11 @@ export function forEachRecords(value, dataPath = '') {
     return [...selected];
 }
 
-/** Resolve data placeholders against one record. Strings remain raw; other JSON values serialize. */
+/** Resolve data placeholders against one record. Full records use JSON; path strings remain raw. */
 export function resolveDataPlaceholders(text, record) {
     return text.replace(DATA_PLACEHOLDER_PATTERN, (_match, path) => {
+        if (path === undefined) return JSON.stringify(record, null, FULL_RECORD_JSON_INDENT);
+
         const value = dataPathValue(record, path.trim());
 
         return typeof value === 'string' ? value : JSON.stringify(value);

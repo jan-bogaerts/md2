@@ -73,6 +73,43 @@ describe('action for-each helpers', () => {
         expect(resolveDataPlaceholders('{{data countries.0.cities.1}}', record)).toBe('Ghent');
     });
 
+    it('pretty prints a full object record with supported whitespace forms', () => {
+        const record = { city: 'Brussels', enabled: true };
+        const expected = JSON.stringify(record, null, 2);
+
+        expect(resolveDataPlaceholders('{{data}}\n{{ data }}\n{{data   }}', record))
+            .toBe(`${expected}\n${expected}\n${expected}`);
+    });
+
+    it.each([
+        [['Brussels', 2], '[\n  "Brussels",\n  2\n]'],
+        ['Brussels', '"Brussels"'],
+        [2, '2'],
+        [true, 'true'],
+        [null, 'null'],
+    ])('serializes full JSON record %j', (record, expected) => {
+        expect(resolveDataPlaceholders('{{data}}', record)).toBe(expected);
+    });
+
+    it('resolves full-record and path placeholders from the same record', () => {
+        const record = { city: 'Brussels', details: { enabled: true } };
+
+        expect(resolveDataPlaceholders('Record: {{data}}\nCity: {{ data city }}\nDetails: {{data details}}', record))
+            .toBe(`Record: ${JSON.stringify(record, null, 2)}\nCity: Brussels\nDetails: {"enabled":true}`);
+    });
+
+    it('inserts dollar sequences and placeholder-like record content literally', () => {
+        const record = { content: '$& $` $\' {{data other}}', other: 'changed' };
+
+        expect(resolveDataPlaceholders('Full: {{data}}\nContent: {{data content}}', record))
+            .toBe(`Full: ${JSON.stringify(record, null, 2)}\nContent: $& $\` $' {{data other}}`);
+    });
+
+    it('leaves names beginning with data unmatched', () => {
+        expect(resolveDataPlaceholders('{{database}} {{data-x}}', { value: 1 }))
+            .toBe('{{database}} {{data-x}}');
+    });
+
     it('fails missing paths and rejects malformed configuration', () => {
         expect(() => resolveDataPlaceholders('{{data missing}}', {})).toThrow('Missing for-each data path: missing');
         expect(() => validateForEachConfig({ failurePolicy: 'skip', fileName: 'data.json', mode: 'addPrompt', value: [] }))

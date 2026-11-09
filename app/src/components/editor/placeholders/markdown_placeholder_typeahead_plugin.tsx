@@ -69,7 +69,7 @@ export function MarkdownPlaceholderTypeaheadPlugin() {
 
         const placeholderText = formatActionPlaceholder(option.placeholder.name)
         textNodeContainingQuery.setTextContent(placeholderText)
-        if (option.placeholder.name === 'data') textNodeContainingQuery.select(7, 11)
+        if (option.placeholder.name === 'data-path') textNodeContainingQuery.select(7, 11)
         else textNodeContainingQuery.selectEnd()
         closeMenu()
     }, [])
