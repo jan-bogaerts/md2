@@ -3,7 +3,7 @@ author:
 id: F_462
 internalId: 9ee3f856-14a9-495a-88f7-a06cca186ac6
 title: foreach use selector for loop data
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
@@ -22,3 +22,31 @@ Also, in the context menu of the 'for-each' button on the action-popup, we curre
 * at end
 * on failure
 * path to list data, if an object
+
+## Current state
+
+`ActionForEachConfig` stores the selected JSON value, file name, end mode, and failure policy. Draft settings live in `ActionRunInputStore`; settings on an existing conversation are persisted in its activity file. The shared validator rejects unknown configuration fields.
+
+At execution, `forEachRecords` treats a root array as ordered loop records and every other JSON value as one record. A root object therefore runs once, even when it contains the intended record array.
+
+`{{data path}}` placeholders already resolve dot-separated object keys and numeric array indexes, such as `countries.0.cities`. Missing segments fail with a clear data-path error. The for-each button menu currently provides `View`, `Remove`, `At end`, and `On failure`; the last two open separate submenus.
+
+## implementation details
+
+- Add optional `dataPath` to `ActionForEachConfig`. `dataPath` is a dot-separated selector into the attached root object; numeric segments select array indexes. Extend shared validation, TypeScript declarations, activity persistence, and run-request validation to retain it. Existing configurations without `dataPath` keep current behavior.
+- Reuse the existing data-path resolver. Before the first loop turn, resolve `dataPath` against the root JSON value and require the selected value to be an array. Report a missing path or non-array result as a configuration error; do not start any record.
+- Keep a root array directly iterable. For a root object, an empty selector keeps the object as one record; a configured selector makes the selected array the ordered loop records.
+- Replace `At end` and `On failure` in `ActionForEachMenu` with one `Setup` item. `View` and `Remove` remain unchanged.
+- Open a for-each setup dialog containing `At end`, `On failure`, and, only for a root object, `Path to list data`. Stage edits locally; `Cancel` discards them and `Save` persists one complete configuration through the existing draft or conversation path. Disable changes while the loop is active.
+- Validate the selector in the setup dialog before saving so an invalid or non-array path is shown through `dialogService`. Backend validation remains authoritative for restored or externally supplied configurations.
+- Add focused tests for setup save/cancel and root-dependent field visibility; configuration persistence and validation; nested selectors, numeric indexes, missing paths, and non-array results; root arrays, blank selectors, empty selected arrays, and failure before any agent turn.
+
+## acceptance criteria
+
+- For-each setup is available through one `Setup` menu item and allows the user to configure end behavior, failure behavior, and a loop-data path for root-object JSON.
+- A dot-separated path selecting an array inside a root object runs one prompt per selected array item, in array order.
+- Numeric path segments can traverse arrays inside the selected path.
+- Missing paths and paths resolving to non-arrays show a clear error and start no loop records.
+- Empty selected arrays complete without an agent turn. Root arrays and root objects without a selector retain current behavior.
+- Saved setup is retained for draft runs and persisted conversations, including after reopening the conversation.
+- `View`, `Remove`, running-loop locking, end modes, failure policies, and `{{data path}}` placeholder behavior remain unchanged.
