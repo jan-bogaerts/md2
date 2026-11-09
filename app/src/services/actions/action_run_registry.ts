@@ -4,6 +4,7 @@ import type { ActionDefinition } from '../../data/action_types'
 import type { AgentConversation, AgentConversationEntry, AgentConversationEventEntry } from '../../data/data_types'
 import type {
     ActionQueuedPrompt,
+    ActionForEachProgress,
     AgentApproval,
     AgentApprovalDecision,
     AgentApprovalRequestId,
@@ -70,6 +71,7 @@ export interface ActionRun {
     /** Null before the agent closes; false means the terminal conversation differs from its activity file. */
     conversationPersisted: boolean | null
     diagramPath: string | null
+    forEachProgress: ActionForEachProgress | null
     conversation: AgentConversation | null
     conversationChange: ActionConversationChange | null
     context: ActionContext
@@ -951,6 +953,7 @@ export class ActionRunRegistry extends EventTarget {
                 approvals: [],
                 changedPaths: result.changedPaths,
                 diagramPath: result.diagramPath ?? null,
+                forEachProgress: null,
                 conversation,
                 interactionReady: false,
                 logs,
@@ -1015,6 +1018,7 @@ export class ActionRunRegistry extends EventTarget {
             changedPaths: [],
             conversationPersisted: null,
             diagramPath: null,
+            forEachProgress: null,
             conversation: null,
             conversationChange: null,
             approvals: [],
@@ -1043,7 +1047,7 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
             queueTerminalActivity(event.activityPath)
-            next = { ...next, approvals: [], question: null, queuedPrompts: [] }
+            next = { ...next, approvals: [], forEachProgress: null, question: null, queuedPrompts: [] }
             actionPromptDraftService.flushContextDrafts(next.rootActionId, next.context)
         }
         if (event.type === 'agentState') next = { ...next, status: event.status }
@@ -1132,6 +1136,15 @@ export class ActionRunRegistry extends EventTarget {
                 ...next,
                 conversation: { ...next.conversation, taskList: event.update.taskList },
                 conversationChange: { kind: 'taskList' },
+            }
+        }
+        if (event.type === 'update' && event.update.kind === 'forEachProgress') {
+            next = {
+                ...next,
+                forEachProgress: {
+                    processedCount: event.update.processedCount,
+                    totalCount: event.update.totalCount,
+                },
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentPromptQueued') {

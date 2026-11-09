@@ -167,6 +167,11 @@ interface ActionRunEventBase {
     streaming?: boolean
 }
 
+export interface ActionForEachProgress {
+    processedCount: number
+    totalCount: number
+}
+
 export type ActionRunUpdate =
     | { kind: 'agentCompact', request: ActionCompactState }
     | {
@@ -220,6 +225,9 @@ export type ActionRunUpdate =
     | {
         kind: 'agentTaskList'
         taskList: AgentTaskList
+    }
+    | ActionForEachProgress & {
+        kind: 'forEachProgress'
     }
     | {
         entry: ActionQueuedPrompt

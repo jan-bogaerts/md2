@@ -766,6 +766,7 @@ class ActionRun {
             return { changedPaths: [], command: '', conversationId: null, conversationIds: [], exitCode: 0, stderr: '', stdout: '' };
         }
 
+        this.publishForEachProgress(action, phase, 0, records.length);
         const changedPaths = new Set();
         const conversationIds = [];
         let firstConversationId = null;
@@ -795,6 +796,7 @@ class ActionRun {
                     record,
                     index === 0 ? this.conversationReservation : null,
                 );
+                this.throwIfCancelled();
                 if (!firstConversationId && result.conversationId) firstConversationId = result.conversationId;
                 if (result.conversationId) conversationIds.push(result.conversationId);
                 for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);
@@ -803,6 +805,7 @@ class ActionRun {
                 previousResult = result;
                 if (result.exitCode !== 0) {
                     await this.recordLoopFailure(result.reference, index, result.stderr || 'Agent turn failed');
+                    this.publishForEachProgress(action, phase, index + 1, records.length);
                     if (config.failurePolicy === 'stopOnFirstFailure') {
                         return { ...result, changedPaths: [...changedPaths], conversationIds, stderr, stdout };
                     }
@@ -821,11 +824,14 @@ class ActionRun {
                     );
                     if (compactResult.exitCode !== 0) throw new Error(compactResult.stderr || 'Loop compaction failed');
                 }
+                this.publishForEachProgress(action, phase, index + 1, records.length);
             } catch (error) {
+                this.throwIfCancelled();
                 firstFailure ??= error;
                 const message = errorMessage(error, 'For-each record failed');
                 await this.recordLoopFailure(previousResult?.reference, index, message);
                 stderr += `${message}\n`;
+                this.publishForEachProgress(action, phase, index + 1, records.length);
                 if (config.failurePolicy === 'stopOnFirstFailure') throw error;
             }
         }
@@ -842,6 +848,13 @@ class ActionRun {
             stderr,
             stdout,
         };
+    }
+
+    publishForEachProgress(action, phase, processedCount, totalCount) {
+        this.publish(action, phase, 'running', {
+            type: 'update',
+            update: { kind: 'forEachProgress', processedCount, totalCount },
+        });
     }
 
     async recordLoopFailure(reference, recordIndex, message) {

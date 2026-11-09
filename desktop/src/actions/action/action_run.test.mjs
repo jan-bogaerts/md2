@@ -154,7 +154,7 @@ describe('ActionRun', () => {
             stop: vi.fn(),
         };
         const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: '{{data name}}', streaming: true, type: 'agent'});
-        const { localGitService, run } = createRun(rootAction, {
+        const { events, localGitService, run } = createRun(rootAction, {
             agentExecutor,
             agentRunnerService,
             runInput: {
@@ -175,6 +175,8 @@ describe('ActionRun', () => {
         const recordCalls = agentExecutor.execute.mock.calls.filter(([input]) => !input.compactOnly);
         expect(recordCalls.map(([input]) => input.forEachRecord.name)).toEqual(['first', 'second', 'third']);
         expect(agentRunnerService.finish).toHaveBeenCalledTimes(3);
+        expect(events.filter(({ update }) => update?.kind === 'forEachProgress').map(({ update }) => update.processedCount))
+            .toEqual([0, 1, 2, 3]);
         if (mode === 'newConversation') {
             expect(recordCalls.slice(1).every(([input]) => input.runInput.continueFrom === undefined)).toBe(true);
             expect(new Set(recordCalls.map(([input]) => input.runInput.conversationId).filter(Boolean)).size).toBe(2);
@@ -261,7 +263,7 @@ describe('ActionRun', () => {
         const agentRunnerService = {finish: vi.fn(() => activeCompletion.resolve()), hasPendingInteraction: () => false, stop: vi.fn()};
         const appendActivityConversationEvent = vi.fn(async () => undefined);
         const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
-        const { run } = createRun(rootAction, {
+        const { events, run } = createRun(rootAction, {
             agentExecutor,
             agentRunnerService,
             localGitService: { appendActivityConversationEvent },
@@ -277,6 +279,8 @@ describe('ActionRun', () => {
         expect(agentExecutor.execute).toHaveBeenCalledTimes(2);
         expect(agentRunnerService.finish).toHaveBeenCalledTimes(2);
         expect(appendActivityConversationEvent).toHaveBeenCalledWith(project, 'run.json', expect.objectContaining({ type: 'loopFailure' }));
+        expect(events.filter(({ update }) => update?.kind === 'forEachProgress').map(({ update }) => update.processedCount))
+            .toEqual([0, 1, 2]);
     });
 
     it('starts no later record after stop-on-first-failure', async () => {
@@ -296,7 +300,7 @@ describe('ActionRun', () => {
         };
         const agentRunnerService = {finish: vi.fn(() => turnCompletion.resolve()), hasPendingInteraction: () => false, stop: vi.fn()};
         const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
-        const { run } = createRun(rootAction, {
+        const { events, run } = createRun(rootAction, {
             agentExecutor,
             agentRunnerService,
             localGitService: { appendActivityConversationEvent: vi.fn(async () => undefined) },
@@ -311,12 +315,14 @@ describe('ActionRun', () => {
         expect(completed.status).toBe('failed');
         expect(agentExecutor.execute).toHaveBeenCalledOnce();
         expect(agentRunnerService.finish).toHaveBeenCalledOnce();
+        expect(events.filter(({ update }) => update?.kind === 'forEachProgress').map(({ update }) => update.processedCount))
+            .toEqual([0, 1]);
     });
 
     it('starts no agent turn for an empty root array', async () => {
         const agentExecutor = { execute: vi.fn() };
         const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
-        const { run } = createRun(rootAction, {
+        const { events, run } = createRun(rootAction, {
             agentExecutor,
             runInput: {
                 forEach: { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [] },
@@ -328,6 +334,16 @@ describe('ActionRun', () => {
 
         expect(completed.status).toBe('completed');
         expect(agentExecutor.execute).not.toHaveBeenCalled();
+        expect(events.some(({ update }) => update?.kind === 'forEachProgress')).toBe(false);
+    });
+
+    it('publishes no for-each progress for a run without for-each configuration', async () => {
+        const rootAction = action('main');
+        const { events, run } = createRun(rootAction);
+
+        await run.completion;
+
+        expect(events.some(({ update }) => update?.kind === 'forEachProgress')).toBe(false);
     });
 
     it('runs one turn per selected array item in order', async () => {
@@ -427,7 +443,7 @@ describe('ActionRun', () => {
             stop: vi.fn(() => firstTurn.resolve(result)),
         };
         const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
-        const { run } = createRun(rootAction, {
+        const { events, run } = createRun(rootAction, {
             agentExecutor,
             agentRunnerService,
             runInput: {
@@ -444,6 +460,8 @@ describe('ActionRun', () => {
         expect(agentExecutor.execute).toHaveBeenCalledOnce();
         expect(agentRunnerService.stop).toHaveBeenCalledWith('agent-run');
         expect(agentRunnerService.finish).not.toHaveBeenCalled();
+        expect(events.filter(({ update }) => update?.kind === 'forEachProgress').map(({ update }) => update.processedCount))
+            .toEqual([0]);
     });
 
     it('records two same-card runs independently while release waits for both', async () => {

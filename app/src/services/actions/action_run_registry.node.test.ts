@@ -720,6 +720,37 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('stores for-each progress by run and clears it only when that run becomes terminal', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const progressEvent = {
+            actionId: 'review', context, phase: 'main' as const, rootActionId: 'review', status: 'running' as const,
+            type: 'update' as const,
+        }
+
+        emit({ ...progressEvent, runId: 'run-1', update: { kind: 'forEachProgress', processedCount: 0, totalCount: 3 } })
+        emit({ ...progressEvent, runId: 'run-2', update: { kind: 'forEachProgress', processedCount: 1, totalCount: 2 } })
+
+        const firstStore = service.getRunStore('run-1')
+        if (!firstStore) throw new Error('Missing first run store')
+        const release = firstStore.subscribe(vi.fn())
+        expect(firstStore.getSnapshot().forEachProgress).toEqual({ processedCount: 0, totalCount: 3 })
+        expect(getRun(service, 'run-2').forEachProgress).toEqual({ processedCount: 1, totalCount: 2 })
+
+        emit({ ...progressEvent, runId: 'run-1', update: { kind: 'forEachProgress', processedCount: 2, totalCount: 3 } })
+        expect(firstStore.getSnapshot().forEachProgress).toEqual({ processedCount: 2, totalCount: 3 })
+        expect(getRun(service, 'run-2').forEachProgress).toEqual({ processedCount: 1, totalCount: 2 })
+
+        emit({ ...runEvent('completed'), actionId: 'review', rootActionId: 'review' })
+
+        expect(firstStore.getSnapshot().forEachProgress).toBeNull()
+        expect(getRun(service, 'run-2').forEachProgress).toEqual({ processedCount: 1, totalCount: 2 })
+        release()
+        service.stop()
+    })
+
     it('replaces live usage immutably without changing other run state', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
