@@ -429,12 +429,12 @@ class ActionRun {
         const activityPath = this.compactTarget?.reference.split('#')[0];
         const result = {
             ...(activityPath ? { activityPath } : {}),
-            changedPaths: [], failure: failure ? errorMessage(failure, 'Compact session failed') : null,
-            runId: this.runId, status,
+            changedPaths: [],
+            failure: failure ? errorMessage(failure, 'Compact session failed') : null,
+            runId: this.runId,
+            status,
         };
-        this.publish(this.rootAction, 'main', status, {
-            ...(activityPath ? { activityPath } : {}), message: result.failure, type: 'run',
-        });
+        this.publish(this.rootAction, 'main', status, { ...(activityPath ? { activityPath } : {}), message: result.failure, type: 'run' });
         return result;
     }
 
@@ -811,6 +811,7 @@ class ActionRun {
                         agent: result.agent,
                         conversationId: result.conversationId,
                         continueFrom: result.reference,
+                        deferProjectWriteQueue: true,
                         extraPrompt: '',
                     };
                     const compactResult = await this.executeAgentActionOnce(

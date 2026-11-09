@@ -6,6 +6,7 @@ import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/e
 import { actionPromptDraftService } from './action_prompt_draft_service'
 import { ActionRunRegistry } from './action_run_registry'
 import { actionVersionRequestService } from './action_version_request_service'
+import { register } from '../service_injector'
 
 const context = { file: 'design/F-1.md', kind: 'card' as const }
 
@@ -78,6 +79,25 @@ describe('ActionRunRegistry', () => {
         expect(getRun(service).status).toBe('waitingForInput')
         emit(runEvent('cancelled'))
         expect(actionVersionRequestService.getSnapshot()).toEqual([])
+        service.stop()
+    })
+
+    it('queues activity once when the run reaches its terminal event', () => {
+        const scheduleRepositoryPathCommit = vi.fn()
+        register('dataService', { scheduleRepositoryPathCommit })
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+
+        emit(runEvent('running'))
+        emit({ ...runEvent('completed'), activityPath: 'design/activity/card__card-1.json' })
+
+        expect(scheduleRepositoryPathCommit).toHaveBeenCalledOnce()
+        expect(scheduleRepositoryPathCommit).toHaveBeenCalledWith(
+            'design/activity/card__card-1.json',
+            'Record action activity',
+        )
         service.stop()
     })
 

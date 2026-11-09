@@ -41,6 +41,7 @@ async function persistInitialCardConversation(run, dependencyOverrides = {}) {
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, request.projectFolder, request.activityOrigin);
     const appendReference = dependencyOverrides.appendCardActivityReference ?? appendCardActivityReference;
     const deferProjectWriteQueue = request.deferProjectWriteQueue === true;
+    const projectWrites = dependencyOverrides.uncommittedProjectWrites ?? uncommittedProjectWrites;
 
     return queueActivityUpdate(rootPath, absolutePath, async () => {
         const activity = upsertConversation(
@@ -54,7 +55,7 @@ async function persistInitialCardConversation(run, dependencyOverrides = {}) {
             request.activityOrigin.cardInternalId,
             relativePath,
         );
-        if (!deferProjectWriteQueue) uncommittedProjectWrites.mark(rootPath, [request.cardPath]);
+        if (!deferProjectWriteQueue) projectWrites.mark(rootPath, [request.cardPath]);
 
         return { activity, relativePath };
     }, { markProjectWrite: !deferProjectWriteQueue });
@@ -73,6 +74,7 @@ async function persistConversationCheckpoint(run, dependencyOverrides = {}) {
         request.projectFolder,
         request.activityOrigin,
         run.conversation,
+        { markProjectWrite: request.deferProjectWriteQueue !== true },
     );
 }
 

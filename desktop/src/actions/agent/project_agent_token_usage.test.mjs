@@ -68,7 +68,7 @@ describe('project agent token usage persistence', () => {
             cachedInputTokens: 2, inputTokens: 3, legacyTotalTokens: 0,
             outputTokens: 4, reasoningTokens: 1, totalTokens: 10,
         });
-        expect(commitTrackedPaths).toHaveBeenCalledTimes(2);
+        expect(commitTrackedPaths).not.toHaveBeenCalled();
     });
 
     it('writes activity and usage locally without committing when project folder is excluded', async () => {
@@ -163,11 +163,25 @@ describe('project agent token usage persistence', () => {
         const activity = JSON.parse(await readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8'));
         expect(activity.conversations[0]).toMatchObject({ completedAt: '2026-08-17T10:01:00.000Z', status: 'completed' });
         expect(reportError).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Malformed agent token usage summary') }));
-        expect(commitTrackedPaths).toHaveBeenCalledWith(
-            rootPath,
-            ['design/activity/card__card-1.json'],
-            'Update card activity',
-        );
+        expect(commitTrackedPaths).not.toHaveBeenCalled();
+    });
+
+    it('defers activity and usage queueing for a for-each record', async () => {
+        const { rootPath, run } = await harness();
+        const usage = { cachedInputTokens: 0, inputTokens: 1, outputTokens: 0, reasoningTokens: 0, totalTokens: 1 };
+        const deferredRun = run('card-1', usage);
+        deferredRun.request.deferProjectWriteQueue = true;
+        const mark = vi.spyOn(uncommittedProjectWrites, 'mark');
+        try {
+            await persistConversationAndProjectUsage(deferredRun);
+
+            expect(mark).not.toHaveBeenCalled();
+            await expect(readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8'))
+                .resolves.toContain('conversation-card-1');
+            expect((await summary(rootPath)).projectUsage.totalTokens).toBe(1);
+        } finally {
+            mark.mockRestore();
+        }
     });
 
     it('does not reject when token-usage error reporting also fails', async () => {

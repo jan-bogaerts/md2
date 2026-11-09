@@ -151,6 +151,7 @@ async function persistConversationAndProjectUsage(run, dependencies = {}) {
     if (typeof releasesFolder !== 'string') throw new Error('Missing agent releasesFolder');
     const rootPath = requireRootPath(activityProject);
     const deferProjectWriteQueue = run.request.deferProjectWriteQueue === true;
+    const projectWrites = dependencies.uncommittedProjectWrites ?? uncommittedProjectWrites;
     const summaryRelativePath = agentTokenUsageFilePath(projectFolder);
     const summaryPath = ensureInsideRoot(rootPath, path.join(rootPath, summaryRelativePath));
     const { absolutePath: activityPath, relativePath: activityRelativePath } = resolveActivityPath(
@@ -185,7 +186,7 @@ async function persistConversationAndProjectUsage(run, dependencies = {}) {
         }
         try {
             await writeActivityFile(summaryPath, nextSummary);
-            if (!deferProjectWriteQueue) uncommittedProjectWrites.mark(rootPath, [summaryRelativePath]);
+            if (!deferProjectWriteQueue) projectWrites.mark(rootPath, [summaryRelativePath]);
         } catch (error) {
             await reportTokenUsageFailure(error, dependencies);
 

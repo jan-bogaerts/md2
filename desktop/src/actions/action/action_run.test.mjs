@@ -138,7 +138,7 @@ describe('ActionRun', () => {
             }),
         };
         const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: '{{data name}}', type: 'agent' });
-        const { run } = createRun(rootAction, {
+        const { localGitService, run } = createRun(rootAction, {
             agentExecutor,
             runInput: {
                 forEach: {
@@ -152,6 +152,9 @@ describe('ActionRun', () => {
         await run.completion;
 
         expect(agentExecutor.execute).toHaveBeenCalledTimes(expectedCalls);
+        expect(localGitService.appendActionActivity).toHaveBeenCalledOnce();
+        expect(agentExecutor.execute.mock.invocationCallOrder.at(-1))
+            .toBeLessThan(localGitService.appendActionActivity.mock.invocationCallOrder[0]);
         const recordCalls = agentExecutor.execute.mock.calls.filter(([input]) => !input.compactOnly);
         expect(recordCalls.map(([input]) => input.forEachRecord.name)).toEqual(['first', 'second', 'third']);
         if (mode === 'newConversation') {

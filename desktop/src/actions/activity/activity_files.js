@@ -164,11 +164,16 @@ async function applyActivityUpdate(absolutePath, origin, update) {
     return next;
 }
 
-async function updateActivity(project, projectFolder, origin, update) {
+async function updateActivity(project, projectFolder, origin, update, options = {}) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
-    const activity = await queueActivityUpdate(rootPath, absolutePath, () => applyActivityUpdate(absolutePath, origin, update));
+    const activity = await queueActivityUpdate(
+        rootPath,
+        absolutePath,
+        () => applyActivityUpdate(absolutePath, origin, update),
+        options,
+    );
 
     return { activity, relativePath };
 }
@@ -268,8 +273,8 @@ function upsertConversation(activity, conversation) {
     };
 }
 
-async function upsertActivityConversation(project, projectFolder, origin, conversation) {
-    return updateActivity(project, projectFolder, origin, (activity) => upsertConversation(activity, conversation));
+async function upsertActivityConversation(project, projectFolder, origin, conversation, options = {}) {
+    return updateActivity(project, projectFolder, origin, (activity) => upsertConversation(activity, conversation), options);
 }
 
 async function upsertAndCommitActivityConversation(project, projectFolder, origin, conversation, message) {
@@ -356,7 +361,7 @@ async function appendActivityConversationEvent(project, reference, event) {
         await writeActivityFile(absolutePath, updatedActivity);
 
         return updatedConversation;
-    });
+    }, { markProjectWrite: false });
 }
 
 function createSplitConversationId(activity) {
@@ -485,7 +490,7 @@ async function closeWaitingActivityConversation(project, reference, status) {
         const updatedConversation = findActivityConversation(parseActivityValue(updatedActivity), conversationId);
 
         return { ...updatedConversation, path: reference };
-    }, { markProjectWrite: false });
+    });
 }
 
 /**
