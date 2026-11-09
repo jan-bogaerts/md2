@@ -656,6 +656,14 @@
           "role": "assistant",
           "sequence": 49,
           "timestamp": "2026-11-09T09:12:53.953Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_352_no_longer_possible_to_open_another_project.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-895c7c7f-1077-4a5b-83da-f2babe90702f",
+          "kind": "message",
+          "role": "user",
+          "sequence": 50,
+          "timestamp": "2026-11-09T09:28:05.565Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -671,7 +679,7 @@
         }
       ],
       "startedAt": "2026-11-09T08:37:35.357Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -698,7 +706,7 @@
           "toolMs": 3275
         },
         "elapsedMs": 130872,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-09T09:28:05.565Z"
       },
       "title": "investigate",
       "usage": {
