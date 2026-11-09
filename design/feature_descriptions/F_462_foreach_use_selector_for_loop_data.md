@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__9ee3f856-14a9-495a-88f7-a06cca186ac6.json
 policy:
+branch: f_462_foreach_use_selector_for_loop_data
+worktree: 1
 ---
 
 We recently added support for the `for-each` feature, which lets the engine perform a prompt over a series of data records. So, for each record in the list, a prompt is run.
