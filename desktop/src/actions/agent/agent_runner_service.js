@@ -54,6 +54,8 @@ const { terminateProcessTree } = require('../process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/git_commands');
 
 const AGENT_FINISH_GRACE_MS = 5_000;
+const CLAUDE_AUTHENTICATION_FAILURE = 'Failed to authenticate: OAuth session expired and could not be refreshed';
+const CLAUDE_AUTHENTICATION_REQUIRED_MESSAGE = 'Claude sign-in expired. Log in again, then rerun the action.';
 const TERMINAL_PERSIST_ATTEMPTS = 3;
 
 function logDeferredStreamingEventError(run, error) {
@@ -67,6 +69,32 @@ function usageAccountId(agent, accountId) {
     return accountId ?? initialAgentAccountId(agent);
 }
 
+function isClaudeAuthenticationFailure(run, errorText) {
+    return run.agent === 'claude' && errorText.trim() === CLAUDE_AUTHENTICATION_FAILURE;
+}
+
+function rememberClaudeAuthenticationFailure(run, errorText, entryIndex) {
+    if (isClaudeAuthenticationFailure(run, errorText)) run.claudeAuthenticationFailureEntryIndex = entryIndex;
+}
+
+function authenticationRequiredEntry(entry, accountId) {
+    return {
+        accountId,
+        agent: 'claude',
+        content: CLAUDE_AUTHENTICATION_REQUIRED_MESSAGE,
+        errorKind: 'authenticationRequired',
+        id: entry.id,
+        kind: 'event',
+        label: 'Claude sign-in required',
+        output: entry.content,
+        providerItemId: `authentication-required:${entry.id}`,
+        ...(Number.isSafeInteger(entry.sequence) ? { sequence: entry.sequence } : {}),
+        status: 'failed',
+        timestamp: entry.timestamp,
+        type: 'error',
+    };
+}
+
 function recordTaskList(run, taskList) {
     run.conversation.taskList = taskList;
     emitRunEvent(run, { taskList, type: 'taskList' });
@@ -76,6 +104,7 @@ class AgentRunnerService {
     constructor(dependencies = {}) {
         this.claudeRuntimeService = dependencies.claudeRuntimeService ?? null;
         this.codexRuntimeService = dependencies.codexRuntimeService ?? null;
+        this.agentAccountService = dependencies.agentAccountService ?? null;
         this.usageMetricsService = dependencies.usageMetricsService ?? null;
         this.persistConversation = dependencies.persistConversation
             ?? dependencies.persistTerminalConversation
@@ -587,6 +616,7 @@ class AgentRunnerService {
             const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
             run.reportedProviderErrors.add(providerEvent.errorText);
             run.stderr += `${separator}${providerEvent.errorText}`;
+            const entryIndex = run.conversation.entries.length;
             run.conversation.entries.push(createEventEntry(
                 `${runId}-error-${run.conversation.entries.length}`,
                 'error',
@@ -594,8 +624,35 @@ class AgentRunnerService {
                 timestamp,
                 nextRunSequence(run),
             ));
+            rememberClaudeAuthenticationFailure(run, providerEvent.errorText, entryIndex);
             emitRunEvent(run, { content: providerEvent.errorText, type: 'error' });
         }
+    }
+
+    async handleClaudeAuthenticationFailure(run, errorText) {
+        if (!isClaudeAuthenticationFailure(run, errorText)) return false;
+        this.failStreamingRun(run, new Error(errorText));
+        await this.confirmClaudeAuthenticationFailure(run);
+
+        return true;
+    }
+
+    async confirmClaudeAuthenticationFailure(run) {
+        const entryIndex = run.claudeAuthenticationFailureEntryIndex;
+        if (!Number.isSafeInteger(entryIndex) || !this.agentAccountService) return;
+        const accountId = usageAccountId(run.agent, run.accountId);
+        try {
+            const status = await this.agentAccountService.loadStatus(accountId);
+            if (status !== 'loginRequired') return;
+        } catch (error) {
+            console.error('[agent:claude-auth-status]', run.id, error);
+            return;
+        }
+        const entry = run.conversation.entries[entryIndex];
+        if (!entry || entry.kind !== 'event' || entry.type !== 'error') return;
+        const authenticationEntry = authenticationRequiredEntry(entry, accountId);
+        run.conversation.entries[entryIndex] = authenticationEntry;
+        emitRunEvent(run, { entryIndex, event: authenticationEntry, type: 'agentEvent' });
     }
 
     async handleStreamingEvent(runId, event) {
@@ -667,6 +724,7 @@ class AgentRunnerService {
         run.pendingQuestions = [];
         const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
         run.stderr += `${separator}${message}`;
+        const entryIndex = run.conversation.entries.length;
         run.conversation.entries.push(createEventEntry(
             `${run.id}-error-${run.conversation.entries.length}`,
             'error',
@@ -674,6 +732,7 @@ class AgentRunnerService {
             timestamp,
             nextRunSequence(run),
         ));
+        rememberClaudeAuthenticationFailure(run, message, entryIndex);
         emitRunEvent(run, { content: message, type: 'error' });
         emitRunEvent(run, { state: 'failed', type: 'state' });
         try {
@@ -715,6 +774,7 @@ class AgentRunnerService {
                 && !run.cancelled
                 && !run.streamingFailure
                 && (!run.streaming || run.finishing);
+            if (!succeeded) await this.confirmClaudeAuthenticationFailure(run);
             completeAssistantOutput(run, completedAt);
             if (succeeded) {
                 const synchronizedMessage = lastMessageEntry(run.conversation);

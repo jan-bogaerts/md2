@@ -170,6 +170,9 @@ function normalizeEvent(value) {
     const type = optionalString(value.type);
     if (!id || !timestamp || !type) return null;
     const command = optionalString(value.command);
+    const accountId = optionalString(value.accountId);
+    const agent = optionalString(value.agent);
+    const authenticationRequired = value.errorKind === 'authenticationRequired' && accountId && agent;
     const content = value.type === 'commandExecution' || value.type === 'tool.result'
         ? boundedAgentResult(value.content)
         : value.content;
@@ -192,6 +195,7 @@ function normalizeEvent(value) {
     const workingDirectory = optionalString(value.workingDirectory);
 
     return {
+        ...(authenticationRequired ? { accountId, agent, errorKind: 'authenticationRequired' } : {}),
         ...(command ? { command } : {}),
         content,
         ...(deletions !== null ? { deletions } : {}),

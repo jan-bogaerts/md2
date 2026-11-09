@@ -96,6 +96,12 @@ const applicationStateStore = createApplicationStateStore(Store);
 Store.initRenderer();
 const agentExecutableResolver = new AgentExecutableResolver();
 const agentModelCatalogService = new AgentModelCatalogService({ executableResolver: agentExecutableResolver });
+const agentAccountService = new AgentAccountService({
+    executableResolver: agentExecutableResolver,
+    loadConfig: () => readDesktopConfig(store),
+    saveConfig: (values) => saveDesktopConfig(store, values),
+    selectFolder: () => openAgentAccountFolder(BrowserWindow.getFocusedWindow()),
+});
 const claudeRuntimeService = new ClaudeRuntimeService();
 const codexRuntimeService = new CodexRuntimeService();
 const usageMetricsService = new UsageMetricsService({ errorReporter: captureError, projectOperationCoordinator });
@@ -106,6 +112,7 @@ const agentUsagePollService = new AgentUsagePollService({
     usageMetricsService,
 });
 const agentRunnerService = new AgentRunnerService({
+    agentAccountService,
     claudeRuntimeService,
     codexRuntimeService,
     executableResolver: agentExecutableResolver,
@@ -169,12 +176,6 @@ const actionSchedulerService = new ActionSchedulerService({
     selectedAgentAccountId: (agent) => selectedAgentAccountId(readDesktopConfig(store).agentSelection, agent),
 });
 const projectStatsWorkerService = new ProjectStatsWorkerService();
-const agentAccountService = new AgentAccountService({
-    executableResolver: agentExecutableResolver,
-    loadConfig: () => readDesktopConfig(store),
-    saveConfig: (values) => saveDesktopConfig(store, values),
-    selectFolder: () => openAgentAccountFolder(BrowserWindow.getFocusedWindow()),
-});
 const localBridgeDispatch = createLocalBridgeDispatch({
     agentAccountService,
     agentModelCatalogService,

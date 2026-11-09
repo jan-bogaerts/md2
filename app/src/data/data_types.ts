@@ -335,6 +335,7 @@ export interface RunningAgent {
 
 export type AgentConversationStatus = 'cancelled' | 'completed' | 'failed' | 'running' | 'waitingForInput'
 export type AgentMessageRole = 'assistant' | 'user'
+export type AgentConversationErrorKind = 'authenticationRequired'
 
 export interface AgentConversationMessage {
     agent?: string
@@ -376,11 +377,14 @@ export interface AgentQuestion {
 }
 
 export interface AgentConversationEvent {
+    accountId?: string
+    agent?: string
     command?: string
     content: string
     deletions?: number
     details?: string[]
     durationMs?: number
+    errorKind?: AgentConversationErrorKind
     exitCode?: number
     id: string
     insertions?: number

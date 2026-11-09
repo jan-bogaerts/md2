@@ -78,6 +78,7 @@ function createRun({
         claudeUsageTracker: null,
         conversation,
         codexCacheErrorReported: false,
+        claudeAuthenticationFailureEntryIndex: null,
         currentAssistantEntryIndex: null,
         currentAssistantMessageId: null,
         environment,

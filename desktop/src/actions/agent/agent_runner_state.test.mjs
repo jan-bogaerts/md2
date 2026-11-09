@@ -16,6 +16,8 @@ const { AgentStreamingEventPublisher } = require('./agent_streaming_event_publis
 const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');
 
 const WORK_ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
+const CLAUDE_ACCOUNT_ID = '22222222-2222-4222-8222-222222222222';
+const CLAUDE_AUTHENTICATION_FAILURE = 'Failed to authenticate: OAuth session expired and could not be refreshed';
 
 function diagnosticStreamingEvent(content, providerItemId) {
     return {
@@ -94,6 +96,51 @@ function emittedStatuses(onEvent, type) {
     return onEvent.mock.calls.filter(([event]) => event.type === type).map(([event]) => event.status);
 }
 
+function closingRun(service, agent, accountId = undefined) {
+    const conversation = {
+        completedAt: null,
+        entries: [{ content: 'Keep this request', id: 'user-1', kind: 'message', role: 'user', timestamp: 'now' }],
+        id: 'conversation-1',
+        providerSessions: [],
+        status: 'running',
+    };
+    const run = createRun({
+        accountId,
+        agent,
+        child: { pid: 10 },
+        conversation,
+        environment: {},
+        executable: `/tools/${agent}`,
+        id: 'run-1',
+        nextSequence: 2,
+        onComplete: vi.fn(),
+        onCompletionError: vi.fn(),
+        onEvent: vi.fn(),
+        reference: 'activity.json#conversation=conversation-1',
+        request: { agent, command: [agent], prompt: 'Keep this request' },
+        rootPath: 'C:/repo',
+        startedAt: '2026-11-09T10:00:00.000Z',
+        streaming: false,
+    });
+    service.processes.set(run.id, run);
+    service.runningConversationIds.add(run.conversation.id);
+
+    return run;
+}
+
+function providerFailure(errorText) {
+    return {
+        assistantText: '',
+        conversationId: null,
+        errorText,
+        missingSession: false,
+        providerEvents: [],
+        transcriptEvents: [],
+        turnStarted: false,
+        usage: null,
+    };
+}
+
 describe('agent run result', () => {
     it('returns the account captured by live run state', () => {
         const request = { command: ['codex'], prompt: 'Run' };
@@ -103,6 +150,137 @@ describe('agent run result', () => {
         };
 
         expect(createRunResult(request, 0, run)).toMatchObject({ accountId: 'codex-initial', runId: 'run-1' });
+    });
+});
+
+describe('Claude authentication failure', () => {
+    it('fails a streaming Claude turn and confirms the account immediately', async () => {
+        const { run, service } = streamingRunService();
+        const agentAccountService = { loadStatus: vi.fn(async () => 'loginRequired') };
+        service.agentAccountService = agentAccountService;
+        service.terminateProcessTree = vi.fn(async () => true);
+        run.accountId = CLAUDE_ACCOUNT_ID;
+        run.agent = 'claude';
+        run.child = { stdin: { end: vi.fn() } };
+
+        await service.handleStreamingEvent(run.id, {
+            error: CLAUDE_AUTHENTICATION_FAILURE,
+            missingSession: false,
+            type: 'turnCompleted',
+            usage: null,
+        });
+
+        expect(run.conversation.status).toBe('failed');
+        expect(agentAccountService.loadStatus).toHaveBeenCalledWith(CLAUDE_ACCOUNT_ID);
+        expect(run.conversation.entries[0]).toMatchObject({
+            accountId: CLAUDE_ACCOUNT_ID,
+            agent: 'claude',
+            content: 'Claude sign-in expired. Log in again, then rerun the action.',
+            errorKind: 'authenticationRequired',
+            output: CLAUDE_AUTHENTICATION_FAILURE,
+            type: 'error',
+        });
+        expect(run.onEvent).not.toHaveBeenCalledWith(expect.objectContaining({ state: 'waitingForInput' }));
+    });
+
+    it('confirms account status after failed close and persists a structured login error', async () => {
+        const agentAccountService = { loadStatus: vi.fn(async () => 'loginRequired') };
+        const persistConversation = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ agentAccountService, persistConversation });
+        const run = closingRun(service, 'claude', CLAUDE_ACCOUNT_ID);
+
+        service.handleProviderEvent(run.id, providerFailure(CLAUDE_AUTHENTICATION_FAILURE));
+        await service.handleClose(run.id, 1);
+
+        expect(agentAccountService.loadStatus).toHaveBeenCalledOnce();
+        expect(agentAccountService.loadStatus).toHaveBeenCalledWith(CLAUDE_ACCOUNT_ID);
+        expect(run.conversation.entries).toEqual([
+            expect.objectContaining({ content: 'Keep this request', id: 'user-1', role: 'user' }),
+            expect.objectContaining({
+                accountId: CLAUDE_ACCOUNT_ID,
+                agent: 'claude',
+                content: 'Claude sign-in expired. Log in again, then rerun the action.',
+                errorKind: 'authenticationRequired',
+                output: CLAUDE_AUTHENTICATION_FAILURE,
+                status: 'failed',
+                type: 'error',
+            }),
+        ]);
+        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({
+                entries: run.conversation.entries,
+                status: 'failed',
+            }),
+        }));
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            entryIndex: 1,
+            event: expect.objectContaining({ errorKind: 'authenticationRequired' }),
+            type: 'agentEvent',
+        }));
+    });
+
+    it('uses the initial Claude account when the run has no explicit account id', async () => {
+        const agentAccountService = { loadStatus: vi.fn(async () => 'loginRequired') };
+        const service = new AgentRunnerService({ agentAccountService, persistConversation: vi.fn(async () => undefined) });
+        const run = closingRun(service, 'claude');
+
+        service.handleProviderEvent(run.id, providerFailure(CLAUDE_AUTHENTICATION_FAILURE));
+        await service.handleClose(run.id, 1);
+
+        expect(agentAccountService.loadStatus).toHaveBeenCalledWith('claude-initial');
+        expect(run.conversation.entries[1]).toMatchObject({ accountId: 'claude-initial' });
+    });
+
+    it.each(['codex', 'generic'])('does not check %s failures for Claude authentication', async (agent) => {
+        const agentAccountService = { loadStatus: vi.fn(async () => 'loginRequired') };
+        const service = new AgentRunnerService({ agentAccountService, persistConversation: vi.fn(async () => undefined) });
+        const run = closingRun(service, agent);
+
+        service.handleProviderEvent(run.id, providerFailure(CLAUDE_AUTHENTICATION_FAILURE));
+        await service.handleClose(run.id, 1);
+
+        expect(agentAccountService.loadStatus).not.toHaveBeenCalled();
+        expect(run.conversation.entries[1]).toMatchObject({ content: CLAUDE_AUTHENTICATION_FAILURE, type: 'error' });
+        expect(run.conversation.entries[1]).not.toHaveProperty('errorKind');
+    });
+
+    it('retains non-authentication Claude failures without checking account status', async () => {
+        const agentAccountService = { loadStatus: vi.fn(async () => 'loginRequired') };
+        const service = new AgentRunnerService({ agentAccountService, persistConversation: vi.fn(async () => undefined) });
+        const run = closingRun(service, 'claude', CLAUDE_ACCOUNT_ID);
+
+        service.handleProviderEvent(run.id, providerFailure('Claude provider failed: quota exhausted'));
+        await service.handleClose(run.id, 1);
+
+        expect(agentAccountService.loadStatus).not.toHaveBeenCalled();
+        expect(run.conversation.entries[1]).toMatchObject({ content: 'Claude provider failed: quota exhausted', type: 'error' });
+    });
+
+    it('retains provider failure when account status does not confirm expired authentication', async () => {
+        const agentAccountService = { loadStatus: vi.fn(async () => 'available') };
+        const service = new AgentRunnerService({ agentAccountService, persistConversation: vi.fn(async () => undefined) });
+        const run = closingRun(service, 'claude', CLAUDE_ACCOUNT_ID);
+
+        service.handleProviderEvent(run.id, providerFailure(CLAUDE_AUTHENTICATION_FAILURE));
+        await service.handleClose(run.id, 1);
+
+        expect(run.conversation.entries[1]).toMatchObject({ content: CLAUDE_AUTHENTICATION_FAILURE, type: 'error' });
+        expect(run.conversation.entries[1]).not.toHaveProperty('errorKind');
+    });
+
+    it('logs status-check failure and retains provider failure', async () => {
+        const statusError = new Error('Status unavailable');
+        const agentAccountService = { loadStatus: vi.fn(async () => { throw statusError; }) };
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        const service = new AgentRunnerService({ agentAccountService, persistConversation: vi.fn(async () => undefined) });
+        const run = closingRun(service, 'claude', CLAUDE_ACCOUNT_ID);
+
+        service.handleProviderEvent(run.id, providerFailure(CLAUDE_AUTHENTICATION_FAILURE));
+        await service.handleClose(run.id, 1);
+
+        expect(consoleError).toHaveBeenCalledWith('[agent:claude-auth-status]', run.id, statusError);
+        expect(run.conversation.entries[1]).toMatchObject({ content: CLAUDE_AUTHENTICATION_FAILURE, type: 'error' });
+        consoleError.mockRestore();
     });
 });
 

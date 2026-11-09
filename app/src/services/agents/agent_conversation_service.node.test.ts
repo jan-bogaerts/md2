@@ -446,6 +446,37 @@ describe('parseAgentConversationLog', () => {
         expect(conversation.entries[0]).not.toHaveProperty('output')
     })
 
+    it('preserves a structured authentication-required error and its provider diagnostic', () => {
+        const conversation = parseAgentConversationLog(JSON.stringify({
+            entries: [{
+                accountId: 'claude-work',
+                agent: 'claude',
+                content: 'Claude sign-in expired. Log in again, then rerun the action.',
+                errorKind: 'authenticationRequired',
+                id: 'error-1',
+                kind: 'event',
+                label: 'Claude sign-in required',
+                output: 'Failed to authenticate: OAuth session expired and could not be refreshed',
+                providerItemId: 'authentication-required:error-1',
+                status: 'failed',
+                timestamp: '2026-11-09T10:00:00.000Z',
+                type: 'error',
+            }],
+            id: 'agent-1',
+            startedAt: '2026-11-09T10:00:00.000Z',
+            status: 'failed',
+        }), 'design/logs/one.json')
+
+        expect(conversation.entries[0]).toMatchObject({
+            accountId: 'claude-work',
+            agent: 'claude',
+            content: 'Claude sign-in expired. Log in again, then rerun the action.',
+            errorKind: 'authenticationRequired',
+            output: 'Failed to authenticate: OAuth session expired and could not be refreshed',
+            type: 'error',
+        })
+    })
+
     it('canonicalizes oversized command and tool results without changing tool input', () => {
         const oversizedResult = 'result'.repeat(2_000)
         const conversation = parseAgentConversationLog(JSON.stringify({

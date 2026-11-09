@@ -1424,6 +1424,7 @@ describe('ActionConversationChat', () => {
         expect(screen.getByText('message_start missing message id')).toBeInTheDocument()
     })
 
+
     it('omits legacy null command metadata', () => {
         const activity: AgentConversationEvent = {
             command: 'npm test',

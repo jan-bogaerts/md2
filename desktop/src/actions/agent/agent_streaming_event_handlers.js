@@ -208,6 +208,7 @@ async function handleTurnCompleted(service, run, event, timestamp) {
     run.pendingQuestionRequestId = null;
     run.pendingQuestions = [];
     run.pendingApprovals.clear();
+    if (event.error && await service.handleClaudeAuthenticationFailure(run, event.error)) return;
     run.missingSession = run.missingSession || event.missingSession;
     if (event.missingSession) run.finishing = true;
     if (event.contextWindowUsage !== undefined) {

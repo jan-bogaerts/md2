@@ -6,6 +6,8 @@ import { CommandExecutionEvent } from './command_execution_event'
 import { ReasoningEvent } from './reasoning_event'
 import { ActionConversationCopyButton } from '../messages/action_conversation_copy_button'
 import { actionConversationEventMarkdown } from './action_conversation_event_markdown'
+import { ClaudeAuthenticationRequiredError } from '../errors/claude_authentication_required_error'
+import { isClaudeAuthenticationRequiredEvent } from '../errors/claude_authentication_required_event'
 
 interface ActionConversationEventRowProps {
     entry: AgentConversationEventEntry
@@ -14,11 +16,13 @@ interface ActionConversationEventRowProps {
 
 /** Renders one referentially stable transcript event. */
 export const ActionConversationEventRow = memo(function ActionConversationEventRow({ entry, grouped }: ActionConversationEventRowProps) {
-    const event = entry.type === 'reasoning'
-        ? <ReasoningEvent event={entry} />
-        : entry.type === 'commandExecution'
-            ? <CommandExecutionEvent event={entry} grouped={grouped} />
-            : <AgentToolEvent event={entry} grouped={grouped} />
+    const event = isClaudeAuthenticationRequiredEvent(entry)
+        ? <ClaudeAuthenticationRequiredError event={entry} />
+        : entry.type === 'reasoning'
+            ? <ReasoningEvent event={entry} />
+            : entry.type === 'commandExecution'
+                ? <CommandExecutionEvent event={entry} grouped={grouped} />
+                : <AgentToolEvent event={entry} grouped={grouped} />
 
     return (
         <Stack
