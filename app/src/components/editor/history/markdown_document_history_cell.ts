@@ -9,7 +9,7 @@ import type { MarkdownDocumentHistoryStore } from './markdown_document_history_s
 
 export interface MarkdownDocumentHistoryConfig {
     binding: MarkdownBindingKind
-    completeDocumentSwitch: (markdown: string) => void
+    cancelDocumentSwitch: () => void
     dataSource: MarkdownDataSource
     getTarget: () => MarkdownDocumentTarget | null
     historyStore: MarkdownDocumentHistoryStore

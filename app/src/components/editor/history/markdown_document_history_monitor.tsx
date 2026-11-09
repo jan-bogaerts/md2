@@ -9,7 +9,7 @@ import {
 export function monitorMarkdownDocumentHistory(config: MarkdownDocumentHistoryConfig) {
     const {
         binding,
-        completeDocumentSwitch,
+        cancelDocumentSwitch,
         dataSource,
         getTarget,
         historyStore,
@@ -28,8 +28,12 @@ export function monitorMarkdownDocumentHistory(config: MarkdownDocumentHistoryCo
         if (currentMarkdown === null) return
 
         pendingDocumentChange = null
-        historyStore.switchDocument(detail.target, markdown, currentMarkdown, replaceMarkdown)
-        completeDocumentSwitch(markdown)
+        try {
+            historyStore.switchDocument(detail.target, markdown, currentMarkdown, replaceMarkdown)
+        } catch (error) {
+            cancelDocumentSwitch()
+            throw error
+        }
     }
     const handleActiveDocumentChanged = (event: Event) => {
         const detail = (event as CustomEvent<ActiveMarkdownDocumentChangedDetail>).detail
@@ -53,7 +57,6 @@ export function monitorMarkdownDocumentHistory(config: MarkdownDocumentHistoryCo
         const markdown = dataSource.getMarkdown(detail.target)
         replaceMarkdown(markdown)
         historyStore.replaceDocument(detail.target, markdown)
-        completeDocumentSwitch(markdown)
     }
     dataSource.addEventListener('activeDocumentChanged', handleActiveDocumentChanged)
     dataSource.addEventListener('markdownReplaced', handleMarkdownReplaced)

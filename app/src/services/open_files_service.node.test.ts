@@ -172,6 +172,26 @@ describe('OpenFilesService', () => {
         expect(() => service.openBoardDocument(plainFile)).toThrow('Card identity was not added before opening')
     })
 
+    it('reopens one dirty regular Markdown document without duplicating its tab or resetting its draft', () => {
+        const plainFile = card('notes', 'design/architecture/notes.md')
+        plainFile.header.internalId = null
+        const ownerState = owners([plainFile])
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        const document = service.openDocument(plainFile)
+        if (document.kind !== 'card') throw new Error('Expected regular Markdown document')
+        document.updateDraft({ content: '# Edited notes' })
+
+        service.openDocument(plainFile)
+        service.closeDocument(document)
+        const reopened = service.openDocument(plainFile)
+        service.openDocument(plainFile)
+
+        expect(reopened).toBe(document)
+        expect(reopened.getDraft()).toEqual({ content: '# Edited notes' })
+        expect(service.getSnapshot()).toEqual({ activeDocument: document, documents: [document] })
+    })
+
     it('does not publish a Markdown replacement when only a dirty document object renews', () => {
         const firstCard = card('card-1')
         const ownerState = owners([firstCard])

@@ -25,7 +25,14 @@ export interface MarkdownSourceConfig {
     historyStore?: MarkdownDocumentHistoryStore;
     imagePasteHandler?: MarkdownImagePasteHandler;
     onReady(controller: MarkdownSourceController): void;
+    onReplacementComplete(markdown: string, richTextBaseline: string | null, generation: number | null): void;
     onRichTextBaseline(markdown: string): void;
+}
+
+interface MarkdownReplacement {
+    generation: number | null;
+    markdown: string;
+    valid: boolean;
 }
 
 /** Adapts Source commands to CodeMirror while existing document and draft services own the text. */
@@ -84,6 +91,12 @@ export class MarkdownSourceController {
     /** Moves keyboard focus into the mounted source editor, if any. */
     focus() {
         this.sourceEditor?.focus();
+    }
+
+    /** Reconciles queued Lexical updates before a document switch reads Markdown. */
+    flushRichTextUpdates() {
+        if (this.sourceActive) return;
+        this.realm.getValue(rootEditor$)?.update(() => {}, { discrete: true });
     }
 
     /** Imports into an isolated editor using the live import configuration before touching document or selection. */
@@ -153,13 +166,13 @@ export class MarkdownSourceController {
         });
     }
 
-    replaceMarkdown(markdown: string) {
+    replaceMarkdown(markdown: string, generation: number | null = null) {
         const valid = this.validateConversion(markdown);
         this.transitioning = true;
         this.realm.pub(muteChange$, true);
         if (valid) this.realm.pub(setMarkdown$, markdown);
         this.realm.pub(markdown$, markdown);
-        this.finishTransition(false, valid ? markdown : undefined);
+        this.finishTransition(false, { generation, markdown, valid });
     }
 
     /** Clears selection, undo history, and transient controls after a draft replacement completes. */
@@ -189,19 +202,20 @@ export class MarkdownSourceController {
         }
     }
 
-    private finishTransition(rebaseHistory: boolean, source?: string) {
+    private finishTransition(rebaseHistory: boolean, replacement?: MarkdownReplacement) {
         const token = ++this.transitionToken;
         const editor = this.realm.getValue(rootEditor$);
         if (!editor) return;
-        editor.update(() => {}, { onUpdate: () => this.completeTransition(token, rebaseHistory, source) });
+        editor.update(() => {}, { onUpdate: () => this.completeTransition(token, rebaseHistory, replacement) });
     }
 
-    private completeTransition(token: number, rebaseHistory: boolean, source?: string) {
+    private completeTransition(token: number, rebaseHistory: boolean, replacement?: MarkdownReplacement) {
         if (token !== this.transitionToken) return;
-        if (!this.conversionFailed && (rebaseHistory || source !== undefined)) {
-            this.config.onRichTextBaseline(this.realm.getValue(markdown$));
-        }
-        if (source !== undefined) this.realm.pub(markdown$, source);
+        const richTextBaseline = !this.conversionFailed && (rebaseHistory || replacement?.valid)
+            ? this.realm.getValue(markdown$)
+            : null;
+        if (richTextBaseline !== null) this.config.onRichTextBaseline(richTextBaseline);
+        if (replacement) this.realm.pub(markdown$, replacement.markdown);
         if (rebaseHistory && !this.conversionFailed) {
             const target = this.config.getTarget();
             if (this.config.historyStore && target) this.config.historyStore.replaceDocument(target, this.config.getMarkdown());
@@ -209,6 +223,9 @@ export class MarkdownSourceController {
         }
         this.realm.pub(muteChange$, false);
         this.transitioning = false;
+        if (replacement) {
+            this.config.onReplacementComplete(replacement.markdown, richTextBaseline, replacement.generation);
+        }
         if (this.draftResetPending) this.completeDraftReset();
     }
 

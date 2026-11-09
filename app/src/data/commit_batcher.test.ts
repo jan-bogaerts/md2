@@ -29,6 +29,38 @@ function isDesignPath(path: string) {
 }
 
 describe('CommitBatcher', () => {
+    it('rejects one write and move with the same normalized target before committing', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const writeFiles = vi.fn<WriteCallback>(async () => undefined)
+        const batcher = createBatcher(commit, undefined, undefined, undefined, writeFiles)
+        batcher.schedule('main', [
+            { content: 'file', kind: 'file', path: 'design\\shared.md' },
+            { actionId: 'review', content: 'action', kind: 'action', path: 'design/shared.md', sourcePath: 'design/source.md' },
+        ], 'Conflicting targets')
+
+        await expect(batcher.flush()).rejects.toThrow('Duplicate persistence target path: design/shared.md')
+
+        expect(commit).not.toHaveBeenCalled()
+        expect(writeFiles).not.toHaveBeenCalled()
+        expect(batcher.describePendingChanges()).toHaveLength(2)
+    })
+
+    it('rejects two moves with the same target before writing pending files', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const writeFiles = vi.fn<WriteCallback>(async () => undefined)
+        const batcher = createBatcher(commit, undefined, undefined, undefined, writeFiles)
+        batcher.schedule('main', [
+            { actionId: 'review', content: 'action', kind: 'action', path: 'actions/shared.json', sourcePath: 'actions/review.json' },
+            { content: 'diagram', diagramId: 'diagram', kind: 'diagram', path: 'actions/shared.json', sourcePath: 'diagrams/source.json' },
+        ], 'Conflicting moves')
+
+        await expect(batcher.writePending()).rejects.toThrow('Duplicate persistence target path: actions/shared.json')
+
+        expect(commit).not.toHaveBeenCalled()
+        expect(writeFiles).not.toHaveBeenCalled()
+        expect(batcher.describePendingChanges()).toHaveLength(2)
+    })
+
     it('writes a batch kept entirely in a local-only project folder without committing or pushing it', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const push = vi.fn<PushCallback>(async () => undefined)
@@ -567,24 +599,24 @@ describe('CommitBatcher', () => {
         expect(commit.mock.calls[1][0].files).toEqual([{ content: 'new', path: 'actions/review.json' }])
     })
 
-    it('separates card, action, and generic file keys even when identity text and paths collide', async () => {
-        const card = { header: { status: 'ready' }, path: 'shared' } as Card
-        const serializeCard = vi.spyOn(markdownParsingService, 'serializeCard').mockReturnValue({ content: 'card', path: 'shared' })
+    it('separates card, action, and generic file keys when identity text collides', async () => {
+        const card = { header: { status: 'ready' }, path: 'cards/shared.md' } as Card
+        const serializeCard = vi.spyOn(markdownParsingService, 'serializeCard').mockReturnValue({ content: 'card', path: 'cards/shared.md' })
         const acknowledgeCard = vi.spyOn(markdownParsingService, 'acknowledgeSerializedCard').mockImplementation(() => undefined)
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = createBatcher(commit, undefined, undefined, () => card)
 
         batcher.schedule('main', [
-            { cardInternalId: 'shared', kind: 'card', path: 'shared' },
-            { actionId: 'shared', content: 'action', kind: 'action', path: 'shared', sourcePath: 'shared' },
-            { content: 'file', kind: 'file', path: 'shared' },
+            { cardInternalId: 'shared', kind: 'card', path: 'cards/shared.md' },
+            { actionId: 'shared', content: 'action', kind: 'action', path: 'actions/shared.json', sourcePath: 'actions/shared.json' },
+            { content: 'file', kind: 'file', path: 'notes/shared.md' },
         ], 'Update shared identities')
         await batcher.flush()
 
         expect(commit.mock.calls[0][0].files).toEqual([
-            { content: 'card', path: 'shared' },
-            { content: 'action', path: 'shared' },
-            { content: 'file', path: 'shared' },
+            { content: 'card', path: 'cards/shared.md' },
+            { content: 'action', path: 'actions/shared.json' },
+            { content: 'file', path: 'notes/shared.md' },
         ])
         serializeCard.mockRestore()
         acknowledgeCard.mockRestore()

@@ -718,6 +718,47 @@ describe('Markdown reliability with installed MDXEditor', () => {
         expect(document.querySelector('.mdxeditor-content')?.textContent).not.toContain('beta');
     });
 
+    it('keeps regular Markdown and card drafts isolated across reopen, close, and delayed rich updates', async () => {
+        const source = new MarkdownReliabilityDataSourceFixture();
+        const regular = source.addDocument('# Notes\n\nRegular body', 'design/notes.md', null);
+        const card = source.addDocument('# Card\n\nCard body', 'design/card.md', 'card-id');
+        const commit = vi.spyOn(source, 'commit');
+        source.setActiveTarget('list-card', regular);
+        const historyStore = new MarkdownDocumentHistoryStore();
+        render(<AppThemeProvider><MarkdownEditor binding="list-card" dataSource={source} historyStore={historyStore} /></AppThemeProvider>);
+        const mountedEditor = richEditor();
+
+        act(() => source.setActiveTarget('list-card', regular));
+        expect(richEditor()).toBe(mountedEditor);
+        act(() => richEditor().update(() => {
+            $getRoot().selectEnd();
+            $getSelection()?.insertText(' edited');
+        }, { discrete: true }));
+        await waitFor(() => expect(source.getMarkdown(regular)).toContain('Regular body edited'));
+
+        act(() => source.setActiveTarget('list-card', null));
+        await waitFor(() => expect(richText()).toBe(''));
+        expect(commit).toHaveBeenCalledExactlyOnceWith('list-card', regular, expect.stringContaining('Regular body edited'));
+        act(() => source.setActiveTarget('list-card', regular));
+        await waitFor(() => expect(richText()).toContain('Regular body edited'));
+        act(() => source.setActiveTarget('list-card', regular));
+        expect(richEditor()).toBe(mountedEditor);
+
+        act(() => {
+            richEditor().update(() => {
+                $getRoot().selectEnd();
+                $getSelection()?.insertText(' latest');
+            });
+            source.setActiveTarget('list-card', card);
+        });
+
+        await waitFor(() => expect(richText()).toContain('Card body'));
+        expect(source.getMarkdown(regular)).toContain('Regular body edited latest');
+        expect(source.getMarkdown(card)).toBe('# Card\n\nCard body');
+        expect(commit).toHaveBeenNthCalledWith(2, 'list-card', regular, expect.stringContaining('Regular body edited latest'));
+        expect(commit).toHaveBeenCalledTimes(2);
+    });
+
     it.each(['<!-- preserve this comment -->\n\nText', '<div>preserve this HTML</div>'])('opens HTML cleanly in compact Rich text: %s', (markdown) => {
         const reportError = vi.spyOn(dialogService, 'error');
         const { handle, onChange } = renderEditor(markdown, false, true);

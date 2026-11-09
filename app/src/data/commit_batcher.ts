@@ -3,6 +3,7 @@ import { AUTO_COMMIT_DELAY_MS, type CommitRequest, type MarkdownFile, type MoveF
 import { markdownParsingService } from '../services/data/markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../services/open_files_service'
 import type { Card } from './data_types'
+import { normalizePath } from '../../../shared/path_utils.mjs'
 
 type DelayId = number
 
@@ -112,6 +113,16 @@ function rebaseChangeSource(change: CommitChange, sourcePath: string): CommitCha
     return change
 }
 
+/** Rejects ambiguous storage order before any batch writes begin. */
+function requireUniqueTargetPaths(serializedChanges: Map<string, SerializedChange>) {
+    const targetPaths = new Set<string>()
+    for (const { file } of serializedChanges.values()) {
+        const targetPath = normalizePath(file.path)
+        if (targetPaths.has(targetPath)) throw new Error(`Duplicate persistence target path: ${targetPath}`)
+        targetPaths.add(targetPath)
+    }
+}
+
 /** Serializes a batch and splits it into in-place files and moves for one storage request. */
 function buildBatchRequest(branch: string, batch: Map<string, PendingChange>, cardOperations: CommitBatcherOperations) {
     const serializedChanges = new Map<string, SerializedChange>()
@@ -120,6 +131,7 @@ function buildBatchRequest(branch: string, batch: Map<string, PendingChange>, ca
         if (change.kind === 'path') paths.push(change.path)
         else serializedChanges.set(key, serializeChange(change, cardOperations))
     }
+    requireUniqueTargetPaths(serializedChanges)
     const files: MarkdownFile[] = []
     const moves: MoveFile[] = []
     for (const { file, sourcePath } of serializedChanges.values()) {
@@ -162,6 +174,22 @@ function createCommitMessage(changes: Map<string, PendingChange>) {
     const body = distinctMessages.map((message) => `- ${message}`).join('\n')
 
     return `Update ${changes.size} files\n\n${body}`
+}
+
+/** Builds local-only and Git requests and validates the complete batch before persistence begins. */
+function buildPartitionedBatchRequests(
+    branch: string,
+    batch: Map<string, PendingChange>,
+    cardOperations: CommitBatcherOperations,
+) {
+    const { gitBatch, localOnlyBatch } = partitionBatch(batch, cardOperations)
+    const localOnlyBuild = buildBatchRequest(branch, localOnlyBatch, cardOperations)
+    const gitBuild = buildBatchRequest(branch, gitBatch, cardOperations)
+    const serializedChanges = new Map([...localOnlyBuild.serializedChanges, ...gitBuild.serializedChanges])
+    requireUniqueTargetPaths(serializedChanges)
+    const gitRequest: CommitRequest = { ...gitBuild.request, message: createCommitMessage(gitBatch) }
+
+    return { gitBatch, gitRequest, localOnlyBatch, localOnlyRequest: localOnlyBuild.request, serializedChanges }
 }
 
 export class CommitBatcher extends EventTarget {
@@ -332,10 +360,11 @@ export class CommitBatcher extends EventTarget {
         this.clearScheduledDelay()
         const branch = this.pendingBranch as string
         const activeBatch = this.pendingChanges
+        const builtBatch = buildPartitionedBatchRequests(branch, activeBatch, this.cardOperations)
         this.pendingChanges = new Map()
         this.pendingBranch = null
         this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
-        this.activeFlush = this.commitActiveBatch(branch, activeBatch)
+        this.activeFlush = this.commitActiveBatch(branch, activeBatch, builtBatch)
         try {
             await this.activeFlush
         } finally {
@@ -343,14 +372,12 @@ export class CommitBatcher extends EventTarget {
         }
     }
 
-    private async commitActiveBatch(branch: string, activeBatch: Map<string, PendingChange>) {
-        const { gitBatch, localOnlyBatch } = partitionBatch(activeBatch, this.cardOperations)
-        const localOnlyBuild = buildBatchRequest(branch, localOnlyBatch, this.cardOperations)
-        const gitBuild = buildBatchRequest(branch, gitBatch, this.cardOperations)
-        const serializedChanges = new Map([...localOnlyBuild.serializedChanges, ...gitBuild.serializedChanges])
-        const localOnlyRequest = localOnlyBuild.request
-        const gitWriteRequest = gitBuild.request
-        const gitRequest: CommitRequest = { ...gitWriteRequest, message: createCommitMessage(gitBatch) }
+    private async commitActiveBatch(
+        branch: string,
+        activeBatch: Map<string, PendingChange>,
+        builtBatch: ReturnType<typeof buildPartitionedBatchRequests>,
+    ) {
+        const { gitBatch, gitRequest, localOnlyBatch, localOnlyRequest, serializedChanges } = builtBatch
 
         try {
             if (localOnlyBatch.size > 0) await this.cardOperations.writeFiles(localOnlyRequest)
