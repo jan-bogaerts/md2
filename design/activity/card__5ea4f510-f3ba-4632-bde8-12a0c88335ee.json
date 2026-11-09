@@ -968,6 +968,14 @@
           "role": "assistant",
           "sequence": 69,
           "timestamp": "2026-11-09T12:06:39.097Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_359_claude_cli_gives_authenticate_failure.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-ac9a7bf5-6f2d-49f0-ac66-7d3ab921f84c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 70,
+          "timestamp": "2026-11-09T12:08:07.610Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -983,7 +991,7 @@
         }
       ],
       "startedAt": "2026-11-09T12:02:57.457Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -1010,7 +1018,7 @@
           "toolMs": 9396
         },
         "elapsedMs": 221640,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-09T12:08:07.610Z"
       },
       "title": "investigate",
       "usage": {
@@ -1021,7 +1029,7 @@
         "totalTokens": 1980780
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
