@@ -18,7 +18,8 @@ export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 export interface ActionForEachConfig {
-    failurePolicy: 'logAndContinue' | 'stopOnFirstFailure'
+    dataPath?: string
+    failurePolicy:'logAndContinue' | 'stopOnFirstFailure'
     fileName: string
     mode: 'addPrompt' | 'compact' | 'newConversation'
     value: JsonValue

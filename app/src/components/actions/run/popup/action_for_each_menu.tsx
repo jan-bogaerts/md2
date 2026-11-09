@@ -1,9 +1,11 @@
 import AllInclusiveOutlined from '@mui/icons-material/AllInclusiveOutlined'
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
+import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
 import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material'
 import { useState, type MouseEvent } from 'react'
 import type { ActionForEachConfig } from '../../../../data/action_run_types'
+import { ActionForEachSetupDialog } from './action_for_each_setup_dialog'
 
 interface ActionForEachMenuProps {
     config: ActionForEachConfig
@@ -16,23 +18,17 @@ interface ActionForEachMenuProps {
 /** Loop indicator and idle configuration menu for one displayed conversation or draft. */
 export function ActionForEachMenu({ config, disabled, onChange, onRemove, onView }: ActionForEachMenuProps) {
     const [anchor, setAnchor] = useState<HTMLElement | null>(null)
-    const [modeAnchor, setModeAnchor] = useState<HTMLElement | null>(null)
-    const [failureAnchor, setFailureAnchor] = useState<HTMLElement | null>(null)
-    const close = () => {
-        setAnchor(null)
-        setModeAnchor(null)
-        setFailureAnchor(null)
-    }
+    const [setupOpen, setSetupOpen] = useState(false)
+    const close = () => setAnchor(null)
     const open = (event: MouseEvent<HTMLElement>) => setAnchor(event.currentTarget)
-    const openMode = (event: MouseEvent<HTMLElement>) => setModeAnchor(event.currentTarget)
-    const openFailure = (event: MouseEvent<HTMLElement>) => setFailureAnchor(event.currentTarget)
-    const selectMode = (mode: ActionForEachConfig['mode']) => {
-        onChange({ ...config, mode })
+    const openSetup = () => {
+        setSetupOpen(true)
         close()
     }
-    const selectFailure = (failurePolicy: ActionForEachConfig['failurePolicy']) => {
-        onChange({ ...config, failurePolicy })
-        close()
+    const closeSetup = () => setSetupOpen(false)
+    const saveSetup = (updated: ActionForEachConfig) => {
+        onChange(updated)
+        closeSetup()
     }
     const remove = () => {
         onRemove()
@@ -61,18 +57,12 @@ export function ActionForEachMenu({ config, disabled, onChange, onRemove, onView
                     <ListItemIcon><DeleteOutlineOutlined fontSize="small" /></ListItemIcon>
                     <ListItemText primary="Remove" />
                 </MenuItem>
-                <MenuItem disabled={disabled} onClick={openMode}><ListItemText primary="At end" secondary={config.mode} /></MenuItem>
-                <MenuItem disabled={disabled} onClick={openFailure}><ListItemText primary="On failure" secondary={config.failurePolicy} /></MenuItem>
+                <MenuItem disabled={disabled} onClick={openSetup}>
+                    <ListItemIcon><SettingsOutlined fontSize="small" /></ListItemIcon>
+                    <ListItemText primary="Setup" />
+                </MenuItem>
             </Menu>
-            <Menu anchorEl={modeAnchor} onClose={() => setModeAnchor(null)} open={!!modeAnchor}>
-                <MenuItem selected={config.mode === 'addPrompt'} onClick={() => selectMode('addPrompt')}>Add prompt</MenuItem>
-                <MenuItem selected={config.mode === 'compact'} onClick={() => selectMode('compact')}>Compact</MenuItem>
-                <MenuItem selected={config.mode === 'newConversation'} onClick={() => selectMode('newConversation')}>New conversation</MenuItem>
-            </Menu>
-            <Menu anchorEl={failureAnchor} onClose={() => setFailureAnchor(null)} open={!!failureAnchor}>
-                <MenuItem selected={config.failurePolicy === 'logAndContinue'} onClick={() => selectFailure('logAndContinue')}>Log and continue</MenuItem>
-                <MenuItem selected={config.failurePolicy === 'stopOnFirstFailure'} onClick={() => selectFailure('stopOnFirstFailure')}>Stop on first failure</MenuItem>
-            </Menu>
+            {setupOpen ? <ActionForEachSetupDialog config={config} disabled={disabled} onCancel={closeSetup} onSave={saveSetup} /> : null}
         </>
     )
 }

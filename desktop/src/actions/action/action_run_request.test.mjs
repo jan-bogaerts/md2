@@ -48,6 +48,12 @@ describe('validateStartRequest', () => {
         })).toThrow('Invalid action run input forEach.mode');
     });
 
+    it('retains the for-each data path', () => {
+        const forEach = { dataPath: 'items', failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: { items: [] } };
+
+        expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput: { forEach } }).runInput.forEach).toEqual(forEach);
+    });
+
     it('accepts free-form versions and rejects blank ones', () => {
         expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput: { version: 'candidate 1' } }).runInput.version)
             .toBe('candidate 1');

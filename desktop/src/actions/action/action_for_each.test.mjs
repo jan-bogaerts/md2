@@ -13,6 +13,46 @@ describe('action for-each helpers', () => {
         expect(forEachRecords([])).toEqual([]);
     });
 
+    it('selects an array inside a root object through a nested path', () => {
+        const root = { data: { items: [{ id: 1 }, { id: 2 }] } };
+        expect(forEachRecords(root, 'data.items')).toEqual([{ id: 1 }, { id: 2 }]);
+    });
+
+    it('traverses numeric array indexes in the selector', () => {
+        const root = { countries: [{ cities: ['Brussels', 'Ghent'] }] };
+        expect(forEachRecords(root, 'countries.0.cities')).toEqual(['Brussels', 'Ghent']);
+    });
+
+    it('returns no records for an empty selected array', () => {
+        expect(forEachRecords({ items: [] }, 'items')).toEqual([]);
+    });
+
+    it('keeps a root object as one record for a blank selector', () => {
+        const root = { items: [1, 2] };
+        expect(forEachRecords(root, '')).toEqual([root]);
+        expect(forEachRecords(root, '   ')).toEqual([root]);
+    });
+
+    it('iterates a root array directly and ignores any selector', () => {
+        expect(forEachRecords([1, 2], 'items')).toEqual([1, 2]);
+    });
+
+    it('fails missing and non-array selectors', () => {
+        expect(() => forEachRecords({ items: [] }, 'missing')).toThrow('Missing for-each data path: missing');
+        expect(() => forEachRecords({ items: { id: 1 } }, 'items')).toThrow('For-each data path is not a list: items');
+    });
+
+    it('retains a configured data path and rejects a non-string one', () => {
+        const config = { dataPath: 'items', failurePolicy: 'logAndContinue', fileName: 'data.json', mode: 'addPrompt', value: { items: [] } };
+        expect(validateForEachConfig(config)).toEqual(config);
+        expect(() => validateForEachConfig({ ...config, dataPath: 1 })).toThrow('Invalid forEach.dataPath');
+    });
+
+    it('omits the data path from configurations without one', () => {
+        const config = { failurePolicy: 'logAndContinue', fileName: 'data.json', mode: 'addPrompt', value: [] };
+        expect(validateForEachConfig(config)).not.toHaveProperty('dataPath');
+    });
+
     it('resolves object keys and array indexes and preserves string values', () => {
         const record = { countries: [{ cities: ['Brussels', 'Ghent'] }], enabled: true };
         expect(resolveDataPlaceholders('Visit {{data countries.0.cities}}; enabled={{data enabled}}', record))

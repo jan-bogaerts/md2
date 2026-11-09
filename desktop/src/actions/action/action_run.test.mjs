@@ -232,6 +232,69 @@ describe('ActionRun', () => {
         expect(agentExecutor.execute).not.toHaveBeenCalled();
     });
 
+    it('runs one turn per selected array item in order', async () => {
+        const agentExecutor = {
+            execute: vi.fn(async () => ({
+                agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: 0,
+                model: 'gpt', prompt: 'run', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+            })),
+        };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            runInput: {
+                forEach: {
+                    dataPath: 'data.0.items', failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt',
+                    value: { data: [{ items: ['first', 'second'] }] },
+                },
+                prompt: 'run',
+            },
+        });
+
+        const completed = await run.completion;
+
+        expect(completed.status).toBe('completed');
+        expect(agentExecutor.execute.mock.calls.map(([input]) => input.forEachRecord)).toEqual(['first', 'second']);
+    });
+
+    it('starts no agent turn for an empty selected array', async () => {
+        const agentExecutor = { execute: vi.fn() };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            runInput: {
+                forEach: { dataPath: 'items', failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: { items: [] } },
+                prompt: 'run',
+            },
+        });
+
+        const completed = await run.completion;
+
+        expect(completed.status).toBe('completed');
+        expect(agentExecutor.execute).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ['missing', 'Missing for-each data path: missing'],
+        ['name', 'For-each data path is not a list: name'],
+    ])('fails before any agent turn for selector %s', async (dataPath, failure) => {
+        const agentExecutor = { execute: vi.fn() };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            runInput: {
+                forEach: { dataPath, failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: { name: 'not a list' } },
+                prompt: 'run',
+            },
+        });
+
+        const completed = await run.completion;
+
+        expect(completed.status).toBe('failed');
+        expect(completed.failure).toContain(failure);
+        expect(agentExecutor.execute).not.toHaveBeenCalled();
+    });
+
     it('cancellation prevents remaining records from starting', async () => {
         const firstTurn = deferred();
         const result = {

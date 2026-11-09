@@ -760,7 +760,7 @@ class ActionRun {
 
     async executeAgentForEach(action, phase, project) {
         const config = this.runInput.forEach;
-        const records = forEachRecords(config.value);
+        const records = forEachRecords(config.value, config.dataPath);
         if (records.length === 0) {
             this.markConversationStartupComplete();
             return { changedPaths: [], command: '', conversationId: null, conversationIds: [], exitCode: 0, stderr: '', stdout: '' };

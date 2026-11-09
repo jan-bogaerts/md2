@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentConversation } from '../../../../data/data_types';
 import type { ActionContext } from '../../../../data/action_context';
-import type { ActionCompactRequest, ActionCompactState, ActionRunEvent } from '../../../../data/action_run_types';
+import type { ActionCompactRequest, ActionCompactState, ActionForEachConfig, ActionRunEvent } from '../../../../data/action_run_types';
 import { generateUuid } from '../../../../data/uuid';
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge';
 import { ActionPromptDraft } from '../../../../services/actions/action_prompt_draft_service';
@@ -96,6 +96,39 @@ describe('ActionPromptMenu', () => {
 
         expect(await screen.findByRole('button', { name: 'For each: saved.json' })).toBeInTheDocument();
     });
+
+    it('saves for-each setup to a new-conversation draft', async () => {
+        const user = userEvent.setup();
+        const { inputStore } = renderMenu(false);
+        await user.upload(screen.getByLabelText('For-each JSON'), new File(['{"items":[1,2]}'], 'records.json', { type: 'application/json' }));
+        await user.click(await screen.findByRole('button', { name: 'For each: records.json' }));
+        await user.click(await screen.findByRole('menuitem', { name: 'Setup' }));
+        await user.type(await screen.findByRole('textbox', { name: 'Path to list data' }), 'items');
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(inputStore.getSnapshot().forEachByAction.review?.dataPath).toBe('items'));
+    });
+
+    it('persists for-each setup through the displayed conversation', async () => {
+        const forEach: ActionForEachConfig = { failurePolicy: 'logAndContinue', fileName: 'saved.json', mode: 'addPrompt', value: { items: [1] } };
+        const updateActionConversationForEach = vi.fn(async (_reference: string, saved: ActionForEachConfig | null) => (
+            { ...conversation(), ...(saved ? { forEach: saved } : {}) }
+        ));
+        const bridge = { onActionRun: vi.fn(() => vi.fn()), updateActionConversationForEach } as unknown as ElectronActionBridge;
+        setActionBridgeOverride(bridge);
+        const user = userEvent.setup();
+        const { conversationStore } = renderMenu();
+        act(() => conversationStore.updateConversation({ ...conversation(), forEach }));
+        await user.click(await screen.findByRole('button', { name: 'For each: saved.json' }));
+        await user.click(await screen.findByRole('menuitem', { name: 'Setup' }));
+        await user.type(await screen.findByRole('textbox', { name: 'Path to list data' }), 'items');
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        const saved = { ...forEach, dataPath: 'items' };
+        await waitFor(() => expect(updateActionConversationForEach).toHaveBeenCalledWith('activity.json#conversation=conversation-1', saved));
+        await waitFor(() => expect(conversationStore.getSnapshot().selectedConversation?.forEach).toEqual(saved));
+    });
+
     it.each(['completed', 'failed'] as const)('disables Compact while running, then enables it after %s without a subline', async (state) => {
         const conversationId = generateUuid();
         const { conversationStore } = renderMenu(true, undefined, conversationId);
