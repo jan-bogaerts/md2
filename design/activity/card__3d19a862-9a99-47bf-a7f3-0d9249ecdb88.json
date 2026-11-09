@@ -5,7 +5,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "3d19a862-9a99-47bf-a7f3-0d9249ecdb88",
       "cardPath": "design/feature_descriptions/B_354_error_unknown_action_phrase_section_phrase_1e6ad.md",
-      "completedAt": null,
+      "completedAt": "2026-11-09T12:07:28.685Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 49434
@@ -438,7 +438,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 32,
-          "timestamp": "2026-11-09T09:33:01.378Z"
+          "timestamp": "2026-11-09T12:07:28.685Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -449,12 +449,12 @@
           "agent": "codex",
           "conversationId": "01a1bfa5-e2d8-7951-9de1-912b9bf2723d",
           "createdAt": "2026-11-09T09:31:23.459Z",
-          "lastUsedAt": "2026-11-09T09:33:01.378Z",
+          "lastUsedAt": "2026-11-09T12:07:28.685Z",
           "synchronizedThroughMessageId": "agent-turn-9a792694-75ca-4fb2-8b71-edc99527e674-turn-1-assistant-3"
         }
       ],
       "startedAt": "2026-11-09T09:31:21.456Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -492,7 +492,7 @@
         "totalTokens": 750842
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
