@@ -9,7 +9,8 @@ affects:
 agents:
 policy:
 ---
-
 claude cli gives this error:
 \> Failed to authenticate: OAuth session expired and could not be refreshed
 need to find a solution for this.
+
+The strange thing is, i started claude cli in another folder and everything was ok.
