@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "3d19a862-9a99-47bf-a7f3-0d9249ecdb88",
+      "cardPath": "design/feature_descriptions/B_354_error_unknown_action_phrase_section_phrase_1e6ad.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_354_error_unknown_action_phrase_section_phrase_1e6ad.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-e72476df-80b2-4dfc-97b9-2db5c9b74206",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-09T09:31:21.456Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-20d1effb-399b-42dd-b5e1-30e194a69cd9",
+      "providerSessions": [],
+      "startedAt": "2026-11-09T09:31:21.456Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-09T09:31:21.456Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "3d19a862-9a99-47bf-a7f3-0d9249ecdb88",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
