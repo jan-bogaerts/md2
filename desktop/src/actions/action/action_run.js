@@ -887,6 +887,12 @@ class ActionRun {
                 void this.dispatchStreamingPrompt().catch(() => undefined);
                 return;
             }
+            if (agentEvent.type === 'turnCompleted') {
+                if (forEachRecord !== undefined && !agentEvent.error && !this.agentInteractionPending()) {
+                    this.requestAutoFinish();
+                }
+                return;
+            }
             if (agentEvent.type === 'started') {
                 const { continued, conversation } = agentEvent;
                 this.activeConversationId = conversation.id;

@@ -125,21 +125,38 @@ describe('ActionRun', () => {
         ['addPrompt', 3],
         ['compact', 5],
         ['newConversation', 3],
-    ])('runs ordered for-each records in %s mode', async (mode, expectedCalls) => {
+    ])('finishes ordered streaming for-each records in %s mode', async (mode, expectedCalls) => {
         let turn = 0;
+        const activeTurns = new Map();
         const agentExecutor = {
-            execute: vi.fn(async () => {
+            execute: vi.fn(async (input) => {
                 turn += 1;
+                const conversationId = input.runInput.conversationId ?? 'conversation-1';
+                if (!input.compactOnly) {
+                    const runId = `agent-run-${turn}`;
+                    const completion = deferred();
+                    activeTurns.set(runId, completion);
+                    input.onActiveRunChange(runId);
+                    input.onEvent({ error: null, status: 'running', type: 'turnCompleted' });
+                    await completion.promise;
+                    input.onActiveRunChange(null);
+                }
                 return {
-                    agent: 'codex', changedPaths: [`file-${turn}.ts`], conversationId: `conversation-${turn}`,
+                    agent: 'codex', changedPaths: [`file-${turn}.ts`], conversationId,
                     exitCode: 0, model: 'gpt', prompt: 'run', reference: `run-${turn}.json`, stderr: '', stdout: '',
                     thinkingLevel: 'none',
                 };
             }),
         };
-        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: '{{data name}}', type: 'agent' });
+        const agentRunnerService = {
+            finish: vi.fn((runId) => activeTurns.get(runId).resolve()),
+            hasPendingInteraction: vi.fn(() => false),
+            stop: vi.fn(),
+        };
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: '{{data name}}', streaming: true, type: 'agent'});
         const { localGitService, run } = createRun(rootAction, {
             agentExecutor,
+            agentRunnerService,
             runInput: {
                 forEach: {
                     failurePolicy: 'logAndContinue', fileName: 'records.json', mode,
@@ -157,14 +174,66 @@ describe('ActionRun', () => {
             .toBeLessThan(localGitService.appendActionActivity.mock.invocationCallOrder[0]);
         const recordCalls = agentExecutor.execute.mock.calls.filter(([input]) => !input.compactOnly);
         expect(recordCalls.map(([input]) => input.forEachRecord.name)).toEqual(['first', 'second', 'third']);
+        expect(agentRunnerService.finish).toHaveBeenCalledTimes(3);
         if (mode === 'newConversation') {
             expect(recordCalls.slice(1).every(([input]) => input.runInput.continueFrom === undefined)).toBe(true);
+            expect(new Set(recordCalls.map(([input]) => input.runInput.conversationId).filter(Boolean)).size).toBe(2);
         } else {
             expect(recordCalls[1][0].runInput.continueFrom).toBe('run-1.json');
+            expect(recordCalls.slice(1).map(([input]) => input.runInput.conversationId)).toEqual(['conversation-1', 'conversation-1']);
         }
     });
 
+    it.each(['question', 'approval'])('keeps a streaming for-each record active for a pending %s', async (interaction) => {
+        const completion = deferred();
+        const started = deferred();
+        const runState = agentRunState();
+        let agentInput;
+        const result = {
+            agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: 0,
+            model: 'gpt', prompt: 'run', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+        };
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                agentInput = input;
+                input.onActiveRunChange('agent-run');
+                started.resolve();
+                await completion.promise;
+                input.onActiveRunChange(null);
+
+                return result;
+            }),
+        };
+        const agentRunnerService = {
+            finish: vi.fn(() => completion.resolve()),
+            hasPendingInteraction: runState.hasPendingInteraction,
+            stop: vi.fn(),
+        };
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            agentRunnerService,
+            runInput: {
+                forEach: { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [1] },
+                prompt: 'run',
+            },
+        });
+        await started.promise;
+        if (interaction === 'question') runState.question = true;
+        else runState.approvals.add(41);
+        agentInput.onEvent({ error: null, status: 'waitingForInput', type: 'turnCompleted' });
+
+        expect(agentRunnerService.finish).not.toHaveBeenCalled();
+        if (interaction === 'question') runState.question = false;
+        else runState.approvals.delete(41);
+        agentInput.onEvent({ error: null, status: 'running', type: 'turnCompleted' });
+
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
+        expect(agentRunnerService.finish).toHaveBeenCalledOnce();
+    });
+
     it('logs one failed record and continues when configured', async () => {
+        let activeCompletion;
         const result = (exitCode, index) => ({
             agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode,
             model: 'gpt', prompt: 'run', reference: 'run.json', stderr: exitCode ? 'bad record' : '',
@@ -172,13 +241,29 @@ describe('ActionRun', () => {
         });
         const agentExecutor = {
             execute: vi.fn()
-                .mockResolvedValueOnce(result(1, 1))
-                .mockResolvedValueOnce(result(0, 2)),
+                .mockImplementationOnce(async (input) => {
+                    activeCompletion = deferred();
+                    input.onActiveRunChange('agent-run-1');
+                    input.onEvent({ error: null, status: 'running', type: 'turnCompleted' });
+                    await activeCompletion.promise;
+                    input.onActiveRunChange(null);
+                    return result(1, 1);
+                })
+                .mockImplementationOnce(async (input) => {
+                    activeCompletion = deferred();
+                    input.onActiveRunChange('agent-run-2');
+                    input.onEvent({ error: null, status: 'running', type: 'turnCompleted' });
+                    await activeCompletion.promise;
+                    input.onActiveRunChange(null);
+                    return result(0, 2);
+                }),
         };
+        const agentRunnerService = {finish: vi.fn(() => activeCompletion.resolve()), hasPendingInteraction: () => false, stop: vi.fn()};
         const appendActivityConversationEvent = vi.fn(async () => undefined);
-        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
         const { run } = createRun(rootAction, {
             agentExecutor,
+            agentRunnerService,
             localGitService: { appendActivityConversationEvent },
             runInput: {
                 forEach: { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [1, 2] },
@@ -190,18 +275,30 @@ describe('ActionRun', () => {
 
         expect(completed.status).toBe('completed');
         expect(agentExecutor.execute).toHaveBeenCalledTimes(2);
+        expect(agentRunnerService.finish).toHaveBeenCalledTimes(2);
         expect(appendActivityConversationEvent).toHaveBeenCalledWith(project, 'run.json', expect.objectContaining({ type: 'loopFailure' }));
     });
 
     it('starts no later record after stop-on-first-failure', async () => {
+        const turnCompletion = deferred();
         const failed = {
             agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: 1,
             model: 'gpt', prompt: 'run', reference: 'run.json', stderr: 'failed', stdout: '', thinkingLevel: 'none',
         };
-        const agentExecutor = { execute: vi.fn(async () => failed) };
-        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                input.onActiveRunChange('agent-run');
+                input.onEvent({ error: null, status: 'running', type: 'turnCompleted' });
+                await turnCompletion.promise;
+                input.onActiveRunChange(null);
+                return failed;
+            }),
+        };
+        const agentRunnerService = {finish: vi.fn(() => turnCompletion.resolve()), hasPendingInteraction: () => false, stop: vi.fn()};
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
         const { run } = createRun(rootAction, {
             agentExecutor,
+            agentRunnerService,
             localGitService: { appendActivityConversationEvent: vi.fn(async () => undefined) },
             runInput: {
                 forEach: { failurePolicy: 'stopOnFirstFailure', fileName: 'records.json', mode: 'addPrompt', value: [1, 2] },
@@ -213,6 +310,7 @@ describe('ActionRun', () => {
 
         expect(completed.status).toBe('failed');
         expect(agentExecutor.execute).toHaveBeenCalledOnce();
+        expect(agentRunnerService.finish).toHaveBeenCalledOnce();
     });
 
     it('starts no agent turn for an empty root array', async () => {
@@ -233,15 +331,26 @@ describe('ActionRun', () => {
     });
 
     it('runs one turn per selected array item in order', async () => {
+        let activeCompletion;
         const agentExecutor = {
-            execute: vi.fn(async () => ({
-                agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: 0,
-                model: 'gpt', prompt: 'run', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
-            })),
+            execute: vi.fn(async (input) => {
+                activeCompletion = deferred();
+                const runId = `agent-run-${agentExecutor.execute.mock.calls.length}`;
+                input.onActiveRunChange(runId);
+                input.onEvent({ error: null, status: 'running', type: 'turnCompleted' });
+                await activeCompletion.promise;
+                input.onActiveRunChange(null);
+                return {
+                    agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: 0,
+                    model: 'gpt', prompt: 'run', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
         };
-        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
+        const agentRunnerService = {finish: vi.fn(() => activeCompletion.resolve()), hasPendingInteraction: () => false, stop: vi.fn()};
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
         const { run } = createRun(rootAction, {
             agentExecutor,
+            agentRunnerService,
             runInput: {
                 forEach: {
                     dataPath: 'data.0.items', failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt',
@@ -255,6 +364,7 @@ describe('ActionRun', () => {
 
         expect(completed.status).toBe('completed');
         expect(agentExecutor.execute.mock.calls.map(([input]) => input.forEachRecord)).toEqual(['first', 'second']);
+        expect(agentRunnerService.finish).toHaveBeenCalledTimes(2);
     });
 
     it('starts no agent turn for an empty selected array', async () => {
@@ -297,27 +407,43 @@ describe('ActionRun', () => {
 
     it('cancellation prevents remaining records from starting', async () => {
         const firstTurn = deferred();
+        const firstTurnStarted = deferred();
         const result = {
             agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: 0,
             model: 'gpt', prompt: 'run', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
         };
-        const agentExecutor = { execute: vi.fn(async () => firstTurn.promise) };
-        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                input.onActiveRunChange('agent-run');
+                firstTurnStarted.resolve();
+                const turnResult = await firstTurn.promise;
+                input.onActiveRunChange(null);
+                return turnResult;
+            }),
+        };
+        const agentRunnerService = {
+            finish: vi.fn(),
+            hasPendingInteraction: () => false,
+            stop: vi.fn(() => firstTurn.resolve(result)),
+        };
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
         const { run } = createRun(rootAction, {
             agentExecutor,
+            agentRunnerService,
             runInput: {
                 forEach: { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [1, 2] },
                 prompt: 'run',
             },
         });
-        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledOnce());
+        await firstTurnStarted.promise;
         run.cancel();
-        firstTurn.resolve(result);
 
         const completed = await run.completion;
 
         expect(completed.status).toBe('cancelled');
         expect(agentExecutor.execute).toHaveBeenCalledOnce();
+        expect(agentRunnerService.stop).toHaveBeenCalledWith('agent-run');
+        expect(agentRunnerService.finish).not.toHaveBeenCalled();
     });
 
     it('records two same-card runs independently while release waits for both', async () => {

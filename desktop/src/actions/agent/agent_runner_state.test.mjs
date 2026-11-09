@@ -447,6 +447,32 @@ describe('AgentRunnerService published run status', () => {
         expect(service.terminateProcessTree).not.toHaveBeenCalled();
     });
 
+    it('publishes the explicit provider turn completion after processing it', async () => {
+        const { onEvent, run, service } = streamingRunService();
+
+        await service.handleStreamingEvent(run.id, { type: 'turnCompleted' });
+
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            error: null,
+            type: 'turnCompleted',
+        }));
+    });
+
+    it('preserves a pending question when a provider turn completion arrives', async () => {
+        const { run, service } = streamingRunService();
+        const questions = [{ id: 'confirm', question: 'Proceed?' }];
+        await service.handleStreamingEvent(run.id, { questions, requestId: 7, type: 'question' });
+
+        await service.handleStreamingEvent(run.id, { type: 'turnCompleted' });
+
+        expect(run.turnActive).toBe(true);
+        expect(run.waitingForQuestion).toBe(true);
+        expect(run.pendingQuestionRequestId).toBe(7);
+        expect(run.pendingQuestions).toEqual(questions);
+        expect(service.hasPendingInteraction(run.id)).toBe(true);
+        expect(run.conversation.status).toBe('waitingForInput');
+    });
+
     it('terminates a session whose process I/O has failed', () => {
         const { service, run } = streamingRunService();
         service.terminateProcessTree = vi.fn();

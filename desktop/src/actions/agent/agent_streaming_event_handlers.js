@@ -202,12 +202,15 @@ async function handleApprovalResolved(service, run, event, timestamp) {
  * send the message queued while the turn was running, or park the run waiting for input.
  */
 async function handleTurnCompleted(service, run, event, timestamp) {
+    const interactionPending = hasPendingInteraction(run);
     completeAssistantOutput(run, timestamp);
-    run.turnActive = false;
-    run.waitingForQuestion = false;
-    run.pendingQuestionRequestId = null;
-    run.pendingQuestions = [];
-    run.pendingApprovals.clear();
+    run.turnActive = interactionPending;
+    if (!interactionPending) {
+        run.waitingForQuestion = false;
+        run.pendingQuestionRequestId = null;
+        run.pendingQuestions = [];
+        run.pendingApprovals.clear();
+    }
     if (event.error && await service.handleClaudeAuthenticationFailure(run, event.error)) return;
     run.missingSession = run.missingSession || event.missingSession;
     if (event.missingSession) run.finishing = true;
@@ -241,6 +244,7 @@ async function handleTurnCompleted(service, run, event, timestamp) {
             usage: run.conversation.usage,
         });
     }
+    emitRunEvent(run, { error: event.error ?? null, type: 'turnCompleted' });
     if (run.finishing) {
         service.beginFinishShutdown(run);
         return;
