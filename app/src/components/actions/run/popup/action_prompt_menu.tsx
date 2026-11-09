@@ -147,7 +147,7 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
     }, []);
 
     return (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             {forEach ? (
                 <ActionForEachMenu config={forEach} disabled={loopRunning} onChange={changeForEach}
                     onRemove={removeForEach} onView={viewForEach} />
@@ -179,6 +179,6 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
             </Menu>
             <input aria-label="Add files" hidden multiple onChange={handleFiles} ref={fileInput} type="file" />
             <input accept=".json,application/json" aria-label="For-each JSON" hidden onChange={handleForEachFile} ref={forEachFileInput} type="file" />
-        </>
+        </div>
     );
 }
