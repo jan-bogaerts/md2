@@ -3,7 +3,7 @@ author:
 id: F_464
 internalId: c7fa6216-d134-4237-8f14-c494ac314c01
 title: for each - user can set start index
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,20 @@ agents:
 policy:
 branch: f_464_for_each_user_can_set_start_index
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/action_for_each_menu.test.tsx
+  - app/src/components/actions/run/popup/action_for_each_setup_dialog.test.tsx
+  - app/src/components/actions/run/popup/action_for_each_setup_dialog.tsx
+  - app/src/components/actions/run/popup/action_popup_operations.node.test.ts
+  - app/src/components/actions/run/popup/action_prompt_menu.test.tsx
+  - app/src/components/actions/run/popup/action_prompt_menu.tsx
+  - app/src/data/action_run_types.ts
+  - app/src/services/agents/agent_conversation_service.node.test.ts
+  - desktop/src/actions/action/action_for_each.test.mjs
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run.test.mjs
+  - desktop/src/actions/action/action_run_request.test.mjs
+  - shared/action_for_each.mjs
 ---
 
 in the for-each config popup, user should be able to set the index position to start from, default 0.
