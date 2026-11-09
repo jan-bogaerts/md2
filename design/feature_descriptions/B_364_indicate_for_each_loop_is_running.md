@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__fecd4bcd-90cc-417a-acc4-7f240de40d71.json
 policy:
-branch: b_364_indicate_for_each_loop_is_running
-worktree: 1
 changedFiles:
   - app/src/services/actions/action_run_registry.node.test.ts
   - app/src/services/actions/action_run_registry.ts

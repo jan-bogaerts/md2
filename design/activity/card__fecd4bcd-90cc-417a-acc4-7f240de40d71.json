@@ -1570,14 +1570,14 @@
         "agent-4b7ebbe5-250e-4905-85e3-aaff3b25c23a"
       ],
       "details": {
+        "type": "agent",
         "accountId": "codex-initial",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-2713eef9-4b2a-4bc1-a2ea-2d09971eb940",
       "origin": {
@@ -1586,9 +1586,32 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-4b7ebbe5-250e-4905-85e3-aaff3b25c23a",
       "startedAt": "2026-11-09T15:13:04.366Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-4b7ebbe5-250e-4905-85e3-aaff3b25c23a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "e1751d557ff7e68b9f8afe1d3d92b25d1e051fee",
+          "committedAt": "2026-11-09T16:37:04+01:00",
+          "deletions": 1,
+          "filePaths": [
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts"
+          ],
+          "filesChanged": 2,
+          "insertions": 63,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-09T16:37:04+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "fecd4bcd-90cc-417a-acc4-7f240de40d71",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
