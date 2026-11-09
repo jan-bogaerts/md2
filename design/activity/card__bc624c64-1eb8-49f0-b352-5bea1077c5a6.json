@@ -3431,10 +3431,10 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "bc624c64-1eb8-49f0-b352-5bea1077c5a6",
       "cardPath": "design/feature_descriptions/B_360_for_each_not_working.md",
-      "completedAt": null,
+      "completedAt": "2026-11-09T13:33:14.509Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 78000
+        "usedTokens": 94046
       },
       "entries": [
         {
@@ -4050,6 +4050,344 @@
           "role": "user",
           "sequence": 47,
           "timestamp": "2026-11-09T13:30:51.328Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-48",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb14b61c87d2a7f798b959a812f3",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:30:59.194Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll implement the startup-state fix and focused regression tests. The two verified consumers are `ActionRunnerService.start()`, which should keep waiting for a real first save on non-empty loops, and the empty-loop path, which must explicitly declare that no conversation will be created; ordinary agent runs keep their existing behavior.\n\n",
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 49,
+          "timestamp": "2026-11-09T13:31:00.690Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'desktop/src/actions/action/action_run.js'; for (\"'$i=560; $i -le 680; $i++) { '\"'{0,4}: {1}' -f \"'$i, $lines[$i-1] }; $lines = Get-Content '\"'desktop/src/actions/action/action_run.test.mjs'; for (\"'$i=1; $i -le 125; $i++) { '\"'{0,4}: {1}' -f \"'$i, $lines[$i-1] }; Get-Content -Raw '\"'desktop/package.json'\"",
+          "content": " 560:             const status = result.exitCode === 0 ? 'completed' : 'failed';\r\n 561:             const output = combineOutput(result);\r\n 562:             this.publish(action, phase, status, {\r\n 563:                 ...(result.accountId !== undefined ? { accountId: result.accountId } : {}),\r\n 564:                 command: Array.isArray(result.command) ? result.command.join(' ') : result.command,\r\n 565:                 runWorktree: result.runWorktree,\r\n 566:                 message: status === 'completed' ? `${action.label} completed` : `${action.label} failed with exit code ${result.exitCode}`,\r\n 567:                 permissionMode: result.permissionMode,\r\n 568:                 reference: result.reference,\r\n 569:                 conversationId: result.conversationId,\r\n 570:                 thinkingLevel: result.thinkingLevel,\r\n 571:                 ...(result.speedMode !== undefined ? { speedMode: result.speedMode } : {}),\r\n 572:                 ...(acknowledgedSettings?.model !== undefined ? { acknowledgedModel: acknowledgedSettings.model } : {}),\r\n 573:                 ...(acknowledgedSettings?.serviceTier !== undefined ? { acknowledgedServiceTier: acknowledgedSettings.serviceTier } : {}),\r\n 574:                 type: 'action',\r\n 575:             });\r\n 576:             this.clearActiveAction(action);\r\n 577:             if (result.exitCode !== 0) throw new ActionPhaseError(`${action.label} failed with exit code ${result.exitCode}`, phase, rootPhase);\r\n 578: \r\n 579:             return output;\r\n 580:         } catch (error) {\r\n 581:             this.clearActiveAction(action);\r\n 582:             if (error instanceof ActionCancellationError || this.controller.signal.aborted) {\r\n 583:                 if (!error?.terminalEventEmitted) this.publish(action, phase, 'cancelled', { message: 'Action cancelled', type: 'action' });\r\n 584:                 throw new ActionCancellationError('Action cancelled');\r\n 585:             }\r\n 586:             if (error instanceof ActionPhaseError) throw error;\r\n 587: \r\n 588:             const message = errorMessage(error, `${action.label} failed`);\r\n 589:             this.publish(action, phase, 'failed', { message, type: 'action' });\r\n 590:             throw new ActionPhaseError(message, phase, rootPhase, error);\r\n 591:         }\r\n 592:     }\r\n 593: \r\n 594:     clearActiveAction(action) {\r\n 595:         if (this.activeAction !== action) return;\r\n 596:         if (action.type === 'agent') this.discardQueuedPrompts();\r\n 597:         this.activeAction = null;\r\n 598:         this.activeActionPhase = null;\r\n 599:         this.activeAgentProject = null;\r\n 600:         this.autoFinishPending = false;\r\n 601:     }\r\n 602: \r\n 603:     async executeAction(action, phase, isRoot) {\r\n 604:         if (action.type === 'command' && isRoot && this.runInput.continueFrom) {\r\n 605:             throw new Error('Conversation continuation requires an agent action');\r\n 606:         }\r\n 607:         if (action.autoFinish?.when === 'card-state' && (\r\n 608:             this.context.kind !== 'card'\r\n 609:             || typeof this.context.cardInternalId !== 'string'\r\n 610:             || this.context.cardInternalId.length === 0\r\n 611:         )) {\r\n 612:             throw new Error(`Action \"${action.label}\" requires card context for autoFinish`);\r\n 613:         }\r\n 614: \r\n 615:         return this.actionWorktreeRunService.execute(this.project, action, this.context, async (project) => {\r\n 616:             this.publish(action, phase, 'running', { type: 'action' });\r\n 617:             const result = action.type === 'agent'\r\n 618:                 ? await this.executeAgentAction(action, phase, isRoot, project)\r\n 619:                 : await this.executeCommandAction(action, phase, isRoot, project);\r\n 620:             if (action.type === 'agent') {\r\n 621:                 for (const changedPath of result.changedPaths ?? []) this.changedPaths.add(changedPath);\r\n 622:             }\r\n 623:             const committedResult = await this.commitTrackedAgentChanges(project, action, result);\r\n 624:             const runPr\n[5824 characters omitted]\nootActionId, context }, entry);\r\n  66: \r\n  67:             return { relativePath: 'design/activity/card__card-1.json' };\r\n  68:         }),\r\n  69:         appendActionRunHistory,\r\n  70:         ...overrides.localGitService,\r\n  71:     };\r\n  72:     const commandRunner = overrides.commandRunner ?? vi.fn(async (_project, command, _signal, onOutput) => {\r\n  73:         onOutput({ stderr: '', stdout: `${command}-chunk` });\r\n  74: \r\n  75:         return { command, exitCode: 0, stderr: '', stdout: command };\r\n  76:     });\r\n  77:     const actionWorktreeRunService = {\r\n  78:         execute: vi.fn(async (primaryProject, _action, _context, run) => ({\r\n  79:             ...await run(primaryProject),\r\n  80:             branch: primaryProject.branch,\r\n  81:             runWorktree: null,\r\n  82:             repositoryRoot: primaryProject.rootPath,\r\n  83:         })),\r\n  84:         runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),\r\n  85:         ...overrides.actionWorktreeRunService,\r\n  86:     };\r\n  87:     const agentRunnerService = {\r\n  88:         hasPendingInteraction: () => false,\r\n  89:         ...(overrides.agentRunnerService ?? { stop: vi.fn() }),\r\n  90:     };\r\n  91:     const agentExecutor = overrides.agentExecutor ?? { execute: vi.fn() };\r\n  92:     const run = new ActionRun({\r\n  93:         activeCardsFolder: 'design/feature_descriptions',\r\n  94:         actionsFolder: 'actions',\r\n  95:         activityOrigin: overrides.context?.kind === 'project'\r\n  96:             ? { kind: 'project' }\r\n  97:             : { cardInternalId: 'card-1', kind: 'card' },\r\n  98:         context: overrides.context ?? context,\r\n  99:         diagramFooter: overrides.diagramFooter,\r\n 100:         diagramsFolder: overrides.diagramsFolder,\r\n 101:         diagramPath: overrides.diagramPath,\r\n 102:         runId: overrides.runId ?? 'run-1',\r\n 103:         project,\r\n 104:         projectFolder: 'design',\r\n 105:         releasesFolder: 'design/releases',\r\n 106:         rootAction,\r\n 107:         runInput: { extraPrompt: '', ...overrides.runInput },\r\n 108:         startedAt: '2026-07-20T10:00:00.000Z',\r\n 109:     }, {\r\n 110:         actionWorktreeRunService,\r\n 111:         agentExecutor,\r\n 112:         agentRunnerService,\r\n 113:         commandRunner,\r\n 114:         diagramOutputWatcherFactory: overrides.diagramOutputWatcherFactory,\r\n 115:         localGitService,\r\n 116:         publisher: (event) => events.push(event),\r\n 117:     });\r\n 118:     run.start((completion) => completion);\r\n 119: \r\n 120:     return { actionWorktreeRunService, agentRunnerService, commandRunner, events, run, localGitService };\r\n 121: }\r\n 122: \r\n 123: describe('ActionRun', () => {\r\n 124:     it.each([\r\n 125:         ['addPrompt', 3],\r\n{\n  \"name\": \"desktop\",\n  \"version\": \"0.11.1\",\n  \"private\": true,\n  \"description\": \"MDÂ² Electron host shell\",\n  \"main\": \"main.js\",\n  \"scripts\": {\n    \"lint\": \"eslint .\",\n    \"lint-fix\": \"eslint . --fix\",\n    \"package:windows\": \"electron-builder --config electron-builder.config.cjs --win nsis --x64\",\n    \"package:local-test\": \"node packaging/build_local_test.js\",\n    \"postinstall\": \"node prepare_native_helpers.js\",\n    \"postpackage:windows\": \"node packaging/verify_windows_package.mjs\",\n    \"start\": \"node start_electron.js\",\n    \"test\": \"vitest run\",\n    \"test:full\": \"vitest run\",\n    \"test:watch\": \"vitest\"\n  },\n  \"keywords\": [],\n  \"author\": \"Elastetic\",\n  \"license\": \"AGPL-3.0-only\",\n  \"devDependencies\": {\n    \"@electron/asar\": \"^4.2.0\",\n    \"@eslint/js\": \"^9.39.4\",\n    \"electron\": \"^43.0.0\",\n    \"electron-builder\": \"^26.15.3\",\n    \"eslint\": \"^9.39.4\",\n    \"eslint-plugin-import\": \"^2.32.0\",\n    \"globals\": \"^17.7.0\",\n    \"node-abi\": \"^4.33.0\",\n    \"vitest\": \"^4.1.9\"\n  },\n  \"dependencies\": {\n    \"@aptabase/electron\": \"^0.3.1\",\n    \"@parcel/watcher\": \"^2.6.0\",\n    \"@sentry/electron\": \"^7.15.0\",\n    \"@xterm/headless\": \"^6.0.0\",\n    \"cross-spawn\": \"^7.0.6\",\n    \"electron-store\": \"^8.2.0\",\n    \"electron-window-state\": \"^5.0.3\",\n    \"node-pty\": \"^1.1.0\",\n    \"ssh2\": \"^1.17.0\",\n    \"ws\": \"^8.21.0\"\n  }\n}\n\r\n",
+          "durationMs": 81,
+          "exitCode": 0,
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-50",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'desktop/src/actions/action/action_run.js'; for (\"'$i=560; $i -le 680; $i++) { '\"'{0,4}: {1}' -f \"'$i, $lines[$i-1] }; $lines = Get-Content '\"'desktop/src/actions/action/action_run.test.mjs'; for (\"'$i=1; $i -le 125; $i++) { '\"'{0,4}: {1}' -f \"'$i, $lines[$i-1] }; Get-Content -Raw '\"'desktop/package.json'\"",
+          "providerItemId": "exec-fb85cd08-7284-4160-ad62-886a159be6f2",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:31:07.609Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb2669e487d29a7a0ee84cd60bf8",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:31:16.898Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'desktop/src/actions/action/action_runner_service.test.mjs'; for (\"'$i=1; $i -le 155; $i++) { '\"'{0,4}: {1}' -f \"'$i, $lines[$i-1] }'",
+          "content": "   1: import { createRequire } from 'node:module';\r\n   2: import path from 'node:path';\r\n   3: import { describe, expect, it, vi } from 'vitest';\r\n   4: \r\n   5: const require = createRequire(import.meta.url);\r\n   6: const { ActionRunnerService, allocateActionRunId } = require('./action_runner_service');\r\n   7: \r\n   8: const context = { cardInternalId: 'card-010', file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' };\r\n   9: const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };\r\n  10: const diagramFooter = 'Create diagram JSON output and save it to {{diagram-file}}.';\r\n  11: const agentSelection = {\r\n  12:     activeAgent: 'codex',\r\n  13:     permissionMode: 'ask-for-approval',\r\n  14:     settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'none' } },\r\n  15: };\r\n  16: \r\n  17: function actionFile(id, overrides = {}) {\r\n  18:     return {\r\n  19:         content: JSON.stringify({\r\n  20:             command: id,\r\n  21:             description: `${id} description`,\r\n  22:             id,\r\n  23:             label: id,\r\n  24:             type: 'command',\r\n  25:             ...overrides,\r\n  26:         }),\r\n  27:         path: `actions/${id}.json`,\r\n  28:     };\r\n  29: }\r\n  30: \r\n  31: function missingFileError(actionPath) {\r\n  32:     const error = new Error(`ENOENT: no such file or directory, open '${actionPath}'`);\r\n  33:     error.code = 'ENOENT';\r\n  34: \r\n  35:     return error;\r\n  36: }\r\n  37: \r\n  38: function createRunner(actionFiles = [actionFile('main')], overrides = {}) {\r\n  39:     const appendActionRunHistory = vi.fn(async () => []);\r\n  40:     const localGitService = {\r\n  41:         appendActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {\r\n  42:             const entry = {\r\n  43:                 ...record.details,\r\n  44:                 completedAt: record.completedAt,\r\n  45:                 ...(record.rootConversationId ? { rootConversationId: record.rootConversationId } : {}),\r\n  46:                 startedAt: record.startedAt,\r\n  47:                 status: record.status,\r\n  48:             };\r\n  49:             await appendActionRunHistory(project, { actionId: record.rootActionId, context, projectFolder }, entry);\r\n  50: \r\n  51:             return { relativePath: 'design/activity/card__card-010.json' };\r\n  52:         }),\r\n  53:         appendActionRunHistory,\r\n  54:         activityConversationReference: vi.fn((_projectFolder, _origin, conversationId) => `design/activity/card__card-010.json#conversation=${conversationId}`),\r\n  55:         loadActionFile: vi.fn(async (_project, actionPath) => {\r\n  56:             const file = actionFiles.find(({ path }) => path === actionPath);\r\n  57:             if (!file) throw missingFileError(actionPath);\r\n  58: \r\n  59:             return file;\r\n  60:         }),\r\n  61:         loadActionFiles: vi.fn(async () => actionFiles),\r\n  62:         loadAgentConversation: vi.fn(),\r\n  63:         loadFile: vi.fn(async () => ({ content: '---\\ntitle: Card\\n---\\n# Card', path: context.file })),\r\n  64:         loadProjectConfig: vi.fn(async () => ({ states: [{ state: 'design' }, { state: 'ready' }] })),\r\n  65:     };\r\n  66:     const commandRunner = vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: command }));\r\n  67:     const agentRunnerService = { start: vi.fn(), stop: vi.fn() };\r\n  68:     const usageMetricsService = overrides.usageMetricsService ?? { startProject: vi.fn() };\r\n  69:     const actionWorktreeRunService = {\r\n  70:         execute: vi.fn(async (primaryProject, _action, _context, execute) => ({\r\n  71:             ...await execute(primaryProject),\r\n  72:             branch: primaryProject.branch,\r\n  73:             runWorktree: null,\r\n  74:             repositoryRoot: primaryProject.rootPath,\r\n  75:         })),\r\n  76:         resolve: vi.fn(async (primaryProject) => ({ runProject: primaryProject, runWorktree: null })),\r\n  77:         runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),\r\n  78:     };\r\n  79:     const runner = new A\n[1322 characters omitted]\n     await expect(runner.start(request)).rejects.toThrow('requires its scheduler owner');\r\n 104:         await expect(runner.start(request, { sequenceId: 'other' })).rejects.toThrow('requires its scheduler owner');\r\n 105:         const runId = await runner.start(request, { sequenceId: 'sequence' });\r\n 106:         await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });\r\n 107:     });\r\n 108: \r\n 109:     it('keeps version placeholder in prepared editable prompt until execution', async () => {\r\n 110:         const files = [actionFile('main', { command: undefined, prompt: 'Ship {{version}}', type: 'agent', userInput: { type: 'version' } })];\r\n 111:         const { runner } = createRunner(files);\r\n 112: \r\n 113:         await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({ prompt: 'Ship {{version}}' });\r\n 114:     });\r\n 115:     it('requests one version before linked commands and reuses it throughout the run', async () => {\r\n 116:         const files = [\r\n 117:             actionFile('main', { command: 'main {{version}}', onBefore: ['before'], onAfter: ['after'] }),\r\n 118:             actionFile('before', { command: 'before {{version}}', userInput: { type: 'version', prompt: 'Which release?' } }),\r\n 119:             actionFile('after', { command: 'after {{version}}', userInput: { type: 'version' } }),\r\n 120:         ];\r\n 121:         const { commandRunner, runner } = createRunner(files);\r\n 122:         const events = [];\r\n 123:         runner.subscribe((event) => events.push(event));\r\n 124: \r\n 125:         const runId = await runner.start({ actionId: 'main', context, runInput: {} });\r\n 126:         await vi.waitFor(() => expect(events.some(({ type }) => type === 'inputRequest')).toBe(true));\r\n 127:         expect(commandRunner).not.toHaveBeenCalled();\r\n 128:         expect(events.filter(({ type }) => type === 'inputRequest')).toHaveLength(1);\r\n 129:         expect(events.find(({ type }) => type === 'inputRequest').prompt).toBe('Which release?');\r\n 130:         expect(events.find(({ type }) => type === 'inputRequest').inputType).toBe('version');\r\n 131: \r\n 132:         expect(() => runner.answerInput(runId, { type: 'other', value: '1.0' })).toThrow('Unexpected action input type');\r\n 133:         expect(() => runner.answerInput(runId, { type: 'version', value: '   ' })).toThrow('Version must contain non-whitespace text');\r\n 134:         runner.answerInput(runId, { type: 'version', value: 'release candidate 2' });\r\n 135:         expect(() => runner.answerInput(runId, { type: 'version', value: 'late' })).toThrow('No pending input request');\r\n 136:         await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });\r\n 137:         expect(commandRunner.mock.calls.map(([, command]) => command)).toEqual([\r\n 138:             'before release candidate 2', 'main release candidate 2', 'after release candidate 2',\r\n 139:         ]);\r\n 140:     });\r\n 141: \r\n 142:     it('cancels a pending version without executing and rejects a late answer', async () => {\r\n 143:         const { commandRunner, runner } = createRunner([actionFile('main', { userInput: { type: 'version' } })]);\r\n 144:         const runId = await runner.start({ actionId: 'main', context, runInput: {} });\r\n 145:         await vi.waitFor(() => expect(runner.runs.get(runId)?.pendingInput).not.toBeNull());\r\n 146: \r\n 147:         runner.cancel(runId);\r\n 148:         await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'cancelled' });\r\n 149:         expect(commandRunner).not.toHaveBeenCalled();\r\n 150:         expect(() => runner.answerInput(runId, { type: 'version', value: '1.0' })).toThrow();\r\n 151:     });\r\n 152: \r\n 153:     it('fails unattended version runs before effects unless a version is supplied', async () => {\r\n 154:         const { commandRunner, runner } = createRunner([actionFile('main', { command: 'ship {{version}}', userInput: { type: 'version' } })]);\r\n 155:         await expect(runner.start({ actionId: 'main', context, runInput: {} }, { interactive: false }))\r\n",
+          "durationMs": 212,
+          "exitCode": 0,
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-52",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'desktop/src/actions/action/action_runner_service.test.mjs'; for (\"'$i=1; $i -le 155; $i++) { '\"'{0,4}: {1}' -f \"'$i, $lines[$i-1] }'",
+          "providerItemId": "exec-31e619f6-9500-4f12-aed4-502861b5c742",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:31:20.538Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-53",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb2d292c87d287a9e2ba8bf84adf",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:31:23.712Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'desktop/src/actions/action/action_runner_service.js'; for (\"'$i=1; $i -le 125; $i++) { '\"'{0,4}: {1}' -f \"'$i, $lines[$i-1] }'",
+          "content": "   1: const crypto = require('node:crypto');\r\n   2: const { ActionAgentExecutor } = require('./action_agent_executor');\r\n   3: const { runCommand, runCommandInWindow } = require('./action_command_executor');\r\n   4: const { ActionDefinitionCache } = require('./action_definition_cache');\r\n   5: const { resolveActionDefinition } = require('./action_definition_resolver');\r\n   6: const { ActionRun } = require('./action_run');\r\n   7: const { appendCurrentCardReferences } = require('./action_card_references');\r\n   8: const { createDiagramPath, resolveDiagramFile } = require('./action_diagram_output');\r\n   9: const { resolveAgentPrompt } = require('./action_text');\r\n  10: const { validatePreparePromptRequest, validateStartRequest } = require('./action_run_request');\r\n  11: const { assertReleasedCardActionAllowed } = require('../../../../shared/released_card_actions.mjs');\r\n  12: const { parseConversationActivityReference } = require('../../../../shared/activity_paths.mjs');\r\n  13: \r\n  14: function createRunId() {\r\n  15:     return `action-${crypto.randomUUID()}`;\r\n  16: }\r\n  17: \r\n  18: function allocateActionRunId() {\r\n  19:     return createRunId();\r\n  20: }\r\n  21: \r\n  22: /** Allocates an agent conversation ID up front, so a scheduler can persist it before the run starts. */\r\n  23: function allocateConversationId() {\r\n  24:     return `agent-${crypto.randomUUID()}`;\r\n  25: }\r\n  26: \r\n  27: const TERMINAL_RECOVERY_RETENTION_MS = 5 * 60 * 1000;\r\n  28: \r\n  29: // Activity ownership follows the presence of cardInternalId, not the context kind.\r\n  30: function activityOrigin(context) {\r\n  31:     if (typeof context.cardInternalId === 'string' && context.cardInternalId.length > 0) {\r\n  32:         return { cardInternalId: context.cardInternalId, kind: 'card' };\r\n  33:     }\r\n  34: \r\n  35:     return { kind: 'project' };\r\n  36: }\r\n  37: \r\n  38: function requireConfiguredStates(states) {\r\n  39:     if (!Array.isArray(states)) throw new Error('Invalid project states');\r\n  40: \r\n  41:     return states.map(({ state }) => {\r\n  42:         if (typeof state !== 'string' || state.length === 0) throw new Error('Invalid project state');\r\n  43: \r\n  44:         return state;\r\n  45:     });\r\n  46: }\r\n  47: \r\n  48: function userInputRequest(action, visited = new Set()) {\r\n  49:     if (visited.has(action.id)) return null;\r\n  50:     visited.add(action.id);\r\n  51:     if (action.userInput) return action.userInput;\r\n  52: \r\n  53:     for (const linkedAction of [...action.onBefore, ...action.on.map(({ action: match }) => match), ...action.onAfter]) {\r\n  54:         const request = userInputRequest(linkedAction, visited);\r\n  55:         if (request) return request;\r\n  56:     }\r\n  57: \r\n  58:     return null;\r\n  59: }\r\n  60: \r\n  61: class ActionRunnerService {\r\n  62:     constructor(dependencies) {\r\n  63:         this.actionWorktreeRunService = dependencies?.actionWorktreeRunService;\r\n  64:         this.agentConfigProvider = dependencies?.agentConfigProvider;\r\n  65:         this.agentRunnerService = dependencies?.agentRunnerService;\r\n  66:         this.commandRunner = dependencies?.commandRunner ?? runCommand;\r\n  67:         this.commandWindowRunner = dependencies?.commandWindowRunner ?? runCommandInWindow;\r\n  68:         this.diagramOutputWatcherFactory = dependencies?.diagramOutputWatcherFactory;\r\n  69:         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);\r\n  70:         this.localGitService = dependencies?.localGitService;\r\n  71:         this.now = dependencies?.now ?? Date.now;\r\n  72:         this.usageMetricsService = dependencies?.usageMetricsService ?? null;\r\n  73:         this.actionDefinitionCache = dependencies?.actionDefinitionCache\r\n  74:             ?? (this.localGitService ? new ActionDefinitionCache({ localGitService: this.localGitService }) : null);\r\n  75:         this.agentExecutor = new ActionAgentExecutor({\r\n  76:             agentConfigProvider: this.agentConfigProvider,\r\n  77:             agentRunnerService: this.agentRunnerService,\r\n  78:             localGitService: this.localGitService,\r\n  79:         });\r\n  80:         this.actionsFolder = null;\r\n  81:         this.activeCardsFolder = null;\r\n  82:         this.actionCacheReady = null;\r\n  83:         this.completedRunResults = new Map();\r\n  84:         this.recoveryRunResults = new Map();\r\n  85:         this.conversationReservations = new Map();\r\n  86:         this.configuredStates = [];\r\n  87:         this.diagramFooter = null;\r\n  88:         this.diagramsFolder = null;\r\n  89:         this.latestDiagramTimestampMs = 0;\r\n  90:         this.runEvents = new Map();\r\n  91:         this.runs = new Map();\r\n  92:         this.listeners = new Set();\r\n  93:         this.project = null;\r\n  94:         this.projectFolder = null;\r\n  95:         this.releasesFolder = null;\r\n  96:         this.restartingRuns = new Set();\r\n  97:         this.compactRequests = new Map();\r\n  98:         this.compactOperations = Promise.resolve();\r\n  99:         this.compactGeneration = 0;\r\n 100:         this.compactTargetCancellations = new Map();\r\n 101:         this.pendingCompactAcceptances = new Map();\r\n 102:         this.compactConversationCancellations = new Map();\r\n 103:     }\r\n 104: \r\n 105:     // Paths arrive already resolved and validated from resolveProjectPaths, and states from the same\r\n 106:     // config read, so the runner no longer loads `.md2/config` itself.\r\n 107:     async startProject(project, paths, states) {\r\n 108:         const { actionsFolder, activeCardsFolder, diagramFooter, diagramsFolder, projectFolder, releasesFolder } = paths ?? {};\r\n 109:         const configuredStates = requireConfiguredStates(states);\r\n 110:         if (this.project) await this.stop();\r\n 111:         // stop() clears configuredStates, so the validated list is stored after the teardown.\r\n 112:         this.configuredStates = configuredStates;\r\n 113:         this.usageMetricsService?.startProject(project, projectFolder);\r\n 114:         this.project = project;\r\n 115:         this.actionsFolder = actionsFolder;\r\n 116:         this.activeCardsFolder = activeCardsFolder;\r\n 117:         this.projectFolder = projectFolder;\r\n 118:         this.releasesFolder = releasesFolder;\r\n 119:         this.diagramsFolder = diagramsFolder;\r\n 120:         this.diagramFooter = diagramFooter;\r\n 121:         this.latestDiagramTimestampMs = 0;\r\n 122:         this.actionCacheReady = this.actionDefinitionCache && this.localGitService\r\n 123:             ? this.initializeProject(project, actionsFolder)\r\n 124:             : null;\r\n 125: \r\n",
+          "durationMs": 117,
+          "exitCode": 0,
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-54",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'desktop/src/actions/action/action_runner_service.js'; for (\"'$i=1; $i -le 125; $i++) { '\"'{0,4}: {1}' -f \"'$i, $lines[$i-1] }'",
+          "providerItemId": "exec-1d778469-48fa-473e-ba87-d376f6981f3d",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:31:26.663Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-55",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb3a003087d28f5caf4a60f59dc6",
+          "sequence": 55,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:31:36.542Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The implementation will keep `logAndContinue` working: early records may fail and later records may still establish the conversation. Only when the loop exhausts every record without any successful turn will startup fail, and it will report the first real error. An empty array is handled separately as a valid completed loop.\n\n",
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 56,
+          "timestamp": "2026-11-09T13:31:37.987Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_run.js\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_runner_service.js",
+          "deletions": 7,
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-57",
+          "insertions": 12,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-5062bb51-3946-4e57-aea1-368dcfe68f16",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:31:48.727Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-58",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb47859c87d2a6b9334f31790d17",
+          "sequence": 58,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:31:50.009Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"conversationStartup|waitForConversationStartup|firstFailure|markConversationStartupComplete|waitForInitialConversationSave|markInitialConversationSaved\" desktop/src/actions/action/action_run.js desktop/src/actions/action/action_runner_service.js'",
+          "content": "desktop/src/actions/action/action_runner_service.js:235:        if (rootAction.type === 'agent') await run.waitForConversationStartup();\ndesktop/src/actions/action/action_run.js:66:        this.conversationStartup = Promise.withResolvers();\ndesktop/src/actions/action/action_run.js:90:    async waitForConversationStartup() {\ndesktop/src/actions/action/action_run.js:94:        await Promise.race([this.conversationStartup.promise, completedBeforeSave]);\ndesktop/src/actions/action/action_run.js:97:    markConversationStartupComplete() {\ndesktop/src/actions/action/action_run.js:98:        this.conversationStartup.resolve();\ndesktop/src/actions/action/action_run.js:765:            this.markConversationStartupComplete();\ndesktop/src/actions/action/action_run.js:772:        let firstFailure = null;\ndesktop/src/actions/action/action_run.js:825:                firstFailure ??= error;\ndesktop/src/actions/action/action_run.js:833:        if (!previousResult && firstFailure) throw firstFailure;\ndesktop/src/actions/action/action_run.js:1031:            ...(isRoot ? { onConversationSaved: this.markConversationStartupComplete.bind(this) } : {}),\n",
+          "durationMs": 24,
+          "exitCode": 0,
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-59",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"conversationStartup|waitForConversationStartup|firstFailure|markConversationStartupComplete|waitForInitialConversationSave|markInitialConversationSaved\" desktop/src/actions/action/action_run.js desktop/src/actions/action/action_runner_service.js'",
+          "providerItemId": "exec-56971435-6075-41ae-bd6c-921c7ae4cac7",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:31:52.592Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-60",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb4ffd1887d2bbddd1055530b84d",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:31:58.479Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'desktop/src/actions/action/action_run_history.js'\"",
+          "content": "const { extractAgentCommitIds, extractCommitSummaries } = require('../../../../shared/action_history.mjs');\nconst { requireRootPath } = require('../../git/git_commands');\n\nfunction combineOutput(result) {\n    return `${result.stdout}${result.stderr}`;\n}\n\nfunction createCommandDetails(input) {\n    return {\n        command: input.result.command,\n        output: combineOutput(input.result),\n        type: 'command',\n    };\n}\n\nfunction createAgentDetails(input) {\n    const acknowledgedSettings = input.result.acknowledgedSettings;\n    return {\n        ...(input.result.accountId !== undefined ? { accountId: input.result.accountId } : {}),\n        ...(input.result.agent !== undefined ? { agent: input.result.agent } : {}),\n        ...(input.result.model !== undefined ? { model: input.result.model } : {}),\n        ...(input.result.permissionMode !== undefined ? { permissionMode: input.result.permissionMode } : {}),\n        ...(input.result.thinkingLevel !== undefined ? { thinkingLevel: input.result.thinkingLevel } : {}),\n        ...(input.result.speedMode !== undefined ? { speedMode: input.result.speedMode } : {}),\n        ...(acknowledgedSettings?.model !== undefined ? { acknowledgedModel: acknowledgedSettings.model } : {}),\n        ...(acknowledgedSettings?.serviceTier !== undefined ? { acknowledgedServiceTier: acknowledgedSettings.serviceTier } : {}),\n        type: 'agent',\n    };\n}\n\nfunction commitCandidates(input) {\n    if (input.action.type === 'agent') {\n        const trackedCandidates = input.action.trackFileChanges\n            && typeof input.result.trackedCommit === 'string'\n            && input.result.trackedCommit.length > 0\n            ? [{ branch: input.project.branch, commit: input.result.trackedCommit }]\n            : [];\n        const reportedCandidates = extractAgentCommitIds(input.result.stdout)\n            .map((commit) => ({ branch: input.project.branch, commit }));\n\n        return [...trackedCandidates, ...reportedCandidates];\n    }\n\n    return extractCommitSummaries(combineOutput(input.result));\n}\n\nasync function captureCommitReferences(localGitService, input) {\n    const repositoryRoot = requireRootPath(input.project);\n    const references = [];\n\n    for (const candidate of commitCandidates(input)) {\n        const metadata = await localGitService.resolveCommitMetadata(repositoryRoot, candidate.commit);\n        references.push({\n            actionId: input.action.id,\n            actionName: input.action.label,\n            branch: candidate.branch,\n            commit: metadata.commit,\n            committedAt: metadata.committedAt,\n            deletions: metadata.deletions,\n            filePaths: metadata.filePaths,\n            filesChanged: metadata.filesChanged,\n            insertions: metadata.insertions,\n            repositoryRoot,\n        });\n    }\n\n    return references;\n}\n\nmodule.exports = {\n    captureCommitReferences,\n    combineOutput,\n    createAgentDetails,\n    createCommandDetails,\n};\n\r\n",
+          "durationMs": 41,
+          "exitCode": 0,
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-61",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'desktop/src/actions/action/action_run_history.js'\"",
+          "providerItemId": "exec-45fc8dff-9df9-499a-bec3-d28c31d4f36e",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:32:00.625Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb53807087d294eff500ff0fe960",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:32:01.967Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_run.js\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_runner_service.test.mjs",
+          "deletions": 2,
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-63",
+          "insertions": 52,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-cc559159-6782-4430-b308-125c4aa5593a",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:32:24.088Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-64",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb6b1fc887d2a1ce745026c20601",
+          "sequence": 64,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:32:25.608Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The code and regression coverage are in place. The tests exercise the runner boundary—not only the loop helper—so they verify the user-visible `start()` result and ensure the fallback message is replaced by the original failure.\n\n",
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-turn-3-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 65,
+          "timestamp": "2026-11-09T13:32:30.124Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/action/action_run.test.mjs src/actions/action/action_runner_service.test.mjs'",
+          "content": "\n> desktop@0.11.1 test\n> vitest run src/actions/action/action_run.test.mjs src/actions/action/action_runner_service.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/desktop\n\n\n Test Files  2 passed (2)\n      Tests  114 passed (114)\n   Start at  14:32:32\n   Duration  977ms (transform 159ms, setup 0ms, import 354ms, tests 844ms, environment 0ms)\n\n",
+          "durationMs": 1673,
+          "exitCode": 0,
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-66",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/action/action_run.test.mjs src/actions/action/action_runner_service.test.mjs'",
+          "providerItemId": "exec-d2e526d3-db98-4e39-8aca-25c39806d5de",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:32:33.616Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-67",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb754ad887d29556379dd9b96d97",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:32:35.771Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> desktop@0.11.1 lint\n> eslint .\n\n",
+          "durationMs": 3235,
+          "exitCode": 0,
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-68",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-e5ecbb14-1781-4c41-bf09-825217aa8d9c",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:32:40.350Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-69",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb7ca67487d29038e00df04f60db",
+          "sequence": 69,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:32:43.124Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff --check; git diff -- desktop/src/actions/action/action_run.js desktop/src/actions/action/action_runner_service.js desktop/src/actions/action/action_runner_service.test.mjs'",
+          "content": "diff --git a/desktop/src/actions/action/action_run.js b/desktop/src/actions/action/action_run.js\nindex 2fedf181c..131b9fe90 100644\n--- a/desktop/src/actions/action/action_run.js\n+++ b/desktop/src/actions/action/action_run.js\n@@ -63,7 +63,7 @@ class ActionRun {\n         this.changedPaths = new Set();\n         this.conversationIds = [];\n         this.completion = null;\n-        this.initialConversationSaved = Promise.withResolvers();\n+        this.conversationStartup = Promise.withResolvers();\n         this.controller = new AbortController();\n         this.rootDetails = null;\n         this.rootConversationId = null;\n@@ -87,15 +87,15 @@ class ActionRun {\n         this.completion = finalize(runCompletion);\n     }\n \n-    async waitForInitialConversationSave() {\n-        const completedBeforeSave = this.completion.then((result) => {\n+    async waitForConversationStartup() {\n+        const completedBeforeStartup = this.completion.then((result) => {\n             throw new Error(result.failure ?? 'Agent run ended before its conversation was saved');\n         });\n-        await Promise.race([this.initialConversationSaved.promise, completedBeforeSave]);\n+        await Promise.race([this.conversationStartup.promise, completedBeforeStartup]);\n     }\n \n-    markInitialConversationSaved() {\n-        this.initialConversationSaved.resolve();\n+    markConversationStartupComplete() {\n+        this.conversationStartup.resolve();\n     }\n \n     cancel() {\n@@ -762,12 +762,14 @@ class ActionRun {\n         const config = this.runInput.forEach;\n         const records = forEachRecords(config.value);\n         if (records.length === 0) {\n+            this.markConversationStartupComplete();\n             return { changedPaths: [], command: '', conversationId: null, conversationIds: [], exitCode: 0, stderr: '', stdout: '' };\n         }\n \n         const changedPaths = new Set();\n         const conversationIds = [];\n         let firstConversationId = null;\n+        let firstFailure = null;\n         let previousResult = null;\n         let stderr = '';\n         let stdout = '';\n@@ -820,6 +822,7 @@ class ActionRun {\n                     if (compactResult.exitCode !== 0) throw new Error(compactResult.stderr || 'Loop compaction failed');\n                 }\n             } catch (error) {\n+                firstFailure ??= error;\n                 const message = errorMessage(error, 'For-each record failed');\n                 await this.recordLoopFailure(previousResult?.reference, index, message);\n                 stderr += `${message}\\n`;\n@@ -827,6 +830,8 @@ class ActionRun {\n             }\n         }\n \n+        if (!previousResult && firstFailure) throw firstFailure;\n+\n         const result = previousResult ?? { command: '', exitCode: 0, reference: null };\n         return {\n             ...result,\n@@ -1023,7 +1028,7 @@ class ActionRun {\n             runId: this.runId,\n             ...(forEachRecord !== undefined ? { forEachRecord } : {}),\n             onActiveRunChange,\n-            ...(isRoot ? { onConversationSaved: this.markInitialConversationSaved.bind(this) } : {}),\n+            ...(isRoot ? { onConversationSaved: this.markConversationStartupComplete.bind(this) } : {}),\n             onEvent,\n             project,\n             projectFolder: this.projectFolder,\ndiff --git a/desktop/src/actions/action/action_runner_service.js b/desktop/src/actions/action/action_runner_service.js\nindex 99cbc0e8b..1ff25762c 100644\n--- a/desktop/src/actions/action/action_runner_service.js\n+++ b/desktop/src/actions/action/action_runner_service.js\n@@ -232,7 +232,7 @@ class ActionRunnerService {\n         this.runEvents.set(runId, []);\n         this.runs.set(runId, run);\n         run.start(this.finalizeRun.bind(this, run));\n-        if (rootAction.type === 'agent') await run.waitForInitialConversationSave();\n+        if (rootAction.type === 'agent') await run.waitForConversationStartup();\n \n         return runId;\n     }\ndiff --git a/desktop/src/actions/action/action_runner_service.test.mjs b/desktop/src/actions/action/action_runner_service.test.mjs\nindex e4c6fb962..03c391c85 100644\n--- a/desktop/src/actions/action/action_runner_service.test.mjs\n+++ b/desktop/src/actions/action/action_runner_service.test.mjs\n@@ -211,6 +211,56 @@ describe('ActionRunnerService', () => {\n             .rejects.toThrow('Conversation save failed');\n     });\n \n+    it('starts an empty for-each run without waiting for a conversation save', async () => {\n+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];\n+        const { runner } = createRunner(files);\n+        const execute = vi.fn();\n+        runner.agentExecutor = { execute };\n+        const forEach = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [] };\n+\n+        const runId = await runner.start({ actionId: 'main', context, runInput: { forEach } });\n+\n+        await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });\n+        expect(execute).not.toHaveBeenCalled();\n+    });\n+\n+    it('keeps trying for-each records until one saves the initial conversation', async () => {\n+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];\n+        const { runner } = createRunner(files);\n+        const execute = vi.fn()\n+            .mockRejectedValueOnce(new Error('First record failed before startup'))\n+            .mockImplementationOnce(async (input) => {\n+                input.onConversationSaved();\n+\n+                return {\n+                    agent: 'codex', changedPaths: [], command: ['codex'], conversationId: 'conversation-2',\n+                    conversationIds: ['conversation-2'], exitCode: 0, model: 'gpt-5.5', permissionMode: 'ask-for-approval',\n+                    prompt: 'Run', reference: 'conversation.json', stderr: '', stdout: '', thinkingLevel: 'none',\n+                };\n+            });\n+        runner.agentExecutor = { execute };\n+        const forEach = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [1, 2] };\n+\n+        const runId = await runner.start({ actionId: 'main', context, runInput: { forEach } });\n+\n+        await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });\n+        expect(execute).toHaveBeenCalledTimes(2);\n+    });\n+\n+    it('reports the first real error when every for-each record fails before startup', async () => {\n+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];\n+        const { runner } = createRunner(files);\n+        const execute = vi.fn()\n+            .mockRejectedValueOnce(new Error('First record failed before startup'))\n+            .mockRejectedValueOnce(new Error('Second record failed before startup'));\n+        runner.agentExecutor = { execute };\n+        const forEach = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [1, 2] };\n+\n+        await expect(runner.start({ actionId: 'main', context, runInput: { forEach } }))\n+            .rejects.toThrow('First record failed before startup');\n+        expect(execute).toHaveBeenCalledTimes(2);\n+    });\n+\n     it('reserves a root agent conversation without creating its activity file', async () => {\n         const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];\n         const { runner } = createRunner(files);\n",
+          "durationMs": 87,
+          "exitCode": 0,
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-70",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff --check; git diff -- desktop/src/actions/action/action_run.js desktop/src/actions/action/action_runner_service.js desktop/src/actions/action/action_runner_service.test.mjs'",
+          "providerItemId": "exec-03df4563-5e16-4530-9357-7526f8b8f98e",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:32:45.366Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb8379d487d28fd1a360fed3c32d",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:32:49.953Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-event-72",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fea0ebf0c6a2057016af1cb8819f487d2a466688baca80313",
+          "sequence": 72,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:32:54.570Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Fixed the loop startup handling.\n\n- Empty arrays now complete without waiting for a nonexistent conversation.\n- `logAndContinue` retries later records after an early startup failure.\n- If every record fails before saving a conversation, the first real error is returned instead of the internal fallback.\n- Ordinary agent runs retain their existing save-before-return behavior.\n\nChanged:\n\n- [action_run.js](C:/Users/janbo/Documents/dev/md2/desktop/src/actions/action/action_run.js:66)\n- [action_runner_service.js](C:/Users/janbo/Documents/dev/md2/desktop/src/actions/action/action_runner_service.js:235)\n- [action_runner_service.test.mjs](C:/Users/janbo/Documents/dev/md2/desktop/src/actions/action/action_runner_service.test.mjs:214)\n\nVerification: 114 related tests passed; desktop lint passed.\n\n",
+          "id": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-turn-3-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 73,
+          "timestamp": "2026-11-09T13:33:14.509Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -4060,47 +4398,52 @@
           "agent": "codex",
           "conversationId": "01a1c076-4440-7800-affe-ff2ae23523ac",
           "createdAt": "2026-11-09T13:18:59.936Z",
-          "lastUsedAt": "2026-11-09T13:30:51.376Z",
-          "synchronizedThroughMessageId": "submission-a1e9efd4-6f7e-47d5-9946-b2002db6b503"
+          "lastUsedAt": "2026-11-09T13:33:14.509Z",
+          "synchronizedThroughMessageId": "agent-turn-81b8bdb3-9b16-4d65-a2e0-a4a0a083347a-turn-3-assistant-4"
         }
       ],
       "startedAt": "2026-11-09T13:18:58.305Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
             "id": "0",
-            "subject": "Read the feature description and architecture guidance",
+            "subject": "Inspect the loop result/history flow and existing test scaffolding",
             "status": "completed"
           },
           {
             "id": "1",
-            "subject": "Trace loop execution, run completion, and conversation persistence code",
+            "subject": "Implement explicit no-conversation startup and preserve pre-save failures",
             "status": "completed"
           },
           {
             "id": "2",
-            "subject": "Explain the root cause and why the error wording is misleading",
+            "subject": "Add focused regression tests for empty, partial-success, and all-failed loops",
+            "status": "completed"
+          },
+          {
+            "id": "3",
+            "subject": "Run related tests and desktop lint",
             "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-09T13:21:15.522Z"
+        "updatedAt": "2026-11-09T13:32:52.155Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 688,
-          "toolMs": 3491
+          "reasoningMs": 782,
+          "toolMs": 11215
         },
-        "elapsedMs": 167680,
-        "runningStartedAt": "2026-11-09T13:30:51.328Z"
+        "elapsedMs": 294257,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 1220864,
-        "inputTokens": 76256,
-        "outputTokens": 3870,
-        "reasoningTokens": 1942,
-        "totalTokens": 1302932
+        "cachedInputTokens": 2438272,
+        "inputTokens": 89573,
+        "outputTokens": 7104,
+        "reasoningTokens": 3924,
+        "totalTokens": 2538873
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -4137,6 +4480,33 @@
       "startedAt": "2026-11-09T12:30:12.290Z",
       "status": "completed",
       "rootConversationId": "agent-0f67a980-555f-4646-b98d-17cbffe8275b"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-09T13:33:14.521Z",
+      "conversationIds": [
+        "agent-24fcf914-9b43-45d3-bf79-85d208334263"
+      ],
+      "details": {
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-99a5956a-7262-4349-acd4-e4409b99f29d",
+      "origin": {
+        "cardInternalId": "bc624c64-1eb8-49f0-b352-5bea1077c5a6",
+        "kind": "card"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "rootConversationId": "agent-24fcf914-9b43-45d3-bf79-85d208334263",
+      "startedAt": "2026-11-09T13:18:58.299Z",
+      "status": "completed"
     }
   ],
   "version": 5

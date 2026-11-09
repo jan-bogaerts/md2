@@ -3,7 +3,7 @@ author:
 id: B_360
 internalId: bc624c64-1eb8-49f0-b352-5bea1077c5a6
 title: for each not working
-status: to fix
+status: ready
 owner: 
 affects:
 agents:
@@ -19,6 +19,7 @@ changedFiles:
   - desktop/src/actions/action/action_compact_queue.test.mjs
   - desktop/src/actions/action/action_run.js
   - desktop/src/actions/action/action_run.test.mjs
+  - desktop/src/actions/action/action_runner_service.js
   - desktop/src/actions/action/action_runner_service.test.mjs
   - desktop/src/actions/action/action_scheduler_service.test.mjs
   - desktop/src/actions/activity/activity_files.js
