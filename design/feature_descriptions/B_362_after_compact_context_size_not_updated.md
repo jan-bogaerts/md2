@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__ba21cf2c-06f9-4210-aeb5-203d3d6c934d.json
 policy:
+branch: b_362_after_compact_context_size_not_updated
+worktree: 1
 ---
 
 We did a compact on a conversation with the codex agent. this went ok, but after the operation, the context size indictor still indicated the same size.
