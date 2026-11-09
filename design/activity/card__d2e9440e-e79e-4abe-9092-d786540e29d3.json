@@ -5,10 +5,10 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "d2e9440e-e79e-4abe-9092-d786540e29d3",
       "cardPath": "design/feature_descriptions/B_361_action_popup_stuck.md",
-      "completedAt": null,
+      "completedAt": "2026-11-09T13:50:35.349Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 93647
+        "usedTokens": 112023
       },
       "entries": [
         {
@@ -690,6 +690,323 @@
           "role": "assistant",
           "sequence": 50,
           "timestamp": "2026-11-09T13:46:08.174Z"
+        },
+        {
+          "content": "why disable? why should the user wait until 'whatever' is still being done in the background. can't the message be queued?",
+          "id": "submission-c243783a-b91e-45f6-b677-25a0c1b5106e",
+          "kind": "message",
+          "role": "user",
+          "sequence": 51,
+          "timestamp": "2026-11-09T13:48:13.733Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-52",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f208979cc1522be016af1cf27868887d28890d3358724def0",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:48:22.024Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Disabling Send was only the smallest consistency fix. It is not the best user experience.\n\nThe message cannot be sent immediately because the Claude process has already stopped and the action is finalizing Git and activity data. However, it can be accepted and queued outside the closing `ActionRun`.\n\nThe better solution is:\n\n- Accept the prompt while the run is finishing.\n- Display it as queued.\n- Finish the current persistence and Git work.\n- Start a continuation run for the same `AgentConversation.id`.\n- Dispatch the queued prompt to that continuation.\n\nThis preserves serialization without making the user wait or producing a misleading failure. The queue should belong to the conversation lifecycle, not solely to one `ActionRun`.\n\n",
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 53,
+          "timestamp": "2026-11-09T13:48:24.223Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_361_action_popup_stuck.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-1d599aa8-1633-4d91-9a0a-d5ceed44aaa1",
+          "kind": "message",
+          "role": "user",
+          "sequence": 54,
+          "timestamp": "2026-11-09T13:48:58.753Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-55",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f208979cc1522be016af1cf4f44f087d2b9cb527a01cf19a6",
+          "sequence": 55,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:49:01.722Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’m using the technical-writer skill to keep the feature document concise and consistent. I’ll incorporate the investigated lifecycle and the revised conversation-level queue solution, then verify the resulting document.\n\n",
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 56,
+          "timestamp": "2026-11-09T13:49:02.780Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "durationMs": 40,
+          "exitCode": 0,
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-57",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "providerItemId": "exec-2c6fdd04-6138-449e-b8ec-698fe41a12a2",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:49:10.690Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-58",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f208979cc1522be016af1cf5aa52087d2b989af86672486a3",
+          "sequence": 58,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:49:13.086Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n --glob '*.md' --glob '\"'!activity/**'\"' \\\"prompt queue|queued prompt|conversation lifecycle|finishing|ActionRun\\\" design/feature_descriptions design/architecture | Select-Object -First 120\"",
+          "content": "design/architecture\\class_relationships.md:137:        class ActionRunHistory\r\ndesign/architecture\\class_relationships.md:138:        class ActionRunStatus\r\ndesign/architecture\\class_relationships.md:417:    ActionPopupContent --> ActionRunHistory\r\ndesign/architecture\\class_relationships.md:418:    ActionPopupContent --> ActionRunStatus\r\ndesign/architecture\\class_relationships.md:424:    ActionRunHistory --> HistoryEntryRow\r\ndesign/architecture\\class_relationships.md:588:        class ActionRunnerService\r\ndesign/architecture\\class_relationships.md:608:    ActionRunnerService *-- ActionExecution : owns active executions\r\ndesign/architecture\\class_relationships.md:609:    ActionRunnerService *-- ActionAgentExecutor : owns executor\r\ndesign/architecture\\class_relationships.md:610:    ActionRunnerService --> ActionWorktreeExecutionService : scopes actions\r\ndesign/architecture\\class_relationships.md:611:    ActionRunnerService --> AgentRunnerService : runs agents\r\ndesign/architecture\\class_relationships.md:612:    ActionRunnerService --> LocalGitService : loads definitions and history\r\ndesign/architecture\\class_relationships.md:613:    ActionRunnerService --> ActionDefinitionLoader : resolves root action\r\ndesign/architecture\\class_relationships.md:630:    ActionSchedulerService --> ActionRunnerService : starts scheduled action\r\ndesign/architecture\\class_relationships.md:634:    LocalBridgeDispatch --> ActionRunnerService : start, cancel, events\r\ndesign/architecture\\class_relationships.md:643:    ActionRunnerService ..> ActionExecutionService : execution events via bridge\r\ndesign/architecture\\class_relationships.md:648:`main.js` composes the desktop service graph. `ActionRunnerService` owns per-run `ActionExecution` instances; `ActionSchedulerService` starts those same executions for timers. `AgentRunnerService` owns child processes and creates a protocol parser for each provider stream. `LocalBridgeDispatch` exposes the graph both to the Electron preload IPC bridge and to `RemoteControlService`, which is how the app-side classes in the first diagram reach the same desktop services.\r\ndesign/feature_descriptions\\B_291_error_queued_agent_prompt_is_empty.md:34:- In the prompt shortcut handler, derive the complete run state from a fresh `currentActionRun(bindingStore)` snapshot immediately before dispatch. Do not combine a fresh run with render-captured status or action-type values.\r\ndesign/feature_descriptions\\B_291_error_queued_agent_prompt_is_empty.md:45:- Empty queued prompts sent directly to the desktop bridge are still rejected.\r\ndesign/feature_descriptions\\B_290_error_provider_event_identity_mismatch_at_convers.md:46:- `/assets/index-BEXaJcv8.js:109:44704` — Mm.handleActionRunEvent\r\ndesign/feature_descriptions\\B_292_error_conversation_entry_index_out_of_range_152.md:45:- `/assets/index-BEXaJcv8.js:109:44704` — Mm.handleActionRunEvent\r\ndesign/feature_descriptions\\B_343_error_unknown_action_phrase_section_phrase_00f9d.md:64:* Any re-render during typing makes the edited phrase lose its identity. A confirmed trigger is the save of an earlier commit finishing: `ActionDraftStore.queueDraftSave` and `acknowledgeDraftPersistence` call `dispatchDraftChanged`, and the controller re-renders against the newer staged text.\r\ndesign/feature_descriptions\\B_347_error_cannot_resolve_this_card_placeholder_withou.md:65:Opening a project action prepares its configured prompt through `ActionRunnerService.prepareActionPrompt()`. `resolvePlaceholders()` recognizes `{{this-card}}` as an alias of `{{card-file}}` and requires `ActionContext.file`, the repository-relative card or file path. Project context has no file, so preparation fails before an agent starts with `Cannot resolve this-card placeholder without a file context`.\r\ndesign/feature_descriptions\\B_348_error_maximum_update_depth_exceeded_this_can_hap.md:32:Each published event crosses the Electron bridge and synchronously calls `ActionRunStore.update`. The chatlog tracker recomputes its snapshots and notifies React for every visible conversation change. A sufficiently dense burst therefore reaches React's nested synchronous update limit.\r\ndesign/feature_descriptions\\B_348_error_maximum_update_depth_exceeded_this_can_hap.md:34:Prompt acknowledgement events add a second, smaller source of redundant work. `ActionRunRegistry.handleEvent` first updates the run store and then reconciles the corresponding pending submission. The chatlog tracker subscribes to both sources, so one backend prompt event can update it twice.\r\ndesign/feature_descriptions\\B_361_action_popup_stuck.md:18:> Action run no longer accepts queued prompts: action-ff817ecc-7aa9-4c48-9598-f408510baec0\r\ndesign/feature_descriptions\\J_28_finishing_action_very_slow.md:5:title: finishing action very slow\r\ndesign/feature_descriptions\\F_462_foreach_use_selector_for_loop_data.md:42:`ActionForEachConfig` stores the selected JSON value, file name, end mode, and failure policy. Draft settings live in `ActionRunInputStore`; settings on an existing conversation are persisted in its activity file. The shared validator rejects unknown configuration fields.\r\ndesign/feature_descriptions\\J_68_split_action_run_history_into_focused_units.md:18:`ActionRunHistory` reads the configured agent accounts, reports load errors, sorts entries, formats each entry, and renders the section and commit references. The component is small enough to understand, but its pure ordering behavior and individual entry presentation have no independent boundary. The existing test file consequently covers section behavior, entry formatting, ordering, and commit interaction together.\r\ndesign/feature_descriptions\\J_68_split_action_run_history_into_focused_units.md:20:`ActionRunHistoryOwner` is the only caller. It subscribes to the popup-scoped `ActionHistoryStore`, loads history, and passes `entries` and `error` to `ActionRunHistory`. Agent and command popups each render the owner with their own runtime history store.\r\ndesign/feature_descriptions\\J_68_split_action_run_history_into_focused_units.md:22:`ActionRunHistoryEntry` has no canonical run identifier. The current source index is required to preserve deterministic ordering when completion timestamps match and contributes to the React key, but it must not be promoted to domain identity.\r\ndesign/feature_descriptions\\J_68_split_action_run_history_into_focused_units.md:54:* `ActionRunHistoryOwner` and `ActionHistoryStore` remain unchanged; removing owner components belongs to the separate owner-component architecture work.\r\n",
+          "durationMs": 123,
+          "exitCode": 0,
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-59",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n --glob '*.md' --glob '\"'!activity/**'\"' \\\"prompt queue|queued prompt|conversation lifecycle|finishing|ActionRun\\\" design/feature_descriptions design/architecture | Select-Object -First 120\"",
+          "providerItemId": "exec-b0a85d90-c061-445f-915b-b3284e2126d7",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:49:19.367Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_361_action_popup_stuck.md'; Get-ChildItem 'design/feature_descriptions' -Filter 'B_*.md' | Select-Object -First 4 -ExpandProperty FullName | ForEach-Object { \\\"--- \"'$_\"; Get-Content -Raw $_ }'",
+          "content": "---\r\nauthor: \r\nid: B_361\r\ninternalId: d2e9440e-e79e-4abe-9092-d786540e29d3\r\ntitle: action popup stuck\r\nstatus: design\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__d2e9440e-e79e-4abe-9092-d786540e29d3.json\r\npolicy:\r\n---\r\nWe were doing a conversation in an action popup. there were a couple of tasks to complete. the UI appeared as if it was stuck on task 2, and everything was still running.\n\nhowever, when I tried to send a new prompt, we got:\n\n> Failed to send\r\n> Action run no longer accepts queued prompts: action-ff817ecc-7aa9-4c48-9598-f408510baec0\n\nThe ui was clearly in a bad state, the prompt was ready but the UI did not see it. I think something got broken perhaps in recent refactoring?\n\nnote: this was with a claude agent\r\n--- C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_279_error_markdown_editor_is_not_mounted.md\r\n---\nauthor: \nid: B_279\ninternalId: e32b2bd4-00c9-4dbe-b3f4-b1d773524fc9\ntitle: Error: Markdown editor is not mounted\nstatus: new\nowner: \naffects:\nagents:\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 152582292\nsentryOrganization: elastetic\nafter: f5e9bc66-ebde-41f7-ae6e-503e9e8e284a\n---\n\n## Sentry issue\n\n**Title:** Error: Markdown editor is not mounted\n\n**Message:** Not provided\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/152582292/)\n\n**First seen:** 2026-10-09T12:36:24Z\n\n**Last seen:** 2026-10-09T12:36:24Z\n\n**Occurrences:** 1\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** ?(/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Dy1jI_Xv.js)\n\n**Event ID:** 87c542aed2fb4cde8acd3de3d8285b0b\n\n### Application stack frames\n\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Dy1jI_Xv.js:2596:378` â€” L2\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-Dy1jI_Xv.js:2592:17080` â€” unknown function\r\n--- C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_280_error_unknown_submission_submission_96e850d4_124.md\r\n---\nauthor: \nid: B_280\ninternalId: 4c5204ec-c4f1-4dd2-aaae-53c939f48f46\ntitle: Error: Unknown submission: submission-96e850d4-124\nstatus: new\nowner: \naffects:\nagents:\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 149991133\nsentryOrganization: elastetic\nafter: e32b2bd4-00c9-4dbe-b3f4-b1d773524fc9\n---\n\n## Sentry issue\n\n**Title:** Error: Unknown submission: submission-96e850d4-1247-405c-bccd-2333db478f95\n\n**Message:** Not provided\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/149991133/)\n\n**First seen:** 2026-09-28T17:34:03Z\n\n**Last seen:** 2026-10-07T13:48:42Z\n\n**Occurrences:** 15\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** vLe.bindSubmission(/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js)\n\n**Event ID:** f3a88dbd0e8140478185b5ab6580374d\n\n### Application stack frames\n\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:2595:4490` â€” async re\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:2591:29315` â€” async g2\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:2591:27507` â€” async h2\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:139:11997` â€” EventTarget.startRun\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:141:12014` â€” a\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:2591:27334` â€” x\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:724:34734` â€” vLe.bindSubmission\r\n--- C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_281_error_this_content_needs_source_mode_the_existin.md\r\n---\nauthor: \nid: B_281\ninternalId: 8b060eac-e294-46f0-86f9-3782d541fa8a\ntitle: Error: This content needs Source mode. The existin\nstatus: new\nowner: \naffects:\nagents:\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 152025171\nsentryOrganization: elastetic\nafter: 4c5204ec-c4f1-4dd2-aaae-53c939f48f46\n---\n\n## Sentry issue\n\n**Title:** Error: This content needs Source mode. The existing document is preserved; paste or insert it again in Source.\n\n**Message:** Not provided\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/152025171/)\n\n**First seen:** 2026-10-07T09:30:15Z\n\n**Last seen:** 2026-10-07T09:30:15Z\n\n**Occurrences:** 1\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** gkt.validateRichInsertion(/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js)\n\n**Event ID:** d77fb8c9b6c5403fbf4bdf74e44d0fe9\n\n### Application stack frames\n\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:25:6718` â€” HTMLDivElement.r\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:857:11063` â€” HTMLDivElement.o\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:857:21293` â€” $R\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:856:7542` â€” g$e\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:856:11046` â€” eR\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:856:8720` â€” $L\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:856:7570` â€” unknown function\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:2591:2766` â€” unknown function\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:2591:15737` â€” Object.insertMarkdown\n- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CBGwrDFl.js:2591:8918` â€” gkt.validateRichInsertion\r\n--- C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_282_error_scheduling_actions_requires_electron_local.md\r\n---\nauthor: \nid: B_282\ninternalId: d78bbdec-cace-478a-8639-cc4afa66c7b6\ntitle: Error: Scheduling actions requires Electron local \nstatus: ready\nowner: \naffects:\nagents:\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 150995219\nsentryOrganization: elastetic\nafter: bc624c64-1eb8-49f0-b352-5bea1077c5a6\n---\n\n## Sentry issue\n\n**Title:** Error: Scheduling actions requires Electron local mode\n\n**Message:** Not provided\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/150995219/)\n\n**First seen:** 2026-10-02T16:51:55Z\n\n**Last seen:** 2026-10-02T16:51:55Z\n\n**Occurrences:** 1\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** uLe(assets/index-lIBBsslX)\n\n**Event ID:** 20f5e225d851452e8ebf252a46e92618\n\n### Application stack frames\n\n- `/assets/index-lIBBsslX.js:25:6718` â€” HTMLBodyElement.r\n- `/assets/index-lIBBsslX.js:11:28335` â€” Cf\n- `/assets/index-lIBBsslX.js:11:28513` â€” Tf\n- `/assets/index-lIBBsslX.js:10:127795` â€” ed\n- `/assets/index-lIBBsslX.js:10:15085` â€” Qt\n- `/assets/index-lIBBsslX.js:10:131569` â€” unknown function\n- `/assets/index-lIBBsslX.js:10:126566` â€” Ju\n- `/assets/index-lIBBsslX.js:332:24511` â€” o\n- `/assets/index-lIBBsslX.js:563:10568` â€” onRegister\n- `/assets/index-lIBBsslX.js:507:31954` â€” uLe\r\n",
+          "durationMs": 117,
+          "exitCode": 0,
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-60",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_361_action_popup_stuck.md'; Get-ChildItem 'design/feature_descriptions' -Filter 'B_*.md' | Select-Object -First 4 -ExpandProperty FullName | ForEach-Object { \\\"--- \"'$_\"; Get-Content -Raw $_ }'",
+          "providerItemId": "exec-344f772b-cd8e-4c8f-8624-72d65c57ed45",
+          "sequence": 60,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:49:19.394Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/architecture/architectural_decisions.md'\"",
+          "content": "---\ninternalId: 583d9c88-b71c-4560-92ad-3e23d33bf1d0\n---\n\n# Architectural decisions\n\nProject-wide decisions for MDÂ². The app is a Vite React web app in `app/`; `desktop/` is a separate Electron host that can load the website and expose local capabilities through preload bridges.\n\n## File naming\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Code files use lowercase snake_case names. | All code files in `app/src/` and `desktop/` use lowercase words separated by underscores, for example `github_auth_service.ts`, `project_workspace.tsx`, and `local_git_service.js`. Test files keep the same base name with `.test` before the extension, for example `github_auth_service.test.ts`. Exported symbols keep normal TypeScript/JavaScript casing such as `GithubAuthService`, `ProjectWorkspace`, and `useGithubAuth`. | A single file naming convention avoids mixed PascalCase, camelCase, and hyphenated filenames, and keeps imports predictable across Windows and case-sensitive environments. |\n\n## Services and state\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Global singleton services own domain state and logic. | Each domain is a class in `src/services/**`, instantiated once at module level and exported, for example `export const indexesService = new IndexesService()`. React components do not own domain state. | Keeps business logic out of components, testable without a DOM, and shared across windows/views without Redux, Zustand, or Context stores. |\n| Service location follows usage scope. | If a service is specific to one UI element and used only there, place it beside that component. Generic or shared services, such as logging, database access, config, storage, or cross-screen domain logic, belong in `src/services/`. | Keeps component-owned behavior local while preserving `src/services/` for reusable application services. |\n| Consumers use direct imports or the service injector. | Direct import when no import cycle exists; use `src/services/service_injector.js` when a cycle would occur. Every global singleton service registers itself in its constructor with `inj.register('myService', this)`. | The service graph is dense; the injector is a bare global registry that defers resolution to call time. |\n| Services have a two-phase lifecycle. | Constructors only register and set unloaded state such as `null`. Config-dependent or service-dependent work runs in `init()`, `start()`, app bootstrap (`App.jsx`), or a `loaded` lifecycle event. `configService.config` is private; callers use `get`, `set`, and `clear`. | Module evaluation order is not guaranteed, so `configService` is not usable at import time. Reading config in a constructor is a bug. |\n\n## Card state\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| The application has one `Card` domain type. | Do not create separate canonical, project, snapshot, or editor card types. The card-owning service holds the loaded cards and exposes focused operations that change only the requested field. React snapshots and editor drafts are read values; they must never replace or merge a complete card. Parser bookkeeping may remain private persistence metadata, but it is not another card model. | One card concept gives state a clear owner and prevents stale copies from overwriting newer worktree, activity, ordering, policy, or body values. |\n| Card UI subscribes at field level. | A component subscribes only to the primitive or stable reference it renders, using granular `EventTarget` events and `useSyncExternalStore`. Do not clone or stringify a complete card to detect a field change. Group fields only in a deliberately small, stable projection when they are always rendered together. | A one-field change allocates and rerenders only what consumes that field, keeping memory use bounded and the UI responsive. |\n| Cards are serialized only at persistence boundaries. | Mutate the owned `Card` through a focused operation, then serialize its current state when the persistence batch flushes. Editor changes update only the edited field. Activity linking updates only activity references. External file changes are parsed and applied deliberately without replacing dirty local state. | Persistence remains deterministic while concurrent saves and external updates cannot discard unrelated newer values. |\n\n\n## Events and React integration\n\n| Decision | Rule | Rationale |\n| --- | --- | --- |\n| Services notify observers through their own `EventTarget`. | Services expose an `EventTarget` and dispatch named `CustomEvent` domain events such as `activeIndex`, `added`, `deleted`, or `changedBox`. Observers subscribe with `addEventListener` and unsubscribe with `removeEventListener` on the owning service. | Decouples producers from consumers without depending on Node `EventEmitter`, which is not available in the browser-first React app. |\n| Custom hooks bridge service events to functional components. | Hooks in `src/components/hooks/`, such as `useActiveIndex` and `useProjectConfig`, seed `useState` from a service property, subscribe in `useEffect`, unsubscribe in cleanup, and return the value. Prefer hook + service over prop chains. | Components stay declarative and avoid direct event plumbing. |\n| Components subscribe at the smallest rendering boundary. | Root and layout components compose UI regions and pass structural inputs. Components that render changing application data subscribe through hooks themselves. Do not hoist changing data into ancestors only to pass it downward. | Limits rerenders to affected UI, protects transient state such as open popups, and avoids broad prop chains. |\n| Components use the app theme service path. | `App` owns theme mode through `useThemeMode()`, builds the MUI theme with `createAppTheme(mode)`, and provides it through `ThemeProvider`. Components read theme values with MUI APIs such as `useTheme`, `useMediaQuery`, and `sx`; only controls that change the palette mode receive `mode` and `onToggleTheme`. | Theme state, persistence, and palette construction stay centralized while components remain presentation-focused. |\n\r\n",
+          "durationMs": 47,
+          "exitCode": 0,
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-61",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/architecture/architectural_decisions.md'\"",
+          "providerItemId": "exec-a5d441cc-2847-431e-9113-f161fc262265",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:49:19.349Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f208979cc1522be016af1cf636a9c87d2931346ccbcf3088f",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:49:21.854Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md'; Get-Content -Raw 'design/feature_descriptions/J_28_finishing_action_very_slow.md'\"",
+          "content": "---\nauthor: \nid: B_291\ninternalId: 985eabb4-1032-49e3-9523-580c67467696\ntitle: Error: Queued agent prompt is empty\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__985eabb4-1032-49e3-9523-580c67467696.json\npolicy:\nsentryBaseUrl: https://sentry.io\nsentryIssueId: 145990654\nsentryOrganization: elastetic\nafter: f3b7a6f7-0cc4-4d30-994b-026f9d5d8092\nchangedFiles:\n  - app/src/components/actions/agent/action_agent_prompt.test.tsx\n  - app/src/components/actions/agent/action_agent_prompt.tsx\n  - app/src/components/actions/run/popup/action_popup_operations.node.test.ts\n  - app/src/components/actions/run/popup/action_popup_operations.ts\n  - desktop/src/actions/action/action_run.test.mjs\n---\n\n## Current state\n\nThe exception is raised in `runPopupAction` when a live agent run is detected but the prompt draft selected for that run is empty. The Sentry stack shows that the path was entered through the prompt editor's `Ctrl/Cmd+Enter` shortcut.\n\nThe shortcut handler reads part of its run state from the last React render. A scheduled run can become active before React rerenders, so the shortcut can pass validation using stale idle state. `runPopupAction` then reads the current active run, switches to the active conversation draft, and reports `Queued agent prompt is empty`.\n\nThe scheduler previously created a replacement conversation for every scheduled run. That defect is already fixed. Schedule registration now stores the displayed `AgentConversation.id`, and scheduled execution validates and continues that conversation with its persisted reference. The desktop and renderer therefore use the same canonical conversation identity.\n\n## Implementation details\n\n- In the prompt shortcut handler, derive the complete run state from a fresh `currentActionRun(bindingStore)` snapshot immediately before dispatch. Do not combine a fresh run with render-captured status or action-type values.\n- In `runPopupAction`, treat an empty prompt discovered after an agent run becomes active as a stale UI interaction. Return without creating a submission, enqueueing a prompt, or reporting an error.\n- Keep the desktop queue validation that rejects empty prompts. It remains the defensive boundary for invalid bridge calls.\n- Do not change scheduler conversation continuation. It already persists `conversationId`, validates the conversation's action and card ownership, and supplies `continueFrom` when the schedule fires.\n- Add focused renderer tests for an externally started or scheduled run becoming active before the shortcut handler rerenders.\n\n## Acceptance criteria\n\n- Pressing `Ctrl/Cmd+Enter` after a scheduled agent run becomes active but before the prompt UI rerenders does not report `Queued agent prompt is empty`.\n- The stale shortcut does not create a submission or call the queued-prompt bridge.\n- A non-empty prompt entered for an active agent run is still queued normally.\n- Empty queued prompts sent directly to the desktop bridge are still rejected.\n- A schedule created for an existing conversation continues the same `AgentConversation.id` and does not create a replacement conversation.\n- Scheduled runs without an existing conversation continue to allocate one new conversation identity.\n\n## Sentry issue\n\n**Title:** Error: Queued agent prompt is empty\n\n**Message:** Not provided\n\n**Link:** [Open issue in Sentry](https://elastetic.sentry.io/issues/145990654/)\n\n**First seen:** 2026-09-16T12:11:52Z\n\n**Last seen:** 2026-09-16T12:11:52Z\n\n**Occurrences:** 1\n\n**Release:** Not provided\n\n**Environment:** production\n\n**Culprit:** V2(/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js)\n\n**Event ID:** 7f3de1034fef41a0ad455de66decdf70\n\n### Application stack frames\n\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:25:6718` â€” HTMLBodyElement.r\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:11:28324` â€” kf\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:11:28503` â€” Af\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:127780` â€” Zu\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:15085` â€” Zt\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:131553` â€” unknown function\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:10:126356` â€” Gu\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2319:18194` â€” onKeyDownCapture\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2321:9090` â€” onRunShortcut\n* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-BEXaJcv8.js:2319:22034` â€” V2\n\r\n---\nauthor: \nid: J_28\ninternalId: 38781d24-46e6-4824-9587-b95bf62a0738\ntitle: finishing action very slow\nstatus: new\nowner: \naffects:\nagents:\npolicy:\nafter: 0f92d6ef-ec13-478c-b3f9-d1b0bfcf391d\n---\n\nWhen user clicks on 'finish' to complete an action. The ui appears to do a lot:\n\n* action appears to start again, the action-button begins to show 'running' state again. this should not occur\n* entire popup seems to 'twitch' and reload. why? this should not happen.\n* the entire process appears to take a long time. yet it should be a simple matter of updating a state, saving, updating a few mall sections on the ui.\r\n",
+          "durationMs": 41,
+          "exitCode": 0,
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-63",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_291_error_queued_agent_prompt_is_empty.md'; Get-Content -Raw 'design/feature_descriptions/J_28_finishing_action_very_slow.md'\"",
+          "providerItemId": "exec-05712f6d-e5ac-4af9-8859-20fc1311ce5f",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:49:24.430Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-64",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f208979cc1522be016af1cf71891087d2b65877e0fa31f2b5",
+          "sequence": 64,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:49:35.966Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-65",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f208979cc1522be016af1cf747fcc87d28d13e36f686eee2d",
+          "sequence": 65,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:49:38.985Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"async start|startRun|startAction|runWithPrompt|beginSubmission|submissionOwners|PendingActionSubmission\" app/src/services/actions/action_run_registry.ts app/src/components/actions/run/popup/action_popup_operations.ts app/src/data/action_run_types.ts | Select-Object -First 160'",
+          "content": "app/src/components/actions/run/popup/action_popup_operations.ts:21:    defaultRestartAction,\r\napp/src/components/actions/run/popup/action_popup_operations.ts:105:async function runWithPrompt(\r\napp/src/components/actions/run/popup/action_popup_operations.ts:164:            ? await defaultRestartAction(previousRunId, action, executionContext, runInput, handleStarted)\r\napp/src/components/actions/run/popup/action_popup_operations.ts:219:            const submissionId = actionRunRegistry.beginSubmission(action.id, executionContext, prompt, null, conversationId);\r\napp/src/components/actions/run/popup/action_popup_operations.ts:222:            await runWithPrompt(input, prompt, run.runId, submissionId, diagramPath, conversationId, executionContext)\r\napp/src/components/actions/run/popup/action_popup_operations.ts:229:            submissionId = actionRunRegistry.beginSubmission(action.id, executionContext, prompt, run.runId, run.conversation?.id ?? null);\r\napp/src/components/actions/run/popup/action_popup_operations.ts:242:        ? actionRunRegistry.beginSubmission(action.id, executionContext, prompt, null, conversationId)\r\napp/src/components/actions/run/popup/action_popup_operations.ts:246:    await runWithPrompt(input, prompt, null, submissionId, diagramPath, conversationId, executionContext)\r\napp/src/components/actions/run/popup/action_popup_operations.ts:275:    await runWithPrompt(input, content)\r\napp/src/services/actions/action_run_registry.ts:42:export interface PendingActionSubmission {\r\napp/src/services/actions/action_run_registry.ts:57:const EMPTY_SUBMISSIONS: PendingActionSubmission[] = [];\r\napp/src/services/actions/action_run_registry.ts:483:    private readonly submissions = new Map<string, PendingActionSubmission[]>();\r\napp/src/services/actions/action_run_registry.ts:484:    private readonly submissionOwners = new Map<string, SubmissionOwner>();\r\napp/src/services/actions/action_run_registry.ts:515:        const submissionScopes = [...this.submissionOwners.values()];\r\napp/src/services/actions/action_run_registry.ts:516:        this.submissionOwners.clear();\r\napp/src/services/actions/action_run_registry.ts:537:    beginSubmission(actionId: string, context: ActionContext, content: string, runId: string | null, conversationId: string | null) {\r\napp/src/services/actions/action_run_registry.ts:541:        const submission: PendingActionSubmission = { content, id, prompt: null, state: 'transmitting' };\r\napp/src/services/actions/action_run_registry.ts:542:        this.submissionOwners.set(id, { actionId, context, conversationId, runId });\r\napp/src/services/actions/action_run_registry.ts:553:            const owner = this.submissionOwners.get(id);\r\napp/src/services/actions/action_run_registry.ts:566:        const owner = this.submissionOwners.get(id);\r\napp/src/services/actions/action_run_registry.ts:581:        const owner = this.submissionOwners.get(id);\r\napp/src/services/actions/action_run_registry.ts:592:        const owner = this.submissionOwners.get(id);\r\napp/src/services/actions/action_run_registry.ts:605:        const owner = this.submissionOwners.get(id);\r\napp/src/services/actions/action_run_registry.ts:608:        this.submissionOwners.set(id, { ...owner, runId });\r\napp/src/services/actions/action_run_registry.ts:618:        const owner = this.submissionOwners.get(id);\r\napp/src/services/actions/action_run_registry.ts:620:        this.submissionOwners.delete(id);\r\napp/src/services/actions/action_run_registry.ts:628:        submissions: PendingActionSubmission[],\r\napp/src/services/actions/action_run_registry.ts:641:            for (const [id, owner] of [...this.submissionOwners]) {\r\napp/src/services/actions/action_run_registry.ts:644:                this.submissionOwners.set(id, { ...owner, conversationId: conversation.id, runId: event.runId });\r\napp/src/services/actions/action_run_registry.ts:651:            for (const [id, owner] of [...this.submissionOwners]) {\r\napp/src/services/actions/action_run_registry.ts:661:        const owner = this.submissionOwners.get(id);\r\napp/src/services/actions/action_run_registry.ts:667:            this.submissionOwners.set(id, { ...owner, runId: event.runId });\r\napp/src/services/actions/action_run_registry.ts:766:    async startRun(\r\napp/src/services/actions/action_run_registry.ts:778:        const start = interactive ? bridge.startAction.bind(bridge) : bridge.startUnattendedAction?.bind(bridge)\r\napp/src/services/actions/action_run_registry.ts:799:    async restartRun(\r\napp/src/services/actions/action_run_registry.ts:808:        if (!bridge?.restartActionRun) throw new Error('Restarting an action run requires Electron')\r\napp/src/services/actions/action_run_registry.ts:813:            runId = await bridge.restartActionRun(previousRunId, { actionId: action.id, context, runInput })\r\napp/src/services/actions/action_run_registry.ts:966:        for (const [id, owner] of [...this.submissionOwners]) {\r\n",
+          "durationMs": 76,
+          "exitCode": 0,
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-66",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"async start|startRun|startAction|runWithPrompt|beginSubmission|submissionOwners|PendingActionSubmission\" app/src/services/actions/action_run_registry.ts app/src/components/actions/run/popup/action_popup_operations.ts app/src/data/action_run_types.ts | Select-Object -First 160'",
+          "providerItemId": "exec-38e57fb6-c883-4d31-b17f-e9774a0aafa9",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:49:43.167Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$path='\"'app/src/services/actions/action_run_registry.ts'; \"'$lines=Get-Content $path; $lines[35..90]; $lines[595..680]; $lines[750..835]; '\"'--- operations'; \"'$path='\"'app/src/components/actions/run/popup/action_popup_operations.ts'; \"'$lines=Get-Content $path; $lines[90..180]'",
+          "content": "const TERMINAL_STATUSES = new Set<ActionRunTerminalStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])\r\nconst ACTIVE_STATUSES = new Set<ActionRunStatus>(['queued', 'running', 'waitingForInput'])\r\nconst EMPTY_ACTIVE_RUNS: ActiveActionRun[] = []\r\nconst EMPTY_ACTION_RUN_STORES: ActionRunStore[] = []\r\nconst LOST_DURING_RECONNECTION_FAILURE = 'Action run state was lost during reconnection'\r\n\r\nexport interface PendingActionSubmission {\r\n    content: string;\r\n    error?: string;\r\n    id: string;\r\n    prompt: ActionQueuedPrompt | null;\r\n    state: 'transmitting' | 'queued' | 'failed';\r\n}\r\n\r\ninterface SubmissionOwner {\r\n    actionId: string;\r\n    context: ActionContext;\r\n    conversationId: string | null;\r\n    runId: string | null;\r\n}\r\n\r\nconst EMPTY_SUBMISSIONS: PendingActionSubmission[] = [];\r\n\r\nfunction submissionsEventType(actionId: string, context: ActionContext) {\r\n    return `submissions:${actionContextKey(actionId, context)}`;\r\n}\r\n\r\nexport interface ActionRun {\r\n    agentProvider?: string;\r\n    activeActionAutoFinish: ActionDefinition['autoFinish']\r\n    activeActionId: string | null\r\n    activeActionStreaming: boolean\r\n    activeActionType: ActionDefinition['type'] | null\r\n    changedPaths: string[]\r\n    /** Null before the agent closes; false means the terminal conversation differs from its activity file. */\r\n    conversationPersisted: boolean | null\r\n    diagramPath: string | null\r\n    conversation: AgentConversation | null\r\n    conversationChange: ActionConversationChange | null\r\n    context: ActionContext\r\n    runId: string\r\n    logs: ActionRunLogEntry[]\r\n    approvals: LiveAgentApproval[]\r\n    interactionReady: boolean\r\n    question: LiveAgentQuestion | null\r\n    queuedPrompts: ActionQueuedPrompt[]\r\n    reference: string | null\r\n    rootActionId: string\r\n    status: ActionRunStatus\r\n}\r\n\r\nexport type ActionConversationChange = {\r\n    entryIndex: number\r\n    kind: 'entry'\r\n} | {\r\n    kind: 'replace'\r\n        const current = submissions.find((submission) => submission.id === id);\r\n        if (!current || current.state === 'failed') return;\r\n        if (prompt.id !== id) throw new Error(`Queued prompt ID does not match submitted message ID: ${id}`);\r\n        this.publishSubmissions(owner.actionId, owner.context, submissions.map((submission) => (\r\n            submission.id === id ? { ...submission, prompt, state: 'queued' } : submission\r\n        )), notify);\r\n    }\r\n\r\n    private bindSubmission(id: string, runId: string) {\r\n        const owner = this.submissionOwners.get(id);\r\n        // An early acknowledgement has already replaced and removed the local submission.\r\n        if (!owner) return;\r\n        this.submissionOwners.set(id, { ...owner, runId });\r\n        const run = this.runs.get(runId)?.getSnapshot();\r\n        if (this.terminalResults.has(runId) || (run && TERMINAL_STATUSES.has(run.status as ActionRunTerminalStatus))) {\r\n            this.failSubmission(id, 'Run ended before the prompt was sent');\r\n        } else {\r\n            this.dispatchEvent(new Event(submissionsEventType(owner.actionId, owner.context)));\r\n        }\r\n    }\r\n\r\n    private removeSubmission(id: string, notify = true) {\r\n        const owner = this.submissionOwners.get(id);\r\n        if (!owner) return;\r\n        this.submissionOwners.delete(id);\r\n        const submissions = this.getSubmissions(owner.actionId, owner.context).filter((submission) => submission.id !== id);\r\n        this.publishSubmissions(owner.actionId, owner.context, submissions, notify);\r\n    }\r\n\r\n    private publishSubmissions(\r\n        actionId: string,\r\n        context: ActionContext,\r\n        submissions: PendingActionSubmission[],\r\n        notify = true,\r\n    ) {\r\n        const key = actionContextKey(actionId, context);\r\n        if (submissions.length > 0) this.submissions.set(key, submissions);\r\n        else this.submissions.delete(key);\r\n        if (notify) this.dispatchEvent(new Event(submissionsEventType(actionId, context)));\r\n    }\r\n\r\n    private reconcileSubmissions(event: ActionRunEvent, notify = true) {\r\n        if (event.type === 'update' && eve\n[6628 characters omitted]\nvice.getRecords())\r\n}\r\n\r\nasync function runWithPrompt(\r\n    input: ActionPopupOperationInput,\r\n    prompt: string,\r\n    previousRunId: string | null = null,\r\n    submissionId: string | null = null,\r\n    submittedDiagramPath: string | null = null,\r\n    submittedConversationId: string | null = null,\r\n    executionContext: ActionContext = currentCardExecutionContext(input.context),\r\n) {\r\n    const {\r\n        action, bindingStore, context, conversationStore, historyStore, resultStore, settings,\r\n        settingsStore,\r\n    } = input\r\n    resultStore.setRunning()\r\n    const selectedRunId = bindingStore.getSnapshot()\r\n    const selectedConversationId = conversationStore.getSnapshot().selectedConversation?.id ?? null\r\n    let started = false\r\n    try {\r\n        const validationMessage = worktreeValidationMessage(action, executionContext)\r\n        if (validationMessage) throw new Error(validationMessage)\r\n\r\n        const liveConversation = currentActionRun(bindingStore)?.conversation ?? null\r\n        const continuationPath = conversationStore.continuationPath(liveConversation)\r\n        const diagramPath = submittedDiagramPath ?? currentActionPromptDraft(\r\n            action, context, bindingStore, conversationStore, false,\r\n        ).getDiagramPath()\r\n        const forEach = conversationStore.getSnapshot().selectedConversation?.forEach\r\n            ?? input.inputStore.getSnapshot().forEachByAction[action.id]\r\n        const runInput = action.type === 'agent'\r\n            ? {\r\n                ...(settings.accountId ? { accountId: settings.accountId } : {}),\r\n                ...(settings.agent ? { agent: settings.agent } : {}),\r\n                ...(continuationPath ? { continueFrom: continuationPath } : {}),\r\n                ...(submittedConversationId ? { conversationId: submittedConversationId } : {}),\r\n                ...(diagramPath ? { diagramPath } : {}),\r\n                ...(forEach ? { forEach } : {}),\r\n                prompt,\r\n                ...(submissionId ? { submissionId } : {}),\r\n                ...(settings.model ? { model: settings.model } : {}),\r\n                ...(settings.permissionMode ? { permissionMode: settings.permissionMode } : {}),\r\n                thinkingLevel: settings.thinkingLevel,\r\n                ...(settings.speedMode !== undefined ? { speedMode: settings.speedMode } : {}),\r\n            }\r\n            : { command: prompt }\r\n        const handleStarted = (runId: string) => {\r\n            started = true\r\n            if (action.type === 'command') {\r\n                currentActionPromptDraft(action, context, bindingStore, conversationStore, false)\r\n                    .replace(action.command ?? '')\r\n            }\r\n            const selectionUnchanged = bindingStore.getSnapshot() === selectedRunId\r\n                && (conversationStore.getSnapshot().selectedConversation?.id ?? null) === selectedConversationId\r\n            if (selectionUnchanged) {\r\n                bindingStore.setRunId(runId)\r\n            }\r\n            resultStore.setRunId(runId)\r\n            settingsStore.markSettingsApplied()\r\n        }\r\n        const result = previousRunId\r\n            ? await defaultRestartAction(previousRunId, action, executionContext, runInput, handleStarted)\r\n            : await defaultRunAction(action, executionContext, runInput, handleStarted)\r\n        resultStore.setResult(result)\r\n        await historyStore.load()\r\n        if (action.type === 'agent') {\r\n            await conversationStore.load()\r\n        }\r\n        if (submissionId && result.status === 'failed') {\r\n            const failureMessage = result.logs.find((log) => log.status === 'failed')?.message ?? 'Action run failed'\r\n            actionRunRegistry.failSubmission(submissionId, failureMessage);\r\n        }\r\n    } catch (error) {\r\n        const message = error instanceof Error ? error.message : 'Action run failed'\r\n        if (submissionId && !started) actionRunRegistry.failSubmission(submissionId, message);\r\n        resultStore.setResult({\r\n            changedPaths: [],\r\n            logs: [{\r\n                actionId: action.id,\r\n",
+          "durationMs": 87,
+          "exitCode": 0,
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-67",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$path='\"'app/src/services/actions/action_run_registry.ts'; \"'$lines=Get-Content $path; $lines[35..90]; $lines[595..680]; $lines[750..835]; '\"'--- operations'; \"'$path='\"'app/src/components/actions/run/popup/action_popup_operations.ts'; \"'$lines=Get-Content $path; $lines[90..180]'",
+          "providerItemId": "exec-1ed1f935-47a5-4003-a111-5cb1700f6701",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:49:48.867Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-68",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f208979cc1522be016af1cf88942887d2bb2410adf7766039",
+          "sequence": 68,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:49:59.036Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The existing `SubmissionOwner` already carries `conversationId`, while terminal reconciliation currently fails every submission still owned by the ending run. I’m documenting a conversation-owned deferred continuation that survives that terminal boundary and starts only after finalization, so Git/worktree operations remain serialized.\n\n",
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 69,
+          "timestamp": "2026-11-09T13:50:00.084Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_361_action_popup_stuck.md",
+          "deletions": 2,
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-70",
+          "insertions": 32,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-53d4f007-f9a3-45ec-944d-c1f996a5e69a",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:50:15.799Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f208979cc1522be016af1cf9b026887d2823e9286278a464f",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:50:17.436Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_361_action_popup_stuck.md'\"",
+          "content": "---\r\nauthor: \r\nid: B_361\r\ninternalId: d2e9440e-e79e-4abe-9092-d786540e29d3\r\ntitle: action popup stuck\r\nstatus: ready for implementation\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__d2e9440e-e79e-4abe-9092-d786540e29d3.json\r\npolicy:\r\n---\r\nWe were doing a conversation in an action popup. there were a couple of tasks to complete. the UI appeared as if it was stuck on task 2, and everything was still running.\n\nhowever, when I tried to send a new prompt, we got:\n\n> Failed to send\r\n> Action run no longer accepts queued prompts: action-ff817ecc-7aa9-4c48-9598-f408510baec0\n\nThe ui was clearly in a bad state, the prompt was ready but the UI did not see it. I think something got broken perhaps in recent refactoring?\n\nnote: this was with a claude agent\n\n## Current state\n\nThe renderer treats a run with status `queued`, `running`, or `waitingForInput` as active and allows another prompt while its agent interaction is ready. The desktop `ActionRun` can already have closed its prompt queue during that time. It closes the queue when the agent executor returns and no prompt is waiting, before tracked-file commits, commit-reference capture, activity persistence, and the terminal run event finish.\n\nA prompt submitted in this interval reaches the old run and fails with `Action run no longer accepts queued prompts`. The popup remains on the last live Claude state because it has not received the terminal event. Claude's task list can therefore still show task 2 as in progress; task status is updated only when Claude emits another task update and is not authoritative for prompt acceptance.\n\n`ActionRunRegistry` already associates a pending submission with both a run ID and the canonical `AgentConversation.id`. However, it currently marks every submission owned by a terminal run as failed. Prompt lifetime is therefore incorrectly limited to one `ActionRun` instead of the conversation being continued.\n\n## Implementation details\n\n- Accept prompts submitted while the current run is closing and keep them queued under `AgentConversation.id`. Do not require the user to wait for finalization or match the backend error text in the renderer.\n- Let the desktop action runner route a prompt to the active `ActionRun` while its queue is open. If that run is closing, retain the submission as a deferred continuation and start a successor run for the same action, context, and conversation after the predecessor has finalized.\n- Serialize the successor behind the predecessor's tracked-file commit, commit-reference capture, activity persistence, and worktree release. The continuation must use the persisted conversation reference and must not overlap Git or worktree operations from the previous run.\n- Preserve the submission ID across the boundary. Publish normal queued and dispatched updates for the successor run so `ActionRunRegistry` can rebind the existing submission instead of creating a duplicate message.\n- Change terminal submission reconciliation so a deferred continuation owned by the same `AgentConversation.id` survives the predecessor's terminal event. Fail it only when continuation cannot be started, the conversation identity changes, or the user cancels it.\n- Keep `ActionRun` queues run-scoped. Conversation-level routing and deferred ownership belong to the action runner, which owns run creation and completion.\n- Apply the behavior to every streaming provider. Claude task-list rendering requires no provider-specific workaround.\n- Add focused desktop tests for prompt arrival after the run queue closes, serialized successor startup, identity preservation, and continuation failure. Add renderer service and popup tests proving that the queued message remains visible and is rebound to the successor run without a transient failure.\n\n## Acceptance criteria\n\n- A prompt submitted after the current run stops accepting direct prompts is shown as queued rather than failing with `Action run no longer accepts queued prompts`.\n- The user can submit the prompt immediately and does not have to wait for background finalization.\n- The queued prompt starts a continuation only after the previous run has completed its persistence, Git, and worktree operations.\n- The continuation uses the same `AgentConversation.id`, action, and context.\n- The prompt appears once, retains its submission ID, and transitions from queued to dispatched when the successor run accepts it.\n- A predecessor terminal event does not fail a deferred continuation.\n- If continuation cannot start, the queued prompt changes to a clear failed state and is not silently discarded.\n- The behavior works for Claude and other streaming providers without provider-specific queue logic.\n\r\n",
+          "durationMs": 25,
+          "exitCode": 0,
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-72",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_361_action_popup_stuck.md'\"",
+          "providerItemId": "exec-7f7d9b4d-8135-46c2-9197-cf0fd5ec71b5",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:50:21.286Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_361_action_popup_stuck.md'; git diff -- 'design/feature_descriptions/B_361_action_popup_stuck.md'\"",
+          "content": "diff --git a/design/feature_descriptions/B_361_action_popup_stuck.md b/design/feature_descriptions/B_361_action_popup_stuck.md\nindex 026beae81..b41e1376b 100644\n--- a/design/feature_descriptions/B_361_action_popup_stuck.md\n+++ b/design/feature_descriptions/B_361_action_popup_stuck.md\n@@ -3,7 +3,7 @@ author:\n id: B_361\r\n internalId: d2e9440e-e79e-4abe-9092-d786540e29d3\r\n title: action popup stuck\r\n-status: design\r\n+status: ready for implementation\n owner: \r\n affects:\r\n agents:\r\n@@ -19,4 +19,34 @@ however, when I tried to send a new prompt, we got:\n \n The ui was clearly in a bad state, the prompt was ready but the UI did not see it. I think something got broken perhaps in recent refactoring?\n \n-note: this was with a claude agent\n\\ No newline at end of file\n+note: this was with a claude agent\n+\n+## Current state\n+\n+The renderer treats a run with status `queued`, `running`, or `waitingForInput` as active and allows another prompt while its agent interaction is ready. The desktop `ActionRun` can already have closed its prompt queue during that time. It closes the queue when the agent executor returns and no prompt is waiting, before tracked-file commits, commit-reference capture, activity persistence, and the terminal run event finish.\n+\n+A prompt submitted in this interval reaches the old run and fails with `Action run no longer accepts queued prompts`. The popup remains on the last live Claude state because it has not received the terminal event. Claude's task list can therefore still show task 2 as in progress; task status is updated only when Claude emits another task update and is not authoritative for prompt acceptance.\n+\n+`ActionRunRegistry` already associates a pending submission with both a run ID and the canonical `AgentConversation.id`. However, it currently marks every submission owned by a terminal run as failed. Prompt lifetime is therefore incorrectly limited to one `ActionRun` instead of the conversation being continued.\n+\n+## Implementation details\n+\n+- Accept prompts submitted while the current run is closing and keep them queued under `AgentConversation.id`. Do not require the user to wait for finalization or match the backend error text in the renderer.\n+- Let the desktop action runner route a prompt to the active `ActionRun` while its queue is open. If that run is closing, retain the submission as a deferred continuation and start a successor run for the same action, context, and conversation after the predecessor has finalized.\n+- Serialize the successor behind the predecessor's tracked-file commit, commit-reference capture, activity persistence, and worktree release. The continuation must use the persisted conversation reference and must not overlap Git or worktree operations from the previous run.\n+- Preserve the submission ID across the boundary. Publish normal queued and dispatched updates for the successor run so `ActionRunRegistry` can rebind the existing submission instead of creating a duplicate message.\n+- Change terminal submission reconciliation so a deferred continuation owned by the same `AgentConversation.id` survives the predecessor's terminal event. Fail it only when continuation cannot be started, the conversation identity changes, or the user cancels it.\n+- Keep `ActionRun` queues run-scoped. Conversation-level routing and deferred ownership belong to the action runner, which owns run creation and completion.\n+- Apply the behavior to every streaming provider. Claude task-list rendering requires no provider-specific workaround.\n+- Add focused desktop tests for prompt arrival after the run queue closes, serialized successor startup, identity preservation, and continuation failure. Add renderer service and popup tests proving that the queued message remains visible and is rebound to the successor run without a transient failure.\n+\n+## Acceptance criteria\n+\n+- A prompt submitted after the current run stops accepting direct prompts is shown as queued rather than failing with `Action run no longer accepts queued prompts`.\n+- The user can submit the prompt immediately and does not have to wait for background finalization.\n+- The queued prompt starts a continuation only after the previous run has completed its persistence, Git, and worktree operations.\n+- The continuation uses the same `AgentConversation.id`, action, and context.\n+- The prompt appears once, retains its submission ID, and transitions from queued to dispatched when the successor run accepts it.\n+- A predecessor terminal event does not fail a deferred continuation.\n+- If continuation cannot start, the queued prompt changes to a clear failed state and is not silently discarded.\n+- The behavior works for Claude and other streaming providers without provider-specific queue logic.\n",
+          "durationMs": 77,
+          "exitCode": 0,
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-73",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_361_action_popup_stuck.md'; git diff -- 'design/feature_descriptions/B_361_action_popup_stuck.md'\"",
+          "providerItemId": "exec-1fc9f295-5cf1-4129-b500-e6942fcfd936",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-11-09T13:50:21.317Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-event-74",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f208979cc1522be016af1cfa620d087d280aec0128366075c",
+          "sequence": 74,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T13:50:28.602Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_361_action_popup_stuck.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_361_action_popup_stuck.md) with:\n\n- Status: `ready for implementation`\n- Current state\n- Implementation details\n- Acceptance criteria\n\nThe solution queues prompts by `AgentConversation.id` across the closing run boundary. No other files were changed.\n\n",
+          "id": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-turn-3-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 75,
+          "timestamp": "2026-11-09T13:50:35.349Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -700,56 +1017,84 @@
           "agent": "codex",
           "conversationId": "01a1c08c-5371-7351-b906-b4ee6c0f1740",
           "createdAt": "2026-11-09T13:43:05.365Z",
-          "lastUsedAt": "2026-11-09T13:46:08.174Z",
-          "synchronizedThroughMessageId": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-09T13:50:35.349Z",
+          "synchronizedThroughMessageId": "agent-turn-cb5a8a29-e919-43b9-a4ce-33777a20f35d-turn-3-assistant-3"
         }
       ],
       "startedAt": "2026-11-09T13:43:04.159Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
             "id": "0",
-            "subject": "Read the feature description and identify referenced behavior",
+            "subject": "Read documentation guidance and relevant architecture conventions",
             "status": "completed"
           },
           {
             "id": "1",
-            "subject": "Trace relevant implementation, call sites, and tests",
+            "subject": "Update B_361 with current state, implementation details, acceptance criteria, and status",
             "status": "completed"
           },
           {
             "id": "2",
-            "subject": "Report root cause, impact, and proposed solution",
+            "subject": "Review the final document for scope and consistency",
             "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-09T13:46:02.166Z"
+        "updatedAt": "2026-11-09T13:50:30.628Z"
       },
       "timer": {
         "breakdown": {
           "reasoningMs": 165,
-          "toolMs": 3308
+          "toolMs": 4184
         },
-        "elapsedMs": 184015,
+        "elapsedMs": 291101,
         "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 1371776,
-        "inputTokens": 78701,
-        "outputTokens": 3497,
-        "reasoningTokens": 2622,
-        "totalTokens": 1456596
+        "cachedInputTokens": 2483968,
+        "inputTokens": 95227,
+        "outputTokens": 5797,
+        "reasoningTokens": 4355,
+        "totalTokens": 2589347
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "d2e9440e-e79e-4abe-9092-d786540e29d3",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-11-09T13:50:35.372Z",
+      "conversationIds": [
+        "agent-b1b4ec1b-c74e-473d-8340-32fe7d7d873a"
+      ],
+      "details": {
+        "type": "agent",
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default"
+      },
+      "runId": "action-f0a98dee-a03a-49f2-9b1e-7460d84e7208",
+      "origin": {
+        "cardInternalId": "d2e9440e-e79e-4abe-9092-d786540e29d3",
+        "kind": "card"
+      },
+      "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "rootActionLabel": "investigate",
+      "startedAt": "2026-11-09T13:43:04.157Z",
+      "status": "completed",
+      "rootConversationId": "agent-b1b4ec1b-c74e-473d-8340-32fe7d7d873a"
+    }
+  ],
   "version": 5
 }
