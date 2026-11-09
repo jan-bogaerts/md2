@@ -1006,6 +1006,14 @@
           "role": "assistant",
           "sequence": 74,
           "timestamp": "2026-11-09T12:36:12.550Z"
+        },
+        {
+          "content": "queue it. make certain that with for-each, we only queue at the end",
+          "id": "submission-4890c2cd-265b-4680-8dac-9e0ff39f6038",
+          "kind": "message",
+          "role": "user",
+          "sequence": 75,
+          "timestamp": "2026-11-09T12:37:59.726Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1021,7 +1029,7 @@
         }
       ],
       "startedAt": "2026-11-09T12:30:12.291Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -1048,7 +1056,7 @@
           "toolMs": 7025
         },
         "elapsedMs": 180467,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-09T12:37:59.726Z"
       },
       "title": "investigate",
       "usage": {
