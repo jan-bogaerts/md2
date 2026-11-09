@@ -708,8 +708,8 @@
           "agent": "codex",
           "conversationId": "01a1c049-9f73-75b1-9a16-5a5b834d1f52",
           "createdAt": "2026-11-09T12:30:14.036Z",
-          "lastUsedAt": "2026-11-09T12:32:23.493Z",
-          "synchronizedThroughMessageId": "agent-turn-2fa9d5f5-299f-4187-b19d-7eb3424c547b-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-09T12:34:09.051Z",
+          "synchronizedThroughMessageId": "submission-2986af2a-4cac-49d6-b9ea-d6d7cfcd78d6"
         }
       ],
       "startedAt": "2026-11-09T12:30:12.291Z",
