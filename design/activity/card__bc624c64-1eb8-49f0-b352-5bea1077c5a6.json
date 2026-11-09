@@ -750,6 +750,14 @@
           "role": "assistant",
           "sequence": 55,
           "timestamp": "2026-11-09T12:34:38.806Z"
+        },
+        {
+          "content": "this makes little sense. why are we committing this file after every action run?&#x20;",
+          "id": "submission-a8d2ee3e-51b7-4f19-b6fb-fdbb96a41546",
+          "kind": "message",
+          "role": "user",
+          "sequence": 56,
+          "timestamp": "2026-11-09T12:35:32.234Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -765,7 +773,7 @@
         }
       ],
       "startedAt": "2026-11-09T12:30:12.291Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -792,7 +800,7 @@
           "toolMs": 6053
         },
         "elapsedMs": 140151,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-09T12:35:32.234Z"
       },
       "title": "investigate",
       "usage": {
