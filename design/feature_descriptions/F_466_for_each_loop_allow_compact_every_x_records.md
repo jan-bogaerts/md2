@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__333abc51-f716-4c5e-a14e-20a0e966b9cc.json
 policy:
+branch: f_466_for_each_loop_allow_compact_every_x_records
+worktree: 1
 ---
 
 In the config popup of the for-each function (applied to the action), we can already select to 'compact' after every record. but we should add the option to enter how many records should be skipped before compacting
