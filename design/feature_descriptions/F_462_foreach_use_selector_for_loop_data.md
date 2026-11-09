@@ -3,7 +3,7 @@ author:
 id: F_462
 internalId: 9ee3f856-14a9-495a-88f7-a06cca186ac6
 title: foreach use selector for loop data
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,20 @@ agents:
 policy:
 branch: f_462_foreach_use_selector_for_loop_data
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/action_for_each_menu.test.tsx
+  - app/src/components/actions/run/popup/action_for_each_menu.tsx
+  - app/src/components/actions/run/popup/action_for_each_setup_dialog.test.tsx
+  - app/src/components/actions/run/popup/action_for_each_setup_dialog.tsx
+  - app/src/components/actions/run/popup/action_prompt_menu.test.tsx
+  - app/src/data/action_run_types.ts
+  - app/src/services/agents/agent_conversation_service.node.test.ts
+  - desktop/src/actions/action/action_for_each.test.mjs
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run.test.mjs
+  - desktop/src/actions/action/action_run_request.test.mjs
+  - shared/action_for_each.d.mts
+  - shared/action_for_each.mjs
 ---
 
 We recently added support for the `for-each` feature, which lets the engine perform a prompt over a series of data records. So, for each record in the list, a prompt is run.
