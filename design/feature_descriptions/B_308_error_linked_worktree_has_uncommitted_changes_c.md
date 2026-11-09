@@ -20,6 +20,7 @@ changedFiles:
   - desktop/src/git/worktree_service.js
   - shared/worktree_errors.d.mts
   - shared/worktree_errors.mjs
+after: 449b8fa8-9d5e-4d00-9b81-66a018e55285
 ---
 ## Current state
 

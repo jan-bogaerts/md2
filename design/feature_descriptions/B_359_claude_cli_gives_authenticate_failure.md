@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__5ea4f510-f3ba-4632-bde8-12a0c88335ee.json
 policy:
+after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 ---
 claude cli gives this error:
 \> Failed to authenticate: OAuth session expired and could not be refreshed

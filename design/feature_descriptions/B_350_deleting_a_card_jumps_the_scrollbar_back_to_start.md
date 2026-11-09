@@ -19,6 +19,7 @@ changedFiles:
   - app/src/components/card_view/card_view.tsx
   - app/src/components/card_view/project_card_drag_container.tsx
   - app/src/components/card_view/project_card_view.tsx
+after: ba0c496e-89f0-4041-953e-958d2f53c23f
 ---
 
 ## Current state

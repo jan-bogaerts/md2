@@ -26,6 +26,7 @@ changedFiles:
   - desktop/src/project/project_files.js
   - desktop/src/project/project_folder_git_inclusion.js
   - desktop/src/project/project_folder_git_inclusion.test.mjs
+after: 4beee834-4950-4286-868c-1f2cfb895e10
 ---
 
 We currently have the [commit_batcher.ts](app/src/data/commit_batcher.ts), it saves all files and commits them to git.
