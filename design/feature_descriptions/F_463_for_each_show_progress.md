@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__6c76c3dc-b9d4-4b21-976f-4083499a8096.json
 policy:
 ---
 we recently added the 'for-each' functionality, see ( )
