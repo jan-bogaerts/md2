@@ -13,4 +13,6 @@ claude cli gives this error:
 \> Failed to authenticate: OAuth session expired and could not be refreshed
 need to find a solution for this.
 
-The strange thing is, i started claude cli in another folder and everything was ok.
+Claude cli was no longer properly logged in. we should show a better error message, with an instruction on how to fix it. I opened the claude cli manually in the folder and logged in.
+
+perhaps we can already show a claude cli command window with the /login command ready?
