@@ -768,8 +768,8 @@
           "agent": "codex",
           "conversationId": "01a1c049-9f73-75b1-9a16-5a5b834d1f52",
           "createdAt": "2026-11-09T12:30:14.036Z",
-          "lastUsedAt": "2026-11-09T12:34:38.806Z",
-          "synchronizedThroughMessageId": "agent-turn-2fa9d5f5-299f-4187-b19d-7eb3424c547b-turn-3-assistant-1"
+          "lastUsedAt": "2026-11-09T12:35:32.278Z",
+          "synchronizedThroughMessageId": "submission-a8d2ee3e-51b7-4f19-b6fb-fdbb96a41546"
         }
       ],
       "startedAt": "2026-11-09T12:30:12.291Z",
