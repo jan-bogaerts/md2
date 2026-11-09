@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__0f515f9c-2043-46a5-87e1-547488b1a772.json
 policy:
+branch: b_353_edited_regular_markdown_file_in_list_view_which_got_replaced
+worktree: 2
 ---
 
 I think there is a serious bug in the system regarding the editing and saving of regular markdown files.
