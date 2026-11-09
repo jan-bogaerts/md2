@@ -2375,6 +2375,37 @@
       "startedAt": "2026-11-09T15:41:46.950Z",
       "status": "completed",
       "rootConversationId": "agent-e6bc9fb5-e1b4-43e3-9c36-c40e75958851"
+    },
+    {
+      "commits": [
+        {
+          "commit": "96e13690dec89732f7eb28650130dbe967b5339d",
+          "committedAt": "2026-11-09T16:52:51+01:00",
+          "deletions": 9,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/tasks/for_each_progress_indicator.test.tsx",
+            "app/src/components/actions/conversation/tasks/for_each_progress_indicator.tsx",
+            "app/src/components/actions/run/trigger/task_progress_indicator.test.tsx",
+            "app/src/components/actions/run/trigger/task_progress_indicator.tsx",
+            "app/src/data/action_run_types.ts",
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs"
+          ],
+          "filesChanged": 10,
+          "insertions": 273,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-09T16:52:51+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "6c76c3dc-b9d4-4b21-976f-4083499a8096",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__c7fa6216-d134-4237-8f14-c494ac314c01.json
 policy:
+branch: f_464_for_each_user_can_set_start_index
+worktree: 1
 ---
 
 in the for-each config popup, user should be able to set the index position to start from, default 0.
