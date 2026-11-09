@@ -38,7 +38,7 @@ function missingFileError(actionPath) {
 function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
     const appendActionRunHistory = vi.fn(async () => []);
     const localGitService = {
-        appendAndCommitActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
+        appendActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
             const entry = {
                 ...record.details,
                 completedAt: record.completedAt,
@@ -456,7 +456,7 @@ describe('ActionRunnerService', () => {
         expect(actionWorktreeRunService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
         expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();
-        expect(localGitService.appendAndCommitActionActivity).not.toHaveBeenCalled();
+        expect(localGitService.appendActionActivity).not.toHaveBeenCalled();
     });
 
     it('prepares one diagram path, reuses it at start, and allocates a unique next path', async () => {
@@ -684,7 +684,7 @@ describe('ActionRunnerService', () => {
             'matched',
             'after',
         ]);
-        expect(localGitService.appendAndCommitActionActivity).toHaveBeenCalledOnce();
+        expect(localGitService.appendActionActivity).toHaveBeenCalledOnce();
         expect(events.filter(({ status, type }) => status === 'completed' && type === 'action').map(({ actionId, phase }) => ({actionId, phase}))).toEqual([
             { actionId: 'before', phase: 'before' },
             { actionId: 'main', phase: 'main' },
@@ -767,7 +767,7 @@ describe('ActionRunnerService', () => {
 
         expect(result.status).toBe('cancelled');
         expect(commandRunner.mock.calls.map((call) => call[0])).toEqual([project]);
-        expect(localGitService.appendAndCommitActionActivity.mock.calls[0][1]).toBe('design');
+        expect(localGitService.appendActionActivity.mock.calls[0][1]).toBe('design');
     });
 
     it('delegates cancel and rejects unknown run id', async () => {

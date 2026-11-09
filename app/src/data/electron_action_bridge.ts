@@ -22,6 +22,7 @@ import type {
 } from './action_run_types'
 
 export interface ActionRunRecoveryTerminalResult {
+    activityPath?: string
     changedPaths: string[]
     diagramPath?: string
     failure: string | null

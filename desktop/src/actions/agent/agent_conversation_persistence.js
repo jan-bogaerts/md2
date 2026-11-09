@@ -8,7 +8,7 @@ const {
     writeActivityFile,
 } = require('../activity/activity_files');
 const { appendCardActivityReference } = require('../activity/card_activity_reference');
-const { assertGitRoot, commitTrackedPaths, requireRootPath } = require('../../git/git_commands');
+const { assertGitRoot, requireRootPath } = require('../../git/git_commands');
 const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 const { persistConversationAndProjectUsage } = require('./project_agent_token_usage');
 
@@ -40,7 +40,7 @@ async function persistInitialCardConversation(run, dependencyOverrides = {}) {
     await assertRepositoryRoot(rootPath);
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, request.projectFolder, request.activityOrigin);
     const appendReference = dependencyOverrides.appendCardActivityReference ?? appendCardActivityReference;
-    const commitPaths = dependencyOverrides.commitTrackedPaths ?? commitTrackedPaths;
+    const deferProjectWriteQueue = request.deferProjectWriteQueue === true;
 
     return queueActivityUpdate(rootPath, absolutePath, async () => {
         const activity = upsertConversation(
@@ -54,11 +54,10 @@ async function persistInitialCardConversation(run, dependencyOverrides = {}) {
             request.activityOrigin.cardInternalId,
             relativePath,
         );
-        const gitPaths = uncommittedProjectWrites.gitPaths(rootPath, [relativePath, request.cardPath]);
-        if (gitPaths.length > 0) await commitPaths(rootPath, gitPaths, 'Start card agent activity');
+        if (!deferProjectWriteQueue) uncommittedProjectWrites.mark(rootPath, [request.cardPath]);
 
         return { activity, relativePath };
-    });
+    }, { markProjectWrite: !deferProjectWriteQueue });
 }
 
 async function persistConversationCheckpoint(run, dependencyOverrides = {}) {

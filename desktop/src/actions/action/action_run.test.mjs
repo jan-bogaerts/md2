@@ -47,7 +47,7 @@ function createRun(rootAction, overrides = {}) {
     const events = [];
     const appendActionRunHistory = overrides.localGitService?.appendActionRunHistory ?? vi.fn(async () => []);
     const localGitService = {
-        appendAndCommitActionActivity: vi.fn(async (_project, _projectFolder, _origin, record) => {
+        appendActionActivity: vi.fn(async (_project, _projectFolder, _origin, record) => {
             const commits = record.commits.map((commit) => ({
                 ...commit,
                 actionId: commit.actionId ?? record.rootActionId,
@@ -263,7 +263,7 @@ describe('ActionRun', () => {
         const firstCompletion = deferred();
         const secondCompletion = deferred();
         const records = [];
-        const appendAndCommitActionActivity = vi.fn(async (_project, _projectFolder, _origin, record) => {
+        const appendActionActivity = vi.fn(async (_project, _projectFolder, _origin, record) => {
             records.push(record);
         });
         const first = createRun(action('first'), {
@@ -272,7 +272,7 @@ describe('ActionRun', () => {
                 await firstCompletion.promise;
                 return { command: 'first', exitCode: 0, stderr: '', stdout: '' };
             }),
-            localGitService: { appendAndCommitActionActivity },
+            localGitService: { appendActionActivity },
             runId: 'run-first',
         });
         const second = createRun(action('second'), {
@@ -281,7 +281,7 @@ describe('ActionRun', () => {
                 await secondCompletion.promise;
                 return { command: 'second', exitCode: 0, stderr: '', stdout: '' };
             }),
-            localGitService: { appendAndCommitActionActivity },
+            localGitService: { appendActionActivity },
             runId: 'run-second',
         });
 
@@ -531,7 +531,7 @@ describe('ActionRun', () => {
             return { command, exitCode: 0, stderr: '', stdout: 'done' };
         });
         const localGitService = {
-            appendAndCommitActionActivity: vi.fn(async () => {
+            appendActionActivity: vi.fn(async () => {
                 order.push('history');
 
                 return { relativePath: 'design/activity/card__card-1.json' };
@@ -576,8 +576,8 @@ describe('ActionRun', () => {
 
         await expect(run.completion).resolves.toMatchObject({ status: 'failed' });
 
-        expect(localGitService.appendAndCommitActionActivity).toHaveBeenCalledOnce();
-        const record = localGitService.appendAndCommitActionActivity.mock.calls[0][3];
+        expect(localGitService.appendActionActivity).toHaveBeenCalledOnce();
+        const record = localGitService.appendActionActivity.mock.calls[0][3];
         expect(record).toMatchObject({
             conversationIds: [],
             details: { command: '', output: 'Agent executable is missing', type: 'command' },
@@ -609,7 +609,7 @@ describe('ActionRun', () => {
         };
         const order = [];
         const localGitService = {
-            appendAndCommitActionActivity: vi.fn(async () => {
+            appendActionActivity: vi.fn(async () => {
                 order.push('activity');
 
                 return { relativePath: 'design/activity/card__card-1.json' };
@@ -1566,7 +1566,7 @@ describe('ActionRun', () => {
             actionId: 'main', actionName: 'main', commit: 'abcdef3456789012345678901234567890123456',
             filePaths: ['app/a.ts', 'app/b.ts'],
         });
-        const record = localGitService.appendAndCommitActionActivity.mock.calls[0][3];
+        const record = localGitService.appendActionActivity.mock.calls[0][3];
         expect(record).toMatchObject({
             conversationIds: ['conversation'],
             details: { accountId: 'codex-initial', agent: 'codex', model: 'gpt', thinkingLevel: 'none', type: 'agent' },
@@ -1607,7 +1607,7 @@ describe('ActionRun', () => {
 
         await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
 
-        const record = service.appendAndCommitActionActivity.mock.calls[0][3];
+        const record = service.appendActionActivity.mock.calls[0][3];
         expect(record.commits.map(({ actionId }) => actionId ?? 'main')).toEqual(['before', 'main', 'matching', 'after']);
         expect(record.commits.every((commit) => !Object.hasOwn(commit, 'repositoryRoot'))).toBe(true);
     });
@@ -1643,8 +1643,8 @@ describe('ActionRun', () => {
 
         await run.completion;
 
-        expect(service.appendAndCommitActionActivity).toHaveBeenCalledOnce();
-        expect(service.appendAndCommitActionActivity.mock.calls[0][3].commits[0].actionId).toBe('tracked');
+        expect(service.appendActionActivity).toHaveBeenCalledOnce();
+        expect(service.appendActionActivity.mock.calls[0][3].commits[0].actionId).toBe('tracked');
     });
 
     it('stores repeated reported agent commit and matching tracked commit once', async () => {
@@ -1666,7 +1666,7 @@ describe('ActionRun', () => {
 
         await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
 
-        const record = service.appendAndCommitActionActivity.mock.calls[0][3];
+        const record = service.appendActionActivity.mock.calls[0][3];
         expect(record.commits).toHaveLength(1);
         expect(record.commits[0].commit).toBe('abc1234567890123456789012345678901234567');
         expect(service.resolveCommitMetadata).toHaveBeenCalledTimes(3);

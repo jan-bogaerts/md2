@@ -130,17 +130,18 @@ async function writeActivityFile(filePath, activity) {
     }
 }
 
-async function runMarkedUpdate(rootPath, filePath, update) {
+async function runMarkedUpdate(rootPath, filePath, update, markProjectWrite) {
     const result = await update();
-    uncommittedProjectWrites.mark(rootPath, [filePath]);
+    if (markProjectWrite) uncommittedProjectWrites.mark(rootPath, [filePath]);
 
     return result;
 }
 
-/** Orders writes per activity file and marks the file as uncommitted after each successful update. */
-function queueActivityFileUpdate(rootPath, filePath, update) {
+/** Orders writes per activity file and optionally marks the file for normal project persistence. */
+function queueActivityFileUpdate(rootPath, filePath, update, options = {}) {
+    const markProjectWrite = options.markProjectWrite !== false;
     const previousWrite = activityWriteQueues.get(filePath) ?? Promise.resolve();
-    const write = previousWrite.then(() => runMarkedUpdate(rootPath, filePath, update));
+    const write = previousWrite.then(() => runMarkedUpdate(rootPath, filePath, update, markProjectWrite));
     const queueTail = write.catch(() => undefined);
     activityWriteQueues.set(filePath, queueTail);
     void queueTail.finally(() => {
@@ -151,8 +152,8 @@ function queueActivityFileUpdate(rootPath, filePath, update) {
 }
 
 /** Holds an activity write until no project-wide operation (such as integration) runs on the repository root. */
-function queueActivityUpdate(rootPath, filePath, update) {
-    return projectOperationCoordinator.run(rootPath, () => queueActivityFileUpdate(rootPath, filePath, update));
+function queueActivityUpdate(rootPath, filePath, update, options = {}) {
+    return projectOperationCoordinator.run(rootPath, () => queueActivityFileUpdate(rootPath, filePath, update, options));
 }
 
 async function applyActivityUpdate(absolutePath, origin, update) {
@@ -229,13 +230,6 @@ async function appendActionActivity(project, projectFolder, origin, record) {
         ...activity,
         records: [...activity.records, record],
     }));
-}
-
-async function appendAndCommitActionActivity(project, projectFolder, origin, record, message) {
-    return updateAndCommitActivity(project, projectFolder, origin, (activity) => ({
-        ...activity,
-        records: [...activity.records, record],
-    }), message);
 }
 
 async function appendAndCommitSystemActivity(project, projectFolder, origin, record, message) {
@@ -491,7 +485,7 @@ async function closeWaitingActivityConversation(project, reference, status) {
         const updatedConversation = findActivityConversation(parseActivityValue(updatedActivity), conversationId);
 
         return { ...updatedConversation, path: reference };
-    });
+    }, { markProjectWrite: false });
 }
 
 /**
@@ -615,7 +609,6 @@ function activityConversationReference(projectFolder, origin, conversationId) {
 module.exports = {
     appendActivityConversationEvent,
     activityConversationReference,
-    appendAndCommitActionActivity,
     appendAndCommitSystemActivity,
     appendSystemActivityNow,
     appendActionActivity,

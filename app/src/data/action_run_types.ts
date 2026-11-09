@@ -152,6 +152,7 @@ export interface AgentApproval {
 interface ActionRunEventBase {
     actionId: string
     actionType?: ActionType
+    activityPath?: string
     autoFinish?: ActionAutoFinish | null
     changedPaths?: string[]
     context: ActionContext

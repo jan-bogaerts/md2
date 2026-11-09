@@ -135,6 +135,16 @@ function applyTerminalCardChangedFiles(context: ActionContext, changedPaths: str
     }
 }
 
+function queueTerminalActivity(activityPath: string | undefined) {
+    if (!activityPath) return
+
+    try {
+        getService<DataService>('dataService').scheduleRepositoryPathCommit(activityPath, 'Record action activity')
+    } catch (error) {
+        dialogService.error(error, { fallbackMessage: `Action activity could not be queued: ${activityPath}` })
+    }
+}
+
 function createLog(event: ActionRunEvent): ActionRunLogEntry {
     return {
         ...(event.type === 'action' && event.accountId ? { accountId: event.accountId } : {}),
@@ -900,6 +910,7 @@ export class ActionRunRegistry extends EventTarget {
     }
 
     private completeRecoveredRun(result: ActionRunRecoveryTerminalResult) {
+        queueTerminalActivity(result.activityPath)
         actionVersionRequestService.remove(result.runId)
         const store = this.runs.get(result.runId)
         const context = store?.getSnapshot().context ?? this.runContexts.get(result.runId) ?? null
@@ -1029,6 +1040,7 @@ export class ActionRunRegistry extends EventTarget {
             }
         }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
+            queueTerminalActivity(event.activityPath)
             next = { ...next, approvals: [], question: null, queuedPrompts: [] }
             actionPromptDraftService.flushContextDrafts(next.rootActionId, next.context)
         }

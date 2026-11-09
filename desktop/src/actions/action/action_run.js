@@ -8,6 +8,7 @@ const { ActionDiagramOutputWatcher } = require('./action_diagram_output_watcher'
 const { resolvePopupPrompt } = require('./action_text');
 const { validateVersion } = require('./action_run_request');
 const { forEachRecords } = require('../../../../shared/action_for_each.mjs');
+const { agentTokenUsageFilePath } = require('../../../../shared/agent_token_usage_summary.mjs');
 const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 const {
     captureCommitReferences,
@@ -398,6 +399,7 @@ class ActionRun {
         }
 
         this.publish(this.rootAction, 'main', result.status, {
+            ...(result.activityPath ? { activityPath: result.activityPath } : {}),
             changedPaths: result.changedPaths,
             ...(this.rootAction.output?.kind === 'diagram' && this.diagramPath ? { diagramPath: this.diagramPath } : {}),
             message: result.failure,
@@ -424,8 +426,15 @@ class ActionRun {
         }
         this.discardQueuedPrompts();
         const status = this.controller.signal.aborted ? 'cancelled' : failure ? 'failed' : 'completed';
-        const result = { changedPaths: [], failure: failure ? errorMessage(failure, 'Compact session failed') : null, runId: this.runId, status };
-        this.publish(this.rootAction, 'main', status, { message: result.failure, type: 'run' });
+        const activityPath = this.compactTarget?.reference.split('#')[0];
+        const result = {
+            ...(activityPath ? { activityPath } : {}),
+            changedPaths: [], failure: failure ? errorMessage(failure, 'Compact session failed') : null,
+            runId: this.runId, status,
+        };
+        this.publish(this.rootAction, 'main', status, {
+            ...(activityPath ? { activityPath } : {}), message: result.failure, type: 'run',
+        });
         return result;
     }
 
@@ -473,9 +482,10 @@ class ActionRun {
         this.discardQueuedPrompts();
 
         let changedPaths = [];
+        let activityPath = null;
         try {
-            const activityPersisted = await this.persistRootActivity(status, failure);
-            if (activityPersisted) changedPaths = [...this.changedPaths];
+            activityPath = await this.persistRootActivity(status, failure);
+            changedPaths = [...this.changedPaths];
         } catch (error) {
             failure = error;
             status = 'failed';
@@ -484,6 +494,7 @@ class ActionRun {
         }
 
         const result = {
+            ...(activityPath ? { activityPath } : {}),
             changedPaths,
             ...(this.rootAction.output?.kind === 'diagram' && this.diagramPath ? { diagramPath: this.diagramPath } : {}),
             runId: this.runId,
@@ -681,15 +692,19 @@ class ActionRun {
             startedAt: this.startedAt,
             status,
         };
-        await this.localGitService.appendAndCommitActionActivity(
+        const { relativePath } = await this.localGitService.appendActionActivity(
             this.project,
             this.projectFolder,
             this.activityOrigin,
             record,
-            `Record ${this.rootAction.label} activity`,
         );
+        if (this.runInput.forEach) {
+            const deferredPaths = [agentTokenUsageFilePath(this.projectFolder)];
+            if (typeof this.context.file === 'string' && this.context.file.length > 0) deferredPaths.push(this.context.file);
+            uncommittedProjectWrites.mark(this.project.rootPath, deferredPaths);
+        }
 
-        return true;
+        return relativePath;
     }
 
     async commitTrackedAgentChanges(project, action, result) {

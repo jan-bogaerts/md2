@@ -145,6 +145,7 @@ class ActionAgentExecutor {
             ...(input.context.file ? { cardPath: input.context.file } : {}),
             command,
             executionSettings: resolvedAgent.executionSettings,
+            ...(input.runInput.forEach ? { deferProjectWriteQueue: true } : {}),
             ...(input.runInput.forEach ? { forEach: input.runInput.forEach } : {}),
             ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),
             ...(!sourceConversation ? {

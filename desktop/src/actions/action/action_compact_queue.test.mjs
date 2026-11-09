@@ -171,12 +171,12 @@ describe('compact scheduling', () => {
             resolve: vi.fn(async () => ({ runProject: project })),
             runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
         };
-        run.localGitService = { appendAndCommitActionActivity: vi.fn() };
+        run.localGitService = { appendActionActivity: vi.fn() };
         run.rootAction = { ...action, onBefore: [{ type: 'command' }], onAfter: [{ type: 'command' }] };
         await expect(run.run()).resolves.toMatchObject({ status: 'completed' });
         expect(run.agentExecutor.execute).toHaveBeenCalledTimes(1);
         expect(run.agentExecutor.execute.mock.calls[0][0].compactOnly).toBe(true);
-        expect(run.localGitService.appendAndCommitActionActivity).not.toHaveBeenCalled();
+        expect(run.localGitService.appendActionActivity).not.toHaveBeenCalled();
         expect(service.compact).toHaveBeenCalledTimes(1);
     });
 });
