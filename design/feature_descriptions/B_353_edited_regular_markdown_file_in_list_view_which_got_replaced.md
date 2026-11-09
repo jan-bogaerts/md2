@@ -3,7 +3,7 @@ author:
 id: B_353
 internalId: 0f515f9c-2043-46a5-87e1-547488b1a772
 title: edited regular markdown file in list view which got replaced
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,16 @@ agents:
 policy:
 branch: b_353_edited_regular_markdown_file_in_list_view_which_got_replaced
 worktree: 2
+changedFiles:
+  - app/src/components/editor/history/markdown_document_history_cell.ts
+  - app/src/components/editor/history/markdown_document_history_monitor.tsx
+  - app/src/components/editor/markdown_editor.tsx
+  - app/src/components/editor/markdown_editor_reliability.real.test.tsx
+  - app/src/components/editor/markdown_reliability_data_source_fixture.ts
+  - app/src/components/editor/source/markdown_source_controller.ts
+  - app/src/data/commit_batcher.test.ts
+  - app/src/data/commit_batcher.ts
+  - app/src/services/open_files_service.node.test.ts
 ---
 
 I think there is a serious bug in the system regarding the editing and saving of regular markdown files.
