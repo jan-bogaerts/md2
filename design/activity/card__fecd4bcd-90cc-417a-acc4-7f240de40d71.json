@@ -671,10 +671,10 @@
       "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "cardInternalId": "fecd4bcd-90cc-417a-acc4-7f240de40d71",
       "cardPath": "design/feature_descriptions/B_364_indicate_for_each_loop_is_running.md",
-      "completedAt": null,
+      "completedAt": "2026-11-09T15:35:44.102Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 60442
+        "usedTokens": 69271
       },
       "entries": [
         {
@@ -1113,6 +1113,363 @@
           "role": "assistant",
           "sequence": 32,
           "timestamp": "2026-11-09T15:14:24.294Z"
+        },
+        {
+          "content": "go",
+          "id": "submission-422079a7-ee93-4de6-9caf-d1b6191f68b3",
+          "kind": "message",
+          "role": "user",
+          "sequence": 33,
+          "timestamp": "2026-11-09T15:33:08.344Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-34",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0823bf9b871e425b016af1e7bc8ef887d283d0e2a59d784e0e",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T15:33:14.732Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Approved. Starting Block 1: keep outer status active when `agentClosed` carries terminal conversation status.\n\n",
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 35,
+          "timestamp": "2026-11-09T15:33:15.447Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\actions\\action_run_registry.ts",
+          "deletions": 1,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-36",
+          "insertions": 3,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-72bb36c6-aecc-4468-b406-816d814be6de",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:33:23.441Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-37",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0823bf9b871e425b016af1e7c65d5087d29ca4e3e98a841b98",
+          "sequence": 37,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T15:33:24.519Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"subscribeRun\\\\(|getRun\\\\(service\\\\).*completed|status\\\\).*toBe\\\\('completed'\\\\)\\\" 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.node.test.ts'\"",
+          "content": "264:        expect(store.getSnapshot().status).toBe('completed')\n279:        const unsubscribe = service.subscribeRun('run-1', listener)\n547:        expect(getRun(service).conversation?.entries[2]).toMatchObject({ content: 'completed', providerItemId: 'tool-1' })\n658:        expect(getRun(service).conversation).toEqual(completed)\n1206:        expect(store.getSnapshot().status).toBe('completed')\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-38",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"subscribeRun\\\\(|getRun\\\\(service\\\\).*completed|status\\\\).*toBe\\\\('completed'\\\\)\\\" 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.node.test.ts'\"",
+          "providerItemId": "exec-1553a393-db21-40d2-992f-7ad0afa5dbe8",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:33:30.953Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"subscribeRun\\\\(\\\" 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.ts'\"",
+          "content": "723:    subscribeRun(runId: string, listener: StoreListener) {\n",
+          "durationMs": 7,
+          "exitCode": 0,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-39",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"subscribeRun\\\\(\\\" 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.ts'\"",
+          "providerItemId": "exec-607c7c5d-8c48-47eb-b0e3-d8fd7f576076",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:33:31.000Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.node.test.ts' | Select-Object -Skip 180 -First 145\"",
+          "content": "        service.stop()\r\n    })\r\n\r\n    it('keeps runs for reviewed change sets on one diagram separate', () => {\r\n        const { bridge, emit } = bridgeWithEvents()\r\n        setActionBridgeOverride(bridge)\r\n        const service = new ActionRunRegistry()\r\n        const firstContext = {\r\n            diagramChanges: 'First changes', diagramChangeSetId: 'review-1', diagramId: 'diagram-1',\r\n            kind: 'diagram' as const, type: 'root',\r\n        }\r\n        const secondContext = {\r\n            diagramChanges: 'Second changes', diagramChangeSetId: 'review-2', diagramId: 'diagram-1',\r\n            kind: 'diagram' as const, type: 'root',\r\n        }\r\n        service.start()\r\n\r\n        emit({ ...runEvent('running'), context: firstContext })\r\n        emit({ ...runEvent('running'), context: secondContext, runId: 'run-2' })\r\n\r\n        expect(service.getActionRunStore('build', firstContext)?.getSnapshot().runId).toBe('run-1')\r\n        expect(service.getActionRunStore('build', secondContext)?.getSnapshot().runId).toBe('run-2')\r\n        service.stop()\r\n    })\r\n\r\n    it('returns changed paths from terminal run data', async () => {\r\n        const { bridge, emit } = bridgeWithEvents({ startAction: vi.fn(async () => 'run-1') })\r\n        setActionBridgeOverride(bridge)\r\n        const service = new ActionRunRegistry()\r\n        let resolveStarted!: () => void\r\n        const started = new Promise<void>((resolve) => {\r\n            resolveStarted = resolve\r\n        })\r\n        const completion = service.startRun({ id: 'build' } as ActionDefinition, context, {}, resolveStarted)\r\n        await started\r\n\r\n        emit(runEvent('running'))\r\n        emit({\r\n            ...runEvent('completed'),\r\n            changedPaths: ['app/a.ts', 'desktop/b.js'],\r\n            diagramPath: 'design/diagrams/overview.json',\r\n        })\r\n\r\n        await expect(completion).resolves.toEqual({\r\n            changedPaths: ['app/a.ts', 'desktop/b.js'],\r\n            diagramPath: 'design/diagrams/overview.json',\r\n            logs: [],\r\n            status: 'completed',\r\n        })\r\n        service.stop()\r\n    })\r\n\r\n    it.each(['completed', 'failed', 'cancelled', 'okButNotAfter'] as const)('clears card running state after %s', (status) => {\r\n        const { bridge, emit } = bridgeWithEvents()\r\n        setActionBridgeOverride(bridge)\r\n        const service = new ActionRunRegistry()\r\n        service.start()\r\n        emit(runEvent('running'))\r\n\r\n        emit(runEvent(status))\r\n\r\n        expect(getActiveRun(service)).toBeNull()\r\n        service.stop()\r\n    })\r\n\r\n    it('keeps one stable store while retained and releases it after terminal persistence', () => {\r\n        const { bridge, emit } = bridgeWithEvents()\r\n        setActionBridgeOverride(bridge)\r\n        const service = new ActionRunRegistry()\r\n        service.start()\r\n        emit(runEvent('running'))\r\n        const store = service.getRunStore('run-1')\r\n        if (!store) throw new Error('Missing run store')\r\n        const release = store.subscribe(vi.fn())\r\n\r\n        emit({\r\n            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'update',\r\n            update: { content: 'done', kind: 'output' },\r\n        })\r\n        expect(service.getRunStore('run-1')).toBe(store)\r\n\r\n        emit(runEvent('completed'))\r\n        expect(service.getRunStore('run-1')).toBe(store)\r\n        expect(store.getSnapshot().status).toBe('completed')\r\n\r\n        release()\r\n        expect(service.getRunStore('run-1')).toBeNull()\r\n        expect(service.getActionRunStore('build', context)).toBeNull()\r\n        service.stop()\r\n    })\r\n\r\n    it('resubscribes to a recreated run store after registry restart', () => {\r\n        const { bridge, emit } = bridgeWithEvents()\r\n        setActionBridgeOverride(bridge)\r\n        const service = new ActionRunRegistry()\r\n        service.start()\r\n        emit(runEvent('running'))\r\n        const listener = vi.fn()\r\n        const unsubscribe = service.subscribeRun('run-1', listener)\r\n\r\n        service.stop()\r\n        service.start()\r\n        emit(runEvent('running'))\r\n        emit({\r\n            actionId: 'build', command: 'npm test', context, runId: 'run-1', phase: 'main', rootActionId: 'build',\r\n            status: 'running', type: 'action',\r\n        })\r\n\r\n        expect(listener).toHaveBeenCalledTimes(3)\r\n        expect(getRun(service).logs).toHaveLength(1)\r\n        unsubscribe()\r\n        service.stop()\r\n    })\r\n\r\n    it('keeps a conversation draft when its terminal store is released', () => {\r\n        const { bridge, emit } = bridgeWithEvents()\r\n        setActionBridgeOverride(bridge)\r\n        const service = new ActionRunRegistry()\r\n        const draft = actionPromptDraftService.getDraft('build', context, null, { prepare: false })\r\n        service.start()\r\n\r\n        emit(runEvent('running'))\r\n        emit(runEvent('completed'))\r\n\r\n        expect(actionPromptDraftService.getDraft('build', context, null, { prepare: false })).toBe(draft)\r\n        actionPromptDraftService.clearAll()\r\n        service.stop()\r\n    })\r\n\r\n    it('keeps more than 100 simultaneous active runs without eviction', () => {\r\n        const { bridge, emit } = bridgeWithEvents()\r\n        setActionBridgeOverride(bridge)\r\n        const service = new ActionRunRegistry()\r\n        service.start()\r\n\r\n        for (let index = 0; index < 101; index++) {\r\n            emit({ ...runEvent('running'), runId: `run-${index}` })\r\n        }\r\n\r\n        expect(service.getGlobalActiveSnapshot()).toHaveLength(101)\r\n        expect(service.getRunStore('run-0')).not.toBeNull()\r\n        expect(service.getRunStore('run-100')).not.toBeNull()\r\n        service.stop()\r\n    })\r\n\r\n",
+          "durationMs": 107,
+          "exitCode": 0,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-40",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.node.test.ts' | Select-Object -Skip 180 -First 145\"",
+          "providerItemId": "exec-3cd895b6-fcb5-46fc-9ecd-be071abe295e",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:33:31.422Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0823bf9b871e425b016af1e7d4c1d487d2abed32a88b0ac9dc",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T15:33:38.917Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\actions\\action_run_registry.node.test.ts",
+          "deletions": 0,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-42",
+          "insertions": 62,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-27af2f11-8e35-4f8c-a7ff-0aa02e8d9851",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:33:56.475Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-43",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0823bf9b871e425b016af1e7e876ec87d2a2ab9f7096d34da4",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T15:33:58.635Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Blocks 1–2 done. Regression covers terminal conversation metadata, later record output, active UI status, and final run completion. Running targeted test, then lint.\n\n",
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 44,
+          "timestamp": "2026-11-09T15:33:59.430Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/actions/action_run_registry.node.test.ts'",
+          "content": "\n> app@0.11.3 test\n> vitest run src/services/actions/action_run_registry.node.test.ts\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  1 passed (1)\n      Tests  57 passed (57)\n   Start at  16:34:06\n   Duration  912ms (transform 247ms, setup 15ms, import 474ms, tests 318ms, environment 0ms)\n\n",
+          "durationMs": 1554,
+          "exitCode": 0,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-45",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/actions/action_run_registry.node.test.ts'",
+          "providerItemId": "exec-76e5430d-3c7d-4a3e-83df-01213c5816c7",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:34:07.348Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> app@0.11.3 lint\n> eslint .\n\n\nC:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\actions\\action_run_registry.node.test.ts\n  715:14  error  Unexpected line break after this opening brace   object-curly-newline\n  717:9   error  Unexpected line break before this closing brace  object-curly-newline\n\n✖ 2 problems (2 errors, 0 warnings)\n  2 errors and 0 warnings potentially fixable with the `--fix` option.\n\n",
+          "durationMs": 25592,
+          "exitCode": 1,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-46",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-710384a6-7920-43b0-993c-896126bc57e5",
+          "sequence": 46,
+          "status": "failed",
+          "timestamp": "2026-11-09T15:34:35.781Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0823bf9b871e425b016af1e80e8ecc87d281f128905131d6e7",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T15:34:36.700Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Targeted test passes: 57/57. Lint found only formatting in new assertion. Fixing, then rerun lint.\n\n",
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 48,
+          "timestamp": "2026-11-09T15:34:37.632Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'src\\\\services\\\\actions\\\\action_run_registry.node.test.ts' | Select-Object -Skip 704 -First 20\"",
+          "content": "\r\n        expect(store.getSnapshot()).toMatchObject({\r\n            conversation: {\r\n                entries: [expect.objectContaining({ content: 'Second record', id: 'assistant-2' })],\r\n                id: 'conversation-2',\r\n            },\r\n            conversationPersisted: null,\r\n            status: 'running',\r\n        })\r\n\r\n        emit({\r\n            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'completed', type: 'run',\r\n        })\r\n\r\n        expect(store.getSnapshot().status).toBe('completed')\r\n        expect(getActiveRun(service)).toBeNull()\r\n        release()\r\n        service.stop()\r\n    })\r\n\r\n",
+          "durationMs": 73,
+          "exitCode": 0,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-49",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'src\\\\services\\\\actions\\\\action_run_registry.node.test.ts' | Select-Object -Skip 704 -First 20\"",
+          "providerItemId": "exec-8bea05b5-e1a6-4af3-bb51-d00e7d94d21e",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:34:40.232Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-50",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0823bf9b871e425b016af1e813c3b887d2b5648e920b0c9cd2",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T15:34:41.915Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\actions\\action_run_registry.node.test.ts",
+          "deletions": 3,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-51",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-140673c3-e614-4feb-bd40-6985bc2fe37a",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:34:45.610Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> app@0.11.3 lint\n> eslint .\n\n",
+          "durationMs": 25372,
+          "exitCode": 0,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-52",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-2218f8aa-be5c-4278-a950-012a59112686",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:35:14.216Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-53",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0823bf9b871e425b016af1e83679e087d28de33f53cd9613ad",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T15:35:16.663Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Verification clean: targeted test 57/57; app lint passes. Final block: set external feature `status` to `ready`.\n\n",
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 54,
+          "timestamp": "2026-11-09T15:35:17.484Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_364_indicate_for_each_loop_is_running.md",
+          "deletions": 1,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-55",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-67a03424-5d49-4815-b292-71b79276afd2",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:35:26.279Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-56",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0823bf9b871e425b016af1e8425a3487d298443a1b8339143b",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T15:35:28.497Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_364_indicate_for_each_loop_is_running.md' -Pattern '\"'^status:'\"'\"",
+          "content": "\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_364_indicate_for_each_loop_is_running.md:6:status: ready\r\n\r\n\r\n",
+          "durationMs": 147,
+          "exitCode": 0,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-57",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_364_indicate_for_each_loop_is_running.md' -Pattern '\"'^status:'\"'\"",
+          "providerItemId": "exec-157f6a3a-920d-4e45-8e8d-668b398d0ec0",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:35:33.914Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"event.type === 'update'.*TERMINAL_STATUSES|keeps a for-each run active\\\" 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.ts' 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.node.test.ts'\"",
+          "content": "app\\src\\services\\actions\\action_run_registry.ts:1032:        if (event.type === 'update' && !TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {\napp\\src\\services\\actions\\action_run_registry.node.test.ts:663:    it('keeps a for-each run active between closed agent conversations until the final run event', () => {\n",
+          "durationMs": 20,
+          "exitCode": 0,
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-58",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"event.type === 'update'.*TERMINAL_STATUSES|keeps a for-each run active\\\" 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.ts' 'app\\\\src\\\\services\\\\actions\\\\action_run_registry.node.test.ts'\"",
+          "providerItemId": "exec-3397ec0d-758c-4ae4-a2d3-262e9927b046",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-11-09T15:35:33.829Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0823bf9b871e425b016af1e84ef25487d2b2ddcbb3e87d376c",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T15:35:41.090Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Fixed.\n\n- `agentClosed` now preserves terminal conversation metadata without ending outer run: [action_run_registry.ts](C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src/services/actions/action_run_registry.ts:1032)\n- Added for-each regression coverage: [action_run_registry.node.test.ts](C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src/services/actions/action_run_registry.node.test.ts:663)\n- Targeted tests: 57/57 passed.\n- App lint passed.\n- Feature status changed to `ready`: [B_364_indicate_for_each_loop_is_running.md](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_364_indicate_for_each_loop_is_running.md:6)\n\n",
+          "id": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 60,
+          "timestamp": "2026-11-09T15:35:44.102Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1123,52 +1480,52 @@
           "agent": "codex",
           "conversationId": "01a1c0de-be99-7191-b0e0-35251e5d16b3",
           "createdAt": "2026-11-09T15:13:06.175Z",
-          "lastUsedAt": "2026-11-09T15:14:24.294Z",
-          "synchronizedThroughMessageId": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-09T15:35:44.102Z",
+          "synchronizedThroughMessageId": "agent-turn-790fd657-8b03-4fe8-a762-f6864b6f48d5-turn-2-assistant-5"
         }
       ],
       "startedAt": "2026-11-09T15:13:05.499Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
             "id": "0",
             "subject": "Block 1 — Fix ActionRunRegistry status ownership: agentClosed replaces conversation and persistence metadata, but terminal update status cannot terminate outer run; only terminal run event can.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "1",
             "subject": "Block 2 — Add registry regression test: first agentClosed, second agentStarted plus output, then final run event; assert live status, replacement/output, terminal metadata, and final completion.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 3 — Verify targeted registry test and app lint; fix only failures caused by this change or pre-existing failures required by project instructions.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Block 4 — After verification, change external B_364 feature status to ready.",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-09T15:14:20.298Z"
+        "updatedAt": "2026-11-09T15:35:38.452Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 52,
-          "toolMs": 1540
+          "reasoningMs": 53,
+          "toolMs": 59478
         },
-        "elapsedMs": 78795,
+        "elapsedMs": 234553,
         "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
-        "cachedInputTokens": 322176,
-        "inputTokens": 58670,
-        "outputTokens": 2063,
-        "reasoningTokens": 1150,
-        "totalTokens": 384059
+        "cachedInputTokens": 1315840,
+        "inputTokens": 65988,
+        "outputTokens": 5344,
+        "reasoningTokens": 2031,
+        "totalTokens": 1389203
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -1205,6 +1562,33 @@
       "startedAt": "2026-11-09T15:08:57.062Z",
       "status": "completed",
       "rootConversationId": "agent-c69991c5-c597-4288-975f-0004702e4dbd"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-09T15:35:44.110Z",
+      "conversationIds": [
+        "agent-4b7ebbe5-250e-4905-85e3-aaff3b25c23a"
+      ],
+      "details": {
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-2713eef9-4b2a-4bc1-a2ea-2d09971eb940",
+      "origin": {
+        "cardInternalId": "fecd4bcd-90cc-417a-acc4-7f240de40d71",
+        "kind": "card"
+      },
+      "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "rootActionLabel": "fix bug",
+      "rootConversationId": "agent-4b7ebbe5-250e-4905-85e3-aaff3b25c23a",
+      "startedAt": "2026-11-09T15:13:04.366Z",
+      "status": "completed"
     }
   ],
   "version": 5

@@ -3,7 +3,7 @@ author:
 id: B_364
 internalId: fecd4bcd-90cc-417a-acc4-7f240de40d71
 title: indicate for-each loop is running
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,9 @@ agents:
 policy:
 branch: b_364_indicate_for_each_loop_is_running
 worktree: 1
+changedFiles:
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
 ---
 
 After the first record, the action popup no longer shows the status of the conversation.&#x20;
