@@ -3,13 +3,12 @@ author:
 id: B_360
 internalId: bc624c64-1eb8-49f0-b352-5bea1077c5a6
 title: for each not working
-status: ready
+status: to fix
 owner: 
 affects:
 agents:
   - design/activity/card__bc624c64-1eb8-49f0-b352-5bea1077c5a6.json
 policy:
-after: 5ea4f510-f3ba-4632-bde8-12a0c88335ee
 changedFiles:
   - app/src/data/action_run_types.ts
   - app/src/data/electron_action_bridge.ts
