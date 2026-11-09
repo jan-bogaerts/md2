@@ -986,8 +986,8 @@
           "agent": "codex",
           "conversationId": "01a1c030-ae28-72a3-a384-e6cc95530a19",
           "createdAt": "2026-11-09T12:02:59.226Z",
-          "lastUsedAt": "2026-11-09T12:06:39.097Z",
-          "synchronizedThroughMessageId": "agent-turn-ba890fc8-e5fb-4d2e-bd5b-67ee0f579eb6-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-09T12:08:07.659Z",
+          "synchronizedThroughMessageId": "submission-ac9a7bf5-6f2d-49f0-ac66-7d3ab921f84c"
         }
       ],
       "startedAt": "2026-11-09T12:02:57.457Z",
