@@ -3,7 +3,7 @@ author:
 id: B_359
 internalId: 5ea4f510-f3ba-4632-bde8-12a0c88335ee
 title: claude cli gives authenticate failure
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,20 @@ policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 branch: b_359_claude_cli_gives_authenticate_failure
 worktree: 3
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx
+  - app/src/components/actions/conversation/errors/claude_authentication_required_error.test.tsx
+  - app/src/components/actions/conversation/errors/claude_authentication_required_error.tsx
+  - app/src/components/actions/conversation/errors/claude_authentication_required_event.ts
+  - app/src/components/actions/conversation/events/action_conversation_event_row.tsx
+  - app/src/data/data_types.ts
+  - app/src/services/agents/agent_conversation_service.node.test.ts
+  - desktop/main.js
+  - desktop/src/actions/agent/agent_run_state.js
+  - desktop/src/actions/agent/agent_runner_service.js
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
+  - desktop/src/actions/agent/agent_streaming_event_handlers.js
+  - shared/agent_conversations.mjs
 ---
 claude cli gives this error:
 \> Failed to authenticate: OAuth session expired and could not be refreshed
