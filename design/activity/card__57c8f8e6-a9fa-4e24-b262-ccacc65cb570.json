@@ -1,0 +1,25 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [],
+  "origin": {
+    "cardInternalId": "57c8f8e6-a9fa-4e24-b262-ccacc65cb570",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
