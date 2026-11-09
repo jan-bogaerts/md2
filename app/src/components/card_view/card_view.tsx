@@ -250,6 +250,7 @@ export function CardView(props: CardViewProps) {
                         flexDirection: 'row',
                         gap: 2,
                         height: '100%',
+                        overflowAnchor: 'none',
                         overflowX: 'auto',
                         overflowY: 'auto',
                         p: 2.5,

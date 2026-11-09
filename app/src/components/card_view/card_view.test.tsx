@@ -14,7 +14,7 @@ import { AppThemeProvider } from '../../theme/theme_provider'
 import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
-import { cardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
+import { cardMarkdownDataSource, CardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 import { openFilesService } from '../../services/open_files_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { cardDragDropService } from './card_drag_drop_service'
@@ -139,7 +139,7 @@ describe('CardView', () => {
         vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((target) => target.document.kind === 'card'
             ? target.document.getDraft().content
             : '')
-        vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)
+        vi.spyOn(CardMarkdownDataSource.prototype, 'commit').mockReturnValue(true)
     })
 
     afterEach(() => {
