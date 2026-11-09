@@ -13,4 +13,4 @@ we used the 'custom' or '+' action on the card which uses a streaming agent. We 
 
 So, not certain what caused the termination: the stop button? or waitingForInput?
 
-For a 'streaming'&#x20;
+For a 'streaming' action, we might need a way to signal the end of the conversation, for instance, a text that appears in the conversation log (something the agent says to indicate he is done)
