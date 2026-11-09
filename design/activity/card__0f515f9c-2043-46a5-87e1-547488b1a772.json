@@ -1458,6 +1458,14 @@
           "role": "assistant",
           "sequence": 106,
           "timestamp": "2026-11-09T09:29:32.306Z"
+        },
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_353_edited_regular_markdown_file_in_list_view_which_got_replaced.md`.\nupdate the field `status` in the markdown feature description file to `ready for implementation`.",
+          "id": "submission-f7531dd4-20f3-45f5-99c9-a4f4eb5054fd",
+          "kind": "message",
+          "role": "user",
+          "sequence": 107,
+          "timestamp": "2026-11-09T09:30:48.792Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1473,7 +1481,7 @@
         }
       ],
       "startedAt": "2026-11-09T09:12:30.813Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -1500,7 +1508,7 @@
           "toolMs": 5442
         },
         "elapsedMs": 301328,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-09T09:30:48.792Z"
       },
       "title": "investigate",
       "usage": {
