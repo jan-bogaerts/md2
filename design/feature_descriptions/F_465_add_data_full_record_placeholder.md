@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__57c8f8e6-a9fa-4e24-b262-ccacc65cb570.json
 policy:
+branch: f_465_add_data_full_record_placeholder
+worktree: 1
 ---
 
 We already have support for the `{{ data path}}` placeholder (added space to prevent placeholder to be applied). This version selects a specific field value of the currently active record.
