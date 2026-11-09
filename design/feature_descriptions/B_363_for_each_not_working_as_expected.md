@@ -3,12 +3,17 @@ author:
 id: B_363
 internalId: 18a123cb-87d4-4e30-883c-6336b8eaa574
 title: for-each not working as expected
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__18a123cb-87d4-4e30-883c-6336b8eaa574.json
 policy:
+changedFiles:
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run.test.mjs
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
+  - desktop/src/actions/agent/agent_streaming_event_handlers.js
 ---
 we used the 'custom' or '+' action on the card which uses a streaming agent. We also used a for-each file with the action so that it should loop over every record in the file. The file contains an object, but we specified a path in the 'for-each' setup to the field that contains the actual array data. this worked for the first record, but then the conversation went into 'waitingForInput' mode. So I pressed the stop button and then the entire for-each loop stopped.
 

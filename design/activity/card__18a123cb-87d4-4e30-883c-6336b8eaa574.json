@@ -959,10 +959,10 @@
       "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "cardInternalId": "18a123cb-87d4-4e30-883c-6336b8eaa574",
       "cardPath": "design/feature_descriptions/B_363_for_each_not_working_as_expected.md",
-      "completedAt": null,
+      "completedAt": "2026-11-09T14:46:03.053Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 91664
+        "usedTokens": 107534
       },
       "entries": [
         {
@@ -1756,6 +1756,551 @@
           "role": "user",
           "sequence": 58,
           "timestamp": "2026-11-09T14:42:14.841Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dbcb30d087d284d69cde8d36c536",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:42:17.509Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 1 starting. Add explicit processed turn-boundary event, then auto-finish only active for-each record with no pending interaction.\n\n",
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 60,
+          "timestamp": "2026-11-09T14:42:18.325Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-61",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dbd9788887d2923b15092d039ab0",
+          "sequence": 61,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:42:31.758Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dbe0b97c87d2a2034846dbbfeb88",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:42:39.026Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_run.js\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_streaming_event_handlers.js",
+          "deletions": 5,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-63",
+          "insertions": 15,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-8727b846-cf96-4339-bdff-a0aadea7784f",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:42:48.280Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-64",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dbf476b087d2af48b29cf6a3ce69",
+          "sequence": 64,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:42:58.775Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-65",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dbfdc9b887d2a13b6916394f1e97",
+          "sequence": 65,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:43:08.075Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-66",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc071c9487d2a229ec1bb31a0580",
+          "sequence": 66,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:43:17.489Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-67",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc084cbc87d29ea3e42d0fde2734",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:43:18.606Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 1 code wired. Block 2 now: convert core loop tests to real streaming lifecycle simulation, then add pending-interaction and stop guards.\n\n",
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 68,
+          "timestamp": "2026-11-09T14:43:21.289Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-69",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc0dce7087d28bc5398ef3d3d6a8",
+          "sequence": 69,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:43:24.108Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_run.test.mjs",
+          "deletions": 4,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-70",
+          "insertions": 26,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-cc3430ea-4adf-4154-af55-803eec54c7ce",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:43:39.819Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc1ec69c87d2b9234de696c4e13f",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:43:41.055Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_run.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-72",
+          "insertions": 50,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-a896366f-ce78-4294-b912-86688f6e5aa7",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:43:54.477Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-73",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc2f580887d2977f1847b14ac538",
+          "sequence": 73,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:43:57.639Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_run.test.mjs",
+          "deletions": 5,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-74",
+          "insertions": 41,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-a0115bf3-0c08-448f-8651-ff9d2c91eed1",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:44:16.679Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-75",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc43ddd887d2a1cbbedd38971a59",
+          "sequence": 75,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:44:18.155Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_run.test.mjs",
+          "deletions": 5,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-76",
+          "insertions": 21,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-d45a0ba6-694d-4324-9b59-01f4199c25be",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:44:28.829Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-77",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc511a1c87d298705073d61c648a",
+          "sequence": 77,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:44:31.389Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_run.test.mjs",
+          "deletions": 4,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-78",
+          "insertions": 20,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-aa84d8bd-77c0-4d7d-9261-f60055e93c6a",
+          "sequence": 78,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:44:40.749Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-79",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc5e5be487d28895790a7e74e885",
+          "sequence": 79,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:44:44.653Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_runner_state.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-80",
+          "insertions": 26,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-fc680315-e5d2-4e51-8f1d-a9756c06d9a5",
+          "sequence": 80,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:44:53.699Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-81",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc6a287c87d28bc453f613fe2a10",
+          "sequence": 81,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:44:56.432Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Coverage added for explicit event, modes, selected path, pending interactions, failure policies, and Stop. Running two affected test files now.\n\n",
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 82,
+          "timestamp": "2026-11-09T14:44:57.270Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/action/action_run.test.mjs src/actions/agent/agent_runner_state.test.mjs'",
+          "content": "\n> desktop@0.11.2 test\n> vitest run src/actions/action/action_run.test.mjs src/actions/agent/agent_runner_state.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/desktop\n\n\n Test Files  2 passed (2)\n      Tests  160 passed (160)\n   Start at  15:44:59\n   Duration  1.07s (transform 224ms, setup 0ms, import 533ms, tests 1.28s, environment 0ms)\n\n",
+          "durationMs": 1684,
+          "exitCode": 0,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-83",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/action/action_run.test.mjs src/actions/agent/agent_runner_state.test.mjs'",
+          "providerItemId": "exec-eb25f04c-8991-47e1-9dcf-0f6e21349f2f",
+          "sequence": 83,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:45:00.942Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-84",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc729c0087d28e89d5d9c3cb8cfa",
+          "sequence": 84,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:45:04.903Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Focused tests pass: 160/160. Running desktop lint; then status update only if clean.\n\n",
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 85,
+          "timestamp": "2026-11-09T14:45:05.653Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> desktop@0.11.2 lint\n> eslint .\n\n\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_run.test.mjs\n  156:43  error  Unexpected line break after this opening brace   object-curly-newline\n  158:9   error  Unexpected line break before this closing brace  object-curly-newline\n  214:43  error  Unexpected line break after this opening brace   object-curly-newline\n  216:9   error  Unexpected line break before this closing brace  object-curly-newline\n  265:36  error  Unexpected line break after this opening brace   object-curly-newline\n  267:9   error  Unexpected line break before this closing brace  object-curly-newline\n  269:43  error  Unexpected line break after this opening brace   object-curly-newline\n  271:9   error  Unexpected line break before this closing brace  object-curly-newline\n  296:31  error  Expected a line break after this opening brace   object-curly-newline\n  302:12  error  Expected a line break before this closing brace  object-curly-newline\n  303:36  error  Unexpected line break after this opening brace   object-curly-newline\n  305:9   error  Unexpected line break before this closing brace  object-curly-newline\n  306:43  error  Unexpected line break after this opening brace   object-curly-newline\n  308:9   error  Unexpected line break before this closing brace  object-curly-newline\n  359:36  error  Unexpected line break after this opening brace   object-curly-newline\n  361:9   error  Unexpected line break before this closing brace  object-curly-newline\n  362:43  error  Unexpected line break after this opening brace   object-curly-newline\n  364:9   error  Unexpected line break before this closing brace  object-curly-newline\n  429:31  error  Expected a line break after this opening brace   object-curly-newline\n  435:12  error  Expected a line break before this closing brace  object-curly-newline\n  441:43  error  Unexpected line break after this opening brace   object-curly-newline\n  443:9   error  Unexpected line break before this closing brace  object-curly-newline\n\n✖ 22 problems (22 errors, 0 warnings)\n  22 errors and 0 warnings potentially fixable with the `--fix` option.\n\n",
+          "durationMs": 2954,
+          "exitCode": 1,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-86",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-6369fc70-05ac-4a21-9888-f82a2fbd29c8",
+          "sequence": 86,
+          "status": "failed",
+          "timestamp": "2026-11-09T14:45:09.654Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-87",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc797ce087d2b6558ef2e076fac1",
+          "sequence": 87,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:45:11.775Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Lint found formatting only in new tests. Running repository lint auto-fix, then rerun tests and lint.\n\n",
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 88,
+          "timestamp": "2026-11-09T14:45:12.535Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix'",
+          "content": "\n> desktop@0.11.2 lint-fix\n> eslint . --fix\n\n",
+          "durationMs": 3181,
+          "exitCode": 0,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-89",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint-fix'",
+          "providerItemId": "exec-20413466-cd97-48fe-a97a-23327b90e631",
+          "sequence": 89,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:45:16.760Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-90",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc7ff9fc87d2a0e75b68785c744d",
+          "sequence": 90,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:45:18.269Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> desktop@0.11.2 lint\n> eslint .\n\n",
+          "durationMs": 3023,
+          "exitCode": 0,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-91",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-1a4f3a5f-0569-4146-b930-527df4df1acf",
+          "sequence": 91,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:45:23.899Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/action/action_run.test.mjs src/actions/agent/agent_runner_state.test.mjs'",
+          "content": "\n> desktop@0.11.2 test\n> vitest run src/actions/action/action_run.test.mjs src/actions/agent/agent_runner_state.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/desktop\n\n\n Test Files  2 passed (2)\n      Tests  160 passed (160)\n   Start at  15:45:21\n   Duration  1.03s (transform 181ms, setup 0ms, import 454ms, tests 1.29s, environment 0ms)\n\n",
+          "durationMs": 1589,
+          "exitCode": 0,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-92",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/action/action_run.test.mjs src/actions/agent/agent_runner_state.test.mjs'",
+          "providerItemId": "exec-5bc0c7b4-a967-46ae-898a-562c61e7004b",
+          "sequence": 92,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:45:23.001Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-93",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc88adcc87d2a605fc317e94f551",
+          "sequence": 93,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:45:26.969Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Verification clean. Reviewing scoped diff for accidental changes, then setting feature status to `ready` as final edit.\n\n",
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 94,
+          "timestamp": "2026-11-09T14:45:27.635Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- desktop/src/actions/action/action_run.js desktop/src/actions/action/action_run.test.mjs desktop/src/actions/agent/agent_streaming_event_handlers.js desktop/src/actions/agent/agent_runner_state.test.mjs'",
+          "content": "diff --git a/desktop/src/actions/action/action_run.js b/desktop/src/actions/action/action_run.js\nindex b982b3a47..f6da2df34 100644\n--- a/desktop/src/actions/action/action_run.js\n+++ b/desktop/src/actions/action/action_run.js\n@@ -887,6 +887,12 @@ class ActionRun {\n                 void this.dispatchStreamingPrompt().catch(() => undefined);\n                 return;\n             }\n+            if (agentEvent.type === 'turnCompleted') {\n+                if (forEachRecord !== undefined && !agentEvent.error && !this.agentInteractionPending()) {\n+                    this.requestAutoFinish();\n+                }\n+                return;\n+            }\n             if (agentEvent.type === 'started') {\n                 const { continued, conversation } = agentEvent;\n                 this.activeConversationId = conversation.id;\ndiff --git a/desktop/src/actions/action/action_run.test.mjs b/desktop/src/actions/action/action_run.test.mjs\nindex a02bea4f1..a67d85860 100644\n--- a/desktop/src/actions/action/action_run.test.mjs\n+++ b/desktop/src/actions/action/action_run.test.mjs\n@@ -125,21 +125,38 @@ describe('ActionRun', () => {\n         ['addPrompt', 3],\n         ['compact', 5],\n         ['newConversation', 3],\n-    ])('runs ordered for-each records in %s mode', async (mode, expectedCalls) => {\n+    ])('finishes ordered streaming for-each records in %s mode', async (mode, expectedCalls) => {\n         let turn = 0;\n+        const activeTurns = new Map();\n         const agentExecutor = {\n-            execute: vi.fn(async () => {\n+            execute: vi.fn(async (input) => {\n                 turn += 1;\n+                const conversationId = input.runInput.conversationId ?? 'conversation-1';\n+                if (!input.compactOnly) {\n+                    const runId = `agent-run-${turn}`;\n+                    const completion = deferred();\n+                    activeTurns.set(runId, completion);\n+                    input.onActiveRunChange(runId);\n+                    input.onEvent({ error: null, status: 'running', type: 'turnCompleted' });\n+                    await completion.promise;\n+                    input.onActiveRunChange(null);\n+                }\n                 return {\n-                    agent: 'codex', changedPaths: [`file-${turn}.ts`], conversationId: `conversation-${turn}`,\n+                    agent: 'codex', changedPaths: [`file-${turn}.ts`], conversationId,\n                     exitCode: 0, model: 'gpt', prompt: 'run', reference: `run-${turn}.json`, stderr: '', stdout: '',\n                     thinkingLevel: 'none',\n                 };\n             }),\n         };\n-        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: '{{data name}}', type: 'agent' });\n+        const agentRunnerService = {\n+            finish: vi.fn((runId) => activeTurns.get(runId).resolve()),\n+            hasPendingInteraction: vi.fn(() => false),\n+            stop: vi.fn(),\n+        };\n+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: '{{data name}}', streaming: true, type: 'agent'});\n         const { localGitService, run } = createRun(rootAction, {\n             agentExecutor,\n+            agentRunnerService,\n             runInput: {\n                 forEach: {\n                     failurePolicy: 'logAndContinue', fileName: 'records.json', mode,\n@@ -157,14 +174,66 @@ describe('ActionRun', () => {\n             .toBeLessThan(localGitService.appendActionActivity.mock.invocationCallOrder[0]);\n         const recordCalls = agentExecutor.execute.mock.calls.filter(([input]) => !input.compactOnly);\n         expect(recordCalls.map(([input]) => input.forEachRecord.name)).toEqual(['first', 'second', 'third']);\n+        expect(agentRunnerService.finish).toHaveBeenCalledTimes(3);\n         if (mode === 'newConversation') {\n             expect(recordCalls.slice(1).every(([input]) => input.runInput.continueFrom === undefined)).toBe(true);\n+            expect(new Set(recordCalls.map(([input]) => input.runInput.conversationId).filter(Boolean)).size).toBe(2);\n         } else {\n             expect\n[10694 characters omitted]\nvalue: [1, 2] },\n                 prompt: 'run',\n             },\n         });\n-        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledOnce());\n+        await firstTurnStarted.promise;\n         run.cancel();\n-        firstTurn.resolve(result);\n \n         const completed = await run.completion;\n \n         expect(completed.status).toBe('cancelled');\n         expect(agentExecutor.execute).toHaveBeenCalledOnce();\n+        expect(agentRunnerService.stop).toHaveBeenCalledWith('agent-run');\n+        expect(agentRunnerService.finish).not.toHaveBeenCalled();\n     });\n \n     it('records two same-card runs independently while release waits for both', async () => {\ndiff --git a/desktop/src/actions/agent/agent_runner_state.test.mjs b/desktop/src/actions/agent/agent_runner_state.test.mjs\nindex 7c6e8616c..860696256 100644\n--- a/desktop/src/actions/agent/agent_runner_state.test.mjs\n+++ b/desktop/src/actions/agent/agent_runner_state.test.mjs\n@@ -447,6 +447,32 @@ describe('AgentRunnerService published run status', () => {\n         expect(service.terminateProcessTree).not.toHaveBeenCalled();\n     });\n \n+    it('publishes the explicit provider turn completion after processing it', async () => {\n+        const { onEvent, run, service } = streamingRunService();\n+\n+        await service.handleStreamingEvent(run.id, { type: 'turnCompleted' });\n+\n+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({\n+            error: null,\n+            type: 'turnCompleted',\n+        }));\n+    });\n+\n+    it('preserves a pending question when a provider turn completion arrives', async () => {\n+        const { run, service } = streamingRunService();\n+        const questions = [{ id: 'confirm', question: 'Proceed?' }];\n+        await service.handleStreamingEvent(run.id, { questions, requestId: 7, type: 'question' });\n+\n+        await service.handleStreamingEvent(run.id, { type: 'turnCompleted' });\n+\n+        expect(run.turnActive).toBe(true);\n+        expect(run.waitingForQuestion).toBe(true);\n+        expect(run.pendingQuestionRequestId).toBe(7);\n+        expect(run.pendingQuestions).toEqual(questions);\n+        expect(service.hasPendingInteraction(run.id)).toBe(true);\n+        expect(run.conversation.status).toBe('waitingForInput');\n+    });\n+\n     it('terminates a session whose process I/O has failed', () => {\n         const { service, run } = streamingRunService();\n         service.terminateProcessTree = vi.fn();\ndiff --git a/desktop/src/actions/agent/agent_streaming_event_handlers.js b/desktop/src/actions/agent/agent_streaming_event_handlers.js\nindex 7dd2f75a4..c8efe3c47 100644\n--- a/desktop/src/actions/agent/agent_streaming_event_handlers.js\n+++ b/desktop/src/actions/agent/agent_streaming_event_handlers.js\n@@ -202,12 +202,15 @@ async function handleApprovalResolved(service, run, event, timestamp) {\n  * send the message queued while the turn was running, or park the run waiting for input.\n  */\n async function handleTurnCompleted(service, run, event, timestamp) {\n+    const interactionPending = hasPendingInteraction(run);\n     completeAssistantOutput(run, timestamp);\n-    run.turnActive = false;\n-    run.waitingForQuestion = false;\n-    run.pendingQuestionRequestId = null;\n-    run.pendingQuestions = [];\n-    run.pendingApprovals.clear();\n+    run.turnActive = interactionPending;\n+    if (!interactionPending) {\n+        run.waitingForQuestion = false;\n+        run.pendingQuestionRequestId = null;\n+        run.pendingQuestions = [];\n+        run.pendingApprovals.clear();\n+    }\n     if (event.error && await service.handleClaudeAuthenticationFailure(run, event.error)) return;\n     run.missingSession = run.missingSession || event.missingSession;\n     if (event.missingSession) run.finishing = true;\n@@ -241,6 +244,7 @@ async function handleTurnCompleted(service, run, event, timestamp) {\n             usage: run.conversation.usage,\n         });\n     }\n+    emitRunEvent(run, { error: event.error ?? null, type: 'turnCompleted' });\n     if (run.finishing) {\n         service.beginFinishShutdown(run);\n         return;\n",
+          "durationMs": 114,
+          "exitCode": 0,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-95",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- desktop/src/actions/action/action_run.js desktop/src/actions/action/action_run.test.mjs desktop/src/actions/agent/agent_streaming_event_handlers.js desktop/src/actions/agent/agent_runner_state.test.mjs'",
+          "providerItemId": "exec-ac55c8db-5b7d-47fd-8778-d5e26d5bdef9",
+          "sequence": 95,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:45:29.936Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-96",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc92d4c487d29bf027de86b97a9f",
+          "sequence": 96,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:45:37.119Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_363_for_each_not_working_as_expected.md",
+          "deletions": 1,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-97",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-d0a871d9-cdac-47b9-b3a2-84743abd81dc",
+          "sequence": 97,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:45:46.525Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-98",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dc9eef5c87d2940623da8af1d10c",
+          "sequence": 98,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:45:49.235Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'design\\\\feature_descriptions\\\\B_363_for_each_not_working_as_expected.md' -Pattern '\"'^status:'\"'\"",
+          "content": "\r\ndesign\\feature_descriptions\\B_363_for_each_not_working_as_expected.md:6:status: ready\r\n\r\n\r\n",
+          "durationMs": 59,
+          "exitCode": 0,
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-99",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'design\\\\feature_descriptions\\\\B_363_for_each_not_working_as_expected.md' -Pattern '\"'^status:'\"'\"",
+          "providerItemId": "exec-534edd63-073a-4fb1-ba3d-0a02d80a0561",
+          "sequence": 99,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:45:51.717Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-event-100",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_04498ca98892a424016af1dcaa825887d2b3af88e8a77655ad",
+          "sequence": 100,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:46:00.787Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Fixed B_363.\n\n- Provider `turnCompleted` now ends successful streaming for-each record.\n- Questions and approvals keep waiting.\n- All three modes preserve conversation behavior.\n- Stop still cancels remaining records.\n- Failure policies unchanged.\n- Added regression coverage.\n- Focused tests: 160 passed.\n- Desktop lint: passed.\n- Feature [status set to ready](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_363_for_each_not_working_as_expected.md:6).\n\n",
+          "id": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-turn-2-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 101,
+          "timestamp": "2026-11-09T14:46:03.053Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1766,50 +2311,50 @@
           "agent": "codex",
           "conversationId": "01a1c0be-c425-7a30-ba38-6bb344db41f6",
           "createdAt": "2026-11-09T14:38:11.002Z",
-          "lastUsedAt": "2026-11-09T14:42:14.883Z",
-          "synchronizedThroughMessageId": "submission-2008fd1a-2bee-4a07-b4dd-137f422ed23c"
+          "lastUsedAt": "2026-11-09T14:46:03.053Z",
+          "synchronizedThroughMessageId": "agent-turn-8bcabbf3-b155-46f7-ba18-c2e05ada464e-turn-2-assistant-7"
         }
       ],
       "startedAt": "2026-11-09T14:38:09.808Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
             "id": "0",
             "subject": "Block 1 — Expose processed provider `turnCompleted` to `ActionRun`; for active streaming for-each record, call `AgentRunnerService.finish` only after successful completion and when no question/approval is pending. Keep normal streaming behavior unchanged.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "1",
             "subject": "Block 2 — Add focused regression tests: ordered data-path records; Add prompt, Compact, New conversation; pending question and approval; log-and-continue and stop-on-first-failure; Stop cancellation; no assistant-text matching.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 3 — Run affected desktop test files and desktop linter; fix scoped failures; then set B_363 `status: ready` only after verification passes.",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-09T14:40:41.651Z"
+        "updatedAt": "2026-11-09T14:45:58.551Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 253,
-          "toolMs": 1878
+          "reasoningMs": 255,
+          "toolMs": 17579
         },
-        "elapsedMs": 157615,
-        "runningStartedAt": "2026-11-09T14:42:14.841Z"
+        "elapsedMs": 385827,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
-        "cachedInputTokens": 1288960,
-        "inputTokens": 89001,
-        "outputTokens": 3040,
-        "reasoningTokens": 3093,
-        "totalTokens": 1384094
+        "cachedInputTokens": 3178752,
+        "inputTokens": 98470,
+        "outputTokens": 9340,
+        "reasoningTokens": 6760,
+        "totalTokens": 3293322
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -1843,6 +2388,33 @@
       "startedAt": "2026-11-09T14:32:22.705Z",
       "status": "completed",
       "rootConversationId": "agent-ebc5dfaa-a782-4443-be68-99a65fe694d0"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-09T14:46:03.063Z",
+      "conversationIds": [
+        "agent-a3eaca08-6341-4950-bf4c-18ed07ac0942"
+      ],
+      "details": {
+        "type": "agent",
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default"
+      },
+      "runId": "action-dd41715c-39fe-4ead-a3f4-bbffedaa5bef",
+      "origin": {
+        "cardInternalId": "18a123cb-87d4-4e30-883c-6336b8eaa574",
+        "kind": "card"
+      },
+      "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "rootActionLabel": "fix bug",
+      "startedAt": "2026-11-09T14:38:09.807Z",
+      "status": "completed",
+      "rootConversationId": "agent-a3eaca08-6341-4950-bf4c-18ed07ac0942"
     }
   ],
   "version": 5
