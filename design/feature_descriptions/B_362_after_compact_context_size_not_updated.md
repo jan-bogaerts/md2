@@ -3,7 +3,7 @@ author:
 id: B_362
 internalId: ba21cf2c-06f9-4210-aeb5-203d3d6c934d
 title: after compact context size not updated
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,10 @@ agents:
 policy:
 branch: b_362_after_compact_context_size_not_updated
 worktree: 1
+changedFiles:
+  - desktop/src/actions/agent/agent_compact.test.mjs
+  - desktop/src/actions/agent/agent_streaming_adapter.js
+  - desktop/src/actions/agent/agent_streaming_event_handlers.js
 ---
 
 We did a compact on a conversation with the codex agent. this went ok, but after the operation, the context size indictor still indicated the same size.

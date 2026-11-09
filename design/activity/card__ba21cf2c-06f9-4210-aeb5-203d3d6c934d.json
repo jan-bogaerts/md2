@@ -931,10 +931,10 @@
       "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "cardInternalId": "ba21cf2c-06f9-4210-aeb5-203d3d6c934d",
       "cardPath": "design/feature_descriptions/B_362_after_compact_context_size_not_updated.md",
-      "completedAt": null,
+      "completedAt": "2026-11-09T14:48:09.883Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 78920
+        "usedTokens": 94953
       },
       "entries": [
         {
@@ -1450,6 +1450,492 @@
           "role": "user",
           "sequence": 38,
           "timestamp": "2026-11-09T14:43:59.511Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-39",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dc3dc1dc87d29ed4b1d6ce1059d1",
+          "sequence": 39,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:44:12.259Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Starting Block 1. Changing only Codex adapter/event path and focused tests.\n\n",
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 40,
+          "timestamp": "2026-11-09T14:44:12.672Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dc440e4487d2b8bf6e9b8aa40c05",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:44:18.338Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -C 4 \"function accumulateUsage\" desktop/src/actions/agent/agent_conversation.js'",
+          "content": "72-\n73-    return event;\n74-}\n75-\n76:function accumulateUsage(current, turn) {\n77-    return sumAgentTokenUsage([current, turn]);\n78-}\n79-\n80-/**\n",
+          "durationMs": 53,
+          "exitCode": 0,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-42",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -C 4 \"function accumulateUsage\" desktop/src/actions/agent/agent_conversation.js'",
+          "providerItemId": "exec-f18fa087-686a-4987-85f7-43b89c8d567b",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:44:24.103Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/actions/agent/agent_compact.test.mjs' | Select-Object -First 175\"",
+          "content": "import { createRequire } from 'node:module';\r\nimport { afterEach, describe, expect, it, vi } from 'vitest';\r\n\r\nconst require = createRequire(import.meta.url);\r\nconst { createAgentStreamingAdapter } = require('./agent_streaming_adapter');\r\nconst { AgentRunnerService } = require('./agent_runner_service');\r\nconst { createRun } = require('./agent_run_state');\r\n\r\nfunction adapterHarness(provider) {\r\n    const writes = [];\r\n    const events = [];\r\n    const adapter = createAgentStreamingAdapter(provider, (message) => writes.push(message), (event) => events.push(event), 'C:/repo', 'session-1');\r\n    return { adapter, events, writes };\r\n}\r\n\r\nasync function initializeCodex(adapter) {\r\n    await adapter.startSession();\r\n    await adapter.handleMessage({ id: 1, result: {} });\r\n    await adapter.handleMessage({ id: 3, result: { thread: { id: 'session-1' } } });\r\n}\r\n\r\nfunction compactRun() {\r\n    const events = [];\r\n    const persist = vi.fn(async () => undefined);\r\n    const service = new AgentRunnerService({ persistConversationCheckpoint: persist });\r\n    const conversation = {\r\n        entries: [{ content: 'old transcript', id: 'message-1', kind: 'message', role: 'assistant' }],\r\n        id: 'conversation-1', providerSessions: [], status: 'waitingForInput',\r\n        usage: { cachedInputTokens: 0, inputTokens: 100, outputTokens: 20, reasoningTokens: 0, totalTokens: 120 },\r\n    };\r\n    const run = createRun({\r\n        agent: 'codex', child: { stdin: { end: vi.fn() } }, conversation, id: 'run-1', nextSequence: 1,\r\n        onEvent: (event) => events.push(event), request: {}, rootPath: 'C:/repo', streaming: true,\r\n    });\r\n    run.turnActive = false;\r\n    run.sessionReady = true;\r\n    run.streamingAdapter = { compact: vi.fn(async () => undefined) };\r\n    service.processes.set(run.id, run);\r\n    return { events, persist, run, service };\r\n}\r\n\r\nafterEach(() => vi.useRealTimers());\r\n\r\ndescribe('provider compaction', () => {\r\n    it('resumes Codex without a prompt and waits for lifecycle confirmation after acknowledgement', async () => {\r\n        const { adapter, writes, events } = adapterHarness('codex');\r\n        await initializeCodex(adapter);\r\n        expect(writes.some(({ method }) => method === 'turn/start' || method === 'turn/steer')).toBe(false);\r\n        await adapter.compact();\r\n        const request = writes.at(-1);\r\n        expect(request).toMatchObject({ method: 'thread/compact/start', params: { threadId: 'session-1' } });\r\n        await adapter.handleMessage({ id: request.id, result: {} });\r\n        expect(events.some(({ type }) => type === 'turnCompleted')).toBe(false);\r\n        await adapter.handleMessage({ method: 'turn/started', params: { threadId: 'session-1', turn: { id: 'compact-turn' } } });\r\n        const item = { id: 'compact-item', type: 'contextCompaction' };\r\n        await adapter.handleMessage({ method: 'item/started', params: { threadId: 'session-1', item } });\r\n        await adapter.handleMessage({ method: 'item/completed', params: { threadId: 'session-1', item } });\r\n        await adapter.handleMessage({method: 'turn/completed', params: { threadId: 'session-1', turn: { id: 'compact-turn', status: 'completed' } }});\r\n        expect(events.at(-1)).toMatchObject({ compaction: { confirmed: true }, type: 'turnCompleted' });\r\n        await adapter.sendMessage('next prompt');\r\n        expect(writes.at(-1)).toMatchObject({ method: 'turn/start', params: { threadId: 'session-1' } });\r\n    });\r\n\r\n    it('reports Codex rejection without claiming completion', async () => {\r\n        const { adapter, events, writes } = adapterHarness('codex');\r\n        await initializeCodex(adapter);\r\n        await adapter.compact();\r\n        await adapter.handleMessage({ id: writes.at(-1).id, error: { message: 'No history' } });\r\n        expect(events.at(-1)).toEqual({ error: 'No history', type: 'compactRejected' });\r\n    });\r\n\r\n    it.each([true, false])('Claude waits for result and distinguishes boundary presence: %s', async (confirmed) => {\r\n        vi.useFakeTimers();\r\n        const { adapter, events, writes } = adapterHarn\n[2329 characters omitted]\nget does not match');\r\n        expect(run.streamingAdapter.compact).not.toHaveBeenCalled();\r\n    });\r\n\r\n    it('requires initialization, idle turn, and no question or approval', () => {\r\n        const { run, service } = compactRun();\r\n        expect(service.canCompact(run.id)).toBe(true);\r\n        run.sessionReady = false;\r\n        expect(service.canCompact(run.id)).toBe(false);\r\n        run.sessionReady = true;\r\n        run.turnActive = true;\r\n        expect(service.canCompact(run.id)).toBe(false);\r\n        run.turnActive = false;\r\n        run.waitingForQuestion = true;\r\n        expect(service.canCompact(run.id)).toBe(false);\r\n        run.waitingForQuestion = false;\r\n        run.pendingApprovals.set(1, {});\r\n        expect(service.canCompact(run.id)).toBe(false);\r\n    });\r\n\r\n    it('persists confirmed event and usage before notifying completion, without removing transcript', async () => {\r\n        const { events, persist, run, service } = compactRun();\r\n        await service.compact(run.id, { conversationId: run.conversation.id, provider: run.agent, requestId: 'compact-1' });\r\n        const checkpoint = Promise.withResolvers();\r\n        persist.mockImplementation(async () => checkpoint.promise);\r\n        await service.handleStreamingEvent(run.id, {\r\n            type: 'event', event: {\r\n                content: 'Context compacted', label: 'Context compacted', providerItemId: 'compact-1',\r\n                status: 'completed', type: 'contextCompaction',\r\n            },\r\n        });\r\n        const completion = service.handleStreamingEvent(run.id, {type: 'turnCompleted', compaction: { confirmed: true }, contextWindowUsage: { capacityTokens: 1000, usedTokens: 50 }});\r\n        expect(events.some(({ type }) => type === 'compactSettled')).toBe(false);\r\n        checkpoint.resolve();\r\n        await completion;\r\n        expect(events.at(-1)).toMatchObject({ error: null, requestId: 'compact-1', type: 'compactSettled' });\r\n        expect(run.conversation.entries[0].content).toBe('old transcript');\r\n        expect(run.conversation.entries.at(-1).type).toBe('contextCompaction');\r\n        expect(run.conversation.usage.totalTokens).toBe(120);\r\n        expect(run.conversation.contextWindowUsage.usedTokens).toBe(50);\r\n        expect(run.activeCompact).toBeNull();\r\n    });\r\n\r\n    it('does not emit success when checkpoint persistence fails', async () => {\r\n        const { events, persist, run, service } = compactRun();\r\n        await service.compact(run.id, { conversationId: run.conversation.id, provider: run.agent, requestId: 'compact-1' });\r\n        persist.mockRejectedValue(new Error('Checkpoint unavailable'));\r\n        await expect(service.handleStreamingEvent(run.id, { type: 'turnCompleted', compaction: { confirmed: true } }))\r\n            .rejects.toThrow('Checkpoint unavailable');\r\n        expect(events.some(({ type }) => type === 'compactSettled')).toBe(false);\r\n    });\r\n\r\n    it('restores saved unanswered questions without duplicating the transcript entry', async () => {\r\n        const { events, service, run } = compactRun();\r\n        const questionEntry = {\r\n            content: '', id: 'question-1', kind: 'event',\r\n            questions: [{ id: 'question-1', question: 'Continue?' }], timestamp: 'now', type: 'agentQuestion',\r\n        };\r\n        run.conversation.entries.push(questionEntry);\r\n        run.restoredQuestions = true;\r\n        run.waitingForQuestion = true;\r\n        run.pendingQuestionRequestId = 'restored:conversation-1';\r\n        run.pendingQuestions = questionEntry.questions;\r\n        run.streamingAdapter.dismissQuestion = vi.fn();\r\n        await service.handleStreamingEvent(run.id, { type: 'sessionReady' });\r\n        expect(run.conversation.entries.filter(({ type }) => type === 'agentQuestion')).toEqual([questionEntry]);\r\n        expect(events.filter(({ type }) => type === 'agentEvent')).toEqual([]);\r\n        expect(events.filter(({ type }) => type === 'question')).toEqual([\r\n            expect.objectContaining({ questions: questionEntry.questions, requestId: 'restored:conversation-1' }),\r\n        ]);\r\n",
+          "durationMs": 144,
+          "exitCode": 0,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-43",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/actions/agent/agent_compact.test.mjs' | Select-Object -First 175\"",
+          "providerItemId": "exec-df9e1d9f-78c2-4a72-ada5-b665623a2358",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:44:24.103Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/actions/agent/agent_streaming_adapter.test.mjs' | Select-Object -First 120\"",
+          "content": "import { createRequire } from 'node:module';\r\nimport { describe, expect, it, vi } from 'vitest';\r\nimport { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';\r\n\r\nconst require = createRequire(import.meta.url);\r\nconst { createAgentProviderProtocolParser } = require('./agent_provider_protocol');\r\nconst { createAgentStreamingAdapter } = require('./agent_streaming_adapter');\r\nconst { AgentStreamingEventPublisher } = require('./agent_streaming_event_publisher');\r\nconst { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');\r\n\r\nfunction harness(agent, providerConversationId = null, executionSettings = {}, taskTrackingEnabled = false, coalesceEvents = false) {\r\n    const events = [];\r\n    const runtimeEvents = [];\r\n    const writes = [];\r\n    const eventPublisher = coalesceEvents\r\n        ? new AgentStreamingEventPublisher(async (event) => events.push(event))\r\n        : null;\r\n    const adapter = createAgentStreamingAdapter(\r\n        agent,\r\n        (message) => writes.push(message),\r\n        eventPublisher ? (event) => eventPublisher.publish(event) : (event) => events.push(event),\r\n        'C:\\\\repo',\r\n        providerConversationId,\r\n        (event) => runtimeEvents.push(event),\r\n        executionSettings,\r\n        null,\r\n        taskTrackingEnabled,\r\n    );\r\n\r\n    return { adapter, eventPublisher, events, runtimeEvents, writes };\r\n}\r\n\r\nfunction codexBreakdown(cachedInputTokens, inputTokens, outputTokens, reasoningOutputTokens) {\r\n    return {\r\n        cachedInputTokens,\r\n        inputTokens,\r\n        outputTokens,\r\n        reasoningOutputTokens,\r\n        totalTokens: inputTokens + outputTokens,\r\n    };\r\n}\r\n\r\nfunction codexTokenUsage(last, total) {\r\n    return {\r\n        method: 'thread/tokenUsage/updated',\r\n        params: { tokenUsage: { last, modelContextWindow: 258_400, total } },\r\n    };\r\n}\r\n\r\nconst ROOT_COLLABORATION_ITEM = {\r\n    agentsStates: { 'thread-child': { status: 'running' } },\r\n    id: 'wait-1',\r\n    prompt: 'investigate',\r\n    receiverThreadIds: ['thread-child'],\r\n    status: 'inProgress',\r\n    tool: 'wait',\r\n    type: 'collabAgentToolCall',\r\n};\r\n\r\nfunction subAgentActivity(id, agentThreadId, agentPath) {\r\n    return { agentPath, agentThreadId, id, kind: 'started', type: 'subAgentActivity' };\r\n}\r\n\r\n/** Brings a Codex adapter to a running root turn whose collaboration call has started one child thread. */\r\nasync function startCodexCollaboration(coalesceEvents = false) {\r\n    const started = harness('codex', null, {}, false, coalesceEvents);\r\n    const { adapter } = started;\r\n\r\n    await adapter.start('plan');\r\n    await adapter.handleMessage({ id: 1, result: {} });\r\n    await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-root' } } });\r\n    await adapter.handleMessage({\r\n        method: 'turn/started',\r\n        params: { threadId: 'thread-root', turn: { id: 'turn-root' }, turnId: 'turn-root' },\r\n    });\r\n    await adapter.handleMessage({\r\n        method: 'item/started',\r\n        params: { item: ROOT_COLLABORATION_ITEM, threadId: 'thread-root', turnId: 'turn-root' },\r\n    });\r\n    await adapter.handleMessage({\r\n        method: 'turn/started',\r\n        params: { threadId: 'thread-child', turn: { id: 'turn-child' }, turnId: 'turn-child' },\r\n    });\r\n\r\n    return started;\r\n}\r\n\r\nconst SUB_AGENT_TOOL_USE_ID = 'tool-sub-agent';\r\n\r\nfunction claudeStreamEvent(event, parentToolUseId = null) {\r\n    return {\r\n        event,\r\n        ...(parentToolUseId ? { parent_tool_use_id: parentToolUseId } : {}),\r\n        type: 'stream_event',\r\n    };\r\n}\r\n\r\nfunction claudeContextUsageResponse(requestId, response, subtype = 'success') {\r\n    return {\r\n        response: { request_id: requestId, response, subtype },\r\n        type: 'control_response',\r\n    };\r\n}\r\n\r\nfunction latestClaudeContextUsageRequest(writes) {\r\n    return writes.findLast(({ request, type }) => type === 'control_request' && request?.subtype === 'get_context_usage');\r\n}\r\n\r\nfunction claudeRootAssistant(messageId, inputTokens, outputTokens) {\r\n    return {\r\n        message: {\r\n            content: [],\r\n            id: messageId,\r\n            usage: {\r\n                cache_creation_input_tokens: 0,\r\n                cache_read_input_tokens: 0,\r\n                input_tokens: inputTokens,\r\n                output_tokens: outputTokens,\r\n            },\r\n        },\r\n",
+          "durationMs": 128,
+          "exitCode": 0,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-44",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/actions/agent/agent_streaming_adapter.test.mjs' | Select-Object -First 120\"",
+          "providerItemId": "exec-89c2b976-07fa-4225-92c0-d4aa10251712",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:44:24.103Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dc54e21487d295b715d2feff70fc",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:44:35.221Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-46",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dc5c7f5887d2b31e61ead3815795",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:44:42.785Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\agent_streaming_adapter.js\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\agent_streaming_event_handlers.js",
+          "deletions": 6,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-47",
+          "insertions": 32,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-461f9a33-a9df-4055-90da-704516280e3b",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:44:59.787Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-48",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dc77abac87d2b0c00e9de89648b2",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:45:09.969Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\agent_compact.test.mjs",
+          "deletions": 1,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-49",
+          "insertions": 110,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-9e8ace55-b606-4047-9678-454c8117309f",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:45:50.574Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-50",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dca30ad087d2a7b5590c4008777d",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:45:53.329Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Blocks 1–2 implemented. Context-only event now separate; runner buffers it during active compact, applies only after confirmation, persists late replacements, and uses temporary zero when needed. Running focused tests.\n\n",
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 51,
+          "timestamp": "2026-11-09T14:45:54.384Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- agent_compact.test.mjs agent_streaming_adapter.test.mjs agent_runner_state.test.mjs'",
+          "content": "\n> desktop@0.11.2 test\n> vitest run agent_compact.test.mjs agent_streaming_adapter.test.mjs agent_runner_state.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/desktop\n\n\n Test Files  3 passed (3)\n      Tests  204 passed (204)\n   Start at  15:46:03\n   Duration  1.00s (transform 233ms, setup 0ms, import 500ms, tests 707ms, environment 0ms)\n\n",
+          "durationMs": 1627,
+          "exitCode": 0,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-52",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- agent_compact.test.mjs agent_streaming_adapter.test.mjs agent_runner_state.test.mjs'",
+          "providerItemId": "exec-f8a559f2-6219-415d-99ce-4e97d32a8f12",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:46:04.503Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-53",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dcb0372087d2aa00e0bc14465287",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:46:07.586Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Focused tests pass: 204 tests. Running desktop lint next.\n\n",
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 54,
+          "timestamp": "2026-11-09T14:46:08.715Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> desktop@0.11.2 lint\n> eslint .\n\n",
+          "durationMs": 2955,
+          "exitCode": 0,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-55",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-cfdffa6e-629b-4c23-88a3-fa0077f6aee4",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:46:12.200Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-56",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dcb9c68c87d290de75363707a36b",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:46:16.049Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Tests and lint clean. Final required action: set external B_362 status to `ready`; no other spec text changes.\n\n",
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 57,
+          "timestamp": "2026-11-09T14:46:16.751Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_362_after_compact_context_size_not_updated.md",
+          "deletions": 1,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-58",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-3c41fb2c-b487-4049-8a20-089157aded2e",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:46:26.852Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dccf638887d298fb1e858978e2dd",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:46:37.667Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-60",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dcd7583c87d2a18ad8d51f58bf21",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:46:45.700Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -C 12 \"function createRun|activeCompact|turnStarted\" desktop/src/actions/agent/agent_run_state.js'",
+          "content": "33-                return;\n34-            }\n35-\n36-            resolve();\n37-        });\n38-    });\n39-}\n40-\n41-/**\n42- * The mutable state for one agent turn. `AgentRunnerService` keeps these in `processes` keyed by run id,\n43- * and `persistCheckpoint` spreads the whole object into the persistence layer, so the field set is a contract.\n44- */\n45:function createRun({\n46-    accountId,\n47-    agent,\n48-    child,\n49-    conversation,\n50-    environment,\n51-    executable,\n52-    id,\n53-    nextSequence,\n54-    onComplete,\n55-    onCompletionError,\n56-    onEvent,\n57-    reference,\n--\n108-        rootPath,\n109-        secretValues: new Set(),\n110-        request,\n111-        stderr: '',\n112-        stderrBuffer: '',\n113-        stderrHandling: Promise.resolve(),\n114-        finishing: false,\n115-        stdout: '',\n116-        startedAt,\n117-        streaming,\n118-        streamingFailure: null,\n119-        streamingEventPublisher: null,\n120:        turnStarted: false,\n121-        turnIndex: 1,\n122-        turnActive: streaming && !request.compactOnly,\n123-        sessionReady: false,\n124:        activeCompact: null,\n125-        termination: null,\n126-        suspended: false,\n127-        turnUsage: null,\n128-        waitingForQuestion: restoredQuestions?.length > 0,\n129-    };\n130-}\n131-\n132-/**\n133- * Wires the run to its provider protocol: streaming runs get the adapter plus a JSONL line buffer,\n134- * batch runs get the one-shot protocol parser.\n135- */\n136-function attachRunProtocol(run, {\n--\n173-        : createAgentProviderProtocolParser(\n174-            run.agent,\n175-            onProviderEvent,\n176-            onMalformedOutput,\n177-            rootPath,\n178-            run.claudeUsageTracker,\n179-            run.conversation.taskList,\n180-        );\n181-\n182-    return run;\n183-}\n184-\n185:function createRunResult(request, exitCode, run) {\n186-    return {\n187-        ...(run.accountId ? { accountId: run.accountId } : {}),\n188-        command: request.command,\n189-        conversation: run.conversation,\n190-        exitCode,\n191-        missingSession: run.missingSession,\n192-        prompt: request.prompt,\n193-        reference: run.reference,\n194-        runId: run.id,\n195-        stderr: run.stderr,\n196-        stdout: run.stdout,\n197-        changedPaths: [...run.changedPaths],\n198:        turnStarted: run.turnStarted,\n199-    };\n200-}\n201-\n202-module.exports = {\n203-    attachRunProtocol,\n204-    createRun,\n205-    createRunResult,\n206-    emitRunEvent,\n207-    hasPendingInteraction,\n208-    writeJsonLine,\n209-};\n",
+          "durationMs": 40,
+          "exitCode": 0,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-61",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -C 12 \"function createRun|activeCompact|turnStarted\" desktop/src/actions/agent/agent_run_state.js'",
+          "providerItemId": "exec-1fee5cd9-cab1-4fa6-bad2-833ecd865cce",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:46:47.821Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dce5328087d2bcbc8b3cbea3be2e",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:46:59.517Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-63",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dce585a487d28d125a1067f7bbf6",
+          "sequence": 63,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:46:59.834Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "One failure edge found during acceptance review: notification arriving after failed compact could look late-successful. Adding provider-side late-update guard and treating turn error as failed confirmation.\n\n",
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 64,
+          "timestamp": "2026-11-09T14:47:00.701Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\agent_compact.test.mjs\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\agent_streaming_adapter.js\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\agent_streaming_event_handlers.js",
+          "deletions": 4,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-65",
+          "insertions": 28,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-8305bcd3-f9af-48f1-939d-6fa2cb417fda",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:47:23.196Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-66",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dcff082887d2bfabdf4fde08f0cd",
+          "sequence": 66,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:47:25.364Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- agent_compact.test.mjs agent_streaming_adapter.test.mjs agent_runner_state.test.mjs'",
+          "content": "\n> desktop@0.11.2 test\n> vitest run agent_compact.test.mjs agent_streaming_adapter.test.mjs agent_runner_state.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/desktop\n\n ❯ src/actions/agent/agent_compact.test.mjs (17 tests | 1 failed) 28ms\n     × reports Codex rejection without claiming completion 7ms\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  src/actions/agent/agent_compact.test.mjs > provider compaction > reports Codex rejection without claiming completion\nAssertionError: expected [ { …(2) }, …(2) ] to deeply equal [ { error: 'No history', …(1) } ]\n\n- Expected\n+ Received\n\n  [\n    {\n+     \"conversationId\": \"session-1\",\n+     \"type\": \"sessionStarted\",\n+   },\n+   {\n+     \"type\": \"sessionReady\",\n+   },\n+   {\n      \"error\": \"No history\",\n      \"type\": \"compactRejected\",\n    },\n  ]\n\n ❯ src/actions/agent/agent_compact.test.mjs:110:24\n    108|         expect(events.at(-1)).toEqual({ error: 'No history', type: 'co…\n    109|         await adapter.handleMessage(codexContextOnlyUsage(25));\n    110|         expect(events).toEqual([{ error: 'No history', type: 'compactR…\n       |                        ^\n    111|     });\n    112|\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n\n\n Test Files  1 failed | 2 passed (3)\n      Tests  1 failed | 204 passed (205)\n   Start at  15:47:28\n   Duration  951ms (transform 227ms, setup 0ms, import 454ms, tests 723ms, environment 0ms)\n\n",
+          "durationMs": 1514,
+          "exitCode": 1,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-67",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- agent_compact.test.mjs agent_streaming_adapter.test.mjs agent_runner_state.test.mjs'",
+          "providerItemId": "exec-839dc62e-6bfe-4532-a340-91459d0f1e36",
+          "sequence": 67,
+          "status": "failed",
+          "timestamp": "2026-11-09T14:47:29.259Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-68",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dd0515c887d2aa385032be171267",
+          "sequence": 68,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:47:31.430Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "One assertion counted session startup events. Product behavior correct; narrowing test to assert no `contextUsage`, then rerun.\n\n",
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 69,
+          "timestamp": "2026-11-09T14:47:32.203Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop\\src\\actions\\agent\\agent_compact.test.mjs",
+          "deletions": 1,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-70",
+          "insertions": 2,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-cd2dd99c-5a7e-4857-973d-f5a75753515a",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:47:36.203Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- agent_compact.test.mjs agent_streaming_adapter.test.mjs agent_runner_state.test.mjs'",
+          "content": "\n> desktop@0.11.2 test\n> vitest run agent_compact.test.mjs agent_streaming_adapter.test.mjs agent_runner_state.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/desktop\n\n\n Test Files  3 passed (3)\n      Tests  205 passed (205)\n   Start at  15:47:40\n   Duration  970ms (transform 169ms, setup 0ms, import 448ms, tests 706ms, environment 0ms)\n\n",
+          "durationMs": 1528,
+          "exitCode": 0,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-71",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- agent_compact.test.mjs agent_streaming_adapter.test.mjs agent_runner_state.test.mjs'",
+          "providerItemId": "exec-ca0fe577-e551-4623-a98b-d73f02961b78",
+          "sequence": 71,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:47:42.044Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> desktop@0.11.2 lint\n> eslint .\n\n",
+          "durationMs": 2869,
+          "exitCode": 0,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-72",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-7dae9d14-90d1-4b37-b10b-70736bd09948",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:47:49.972Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-73",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dd1abce487d2a282d9d852519251",
+          "sequence": 73,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:47:53.047Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_362_after_compact_context_size_not_updated.md' | Select-Object -First 10\"",
+          "content": "---\r\nauthor: \r\nid: B_362\r\ninternalId: ba21cf2c-06f9-4210-aeb5-203d3d6c934d\r\ntitle: after compact context size not updated\r\nstatus: ready\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__ba21cf2c-06f9-4210-aeb5-203d3d6c934d.json\r\n",
+          "durationMs": 55,
+          "exitCode": 0,
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-74",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_362_after_compact_context_size_not_updated.md' | Select-Object -First 10\"",
+          "providerItemId": "exec-bd1623bf-e04b-4950-abdb-0d5c88df4294",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-11-09T14:47:55.829Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-event-75",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012abdea02ccaf3a016af1dd27673c87d2a3716d7b5d7ed14e",
+          "sequence": 75,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-09T14:48:05.679Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Bug fixed.\n\n- Codex context-only updates now publish and persist independently.\n- Confirmed compact uses fresh snapshot or temporary `0%`.\n- Late valid snapshot replaces zero without changing cumulative tokens.\n- Failed/rejected compact preserves previous usage.\n- Claude behavior unchanged.\n- Added focused adapter and runner tests.\n- Feature status set to `ready`.\n\nFiles:\n\n- [agent_streaming_adapter.js](C:/Users/janbo/Documents/dev/md2_workers/dev1/desktop/src/actions/agent/agent_streaming_adapter.js)\n- [agent_streaming_event_handlers.js](C:/Users/janbo/Documents/dev/md2_workers/dev1/desktop/src/actions/agent/agent_streaming_event_handlers.js)\n- [agent_compact.test.mjs](C:/Users/janbo/Documents/dev/md2_workers/dev1/desktop/src/actions/agent/agent_compact.test.mjs)\n- [B_362 specification](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_362_after_compact_context_size_not_updated.md)\n\nValidation: 205 focused tests pass. Desktop lint passes.\n\n",
+          "id": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-turn-2-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 76,
+          "timestamp": "2026-11-09T14:48:09.883Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1460,55 +1946,55 @@
           "agent": "codex",
           "conversationId": "01a1c0c2-7763-7163-9551-cebf4d13d512",
           "createdAt": "2026-11-09T14:42:13.424Z",
-          "lastUsedAt": "2026-11-09T14:43:59.558Z",
-          "synchronizedThroughMessageId": "submission-f8100cdd-5f53-495e-bb2a-5632b90e383b"
+          "lastUsedAt": "2026-11-09T14:48:09.883Z",
+          "synchronizedThroughMessageId": "agent-turn-f6847a2c-07c3-4aa1-90fe-6f3b7a9bd8ce-turn-2-assistant-7"
         }
       ],
       "startedAt": "2026-11-09T14:42:12.246Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
             "id": "0",
             "subject": "Block 1 — Codex adapter: emit root context-window changes independently from cumulative turn usage; carry fresh snapshot into confirmed compaction completion; allow late snapshot after completion; preserve normal-turn accounting.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "1",
             "subject": "Block 2 — Runner persistence: apply confirmed compaction snapshot, or zero usedTokens with last valid capacity; remove snapshot when capacity absent; ignore failed/rejected compaction changes; persist and publish before compact settles; persist later context-only replacements.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 3 — Focused tests: adapter coverage for snapshot before and after completion; runner coverage for fresh, temporary zero, absent capacity, late replacement without token-accounting change, persistence ordering, and failed/rejected preservation; verify Claude behavior remains covered.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Block 4 — Validation and handoff: run focused desktop tests and desktop linter; after success, update external B_362 feature status to ready.",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-09T14:43:36.319Z"
+        "updatedAt": "2026-11-09T14:48:02.494Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 97,
-          "toolMs": 1704
+          "reasoningMs": 131,
+          "toolMs": 19478
         },
-        "elapsedMs": 91458,
-        "runningStartedAt": "2026-11-09T14:43:59.511Z"
+        "elapsedMs": 341830,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
-        "cachedInputTokens": 497024,
-        "inputTokens": 64496,
-        "outputTokens": 2436,
-        "reasoningTokens": 1013,
-        "totalTokens": 564969
+        "cachedInputTokens": 2096512,
+        "inputTokens": 73000,
+        "outputTokens": 9283,
+        "reasoningTokens": 4864,
+        "totalTokens": 2183659
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -1542,6 +2028,33 @@
       "startedAt": "2026-11-09T14:36:31.499Z",
       "status": "completed",
       "rootConversationId": "agent-30faac63-95df-415f-973e-970c393649a7"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-09T14:48:09.891Z",
+      "conversationIds": [
+        "agent-0f05ef8b-f3bb-4072-a203-8c5e34aa2b80"
+      ],
+      "details": {
+        "type": "agent",
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default"
+      },
+      "runId": "action-53552faa-07b9-45fd-b73f-64631fedf55a",
+      "origin": {
+        "cardInternalId": "ba21cf2c-06f9-4210-aeb5-203d3d6c934d",
+        "kind": "card"
+      },
+      "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "rootActionLabel": "fix bug",
+      "startedAt": "2026-11-09T14:42:11.211Z",
+      "status": "completed",
+      "rootConversationId": "agent-0f05ef8b-f3bb-4072-a203-8c5e34aa2b80"
     }
   ],
   "version": 5
