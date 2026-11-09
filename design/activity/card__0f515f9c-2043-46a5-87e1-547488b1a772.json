@@ -1638,7 +1638,7 @@
       "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "cardInternalId": "0f515f9c-2043-46a5-87e1-547488b1a772",
       "cardPath": "design/feature_descriptions/B_353_edited_regular_markdown_file_in_list_view_which_got_replaced.md",
-      "completedAt": null,
+      "completedAt": "2026-11-09T12:55:28.778Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 137358
@@ -3941,7 +3941,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 169,
-          "timestamp": "2026-11-09T12:55:28.385Z"
+          "timestamp": "2026-11-09T12:55:28.778Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3952,12 +3952,12 @@
           "agent": "codex",
           "conversationId": "01a1c051-aa4e-7133-851a-9bf5582a978a",
           "createdAt": "2026-11-09T12:39:00.477Z",
-          "lastUsedAt": "2026-11-09T12:55:28.385Z",
+          "lastUsedAt": "2026-11-09T12:55:28.778Z",
           "synchronizedThroughMessageId": "agent-turn-5db637f9-2fc9-44b4-bd39-4c0ef87041de-turn-2-assistant-7"
         }
       ],
       "startedAt": "2026-11-09T12:38:59.351Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -3988,8 +3988,8 @@
           "reasoningMs": 1353,
           "toolMs": 235259
         },
-        "elapsedMs": 140626,
-        "runningStartedAt": "2026-11-09T12:43:01.616Z"
+        "elapsedMs": 887788,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
