@@ -36,7 +36,6 @@ const DATA_METHODS = [
     'commitPrimaryChanges',
     'commitWorktree',
     'continueMergeConflict',
-    'createProject',
     'deleteFile',
     'deleteFolder',
     'discardWorktreeChanges',

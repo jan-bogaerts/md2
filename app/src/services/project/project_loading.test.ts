@@ -115,6 +115,25 @@ describe('ProjectLoading', () => {
         vi.unstubAllGlobals()
     })
 
+    it('creates only real project files before opening the project', async () => {
+        configService.init()
+        const commit = vi.fn<StorageService['commit']>(async (request) => request.files)
+        const storage = createStorage({ commit })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.createProject({ branch: 'main', id: 'project' })
+
+        expect(commit).toHaveBeenCalledOnce()
+        const [{ files: createdFiles }] = commit.mock.calls[0]
+        expect(createdFiles).toEqual(expect.arrayContaining([
+            expect.objectContaining({ path: expect.stringMatching(/actions\/implement\.json$/u) }),
+            expect.objectContaining({ path: expect.stringMatching(/agent_token_usage\.json$/u) }),
+        ]))
+        expect(createdFiles.every(({ path }) => !path.endsWith('/README.md') && !path.endsWith('/.gitkeep'))).toBe(true)
+        expect(storage.saveProjectConfig).toHaveBeenCalled()
+    })
+
     it('reports project watcher startup failures', async () => {
         configService.init()
         let reportWatchError: (error: Error) => void = () => {

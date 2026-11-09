@@ -3,8 +3,6 @@ import type { ProjectReference } from '../../data/data_types'
 export const GITHUB_PAGE_SIZE = 100
 export const GITHUB_STORAGE_CONCURRENCY = 8
 export const PROJECT_CONFIG_PATH = 'md2.config.json'
-export const PROJECT_README_TEMPLATE = '# MD²\n\nProject design folder created by MD².\n'
-
 export interface GithubStorageDependencies {
     accessToken: string
     fetchImplementation?: typeof fetch

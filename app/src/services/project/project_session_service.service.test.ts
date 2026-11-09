@@ -61,7 +61,6 @@ function createDataBridge(): ElectronDataBridge {
     return {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
-        createProject: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         hasPendingPush: vi.fn(async () => false),
@@ -615,12 +614,13 @@ describe('ProjectSessionService storage activation', () => {
         })
     })
 
-    it('creates the active template folder and config under the chosen project folder', async () => {
+    it('creates default files and config without folder placeholders', async () => {
         mockProjectOpen()
         configService.init()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const bridge = createDataBridge()
         const flush = vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockResolvedValue()
-        vi.mocked(bridge.createProject).mockImplementation(async (project) => {
+        vi.mocked(bridge.loadProjectRoot).mockImplementation(async () => {
             expect(flush).toHaveBeenCalled()
             expect(bridge.saveProjectConfig).toHaveBeenCalledWith(project, expect.objectContaining({
                 states: DEFAULT_PROJECT_CONFIG.states,
@@ -630,11 +630,10 @@ describe('ProjectSessionService storage activation', () => {
             expect(flush.mock.invocationCallOrder[0])
                 .toBeLessThan(vi.mocked(bridge.saveProjectConfig).mock.invocationCallOrder[0])
 
-            return project
+            return { files: [], workingFolder: 'design/active' }
         })
         window.md2Data = bridge
         const service = new ProjectSessionService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
         await service.confirmProjectFolderSetup(
             {
@@ -651,10 +650,7 @@ describe('ProjectSessionService storage activation', () => {
             null,
         )
 
-        expect(bridge.createProject).toHaveBeenCalledWith(
-            project,
-            ['design/active', 'design/archived', 'design/actions', 'design/history', 'design/diagrams'],
-        )
+        expect(bridge.loadProjectRoot).toHaveBeenCalledWith(project, 'design/active')
         expect(bridge.commit).toHaveBeenCalledWith({
             branch: 'main',
             files: expect.arrayContaining([
@@ -665,6 +661,9 @@ describe('ProjectSessionService storage activation', () => {
             ]),
             message: 'Add default MD² actions',
         })
+        expect(vi.mocked(bridge.commit).mock.calls[0][0].files.every(({ path }) => (
+            !path.endsWith('/README.md') && !path.endsWith('/.gitkeep')
+        ))).toBe(true)
         expect(bridge.saveProjectConfig).toHaveBeenCalledWith(project, expect.objectContaining({
             backgroundShade: expect.stringMatching(/^(amber|blue|green|purple|red)$/u),
             projectFolder: 'design',
@@ -749,7 +748,6 @@ describe('ProjectSessionService storage activation', () => {
         expect(confirmation).toHaveBeenCalledWith('design')
         expect(bridge.saveProjectFolderGitInclusion).not.toHaveBeenCalled()
         expect(bridge.saveProjectConfig).not.toHaveBeenCalled()
-        expect(bridge.createProject).not.toHaveBeenCalled()
     })
 
     it('seeds only missing default actions and leaves existing folders untouched', async () => {
@@ -782,7 +780,6 @@ describe('ProjectSessionService storage activation', () => {
             null,
         )
 
-        expect(bridge.createProject).toHaveBeenCalledWith(project, [])
         const commitRequest = vi.mocked(bridge.commit).mock.calls[0][0]
         expect(commitRequest.files.some(({ path }) => path === 'design/actions/complete.json')).toBe(false)
         expect(commitRequest.files).toContainEqual(expect.objectContaining({ path: 'design/actions/implement.json' }))

@@ -7,7 +7,6 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
     return {
         checkoutBranch: vi.fn(),
         commit: vi.fn().mockResolvedValue([]),
-        createProject: vi.fn(),
         deleteFile: vi.fn().mockResolvedValue(undefined),
         deleteFolder: vi.fn().mockResolvedValue(undefined),
         hasPendingPush: vi.fn().mockResolvedValue(false),

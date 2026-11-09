@@ -246,18 +246,19 @@ describe('GithubStorageService', () => {
         expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/repos/owner/repo/contents'))).toBe(false)
     })
 
-    it('throws a clear missing-folder error without creating content when loading a missing project folder', async () => {
+    it('loads absent configured folders as empty without creating content', async () => {
         const fetchImplementation = vi.fn()
+        queueProjectTree(fetchImplementation, [{ path: 'README.md', sha: 'readme-sha', type: 'blob' }])
         queueProjectTree(fetchImplementation, [{ path: 'README.md', sha: 'readme-sha', type: 'blob' }])
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
-        await expect(service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')).rejects.toMatchObject({
-            code: 'missing-working-folder',
-            message: 'Working folder is missing: design',
-            workingFolder: 'design',
-        })
-        expect(fetchImplementation).toHaveBeenCalledTimes(3)
+        const project = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }
+
+        await expect(service.loadProject(project, 'design')).resolves.toEqual({ files: [], workingFolder: 'design' })
+        await expect(service.loadProjectRoot(project, 'design/active'))
+            .resolves.toEqual({ files: [], workingFolder: 'design/active' })
+        expect(fetchImplementation).toHaveBeenCalledTimes(5)
         expect(fetchImplementation.mock.calls[0][1].method).toBeUndefined()
     })
 

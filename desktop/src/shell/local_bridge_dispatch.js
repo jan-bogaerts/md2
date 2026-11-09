@@ -265,12 +265,6 @@ function createLocalBridgeDispatch(dependencies) {
 
             return [];
         },
-        createProject: async (project, folders) => {
-            const createdProject = await localGitService.createProject(project, folders);
-            await activateProject(createdProject);
-
-            return currentLocalProject;
-        },
         deleteFile: async (request) => {
             if (actionRunnerService) await actionRunnerService.cancelCompactsForPath(request.path);
             return localGitService.deleteFile(request, currentLocalProject);

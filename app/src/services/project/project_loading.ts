@@ -214,7 +214,7 @@ export class ProjectLoading {
         projectAccessService.requireWritable()
         const { config, storage } = this.dependencies.requireDependencies()
         const rawConfig = { ...configService.getProjectConfig(), backgroundShade: createRandomProjectBackgroundShade() }
-        this.dependencies.replaceProject(await storage.createProject(project, [config.workingFolder]))
+        this.dependencies.replaceProject(project)
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot create a project without a project reference')
 

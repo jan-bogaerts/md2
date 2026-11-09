@@ -11,9 +11,9 @@ describe('GithubStorageService', () => {
         window.localStorage.clear()
     })
 
-    it('creates blobs, one tree, and one commit with the request message for a multi-file commit', async () => {
+    it('creates an absent configured path with the first real files', async () => {
         const fetchImplementation = vi.fn()
-        queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        queueProjectTree(fetchImplementation, [{ path: 'README.md', sha: 'readme-sha', type: 'blob' }])
         fetchImplementation
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
@@ -299,28 +299,6 @@ describe('GithubStorageService', () => {
                 { mode: '100644', path: 'design/notes/nested/info.txt', sha: null, type: 'blob' },
             ],
         })
-    })
-
-    it('creates template content only through explicit working-folder creation', async () => {
-        const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
-            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
-            .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
-            .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
-            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
-        const service = new GithubStorageService()
-        service.init({ accessToken: 'token', fetchImplementation })
-
-        await service.createProject(project, ['design'])
-
-        const blobCall = fetchImplementation.mock.calls.find(([url]) => url.includes('/repos/owner/repo/git/blobs'))
-        const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))
-
-        expect(JSON.parse(blobCall?.[1].body)).toEqual({
-            content: '# MD²\n\nProject design folder created by MD².\n',
-            encoding: 'utf-8',
-        })
-        expect(JSON.parse(commitCalls[1][1].body)).toMatchObject({ message: 'Create design workspace' })
     })
 
 })

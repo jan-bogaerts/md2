@@ -81,7 +81,6 @@ function createDispatch(options = {}) {
         })),
         updateCardActionSettings: vi.fn(async () => undefined),
         commit: vi.fn(async () => []),
-        createProject: vi.fn(async (project) => project),
         hasPendingPush: vi.fn(async () => false),
         listAgentConversationReferences: vi.fn(async () => ['design/activity/project.json#conversation=conversation-1']),
         loadActivityConversations: vi.fn(async () => []),
@@ -484,19 +483,6 @@ describe('createLocalBridgeDispatch', () => {
 
         await expect(dispatch.dataBridge.hasPendingPush(project)).resolves.toBe(false);
         expect(localGitService.hasPendingPush).toHaveBeenCalledWith(project);
-    });
-
-    it('establishes a created project for following commits', async () => {
-        const { dispatch, localGitService } = createDispatch();
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
-
-        await dispatch.dataBridge.createProject(project, ['design/active', 'design/history']);
-        localGitService.commit.mockResolvedValueOnce(undefined);
-        const result = await dispatch.dataBridge.commit({ branch: 'main', files: [], message: 'Add defaults' });
-
-        expect(localGitService.createProject).toHaveBeenCalledWith(project, ['design/active', 'design/history']);
-        expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), project);
-        expect(result).toEqual([]);
     });
 
     it('adds pending usage metrics to a batch commit of the active project', async () => {

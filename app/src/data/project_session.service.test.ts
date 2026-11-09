@@ -23,7 +23,6 @@ function createDataBridge(): ElectronDataBridge {
     return {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
-        createProject: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         hasPendingPush: vi.fn(async () => false),

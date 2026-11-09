@@ -483,11 +483,10 @@ export class ProjectSessionService extends EventTarget {
     }
 
     /**
-     * Single confirm path for the folder-setup dialog: creates every folder that is still missing,
-     * seeds the default action files, writes the five values to the project config and opens the
-     * project. Folders that already exist are left untouched. A new local project may keep its project
-     * folder out of Git; tracked files there are only removed from the index after confirmation.
-     * Resolves false when that confirmation is cancelled, before anything was written.
+     * Single confirm path for the folder-setup dialog: seeds missing default action files, writes the
+     * configured folder values and opens the project. A new local project may keep its project folder
+     * out of Git; tracked files there are only removed from the index after confirmation. Resolves
+     * false when that confirmation is cancelled, before anything was written.
      */
     async confirmProjectFolderSetup(
         resolution: ProjectFolderSetupResolution,
@@ -520,17 +519,18 @@ export class ProjectSessionService extends EventTarget {
             }
             const resolvedConfig = resolveProjectConfigPaths(projectConfig)
             const existingFilePaths = new Set(await storage.listRepositoryFiles(resolution.project))
-            const existingFolders = new Set(folderPathsOf([...existingFilePaths]))
-            const missingFolders = resolvedSetupFolders(projectConfig).filter((folder) => !existingFolders.has(folder))
-            // Folder creation activates local services, which require a complete project configuration.
-            // Flush the previous project while its backend is still active.
+            // Flush the previous project while its backend is still active. Loading configured project
+            // files after saving config activates local services before default files are written.
             await projectPersistenceService.flushPendingChanges()
             if (localOnlyStorage) {
                 await localOnlyStorage.saveProjectFolderGitInclusion(resolution.project, projectConfig, removeTrackedFiles)
             } else {
                 await storage.saveProjectConfig(resolution.project, projectConfig)
             }
-            const project = await storage.createProject(resolution.project, missingFolders)
+            const project = resolution.project
+            const nextConfig = await withDerivedStates(storage, project, projectConfig, storedConfig?.states !== undefined)
+            configService.loadProjectConfig(nextConfig)
+            await storage.saveProjectConfig(project, nextConfig)
             const defaultActionFiles = createDefaultActionFiles(resolvedConfig.actionsFolder)
                 .filter(({ path }) => !existingFilePaths.has(path))
 
@@ -544,9 +544,6 @@ export class ProjectSessionService extends EventTarget {
                 })
             }
 
-            const nextConfig = await withDerivedStates(storage, project, projectConfig, storedConfig?.states !== undefined)
-            configService.loadProjectConfig(nextConfig)
-            await storage.saveProjectConfig(project, nextConfig)
             await activateProjectSession(storage, resolution.storageType, project)
             this.setReadOnly(false)
 

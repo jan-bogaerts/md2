@@ -11,7 +11,6 @@ const { projectOperationCoordinator } = require('./project_operation_coordinator
 const {
     commit,
     commitNow,
-    createProjectNow,
     deleteFileNow,
     isWatchedProjectPath,
     listRepositoryFiles,
@@ -175,28 +174,6 @@ describe('project-files', () => {
         }
     });
 
-    it('creates ignored project folders without staging their placeholders', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
-
-        try {
-            await mkdir(join(rootPath, '.git'));
-            const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockImplementation(async function run() {
-                if (this.args[0] === 'check-ignore') return { stderr: '', stdout: 'design/active\0' };
-
-                return { stderr: '', stdout: '' };
-            });
-
-            await createProjectNow({ branch: 'main', id: 'local', rootPath }, ['design/active']);
-
-            await expect(readFile(join(rootPath, 'design', 'active', 'README.md'), 'utf8')).resolves.toBeTruthy();
-            const gitCommands = runGitProcess.mock.instances.map(({ args }) => args);
-            expect(gitCommands.some(([command]) => command === 'add' || command === 'commit')).toBe(false);
-        } finally {
-            vi.restoreAllMocks();
-            await rm(rootPath, { force: true, recursive: true });
-        }
-    });
-
     it('deletes an untracked file from disk without git rm or an empty commit', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
 
@@ -234,6 +211,21 @@ describe('project-files', () => {
             const projectFiles = await loadProject({ branch: 'main', id: 'local', rootPath }, 'design');
 
             expect(projectFiles.files.map((file) => file.path).sort()).toEqual(['design/F-1-root.md', 'design/history/F-2-old.md']);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('loads absent configured folders as empty', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const project = { branch: 'main', id: 'local', rootPath };
+
+            await expect(loadProject(project, 'design')).resolves.toEqual({ files: [], workingFolder: 'design' });
+            await expect(loadProjectRoot(project, 'design/active'))
+                .resolves.toEqual({ files: [], workingFolder: 'design/active' });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

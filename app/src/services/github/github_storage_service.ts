@@ -7,7 +7,7 @@ import type {
     ProjectReference,
     StorageService,
 } from '../../data/data_types'
-import { DEFAULT_PROJECT_CONFIG, MissingWorkingFolderError } from '../../data/data_types'
+import { DEFAULT_PROJECT_CONFIG } from '../../data/data_types'
 import { GithubProjectConfigStorage } from './github_project_config_storage'
 import {
     GithubPendingCommitConflictError,
@@ -41,30 +41,12 @@ export class GithubStorageService implements StorageService {
         this.context.init(dependencies)
     }
 
-    async createProject(project: ProjectReference, folders: string[]) {
-        this.requireWritable()
-
-        return this.writer.createProject(project, folders)
-    }
-
     async loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string) {
-        try {
-            return await this.loader.loadProject(project, workingFolder, excludedRootFolder)
-        } catch (error) {
-            if (this.isReadOnly && error instanceof MissingWorkingFolderError) return { files: [], workingFolder }
-
-            throw error
-        }
+        return this.loader.loadProject(project, workingFolder, excludedRootFolder)
     }
 
     async loadProjectRoot(project: ProjectReference, workingFolder: string) {
-        try {
-            return await this.loader.loadProjectRoot(project, workingFolder)
-        } catch (error) {
-            if (this.isReadOnly && error instanceof MissingWorkingFolderError) return { files: [], workingFolder }
-
-            throw error
-        }
+        return this.loader.loadProjectRoot(project, workingFolder)
     }
 
     async loadActionFiles(project: ProjectReference, actionsFolder: string) {

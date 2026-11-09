@@ -16,7 +16,6 @@ const {
 const { withGitIndexMutation } = require('../git/git_index_coordinator');
 const { projectOperationCoordinator } = require('./project_operation_coordinator');
 const { normalizePath } = require('../../../shared/path_utils.mjs');
-const { createMissingProjectFolders, PROJECT_README_TEMPLATE } = require('./project_folder_creation');
 
 const MARKDOWN_EXTENSION = '.md';
 const TEXT_EXTENSION = '.txt';
@@ -106,44 +105,6 @@ async function isTrackedFile(rootPath, repositoryPath) {
     }
 }
 
-function createMissingWorkingFolderError(workingFolder) {
-    const error = new Error(`Working folder is missing: ${workingFolder}`);
-    error.code = 'missing-working-folder';
-    error.workingFolder = workingFolder;
-
-    return error;
-}
-
-/**
- * Creates every requested folder that is still missing, in one commit.
- *
- * Git cannot represent an empty directory, so each created folder gets a placeholder README.
- * Folders that already exist are left untouched.
- */
-async function createProjectNow(project, folders) {
-    const rootPath = requireRootPath(project);
-    await assertGitRoot(rootPath);
-    const createdFolders = await createMissingProjectFolders(rootPath, folders);
-    const ignoredFolders = await listIgnoredPaths(rootPath, createdFolders);
-    const committableFolders = createdFolders.filter((folder) => !ignoredFolders.has(folder));
-
-    if (committableFolders.length > 0) {
-        await runGit(rootPath, ['add', '--', ...committableFolders]);
-        await commitStagedChanges(rootPath, `Create ${committableFolders.join(', ')} workspace`);
-    }
-
-    return project;
-}
-
-function createProject(project, folders) {
-    if (!Array.isArray(folders)) throw new Error('Project folders must be an array');
-    if (folders.length === 0) return Promise.resolve(project);
-
-    const rootPath = requireRootPath(project);
-
-    return holdProjectMutation(rootPath, () => createProjectNow(project, folders));
-}
-
 async function loadProject(project, workingFolder, excludedRootFolder) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -152,9 +113,7 @@ async function loadProject(project, workingFolder, excludedRootFolder) {
         ? null
         : ensureInsideRoot(rootPath, path.join(rootPath, excludedRootFolder));
 
-    if (!await pathExists(workingFolderPath)) {
-        throw createMissingWorkingFolderError(workingFolder);
-    }
+    if (!await pathExists(workingFolderPath)) return { files: [], workingFolder };
 
     return {
         files: await readMarkdownFiles(rootPath, workingFolderPath, excludedRootFolderPath),
@@ -167,9 +126,7 @@ async function loadProjectRoot(project, workingFolder) {
     await assertGitRoot(rootPath);
     const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder));
 
-    if (!await pathExists(workingFolderPath)) {
-        throw createMissingWorkingFolderError(workingFolder);
-    }
+    if (!await pathExists(workingFolderPath)) return { files: [], workingFolder };
 
     return {
         files: await readRootMarkdownFiles(rootPath, workingFolderPath),
@@ -574,8 +531,6 @@ function isWatchedProjectPath(filePath) {
 module.exports = {
     commit,
     commitNow,
-    createProject,
-    createProjectNow,
     deleteFile,
     deleteFileNow,
     deleteFolder,
@@ -591,7 +546,6 @@ module.exports = {
     loadTextFile,
     isWatchedProjectPath,
     moveFiles,
-    PROJECT_README_TEMPLATE,
     resolveExistingProjectEntry,
     saveProjectConfig,
     watchProject,

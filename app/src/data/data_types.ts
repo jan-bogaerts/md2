@@ -516,7 +516,6 @@ export interface StorageService {
     commit(request: CommitRequest): Promise<CommitResult>
     commitWorktree?(request: CommitWorktreeRequest): Promise<void>
     commitPrimaryChanges?(request: CommitPrimaryChangesRequest): Promise<void>
-    createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
     deleteLocalBranch?(project: ProjectReference, branchName: string): Promise<void>

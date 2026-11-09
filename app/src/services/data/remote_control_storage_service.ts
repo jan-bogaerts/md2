@@ -347,10 +347,6 @@ export class RemoteControlStorageService implements
         return result
     }
 
-    async createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference> {
-        return this.request<ProjectReference>('createProject', [project, folders])
-    }
-
     async writeFiles(request: WriteFilesRequest): Promise<void> {
         await this.request('writeFiles', [request])
     }
