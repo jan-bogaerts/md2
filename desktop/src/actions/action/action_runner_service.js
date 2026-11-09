@@ -232,7 +232,7 @@ class ActionRunnerService {
         this.runEvents.set(runId, []);
         this.runs.set(runId, run);
         run.start(this.finalizeRun.bind(this, run));
-        if (rootAction.type === 'agent') await run.waitForInitialConversationSave();
+        if (rootAction.type === 'agent') await run.waitForConversationStartup();
 
         return runId;
     }

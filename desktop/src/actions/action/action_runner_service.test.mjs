@@ -211,6 +211,56 @@ describe('ActionRunnerService', () => {
             .rejects.toThrow('Conversation save failed');
     });
 
+    it('starts an empty for-each run without waiting for a conversation save', async () => {
+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
+        const { runner } = createRunner(files);
+        const execute = vi.fn();
+        runner.agentExecutor = { execute };
+        const forEach = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [] };
+
+        const runId = await runner.start({ actionId: 'main', context, runInput: { forEach } });
+
+        await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });
+        expect(execute).not.toHaveBeenCalled();
+    });
+
+    it('keeps trying for-each records until one saves the initial conversation', async () => {
+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
+        const { runner } = createRunner(files);
+        const execute = vi.fn()
+            .mockRejectedValueOnce(new Error('First record failed before startup'))
+            .mockImplementationOnce(async (input) => {
+                input.onConversationSaved();
+
+                return {
+                    agent: 'codex', changedPaths: [], command: ['codex'], conversationId: 'conversation-2',
+                    conversationIds: ['conversation-2'], exitCode: 0, model: 'gpt-5.5', permissionMode: 'ask-for-approval',
+                    prompt: 'Run', reference: 'conversation.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            });
+        runner.agentExecutor = { execute };
+        const forEach = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [1, 2] };
+
+        const runId = await runner.start({ actionId: 'main', context, runInput: { forEach } });
+
+        await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });
+        expect(execute).toHaveBeenCalledTimes(2);
+    });
+
+    it('reports the first real error when every for-each record fails before startup', async () => {
+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
+        const { runner } = createRunner(files);
+        const execute = vi.fn()
+            .mockRejectedValueOnce(new Error('First record failed before startup'))
+            .mockRejectedValueOnce(new Error('Second record failed before startup'));
+        runner.agentExecutor = { execute };
+        const forEach = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [1, 2] };
+
+        await expect(runner.start({ actionId: 'main', context, runInput: { forEach } }))
+            .rejects.toThrow('First record failed before startup');
+        expect(execute).toHaveBeenCalledTimes(2);
+    });
+
     it('reserves a root agent conversation without creating its activity file', async () => {
         const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
         const { runner } = createRunner(files);

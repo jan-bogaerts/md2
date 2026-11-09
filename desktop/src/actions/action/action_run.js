@@ -63,7 +63,7 @@ class ActionRun {
         this.changedPaths = new Set();
         this.conversationIds = [];
         this.completion = null;
-        this.initialConversationSaved = Promise.withResolvers();
+        this.conversationStartup = Promise.withResolvers();
         this.controller = new AbortController();
         this.rootDetails = null;
         this.rootConversationId = null;
@@ -87,15 +87,15 @@ class ActionRun {
         this.completion = finalize(runCompletion);
     }
 
-    async waitForInitialConversationSave() {
-        const completedBeforeSave = this.completion.then((result) => {
+    async waitForConversationStartup() {
+        const completedBeforeStartup = this.completion.then((result) => {
             throw new Error(result.failure ?? 'Agent run ended before its conversation was saved');
         });
-        await Promise.race([this.initialConversationSaved.promise, completedBeforeSave]);
+        await Promise.race([this.conversationStartup.promise, completedBeforeStartup]);
     }
 
-    markInitialConversationSaved() {
-        this.initialConversationSaved.resolve();
+    markConversationStartupComplete() {
+        this.conversationStartup.resolve();
     }
 
     cancel() {
@@ -762,12 +762,14 @@ class ActionRun {
         const config = this.runInput.forEach;
         const records = forEachRecords(config.value);
         if (records.length === 0) {
+            this.markConversationStartupComplete();
             return { changedPaths: [], command: '', conversationId: null, conversationIds: [], exitCode: 0, stderr: '', stdout: '' };
         }
 
         const changedPaths = new Set();
         const conversationIds = [];
         let firstConversationId = null;
+        let firstFailure = null;
         let previousResult = null;
         let stderr = '';
         let stdout = '';
@@ -820,12 +822,15 @@ class ActionRun {
                     if (compactResult.exitCode !== 0) throw new Error(compactResult.stderr || 'Loop compaction failed');
                 }
             } catch (error) {
+                firstFailure ??= error;
                 const message = errorMessage(error, 'For-each record failed');
                 await this.recordLoopFailure(previousResult?.reference, index, message);
                 stderr += `${message}\n`;
                 if (config.failurePolicy === 'stopOnFirstFailure') throw error;
             }
         }
+
+        if (!previousResult && firstFailure) throw firstFailure;
 
         const result = previousResult ?? { command: '', exitCode: 0, reference: null };
         return {
@@ -1023,7 +1028,7 @@ class ActionRun {
             runId: this.runId,
             ...(forEachRecord !== undefined ? { forEachRecord } : {}),
             onActiveRunChange,
-            ...(isRoot ? { onConversationSaved: this.markInitialConversationSaved.bind(this) } : {}),
+            ...(isRoot ? { onConversationSaved: this.markConversationStartupComplete.bind(this) } : {}),
             onEvent,
             project,
             projectFolder: this.projectFolder,
