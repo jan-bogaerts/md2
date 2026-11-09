@@ -3,7 +3,7 @@ author:
 id: B_352
 internalId: cf8beb58-a0c5-4116-a93f-a3d52a377175
 title: no longer possible to open another project
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,23 @@ agents:
 policy:
 branch: b_352_no_longer_possible_to_open_another_project
 worktree: 1
+changedFiles:
+  - app/src/data/commit_batcher.test.ts
+  - app/src/data/commit_batcher.ts
+  - app/src/services/project/project_loading.test.ts
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/activity/activity_files.js
+  - desktop/src/actions/agent/agent_conversation_persistence.js
+  - desktop/src/actions/agent/project_agent_token_usage.js
+  - desktop/src/actions/agent/project_agent_token_usage.test.mjs
+  - desktop/src/git/git_commands.js
+  - desktop/src/git/git_commands.test.mjs
+  - desktop/src/project/project_files.js
+  - desktop/src/project/project_files.test.mjs
+  - desktop/src/project/uncommitted_project_writes.js
+  - desktop/src/project/uncommitted_project_writes.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
 ---
 
 Started md2 in debug mode, opened a project automatically, wanted to open another project, got this error:
