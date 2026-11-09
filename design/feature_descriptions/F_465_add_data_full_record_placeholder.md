@@ -3,7 +3,7 @@ author:
 id: F_465
 internalId: 57c8f8e6-a9fa-4e24-b262-ccacc65cb570
 title: add data - full record placeholder
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,15 @@ agents:
 policy:
 branch: f_465_add_data_full_record_placeholder
 worktree: 1
+changedFiles:
+  - app/src/components/editor/placeholders/markdown_placeholder_toolbar_control.grouped.test.tsx
+  - app/src/components/editor/placeholders/markdown_placeholder_typeahead_plugin.real.test.tsx
+  - app/src/components/editor/placeholders/markdown_placeholder_typeahead_plugin.tsx
+  - app/src/data/action_placeholders.ts
+  - desktop/src/actions/action/action_for_each.test.mjs
+  - desktop/src/actions/action/action_text.js
+  - desktop/src/actions/action/action_text.test.mjs
+  - shared/action_for_each.mjs
 ---
 
 We already have support for the `{{ data path}}` placeholder (added space to prevent placeholder to be applied). This version selects a specific field value of the currently active record.
