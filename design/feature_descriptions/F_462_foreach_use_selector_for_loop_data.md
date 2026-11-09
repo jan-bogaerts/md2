@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__9ee3f856-14a9-495a-88f7-a06cca186ac6.json
 policy:
-branch: f_462_foreach_use_selector_for_loop_data
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/popup/action_for_each_menu.test.tsx
   - app/src/components/actions/run/popup/action_for_each_menu.tsx
