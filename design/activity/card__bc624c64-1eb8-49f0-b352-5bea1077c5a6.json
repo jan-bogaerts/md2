@@ -720,6 +720,14 @@
           "role": "assistant",
           "sequence": 52,
           "timestamp": "2026-11-09T12:34:13.332Z"
+        },
+        {
+          "content": "but why is it committing after every run?",
+          "id": "submission-a9e147e2-e72c-47f8-a0e6-e081a3d86e81",
+          "kind": "message",
+          "role": "user",
+          "sequence": 53,
+          "timestamp": "2026-11-09T12:34:34.190Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -735,7 +743,7 @@
         }
       ],
       "startedAt": "2026-11-09T12:30:12.291Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -762,7 +770,7 @@
           "toolMs": 6053
         },
         "elapsedMs": 135535,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-09T12:34:34.190Z"
       },
       "title": "investigate",
       "usage": {
