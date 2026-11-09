@@ -9,9 +9,7 @@ affects:
 agents:
   - design/activity/card__5ea4f510-f3ba-4632-bde8-12a0c88335ee.json
 policy:
-after: 41d340e6-afae-44bd-82e7-41ab673c94e0
-branch: b_359_claude_cli_gives_authenticate_failure
-worktree: 3
+after: cf8beb58-a0c5-4116-a93f-a3d52a377175
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx
   - app/src/components/actions/conversation/errors/claude_authentication_required_error.test.tsx

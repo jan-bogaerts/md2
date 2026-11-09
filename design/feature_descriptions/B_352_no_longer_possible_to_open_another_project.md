@@ -26,6 +26,7 @@ changedFiles:
   - desktop/src/project/uncommitted_project_writes.test.mjs
   - desktop/src/shell/local_bridge_dispatch.js
   - desktop/src/shell/local_bridge_dispatch.test.mjs
+after: 3d19a862-9a99-47bf-a7f3-0d9249ecdb88
 ---
 
 Started md2 in debug mode, opened a project automatically, wanted to open another project, got this error:
