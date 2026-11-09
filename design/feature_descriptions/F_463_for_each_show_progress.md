@@ -9,9 +9,10 @@ affects:
 agents:
 policy:
 ---
-
 we recently added the 'for-each' functionality, see ( )
 
 This is working, but we now need to add some progress indicator so that the user can see how far along we are in the list.
 
-This should be a horizontal progress indicator (thin)
+This should be a horizontal progress indicator (thin) just above the 'tasks' list.
+
+We already have a progress indicator on the 'run' button on the action-cards. This should also indicate the progress in the for-each list.
