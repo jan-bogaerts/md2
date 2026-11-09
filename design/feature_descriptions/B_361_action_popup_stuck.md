@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__d2e9440e-e79e-4abe-9092-d786540e29d3.json
 policy:
+branch: b_361_action_popup_stuck
 ---
 We were doing a conversation in an action popup. there were a couple of tasks to complete. the UI appeared as if it was stuck on task 2, and everything was still running.
 
