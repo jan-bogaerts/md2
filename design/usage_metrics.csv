@@ -10720,3 +10720,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-09T09:29:26.365Z,token_usage,codex,,,,,11681,962432,1993,1271,977377,,,codex-initial
 2026-11-09T09:29:32.306Z,token_usage,codex,,,,,24224,1481600,1159,1666,1508649,,,codex-initial
 2026-11-09T09:30:15.292Z,account_usage,codex,codex,primary,10080,2026-11-11T10:03:58.000Z,,,,,,17,1,codex-initial
+2026-11-09T09:31:24.699Z,token_usage,codex,,,,,3964,1199360,1143,275,1204742,,,codex-initial
