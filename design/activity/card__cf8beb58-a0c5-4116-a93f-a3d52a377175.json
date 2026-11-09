@@ -3553,6 +3553,43 @@
       "startedAt": "2026-11-09T09:29:58.922Z",
       "status": "completed",
       "rootConversationId": "agent-a3ab77d0-0c34-4f3f-8ab3-bebab363d634"
+    },
+    {
+      "commits": [
+        {
+          "commit": "1c5f88c782fa23c71856cc988cc47986f5848b5a",
+          "committedAt": "2026-11-09T13:39:10+01:00",
+          "deletions": 126,
+          "filePaths": [
+            "app/src/data/commit_batcher.test.ts",
+            "app/src/data/commit_batcher.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/activity/activity_files.js",
+            "desktop/src/actions/agent/agent_conversation_persistence.js",
+            "desktop/src/actions/agent/project_agent_token_usage.js",
+            "desktop/src/actions/agent/project_agent_token_usage.test.mjs",
+            "desktop/src/git/git_commands.js",
+            "desktop/src/git/git_commands.test.mjs",
+            "desktop/src/project/project_files.js",
+            "desktop/src/project/project_files.test.mjs",
+            "desktop/src/project/uncommitted_project_writes.js",
+            "desktop/src/project/uncommitted_project_writes.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs"
+          ],
+          "filesChanged": 16,
+          "insertions": 348,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-09T13:39:10+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "cf8beb58-a0c5-4116-a93f-a3d52a377175",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

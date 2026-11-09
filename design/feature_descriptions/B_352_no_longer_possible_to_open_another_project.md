@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__cf8beb58-a0c5-4116-a93f-a3d52a377175.json
 policy:
-branch: b_352_no_longer_possible_to_open_another_project
-worktree: 1
 changedFiles:
   - app/src/data/commit_batcher.test.ts
   - app/src/data/commit_batcher.ts
