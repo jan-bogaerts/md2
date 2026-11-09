@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__57c8f8e6-a9fa-4e24-b262-ccacc65cb570.json
 policy:
-branch: f_465_add_data_full_record_placeholder
-worktree: 1
 changedFiles:
   - app/src/components/editor/placeholders/markdown_placeholder_toolbar_control.grouped.test.tsx
   - app/src/components/editor/placeholders/markdown_placeholder_typeahead_plugin.real.test.tsx
