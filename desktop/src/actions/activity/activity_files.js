@@ -194,7 +194,8 @@ async function updateAndCommitActivity(project, projectFolder, origin, update, m
         const current = await loadActivityValue(absolutePath, origin);
         const next = update(current);
         await writeActivityFile(absolutePath, next);
-        const commit = await commitTrackedPaths(rootPath, [relativePath], message);
+        const gitPaths = uncommittedProjectWrites.gitPaths(rootPath, [relativePath]);
+        const commit = gitPaths.length > 0 ? await commitTrackedPaths(rootPath, gitPaths, message) : null;
 
         return { activity: next, commit, relativePath };
     });

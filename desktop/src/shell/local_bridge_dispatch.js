@@ -43,6 +43,48 @@ function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
 }
 
+function isGitPath(uncommittedProjectWrites, rootPath, repositoryPath) {
+    return uncommittedProjectWrites.gitPaths(rootPath, [repositoryPath]).length > 0;
+}
+
+/** Splits one persistence request using active project-folder configuration. */
+function partitionPersistenceRequest(uncommittedProjectWrites, rootPath, request) {
+    const gitFiles = [];
+    const localFiles = [];
+    for (const file of request.files ?? []) {
+        const target = isGitPath(uncommittedProjectWrites, rootPath, file.path) ? gitFiles : localFiles;
+        target.push(file);
+    }
+    const gitMoves = [];
+    const localMoves = [];
+    for (const move of request.moves ?? []) {
+        const localOnly = !isGitPath(uncommittedProjectWrites, rootPath, move.fromPath)
+            && !isGitPath(uncommittedProjectWrites, rootPath, move.toPath);
+        const target = localOnly ? localMoves : gitMoves;
+        target.push(move);
+    }
+    const gitPaths = uncommittedProjectWrites.gitPaths(rootPath, request.paths ?? []);
+    const gitRequest = {
+        branch: request.branch,
+        files: gitFiles,
+        ...(typeof request.message === 'string' ? { message: request.message } : {}),
+        ...(gitMoves.length > 0 ? { moves: gitMoves } : {}),
+        ...(gitPaths.length > 0 ? { paths: gitPaths } : {}),
+    };
+    const localRequest = {
+        branch: request.branch,
+        files: localFiles,
+        ...(localMoves.length > 0 ? { moves: localMoves } : {}),
+    };
+
+    return {
+        gitRequest,
+        hasGitChanges: gitFiles.length > 0 || gitMoves.length > 0 || gitPaths.length > 0,
+        hasLocalChanges: localFiles.length > 0 || localMoves.length > 0,
+        localRequest,
+    };
+}
+
 async function loadAgentModelCatalog(dependencies, request) {
     const { agentModelCatalogService, desktopConfigStore, readDesktopConfig } = dependencies;
     if (!agentModelCatalogService) throw new Error('Agent model catalog service is not available');
@@ -209,6 +251,10 @@ function createLocalBridgeDispatch(dependencies) {
         // timer immediately, and firing calls into the runner.
         const projectConfig = await localGitService.loadProjectConfig(project);
         const projectPaths = resolveProjectPaths(projectConfig);
+        uncommittedProjectWrites.configure(project.rootPath, {
+            includeProjectFolderInGit: projectConfig?.includeProjectFolderInGit ?? true,
+            projectFolder: projectPaths.projectFolder,
+        });
         projectServicesReady = false;
         currentLocalProject = project;
         await startCardStateDetection(project, projectPaths.projectFolder);
@@ -256,12 +302,27 @@ function createLocalBridgeDispatch(dependencies) {
             return localGitService.cancelActionSchedule(project, actionsFolder, scheduleId);
         },
         commit: async (request) => {
+            const rootPath = currentLocalProject?.rootPath;
+            if (!rootPath) throw new Error('No active local project');
+            const pendingPaths = uncommittedProjectWrites.pendingPaths(rootPath);
             // Usage metrics never get a commit of their own; pending rows join the batch commit.
             const usageMetricsPath = usageMetricsService.repositoryPath(currentLocalProject?.rootPath);
-            const commitRequest = usageMetricsPath
-                ? { ...request, paths: [...(request.paths ?? []), usageMetricsPath] }
-                : request;
-            await localGitService.commit(commitRequest, currentLocalProject);
+            const desktopPaths = uncommittedProjectWrites.gitPaths(
+                rootPath,
+                [...pendingPaths, ...(usageMetricsPath ? [usageMetricsPath] : [])],
+            );
+            const paths = [...new Set([...(request.paths ?? []), ...desktopPaths])];
+            const persistenceRequest = paths.length > 0 ? { ...request, paths } : request;
+            const { gitRequest, hasGitChanges, hasLocalChanges, localRequest } = partitionPersistenceRequest(
+                uncommittedProjectWrites,
+                rootPath,
+                persistenceRequest,
+            );
+            if (localRequest.files.length > 0 || localRequest.moves) {
+                await localGitService.writeFiles(localRequest, currentLocalProject);
+            }
+            if (hasGitChanges || !hasLocalChanges) await localGitService.commit(gitRequest, currentLocalProject);
+            uncommittedProjectWrites.acknowledge(rootPath, pendingPaths);
 
             return [];
         },
@@ -319,7 +380,17 @@ function createLocalBridgeDispatch(dependencies) {
 
             return localGitService.loadProjectRoot(project, workingFolder);
         },
-        moveFiles: (request) => localGitService.moveFiles(request, currentLocalProject),
+        moveFiles: async (request) => {
+            const rootPath = currentLocalProject?.rootPath;
+            if (!rootPath) throw new Error('No active local project');
+            const { gitRequest, hasGitChanges, localRequest } = partitionPersistenceRequest(
+                uncommittedProjectWrites,
+                rootPath,
+                { ...request, files: [] },
+            );
+            if (localRequest.moves) await localGitService.writeFiles(localRequest, currentLocalProject);
+            if (hasGitChanges) await localGitService.moveFiles(gitRequest, currentLocalProject);
+        },
         openProjectFolder: async () => {
             if (!openProjectFolder) throw new Error('Project folder picker is not available');
 
@@ -465,6 +536,7 @@ function createLocalBridgeDispatch(dependencies) {
         },
         saveProjectFolderGitInclusion: async (project, config, removeTrackedFiles) => {
             await localGitService.saveProjectFolderGitInclusion(project, config, removeTrackedFiles);
+            uncommittedProjectWrites.configure(project.rootPath, config);
             if (isCurrentProject(project)) projectServicesReady = false;
         },
         saveDesktopConfig: (values) => saveDesktopConfig(desktopConfigStore, values),

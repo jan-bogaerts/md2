@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { persistConversationAndProjectUsage } = require('./project_agent_token_usage');
+const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 const temporaryRoots = [];
 
 function conversation(id, usage) {
@@ -68,6 +69,21 @@ describe('project agent token usage persistence', () => {
             outputTokens: 4, reasoningTokens: 1, totalTokens: 10,
         });
         expect(commitTrackedPaths).toHaveBeenCalledTimes(2);
+    });
+
+    it('writes activity and usage locally without committing when project folder is excluded', async () => {
+        const { commitTrackedPaths, rootPath, run } = await harness();
+        uncommittedProjectWrites.configure(rootPath, { includeProjectFolderInGit: false, projectFolder: 'design' });
+
+        await persistConversationAndProjectUsage(
+            run('card-1', {cachedInputTokens: 2, inputTokens: 3, outputTokens: 4, reasoningTokens: 1, totalTokens: 10}),
+            { commitTrackedPaths },
+        );
+
+        expect(commitTrackedPaths).not.toHaveBeenCalled();
+        await expect(readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8'))
+            .resolves.toContain('conversation-card-1');
+        expect((await summary(rootPath)).projectUsage.totalTokens).toBe(10);
     });
 
     it('serializes concurrent conversations without losing either delta', async () => {

@@ -8,6 +8,7 @@ const { ActionDiagramOutputWatcher } = require('./action_diagram_output_watcher'
 const { resolvePopupPrompt } = require('./action_text');
 const { validateVersion } = require('./action_run_request');
 const { forEachRecords } = require('../../../../shared/action_for_each.mjs');
+const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 const {
     captureCommitReferences,
     combineOutput,
@@ -695,10 +696,11 @@ class ActionRun {
         if (action.type !== 'agent' || !action.trackFileChanges) return result;
         if (result.exitCode !== 0 || this.controller.signal.aborted) return result;
         const changedPaths = result.changedPaths ?? [];
-        if (changedPaths.length === 0) return result;
+        const gitPaths = uncommittedProjectWrites.gitPaths(project.rootPath, changedPaths);
+        if (gitPaths.length === 0) return result;
         const trackedCommit = await this.localGitService.commitTrackedPaths(
             project.rootPath,
-            changedPaths,
+            gitPaths,
             action.label,
             this.controller.signal,
         );

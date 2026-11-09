@@ -648,6 +648,24 @@ describe('ProjectLoading', () => {
         expect(service.getState().project?.id).toBe('second')
     })
 
+    it('flushes a pending card change before switching projects', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'first' })
+        vi.mocked(storage.commit).mockClear()
+        service.cards.updateCardBody(files[0].path, '# Root\n\nPending before switch')
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'second' })
+
+        expect(storage.commit).toHaveBeenCalledOnce()
+        expect(vi.mocked(storage.commit).mock.calls[0][0].files).toEqual([
+            expect.objectContaining({ content: expect.stringContaining('Pending before switch'), path: files[0].path }),
+        ])
+        expect(service.getState().project?.id).toBe('second')
+    })
+
     it('blocks project switching until a deleted dirty action is recovered or discarded', async () => {
         configService.init()
         const storage = createStorage()

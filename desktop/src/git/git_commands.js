@@ -243,24 +243,6 @@ async function hasStagedChanges(rootPath) {
     }
 }
 
-/**
- * Returns the subset of repository-relative paths that Git ignores. Tracked paths are never reported,
- * so a tracked file below an ignored folder still counts as committable.
- */
-async function listIgnoredPaths(rootPath, repositoryPaths) {
-    if (repositoryPaths.length === 0) return new Set();
-
-    try {
-        const output = await runGit(rootPath, ['check-ignore', '-z', '--', ...repositoryPaths]);
-
-        return new Set(parseNullSeparatedPaths(output));
-    } catch (error) {
-        if (error && typeof error === 'object' && error.code === 1) return new Set();
-
-        throw error;
-    }
-}
-
 /** Whether Git tracks any file at or below one repository-relative path. */
 async function hasTrackedFiles(rootPath, repositoryPath) {
     const output = await runGit(rootPath, [LITERAL_PATHSPEC_ARGUMENT, 'ls-files', '-z', '--', repositoryPath]);
@@ -301,14 +283,10 @@ async function hasStagedPathChanges(rootPath, filePaths) {
 }
 
 async function commitTrackedPathsNow(rootPath, filePaths, message) {
-    const ignoredPaths = await listIgnoredPaths(rootPath, filePaths);
-    const committablePaths = filePaths.filter((filePath) => !ignoredPaths.has(filePath));
-    if (committablePaths.length === 0) return null;
+    await runGit(rootPath, [LITERAL_PATHSPEC_ARGUMENT, 'add', '--', ...filePaths]);
+    if (!await hasStagedPathChanges(rootPath, filePaths)) return null;
 
-    await runGit(rootPath, [LITERAL_PATHSPEC_ARGUMENT, 'add', '--', ...committablePaths]);
-    if (!await hasStagedPathChanges(rootPath, committablePaths)) return null;
-
-    await runGit(rootPath, [LITERAL_PATHSPEC_ARGUMENT, 'commit', '--only', '-m', message, '--', ...committablePaths]);
+    await runGit(rootPath, [LITERAL_PATHSPEC_ARGUMENT, 'commit', '--only', '-m', message, '--', ...filePaths]);
 
     return runGit(rootPath, ['rev-parse', 'HEAD']);
 }
@@ -481,7 +459,6 @@ module.exports = {
     isGitIndexLockError,
     isNotGitRepositoryError,
     listBranches,
-    listIgnoredPaths,
     listWorkingTreeFiles,
     pathExists,
     parseShortStat,

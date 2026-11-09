@@ -9,6 +9,7 @@ const {
 } = require('../activity/activity_files');
 const { appendCardActivityReference } = require('../activity/card_activity_reference');
 const { assertGitRoot, commitTrackedPaths, requireRootPath } = require('../../git/git_commands');
+const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 const { persistConversationAndProjectUsage } = require('./project_agent_token_usage');
 
 function requireActivityRequest(request) {
@@ -53,7 +54,8 @@ async function persistInitialCardConversation(run, dependencyOverrides = {}) {
             request.activityOrigin.cardInternalId,
             relativePath,
         );
-        await commitPaths(rootPath, [relativePath, request.cardPath], 'Start card agent activity');
+        const gitPaths = uncommittedProjectWrites.gitPaths(rootPath, [relativePath, request.cardPath]);
+        if (gitPaths.length > 0) await commitPaths(rootPath, gitPaths, 'Start card agent activity');
 
         return { activity, relativePath };
     });

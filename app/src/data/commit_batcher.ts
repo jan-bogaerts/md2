@@ -139,11 +139,19 @@ function buildBatchRequest(branch: string, batch: Map<string, PendingChange>, ca
     return { request, serializedChanges }
 }
 
-/** Whether every path a batch touches stays local, so the batch is written to disk and never committed or pushed. */
-function isLocalOnlyBatch(batch: Map<string, PendingChange>, cardOperations: CommitBatcherOperations) {
-    return [...batch.values()].every(({ change }) => (
-        cardOperations.isLocalOnlyPath(changeSourcePath(change)) && cardOperations.isLocalOnlyPath(changeTargetPath(change))
-    ))
+/** Splits changes kept entirely in the local-only project folder from changes Git may persist. */
+function partitionBatch(batch: Map<string, PendingChange>, cardOperations: CommitBatcherOperations) {
+    const gitBatch = new Map<string, PendingChange>()
+    const localOnlyBatch = new Map<string, PendingChange>()
+    for (const [key, pendingChange] of batch) {
+        const { change } = pendingChange
+        const localOnly = cardOperations.isLocalOnlyPath(changeSourcePath(change))
+            && cardOperations.isLocalOnlyPath(changeTargetPath(change))
+        const targetBatch = localOnly ? localOnlyBatch : gitBatch
+        targetBatch.set(key, pendingChange)
+    }
+
+    return { gitBatch, localOnlyBatch }
 }
 
 function createCommitMessage(changes: Map<string, PendingChange>) {
@@ -336,13 +344,17 @@ export class CommitBatcher extends EventTarget {
     }
 
     private async commitActiveBatch(branch: string, activeBatch: Map<string, PendingChange>) {
-        const { request: writeRequest, serializedChanges } = buildBatchRequest(branch, activeBatch, this.cardOperations)
-        const request: CommitRequest = { ...writeRequest, message: createCommitMessage(activeBatch) }
-        const localOnly = isLocalOnlyBatch(activeBatch, this.cardOperations)
+        const { gitBatch, localOnlyBatch } = partitionBatch(activeBatch, this.cardOperations)
+        const localOnlyBuild = buildBatchRequest(branch, localOnlyBatch, this.cardOperations)
+        const gitBuild = buildBatchRequest(branch, gitBatch, this.cardOperations)
+        const serializedChanges = new Map([...localOnlyBuild.serializedChanges, ...gitBuild.serializedChanges])
+        const localOnlyRequest = localOnlyBuild.request
+        const gitWriteRequest = gitBuild.request
+        const gitRequest: CommitRequest = { ...gitWriteRequest, message: createCommitMessage(gitBatch) }
 
         try {
-            if (localOnly) await this.cardOperations.writeFiles(writeRequest)
-            else await this.cardOperations.commitFiles(request)
+            if (localOnlyBatch.size > 0) await this.cardOperations.writeFiles(localOnlyRequest)
+            if (gitBatch.size > 0) await this.cardOperations.commitFiles(gitRequest)
         } catch (error) {
             this.restoreFailedBatch(branch, activeBatch)
             throw error
@@ -366,7 +378,7 @@ export class CommitBatcher extends EventTarget {
             onPathCommitted?.(sourcePath, file.path)
         }
         this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
-        if (!localOnly) await this.cardOperations.pushCommittedFiles(request)
+        if (gitBatch.size > 0) await this.cardOperations.pushCommittedFiles(gitRequest)
     }
 
     private restoreFailedBatch(branch: string, activeBatch: Map<string, PendingChange>) {

@@ -120,6 +120,7 @@ function createDispatch(options = {}) {
         splitActivityConversation: vi.fn(async (_project, reference, messageId) => ({ id: 'split-1', messageId, path: `${reference}-split` })),
         push: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
+        writeFiles: vi.fn(async () => undefined),
     };
     const actionWorktreeRunService = {
         execute: vi.fn(async (primaryProject, _action, _context, runner) => ({
@@ -188,7 +189,13 @@ function createDispatch(options = {}) {
     const projectOperationCoordinator = options.projectOperationCoordinator
         ?? { run: vi.fn(async (_rootPath, operation) => operation()) };
     const uncommittedProjectWrites = options.uncommittedProjectWrites
-        ?? { commit: vi.fn(async () => null) };
+        ?? {
+            acknowledge: vi.fn(),
+            commit: vi.fn(async () => null),
+            configure: vi.fn(),
+            gitPaths: vi.fn((_rootPath, paths) => paths),
+            pendingPaths: vi.fn(() => []),
+        };
     const usageMetricsService = options.usageMetricsService ?? { repositoryPath: vi.fn(() => null) };
     const agentAccountService = {
         addAccount: vi.fn(async (agent) => ({ id: 'account-1', agent, kind: 'directory', name: 'work', configDirectory: 'C:/accounts/work' })),
@@ -485,18 +492,60 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.hasPendingPush).toHaveBeenCalledWith(project);
     });
 
-    it('adds pending usage metrics to a batch commit of the active project', async () => {
+    it('adds pending activity and usage metrics to a batch commit before switching projects', async () => {
         const usageMetricsService = { repositoryPath: vi.fn(() => 'design/usage_metrics.csv') };
-        const { dispatch, localGitService } = createDispatch({ usageMetricsService });
+        const { dispatch, localGitService, uncommittedProjectWrites } = createDispatch({ usageMetricsService });
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         await dispatch.dataBridge.loadProject(project, 'design');
+        uncommittedProjectWrites.pendingPaths.mockReturnValue(['design/activity/card__card-1.json']);
         const request = { branch: 'main', files: [], message: 'Update', paths: ['design/view.json'] };
 
         await dispatch.dataBridge.commit(request);
 
         expect(usageMetricsService.repositoryPath).toHaveBeenCalledWith('C:/repo');
-        const expectedRequest = { ...request, paths: ['design/view.json', 'design/usage_metrics.csv'] };
+        const expectedRequest = {
+            ...request,
+            paths: ['design/view.json', 'design/activity/card__card-1.json', 'design/usage_metrics.csv'],
+        };
         expect(localGitService.commit).toHaveBeenCalledWith(expectedRequest, project);
+        expect(uncommittedProjectWrites.acknowledge).toHaveBeenCalledWith(
+            'C:/repo',
+            ['design/activity/card__card-1.json'],
+        );
+    });
+
+    it('writes local-only files and commits only paths permitted by project configuration', async () => {
+        const uncommittedProjectWrites = {
+            acknowledge: vi.fn(),
+            commit: vi.fn(async () => null),
+            configure: vi.fn(),
+            gitPaths: vi.fn((_rootPath, paths) => paths.filter((path) => !path.startsWith('design/'))),
+            pendingPaths: vi.fn(() => ['design/activity/card__card-1.json', 'README.generated.md']),
+        };
+        const usageMetricsService = { repositoryPath: vi.fn(() => 'design/usage_metrics.csv') };
+        const { dispatch, localGitService } = createDispatch({ uncommittedProjectWrites, usageMetricsService });
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await dispatch.dataBridge.commit({
+            branch: 'main',
+            files: [
+                { content: '# Card', path: 'design/active/F-1.md' },
+                { content: '# Readme', path: 'README.md' },
+            ],
+            message: 'Save mixed batch',
+        });
+
+        expect(localGitService.writeFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content: '# Card', path: 'design/active/F-1.md' }],
+        }, project);
+        expect(localGitService.commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content: '# Readme', path: 'README.md' }],
+            message: 'Save mixed batch',
+            paths: ['README.generated.md'],
+        }, project);
     });
 
     it('commits the batch unchanged when there is no usage metrics path', async () => {

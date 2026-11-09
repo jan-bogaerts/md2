@@ -54,7 +54,7 @@ describe('CommitBatcher', () => {
         expect(batcher.hasPending()).toBe(false)
     })
 
-    it('commits and pushes a batch that also touches paths outside the local-only project folder', async () => {
+    it('writes local-only changes and commits only changes outside the local-only project folder', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const push = vi.fn<PushCallback>(async () => undefined)
         const writeFiles = vi.fn<WriteCallback>(async () => undefined)
@@ -67,9 +67,18 @@ describe('CommitBatcher', () => {
 
         await batcher.flush()
 
-        expect(writeFiles).not.toHaveBeenCalled()
+        expect(writeFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content: 'card', path: 'design/active/card.md' }],
+        })
         expect(commit).toHaveBeenCalledOnce()
+        expect(commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content: 'readme', path: 'README.md' }],
+            message: 'Update files',
+        })
         expect(push).toHaveBeenCalledOnce()
+        expect(push).toHaveBeenCalledWith(commit.mock.calls[0][0])
     })
 
     it('keeps a failed local-only write pending', async () => {

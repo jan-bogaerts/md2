@@ -2,17 +2,14 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { NOT_A_GIT_REPOSITORY_ERROR } from '../../../shared/bridge_errors.mjs';
 
 const require = createRequire(import.meta.url);
-const { GitProcess } = require('./git_process');
 const {
-    commitTrackedPathsNow,
     ensureInsideRoot,
     initializeLocalProject,
     isNotGitRepositoryError,
-    listIgnoredPaths,
     parseShortStat,
     requireRootPath,
     resolveLocalProject,
@@ -42,41 +39,6 @@ describe('git-commands', () => {
         expect(isNotGitRepositoryError({ stderr: 'fatal: not a git repository (or any of the parent directories): .git\n' })).toBe(true);
         expect(isNotGitRepositoryError({ stderr: 'fatal: detected dubious ownership in repository at C:/repo' })).toBe(false);
         expect(isNotGitRepositoryError(new Error('fatal: not a git repository'))).toBe(false);
-    });
-});
-
-describe('git-commands ignored paths', () => {
-    it('lists only the paths Git ignores', async () => {
-        const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockResolvedValue({ stderr: '', stdout: 'design/F-1.md\0' });
-
-        try {
-            await expect(listIgnoredPaths('C:/repo', ['design/F-1.md', 'README.md'])).resolves.toEqual(new Set(['design/F-1.md']));
-            expect(runGitProcess.mock.instances[0].args).toEqual(['check-ignore', '-z', '--', 'design/F-1.md', 'README.md']);
-        } finally {
-            vi.restoreAllMocks();
-        }
-    });
-
-    it('returns no ignored paths when Git matches none', async () => {
-        vi.spyOn(GitProcess.prototype, 'run').mockRejectedValue(Object.assign(new Error('no match'), { code: 1 }));
-
-        try {
-            await expect(listIgnoredPaths('C:/repo', ['README.md'])).resolves.toEqual(new Set());
-        } finally {
-            vi.restoreAllMocks();
-        }
-    });
-
-    it('commits nothing when every tracked-commit path is ignored', async () => {
-        const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockResolvedValue({ stderr: '', stdout: 'design/activity/card.json\0' });
-
-        try {
-            await expect(commitTrackedPathsNow('C:/repo', ['design/activity/card.json'], 'Update activity')).resolves.toBeNull();
-            expect(runGitProcess.mock.instances.map(({ args }) => args[1])).not.toContain('add');
-            expect(runGitProcess).toHaveBeenCalledOnce();
-        } finally {
-            vi.restoreAllMocks();
-        }
     });
 });
 

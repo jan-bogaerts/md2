@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { GitProcess } = require('../git/git_process');
+const { runGit } = require('../git/git_commands');
 const { checkoutOwnershipService } = require('../git/checkout_ownership_service');
 const { projectOperationCoordinator } = require('./project_operation_coordinator');
 const {
@@ -144,7 +145,36 @@ describe('project-files', () => {
         }
     });
 
-    it('writes ignored project-folder files without staging them and commits only the rest', async () => {
+    it('writes a local-only project file and commits another file in a real Git repository', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await runGit(rootPath, ['init']);
+            await runGit(rootPath, ['config', 'user.email', 'md2@example.invalid']);
+            await runGit(rootPath, ['config', 'user.name', 'MD2 Test']);
+            await writeFile(join(rootPath, '.gitignore'), '/design/\n');
+            const project = { branch: 'main', id: 'local', rootPath };
+            await writeFilesNow({
+                branch: 'main',
+                files: [{ content: '# Card', path: 'design/active/F-1.md' }],
+            }, project);
+
+            await commitNow({
+                branch: 'main',
+                files: [{ content: '# Readme', path: 'README.md' }],
+                message: 'Save before project switch',
+            }, project);
+
+            await expect(readFile(join(rootPath, 'design', 'active', 'F-1.md'), 'utf8')).resolves.toBe('# Card');
+            await expect(runGit(rootPath, ['ls-files'])).resolves.toBe('README.md');
+            await expect(runGit(rootPath, ['log', '-1', '--pretty=%s'])).resolves.toBe('Save before project switch');
+            await expect(runGit(rootPath, ['status', '--short', '--ignored'])).resolves.toContain('!! design/');
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('stages every path explicitly supplied by configuration-aware persistence', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
 
         try {
@@ -152,22 +182,19 @@ describe('project-files', () => {
             const stagedChanges = Object.assign(new Error('staged changes'), { code: 1 });
             const runGitProcess = vi.spyOn(GitProcess.prototype, 'run').mockImplementation(async function run() {
                 if (this.args[0] === 'diff') throw stagedChanges;
-                if (this.args[0] === 'check-ignore') return { stderr: '', stdout: 'design/active/F-1.md\0' };
 
                 return { stderr: '', stdout: '' };
             });
 
             await commitNow({
                 branch: 'main',
-                files: [{ content: '# Card', path: 'design/active/F-1.md' }, { content: '# Readme', path: 'README.md' }],
+                files: [{ content: '# Readme', path: 'README.md' }],
                 message: 'Save',
             }, { branch: 'main', id: 'local', rootPath });
 
             const gitCommands = runGitProcess.mock.instances.map(({ args }) => args);
-            await expect(readFile(join(rootPath, 'design', 'active', 'F-1.md'), 'utf8')).resolves.toBe('# Card');
-            expect(gitCommands).toContainEqual(['check-ignore', '-z', '--', 'design/active/F-1.md', 'README.md']);
             expect(gitCommands).toContainEqual(['add', 'README.md']);
-            expect(gitCommands.some((args) => args[0] === 'add' && args.includes('design/active/F-1.md'))).toBe(false);
+            expect(gitCommands.some(([command]) => command === 'check-ignore')).toBe(false);
         } finally {
             vi.restoreAllMocks();
             await rm(rootPath, { force: true, recursive: true });

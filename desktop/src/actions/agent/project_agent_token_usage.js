@@ -179,7 +179,8 @@ async function persistConversationAndProjectUsage(run, dependencies = {}) {
         await writeActivityFile(activityPath, nextActivity);
         const commitPaths = dependencies.commitTrackedPaths ?? commitTrackedPaths;
         if (tokenUsageError) {
-            await commitPaths(rootPath, [activityRelativePath], `Update ${activityOrigin.kind} activity`);
+            const gitPaths = uncommittedProjectWrites.gitPaths(rootPath, [activityRelativePath]);
+            if (gitPaths.length > 0) await commitPaths(rootPath, gitPaths, `Update ${activityOrigin.kind} activity`);
             await reportTokenUsageFailure(tokenUsageError, dependencies);
 
             return { activity: nextActivity, relativePath: activityRelativePath, summary: null };
@@ -188,12 +189,14 @@ async function persistConversationAndProjectUsage(run, dependencies = {}) {
             await writeActivityFile(summaryPath, nextSummary);
             uncommittedProjectWrites.mark(rootPath, [summaryRelativePath]);
         } catch (error) {
-            await commitPaths(rootPath, [activityRelativePath], `Update ${activityOrigin.kind} activity`);
+            const gitPaths = uncommittedProjectWrites.gitPaths(rootPath, [activityRelativePath]);
+            if (gitPaths.length > 0) await commitPaths(rootPath, gitPaths, `Update ${activityOrigin.kind} activity`);
             await reportTokenUsageFailure(error, dependencies);
 
             return { activity: nextActivity, relativePath: activityRelativePath, summary: null };
         }
-        await commitPaths(rootPath, [activityRelativePath, summaryRelativePath], `Update ${activityOrigin.kind} activity`);
+        const gitPaths = uncommittedProjectWrites.gitPaths(rootPath, [activityRelativePath, summaryRelativePath]);
+        if (gitPaths.length > 0) await commitPaths(rootPath, gitPaths, `Update ${activityOrigin.kind} activity`);
 
         return { activity: nextActivity, relativePath: activityRelativePath, summary: nextSummary };
     }));
