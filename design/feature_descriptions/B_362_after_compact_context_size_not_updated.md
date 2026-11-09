@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__ba21cf2c-06f9-4210-aeb5-203d3d6c934d.json
 policy:
-branch: b_362_after_compact_context_size_not_updated
-worktree: 1
 changedFiles:
   - desktop/src/actions/agent/agent_compact.test.mjs
   - desktop/src/actions/agent/agent_streaming_adapter.js
