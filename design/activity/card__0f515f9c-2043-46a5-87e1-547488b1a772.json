@@ -1231,6 +1231,14 @@
           "role": "assistant",
           "sequence": 88,
           "timestamp": "2026-11-09T09:16:25.322Z"
+        },
+        {
+          "content": "no worktrees were used",
+          "id": "submission-aa2db4e3-8565-4d16-a273-a150043b7ce4",
+          "kind": "message",
+          "role": "user",
+          "sequence": 89,
+          "timestamp": "2026-11-09T09:28:25.487Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1246,7 +1254,7 @@
         }
       ],
       "startedAt": "2026-11-09T09:12:30.813Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -1273,7 +1281,7 @@
           "toolMs": 4491
         },
         "elapsedMs": 234509,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-09T09:28:25.487Z"
       },
       "title": "investigate",
       "usage": {
@@ -1284,7 +1292,7 @@
         "totalTokens": 3837536
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
