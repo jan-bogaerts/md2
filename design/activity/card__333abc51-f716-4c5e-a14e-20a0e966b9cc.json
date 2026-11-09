@@ -226,6 +226,14 @@
           "role": "assistant",
           "sequence": 17,
           "timestamp": "2026-11-09T18:02:01.409Z"
+        },
+        {
+          "content": "1",
+          "id": "submission-7d343d1f-cbbe-4e46-ae44-4e40887338a7",
+          "kind": "message",
+          "role": "user",
+          "sequence": 18,
+          "timestamp": "2026-11-09T18:03:28.848Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -236,12 +244,12 @@
           "agent": "codex",
           "conversationId": "01a1c178-920b-7af0-b4a2-df48050cc0bd",
           "createdAt": "2026-11-09T18:01:07.436Z",
-          "lastUsedAt": "2026-11-09T18:02:01.409Z",
-          "synchronizedThroughMessageId": "agent-turn-4f8a0944-e4df-4e5b-9a53-0cc865ce0b9b-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-09T18:03:29.018Z",
+          "synchronizedThroughMessageId": "submission-7d343d1f-cbbe-4e46-ae44-4e40887338a7"
         }
       ],
       "startedAt": "2026-11-09T18:01:06.615Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -278,7 +286,7 @@
           "toolMs": 1155
         },
         "elapsedMs": 54794,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-09T18:03:28.848Z"
       },
       "title": "complete",
       "usage": {
@@ -289,7 +297,7 @@
         "totalTokens": 370051
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
