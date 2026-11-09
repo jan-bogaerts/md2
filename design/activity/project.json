@@ -3562,6 +3562,24 @@
       "rootActionLabel": "build",
       "startedAt": "2026-11-09T13:00:30.418Z",
       "status": "completed"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-09T13:51:08.826Z",
+      "conversationIds": [],
+      "details": {
+        "command": "npm run build:windows",
+        "output": "",
+        "type": "command"
+      },
+      "runId": "action-d4f0b2ce-8ca8-4769-b524-1bcd89bb7139",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "edcbc3cf-20de-415c-97fe-b36ca9953fdc",
+      "rootActionLabel": "build",
+      "startedAt": "2026-11-09T13:49:22.541Z",
+      "status": "completed"
     }
   ],
   "version": 5
