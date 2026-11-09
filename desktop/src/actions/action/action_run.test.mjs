@@ -268,7 +268,7 @@ describe('ActionRun', () => {
             agentRunnerService,
             localGitService: { appendActivityConversationEvent },
             runInput: {
-                forEach: { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [1, 2] },
+                forEach: { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', startIndex: 1, value: [0, 1, 2] },
                 prompt: 'run',
             },
         });
@@ -278,9 +278,9 @@ describe('ActionRun', () => {
         expect(completed.status).toBe('completed');
         expect(agentExecutor.execute).toHaveBeenCalledTimes(2);
         expect(agentRunnerService.finish).toHaveBeenCalledTimes(2);
-        expect(appendActivityConversationEvent).toHaveBeenCalledWith(project, 'run.json', expect.objectContaining({ type: 'loopFailure' }));
+        expect(appendActivityConversationEvent).toHaveBeenCalledWith(project, 'run.json', expect.objectContaining({content: 'For-each record 2 failed: bad record', type: 'loopFailure'}));
         expect(events.filter(({ update }) => update?.kind === 'forEachProgress').map(({ update }) => update.processedCount))
-            .toEqual([0, 1, 2]);
+            .toEqual([1, 2, 3]);
     });
 
     it('starts no later record after stop-on-first-failure', async () => {
@@ -370,6 +370,7 @@ describe('ActionRun', () => {
             runInput: {
                 forEach: {
                     dataPath: 'data.0.items', failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt',
+                    startIndex: 1,
                     value: { data: [{ items: ['first', 'second'] }] },
                 },
                 prompt: 'run',
@@ -379,8 +380,43 @@ describe('ActionRun', () => {
         const completed = await run.completion;
 
         expect(completed.status).toBe('completed');
-        expect(agentExecutor.execute.mock.calls.map(([input]) => input.forEachRecord)).toEqual(['first', 'second']);
-        expect(agentRunnerService.finish).toHaveBeenCalledTimes(2);
+        expect(agentExecutor.execute.mock.calls.map(([input]) => input.forEachRecord)).toEqual(['second']);
+        expect(agentRunnerService.finish).toHaveBeenCalledOnce();
+    });
+
+    it('runs a root array from the configured original index in source order', async () => {
+        let activeCompletion;
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                activeCompletion = deferred();
+                input.onActiveRunChange(`agent-run-${agentExecutor.execute.mock.calls.length}`);
+                input.onEvent({ error: null, status: 'running', type: 'turnCompleted' });
+                await activeCompletion.promise;
+                input.onActiveRunChange(null);
+                return {
+                    agent: 'codex', changedPaths: [], conversationId: input.runInput.conversationId ?? 'conversation-1', exitCode: 0,
+                    model: 'gpt', prompt: 'run', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const agentRunnerService = {finish: vi.fn(() => activeCompletion.resolve()), hasPendingInteraction: () => false, stop: vi.fn()};
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const { events, run } = createRun(rootAction, {
+            agentExecutor,
+            agentRunnerService,
+            runInput: {
+                forEach: { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', startIndex: 2, value: ['zero', 'one', 'two', 'three'] },
+                prompt: 'run',
+            },
+        });
+
+        const completed = await run.completion;
+
+        expect(completed.status).toBe('completed');
+        expect(agentExecutor.execute.mock.calls.map(([input]) => input.forEachRecord)).toEqual(['two', 'three']);
+        expect(agentExecutor.execute.mock.calls[0][0].runInput.conversationId).toBeUndefined();
+        expect(events.filter(({ update }) => update?.kind === 'forEachProgress').map(({ update }) => update.processedCount))
+            .toEqual([2, 3, 4]);
     });
 
     it('starts no agent turn for an empty selected array', async () => {
@@ -398,6 +434,24 @@ describe('ActionRun', () => {
 
         expect(completed.status).toBe('completed');
         expect(agentExecutor.execute).not.toHaveBeenCalled();
+    });
+
+    it.each([2, 3])('starts no agent turn when start index %i is at or beyond record count', async (startIndex) => {
+        const agentExecutor = { execute: vi.fn() };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
+        const { events, run } = createRun(rootAction, {
+            agentExecutor,
+            runInput: {
+                forEach: { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', startIndex, value: ['first', 'second'] },
+                prompt: 'run',
+            },
+        });
+
+        const completed = await run.completion;
+
+        expect(completed.status).toBe('completed');
+        expect(agentExecutor.execute).not.toHaveBeenCalled();
+        expect(events.some(({ update }) => update?.kind === 'forEachProgress')).toBe(false);
     });
 
     it.each([

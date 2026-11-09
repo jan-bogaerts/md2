@@ -761,12 +761,14 @@ class ActionRun {
     async executeAgentForEach(action, phase, project) {
         const config = this.runInput.forEach;
         const records = forEachRecords(config.value, config.dataPath);
-        if (records.length === 0) {
+        const startIndex = config.startIndex ?? 0;
+        const recordsToProcess = records.slice(startIndex);
+        if (recordsToProcess.length === 0) {
             this.markConversationStartupComplete();
             return { changedPaths: [], command: '', conversationId: null, conversationIds: [], exitCode: 0, stderr: '', stdout: '' };
         }
 
-        this.publishForEachProgress(action, phase, 0, records.length);
+        this.publishForEachProgress(action, phase, startIndex, records.length);
         const changedPaths = new Set();
         const conversationIds = [];
         let firstConversationId = null;
@@ -774,17 +776,18 @@ class ActionRun {
         let previousResult = null;
         let stderr = '';
         let stdout = '';
-        for (const [index, record] of records.entries()) {
+        for (const [recordOffset, record] of recordsToProcess.entries()) {
+            const index = startIndex + recordOffset;
             this.throwIfCancelled();
             const continueConversation = config.mode !== 'newConversation' && previousResult?.reference;
             const runInput = {
                 ...this.runInput,
                 ...(continueConversation ? { continueFrom: previousResult.reference, conversationId: previousResult.conversationId } : {}),
-                ...(!continueConversation && index > 0 ? { conversationId: `agent-${crypto.randomUUID()}` } : {}),
+                ...(!continueConversation && recordOffset > 0 ? { conversationId: `agent-${crypto.randomUUID()}` } : {}),
             };
             if (config.mode === 'newConversation') {
                 delete runInput.continueFrom;
-                if (index > 0 || this.runInput.continueFrom) runInput.conversationId = `agent-${crypto.randomUUID()}`;
+                if (recordOffset > 0 || this.runInput.continueFrom) runInput.conversationId = `agent-${crypto.randomUUID()}`;
             }
             try {
                 const result = await this.executeAgentActionOnce(
@@ -794,7 +797,7 @@ class ActionRun {
                     project,
                     runInput,
                     record,
-                    index === 0 ? this.conversationReservation : null,
+                    recordOffset === 0 ? this.conversationReservation : null,
                 );
                 this.throwIfCancelled();
                 if (!firstConversationId && result.conversationId) firstConversationId = result.conversationId;
@@ -811,7 +814,7 @@ class ActionRun {
                     }
                     continue;
                 }
-                if (config.mode === 'compact' && index < records.length - 1) {
+                if (config.mode === 'compact' && recordOffset < recordsToProcess.length - 1) {
                     const compactInput = {
                         agent: result.agent,
                         conversationId: result.conversationId,

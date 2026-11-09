@@ -80,7 +80,7 @@ describe('ActionPromptMenu', () => {
         await user.upload(screen.getByLabelText('For-each JSON'), new File(['[{"name":"first"}]'], 'records.json', { type: 'application/json' }));
 
         expect(inputStore.getSnapshot().forEachByAction.review)
-            .toEqual({failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [{ name: 'first' }]});
+            .toEqual({failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', startIndex: 0, value: [{ name: 'first' }]});
 
         await user.upload(screen.getByLabelText('For-each JSON'), new File(['{broken'], 'broken.json', { type: 'application/json' }));
         expect(inputStore.getSnapshot().forEachByAction.review?.fileName).toBe('records.json');
@@ -91,7 +91,7 @@ describe('ActionPromptMenu', () => {
         const { conversationStore } = renderMenu();
         conversationStore.updateConversation({
             ...conversation(),
-            forEach: { failurePolicy: 'stopOnFirstFailure', fileName: 'saved.json', mode: 'compact', value: { id: 1 } },
+            forEach: { failurePolicy: 'stopOnFirstFailure', fileName: 'saved.json', mode: 'compact', startIndex: 2, value: { id: 1 } },
         });
 
         expect(await screen.findByRole('button', { name: 'For each: saved.json' })).toBeInTheDocument();
@@ -104,13 +104,16 @@ describe('ActionPromptMenu', () => {
         await user.click(await screen.findByRole('button', { name: 'For each: records.json' }));
         await user.click(await screen.findByRole('menuitem', { name: 'Setup' }));
         await user.type(await screen.findByRole('textbox', { name: 'Path to list data' }), 'items');
+        await user.clear(screen.getByRole('spinbutton', { name: 'Start index' }));
+        await user.type(screen.getByRole('spinbutton', { name: 'Start index' }), '2');
         await user.click(screen.getByRole('button', { name: 'Save' }));
 
         await waitFor(() => expect(inputStore.getSnapshot().forEachByAction.review?.dataPath).toBe('items'));
+        expect(inputStore.getSnapshot().forEachByAction.review?.startIndex).toBe(2);
     });
 
     it('persists for-each setup through the displayed conversation', async () => {
-        const forEach: ActionForEachConfig = { failurePolicy: 'logAndContinue', fileName: 'saved.json', mode: 'addPrompt', value: { items: [1] } };
+        const forEach: ActionForEachConfig = { failurePolicy: 'logAndContinue', fileName: 'saved.json', mode: 'addPrompt', startIndex: 0, value: { items: [1] } };
         const updateActionConversationForEach = vi.fn(async (_reference: string, saved: ActionForEachConfig | null) => (
             { ...conversation(), ...(saved ? { forEach: saved } : {}) }
         ));
@@ -122,9 +125,11 @@ describe('ActionPromptMenu', () => {
         await user.click(await screen.findByRole('button', { name: 'For each: saved.json' }));
         await user.click(await screen.findByRole('menuitem', { name: 'Setup' }));
         await user.type(await screen.findByRole('textbox', { name: 'Path to list data' }), 'items');
+        await user.clear(screen.getByRole('spinbutton', { name: 'Start index' }));
+        await user.type(screen.getByRole('spinbutton', { name: 'Start index' }), '3');
         await user.click(screen.getByRole('button', { name: 'Save' }));
 
-        const saved = { ...forEach, dataPath: 'items' };
+        const saved = { ...forEach, dataPath: 'items', startIndex: 3 };
         await waitFor(() => expect(updateActionConversationForEach).toHaveBeenCalledWith('activity.json#conversation=conversation-1', saved));
         await waitFor(() => expect(conversationStore.getSnapshot().selectedConversation?.forEach).toEqual(saved));
     });

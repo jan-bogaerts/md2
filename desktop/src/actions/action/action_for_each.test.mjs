@@ -44,13 +44,26 @@ describe('action for-each helpers', () => {
 
     it('retains a configured data path and rejects a non-string one', () => {
         const config = { dataPath: 'items', failurePolicy: 'logAndContinue', fileName: 'data.json', mode: 'addPrompt', value: { items: [] } };
-        expect(validateForEachConfig(config)).toEqual(config);
+        expect(validateForEachConfig(config)).toEqual({ ...config, startIndex: 0 });
         expect(() => validateForEachConfig({ ...config, dataPath: 1 })).toThrow('Invalid forEach.dataPath');
     });
 
     it('omits the data path from configurations without one', () => {
         const config = { failurePolicy: 'logAndContinue', fileName: 'data.json', mode: 'addPrompt', value: [] };
         expect(validateForEachConfig(config)).not.toHaveProperty('dataPath');
+    });
+
+    it('defaults a missing start index to zero and retains a valid start index', () => {
+        const config = { failurePolicy: 'logAndContinue', fileName: 'data.json', mode: 'addPrompt', value: [] };
+
+        expect(validateForEachConfig(config)).toMatchObject({ startIndex: 0 });
+        expect(validateForEachConfig({ ...config, startIndex: 2 })).toMatchObject({ startIndex: 2 });
+    });
+
+    it.each([-1, 1.5, Number.MAX_SAFE_INTEGER + 1, '2', null])('rejects invalid start index %s', (startIndex) => {
+        const config = { failurePolicy: 'logAndContinue', fileName: 'data.json', mode: 'addPrompt', startIndex, value: [] };
+
+        expect(() => validateForEachConfig(config)).toThrow('Invalid forEach.startIndex');
     });
 
     it('resolves object keys and array indexes and preserves string values', () => {

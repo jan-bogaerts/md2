@@ -124,13 +124,23 @@ describe('parseAgentConversationLog', () => {
         } as const
         const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
 
-        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach).toEqual(forEach)
+        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach).toEqual({ ...forEach, startIndex: 0 })
     })
 
     it('keeps the for-each data path across reloads', () => {
         const forEach = {
             dataPath: 'countries.0.cities', failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt',
             value: { countries: [{ cities: ['Ghent'] }] },
+        } as const
+        const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
+
+        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach).toEqual({ ...forEach, startIndex: 0 })
+    })
+
+    it('keeps the for-each start index across reloads', () => {
+        const forEach = {
+            failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', startIndex: 2,
+            value: ['first', 'second', 'third'],
         } as const
         const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
 

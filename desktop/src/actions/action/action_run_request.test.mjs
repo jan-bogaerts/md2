@@ -41,7 +41,7 @@ describe('validateStartRequest', () => {
         const forEach = {failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [{ id: 1 }]};
         const valid = validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput: { forEach } });
 
-        expect(valid.runInput.forEach).toEqual(forEach);
+        expect(valid.runInput.forEach).toEqual({ ...forEach, startIndex: 0 });
         expect(() => validateStartRequest({
             actionId: 'main', context: { kind: 'project' },
             runInput: { forEach: { ...forEach, mode: 'parallel' } },
@@ -51,7 +51,16 @@ describe('validateStartRequest', () => {
     it('retains the for-each data path', () => {
         const forEach = { dataPath: 'items', failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: { items: [] } };
 
-        expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput: { forEach } }).runInput.forEach).toEqual(forEach);
+        expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput: { forEach } }).runInput.forEach)
+            .toEqual({ ...forEach, startIndex: 0 });
+    });
+
+    it('retains a valid for-each start index and rejects an invalid one', () => {
+        const forEach = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', startIndex: 2, value: [] };
+
+        expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput: { forEach } }).runInput.forEach)
+            .toEqual(forEach);
+        expect(() => validateStartRequest({actionId: 'main', context: { kind: 'project' }, runInput: { forEach: { ...forEach, startIndex: -1 } }})).toThrow('Invalid action run input forEach.startIndex');
     });
 
     it('accepts free-form versions and rejects blank ones', () => {

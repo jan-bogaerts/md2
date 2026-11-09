@@ -82,6 +82,7 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
                 failurePolicy: forEach?.failurePolicy ?? 'logAndContinue',
                 fileName: file.name,
                 mode: forEach?.mode ?? 'addPrompt',
+                startIndex: forEach?.startIndex ?? 0,
                 value,
             };
             await saveForEach(config);

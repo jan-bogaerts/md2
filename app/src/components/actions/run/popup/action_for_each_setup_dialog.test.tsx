@@ -9,7 +9,7 @@ import { ActionForEachSetupDialog } from './action_for_each_setup_dialog';
 const ROOT_OBJECT = { data: { items: [1, 2] }, name: 'records' };
 
 function config(value: JsonValue, dataPath?: string): ActionForEachConfig {
-    return { ...(dataPath ? { dataPath } : {}), failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value };
+    return { ...(dataPath ? { dataPath } : {}), failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', startIndex: 0, value };
 }
 
 function renderDialog(forEach: ActionForEachConfig, disabled = false) {
@@ -42,11 +42,19 @@ describe('ActionForEachSetupDialog', () => {
         await user.click(screen.getByRole('option', { name: 'Compact' }));
         await user.click(screen.getByRole('combobox', { name: 'On failure' }));
         await user.click(screen.getByRole('option', { name: 'Stop on first failure' }));
+        await user.clear(screen.getByRole('spinbutton', { name: 'Start index' }));
+        await user.type(screen.getByRole('spinbutton', { name: 'Start index' }), '2');
         await user.type(screen.getByRole('textbox', { name: 'Path to list data' }), ' data.items ');
         await user.click(screen.getByRole('button', { name: 'Save' }));
 
-        const expected: ActionForEachConfig = { ...config(ROOT_OBJECT, 'data.items'), failurePolicy: 'stopOnFirstFailure', mode: 'compact' };
+        const expected: ActionForEachConfig = { ...config(ROOT_OBJECT, 'data.items'), failurePolicy: 'stopOnFirstFailure', mode: 'compact', startIndex: 2 };
         expect(onSave).toHaveBeenCalledWith(expected);
+    });
+
+    it('defaults a missing start index to zero', () => {
+        renderDialog({ ...config([1, 2]), startIndex: undefined } as unknown as ActionForEachConfig);
+
+        expect(screen.getByRole('spinbutton', { name: 'Start index' })).toHaveValue(0);
     });
 
     it('discards staged edits on Cancel', async () => {
@@ -54,6 +62,8 @@ describe('ActionForEachSetupDialog', () => {
         const { onCancel, onSave } = renderDialog(config(ROOT_OBJECT));
 
         await user.type(screen.getByRole('textbox', { name: 'Path to list data' }), 'data.items');
+        await user.clear(screen.getByRole('spinbutton', { name: 'Start index' }));
+        await user.type(screen.getByRole('spinbutton', { name: 'Start index' }), '2');
         await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
         expect(onCancel).toHaveBeenCalledOnce();
@@ -93,10 +103,26 @@ describe('ActionForEachSetupDialog', () => {
         expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     });
 
+    it.each(['', '-1', '1.5', String(Number.MAX_SAFE_INTEGER + 1)])('reports invalid start index %s and does not save', async (value) => {
+        const user = userEvent.setup();
+        const { onSave } = renderDialog(config([1, 2]));
+        const field = screen.getByRole('spinbutton', { name: 'Start index' });
+
+        await user.clear(field);
+        if (value) await user.type(field, value);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(dialogService.displayError).toHaveBeenCalledWith(
+            `Start index must be a non-negative whole number no greater than ${Number.MAX_SAFE_INTEGER}`,
+        );
+        expect(onSave).not.toHaveBeenCalled();
+    });
+
     it('blocks changes while the loop is active', () => {
         renderDialog(config(ROOT_OBJECT), true);
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+        expect(screen.getByRole('spinbutton', { name: 'Start index' })).toBeDisabled();
         expect(screen.getByRole('textbox', { name: 'Path to list data' })).toBeDisabled();
         expect(screen.getByRole('combobox', { name: 'At end' })).toHaveAttribute('aria-disabled', 'true');
     });

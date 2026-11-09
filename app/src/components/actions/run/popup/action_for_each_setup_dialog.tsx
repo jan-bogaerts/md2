@@ -14,6 +14,7 @@ const FAILURE_POLICY_OPTIONS: readonly { label: string; value: ActionForEachConf
     { label: 'Stop on first failure', value: 'stopOnFirstFailure' },
 ];
 const INVALID_DATA_PATH_MESSAGE = 'For-each data path is invalid';
+const INVALID_START_INDEX_MESSAGE = `Start index must be a non-negative whole number no greater than ${Number.MAX_SAFE_INTEGER}`;
 
 interface ActionForEachSetupDialogProps {
     config: ActionForEachConfig;
@@ -27,13 +28,20 @@ export function ActionForEachSetupDialog({ config, disabled, onCancel, onSave }:
     const [mode, setMode] = useState(config.mode);
     const [failurePolicy, setFailurePolicy] = useState(config.failurePolicy);
     const [dataPath, setDataPath] = useState(config.dataPath ?? '');
+    const [startIndex, setStartIndex] = useState(String(config.startIndex ?? 0));
     const isRootObject = !!config.value && typeof config.value === 'object' && !Array.isArray(config.value);
     const handleModeChange = (event: SelectChangeEvent<ActionForEachConfig['mode']>) => setMode(event.target.value as ActionForEachConfig['mode']);
     const handleFailurePolicyChange = (event: SelectChangeEvent<ActionForEachConfig['failurePolicy']>) => (
         setFailurePolicy(event.target.value as ActionForEachConfig['failurePolicy'])
     );
     const handleDataPathChange = (event: ChangeEvent<HTMLInputElement>) => setDataPath(event.target.value);
+    const handleStartIndexChange = (event: ChangeEvent<HTMLInputElement>) => setStartIndex(event.target.value);
     const handleSave = () => {
+        const parsedStartIndex = Number(startIndex);
+        if (startIndex.trim().length === 0 || !Number.isSafeInteger(parsedStartIndex) || parsedStartIndex < 0) {
+            dialogService.displayError(INVALID_START_INDEX_MESSAGE);
+            return;
+        }
         const selector = isRootObject ? dataPath.trim() : '';
         try {
             forEachRecords(config.value, selector);
@@ -46,6 +54,7 @@ export function ActionForEachSetupDialog({ config, disabled, onCancel, onSave }:
             failurePolicy,
             fileName: config.fileName,
             mode,
+            startIndex: parsedStartIndex,
             value: config.value,
         };
         onSave(updated);
@@ -67,6 +76,13 @@ export function ActionForEachSetupDialog({ config, disabled, onCancel, onSave }:
                         <Select disabled={disabled} inputProps={{ 'aria-label': 'On failure' }} onChange={handleFailurePolicyChange} size="small" value={failurePolicy}>
                             {FAILURE_POLICY_OPTIONS.map(({ label, value }) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
                         </Select>
+                    </Stack>
+                    <Stack spacing={0.75}>
+                        <Typography color="text.secondary" variant="caption">Start index</Typography>
+                        <TextField
+                            disabled={disabled} fullWidth onChange={handleStartIndexChange} size="small" type="number"
+                            slotProps={{ htmlInput: { 'aria-label': 'Start index', min: 0, step: 1 } }} value={startIndex}
+                        />
                     </Stack>
                     {isRootObject ? (
                         <Stack spacing={0.75}>
