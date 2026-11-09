@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__c7fa6216-d134-4237-8f14-c494ac314c01.json
 policy:
-branch: f_464_for_each_user_can_set_start_index
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/popup/action_for_each_menu.test.tsx
   - app/src/components/actions/run/popup/action_for_each_setup_dialog.test.tsx
