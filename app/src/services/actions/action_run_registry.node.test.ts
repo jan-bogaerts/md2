@@ -660,6 +660,66 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('keeps a for-each run active between closed agent conversations until the final run event', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const firstStarted = agentConversation([], { id: 'conversation-1' })
+        const firstCompleted = agentConversation([], {
+            completedAt: 'later',
+            id: 'conversation-1',
+            status: 'completed',
+            usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
+        })
+        const secondStarted = agentConversation([], { id: 'conversation-2' })
+
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: firstStarted, kind: 'agentStarted' },
+        })
+        const store = service.getRunStore('run-1')
+        if (!store) throw new Error('Missing run store')
+        const release = store.subscribe(vi.fn())
+
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'completed', type: 'update',
+            update: { conversation: firstCompleted, kind: 'agentClosed', persisted: false },
+        })
+
+        expect(store.getSnapshot()).toMatchObject({
+            conversation: firstCompleted,
+            conversationPersisted: false,
+            status: 'running',
+        })
+        expect(getActiveRun(service)).toMatchObject({ runId: 'run-1', status: 'running' })
+
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: secondStarted, kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: 'Second record', entryIndex: 0, kind: 'agentOutput', messageId: 'assistant-2', sequence: 1 },
+        })
+
+        expect(store.getSnapshot()).toMatchObject({
+            conversation: {
+                entries: [expect.objectContaining({ content: 'Second record', id: 'assistant-2' })],
+                id: 'conversation-2',
+            },
+            conversationPersisted: null,
+            status: 'running',
+        })
+
+        emit({ actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'completed', type: 'run' })
+
+        expect(store.getSnapshot().status).toBe('completed')
+        expect(getActiveRun(service)).toBeNull()
+        release()
+        service.stop()
+    })
+
     it('replaces live usage immutably without changing other run state', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)

@@ -1029,7 +1029,9 @@ export class ActionRunRegistry extends EventTarget {
             status: 'running' as const,
         }
         let next = { ...current, context: event.context, rootActionId: event.rootActionId }
-        if (event.type === 'update') next = { ...next, status: event.status }
+        if (event.type === 'update' && !TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
+            next = { ...next, status: event.status }
+        }
         if (event.type === 'inputRequest') next = { ...next, status: 'waitingForInput' }
         if (event.type === 'run') {
             next = {
