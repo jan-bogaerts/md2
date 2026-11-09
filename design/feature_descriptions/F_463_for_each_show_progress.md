@@ -3,7 +3,7 @@ author:
 id: F_463
 internalId: 6c76c3dc-b9d4-4b21-976f-4083499a8096
 title: for-each show progress
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,18 @@ agents:
 policy:
 branch: f_463_for_each_show_progress
 worktree: 1
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_chat.tsx
+  - app/src/components/actions/conversation/action_conversation_chat_integration.grouped.test.tsx
+  - app/src/components/actions/conversation/tasks/for_each_progress_indicator.test.tsx
+  - app/src/components/actions/conversation/tasks/for_each_progress_indicator.tsx
+  - app/src/components/actions/run/trigger/task_progress_indicator.test.tsx
+  - app/src/components/actions/run/trigger/task_progress_indicator.tsx
+  - app/src/data/action_run_types.ts
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run.test.mjs
 ---
 we recently added the 'for-each' functionality, see ( )
 
