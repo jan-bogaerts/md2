@@ -19,6 +19,29 @@ async function initializeCodex(adapter) {
     await adapter.handleMessage({ id: 3, result: { thread: { id: 'session-1' } } });
 }
 
+function codexContextOnlyUsage(usedTokens) {
+    return {
+        method: 'thread/tokenUsage/updated',
+        params: {
+            threadId: 'session-1',
+            tokenUsage: {
+                last: { cachedInputTokens: 0, inputTokens: 0, outputTokens: 0, reasoningOutputTokens: 0, totalTokens: usedTokens },
+                modelContextWindow: 1_000,
+            },
+        },
+    };
+}
+
+async function startCodexCompaction(adapter, writes) {
+    await initializeCodex(adapter);
+    await adapter.compact();
+    await adapter.handleMessage({ id: writes.at(-1).id, result: {} });
+    await adapter.handleMessage({ method: 'turn/started', params: { threadId: 'session-1', turn: { id: 'compact-turn' } } });
+    const item = { id: 'compact-item', type: 'contextCompaction' };
+    await adapter.handleMessage({ method: 'item/started', params: { threadId: 'session-1', item } });
+    await adapter.handleMessage({ method: 'item/completed', params: { threadId: 'session-1', item } });
+}
+
 function compactRun() {
     const events = [];
     const persist = vi.fn(async () => undefined);
@@ -55,10 +78,26 @@ describe('provider compaction', () => {
         const item = { id: 'compact-item', type: 'contextCompaction' };
         await adapter.handleMessage({ method: 'item/started', params: { threadId: 'session-1', item } });
         await adapter.handleMessage({ method: 'item/completed', params: { threadId: 'session-1', item } });
+        await adapter.handleMessage(codexContextOnlyUsage(50));
+        expect(events.at(-1)).toEqual({ contextWindowUsage: { capacityTokens: 1_000, usedTokens: 50 }, type: 'contextUsage' });
         await adapter.handleMessage({method: 'turn/completed', params: { threadId: 'session-1', turn: { id: 'compact-turn', status: 'completed' } }});
-        expect(events.at(-1)).toMatchObject({ compaction: { confirmed: true }, type: 'turnCompleted' });
+        expect(events.at(-1)).toMatchObject({
+            compaction: { confirmed: true },
+            contextWindowUsage: { capacityTokens: 1_000, usedTokens: 50 },
+            type: 'turnCompleted',
+        });
         await adapter.sendMessage('next prompt');
         expect(writes.at(-1)).toMatchObject({ method: 'turn/start', params: { threadId: 'session-1' } });
+    });
+
+    it('publishes Codex context usage arriving after compact completion', async () => {
+        const { adapter, events, writes } = adapterHarness('codex');
+        await startCodexCompaction(adapter, writes);
+        await adapter.handleMessage({method: 'turn/completed', params: { threadId: 'session-1', turn: { id: 'compact-turn', status: 'completed' } }});
+        await adapter.handleMessage(codexContextOnlyUsage(25));
+
+        expect(events.at(-1)).toEqual({ contextWindowUsage: { capacityTokens: 1_000, usedTokens: 25 }, type: 'contextUsage' });
+        expect(events.filter(({ type }) => type === 'usage')).toHaveLength(0);
     });
 
     it('reports Codex rejection without claiming completion', async () => {
@@ -67,6 +106,22 @@ describe('provider compaction', () => {
         await adapter.compact();
         await adapter.handleMessage({ id: writes.at(-1).id, error: { message: 'No history' } });
         expect(events.at(-1)).toEqual({ error: 'No history', type: 'compactRejected' });
+        await adapter.handleMessage(codexContextOnlyUsage(25));
+        expect(events.filter(({ type }) => type === 'contextUsage')).toHaveLength(0);
+        expect(events.at(-1)).toEqual({ error: 'No history', type: 'compactRejected' });
+    });
+
+    it('ignores late Codex context usage when confirmed compact turn fails', async () => {
+        const { adapter, events, writes } = adapterHarness('codex');
+        await startCodexCompaction(adapter, writes);
+        await adapter.handleMessage({
+            method: 'turn/completed',
+            params: { threadId: 'session-1', turn: { error: { message: 'Compact failed' }, id: 'compact-turn', status: 'failed' } },
+        });
+        await adapter.handleMessage(codexContextOnlyUsage(25));
+
+        expect(events.filter(({ type }) => type === 'contextUsage')).toHaveLength(0);
+        expect(events.at(-1)).toMatchObject({ error: 'Compact failed', type: 'turnCompleted' });
     });
 
     it.each([true, false])('Claude waits for result and distinguishes boundary presence: %s', async (confirmed) => {
@@ -144,6 +199,77 @@ describe('AgentRunnerService compact dispatch', () => {
         expect(run.conversation.usage.totalTokens).toBe(120);
         expect(run.conversation.contextWindowUsage.usedTokens).toBe(50);
         expect(run.activeCompact).toBeNull();
+    });
+
+    it('uses temporary zero with previous capacity when confirmed Codex compact has no snapshot', async () => {
+        const { events, persist, run, service } = compactRun();
+        run.conversation.contextWindowUsage = { capacityTokens: 1_000, usedTokens: 800 };
+        await service.compact(run.id, { conversationId: run.conversation.id, provider: run.agent, requestId: 'compact-1' });
+        await service.handleStreamingEvent(run.id, { type: 'turnCompleted', compaction: { confirmed: true } });
+
+        expect(run.conversation.contextWindowUsage).toEqual({ capacityTokens: 1_000, usedTokens: 0 });
+        expect(run.conversation.usage.totalTokens).toBe(120);
+        expect(persist.mock.calls.at(-1)[0].conversation.contextWindowUsage).toEqual({ capacityTokens: 1_000, usedTokens: 0 });
+        expect(events.findLast(({ type }) => type === 'usage')).toMatchObject({
+            contextWindowUsage: { capacityTokens: 1_000, usedTokens: 0 },
+            usage: expect.objectContaining({ totalTokens: 120 }),
+        });
+        expect(events.at(-1)).toMatchObject({ error: null, requestId: 'compact-1', type: 'compactSettled' });
+    });
+
+    it('removes context usage when confirmed Codex compact has no snapshot or valid capacity', async () => {
+        const { persist, run, service } = compactRun();
+        await service.compact(run.id, { conversationId: run.conversation.id, provider: run.agent, requestId: 'compact-1' });
+        await service.handleStreamingEvent(run.id, { type: 'turnCompleted', compaction: { confirmed: true } });
+
+        expect(run.conversation).not.toHaveProperty('contextWindowUsage');
+        expect(persist.mock.calls.at(-1)[0].conversation).not.toHaveProperty('contextWindowUsage');
+    });
+
+    it('persists a late Codex context snapshot without changing cumulative usage', async () => {
+        const { events, persist, run, service } = compactRun();
+        run.conversation.contextWindowUsage = { capacityTokens: 1_000, usedTokens: 800 };
+        await service.compact(run.id, { conversationId: run.conversation.id, provider: run.agent, requestId: 'compact-1' });
+        await service.handleStreamingEvent(run.id, { type: 'turnCompleted', compaction: { confirmed: true } });
+        persist.mockClear();
+        events.length = 0;
+
+        await service.handleStreamingEvent(run.id, {
+            contextWindowUsage: { capacityTokens: 1_000, usedTokens: 25 },
+            type: 'contextUsage',
+        });
+
+        expect(run.conversation.contextWindowUsage).toEqual({ capacityTokens: 1_000, usedTokens: 25 });
+        expect(run.conversation.usage.totalTokens).toBe(120);
+        expect(persist.mock.calls[0][0].conversation.contextWindowUsage).toEqual({ capacityTokens: 1_000, usedTokens: 25 });
+        expect(events).toEqual([expect.objectContaining({
+            contextWindowUsage: { capacityTokens: 1_000, usedTokens: 25 },
+            type: 'usage',
+            usage: expect.objectContaining({ totalTokens: 120 }),
+        })]);
+    });
+
+    it.each(['failed', 'rejected'])('preserves previous context usage when Codex compact is %s', async (outcome) => {
+        const { run, service } = compactRun();
+        const previousContextWindowUsage = { capacityTokens: 1_000, usedTokens: 800 };
+        run.conversation.contextWindowUsage = previousContextWindowUsage;
+        await service.compact(run.id, { conversationId: run.conversation.id, provider: run.agent, requestId: 'compact-1' });
+        await service.handleStreamingEvent(run.id, {
+            contextWindowUsage: { capacityTokens: 1_000, usedTokens: 25 },
+            type: 'contextUsage',
+        });
+        if (outcome === 'rejected') {
+            await service.handleStreamingEvent(run.id, { error: 'No history', type: 'compactRejected' });
+        } else {
+            await service.handleStreamingEvent(run.id, {
+                compaction: { confirmed: true },
+                contextWindowUsage: { capacityTokens: 1_000, usedTokens: 25 },
+                error: 'Compact failed',
+                type: 'turnCompleted',
+            });
+        }
+
+        expect(run.conversation.contextWindowUsage).toBe(previousContextWindowUsage);
     });
 
     it('does not emit success when checkpoint persistence fails', async () => {
