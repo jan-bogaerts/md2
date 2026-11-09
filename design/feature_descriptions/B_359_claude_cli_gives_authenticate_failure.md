@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__5ea4f510-f3ba-4632-bde8-12a0c88335ee.json
 policy:
 ---
 claude cli gives this error:
