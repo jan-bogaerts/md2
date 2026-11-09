@@ -10800,3 +10800,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-09T14:47:58.097Z,account_usage,claude,default,weekly,10080,2026-11-15T16:59:00.000Z,,,,,,4,0,claude-initial
 2026-11-09T14:48:09.809Z,token_usage,codex,,,,,8504,1599488,6847,3851,1618690,,,codex-initial
 2026-11-09T14:49:58.114Z,account_usage,claude,default,weekly,10080,2026-11-15T17:00:00.000Z,,,,,,4,0,claude-initial
+2026-11-09T15:00:01.581Z,account_usage,claude,default,weekly,10080,2026-11-15T16:59:00.000Z,,,,,,5,1,claude-initial
