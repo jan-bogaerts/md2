@@ -11,6 +11,13 @@ agents:
 policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 changedFiles:
+  - .codex_electron_probe.js
+  - .codex_trace_analysis.cjs
+  - app/src/components/editor/links/markdown_link_dialog_navigation.test.ts
+  - app/src/components/editor/links/markdown_link_dialog_navigation.ts
+  - app/src/components/editor/markdown_editor.tsx
+  - app/src/components/editor/markdown_editor_json_link.real.test.tsx
+  - desktop/.codex_electron_probe.js
   - desktop/src/shell/renderer_navigation.electron.test.mjs
   - desktop/src/shell/renderer_security.js
   - desktop/src/shell/renderer_security.test.mjs
