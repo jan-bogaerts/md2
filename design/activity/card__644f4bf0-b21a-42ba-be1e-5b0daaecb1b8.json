@@ -621,6 +621,230 @@
       "title": "implement",
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "644f4bf0-b21a-42ba-be1e-5b0daaecb1b8",
+      "cardPath": "design/feature_descriptions/F_469_add_support_to_email_links.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 55985
+      },
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_469_add_support_to_email_links.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_469_add_support_to_email_links.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "submission-e98d51e9-5981-4cff-8a7e-478c6ed1f671",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-10T18:00:50.427Z"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design/feature_descriptions/F_469_add_support_to_email_links.md\"}",
+          "id": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-event-2",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_469\n4\tinternalId: 644f4bf0-b21a-42ba-be1e-5b0daaecb1b8\n5\ttitle: add support to email links\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__644f4bf0-b21a-42ba-be1e-5b0daaecb1b8.json\n11\tpolicy:\n12\tafter: 41d340e6-afae-44bd-82e7-41ab673c94e0\n13\tbranch: f_469_add_support_to_email_links\n14\tworktree: 2\n15\t---\n16\t\n17\ta link for creating an email should open the systems default email program\n18\t\n19\t## Current state\n20\t\n21\tAn email link is a Markdown link whose URL uses the `mailto:` protocol. Two MD² link surfaces can receive one, and both currently end without opening an email program.\n22\t\n23\t- Conversation messages: `react-markdown` keeps `mailto:` URLs, and `remark-gfm` turns bare email addresses into `mailto:` links. `ActionConversationLink` leaves these links to the browser engine, so a click starts a main-frame navigation (a navigation of the whole MD² window). `handleFrameNavigation` in `desktop/src/shell/renderer_security.js` cancels that navigation to protect the app, then opens nothing because `isApprovedExternalUrl` accepts only `http:` and `https:`.\n24\t- Markdown editor: the link dialog Open action calls `openMarkdownLink`. `routeJsonLink` ignores URLs with a protocol, and `EXTERNAL_LINK_PROTOCOLS` then rejects `mailto:`, so `window.open` is never called.\n25\t\n26\tApproved web links already reach the system through `shell.openExternal`, which hands the URL to the operating system's default program for that protocol. `window.open` requests reach it through `handleWindowOpen`.\n27\t\n28\t## Implementation details\n29\t\n30\t- Add `mailto:` to `APPROVED_EXTERNAL_PROTOCOLS` in `desktop/src/shell/renderer_security.js`. Both `isApprovedExternalUrl` call sites, `handleFrameNavigation` and `handleWindowOpen`, need the new behavior.\n31\t- Add `mailto:` to `EXTERNAL_LINK_PROTOCOLS` in `app/src/components/editor/links/markdown_link_dialog_navigation.ts`. The Open action then uses the existing `window.open` path, and `handleWindowOpen` passes the URL to `shell.openExternal`.\n32\t- Do not change `ActionConversationLink`. A `mailto:` click stays a main-frame navigation attempt, and the guard cancels it before opening the email program, so MD² stays on the current view.\n33\t- Pass the URL unchanged, so `to`, `subject`, and `body` values reach the email program. Do not add parsing, validation, or other protocols.\n34\t- Do not add new failure UI. If `shell.openExternal` rejects, for example because the system cannot open the link, the rejection continues to the existing main-process `unhandledRejection` telemetry.\n35\t- Browser sessions served by the remote-control server need no separate code. The browser applies its own `mailto:` handling on the device showing MD².\n36\t- Tests:\n37\t  - `desktop/src/shell/renderer_security.test.mjs`: move `mailto:user@example.com` from the blocked navigation cases to the externally opened cases, because blocking it is the behavior this feature changes. Add a new-window case that opens `mailto:` externally.\n38\t  - `markdown_link_dialog_navigation.test.ts`: add `mailto:` to the opened URLs.\n39\t  - `action_conversation_message.test.tsx`: verify a `mailto:` link and a bare email address render with their `mailto:` href and no `_blank` target.\n40\t\n41\t## Acceptance criteria\n42\t\n43\t- In the desktop app, clicking a `mailto:user@example.com` link in a conversation message opens a new draft to `user@example.com` in the system's default email program.\n44\t- In the desktop app, clicking a bare email address in a conversation message does the same.\n45\t- In the desktop app, using Open in the Markdown editor link dialog for a `mailto:` link does the same.\n46\t- A `mailto:` link with `subject` and `body` values opens a draft with those values.\n47\t- After any `mailto:` click, MD² stays on the current view and unsaved editor content is retained.\n48\t- `http:` and `https:` links keep their current external-open behavior.\n49\t- `file:`, `javascript:`, `about:`, and custom app protocol links remain blocked by the external-open allowlists.",
+          "providerItemId": "toolu_01GA9vAKtfvRdqQTGCqA6Qe8",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-11-10T18:00:57.666Z",
+          "type": "tool.Read"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev2; grep -n \"APPROVED_EXTERNAL_PROTOCOLS\\|mailto\" desktop/src/shell/renderer_security.js desktop/src/shell/renderer_security.test.mjs; grep -n \"EXTERNAL_LINK_PROTOCOLS\" -r app/src/components/editor/links/; ls app/src/components/editor/links/; grep -rln \"action_conversation_message.test\" app/src | head; find app/src -name \"action_conversation_message.test.tsx\"",
+          "content": "desktop/src/shell/renderer_security.js:5:const APPROVED_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:']);\ndesktop/src/shell/renderer_security.js:43:        return APPROVED_EXTERNAL_PROTOCOLS.has(new URL(candidateUrl).protocol);\ndesktop/src/shell/renderer_security.test.mjs:86:    it.each(['file:///C:/project/data.json', 'mailto:user@example.com', 'md2:open'])('blocks untrusted main-frame navigation to %s', (url) => {\napp/src/components/editor/links/markdown_link_dialog_navigation.ts:3:const EXTERNAL_LINK_PROTOCOLS = new Set(['http:', 'https:'])\napp/src/components/editor/links/markdown_link_dialog_navigation.ts:10:        if (EXTERNAL_LINK_PROTOCOLS.has(new URL(url).protocol)) void window.open(url, '_blank', 'noopener,noreferrer')\nmarkdown_link_dialog_navigation.test.ts\nmarkdown_link_dialog_navigation.ts\nmarkdown_link_node.ts\nmarkdown_link_realm_plugin.ts\napp/src/components/actions/conversation/messages/action_conversation_message.test.tsx",
+          "id": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-event-3",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev2; grep -n \"APPROVED_EXTERNAL_PROTOCOLS\\|mailto\" desktop/src/shell/renderer_security.js desktop/src/shell/renderer_security.test.mjs; grep -n \"EXTERNAL_LINK_PROTOCOLS\" -r app/src/components/editor/links/; ls app/src/components/editor/links/; grep -rln \"action_conversation_message.test\" app/src | head; find app/src -name \"action_conversation_message.test.tsx\"",
+          "providerItemId": "toolu_01DrNXVM7qCAmAJW723RRpDH",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-11-10T18:01:04.183Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev2; sed -n 1,140p desktop/src/shell/renderer_security.test.mjs; cat app/src/components/editor/links/markdown_link_dialog_navigation.test.ts; grep -n \"href\\|_blank\\|^describe\\|^    it\\|^  it\\|link\" app/src/components/actions/conversation/messages/action_conversation_message.test.tsx | head -60",
+          "content": "import { createRequire } from 'node:module';\nimport path from 'node:path';\nimport { pathToFileURL } from 'node:url';\nimport { describe, expect, it, vi } from 'vitest';\n\nconst require = createRequire(import.meta.url);\nconst { isTrustedRendererLocation, registerNavigationGuards, resolveRendererTarget } = require('./renderer_security');\n\ndescribe('renderer target resolution', () => {\n    it('uses the development launcher URL while unpackaged', () => {\n        expect(resolveRendererTarget(false, 'ignored', { MD2_APP_URL: 'http://localhost:5173' })).toEqual({\n            trustedLocation: 'http://localhost:5173',\n            type: 'url',\n            url: 'http://localhost:5173',\n        });\n    });\n\n    it('uses the configured Vite URL while unpackaged', () => {\n        expect(resolveRendererTarget(false, 'ignored', { MD2_APP_URL: 'http://localhost:5173' })).toEqual({\n            trustedLocation: 'http://localhost:5173',\n            type: 'url',\n            url: 'http://localhost:5173',\n        });\n    });\n\n    it('ignores MD2_APP_URL and resolves bundled React while packaged', () => {\n        const appDirectory = path.join('C:', 'Program Files', 'MD²', 'resources', 'app.asar');\n        const filePath = path.join(appDirectory, 'renderer', 'index.html');\n\n        expect(resolveRendererTarget(true, appDirectory, { MD2_APP_URL: 'https://evil.example' })).toEqual({\n            filePath,\n            trustedLocation: pathToFileURL(filePath).href,\n            type: 'file',\n        });\n    });\n});\n\ndescribe('renderer navigation guards', () => {\n    function createWebContents() {\n        const listeners = {};\n        const webContents = {\n            on: vi.fn((event, listener) => { listeners[event] = listener; }),\n            setWindowOpenHandler: vi.fn((handler) => { webContents.windowOpenHandler = handler; }),\n            windowOpenHandler: null,\n        };\n\n        return { listeners, webContents };\n    }\n\n    function createNavigationDetails(url, isMainFrame = true) {\n        return { isMainFrame, preventDefault: vi.fn(), url };\n    }\n\n    it('allows only the trusted renderer document navigation', () => {\n        expect(isTrustedRendererLocation('file:///C:/Program%20Files/MD2/index.html#board', 'file:///C:/Program%20Files/MD2/index.html')).toBe(true);\n        expect(isTrustedRendererLocation('https://evil.example', 'file:///C:/Program%20Files/MD2/index.html')).toBe(false);\n    });\n\n    it('allows trusted main-frame navigation including hash changes', () => {\n        const { listeners, webContents } = createWebContents();\n        const openExternal = vi.fn(async () => undefined);\n        const details = createNavigationDetails('file:///C:/MD2/index.html#board');\n        registerNavigationGuards(webContents, 'file:///C:/MD2/index.html', openExternal);\n\n        listeners['will-frame-navigate'](details);\n\n        expect(details.preventDefault).not.toHaveBeenCalled();\n        expect(openExternal).not.toHaveBeenCalled();\n    });\n\n    it.each(['http://docs.example/path', 'https://docs.example/path'])(\n        'blocks main-frame navigation and opens %s externally',\n        (url) => {\n            const { listeners, webContents } = createWebContents();\n            const openExternal = vi.fn(async () => undefined);\n            const details = createNavigationDetails(url);\n            registerNavigationGuards(webContents, 'file:///C:/MD2/index.html', openExternal);\n\n            listeners['will-frame-navigate'](details);\n\n            expect(details.preventDefault).toHaveBeenCalled();\n            expect(openExternal).toHaveBeenCalledWith(url);\n        },\n    );\n\n    it.each(['file:///C:/project/data.json', 'mailto:user@example.com', 'md2:open'])('blocks untrusted main-frame navigation to %s', (url) => {\n        const { listeners, webContents } = createWebContents();\n        const openExternal = vi.fn(async () => undefined);\n        const details = createNavigationDetails(url);\n        registerNavigationGuards(webContents, 'file:///C:/MD2/index.html', openExternal);\n\n        listeners['will-frame-navigate'](details);\n\n        expect(details.preventDefault).toHaveBeenCalled();\n        expect(openExternal).not.toHaveBeenCalled();\n    });\n\n    it('ignores subframe navigation', () => {\n        const { listeners, webContents } = createWebContents();\n        const openExternal = vi.fn(async () => undefined);\n        const details = createNavigationDetails('https://embedded.example/path', false);\n        registerNavigationGuards(webContents, 'file:///C:/MD2/index.html', openExternal);\n\n        listeners['will-frame-navigate'](details);\n\n        expect(details.preventDefault).not.toHaveBeenCalled();\n        expect(openExternal).not.toHaveBeenCalled();\n    });\n\n    it.each([\n        ['http://docs.example/path', true],\n        ['https://docs.example/path', true],\n        ['file:///C:/project/data.json', false],\n        ['javascript:alert(1)', false],\n    ])('denies new-window request for %s and applies external protocol policy', (url, shouldOpenExternal) => {\n        const { webContents } = createWebContents();\n        const openExternal = vi.fn(async () => undefined);\n        registerNavigationGuards(webContents, 'file:///C:/MD2/index.html', openExternal);\n\n        expect(webContents.windowOpenHandler({ url })).toEqual({ action: 'deny' });\n        if (shouldOpenExternal) expect(openExternal).toHaveBeenCalledWith(url);\n        else expect(openExternal).not.toHaveBeenCalled();\n    });\n});\nimport { afterEach, describe, expect, it, vi } from 'vitest'\n\nconst routeJsonLink = vi.hoisted(() => vi.fn())\nvi.mock('../../../services/json/json_link_navigation', () => ({ routeJsonLink }))\n\nimport { openMarkdownLink } from './markdown_link_dialog_navigation'\n\ndescribe('openMarkdownLink', () => {\n    afterEach(() => {\n        routeJsonLink.mockReset()\n        vi.restoreAllMocks()\n    })\n\n    it.each(['data.json', 'file:///C:/shared/data.json'])(\n        'routes JSON only when Open is invoked for %s', (url) => {\n            const anchor = document.createElement('a')\n            const open = vi.spyOn(window, 'open').mockImplementation(() => null)\n            routeJsonLink.mockReturnValue(true)\n\n            openMarkdownLink(url, 'design/card.md', anchor)\n\n            expect(routeJsonLink).toHaveBeenCalledWith('design/card.md', url, anchor)\n            expect(open).not.toHaveBeenCalled()\n        },\n    )\n\n    it.each(['http://docs.example/path', 'https://docs.example/path'])(\n        'opens %s in a new external-window request',\n        (url) => {\n            const open = vi.spyOn(window, 'open').mockImplementation(() => null)\n\n            openMarkdownLink(url, 'design/card.md', document.createElement('a'))\n\n            expect(open).toHaveBeenCalledWith(url, '_blank', 'noopener,noreferrer')\n        },\n    )\n\n    it.each(['file:///C:/project/data.json', 'about:blank', 'not a url'])(\n        'does not open unsupported destination %s',\n        (url) => {\n            const open = vi.spyOn(window, 'open').mockImplementation(() => null)\n\n            openMarkdownLink(url, 'design/card.md', document.createElement('a'))\n\n            expect(open).not.toHaveBeenCalled()\n        },\n    )\n})\n48:describe('conversation message', () => {\n55:    it.each(['user', 'assistant'])('places %s controls after and outside the Markdown bubble', (role) => {\n70:    it('keeps Copy, Split and Save bound to their selected messages', async () => {\n115:describe('ActionConversationMessage code copying', () => {\n122:    it.each(['user', 'assistant'] as const)('wires block Copy and preserves whole-message Copy for %s messages', async (role) => {\n137:    it('keeps block Copy available for running conversations in read-only projects', async () => {",
+          "id": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-event-4",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev2; sed -n 1,140p desktop/src/shell/renderer_security.test.mjs; cat app/src/components/editor/links/markdown_link_dialog_navigation.test.ts; grep -n \"href\\|_blank\\|^describe\\|^    it\\|^  it\\|link\" app/src/components/actions/conversation/messages/action_conversation_message.test.tsx | head -60",
+          "providerItemId": "toolu_016hmyvRba2eadQ11JggWxKJ",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-11-10T18:01:09.244Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-event-5",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CguggZuan2EQthoaDWHty:thinking:0",
+          "sequence": 5,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-10T18:01:13.236Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev2; cat app/src/components/actions/conversation/messages/action_conversation_message.test.tsx; grep -rn \"ActionConversationLink\" app/src --include=*.tsx -l; find app/src -name \"action_conversation_link*\"",
+          "content": "import { cleanup, render, screen, within } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { afterEach, describe, expect, it, vi } from 'vitest';\nimport type { AgentConversation, AgentConversationMessageEntry } from '../../../../data/data_types';\nimport { copyTextToClipboard } from '../../../../services/clipboard_text';\nimport { projectAccessService } from '../../../../services/project/project_access_service';\nimport { AppThemeProvider } from '../../../../theme/theme_provider';\nimport type { ActionConversationCommandOperations } from '../state/action_conversation_command_service';\nimport type { ActionConversationChatlogTracker } from '../transcript/action_conversation_chatlog_tracker';\nimport { ActionConversationMessage } from './action_conversation_message';\n\nvi.mock('../../../../services/clipboard_text', () => ({ copyTextToClipboard: vi.fn(async () => undefined) }));\n\nconst userMessage: AgentConversationMessageEntry = {content: '# Selected prompt\\n\\nExact **Markdown**', id: 'prompt', kind: 'message', role: 'user', timestamp: 'now'};\nconst assistantMessage: AgentConversationMessageEntry = {\n    content: 'Selected **response**\\n\\n```ts\\nconst value = 1;\\n```',\n    id: 'response', kind: 'message', role: 'assistant', timestamp: 'now',\n};\n\nfunction renderMessages() {\n    const conversation: AgentConversation = {\n        actionId: 'review', cardInternalId: 'card-1', cardPath: 'design/F-1.md', completedAt: null,\n        entries: [userMessage, assistantMessage], hasExplicitTitle: true, id: 'conversation-1',\n        path: 'conversation.json', providerSessions: [], startedAt: 'now', status: 'completed', title: 'Review', viewed: true,\n    };\n    const commands: ActionConversationCommandOperations = {\n        canSaveResponsePhrase: () => true,\n        saveAsNewAction: vi.fn(async () => undefined),\n        saveAsResponsePhrase: vi.fn(async () => undefined),\n        split: vi.fn(async () => undefined),\n    };\n    const tracker = {\n        getConversation: () => conversation,\n        getConversationStatus: () => conversation.status,\n        getPrompt: () => undefined,\n        subscribeConversationStatus: () => () => undefined,\n    } as unknown as ActionConversationChatlogTracker;\n    render(\n        <AppThemeProvider>\n            <ActionConversationMessage commands={commands} entry={userMessage} tracker={tracker} />\n            <ActionConversationMessage commands={commands} entry={assistantMessage} tracker={tracker} />\n        </AppThemeProvider>,\n    );\n\n    return { commands, conversation };\n}\n\ndescribe('conversation message', () => {\n    afterEach(() => {\n        cleanup();\n        vi.restoreAllMocks();\n        vi.clearAllMocks();\n    });\n\n    it.each(['user', 'assistant'])('places %s controls after and outside the Markdown bubble', (role) => {\n        renderMessages();\n        const text = role === 'user' ? screen.getByRole('heading', { name: 'Selected prompt' }) : screen.getByText('response');\n        const markdown = text.closest('.mdxeditor-content');\n        const bubble = markdown?.parentElement;\n        const wrapper = bubble?.parentElement;\n        expect(wrapper).toHaveClass('conversation-message');\n        expect(bubble).not.toContainElement(screen.getAllByRole('button', { name: 'Copy message' })[role === 'user' ? 0 : 1]);\n        expect(bubble?.nextElementSibling).toHaveAttribute('aria-label', 'Message commands');\n        const controls = within(bubble!.nextElementSibling as HTMLElement);\n        expect(controls.getByRole('button', { name: 'Copy message' })).toBeEnabled();\n        expect(controls.getByRole('button', { name: 'Split conversation here' })).toBeEnabled();\n        expect(controls.getByRole('button', { name: 'Save message' })).toBeEnabled();\n    });\n\n    it('keeps Copy, Split and Save bound to their selected messages', async () => {\n        const user = userEvent.setup();\n        const { commands, conversation } = renderMessages();\n\n        await user.click(screen.getAllByRole('button', { name: 'Copy message' })[0]);\n        expect(copyTextToClipboard).toHaveBeenCalledWith(userMessage.content);\n        await user.click(screen.getAllByRole('button', { name: 'Split conversation here' })[1]);\n        expect(commands.split).toHaveBeenCalledWith(conversation, assistantMessage);\n        await user.click(screen.getAllByRole('button', { name: 'Save message' })[1]);\n        await user.click(screen.getByRole('menuitem', { name: 'Save as response phrase' }));\n        expect(commands.saveAsResponsePhrase).toHaveBeenCalledWith(assistantMessage);\n    });\n});\n\nconst commands: ActionConversationCommandOperations = {\n    canSaveResponsePhrase: () => true,\n    saveAsNewAction: vi.fn(async () => undefined),\n    saveAsResponsePhrase: vi.fn(async () => undefined),\n    split: vi.fn(async () => undefined),\n};\n\nfunction message(content: string, role: AgentConversationMessageEntry['role']): AgentConversationMessageEntry {\n    return { content, id: 'message-1', kind: 'message', role, timestamp: '2026-10-04T10:00:00.000Z' };\n}\n\nfunction renderMessage(entry: AgentConversationMessageEntry, status: AgentConversation['status']) {\n    const conversation: AgentConversation = {\n        actionId: 'review', cardInternalId: 'card-1', cardPath: 'design/F-1.md', completedAt: null, entries: [entry],\n        hasExplicitTitle: true, id: 'conversation-1', path: 'design/activity/card__card-1.json#conversation=conversation-1',\n        providerSessions: [], startedAt: entry.timestamp, status, title: 'Review', viewed: true,\n    };\n    const tracker = {\n        getConversation: () => conversation,\n        getConversationStatus: () => conversation.status,\n        getPrompt: () => undefined,\n        subscribeConversationStatus: () => () => undefined,\n    } as unknown as ActionConversationChatlogTracker;\n\n    return render(\n        <AppThemeProvider>\n            <ActionConversationMessage commands={commands} entry={entry} tracker={tracker} />\n        </AppThemeProvider>,\n    );\n}\n\ndescribe('ActionConversationMessage code copying', () => {\n    afterEach(() => {\n        cleanup();\n        projectAccessService.setReadOnly(false);\n        vi.clearAllMocks();\n    });\n\n    it.each(['user', 'assistant'] as const)('wires block Copy and preserves whole-message Copy for %s messages', async (role) => {\n        const content = 'Prose `inline`.\\n\\n```js\\n  first\\n```\\n\\n    second';\n        renderMessage(message(content, role), 'completed');\n        const buttons = screen.getAllByRole('button', { name: 'Copy code block' });\n\n        expect(buttons).toHaveLength(2);\n        await userEvent.click(buttons[0]);\n        await userEvent.click(buttons[1]);\n        await userEvent.click(screen.getByRole('button', { name: 'Copy message' }));\n\n        expect(copyTextToClipboard).toHaveBeenNthCalledWith(1, '  first\\n');\n        expect(copyTextToClipboard).toHaveBeenNthCalledWith(2, 'second\\n');\n        expect(copyTextToClipboard).toHaveBeenNthCalledWith(3, content);\n    });\n\n    it('keeps block Copy available for running conversations in read-only projects', async () => {\n        projectAccessService.setReadOnly(true);\n        renderMessage(message('```\\nlive code', 'assistant'), 'running');\n\n        expect(screen.getByRole('button', { name: 'Copy code block' })).toBeEnabled();\n        await userEvent.click(screen.getByRole('button', { name: 'Copy code block' }));\n\n        expect(copyTextToClipboard).toHaveBeenCalledExactlyOnceWith('live code\\n');\n        expect(commands.split).not.toHaveBeenCalled();\n        expect(commands.saveAsNewAction).not.toHaveBeenCalled();\n        expect(commands.saveAsResponsePhrase).not.toHaveBeenCalled();\n    });\n});\napp/src/components/actions/conversation/messages/action_conversation_link.tsx\napp/src/components/actions/conversation/messages/action_conversation_message.tsx\napp/src/components/actions/conversation/messages/action_conversation_link.tsx\napp/src/components/actions/conversation/messages/action_conversation_link_context.ts\napp/src/components/actions/conversation/messages/action_conversation_link_navigation.node.test.ts\napp/src/components/actions/conversation/messages/action_conversation_link_navigation.ts",
+          "id": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-event-6",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev2; cat app/src/components/actions/conversation/messages/action_conversation_message.test.tsx; grep -rn \"ActionConversationLink\" app/src --include=*.tsx -l; find app/src -name \"action_conversation_link*\"",
+          "providerItemId": "toolu_0195mvb5qdtPr2yNzD4AdkBH",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-11-10T18:01:14.869Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev2; cat app/src/components/actions/conversation/messages/action_conversation_link.tsx app/src/components/actions/conversation/messages/action_conversation_link_navigation.ts",
+          "content": "import { useContext, type ComponentProps, type MouseEvent } from 'react'\nimport { dialogService } from '../../../../services/dialog_service'\nimport { isLocalFileLink, openActionConversationLink } from './action_conversation_link_navigation'\nimport { ActionConversationLinkContext } from './action_conversation_link_context'\nimport { INVALID_LOCAL_FILE_LINK_ERROR, isLocalFileLinkError } from '../../../../../../shared/local_file_link_errors.mjs'\n\ntype ActionConversationLinkProps = ComponentProps<'a'>\n\nfunction isExternalWebLink(href: string) {\n    return /^https?:\\/\\//iu.test(href) || href.startsWith('//')\n}\n\n/** Show expected link validation failures without telemetry; report everything else. */\nfunction reportLinkOpenFailure(error: unknown, href: string) {\n    if (isLocalFileLinkError(error, INVALID_LOCAL_FILE_LINK_ERROR)) {\n        dialogService.displayError(error.message)\n        return\n    }\n\n    dialogService.error(error, { fallbackMessage: `Local file link could not be opened: ${href}` })\n}\n\n/** Markdown anchor that routes local repository files without browser navigation. */\nexport function ActionConversationLink(props: ActionConversationLinkProps) {\n    const { href, onClick, rel, target, ...anchorProps } = props\n    const opensOutsideRenderer = !!href && isExternalWebLink(href)\n    const cardInternalId = useContext(ActionConversationLinkContext)\n\n    const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {\n        onClick?.(event)\n        if (event.defaultPrevented || !href || !isLocalFileLink(href)) return\n\n        event.preventDefault()\n        event.stopPropagation()\n        void openActionConversationLink(href, cardInternalId).catch((error: unknown) => reportLinkOpenFailure(error, href))\n    }\n\n    return (\n        <a\n            {...anchorProps}\n            href={href}\n            onClick={handleClick}\n            rel={opensOutsideRenderer ? 'noopener noreferrer' : rel}\n            target={opensOutsideRenderer ? '_blank' : target}\n        />\n    )\n}\nimport { getElectronActionBridge } from '../../../../data/electron_action_bridge'\nimport { actionService } from '../../../../services/actions/action_service'\nimport { dataService } from '../../../../services/data/data_service'\nimport { workspaceNavigationService } from '../../../../services/project/workspace_navigation_service'\nimport { workspaceViewService } from '../../../../services/project/workspace_view_service'\nimport { worktreeService } from '../../../../services/project/worktree_service'\nimport type { ProjectSnapshot, WorktreeRecord } from '../../../../data/data_types'\nimport { resolveWorktreeAssignment } from '../../../../../../shared/worktree_assignment.mjs';\nimport {\n    INVALID_LOCAL_FILE_LINK_ERROR,\n    LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR,\n    isLocalFileLinkError,\n    localFileLinkError,\n} from '../../../../../../shared/local_file_link_errors.mjs'\n\nconst ABSOLUTE_WINDOWS_PATH_PATTERN = /^[a-z]:\\//iu\nconst ENCODED_ABSOLUTE_WINDOWS_PATH_PATTERN = /^[a-z]:(?:%2f|%5c)/iu\nconst FILE_URL_PATTERN = /^file:\\/+/iu\nconst URL_SCHEME_PATTERN = /^[a-z][a-z\\d+.-]*:/iu\n\nfunction stripWindowsDriveLeadingSlash(path: string) {\n    return path.startsWith('/') && ABSOLUTE_WINDOWS_PATH_PATTERN.test(path.slice(1)) ? path.slice(1) : path\n}\n\nfunction decodeLinkPath(href: string) {\n    try {\n        return decodeURIComponent(href)\n    } catch {\n        throw localFileLinkError(INVALID_LOCAL_FILE_LINK_ERROR, `Invalid local file link: ${href}`)\n    }\n}\n\nfunction normalizePathSegments(path: string, allowDrive: boolean) {\n    const normalizedPath = path.replace(/\\\\/gu, '/')\n    const drive = allowDrive && ABSOLUTE_WINDOWS_PATH_PATTERN.test(normalizedPath)\n        ? normalizedPath.slice(0, 2)\n        : ''\n    const pathWithoutDrive = drive ? normalizedPath.slice(2) : normalizedPath\n    const segments: string[] = []\n    for (const segment of pathWithoutDrive.split('/')) {\n        if (!segment || segment === '.') continue\n        if (segment === '..') {\n            if (segments.length === 0) throw new Error('Local file link points outside the active reposito\n[1725 characters omitted]\nder.branch);\n    if (resolution.error !== null) throw new Error(resolution.error);\n    const { record } = resolution;\n    if (!record.path) throw new Error(`Assigned worktree branch ${card.header.branch} has no folder path`);\n\n    return record.path\n}\n\n/** True when a Markdown href represents a repository file rather than normal browser navigation. */\nexport function isLocalFileLink(href: string) {\n    const normalizedHref = stripWindowsDriveLeadingSlash(href.trim().replace(/\\\\/gu, '/'))\n    if (!normalizedHref || normalizedHref.startsWith('#') || normalizedHref.startsWith('/') || normalizedHref.startsWith('//')) return false\n    if (\n        ABSOLUTE_WINDOWS_PATH_PATTERN.test(normalizedHref)\n        || ENCODED_ABSOLUTE_WINDOWS_PATH_PATTERN.test(normalizedHref)\n        || FILE_URL_PATTERN.test(normalizedHref)\n    ) return true\n\n    return !URL_SCHEME_PATTERN.test(normalizedHref)\n}\n\n/** Resolve an internally loaded chat link to its canonical repository-relative path. */\nexport function resolveActionConversationLinkPath(href: string, repositoryRoot: string, repositoryFiles: readonly string[]) {\n    if (!repositoryRoot) return null\n\n    const decodedPath = stripNumericLineSuffix(fileUrlPath(decodeLinkPath(href.trim()))).replace(/\\\\/gu, '/')\n    let normalizedRoot: string\n    let normalizedTarget: string\n    try {\n        normalizedRoot = normalizePathSegments(repositoryRoot, true).replace(/\\/+$/u, '')\n        normalizedTarget = normalizePathSegments(decodedPath, true)\n    } catch {\n        return null\n    }\n    let relativePath = normalizedTarget\n    if (ABSOLUTE_WINDOWS_PATH_PATTERN.test(normalizedTarget)) {\n        const normalizedRootLower = normalizedRoot.toLowerCase()\n        const normalizedTargetLower = normalizedTarget.toLowerCase()\n        if (!normalizedTargetLower.startsWith(`${normalizedRootLower}/`)) return null\n        relativePath = normalizedTarget.slice(normalizedRoot.length + 1)\n    }\n    const canonicalPath = repositoryFiles.find((candidate) => (\n        normalizePathSegments(candidate, false).toLowerCase() === relativePath.toLowerCase()\n    ))\n    if (!canonicalPath) return null\n\n    return canonicalPath.replace(/\\\\/gu, '/')\n}\n\n/** Open local chat link in internal project editor, configured external editor, or the operating system for outside files. */\nexport async function openActionConversationLink(href: string, cardInternalId: string | null) {\n    const { project, snapshot } = dataService.getState()\n    if (!project || !snapshot) throw new Error('Cannot open a local file link before a project is loaded')\n\n    const repositoryRoot = resolveConversationRepositoryRoot(\n        cardInternalId,\n        project.rootPath ?? '',\n        snapshot,\n        worktreeService.getRecords(),\n    )\n    const repositoryPath = resolveActionConversationLinkPath(href, repositoryRoot, snapshot.repositoryFiles)\n    const projectFolder = normalizePathSegments(dataService.getConfig()?.projectFolder ?? '', false)\n    const isProjectMarkdown = repositoryPath !== null\n        && isPathInsideFolder(repositoryPath, projectFolder)\n        && repositoryPath.toLowerCase().endsWith('.md')\n    const isLoadedProjectAction = repositoryPath !== null\n        && isPathInsideFolder(repositoryPath, projectFolder)\n        && actionService.getActionByPath(repositoryPath) !== null\n    if (isProjectMarkdown || isLoadedProjectAction) {\n        workspaceViewService.setViewMode('text')\n        workspaceNavigationService.open(repositoryPath)\n        return\n    }\n\n    const bridge = getElectronActionBridge()\n    if (!bridge) throw new Error('Opening local project files requires Electron local mode')\n\n    const request = { path: stripWindowsDriveLeadingSlash(href), repositoryRoot }\n    try {\n        await bridge.openInEditor(request)\n    } catch (error) {\n        if (!isLocalFileLinkError(error, LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR)) throw error\n        if (!bridge.openLocalFileWithSystem) throw new Error('Opening files outside the repository requires Electron local mode')\n\n        await bridge.openLocalFileWithSystem(request)\n    }\n}",
+          "id": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-event-7",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev2; cat app/src/components/actions/conversation/messages/action_conversation_link.tsx app/src/components/actions/conversation/messages/action_conversation_link_navigation.ts",
+          "providerItemId": "toolu_01Q4RkREX51QcH4hhf2dgtq8",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-11-10T18:01:19.083Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgughJ7Li4BV3KPnqmAWv:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-10T18:01:21.672Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Spec read, code checked. Spec matches code. Plan next.",
+          "id": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 9,
+          "timestamp": "2026-11-10T18:01:21.674Z"
+        },
+        {
+          "content": "{\"query\":\"select:TaskCreate,TaskUpdate\",\"max_results\":2}",
+          "id": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-event-10",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskCreate\"},{\"type\":\"tool_reference\",\"tool_name\":\"TaskUpdate\"}]",
+          "providerItemId": "toolu_01MnT97TH8TTY1cReEb9SU9S",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-11-10T18:01:22.098Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cgugi5BjvZ2wzcjJXwpwd:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-10T18:01:40.129Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\n## Change plan for F_469 (`mailto:` links)\n\nI checked the code, and the spec's description of the current state is accurate. Both allowlists (lists of link protocols MD² will hand to the operating system) currently contain only `http:` and `https:`. No edits have been made yet.\n\n**Block 1: Desktop guard (`desktop/src/shell/renderer_security.js`)**\n- Add `'mailto:'` to `APPROVED_EXTERNAL_PROTOCOLS`.\n- Both callers get the new behaviour. When a conversation link is clicked, the window tries to navigate to it. `handleFrameNavigation` cancels that navigation and then calls `shell.openExternal`, which opens the default email program. `handleWindowOpen` does the same for `window.open` requests.\n- Tests in `renderer_security.test.mjs`:\n  - Move `mailto:user@example.com` out of the \"blocks untrusted main-frame navigation\" cases and into the \"blocks navigation and opens externally\" cases.\n  - Add a new-window case for `mailto:` with expected result \"opens externally\".\n\n**Block 2: Editor link dialog (`app/src/components/editor/links/markdown_link_dialog_navigation.ts`)**\n- Add `'mailto:'` to `EXTERNAL_LINK_PROTOCOLS`. The Open action then calls `window.open`, which goes through `handleWindowOpen` to `shell.openExternal`.\n- Test: add `mailto:user@example.com?subject=Hi&body=Text` to the opened URLs in `markdown_link_dialog_navigation.test.ts`. This checks that the URL is passed through unchanged.\n\n**Block 3: Conversation link (test only)**\n- No change to `ActionConversationLink`, as the spec requires. `isExternalWebLink` only matches `http(s)`, so a `mailto:` link gets no `_blank` target and opens through Block 1.\n- Test in `action_conversation_message.test.tsx`: render `[mail](mailto:user@example.com)` and a bare `user@example.com`. Assert both have href `mailto:user@example.com` and no `target=\"_blank\"`.\n\n**Block 4: Verify and close out**\n- Run the three test files and lint in `app` and `desktop`.\n- Set `status: ready` in the feature description file in the `md2` repo.\n\n**Edge cases**\n- `file:`, `javascript:`, `about:` and `md2:` stay blocked. The existing tests already cover this.\n- If `shell.openExternal` fails, the rejection goes to the existing `unhandledRejection` telemetry. No new error UI is added.\n\nI've created tasks 1–4 for these blocks. Shall I go ahead?",
+          "id": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 12,
+          "timestamp": "2026-11-10T18:01:41.082Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-cd73a555-6aed-4cd5-9b52-61520d692b6c",
+      "providerSessions": [
+        {
+          "accountId": "claude-initial",
+          "agent": "claude",
+          "conversationId": "c072d556-0f03-4312-b29d-72c0663f5d6c",
+          "createdAt": "2026-11-10T18:00:56.990Z",
+          "lastUsedAt": "2026-11-10T18:01:41.082Z",
+          "synchronizedThroughMessageId": "agent-turn-3baa84fd-fc42-4143-89ce-e0d381646966-turn-1-assistant-2",
+          "usageBaseline": {
+            "costUsd": 0.4342386,
+            "resultId": "0078d3c3-82d8-458b-bfce-31d63466aeca",
+            "tokens": {
+              "cachedInputTokens": 371129,
+              "inputTokens": 18,
+              "outputTokens": 2656,
+              "reasoningTokens": 0,
+              "totalTokens": 373803
+            }
+          }
+        }
+      ],
+      "startedAt": "2026-11-10T18:00:50.427Z",
+      "status": "waitingForInput",
+      "taskList": {
+        "tasks": [
+          {
+            "id": "1",
+            "subject": "Block 1: allow mailto: in desktop renderer security",
+            "status": "pending"
+          },
+          {
+            "id": "2",
+            "subject": "Block 2: allow mailto: in editor link dialog Open",
+            "status": "pending"
+          },
+          {
+            "id": "3",
+            "subject": "Block 3: conversation message mailto render test",
+            "status": "pending"
+          },
+          {
+            "id": "4",
+            "subject": "Block 4: run related tests + lint, set status ready",
+            "status": "pending"
+          }
+        ],
+        "updatedAt": "2026-11-10T18:01:29.732Z"
+      },
+      "timer": {
+        "breakdown": {
+          "reasoningMs": 8182,
+          "toolMs": 9183
+        },
+        "elapsedMs": 50655,
+        "runningStartedAt": null
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 371129,
+        "inputTokens": 18,
+        "outputTokens": 2656,
+        "reasoningTokens": 0,
+        "totalTokens": 373803,
+        "costUsd": 0.4342386
+      },
+      "usageSchemaVersion": 1,
+      "viewed": false
     }
   ],
   "origin": {
