@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__3ebe8ff2-d685-40eb-8937-0bba0f8d5487.json
 policy:
-branch: j_69_poor_object_editor_behaviour
-worktree: 1
 changedFiles:
   - app/src/components/json_data_editor/json_data_editor.test.tsx
   - app/src/components/json_data_editor/json_object_editor.tsx
