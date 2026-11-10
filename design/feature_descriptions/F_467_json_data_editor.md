@@ -31,6 +31,7 @@ changedFiles:
   - app/src/components/text_view/json_text_view_integration.test.tsx
   - app/src/components/text_view/tab_bar.tsx
   - app/src/components/text_view/text_editor_pane.tsx
+  - app/src/services/application_startup_service.ts
   - app/src/services/card_popup_service.test.ts
   - app/src/services/card_popup_service.ts
   - app/src/services/clipboard_text.ts
