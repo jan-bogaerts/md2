@@ -15,6 +15,16 @@ import { openFilesService } from '../../services/open_files_service';
 const JSON_POPUP_WIDTH = 760;
 const JSON_POPUP_HEIGHT = 620;
 const JSON_POPUP_SIZE_KEY = 'md2.jsonDataPopup.size';
+const JSON_POPUP_PAPER_SX = {
+    backgroundColor: 'background.paper',
+    border: '1px solid',
+    borderColor: 'divider',
+    borderRadius: '14px',
+    boxShadow: '0 24px 60px rgba(16, 24, 40, 0.28)',
+    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+} as const;
 
 interface JsonDataPopupEntryProps {
     entry: JsonDataPopupEntry;
@@ -43,7 +53,7 @@ function JsonDataPopupEntryView({ entry, stackPosition, visible }: JsonDataPopup
             onActivate={handleActivate}
             onClose={handleClose}
             open={visible}
-            paperSx={{ display: 'flex', flexDirection: 'column' }}
+            paperSx={JSON_POPUP_PAPER_SX}
             resizeLabel="Resize JSON data popup"
             stackPosition={stackPosition}
             storageKey={JSON_POPUP_SIZE_KEY}
@@ -51,11 +61,11 @@ function JsonDataPopupEntryView({ entry, stackPosition, visible }: JsonDataPopup
         >
             <Box
                 data-drag-handle="true"
-                sx={{ alignItems: 'center', borderBottom: 1, borderColor: 'divider', display: 'flex', flexShrink: 0, gap: 1, px: 2, py: 1 }}
+                sx={{ alignItems: 'center', borderBottom: 1, borderColor: 'divider', cursor: 'move', display: 'flex', flexShrink: 0, gap: '10px', padding: '12px 16px 12px 20px' }}
             >
-                <Typography id={titleId} noWrap sx={{ flex: 1 }} variant="subtitle1">{entry.document.path}</Typography>
+                <Typography color="text.primary" id={titleId} noWrap sx={{ flex: 1, fontSize: 16, fontWeight: 700, minWidth: 0 }}>{entry.document.path}</Typography>
                 <Tooltip title="Close">
-                    <IconButton aria-label={`Close ${entry.document.path}`} onClick={handleClose} size="small">
+                    <IconButton aria-label={`Close ${entry.document.path}`} onClick={handleClose} size="small" sx={{ height: 30, width: 30 }}>
                         <Close sx={{ fontSize: 17 }} />
                     </IconButton>
                 </Tooltip>

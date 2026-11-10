@@ -26,7 +26,7 @@ describe('JsonDataEditor', () => {
         });
     });
 
-    it('renders object fields as field-name and value columns in a card and preserves scalar types while editing', async () => {
+    it('renders object fields as field-name and value columns and preserves scalar types while editing', async () => {
         const user = userEvent.setup();
         const document = new JsonDataDocument('data.json', { active: true, count: 2, name: 'old', nothing: null }, false);
         renderEditor(document);
@@ -283,6 +283,19 @@ describe('JsonDataEditor', () => {
         expect(document.getValue()).toEqual([2, 3, 4]);
         await user.click(screen.getByRole('button', { name: 'Add' }));
         expect(document.getValue()).toEqual([2, 3, 4, null]);
+    });
+
+    it('shows the list actions footer only for arrays', () => {
+        const arrayView = renderEditor(new JsonDataDocument('array.json', [1], false));
+        expect(screen.getByRole('toolbar', { name: 'List actions' })).toBeInTheDocument();
+        arrayView.unmount();
+
+        const objectView = renderEditor(new JsonDataDocument('object.json', { name: 'value' }, false));
+        expect(screen.queryByRole('toolbar', { name: 'List actions' })).not.toBeInTheDocument();
+        objectView.unmount();
+
+        renderEditor(new JsonDataDocument('scalar.json', 'value', false));
+        expect(screen.queryByRole('toolbar', { name: 'List actions' })).not.toBeInTheDocument();
     });
 
     it('disables all mutation controls for read-only documents', () => {

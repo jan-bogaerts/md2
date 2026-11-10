@@ -1,13 +1,12 @@
 import {
-    Box, Button, Checkbox, Link, TableCell, TableRow, Typography,
+    Box, Checkbox, Link, TableCell, TableRow, Typography,
 } from '@mui/material';
 import { useMemo, type ReactNode } from 'react';
 import { TableVirtuoso, type TableComponents, type TableVirtuosoProps } from 'react-virtuoso';
 import { JSON_ARRAY_DEFAULT_COLUMN_WIDTH, type JsonDataDocument } from '../../services/json/json_data_document';
 import { isJsonObject, isJsonPrimitive, type JsonLocationSegment, type JsonValue } from '../../services/json/json_types';
-import { copyTextToClipboard, readTextFromClipboard } from '../../services/clipboard_text';
-import { dialogService } from '../../services/dialog_service';
 import { JsonScalarEditor } from './json_scalar_editor';
+import { JsonArrayActionsFooter } from './json_array_actions_footer';
 import { JsonArrayColumnHeaderCell } from './json_array_column_header_cell';
 import { JsonArrayVirtualTable } from './json_array_virtual_table';
 import { JsonArrayVirtualTableHead } from './json_array_virtual_table_head';
@@ -54,10 +53,6 @@ function objectColumns(rows: JsonValue[]) {
     });
 
     return columns;
-}
-
-function reportClipboardError(error: unknown, fallbackMessage: string) {
-    dialogService.error(error, { fallbackMessage });
 }
 
 function renderHeader(columns: JsonArrayColumn[], document: JsonDataDocument) {
@@ -161,41 +156,9 @@ export function JsonArrayEditor({ document, value }: JsonArrayEditorProps) {
         () => () => renderHeader(columns, document),
         [columns, document],
     );
-    const mutationDisabled = document.readOnly;
-    const selectionEmpty = selectedRows.size === 0;
-    const handleAdd = () => document.addRow('json-editor');
-    const handleDelete = () => document.deleteSelectedRows('json-editor');
-    const handleCopy = async () => {
-        try {
-            await document.copySelectedRows(copyTextToClipboard);
-        } catch (error) {
-            reportClipboardError(error, 'JSON rows could not be copied');
-        }
-    };
-    const handleCut = async () => {
-        try {
-            await document.cutSelectedRows(copyTextToClipboard, 'json-editor');
-        } catch (error) {
-            reportClipboardError(error, 'JSON rows could not be cut');
-        }
-    };
-    const handlePaste = async () => {
-        try {
-            document.pasteRows(await readTextFromClipboard(), 'json-editor');
-        } catch (error) {
-            reportClipboardError(error, 'JSON rows could not be pasted');
-        }
-    };
 
     return (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
-            <Box sx={{ alignItems: 'center', borderBottom: 1, borderColor: 'divider', display: 'flex', flexShrink: 0, gap: 1, p: 1 }}>
-                <Button disabled={mutationDisabled} onClick={handleAdd} variant="outlined">Add</Button>
-                <Button disabled={mutationDisabled || selectionEmpty} onClick={handleDelete} variant="outlined">Delete</Button>
-                <Button disabled={selectionEmpty} onClick={handleCopy} variant="outlined">Copy</Button>
-                <Button disabled={mutationDisabled || selectionEmpty} onClick={handleCut} variant="outlined">Cut</Button>
-                <Button disabled={mutationDisabled} onClick={handlePaste} variant="outlined">Paste</Button>
-            </Box>
             <TableVirtuoso
                 components={JSON_ARRAY_TABLE_COMPONENTS}
                 context={tableContext}
@@ -206,6 +169,7 @@ export function JsonArrayEditor({ document, value }: JsonArrayEditorProps) {
                 overscan={JSON_ARRAY_OVERSCAN}
                 style={{ flex: 1, height: '100%', minHeight: 0, width: '100%' }}
             />
+            <JsonArrayActionsFooter document={document} />
         </Box>
     );
 }
