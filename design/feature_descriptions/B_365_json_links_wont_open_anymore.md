@@ -9,4 +9,6 @@ affects:
 agents:
 policy:
 ---
+when clicking on a link in the markdown editor pointing to a json file, we now get a white screen with a text: `md2 desktop bridges blocked for origin: null`
 
+this was not the case with the previous build, so the last couple of cards must of broken something.
