@@ -473,6 +473,15 @@ describe('AgentRunnerService published run status', () => {
         expect(run.conversation.status).toBe('waitingForInput');
     });
 
+    it('reports whether a live agent conversation is waiting for input', () => {
+        const { run, service } = streamingRunService();
+
+        expect(service.isWaitingForInput(run.id)).toBe(false);
+        run.conversation.status = 'waitingForInput';
+        expect(service.isWaitingForInput(run.id)).toBe(true);
+        expect(service.isWaitingForInput('missing')).toBe(false);
+    });
+
     it('terminates a session whose process I/O has failed', () => {
         const { service, run } = streamingRunService();
         service.terminateProcessTree = vi.fn();

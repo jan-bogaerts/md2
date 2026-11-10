@@ -537,6 +537,12 @@ class ActionRunnerService {
         run.finishAgent();
     }
 
+    advanceForEachRecord(runId) {
+        const run = this.requireRun(runId);
+        this.invalidateCompactAcceptance(run);
+        run.advanceForEachRecord();
+    }
+
     handleCardStateChange(cardInternalId, state, checkoutPath = null) {
         for (const run of this.runs.values()) {
             const sequenceCheckoutPath = run.context?.sequenceCheckoutPath ?? null;

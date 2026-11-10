@@ -13,6 +13,7 @@ import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import {
+    defaultAdvanceForEachRecord,
     defaultCancelAction,
     defaultCloseWaitingConversation,
     defaultConvertPromptToAction,
@@ -374,5 +375,19 @@ export async function finishPopupAction(
         await defaultFinishAction(run.runId)
     } catch (error) {
         dialogService.error(error, { fallbackMessage: 'Could not finish agent session' })
+    }
+}
+
+export async function advancePopupForEachRecord(
+    bindingStore: ActionRunBindingStore,
+    conversationStore: ActionConversationStore,
+) {
+    const run = currentActionRun(bindingStore)
+    if (!run || activeRunHasHistoricalDisplay(run, conversationStore)) return
+
+    try {
+        await defaultAdvanceForEachRecord(run.runId)
+    } catch (error) {
+        dialogService.error(error, { fallbackMessage: 'Could not advance for-each record' })
     }
 }

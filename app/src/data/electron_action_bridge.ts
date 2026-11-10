@@ -183,6 +183,7 @@ export interface ActionConversationViewedEvent {
 }
 
 export interface ElectronActionBridge {
+    advanceActionForEachRecord?(runId: string): Promise<void>
     compactActionConversation?(request: ActionCompactRequest): Promise<ActionCompactState>;
     answerActionInput?(runId: string, response: ActionUserInputResponse): Promise<void>
     acquireReleaseCardLocks?(cardInternalIds: string[]): Promise<string>

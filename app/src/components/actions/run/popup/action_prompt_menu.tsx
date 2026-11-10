@@ -84,6 +84,7 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
                 mode: forEach?.mode ?? 'addPrompt',
                 recordsPerBatch: forEach?.recordsPerBatch ?? 1,
                 startIndex: forEach?.startIndex ?? 0,
+                stepByStep: forEach?.stepByStep ?? false,
                 value,
             };
             await saveForEach(config);

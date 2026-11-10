@@ -24,6 +24,7 @@ export interface ActionForEachConfig {
     mode: 'addPrompt' | 'compact' | 'newConversation'
     recordsPerBatch: number
     startIndex: number
+    stepByStep: boolean
     value: JsonValue
 }
 

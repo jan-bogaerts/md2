@@ -328,6 +328,12 @@ class AgentRunnerService {
         return !!run && hasPendingInteraction(run);
     }
 
+    isWaitingForInput(runId) {
+        const run = this.processes.get(runId);
+
+        return run?.conversation.status === 'waitingForInput';
+    }
+
     sendMessage(runId, content, submissionId) {
         return agentInteractions.sendMessage(this, this.requireStreamingRun(runId), content, submissionId);
     }

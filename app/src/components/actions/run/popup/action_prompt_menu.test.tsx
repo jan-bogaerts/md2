@@ -80,7 +80,10 @@ describe('ActionPromptMenu', () => {
         await user.upload(screen.getByLabelText('For-each JSON'), new File(['[{"name":"first"}]'], 'records.json', { type: 'application/json' }));
 
         expect(inputStore.getSnapshot().forEachByAction.review)
-            .toEqual({failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', recordsPerBatch: 1, startIndex: 0, value: [{ name: 'first' }]});
+            .toEqual({
+                failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', recordsPerBatch: 1,
+                startIndex: 0, stepByStep: false, value: [{ name: 'first' }],
+            });
 
         await user.upload(screen.getByLabelText('For-each JSON'), new File(['{broken'], 'broken.json', { type: 'application/json' }));
         expect(inputStore.getSnapshot().forEachByAction.review?.fileName).toBe('records.json');
@@ -91,7 +94,10 @@ describe('ActionPromptMenu', () => {
         const { conversationStore } = renderMenu();
         conversationStore.updateConversation({
             ...conversation(),
-            forEach: { failurePolicy: 'stopOnFirstFailure', fileName: 'saved.json', mode: 'compact', recordsPerBatch: 3, startIndex: 2, value: { id: 1 } },
+            forEach: {
+                failurePolicy: 'stopOnFirstFailure', fileName: 'saved.json', mode: 'compact', recordsPerBatch: 3,
+                startIndex: 2, stepByStep: false, value: { id: 1 },
+            },
         });
 
         expect(await screen.findByRole('button', { name: 'For each: saved.json' })).toBeInTheDocument();
@@ -113,7 +119,10 @@ describe('ActionPromptMenu', () => {
     });
 
     it('persists for-each setup through the displayed conversation', async () => {
-        const forEach: ActionForEachConfig = { failurePolicy: 'logAndContinue', fileName: 'saved.json', mode: 'addPrompt', recordsPerBatch: 1, startIndex: 0, value: { items: [1] } };
+        const forEach: ActionForEachConfig = {
+            failurePolicy: 'logAndContinue', fileName: 'saved.json', mode: 'addPrompt', recordsPerBatch: 1,
+            startIndex: 0, stepByStep: false, value: { items: [1] },
+        };
         const updateActionConversationForEach = vi.fn(async (_reference: string, saved: ActionForEachConfig | null) => (
             { ...conversation(), ...(saved ? { forEach: saved } : {}) }
         ));

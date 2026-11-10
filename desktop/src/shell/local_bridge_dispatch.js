@@ -628,6 +628,11 @@ function createLocalBridgeDispatch(dependencies) {
     }
 
     const actionBridge = {
+        advanceActionForEachRecord: (runId) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.advanceForEachRecord(runId);
+        },
         acquireReleaseCardLocks: (cardInternalIds) => (
             actionWorktreeRunService.acquireReleaseCardLocks(currentLocalProject, cardInternalIds)
         ),

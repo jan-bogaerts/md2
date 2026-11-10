@@ -88,6 +88,7 @@ const DATA_METHODS = [
     'writeFiles',
 ];
 const ACTION_METHODS = [
+    'advanceActionForEachRecord',
     'compactActionConversation',
     'acquireReleaseCardLocks',
     'answerActionApproval',

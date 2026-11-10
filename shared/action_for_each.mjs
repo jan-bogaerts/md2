@@ -16,7 +16,7 @@ function validateJsonValue(value, fieldName) {
 /** Validate one conversation-owned for-each configuration. */
 export function validateForEachConfig(value, fieldName = 'forEach') {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Invalid ${fieldName}`);
-    const allowedFields = new Set(['dataPath', 'failurePolicy', 'fileName', 'mode', 'recordsPerBatch', 'startIndex', 'value']);
+    const allowedFields = new Set(['dataPath', 'failurePolicy', 'fileName', 'mode', 'recordsPerBatch', 'startIndex', 'stepByStep', 'value']);
     const unsupportedField = Object.keys(value).find((name) => !allowedFields.has(name));
     if (unsupportedField) throw new Error(`Unsupported ${fieldName} field: ${unsupportedField}`);
     if (value.dataPath !== undefined && typeof value.dataPath !== 'string') throw new Error(`Invalid ${fieldName}.dataPath`);
@@ -31,6 +31,8 @@ export function validateForEachConfig(value, fieldName = 'forEach') {
     if (typeof startIndex !== 'number' || !Number.isSafeInteger(startIndex) || startIndex < 0) {
         throw new Error(`Invalid ${fieldName}.startIndex`);
     }
+    const stepByStep = value.stepByStep === undefined ? false : value.stepByStep;
+    if (typeof stepByStep !== 'boolean') throw new Error(`Invalid ${fieldName}.stepByStep`);
 
     return {
         ...(value.dataPath !== undefined ? { dataPath: value.dataPath } : {}),
@@ -39,6 +41,7 @@ export function validateForEachConfig(value, fieldName = 'forEach') {
         mode: value.mode,
         recordsPerBatch,
         startIndex,
+        stepByStep,
         value: validateJsonValue(value.value, `${fieldName}.value`),
     };
 }

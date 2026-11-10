@@ -1,4 +1,7 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, Stack, TextField, Typography, type SelectChangeEvent } from '@mui/material';
+import {
+    Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, MenuItem, Select, Stack,
+    TextField, Typography, type SelectChangeEvent,
+} from '@mui/material';
 import { useState, type ChangeEvent } from 'react';
 import { forEachRecords } from '../../../../../../shared/action_for_each.mjs';
 import type { ActionForEachConfig } from '../../../../data/action_run_types';
@@ -31,6 +34,7 @@ export function ActionForEachSetupDialog({ config, disabled, onCancel, onSave }:
     const [dataPath, setDataPath] = useState(config.dataPath ?? '');
     const [recordsPerBatch, setRecordsPerBatch] = useState(String(config.recordsPerBatch ?? 1));
     const [startIndex, setStartIndex] = useState(String(config.startIndex ?? 0));
+    const [stepByStep, setStepByStep] = useState(config.stepByStep ?? false);
     const isRootObject = !!config.value && typeof config.value === 'object' && !Array.isArray(config.value);
     const showsRecordsPerBatch = mode === 'compact' || mode === 'newConversation';
     const handleModeChange = (event: SelectChangeEvent<ActionForEachConfig['mode']>) => setMode(event.target.value as ActionForEachConfig['mode']);
@@ -40,6 +44,7 @@ export function ActionForEachSetupDialog({ config, disabled, onCancel, onSave }:
     const handleDataPathChange = (event: ChangeEvent<HTMLInputElement>) => setDataPath(event.target.value);
     const handleRecordsPerBatchChange = (event: ChangeEvent<HTMLInputElement>) => setRecordsPerBatch(event.target.value);
     const handleStartIndexChange = (event: ChangeEvent<HTMLInputElement>) => setStartIndex(event.target.value);
+    const handleStepByStepChange = (event: ChangeEvent<HTMLInputElement>) => setStepByStep(event.target.checked);
     const handleSave = () => {
         const parsedRecordsPerBatch = Number(recordsPerBatch);
         if (recordsPerBatch.trim().length === 0 || !Number.isSafeInteger(parsedRecordsPerBatch) || parsedRecordsPerBatch <= 0) {
@@ -65,6 +70,7 @@ export function ActionForEachSetupDialog({ config, disabled, onCancel, onSave }:
             mode,
             recordsPerBatch: parsedRecordsPerBatch,
             startIndex: parsedStartIndex,
+            stepByStep,
             value: config.value,
         };
         onSave(updated);
@@ -102,6 +108,15 @@ export function ActionForEachSetupDialog({ config, disabled, onCancel, onSave }:
                             disabled={disabled} fullWidth onChange={handleStartIndexChange} size="small" type="number"
                             slotProps={{ htmlInput: { 'aria-label': 'Start index', min: 0, step: 1 } }} value={startIndex}
                         />
+                    </Stack>
+                    <Stack spacing={0.25}>
+                        <FormControlLabel
+                            control={<Checkbox checked={stepByStep} disabled={disabled} onChange={handleStepByStepChange} />}
+                            label="Step by step"
+                        />
+                        <Typography color="text.secondary" variant="caption">
+                            Pause after each record when the agent waits for input. Use Next to finish that record and start the next one.
+                        </Typography>
                     </Stack>
                     {isRootObject ? (
                         <Stack spacing={0.75}>

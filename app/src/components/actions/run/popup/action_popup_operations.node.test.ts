@@ -13,6 +13,7 @@ import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import {
+    advancePopupForEachRecord,
     answerRestoredConversationQuestions,
     cancelPopupAction,
     composeRestoredQuestionAnswers,
@@ -185,6 +186,7 @@ describe('runPopupAction waiting follow-up', () => {
         }])
         let listener: ((event: ActionRunEvent) => void) | null = null
         bridge = {
+            advanceActionForEachRecord: vi.fn(async () => undefined),
             cancelActionRun: vi.fn(async () => undefined),
             enqueueActionPrompt: vi.fn(async (_runId, content, id) => ({content, dispatchState: 'queued', id, revision: 0})),
             finishActionRun: vi.fn(async () => undefined),
@@ -306,6 +308,7 @@ describe('runPopupAction waiting follow-up', () => {
             failurePolicy: 'logAndContinue' as const, fileName: 'records.json', mode: 'addPrompt' as const,
             recordsPerBatch: 1,
             startIndex: 2,
+            stepByStep: false,
             value: [{ name: 'first' }],
         }
         inputStore.setForEach(action.id, forEach)
@@ -376,7 +379,7 @@ describe('runPopupAction waiting follow-up', () => {
         expect(draft.getSnapshot()).toBe('Still typing')
     })
 
-    it('guards Send, Stop, and Finish while active run has historical display', async () => {
+    it('guards Send, Stop, Finish, and Next while active run has historical display', async () => {
         const historicalConversation = { ...storedConversation([]), id: 'historical-conversation', path: 'history.json' }
         const conversationStore = {
             continuationPath: () => historicalConversation.path,
@@ -388,10 +391,12 @@ describe('runPopupAction waiting follow-up', () => {
         await runPopupAction(input)
         await cancelPopupAction(input.bindingStore, conversationStore)
         await finishPopupAction(input.bindingStore, conversationStore)
+        await advancePopupForEachRecord(input.bindingStore, conversationStore)
 
         expect(bridge.enqueueActionPrompt).not.toHaveBeenCalled()
         expect(bridge.cancelActionRun).not.toHaveBeenCalled()
         expect(bridge.finishActionRun).not.toHaveBeenCalled()
+        expect(bridge.advanceActionForEachRecord).not.toHaveBeenCalled()
     })
 
     it('restarts from persisted conversation with changed settings', async () => {

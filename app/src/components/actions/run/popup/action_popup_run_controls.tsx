@@ -1,4 +1,5 @@
 import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined';
+import SkipNextOutlined from '@mui/icons-material/SkipNextOutlined';
 import StopOutlined from '@mui/icons-material/StopOutlined';
 import { Box, Button, IconButton, Tooltip } from '@mui/material';
 import CalendarOutline from 'mdi-material-ui/CalendarOutline';
@@ -6,10 +7,11 @@ import Play from 'mdi-material-ui/Play';
 import { useEffect, useRef, useSyncExternalStore, type MouseEvent } from 'react';
 import type { ActionContext } from '../../../../data/action_context';
 import type { ActionDefinition } from '../../../../data/action_types';
-import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs';
+import { useActionRunSelector, useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs';
 import { usePendingActionScheduleForCardAndAction } from '../../../hooks/use_pending_action_schedule';
 import { isBrowsingHistoricalConversation } from '../../conversation/state/action_conversation_store';
 import {
+    advancePopupForEachRecord,
     cancelPopupAction,
     currentActionPromptDraft,
     finishPopupAction,
@@ -45,6 +47,18 @@ export function ActionPopupRunControls(props: ActionPopupRunControlsProps) {
     });
     const interactionReady = useRunSelector(boundRunId, (run) => !!run?.interactionReady);
     const liveConversationId = useRunSelector(boundRunId, (run) => run?.conversation?.id ?? null);
+    const nextRunAvailable = useActionRunSelector(action.id, assignmentContext, (run) => (
+        run?.status === 'waitingForInput'
+        && run.activeActionType === 'agent'
+        && run.conversation?.forEach?.stepByStep === true
+    ));
+    const nextInteractionReady = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.interactionReady);
+    const nextPendingInteraction = useActionRunSelector(action.id, assignmentContext, (run) => (
+        !!run?.question || (run?.approvals.length ?? 0) > 0
+    ));
+    const nextConversationId = useActionRunSelector(
+        action.id, assignmentContext, (run) => run?.conversation?.id ?? null,
+    );
     const promptDraft = currentActionPromptDraft(
         action, assignmentContext, bindingStore, conversationStore, false, agentActive ? '' : undefined,
     );
@@ -77,6 +91,12 @@ export function ActionPopupRunControls(props: ActionPopupRunControlsProps) {
     const hasDisplayedConversation = !!liveConversationId || !!conversationSnapshot.selectedConversation;
     const showStop = running || (runStatus === 'waitingForInput' && !agentActive);
     const showFinish = waitingForAgentInput;
+    const showNext = nextRunAvailable;
+    const nextBrowsingHistory = isBrowsingHistoricalConversation(
+        nextConversationId ? { id: nextConversationId } : null,
+        conversationSnapshot.selectedConversation,
+        nextRunAvailable,
+    );
     const showSchedule = (!sessionActive && !orphanWaiting) || (waitingForAgentInput && promptHasText);
     const scheduleAvailable = showSchedule && settings.backendAvailable;
     const showAgentSend = (!sessionActive && !orphanWaiting && action.type === 'agent')
@@ -125,6 +145,11 @@ export function ActionPopupRunControls(props: ActionPopupRunControlsProps) {
 
         void finishPopupAction(bindingStore, conversationStore);
     };
+    const handleNext = () => {
+        if (browsingHistory) return;
+
+        void advancePopupForEachRecord(bindingStore, conversationStore);
+    };
     const handleToggleSchedule = (event: MouseEvent<HTMLButtonElement>) => scheduleStore.toggle(event.currentTarget);
 
     useEffect(() => {
@@ -149,6 +174,22 @@ export function ActionPopupRunControls(props: ActionPopupRunControlsProps) {
             data-footer-controls
             sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, gap: 1, justifyContent: 'flex-end', minWidth: 64 }}
         >
+            {showNext ? (
+                <Tooltip title="Next">
+                    <span>
+                        <IconButton
+                            aria-label="Next"
+                            disabled={
+                                nextBrowsingHistory || nextPendingInteraction || !nextInteractionReady || !settings.backendAvailable
+                            }
+                            onClick={handleNext}
+                            size="small"
+                        >
+                            <SkipNextOutlined sx={{ fontSize: 18 }} />
+                        </IconButton>
+                    </span>
+                </Tooltip>
+            ) : null}
             {showFinish ? (
                 <ActionPopupFinishButton
                     disabled={browsingHistory || !settings.backendAvailable || (sessionActive && !interactionReady)}

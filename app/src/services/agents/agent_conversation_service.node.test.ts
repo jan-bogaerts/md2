@@ -124,7 +124,8 @@ describe('parseAgentConversationLog', () => {
         } as const
         const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
 
-        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach).toEqual({ ...forEach, recordsPerBatch: 1, startIndex: 0 })
+        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach)
+            .toEqual({ ...forEach, recordsPerBatch: 1, startIndex: 0, stepByStep: false })
     })
 
     it('keeps the for-each data path across reloads', () => {
@@ -134,7 +135,8 @@ describe('parseAgentConversationLog', () => {
         } as const
         const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
 
-        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach).toEqual({ ...forEach, recordsPerBatch: 1, startIndex: 0 })
+        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach)
+            .toEqual({ ...forEach, recordsPerBatch: 1, startIndex: 0, stepByStep: false })
     })
 
     it('keeps the for-each start index across reloads', () => {
@@ -144,13 +146,14 @@ describe('parseAgentConversationLog', () => {
         } as const
         const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
 
-        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach).toEqual({ ...forEach, recordsPerBatch: 1 })
+        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach)
+            .toEqual({ ...forEach, recordsPerBatch: 1, stepByStep: false })
     })
 
     it('keeps records per batch across reloads', () => {
         const forEach = {
             failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'newConversation', recordsPerBatch: 3,
-            startIndex: 0, value: ['first', 'second', 'third'],
+            startIndex: 0, stepByStep: true, value: ['first', 'second', 'third'],
         } as const
         const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
 

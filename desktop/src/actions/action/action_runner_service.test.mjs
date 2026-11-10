@@ -469,6 +469,12 @@ describe('ActionRunnerService', () => {
         expect(agentRunnerService.finish).toHaveBeenCalledWith('agent-1');
     });
 
+    it('rejects advancing a stale action run', () => {
+        const { runner } = createRunner();
+
+        expect(() => runner.advanceForEachRecord('missing-run')).toThrow();
+    });
+
     it('returns current actions folder and clears readiness on stop', async () => {
         const { runner } = createRunner();
 

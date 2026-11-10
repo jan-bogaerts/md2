@@ -4,7 +4,7 @@ import type { ActionRunEvent } from '../../data/action_run_types'
 import type { AgentConversation, AgentConversationEntry } from '../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { actionPromptDraftService } from './action_prompt_draft_service'
-import { ActionRunRegistry } from './action_run_registry'
+import { ActionRunRegistry, advanceActionForEachRecord } from './action_run_registry'
 import { actionVersionRequestService } from './action_version_request_service'
 import { register } from '../service_injector'
 
@@ -64,6 +64,16 @@ function agentConversation(entries: AgentConversationEntry[], overrides: Partial
 
 describe('ActionRunRegistry', () => {
     afterEach(() => setActionBridgeOverride(null))
+
+    it('delegates advancing one step-by-step record to Electron', async () => {
+        const advance = vi.fn(async () => undefined)
+        const { bridge } = bridgeWithEvents({ advanceActionForEachRecord: advance })
+        setActionBridgeOverride(bridge)
+
+        await advanceActionForEachRecord('run-1')
+
+        expect(advance).toHaveBeenCalledWith('run-1')
+    })
 
     it('keeps version request scoped to its run until terminal event', () => {
         const { bridge, emit } = bridgeWithEvents()

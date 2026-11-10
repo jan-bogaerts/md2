@@ -352,6 +352,13 @@ export async function cancelActionRun(runId: string) {
     await bridge.cancelActionRun(runId)
 }
 
+export async function advanceActionForEachRecord(runId: string) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.advanceActionForEachRecord) throw new Error('Advancing step-by-step for-each requires Electron')
+
+    await bridge.advanceActionForEachRecord(runId)
+}
+
 export async function sendActionMessage(runId: string, content: string) {
     const bridge = getElectronActionBridge()
     if (!bridge?.sendActionMessage) throw new Error('Streaming agent messaging requires Electron')

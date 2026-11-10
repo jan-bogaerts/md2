@@ -13,6 +13,7 @@ const INITIAL_ACCOUNTS = [
 function createDispatch(options = {}) {
     const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }));
     const actionRunnerService = {
+        advanceForEachRecord: vi.fn(),
         compactConversation: vi.fn(async (request) => ({ ...request, state: 'queued' })),
         cancelCompactsForPath: vi.fn(async () => undefined),
         cancelCompactsForConversation: vi.fn(async () => undefined),
@@ -1166,6 +1167,7 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.actionBridge.answerActionApproval('action-1', 41, 'accept');
         await dispatch.actionBridge.answerActionQuestion('action-1', 7, { confirm: ['Yes'] });
         await dispatch.actionBridge.dismissActionQuestions('action-1', 7);
+        await dispatch.actionBridge.advanceActionForEachRecord('action-1');
         await dispatch.actionBridge.finishActionRun('action-1');
 
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
@@ -1177,6 +1179,7 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.answerAgentApproval).toHaveBeenCalledWith('action-1', 41, 'accept');
         expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
         expect(actionRunnerService.dismissAgentQuestions).toHaveBeenCalledWith('action-1', 7);
+        expect(actionRunnerService.advanceForEachRecord).toHaveBeenCalledWith('action-1');
         expect(actionRunnerService.finishAgentRun).toHaveBeenCalledWith('action-1');
     });
 

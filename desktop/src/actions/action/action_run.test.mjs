@@ -187,6 +187,113 @@ describe('ActionRun', () => {
         }
     });
 
+    it('pauses a step-by-step record, keeps Send on that record, and advances only through Next', async () => {
+        let activeCompletion;
+        let waitingForInput = false;
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                activeCompletion = deferred();
+                input.onActiveRunChange(`agent-run-${input.forEachRecord}`);
+                input.onEvent({ error: null, status: 'waitingForInput', type: 'turnCompleted' });
+                waitingForInput = true;
+                await activeCompletion.promise;
+                waitingForInput = false;
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: 0,
+                    model: 'gpt', prompt: 'run', reference: `record-${input.forEachRecord}.json`, stderr: '', stdout: '',
+                    thinkingLevel: 'none',
+                };
+            }),
+        };
+        const sendMessage = vi.fn(async () => undefined);
+        const agentRunnerService = {
+            finish: vi.fn(() => activeCompletion.resolve()),
+            hasPendingInteraction: vi.fn(() => false),
+            isWaitingForInput: vi.fn(() => waitingForInput),
+            sendMessage,
+            stop: vi.fn(),
+        };
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            agentRunnerService,
+            runInput: {
+                forEach: {
+                    failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt',
+                    stepByStep: true, value: ['first', 'second'],
+                },
+                prompt: 'run',
+            },
+        });
+
+        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledOnce());
+        expect(agentRunnerService.finish).not.toHaveBeenCalled();
+        await run.sendAgentMessage('More detail');
+        expect(sendMessage).toHaveBeenCalledWith('agent-run-first', 'More detail');
+        expect(agentExecutor.execute).toHaveBeenCalledOnce();
+
+        run.advanceForEachRecord();
+        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledTimes(2));
+        expect(agentExecutor.execute.mock.calls[1][0].forEachRecord).toBe('second');
+        run.advanceForEachRecord();
+
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
+        expect(agentRunnerService.finish).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects Next outside an eligible step-by-step pause', async () => {
+        const completion = deferred();
+        const started = deferred();
+        let waitingForInput = false;
+        let pendingInteraction = false;
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                input.onActiveRunChange('agent-run');
+                started.resolve();
+                await completion.promise;
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: 0,
+                    model: 'gpt', prompt: 'run', reference: 'record.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const agentRunnerService = {
+            finish: vi.fn(() => completion.resolve()),
+            hasPendingInteraction: vi.fn(() => pendingInteraction),
+            isWaitingForInput: vi.fn(() => waitingForInput),
+            stop: vi.fn(),
+        };
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            agentRunnerService,
+            runInput: {
+                forEach: {
+                    failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt',
+                    stepByStep: true, value: ['first'],
+                },
+                prompt: 'run',
+            },
+        });
+        await started.promise;
+
+        expect(() => run.advanceForEachRecord()).toThrow('Action run is not waiting for input');
+        waitingForInput = true;
+        pendingInteraction = true;
+        expect(() => run.advanceForEachRecord()).toThrow('Answer pending agent question or approval before advancing');
+        run.runInput.forEach.stepByStep = false;
+        expect(() => run.advanceForEachRecord()).toThrow('Action run is not using step-by-step for-each');
+        run.runInput.forEach.stepByStep = true;
+        pendingInteraction = false;
+        run.advanceForEachRecord();
+
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
+    });
+
     it('compacts after each full batch when another processed record remains', async () => {
         const agentExecutor = {
             execute: vi.fn(async (input) => {
@@ -639,7 +746,10 @@ describe('ActionRun', () => {
             agentExecutor,
             agentRunnerService,
             runInput: {
-                forEach: { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [1, 2] },
+                forEach: {
+                    failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt',
+                    stepByStep: true, value: [1, 2],
+                },
                 prompt: 'run',
             },
         });

@@ -2301,6 +2301,113 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(finishActionRun).toHaveBeenCalledWith('run-1'))
     })
 
+    it('shows enabled Next before finish and send only for an eligible step-by-step pause', async () => {
+        actionRunRegistry.stop()
+        const waitingContext: ActionContext = { kind: 'project' }
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const advanceActionForEachRecord = vi.fn(async () => undefined)
+        const conversation = agentConversation({
+            actionId: 'stream', cardInternalId: null, cardPath: null,
+            forEach: {
+                failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', recordsPerBatch: 1,
+                startIndex: 0, stepByStep: true, value: [1, 2],
+            },
+            path: 'design/activity/project.json#conversation=conversation-1',
+            viewed: false,
+        })
+        const historicalConversation = agentConversation({
+            actionId: 'stream', cardInternalId: null, cardPath: null, completedAt: '2026-08-01T12:05:00.000Z',
+            id: 'historical-conversation', path: 'design/activity/project.json#conversation=historical-conversation', status: 'completed',
+            title: 'Historical step-by-step run',
+        })
+        window.md2Actions = {
+            advanceActionForEachRecord,
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            updateActionConversationViewed: vi.fn(async () => conversation),
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        actionRunRegistry.start()
+        vi.spyOn(dataService, 'scheduleRepositoryPathCommit').mockImplementation(() => undefined)
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([historicalConversation])
+        vi.spyOn(dataService, 'loadAgentConversation').mockImplementation(async (path) => (
+            path === historicalConversation.path ? historicalConversation : conversation
+        ))
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup(waitingContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: waitingContext, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        act(() => {
+            runListener?.({ ...eventBase, status: 'running', type: 'run' })
+            runListener?.({
+                ...eventBase, status: 'running', type: 'update',
+                update: { continued: false, conversation, kind: 'agentStarted' },
+            })
+        })
+        expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
+
+        act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
+        const activeRun = actionRunRegistry.getActionRunStore('stream', waitingContext)?.getSnapshot()
+        if (!activeRun) throw new Error('Expected active stream run')
+        act(() => actionPromptDraftService.getDraft(
+            'stream', waitingContext, activeRun.conversation?.id ?? null, { prepare: false },
+        ).edit('Continue'))
+        const nextButton = screen.getByRole('button', { name: 'Next' })
+        const finishButton = screen.getByRole('button', { name: 'Finish' })
+        const sendButton = screen.getByRole('button', { name: 'Send' })
+        expect(nextButton.compareDocumentPosition(finishButton) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+        expect(nextButton.compareDocumentPosition(sendButton) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+        expect(nextButton).toBeEnabled()
+        fireEvent.click(nextButton)
+        await waitFor(() => expect(advanceActionForEachRecord).toHaveBeenCalledWith('run-1'))
+
+        act(() => runListener?.({
+            ...eventBase, status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions: [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }], requestId: 7 },
+        }))
+        expect(nextButton).toBeDisabled()
+        act(() => runListener?.({
+            ...eventBase, status: 'waitingForInput', type: 'update',
+            update: {
+                kind: 'agentQuestionAnswer', requestId: 7,
+                userMessage: { content: 'Yes', id: 'answer-1', kind: 'message', role: 'user', timestamp: 'now' },
+            },
+        }))
+        expect(nextButton).toBeEnabled()
+        act(() => runListener?.({ ...eventBase, interactionReady: false, status: 'waitingForInput', type: 'agentState' }))
+        expect(nextButton).toBeDisabled()
+        act(() => runListener?.({ ...eventBase, interactionReady: true, status: 'waitingForInput', type: 'agentState' }))
+        expect(nextButton).toBeEnabled()
+
+        const conversationPicker = screen.getByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(conversationPicker).toBeEnabled())
+        fireEvent.mouseDown(conversationPicker)
+        fireEvent.click(await screen.findByRole('option', { name: /Historical step-by-step run/u }))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled())
+        fireEvent.mouseDown(conversationPicker)
+        fireEvent.click(await screen.findByRole('option', { name: /Waiting response/u }))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled())
+
+        delete window.md2Actions
+        act(() => {
+            const availability = { error: null, loading: false, values: { codex: { available: true, error: null } } }
+            vi.mocked(agentCapabilitiesService.getSnapshot).mockReturnValue({ availability })
+            agentCapabilitiesService.dispatchEvent(new Event('changed'))
+        })
+        fireEvent.change(within(screen.getByLabelText('Prompt')).getByRole('textbox'), { target: { value: 'No backend' } })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled())
+        act(() => runListener?.({ ...eventBase, status: 'completed', type: 'run' }))
+        expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
+    })
+
     it('keeps typed prompt text through every status the finishing agent passes', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null

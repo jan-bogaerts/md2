@@ -11,7 +11,7 @@ const ROOT_OBJECT = { data: { items: [1, 2] }, name: 'records' };
 function config(value: JsonValue, dataPath?: string): ActionForEachConfig {
     return {
         ...(dataPath ? { dataPath } : {}), failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt',
-        recordsPerBatch: 1, startIndex: 0, value,
+        recordsPerBatch: 1, startIndex: 0, stepByStep: false, value,
     };
 }
 
@@ -49,10 +49,14 @@ describe('ActionForEachSetupDialog', () => {
         await user.click(screen.getByRole('option', { name: 'Stop on first failure' }));
         await user.clear(screen.getByRole('spinbutton', { name: 'Start index' }));
         await user.type(screen.getByRole('spinbutton', { name: 'Start index' }), '2');
+        await user.click(screen.getByRole('checkbox', { name: 'Step by step' }));
         await user.type(screen.getByRole('textbox', { name: 'Path to list data' }), ' data.items ');
         await user.click(screen.getByRole('button', { name: 'Save' }));
 
-        const expected: ActionForEachConfig = { ...config(ROOT_OBJECT, 'data.items'), failurePolicy: 'stopOnFirstFailure', mode: 'compact', recordsPerBatch: 3, startIndex: 2 };
+        const expected: ActionForEachConfig = {
+            ...config(ROOT_OBJECT, 'data.items'), failurePolicy: 'stopOnFirstFailure', mode: 'compact',
+            recordsPerBatch: 3, startIndex: 2, stepByStep: true,
+        };
         expect(onSave).toHaveBeenCalledWith(expected);
     });
 
@@ -100,6 +104,15 @@ describe('ActionForEachSetupDialog', () => {
         renderDialog({ ...config([1, 2]), startIndex: undefined } as unknown as ActionForEachConfig);
 
         expect(screen.getByRole('spinbutton', { name: 'Start index' })).toHaveValue(0);
+    });
+
+    it('shows the step-by-step explanation and defaults a missing value to unchecked', () => {
+        renderDialog({ ...config([1, 2]), stepByStep: undefined } as unknown as ActionForEachConfig);
+
+        expect(screen.getByRole('checkbox', { name: 'Step by step' })).not.toBeChecked();
+        expect(screen.getByText(
+            'Pause after each record when the agent waits for input. Use Next to finish that record and start the next one.',
+        )).toBeInTheDocument();
     });
 
     it('discards staged edits on Cancel', async () => {
@@ -170,5 +183,6 @@ describe('ActionForEachSetupDialog', () => {
         expect(screen.getByRole('spinbutton', { name: 'Start index' })).toBeDisabled();
         expect(screen.getByRole('textbox', { name: 'Path to list data' })).toBeDisabled();
         expect(screen.getByRole('combobox', { name: 'At end' })).toHaveAttribute('aria-disabled', 'true');
+        expect(screen.getByRole('checkbox', { name: 'Step by step' })).toBeDisabled();
     });
 });

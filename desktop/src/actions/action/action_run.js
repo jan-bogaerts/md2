@@ -205,6 +205,17 @@ class ActionRun {
         this.agentRunnerService.finish(this.activeAgentRunId);
     }
 
+    advanceForEachRecord() {
+        if (!this.runInput.forEach?.stepByStep) throw new Error('Action run is not using step-by-step for-each');
+        if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
+        if (!this.agentRunnerService.isWaitingForInput(this.activeAgentRunId)) {
+            throw new Error('Action run is not waiting for input');
+        }
+        if (this.agentInteractionPending()) throw new Error('Answer pending agent question or approval before advancing');
+        this.discardQueuedPrompts();
+        this.agentRunnerService.finish(this.activeAgentRunId);
+    }
+
     queuePromptOperation(operation) {
         const queuedOperation = this.promptQueueOperations.then(operation);
         this.promptQueueOperations = queuedOperation.catch(() => undefined);
@@ -912,7 +923,8 @@ class ActionRun {
                 return;
             }
             if (agentEvent.type === 'turnCompleted') {
-                if (forEachRecord !== undefined && !agentEvent.error && !this.agentInteractionPending()) {
+                if (forEachRecord !== undefined && !this.runInput.forEach?.stepByStep
+                    && !agentEvent.error && !this.agentInteractionPending()) {
                     this.requestAutoFinish();
                 }
                 return;
