@@ -1,94 +1,38 @@
-import { Box, Stack, Typography } from '@mui/material'
-import { useEffect, useRef } from 'react'
-import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
-import type { AgentAccount } from '../../../../data/agent_accounts'
-import { DEFAULT_AGENT_ACCOUNTS } from '../../../../data/agent_accounts'
-import { dialogService } from '../../../../services/dialog_service'
-import { CommitReferenceRow } from '../../conversation/events/commit_reference_row'
-import { agentSpeedLabel } from '../../../../data/agent_speed_label';
-import { useConfigValueOrFallback } from '../../../hooks/use_config_value'
-
-interface HistoryEntryRowProps {
-    accounts: AgentAccount[]
-    entry: ActionRunHistoryEntry
-}
+import { Box, Stack, Typography } from '@mui/material';
+import { useEffect, useRef } from 'react';
+import { DEFAULT_AGENT_ACCOUNTS } from '../../../../data/agent_accounts';
+import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge';
+import { dialogService } from '../../../../services/dialog_service';
+import { useConfigValueOrFallback } from '../../../hooks/use_config_value';
+import { HistoryEntryRow } from './action_run_history_entry';
+import { newestFirstHistoryEntries } from './action_run_history_order';
 
 interface ActionRunHistoryProps {
-    compact?: boolean
-    entries: ActionRunHistoryEntry[]
-    error: string | null
-}
-
-interface IndexedHistoryEntry {
-    entry: ActionRunHistoryEntry
-    sourceIndex: number
-}
-
-function compareHistoryEntries(first: IndexedHistoryEntry, second: IndexedHistoryEntry) {
-    const completedAtDifference = Date.parse(second.entry.completedAt) - Date.parse(first.entry.completedAt);
-    if (completedAtDifference !== 0) return completedAtDifference;
-
-    return second.sourceIndex - first.sourceIndex;
-}
-
-function newestFirstHistoryEntries(entries: ActionRunHistoryEntry[]) {
-    return entries
-        .map((entry, sourceIndex) => ({ entry, sourceIndex }))
-        .sort(compareHistoryEntries);
-}
-
-/** One run history line with commits produced across its action chain. */
-function HistoryEntryRow(props: HistoryEntryRowProps) {
-    const { accounts, entry } = props
-    const accountName = entry.type === 'agent' && entry.accountId
-        ? accounts.find(({ id }) => id === entry.accountId)?.name ?? `${entry.accountId} — unavailable`
-        : null
-    const configuration = entry.type === 'agent'
-        ? [entry.agent, accountName, entry.model, entry.thinkingLevel, entry.permissionMode, agentSpeedLabel(entry)]
-            .filter((value) => !!value).join(' / ')
-        : ''
-    const agentLabel = configuration ? ` (${configuration})` : ''
-    const completedAt = new Date(entry.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
-    const summary = entry.type === 'agent'
-        ? `${entry.status}${agentLabel} · ${completedAt}`
-        : `${entry.status}: ${entry.output} · ${completedAt}`
-
-    return (
-        <Box>
-            <Typography color="text.secondary" variant="caption">
-                {summary}
-            </Typography>
-            {entry.commits?.map((commitReference) => (
-                <CommitReferenceRow
-                    commitReference={commitReference}
-                    key={`${commitReference.repositoryRoot}-${commitReference.commit}`}
-                />
-            ))}
-        </Box>
-    )
+    compact?: boolean;
+    entries: ActionRunHistoryEntry[];
+    error: string | null;
 }
 
 /** Presentation-only list of previous action runs. */
-export function ActionRunHistory(props: ActionRunHistoryProps) {
-    const { compact = false, entries, error } = props
-    const accounts = useConfigValueOrFallback('desktop.agentAccounts', DEFAULT_AGENT_ACCOUNTS)
-    const reportedErrorRef = useRef<string | null>(null)
+export function ActionRunHistory({ compact = false, entries, error }: ActionRunHistoryProps) {
+    const accounts = useConfigValueOrFallback('desktop.agentAccounts', DEFAULT_AGENT_ACCOUNTS);
+    const reportedErrorRef = useRef<string | null>(null);
     const displayEntries = newestFirstHistoryEntries(entries);
 
     useEffect(() => {
         if (!error) {
-            reportedErrorRef.current = null
+            reportedErrorRef.current = null;
 
-            return
+            return;
         }
 
-        if (error === reportedErrorRef.current) return
+        if (error === reportedErrorRef.current) return;
 
-        dialogService.error(error)
-        reportedErrorRef.current = error
-    }, [error])
+        dialogService.error(error);
+        reportedErrorRef.current = error;
+    }, [error]);
 
-    if (entries.length === 0) return null
+    if (entries.length === 0) return null;
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: compact ? 1 : 0 }}>
@@ -106,5 +50,5 @@ export function ActionRunHistory(props: ActionRunHistoryProps) {
                 ))}
             </Stack>
         </Box>
-    )
+    );
 }
