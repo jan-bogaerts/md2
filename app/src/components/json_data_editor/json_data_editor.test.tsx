@@ -33,6 +33,7 @@ describe('JsonDataEditor', () => {
 
         expect(screen.getByRole('region', { name: 'JSON data editor' })).toBeInTheDocument();
         expect(screen.getByRole('group', { name: 'Object fields' })).toBeInTheDocument();
+        expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual(['Field', 'Value']);
         expect(screen.getByRole('separator', { name: 'Resize field name column' })).toHaveAttribute('aria-orientation', 'vertical');
         await user.click(screen.getByRole('checkbox', { name: 'active' }));
         fireEvent.change(screen.getByRole('textbox', { name: 'count' }), { target: { value: '4' } });
@@ -42,6 +43,7 @@ describe('JsonDataEditor', () => {
 
         expect(document.getValue()).toEqual({ active: false, count: 4, name: 'new', nothing: null });
         expect(screen.getByRole('textbox', { name: 'nothing' })).toHaveValue('null');
+        expect(screen.getByRole('textbox', { name: 'name' }).closest('.MuiTextField-root')).toHaveStyle({ width: '100%' });
     });
 
     it('resizes the field-name column with the keyboard', async () => {
@@ -55,8 +57,43 @@ describe('JsonDataEditor', () => {
         await user.keyboard('{ArrowRight}');
 
         expect(splitter).toHaveAttribute('aria-valuenow', String(initialWidth + 24));
-        expect(screen.getByRole('button', { name: 'Open object' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Open array (0)' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Open object' })).toHaveClass('MuiButton-text');
+        expect(screen.getByRole('button', { name: 'Open array (0)' })).toHaveClass('MuiButton-text');
+    });
+
+    it('resizes from captured pointer width without jumping and clamps both columns', () => {
+        const document = new JsonDataDocument('data.json', { name: 'value' }, false);
+        renderEditor(document);
+        const fields = screen.getByRole('group', { name: 'Object fields' });
+        vi.spyOn(fields, 'getBoundingClientRect').mockReturnValue({
+            bottom: 200,
+            height: 200,
+            left: 100,
+            right: 600,
+            toJSON: () => ({}),
+            top: 0,
+            width: 500,
+            x: 100,
+            y: 0,
+        });
+        const splitter = screen.getByRole('separator', { name: 'Resize field name column' });
+
+        fireEvent.pointerDown(splitter, { clientX: 276, pointerId: 1 });
+        expect(splitter).toHaveAttribute('aria-valuenow', '180');
+        fireEvent.pointerMove(splitter, { clientX: 286, pointerId: 1 });
+        expect(splitter).toHaveAttribute('aria-valuenow', '190');
+        fireEvent.pointerUp(splitter, { clientX: 286, pointerId: 1 });
+
+        fireEvent.pointerDown(splitter, { clientX: 290, pointerId: 2 });
+        fireEvent.pointerMove(splitter, { clientX: 0, pointerId: 2 });
+        expect(splitter).toHaveAttribute('aria-valuenow', '120');
+        fireEvent.pointerUp(splitter, { clientX: 0, pointerId: 2 });
+
+        fireEvent.pointerDown(splitter, { clientX: 220, pointerId: 3 });
+        fireEvent.pointerMove(splitter, { clientX: 700, pointerId: 3 });
+        expect(splitter).toHaveAttribute('aria-valuenow', '340');
+        expect(splitter).toHaveAttribute('aria-valuemax', '340');
+        fireEvent.pointerCancel(splitter, { clientX: 700, pointerId: 3 });
     });
 
     it('commits complete JSON numbers and keeps invalid numeric input out of document data', async () => {
@@ -84,7 +121,8 @@ describe('JsonDataEditor', () => {
         renderEditor(document);
 
         await user.click(screen.getByRole('button', { name: 'Open object' }));
-        await user.click(screen.getByRole('button', { name: 'Open array (1)' }));
+        screen.getByRole('button', { name: 'Open array (1)' }).focus();
+        await user.keyboard('{Enter}');
 
         expect(screen.getByRole('navigation', { name: 'JSON path' })).toHaveTextContent('data.json/nested/rows');
         await user.click(screen.getByRole('button', { name: 'nested' }));
