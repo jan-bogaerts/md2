@@ -3,12 +3,11 @@ author:
 id: J_68
 internalId: 83c5615c-4c5c-4c99-8fa6-4ab6e1f61bd5
 title: split action run history into focused units
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: b3d4732c-6b1a-41d7-88bf-0347982fc7a9
 ---
 
 `app/src/components/actions/run/state/action_run_history.tsx` currently owns the history section layout, entry ordering, agent and command summary formatting, account-name resolution, error reporting, and entry rendering. Split these responsibilities into focused units without changing run-history behavior.
