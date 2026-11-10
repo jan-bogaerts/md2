@@ -10,6 +10,8 @@ agents:
   - design/activity/card__644f4bf0-b21a-42ba-be1e-5b0daaecb1b8.json
 policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
+branch: f_469_add_support_to_email_links
+worktree: 2
 ---
 
 a link for creating an email should open the systems default email program
