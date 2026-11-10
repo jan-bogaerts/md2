@@ -3,7 +3,7 @@ author:
 id: F_470
 internalId: da4aee5d-5816-4fa9-ae35-cdd114954868
 title: for-each stopped keeps track of position
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
