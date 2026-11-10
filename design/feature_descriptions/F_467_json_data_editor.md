@@ -18,6 +18,8 @@ changedFiles:
   - app/src/components/editor/placeholders/markdown_placeholder_toolbar_control.grouped.test.tsx
   - app/src/components/editor/references/markdown_reference_realm_plugin.ts
   - app/src/components/json_data_editor/json_array_editor.tsx
+  - app/src/components/json_data_editor/json_array_virtual_table.tsx
+  - app/src/components/json_data_editor/json_array_virtual_table_head.tsx
   - app/src/components/json_data_editor/json_breadcrumbs.tsx
   - app/src/components/json_data_editor/json_data_editor.test.tsx
   - app/src/components/json_data_editor/json_data_editor.tsx
