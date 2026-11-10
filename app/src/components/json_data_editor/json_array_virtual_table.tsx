@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from 'react';
 
 interface JsonArrayVirtualTableProps {
     children?: ReactNode;
-    context: { rowCount: number };
+    context: { rowCount: number; tableWidth: number };
     style?: CSSProperties;
 }
 
@@ -17,7 +17,7 @@ export function JsonArrayVirtualTable(props: JsonArrayVirtualTableProps) {
             aria-rowcount={context.rowCount + 1}
             size="small"
             stickyHeader
-            style={style}
+            style={{ ...style, tableLayout: 'fixed', width: context.tableWidth }}
         >
             {children}
         </Table>

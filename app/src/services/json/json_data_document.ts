@@ -2,6 +2,7 @@ import type { OpenDocumentChangedDetail, OpenDocumentOrigin, OpenDocumentSaveRef
 import { isJsonObject, type JsonLocationSegment, type JsonValue } from './json_types';
 
 export interface JsonDataDocumentSnapshot {
+    arrayColumnWidths: ReadonlyMap<string, number>;
     data: JsonValue;
     dirty: boolean;
     externalConflict: boolean;
@@ -18,7 +19,11 @@ export interface JsonNumberInput {
 
 export type JsonDataPersistence = 'local' | 'project';
 
+export const JSON_ARRAY_DEFAULT_COLUMN_WIDTH = 200;
+export const JSON_ARRAY_MIN_COLUMN_WIDTH = 120;
+
 const JSON_NUMBER_PATTERN = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/u;
+const NO_ARRAY_COLUMN_WIDTHS: ReadonlyMap<string, number> = new Map();
 
 function locationKey(location: readonly JsonLocationSegment[]) {
     return JSON.stringify(location);
@@ -77,6 +82,7 @@ export class JsonDataDocument extends EventTarget {
     readonly persistence: JsonDataPersistence;
     readonly readOnly: boolean;
     private acknowledgedRevision = 0;
+    private readonly arrayColumnWidths = new Map<string, ReadonlyMap<string, number>>();
     private data: JsonValue;
     private editRevision = 0;
     private externalConflict = false;
@@ -189,6 +195,18 @@ export class JsonDataDocument extends EventTarget {
         if (selection.length === this.selectedRows.size && selection.every((row) => this.selectedRows.has(row))) return;
 
         this.selectedRows = new Set(selection);
+        this.publish();
+    }
+
+    /** Stores one column width of the current array as view data; never marks the document dirty. */
+    setArrayColumnWidth(column: string, width: number) {
+        this.requireCurrentArray();
+        const key = locationKey(this.location);
+        const widths = this.arrayColumnWidths.get(key) ?? NO_ARRAY_COLUMN_WIDTHS;
+        const nextWidth = Math.max(width, JSON_ARRAY_MIN_COLUMN_WIDTH);
+        if (widths.get(column) === nextWidth) return;
+
+        this.arrayColumnWidths.set(key, new Map(widths).set(column, nextWidth));
         this.publish();
     }
 
@@ -332,6 +350,7 @@ export class JsonDataDocument extends EventTarget {
 
     private createSnapshot(): JsonDataDocumentSnapshot {
         return {
+            arrayColumnWidths: this.arrayColumnWidths.get(locationKey(this.location)) ?? NO_ARRAY_COLUMN_WIDTHS,
             data: this.data,
             dirty: this.dirty,
             externalConflict: this.externalConflict,

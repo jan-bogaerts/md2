@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VirtuosoMockContext } from 'react-virtuoso';
 import { AppThemeProvider } from '../../theme/theme_provider';
-import { JsonDataDocument } from '../../services/json/json_data_document';
+import { JSON_ARRAY_DEFAULT_COLUMN_WIDTH, JSON_ARRAY_MIN_COLUMN_WIDTH, JsonDataDocument } from '../../services/json/json_data_document';
 import { JsonDataEditor } from './json_data_editor';
 
 function renderEditor(document: JsonDataDocument) {
@@ -139,6 +139,104 @@ describe('JsonDataEditor', () => {
         await user.type(screen.getByRole('textbox', { name: 'name row 1' }), 'first');
 
         expect(document.getValue()).toEqual([{ id: 1, name: 'first' }, { name: 'second', id: 2 }]);
+    });
+
+    it('resizes an array column by pointer distance from the width captured on pointer down and clamps to the minimum', () => {
+        const document = new JsonDataDocument('data.json', [{ id: 1, name: 'first' }], false);
+        renderEditor(document);
+        const separator = screen.getByRole('separator', { name: 'Resize id column' });
+
+        expect(separator).toHaveAttribute('aria-orientation', 'vertical');
+        expect(separator).toHaveAttribute('aria-valuemin', String(JSON_ARRAY_MIN_COLUMN_WIDTH));
+        expect(separator).toHaveAttribute('aria-valuenow', String(JSON_ARRAY_DEFAULT_COLUMN_WIDTH));
+
+        fireEvent.pointerDown(separator, { clientX: 300, pointerId: 1 });
+        expect(separator).toHaveAttribute('aria-valuenow', String(JSON_ARRAY_DEFAULT_COLUMN_WIDTH));
+        fireEvent.pointerMove(separator, { clientX: 340, pointerId: 1 });
+        expect(separator).toHaveAttribute('aria-valuenow', String(JSON_ARRAY_DEFAULT_COLUMN_WIDTH + 40));
+        fireEvent.pointerMove(separator, { clientX: 0, pointerId: 1 });
+        expect(separator).toHaveAttribute('aria-valuenow', String(JSON_ARRAY_MIN_COLUMN_WIDTH));
+        fireEvent.pointerUp(separator, { clientX: 0, pointerId: 1 });
+
+        fireEvent.pointerMove(separator, { clientX: 500, pointerId: 1 });
+        expect(separator).toHaveAttribute('aria-valuenow', String(JSON_ARRAY_MIN_COLUMN_WIDTH));
+        expect(document.dirty).toBe(false);
+    });
+
+    it.each([
+        { endEvent: fireEvent.pointerCancel, label: 'pointer cancellation' },
+        { endEvent: fireEvent.lostPointerCapture, label: 'lost pointer capture' },
+    ])('ends array column resizing on $label', ({ endEvent }) => {
+        const document = new JsonDataDocument('data.json', [{ id: 1 }], false);
+        renderEditor(document);
+        const separator = screen.getByRole('separator', { name: 'Resize id column' });
+
+        fireEvent.pointerDown(separator, { clientX: 100, pointerId: 1 });
+        fireEvent.pointerMove(separator, { clientX: 110, pointerId: 1 });
+        endEvent(separator, { clientX: 0, pointerId: 1 });
+        fireEvent.pointerMove(separator, { clientX: 300, pointerId: 1 });
+
+        expect(separator).toHaveAttribute('aria-valuenow', String(JSON_ARRAY_DEFAULT_COLUMN_WIDTH + 10));
+    });
+
+    it('resizes an array column with the keyboard', async () => {
+        const user = userEvent.setup();
+        renderEditor(new JsonDataDocument('data.json', [{ id: 1 }], false));
+        const separator = screen.getByRole('separator', { name: 'Resize id column' });
+
+        separator.focus();
+        await user.keyboard('{ArrowRight}');
+        expect(separator).toHaveAttribute('aria-valuenow', String(JSON_ARRAY_DEFAULT_COLUMN_WIDTH + 24));
+        await user.keyboard('{ArrowLeft}{ArrowLeft}');
+        expect(separator).toHaveAttribute('aria-valuenow', String(JSON_ARRAY_DEFAULT_COLUMN_WIDTH - 24));
+        await user.keyboard('{Home}');
+        expect(separator).toHaveAttribute('aria-valuenow', String(JSON_ARRAY_MIN_COLUMN_WIDTH));
+    });
+
+    it('keeps header and body widths aligned, the selection column fixed, and the table as wide as its columns', () => {
+        const document = new JsonDataDocument('data.json', [{ id: 1, name: 'first' }], false);
+        renderEditor(document);
+        const table = screen.getByRole('table', { name: 'JSON array' });
+        const [selectionHeader, idHeader, nameHeader] = within(table).getAllByRole('columnheader');
+
+        fireEvent.keyDown(screen.getByRole('separator', { name: 'Resize id column' }), { key: 'ArrowRight' });
+
+        const idCell = screen.getByRole('textbox', { name: 'id row 1' }).closest('td');
+        const selectionCell = screen.getByRole('checkbox', { name: 'Select row 1' }).closest('td');
+        const idWidth = JSON_ARRAY_DEFAULT_COLUMN_WIDTH + 24;
+        const selectionWidth = selectionHeader.style.width;
+        expect(idHeader).toHaveStyle({ width: `${idWidth}px` });
+        expect(idCell).toHaveStyle({ width: `${idWidth}px` });
+        expect(nameHeader).toHaveStyle({ width: `${JSON_ARRAY_DEFAULT_COLUMN_WIDTH}px` });
+        expect(selectionCell).toHaveStyle({ width: selectionWidth });
+        expect(within(selectionHeader).queryByRole('separator')).not.toBeInTheDocument();
+        expect(table).toHaveStyle({
+            tableLayout: 'fixed',
+            width: `${Number.parseInt(selectionWidth, 10) + idWidth + JSON_ARRAY_DEFAULT_COLUMN_WIDTH}px`,
+        });
+    });
+
+    it('shows short Open links with contextual names and drills into nested objects and arrays', async () => {
+        const user = userEvent.setup();
+        const document = new JsonDataDocument('data.json', [{ details: { city: 'Ghent' }, tags: ['a'] }], false);
+        const { unmount } = renderEditor(document);
+        const objectLink = screen.getByRole('button', { name: 'Open details row 1' });
+
+        expect(objectLink).toHaveTextContent(/^Open$/u);
+        expect(objectLink).toHaveClass('MuiLink-root');
+        await user.click(objectLink);
+        expect(document.getSnapshot().location).toEqual([0, 'details']);
+        await user.click(screen.getByRole('button', { name: 'data.json' }));
+
+        screen.getByRole('button', { name: 'Open tags row 1' }).focus();
+        await user.keyboard('{Enter}');
+        expect(document.getSnapshot().location).toEqual([0, 'tags']);
+        unmount();
+
+        const mixed = new JsonDataDocument('mixed.json', [1, [2]], false);
+        renderEditor(mixed);
+        await user.click(screen.getByRole('button', { name: 'Open Value row 2' }));
+        expect(mixed.getSnapshot().location).toEqual([1]);
     });
 
     it.each([

@@ -1,31 +1,39 @@
 import {
-    Box, Button, Checkbox, TableCell, TableRow, Typography,
+    Box, Button, Checkbox, Link, TableCell, TableRow, Typography,
 } from '@mui/material';
 import { useMemo, type ReactNode } from 'react';
 import { TableVirtuoso, type TableComponents, type TableVirtuosoProps } from 'react-virtuoso';
-import type { JsonDataDocument } from '../../services/json/json_data_document';
+import { JSON_ARRAY_DEFAULT_COLUMN_WIDTH, type JsonDataDocument } from '../../services/json/json_data_document';
 import { isJsonObject, isJsonPrimitive, type JsonLocationSegment, type JsonValue } from '../../services/json/json_types';
 import { copyTextToClipboard, readTextFromClipboard } from '../../services/clipboard_text';
 import { dialogService } from '../../services/dialog_service';
 import { JsonScalarEditor } from './json_scalar_editor';
+import { JsonArrayColumnHeaderCell } from './json_array_column_header_cell';
 import { JsonArrayVirtualTable } from './json_array_virtual_table';
 import { JsonArrayVirtualTableHead } from './json_array_virtual_table_head';
 
 const JSON_ARRAY_ESTIMATED_ROW_HEIGHT = 53;
 const JSON_ARRAY_OVERSCAN = 106;
+const JSON_ARRAY_SELECTION_COLUMN_WIDTH = 48;
 
 interface JsonArrayEditorProps {
     document: JsonDataDocument;
     value: JsonValue[];
 }
 
+interface JsonArrayColumn {
+    name: string;
+    width: number;
+}
+
 interface JsonArrayTableContext {
-    columns: string[];
+    columns: JsonArrayColumn[];
     document: JsonDataDocument;
     location: readonly JsonLocationSegment[];
     objectTable: boolean;
     rowCount: number;
     selectedRows: ReadonlySet<number>;
+    tableWidth: number;
 }
 
 const JSON_ARRAY_TABLE_COMPONENTS: TableComponents<JsonValue, JsonArrayTableContext> = {
@@ -52,14 +60,14 @@ function reportClipboardError(error: unknown, fallbackMessage: string) {
     dialogService.error(error, { fallbackMessage });
 }
 
-function renderHeader(columns: string[]) {
+function renderHeader(columns: JsonArrayColumn[], document: JsonDataDocument) {
     return (
         <TableRow>
-            <TableCell padding="checkbox" sx={{ bgcolor: 'background.paper' }}>
+            <TableCell padding="checkbox" style={{ width: JSON_ARRAY_SELECTION_COLUMN_WIDTH }} sx={{ bgcolor: 'background.paper', boxSizing: 'border-box' }}>
                 <Typography variant="caption">Select</Typography>
             </TableCell>
-            {columns.map((column) => (
-                <TableCell key={column} sx={{ bgcolor: 'background.paper' }}>{column}</TableCell>
+            {columns.map(({ name, width }) => (
+                <JsonArrayColumnHeaderCell column={name} document={document} key={name} width={width} />
             ))}
         </TableRow>
     );
@@ -68,7 +76,8 @@ function renderHeader(columns: string[]) {
 function renderRow(rowIndex: number, row: JsonValue, context: JsonArrayTableContext): ReactNode {
     const { columns, document, location, objectTable, selectedRows } = context;
     const selected = selectedRows.has(rowIndex);
-    const cellSx = selected ? { bgcolor: 'action.selected' } : undefined;
+    const selectionCellSx = { boxSizing: 'border-box', ...(selected ? { bgcolor: 'action.selected' } : undefined) };
+    const cellSx = { ...selectionCellSx, '& .MuiTextField-root': { minWidth: 0, width: '100%' } };
     const handleSelection = () => {
         const nextSelection = new Set(selectedRows);
         if (selected) nextSelection.delete(rowIndex);
@@ -78,17 +87,16 @@ function renderRow(rowIndex: number, row: JsonValue, context: JsonArrayTableCont
 
     return (
         <>
-            <TableCell padding="checkbox" sx={cellSx}>
+            <TableCell padding="checkbox" style={{ width: JSON_ARRAY_SELECTION_COLUMN_WIDTH }} sx={selectionCellSx}>
                 <Checkbox
                     checked={selected}
                     onChange={handleSelection}
                     slotProps={{ input: { 'aria-label': `Select row ${rowIndex + 1}` } }}
                 />
             </TableCell>
-            {columns.map((column) => {
+            {columns.map(({ name: column, width }) => {
                 const fieldPresent = !objectTable || isJsonObject(row) && Object.hasOwn(row, column);
                 const fieldValue = objectTable && isJsonObject(row) ? row[column] : row;
-                const segment = objectTable ? column : rowIndex;
                 const accessibleName = objectTable ? `${column} row ${rowIndex + 1}` : `Value row ${rowIndex + 1}`;
                 const fieldLocation = objectTable ? [...location, rowIndex, column] : [...location, rowIndex];
                 const handleOpen = () => {
@@ -101,7 +109,7 @@ function renderRow(rowIndex: number, row: JsonValue, context: JsonArrayTableCont
                 };
 
                 return (
-                    <TableCell key={`${rowIndex}:${column}`} sx={cellSx}>
+                    <TableCell key={`${rowIndex}:${column}`} style={{ width }} sx={cellSx}>
                         {!fieldPresent ? (
                             <JsonScalarEditor
                                 accessibleName={accessibleName}
@@ -118,9 +126,9 @@ function renderRow(rowIndex: number, row: JsonValue, context: JsonArrayTableCont
                                 value={fieldValue}
                             />
                         ) : (
-                            <Button onClick={handleOpen} variant="outlined">
-                                Open {typeof segment === 'number' ? 'value' : segment}
-                            </Button>
+                            <Link aria-label={`Open ${accessibleName}`} component="button" onClick={handleOpen} type="button" variant="body2">
+                                Open
+                            </Link>
                         )}
                     </TableCell>
                 );
@@ -134,7 +142,12 @@ export function JsonArrayEditor({ document, value }: JsonArrayEditorProps) {
     const snapshot = document.getSnapshot();
     const selectedRows = useMemo(() => new Set(snapshot.selectedRows), [snapshot.selectedRows]);
     const objectTable = useMemo(() => value.length > 0 && value.every(isJsonObject), [value]);
-    const columns = useMemo(() => objectTable ? objectColumns(value) : ['values'], [objectTable, value]);
+    const columnNames = useMemo(() => objectTable ? objectColumns(value) : ['values'], [objectTable, value]);
+    const columns = useMemo<JsonArrayColumn[]>(
+        () => columnNames.map((name) => ({ name, width: snapshot.arrayColumnWidths.get(name) ?? JSON_ARRAY_DEFAULT_COLUMN_WIDTH })),
+        [columnNames, snapshot.arrayColumnWidths],
+    );
+    const tableWidth = columns.reduce((total, { width }) => total + width, JSON_ARRAY_SELECTION_COLUMN_WIDTH);
     const tableContext = useMemo<JsonArrayTableContext>(() => ({
         columns,
         document,
@@ -142,10 +155,11 @@ export function JsonArrayEditor({ document, value }: JsonArrayEditorProps) {
         objectTable,
         rowCount: value.length,
         selectedRows,
-    }), [columns, document, objectTable, selectedRows, snapshot.location, value.length]);
+        tableWidth,
+    }), [columns, document, objectTable, selectedRows, snapshot.location, tableWidth, value.length]);
     const fixedHeaderContent = useMemo<TableVirtuosoProps<JsonValue, JsonArrayTableContext>['fixedHeaderContent']>(
-        () => () => renderHeader(columns),
-        [columns],
+        () => () => renderHeader(columns, document),
+        [columns, document],
     );
     const mutationDisabled = document.readOnly;
     const selectionEmpty = selectedRows.size === 0;

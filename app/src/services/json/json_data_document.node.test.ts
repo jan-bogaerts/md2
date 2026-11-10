@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { JsonDataDocument } from './json_data_document';
+import { JSON_ARRAY_MIN_COLUMN_WIDTH, JsonDataDocument } from './json_data_document';
 
 describe('JsonDataDocument', () => {
     it('edits nested values, tracks breadcrumbs, and serializes stable JSON with final newline', () => {
@@ -15,6 +15,36 @@ describe('JsonDataDocument', () => {
 
         document.navigateTo(0);
         expect(document.getValue()).toEqual({ nested: { enabled: false } });
+    });
+
+    it('stores array column widths per location with a minimum and without dirtying the document', () => {
+        const document = new JsonDataDocument('data.json', { first: [{ id: 1 }], second: [{ id: 2 }] }, false);
+        const documentChanged = vi.fn();
+        document.addEventListener('documentChanged', documentChanged);
+
+        document.drillInto('first');
+        document.setArrayColumnWidth('id', 260);
+        expect(document.getSnapshot().arrayColumnWidths.get('id')).toBe(260);
+
+        document.navigateTo(0);
+        document.drillInto('second');
+        expect(document.getSnapshot().arrayColumnWidths.get('id')).toBeUndefined();
+        document.setArrayColumnWidth('id', 1);
+        expect(document.getSnapshot().arrayColumnWidths.get('id')).toBe(JSON_ARRAY_MIN_COLUMN_WIDTH);
+
+        document.navigateTo(0);
+        document.drillInto('first');
+        expect(document.getSnapshot().arrayColumnWidths.get('id')).toBe(260);
+        expect(document.dirty).toBe(false);
+        expect(documentChanged).not.toHaveBeenCalled();
+    });
+
+    it('allows resizing array columns in read-only documents', () => {
+        const document = new JsonDataDocument('data.json', [1], true);
+
+        document.setArrayColumnWidth('values', 300);
+
+        expect(document.getSnapshot().arrayColumnWidths.get('values')).toBe(300);
     });
 
     it('adds object rows only for a non-empty object table and null for other arrays', () => {
