@@ -3,7 +3,7 @@ author:
 id: J_69
 internalId: 3ebe8ff2-d685-40eb-8937-0bba0f8d5487
 title: poor object editor behaviour
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,11 @@ agents:
 policy:
 branch: j_69_poor_object_editor_behaviour
 worktree: 1
+changedFiles:
+  - app/src/components/json_data_editor/json_data_editor.test.tsx
+  - app/src/components/json_data_editor/json_object_editor.tsx
+  - app/src/visual_j69.tsx
+  - app/visual_j69.html
 ---
 
 we just introduced the new json editor. it contains an object editor which shows 2 columns: the fieldname: field value (can be a button.
