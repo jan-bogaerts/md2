@@ -36,6 +36,7 @@ import { MobileCardViewMenu } from './card_view/mobile_card_view_menu'
 import { MobileCardView } from './card_view/mobile_card_view'
 import { CardActionPopupHost } from './actions/run/popup/card_action_popup_host'
 import { stageMarkdownEditors } from '../services/project/markdown_editor_staging'
+import { JsonDataPopup } from './json_data_editor/json_data_popup'
 import { useProjectReference } from './hooks/use_project_reference'
 import { TextView } from './text_view/text_view'
 import { FileTreeView } from './text_view/file_tree_view'
@@ -356,6 +357,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             <StatsView />
             <DiagramView />
             <CardActionPopupHost />
+            <JsonDataPopup />
         </ProjectWorkspaceAvailability>
     )
     const navigation = project ? fileTree : (

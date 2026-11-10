@@ -319,6 +319,16 @@ export class DataService extends EventTarget {
 
         return loadAgentConversation(storage, currentProject, path)
     }
+
+    /** Loads one repository text file through active storage and project identity. */
+    async loadRepositoryTextFile(path: string) {
+        const { storage } = this.requireDependencies()
+        const currentProject = this.projectState.project
+        if (!currentProject) throw new Error('Cannot load repository text without an active project')
+        if (!storage.loadTextFile) throw new Error('Current storage cannot load repository text files')
+
+        return storage.loadTextFile(currentProject, path)
+    }
     async persistActionFile(
         file: MarkdownFile,
         actionId: string,

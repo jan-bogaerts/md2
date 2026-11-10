@@ -6,6 +6,7 @@ import { ProjectPersistenceService } from './project_persistence_service'
 import { ACTION_PERSISTENCE_CHANGED_EVENT } from '../actions/action_service_events'
 import { registerMarkdownEditorStage } from './markdown_editor_staging'
 import type { MarkdownFile } from '../../data/data_types'
+import { JsonDataDocument } from '../json/json_data_document'
 
 class TestActionService extends EventTarget {
     pendingDrafts = false
@@ -190,6 +191,34 @@ describe('ProjectPersistenceService', () => {
             expect.objectContaining({ document }),
         )
         expect(document.dirty).toBe(false)
+    })
+
+    it('stages stable pretty-printed JSON and acknowledges it after persistence', async () => {
+        const { dataService, openFilesService, service } = initService()
+        const document = new JsonDataDocument('design/data.json', { value: 1 }, false)
+        document.setCurrentChild('value', 2)
+        openFilesService.documents = [document]
+
+        await service.flushPendingChanges()
+
+        expect(dataService.scheduleFileCommit).toHaveBeenCalledWith(
+            { content: '{\n  "value": 2\n}\n', path: 'design/data.json' },
+            'Update design/data.json',
+            expect.objectContaining({ document }),
+        )
+        expect(document.dirty).toBe(false)
+    })
+
+    it('keeps JSON dirty when its persistence batch fails', async () => {
+        const { dataService, openFilesService, service } = initService()
+        const document = new JsonDataDocument('design/data.json', { value: 1 }, false)
+        document.setCurrentChild('value', 2)
+        openFilesService.documents = [document]
+        dataService.cards.flushPendingCommits.mockRejectedValueOnce(new Error('disk full'))
+
+        await expect(service.flushPendingChanges()).rejects.toThrow('disk full')
+
+        expect(document.dirty).toBe(true)
     })
 
     it('reconciles live dependencies after a flush without relying on dependency events', async () => {

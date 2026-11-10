@@ -26,6 +26,9 @@ import { sentryImportService } from './sentry/sentry_import_service'
 import { agentInstructionsService } from './agent_instructions/agent_instructions_service'
 import { keyboardShortcutService } from './shortcuts/keyboard_shortcut_service'
 import { isRemoteControlConnectionError } from './data/remote_control_storage_service'
+import { cardPopupService } from './card_popup_service'
+import { initDefaultJsonDataService, jsonDataService } from './json/json_data_service'
+import type { JsonDataDocument } from './json/json_data_document'
 
 export type ApplicationStartupPhase = 'ready' | 'starting'
 
@@ -48,12 +51,20 @@ export interface ApplicationStartupDependencies {
 
 const INITIAL_SNAPSHOT: ApplicationStartupSnapshot = { error: null, phase: 'starting', projectOpenResolution: null }
 
+function closeInvalidatedJsonPopup(event: Event) {
+    const { document } = (event as CustomEvent<{ document: JsonDataDocument }>).detail
+    cardPopupService.closeJsonDataDocument(document)
+}
+
 function initializeServices() {
     const desktopConfig = readDesktopConfigFromBridge()
     configService.init({ desktopConfig })
     initDefaultGithubAuthService(githubAuthService)
     initDefaultSentryConnectionService(sentryConnectionService)
     openFilesService.init({ actionService, agentInstructionsService, dataService })
+    initDefaultJsonDataService()
+    jsonDataService.removeEventListener('invalidated', closeInvalidatedJsonPopup)
+    jsonDataService.addEventListener('invalidated', closeInvalidatedJsonPopup)
     projectPersistenceService.init({ actionService, dataService, openFilesService })
     cardMarkdownDataSource.init(dataService)
     instructionMarkdownDataSource.init(dataService)

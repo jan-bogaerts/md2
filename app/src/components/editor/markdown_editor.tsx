@@ -9,7 +9,7 @@ import '@mdxeditor/editor/style.css'
 import { $setSelection, CLEAR_HISTORY_COMMAND, type LexicalEditor } from 'lexical';
 import {
     forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef,
-    type ClipboardEvent, type DragEvent, type FocusEvent, type ReactNode,
+    type ClipboardEvent, type DragEvent, type FocusEvent, type MouseEvent, type ReactNode,
 } from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
 import { useProjectState } from '../hooks/use_project_state'
@@ -44,6 +44,8 @@ import { markdownReferencePlugin } from './references/markdown_reference_realm_p
 import { markdownSourcePlugin } from './source/markdown_source_realm_plugin';
 import { MarkdownSourceModeControls } from './source/markdown_source_mode_controls';
 import type { MarkdownSourceController } from './source/markdown_source_controller';
+import { routeJsonProjectLink } from '../../services/json/json_link_navigation';
+import { markdownLinkPlugin } from './links/markdown_link_realm_plugin';
 
 const DEFAULT_CODE_LANGUAGE = ''
 const CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScript', tsx: 'TSX', bash: 'Shell' }
@@ -501,6 +503,18 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         attachFiles([...event.dataTransfer.files])
     }
 
+    const handleClickCapture = (event: MouseEvent<HTMLDivElement>) => {
+        if (!(event.target instanceof Element)) return;
+        const anchorElement = event.target.closest<HTMLAnchorElement>('a[href]');
+        if (!anchorElement?.closest('.mdxeditor-content')) return;
+        const sourcePath = activeTargetRef.current?.document.path;
+        const href = anchorElement.dataset.markdownHref ?? anchorElement.getAttribute('href');
+        if (!sourcePath || !href || !routeJsonProjectLink(sourcePath, href, anchorElement)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
     const onAttachFiles = attachmentHandler && !hideAttachmentControl ? attachFiles : undefined
     const toolbarContents = useCallback(() => (
         <HorizontalScrollArea>
@@ -534,6 +548,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         quotePlugin(),
         thematicBreakPlugin(),
         linkPlugin(),
+        markdownLinkPlugin(),
         linkDialogPlugin(),
         imagePlugin({ imagePreviewHandler }),
         tablePlugin(),
@@ -558,6 +573,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         <Box
             data-sticky-toolbar
             onBlur={handleBlur}
+            onClickCapture={handleClickCapture}
             onDragOverCapture={handleDragOverCapture}
             onDropCapture={handleDropCapture}
             onPasteCapture={handlePasteCapture}
