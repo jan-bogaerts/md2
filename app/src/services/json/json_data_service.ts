@@ -8,7 +8,7 @@ import { register } from '../service_injector';
 import { JsonDataDocument } from './json_data_document';
 import type { JsonValue } from './json_types';
 
-type JsonDataOwner = EventTarget & Pick<DataService, 'getState' | 'loadRepositoryTextFile'>;
+type JsonDataOwner = EventTarget & Pick<DataService, 'getState' | 'loadLocalJsonFile' | 'loadRepositoryTextFile'>;
 type JsonOpenFilesOwner = EventTarget & Pick<OpenFilesService, 'discardDocument'>;
 
 export interface JsonDataServiceDependencies {
@@ -87,6 +87,22 @@ export class JsonDataService extends EventTarget {
         }
     }
 
+    async openLocal(path: string) {
+        const existing = this.documents.get(path);
+        if (existing) return existing;
+
+        const pendingLoad = this.pendingLoads.get(path);
+        if (pendingLoad) return pendingLoad;
+
+        const load = this.loadLocalDocument(path);
+        this.pendingLoads.set(path, load);
+        try {
+            return await load;
+        } finally {
+            if (this.pendingLoads.get(path) === load) this.pendingLoads.delete(path);
+        }
+    }
+
     find(path: string) {
         return this.documents.get(path) ?? null;
     }
@@ -114,6 +130,19 @@ export class JsonDataService extends EventTarget {
         if (existing) return existing;
 
         const document = new JsonDataDocument(path, parseJson(path, file.content), projectAccess.getSnapshot());
+        this.documents.set(path, document);
+        this.dispatchEvent(new CustomEvent('opened', { detail: { document } }));
+
+        return document;
+    }
+
+    private async loadLocalDocument(path: string) {
+        const { dataOwner } = this.requireDependencies();
+        const file = await dataOwner.loadLocalJsonFile(path);
+        const existing = this.documents.get(path);
+        if (existing) return existing;
+
+        const document = new JsonDataDocument(path, parseJson(path, file.content), false, 'local');
         this.documents.set(path, document);
         this.dispatchEvent(new CustomEvent('opened', { detail: { document } }));
 

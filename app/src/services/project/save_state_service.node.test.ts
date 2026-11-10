@@ -48,6 +48,22 @@ describe('SaveStateService', () => {
         expect(service.getState().isSaving).toBe(false)
     })
 
+    it('tracks outside-repository JSON writes until they can be drained', async () => {
+        const pendingSave = createDeferred<void>()
+        const saveLocalJsonFile = vi.fn(() => pendingSave.promise)
+        const service = new SaveStateService()
+        const storage = withSaveStateTracking(createStorage({ saveLocalJsonFile }), service)
+
+        const result = storage.saveLocalJsonFile?.({ content: '{"value":2}', path: 'C:/shared/data.json' })
+        const drain = service.drain()
+        expect(service.getState().isSaving).toBe(true)
+
+        pendingSave.resolve()
+        await result
+        await drain
+        expect(service.getState().isSaving).toBe(false)
+    })
+
     it('tracks worktree integration as a project save', async () => {
         const pendingIntegration = createDeferred<{ status: 'completed' }>()
         const integrateWorktree = vi.fn(() => pendingIntegration.promise)

@@ -278,6 +278,21 @@ export class DataService extends EventTarget {
         await this.saveStateService.drain()
     }
 
+    async loadLocalJsonFile(path: string) {
+        const { storage } = this.requireDependencies()
+        if (!storage.loadLocalJsonFile) throw new Error('Current storage cannot load local JSON files')
+
+        return storage.loadLocalJsonFile(path)
+    }
+
+    async saveLocalJsonFile(file: MarkdownFile, saveReference: OpenDocumentSaveReference) {
+        const { storage } = this.requireDependencies()
+        if (!storage.saveLocalJsonFile) throw new Error('Current storage cannot save local JSON files')
+
+        await storage.saveLocalJsonFile(file)
+        saveReference.acknowledge()
+    }
+
     /** Writes queued batch changes to disk so the desktop reads current files; the timed commit still persists them. */
     async writePendingFiles() {
         const { commitBatcher } = this.requireDependencies()

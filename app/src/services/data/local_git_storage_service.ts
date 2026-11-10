@@ -112,6 +112,13 @@ export class LocalGitStorageService implements StorageService {
         return bridge.loadImageFile(filePath)
     }
 
+    async loadLocalJsonFile(filePath: string) {
+        const bridge = this.requireBridge()
+        if (!bridge.loadLocalJsonFile) throw new Error('Electron local Git bridge cannot load local JSON files')
+
+        return bridge.loadLocalJsonFile(filePath)
+    }
+
     async loadTextFile(project: ProjectReference, path: string) {
         const bridge = this.requireBridge()
         if (!bridge.loadTextFile) throw new Error('Electron local Git bridge cannot load text files')
@@ -443,6 +450,13 @@ export class LocalGitStorageService implements StorageService {
 
     async writeFiles(request: WriteFilesRequest): Promise<void> {
         await this.requireBridge().writeFiles(request)
+    }
+
+    async saveLocalJsonFile(file: Parameters<NonNullable<StorageService['saveLocalJsonFile']>>[0]): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.saveLocalJsonFile) throw new Error('Electron local Git bridge cannot save local JSON files')
+
+        await bridge.saveLocalJsonFile(file)
     }
 
     private requireBridge() {

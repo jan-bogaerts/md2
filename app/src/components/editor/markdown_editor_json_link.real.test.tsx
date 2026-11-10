@@ -7,8 +7,10 @@ import {
     type MarkdownDocumentTarget,
 } from './data_sources/markdown_data_source';
 
-const routeJsonProjectLink = vi.hoisted(() => vi.fn(() => true));
-vi.mock('../../services/json/json_link_navigation', () => ({ routeJsonProjectLink }));
+const routeJsonLink = vi.hoisted(() => vi.fn((_sourcePath: string, href: string) => (
+    href === 'data.json' || href.startsWith('file:')
+)));
+vi.mock('../../services/json/json_link_navigation', () => ({ routeJsonLink }));
 
 import { MarkdownDocumentHistoryStore } from './history/markdown_document_history_store';
 import { MarkdownEditor } from './markdown_editor';
@@ -16,7 +18,7 @@ import { MarkdownEditor } from './markdown_editor';
 class LinkTestDataSource extends MarkdownDataSourceBase {
     readonly commit = vi.fn(() => true);
     readonly edit = vi.fn();
-    private readonly markdown = '[data](data.json) [web](https://example.com/data.json)';
+    private readonly markdown = '[data](data.json) [local](file:///C:/project/data.json) [web](https://example.com/data.json)';
     private readonly target: MarkdownDocumentTarget;
 
     constructor() {
@@ -35,10 +37,10 @@ class LinkTestDataSource extends MarkdownDataSourceBase {
 describe('MarkdownEditor JSON links', () => {
     afterEach(() => {
         cleanup();
-        routeJsonProjectLink.mockClear();
+        routeJsonLink.mockClear();
     });
 
-    it('routes project JSON anchors with containing document path and leaves other links to router result', () => {
+    it('leaves project JSON clicks to the editor link dialog', () => {
         const dataSource = new LinkTestDataSource();
         render(
             <AppThemeProvider>
@@ -51,8 +53,29 @@ describe('MarkdownEditor JSON links', () => {
         );
 
         const link = screen.getByRole('link', { name: 'data' });
+        link.addEventListener('click', (event) => event.preventDefault(), { once: true });
         fireEvent.click(link);
 
-        expect(routeJsonProjectLink).toHaveBeenCalledWith('design/card.md', 'data.json', link);
+        expect(routeJsonLink).not.toHaveBeenCalled();
+    });
+
+    it('leaves absolute JSON clicks to the editor link dialog', () => {
+        const dataSource = new LinkTestDataSource();
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    binding="list-card"
+                    dataSource={dataSource}
+                    historyStore={new MarkdownDocumentHistoryStore()}
+                />
+            </AppThemeProvider>,
+        );
+
+        const link = screen.getByRole('link', { name: 'local' });
+        link.addEventListener('click', (event) => event.preventDefault(), { once: true });
+
+        fireEvent.click(link);
+
+        expect(routeJsonLink).not.toHaveBeenCalled();
     });
 });

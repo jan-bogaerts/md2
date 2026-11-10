@@ -367,6 +367,7 @@ function createLocalBridgeDispatch(dependencies) {
         loadTextFile: (project, path) => localGitService.loadTextFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
         loadImageFile: (filePath) => localGitService.loadImageFile(filePath),
+        loadLocalJsonFile: (filePath) => localGitService.loadLocalJsonFile(filePath),
         initializeLocalProject: (rootPath) => localGitService.initializeLocalProject(rootPath),
         loadProject: async (project, workingFolder, excludedRootFolder) => {
             await activateProject(project);
@@ -534,6 +535,7 @@ function createLocalBridgeDispatch(dependencies) {
             // Reload paths and states on the next activation, without interrupting running actions here.
             if (isCurrentProject(project)) projectServicesReady = false;
         },
+        saveLocalJsonFile: (file) => localGitService.saveLocalJsonFile(file),
         saveProjectFolderGitInclusion: async (project, config, removeTrackedFiles) => {
             await localGitService.saveProjectFolderGitInclusion(project, config, removeTrackedFiles);
             uncommittedProjectWrites.configure(project.rootPath, config);

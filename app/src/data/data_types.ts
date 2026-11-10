@@ -541,6 +541,8 @@ export interface StorageService {
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     /** Loads a supported image from an absolute path on the storage host. */
     loadImageFile?(filePath: string): Promise<ProjectAsset>
+    /** Loads JSON from an absolute path on the storage host. */
+    loadLocalJsonFile?(filePath: string): Promise<MarkdownFile>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string): Promise<StorageProjectFiles>
     loadFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
@@ -574,6 +576,8 @@ export interface StorageService {
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     /** Saves the config with the matching `.gitignore` rule; `removeTrackedFiles` untracks the project folder. */
     saveProjectFolderGitInclusion?(project: ProjectReference, config: ProjectConfig, removeTrackedFiles: boolean): Promise<void>
+    /** Saves JSON to an absolute path on the storage host. */
+    saveLocalJsonFile?(file: MarkdownFile): Promise<void>
     selectWorktreeFolder?(): Promise<string | null>
     removeWorktree?(project: ProjectReference, folderPath: string, mode: WorktreeRemovalMode): Promise<void>
     stopAgent?(project: ProjectReference, runId: string): Promise<void>

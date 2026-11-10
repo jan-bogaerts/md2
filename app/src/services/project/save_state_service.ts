@@ -12,6 +12,7 @@ const STORAGE_SAVE_METHODS = new Set<PropertyKey>([
     'moveFiles',
     'removeWorktree',
     'saveActionSchedules',
+    'saveLocalJsonFile',
     'saveProjectConfig',
     'saveProjectFolderGitInclusion',
     'trashPrimaryChange',

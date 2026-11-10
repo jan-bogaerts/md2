@@ -100,6 +100,7 @@ function createDispatch(options = {}) {
         loadCardActivity: vi.fn(async () => ({ actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4 })),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
         loadImageFile: vi.fn(async (filePath) => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: filePath })),
+        loadLocalJsonFile: vi.fn(async (filePath) => ({ content: '{"value":1}', path: filePath })),
         initializeLocalProject: vi.fn(async (rootPath) => ({ branch: 'main', id: rootPath, rootPath })),
         loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', states: [{ state: 'ready' }] })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
@@ -107,6 +108,7 @@ function createDispatch(options = {}) {
         loadTextFile: vi.fn(async (_project, path) => ({ content: '{"version":2}', path })),
         resolveExistingProjectEntry: vi.fn(async (_project, entryPath) => `C:/repo/${entryPath}`),
         saveProjectConfig: vi.fn(async () => undefined),
+        saveLocalJsonFile: vi.fn(async () => undefined),
         resolveLocalProject: vi.fn(async () => ({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })),
         readFileAtCommit: vi.fn(async () => ({ content: '# Card', exists: true })),
         resolveCommitMetadata: vi.fn(async (_rootPath, commit) => ({
@@ -1503,6 +1505,17 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.dataBridge.loadImageFile('C:/images/photo.png');
 
         expect(localGitService.loadImageFile).toHaveBeenCalledWith('C:/images/photo.png');
+    });
+
+    it('forwards absolute JSON reads and writes through the data bridge', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const file = { content: '{"value":2}', path: 'C:/shared/data.json' };
+
+        await dispatch.dataBridge.loadLocalJsonFile(file.path);
+        await dispatch.dataBridge.saveLocalJsonFile(file);
+
+        expect(localGitService.loadLocalJsonFile).toHaveBeenCalledWith(file.path);
+        expect(localGitService.saveLocalJsonFile).toHaveBeenCalledWith(file);
     });
 
     it('exposes shared action run subscriptions through the action bridge', () => {

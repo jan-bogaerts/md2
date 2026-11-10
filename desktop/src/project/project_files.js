@@ -215,6 +215,32 @@ async function loadImageFile(filePath) {
     };
 }
 
+function requireLocalJsonPath(filePath) {
+    if (typeof filePath !== 'string' || filePath.length === 0) throw new Error('Missing local JSON file path');
+    if (!path.isAbsolute(filePath)) throw new Error(`Local JSON file path must be absolute: ${filePath}`);
+    if (path.extname(filePath).toLowerCase() !== JSON_EXTENSION) {
+        throw new Error(`Unsupported local JSON file type: ${path.extname(filePath).toLowerCase()}`);
+    }
+
+    return filePath;
+}
+
+/** Loads JSON from an absolute host path, including paths outside the active repository. */
+async function loadLocalJsonFile(filePath) {
+    const fullPath = requireLocalJsonPath(filePath);
+    const content = await fs.promises.readFile(fullPath, 'utf8');
+
+    return { content, path: normalizePath(fullPath) };
+}
+
+/** Saves JSON to an absolute host path, including paths outside the active repository. */
+async function saveLocalJsonFile(file) {
+    if (!file || typeof file.content !== 'string') throw new Error('Missing local JSON file content');
+
+    const fullPath = requireLocalJsonPath(file.path);
+    await fs.promises.writeFile(fullPath, file.content, 'utf8');
+}
+
 async function loadProjectConfig(project) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -523,6 +549,7 @@ module.exports = {
     listTopLevelFolders,
     loadFile,
     loadImageFile,
+    loadLocalJsonFile,
     loadProject,
     loadProjectAsset,
     loadProjectConfig,
@@ -532,6 +559,7 @@ module.exports = {
     moveFiles,
     resolveExistingProjectEntry,
     saveProjectConfig,
+    saveLocalJsonFile,
     watchProject,
     writeFiles,
     writeFilesNow,

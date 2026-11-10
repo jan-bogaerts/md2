@@ -16,6 +16,8 @@ export interface JsonNumberInput {
     text: string;
 }
 
+export type JsonDataPersistence = 'local' | 'project';
+
 const JSON_NUMBER_PATTERN = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/u;
 
 function locationKey(location: readonly JsonLocationSegment[]) {
@@ -72,6 +74,7 @@ function sortedSelection(selection: ReadonlySet<number>, rowCount: number) {
 export class JsonDataDocument extends EventTarget {
     readonly kind = 'json' as const;
     readonly path: string;
+    readonly persistence: JsonDataPersistence;
     readonly readOnly: boolean;
     private acknowledgedRevision = 0;
     private data: JsonValue;
@@ -83,10 +86,11 @@ export class JsonDataDocument extends EventTarget {
     private snapshot: JsonDataDocumentSnapshot;
     private unavailableReason: string | null = null;
 
-    constructor(path: string, data: JsonValue, readOnly: boolean) {
+    constructor(path: string, data: JsonValue, readOnly: boolean, persistence: JsonDataPersistence = 'project') {
         super();
         this.path = path;
         this.data = data;
+        this.persistence = persistence;
         this.readOnly = readOnly;
         this.snapshot = this.createSnapshot();
     }

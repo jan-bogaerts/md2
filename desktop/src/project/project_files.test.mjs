@@ -16,10 +16,12 @@ const {
     isWatchedProjectPath,
     listRepositoryFiles,
     loadImageFile,
+    loadLocalJsonFile,
     loadProject,
     loadProjectRoot,
     loadTextFile,
     resolveExistingProjectEntry,
+    saveLocalJsonFile,
     writeFilesNow,
 } = require('./project_files');
 
@@ -384,6 +386,29 @@ describe('project-files', () => {
         it('rejects relative paths and unsupported extensions', async () => {
             await expect(loadImageFile('images/photo.png')).rejects.toThrow('Image file path must be absolute');
             await expect(loadImageFile(join(tmpdir(), 'notes.txt'))).rejects.toThrow('Unsupported image file type: .txt');
+        });
+    });
+
+    describe('local JSON files', () => {
+        it('loads and saves JSON at an absolute path outside a repository', async () => {
+            const folderPath = await mkdtemp(join(tmpdir(), 'md2-local-json-'));
+
+            try {
+                const filePath = join(folderPath, 'data.json');
+                await writeFile(filePath, '{"value":1}', 'utf8');
+
+                await expect(loadLocalJsonFile(filePath)).resolves.toMatchObject({ content: '{"value":1}' });
+                await saveLocalJsonFile({ content: '{"value":2}\n', path: filePath });
+                await expect(readFile(filePath, 'utf8')).resolves.toBe('{"value":2}\n');
+            } finally {
+                await rm(folderPath, { force: true, recursive: true });
+            }
+        });
+
+        it('rejects relative paths and non-JSON files', async () => {
+            await expect(loadLocalJsonFile('data.json')).rejects.toThrow('must be absolute');
+            await expect(saveLocalJsonFile({ content: '{}', path: join(tmpdir(), 'data.txt') }))
+                .rejects.toThrow('Unsupported local JSON file type: .txt');
         });
     });
 

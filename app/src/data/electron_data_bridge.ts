@@ -73,6 +73,7 @@ export interface ElectronDataBridge {
     cancelActivityStatsCalculation?(calculationId: string): Promise<void>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     loadImageFile?(filePath: string): Promise<ProjectAsset>
+    loadLocalJsonFile?(filePath: string): Promise<MarkdownFile>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string): Promise<StorageProjectFiles>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
@@ -109,6 +110,7 @@ export interface ElectronDataBridge {
     watchProject(project: ProjectReference, callback: (notification: ProjectWatchNotification) => void): () => void
     loadFile(project: ProjectReference, path: string): Promise<MarkdownFile>
     writeFiles(request: WriteFilesRequest): Promise<void>
+    saveLocalJsonFile?(file: MarkdownFile): Promise<void>
 }
 
 declare global {

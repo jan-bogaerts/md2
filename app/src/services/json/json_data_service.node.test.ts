@@ -19,6 +19,7 @@ function createHarness(content = '{"value":1}') {
     };
     const dataOwner = Object.assign(new EventTarget(), {
         getState: () => state,
+        loadLocalJsonFile: vi.fn(async (path: string) => ({ content, path })),
         loadRepositoryTextFile: vi.fn(async (path: string) => ({ content, path })),
     });
     const dialogs = { warning: vi.fn() };
@@ -45,6 +46,18 @@ describe('JsonDataService', () => {
         expect(first).toBe(second);
         expect(first.getValue()).toEqual({ value: 1 });
         expect(dataOwner.loadRepositoryTextFile).toHaveBeenCalledOnce();
+    });
+
+    it('loads and reuses an editable local document by absolute path', async () => {
+        const { dataOwner, service } = createHarness();
+
+        const first = await service.openLocal('C:/shared/data.json');
+        const second = await service.openLocal('C:/shared/data.json');
+
+        expect(first).toBe(second);
+        expect(first.persistence).toBe('local');
+        expect(first.readOnly).toBe(false);
+        expect(dataOwner.loadLocalJsonFile).toHaveBeenCalledOnce();
     });
 
     it('shares one in-flight load between concurrent opens', async () => {

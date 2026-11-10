@@ -4,32 +4,34 @@ import { openFilesService } from '../open_files_service';
 import { workspaceViewService } from '../project/workspace_view_service';
 import { cardPopupService } from '../card_popup_service';
 import { jsonDataService } from './json_data_service';
-import { resolveJsonProjectLink } from './json_link_path';
+import { resolveJsonLink, type JsonLinkTarget } from './json_link_path';
 import type { WorkspaceViewMode } from '../project/workspace_view_service';
 
-async function openResolvedJson(path: string, anchorElement: HTMLElement, viewMode: WorkspaceViewMode) {
+async function openResolvedJson(target: JsonLinkTarget, anchorElement: HTMLElement, viewMode: WorkspaceViewMode) {
     try {
-        const document = await jsonDataService.open(path);
+        const document = target.kind === 'project'
+            ? await jsonDataService.open(target.path)
+            : await jsonDataService.openLocal(target.path);
         if (viewMode === 'cards') {
             const popupDocument = openFilesService.openJsonPopupDocument(document);
             cardPopupService.openJsonData(popupDocument, anchorElement);
         }
         if (viewMode === 'text') openFilesService.openJsonDocument(document);
     } catch (error) {
-        dialogService.error(error, { fallbackMessage: `JSON file could not be opened: ${path}` });
+        dialogService.error(error, { fallbackMessage: `JSON file could not be opened: ${target.path}` });
     }
 }
 
 /** Starts JSON navigation when link and current workspace view are eligible for application routing. */
-export function routeJsonProjectLink(sourcePath: string, href: string, anchorElement: HTMLElement) {
-    const { snapshot } = dataService.getState();
-    const path = resolveJsonProjectLink(sourcePath, href, snapshot?.repositoryFiles ?? []);
-    if (!path) return false;
+export function routeJsonLink(sourcePath: string, href: string, anchorElement: HTMLElement) {
+    const { project, snapshot } = dataService.getState();
+    const target = resolveJsonLink(sourcePath, href, project?.rootPath ?? null, snapshot?.repositoryFiles ?? []);
+    if (!target) return false;
 
     const { viewMode } = workspaceViewService.getSnapshot();
     if (viewMode !== 'cards' && viewMode !== 'text') return false;
 
-    void openResolvedJson(path, anchorElement, viewMode);
+    void openResolvedJson(target, anchorElement, viewMode);
 
     return true;
 }

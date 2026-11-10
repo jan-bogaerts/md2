@@ -1,12 +1,19 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { VirtuosoMockContext } from 'react-virtuoso';
 import { AppThemeProvider } from '../../theme/theme_provider';
 import { JsonDataDocument } from '../../services/json/json_data_document';
 import { JsonDataEditor } from './json_data_editor';
 
 function renderEditor(document: JsonDataDocument) {
-    return render(<AppThemeProvider><JsonDataEditor document={document} /></AppThemeProvider>);
+    return render(
+        <AppThemeProvider>
+            <VirtuosoMockContext.Provider value={{ itemHeight: 53, viewportHeight: 424 }}>
+                <JsonDataEditor document={document} />
+            </VirtuosoMockContext.Provider>
+        </AppThemeProvider>,
+    );
 }
 
 describe('JsonDataEditor', () => {
@@ -19,11 +26,14 @@ describe('JsonDataEditor', () => {
         });
     });
 
-    it('renders object fields vertically and preserves scalar types while editing', async () => {
+    it('renders object fields as field-name and value columns in a card and preserves scalar types while editing', async () => {
         const user = userEvent.setup();
         const document = new JsonDataDocument('data.json', { active: true, count: 2, name: 'old', nothing: null }, false);
         renderEditor(document);
 
+        expect(screen.getByRole('region', { name: 'JSON data editor' })).toBeInTheDocument();
+        expect(screen.getByRole('group', { name: 'Object fields' })).toBeInTheDocument();
+        expect(screen.getByRole('separator', { name: 'Resize field name column' })).toHaveAttribute('aria-orientation', 'vertical');
         await user.click(screen.getByRole('checkbox', { name: 'active' }));
         fireEvent.change(screen.getByRole('textbox', { name: 'count' }), { target: { value: '4' } });
         fireEvent.blur(screen.getByRole('textbox', { name: 'count' }));
@@ -32,6 +42,21 @@ describe('JsonDataEditor', () => {
 
         expect(document.getValue()).toEqual({ active: false, count: 4, name: 'new', nothing: null });
         expect(screen.getByRole('textbox', { name: 'nothing' })).toHaveValue('null');
+    });
+
+    it('resizes the field-name column with the keyboard', async () => {
+        const user = userEvent.setup();
+        const document = new JsonDataDocument('data.json', { nested: {}, rows: [] }, false);
+        renderEditor(document);
+        const splitter = screen.getByRole('separator', { name: 'Resize field name column' });
+        const initialWidth = Number(splitter.getAttribute('aria-valuenow'));
+
+        splitter.focus();
+        await user.keyboard('{ArrowRight}');
+
+        expect(splitter).toHaveAttribute('aria-valuenow', String(initialWidth + 24));
+        expect(screen.getByRole('button', { name: 'Open object' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Open array (0)' })).toBeInTheDocument();
     });
 
     it('commits complete JSON numbers and keeps invalid numeric input out of document data', async () => {
@@ -86,6 +111,14 @@ describe('JsonDataEditor', () => {
         renderEditor(new JsonDataDocument('data.json', value, false));
 
         expect(screen.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual(['Select', 'values']);
+    });
+
+    it('only mounts array rows inside the virtualized viewport', () => {
+        const rows = Array.from({ length: 100 }, (_value, index) => index + 1);
+        renderEditor(new JsonDataDocument('data.json', rows, false));
+
+        expect(screen.getByRole('textbox', { name: 'Value row 1' })).toBeInTheDocument();
+        expect(screen.queryByRole('textbox', { name: 'Value row 100' })).not.toBeInTheDocument();
     });
 
     it('supports root scalar edits and ordered add, multi-select, delete, copy, and paste operations', async () => {

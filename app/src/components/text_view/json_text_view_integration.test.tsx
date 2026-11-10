@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { VirtuosoMockContext } from 'react-virtuoso';
 import { AppThemeProvider } from '../../theme/theme_provider';
 import { JsonDataDocument } from '../../services/json/json_data_document';
 
@@ -25,6 +26,16 @@ const props = {
     statusColors: new Map<string, string>(),
 };
 
+function editorPane() {
+    return (
+        <AppThemeProvider>
+            <VirtuosoMockContext.Provider value={{ itemHeight: 53, viewportHeight: 424 }}>
+                <TextEditorPane {...props} />
+            </VirtuosoMockContext.Provider>
+        </AppThemeProvider>
+    );
+}
+
 describe('JSON list-view integration', () => {
     afterEach(() => {
         cleanup();
@@ -35,13 +46,13 @@ describe('JSON list-view integration', () => {
     it('shows active JSON editor in one tab, survives rerender, and closes through tab control', () => {
         const document = new JsonDataDocument('design/data.json', [{ value: 1 }], false);
         mocks.snapshot = { activeDocument: document, documents: [document] };
-        const view = render(<AppThemeProvider><TextEditorPane {...props} /></AppThemeProvider>);
+        const view = render(editorPane());
 
         expect(screen.getByRole('tab', { name: 'data.json' })).toBeInTheDocument();
         expect(screen.getByRole('table', { name: 'JSON array' })).toBeInTheDocument();
 
         document.setSelectedRows([0]);
-        view.rerender(<AppThemeProvider><TextEditorPane {...props} /></AppThemeProvider>);
+        view.rerender(editorPane());
         expect(screen.getByRole('checkbox', { name: 'Select row 1' })).toBeChecked();
 
         fireEvent.click(screen.getByRole('button', { name: 'Close data.json' }));

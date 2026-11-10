@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     error: vi.fn(),
     open: vi.fn(),
+    openLocal: vi.fn(),
     openJsonData: vi.fn(),
     openJsonDocument: vi.fn(),
     openJsonPopupDocument: vi.fn((document) => document),
@@ -10,7 +11,14 @@ const mocks = vi.hoisted(() => ({
     viewMode: 'cards' as 'cards' | 'text',
 }));
 
-vi.mock('../data/data_service', () => ({ dataService: { getState: () => ({ snapshot: { repositoryFiles: mocks.repositoryFiles } }) } }));
+vi.mock('../data/data_service', () => ({
+    dataService: {
+        getState: () => ({
+            project: { rootPath: 'C:/repo' },
+            snapshot: { repositoryFiles: mocks.repositoryFiles },
+        }),
+    },
+}));
 vi.mock('../dialog_service', () => ({ dialogService: { error: mocks.error } }));
 vi.mock('../open_files_service', () => ({
     openFilesService: {
@@ -20,18 +28,30 @@ vi.mock('../open_files_service', () => ({
 }));
 vi.mock('../project/workspace_view_service', () => ({ workspaceViewService: { getSnapshot: () => ({ viewMode: mocks.viewMode }) } }));
 vi.mock('../card_popup_service', () => ({ cardPopupService: { openJsonData: mocks.openJsonData } }));
-vi.mock('./json_data_service', () => ({ jsonDataService: { open: mocks.open } }));
+vi.mock('./json_data_service', () => ({ jsonDataService: { open: mocks.open, openLocal: mocks.openLocal } }));
 
-import { routeJsonProjectLink } from './json_link_navigation';
+import { routeJsonLink } from './json_link_navigation';
 
-describe('routeJsonProjectLink', () => {
+describe('routeJsonLink', () => {
     beforeEach(() => {
         mocks.error.mockReset();
         mocks.open.mockReset();
+        mocks.openLocal.mockReset();
         mocks.openJsonData.mockReset();
         mocks.openJsonDocument.mockReset();
         mocks.openJsonPopupDocument.mockClear();
         mocks.viewMode = 'cards';
+    });
+
+    it('opens absolute JSON outside the project as a local document', async () => {
+        const document = { kind: 'json', path: 'C:/shared/data.json' };
+        const anchor = documentElement();
+        mocks.openLocal.mockResolvedValue(document);
+
+        expect(routeJsonLink('design/card.md', 'file:///C:/shared/data.json', anchor)).toBe(true);
+        await vi.waitFor(() => expect(mocks.openLocal).toHaveBeenCalledWith('C:/shared/data.json'));
+        expect(mocks.openJsonData).toHaveBeenCalledWith(document, anchor);
+        expect(mocks.open).not.toHaveBeenCalled();
     });
 
     it('opens parsed JSON in managed card popup', async () => {
@@ -39,7 +59,7 @@ describe('routeJsonProjectLink', () => {
         const anchor = documentElement();
         mocks.open.mockResolvedValue(document);
 
-        expect(routeJsonProjectLink('design/card.md', 'data.json', anchor)).toBe(true);
+        expect(routeJsonLink('design/card.md', 'data.json', anchor)).toBe(true);
         await vi.waitFor(() => expect(mocks.openJsonData).toHaveBeenCalledWith(document, anchor));
         expect(mocks.openJsonDocument).not.toHaveBeenCalled();
     });
@@ -50,7 +70,7 @@ describe('routeJsonProjectLink', () => {
         mocks.viewMode = 'text';
         mocks.open.mockResolvedValue(document);
 
-        expect(routeJsonProjectLink('design/card.md', 'data.json', anchor)).toBe(true);
+        expect(routeJsonLink('design/card.md', 'data.json', anchor)).toBe(true);
         await vi.waitFor(() => expect(mocks.openJsonDocument).toHaveBeenCalledWith(document));
         expect(mocks.openJsonData).not.toHaveBeenCalled();
     });
@@ -59,7 +79,7 @@ describe('routeJsonProjectLink', () => {
         const failure = new Error('Invalid JSON in design/data.json');
         mocks.open.mockRejectedValue(failure);
 
-        expect(routeJsonProjectLink('design/card.md', 'data.json', documentElement())).toBe(true);
+        expect(routeJsonLink('design/card.md', 'data.json', documentElement())).toBe(true);
         await vi.waitFor(() => expect(mocks.error).toHaveBeenCalledWith(failure, expect.any(Object)));
         expect(mocks.openJsonData).not.toHaveBeenCalled();
         expect(mocks.openJsonDocument).not.toHaveBeenCalled();
@@ -68,7 +88,7 @@ describe('routeJsonProjectLink', () => {
     it.each(['https://example.com/data.json', '#anchor', 'note.md', '../../outside.json'])(
         'keeps normal link behavior for %s',
         (href) => {
-            expect(routeJsonProjectLink('design/card.md', href, documentElement())).toBe(false);
+            expect(routeJsonLink('design/card.md', href, documentElement())).toBe(false);
             expect(mocks.open).not.toHaveBeenCalled();
         },
     );

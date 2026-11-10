@@ -44,8 +44,8 @@ import { markdownReferencePlugin } from './references/markdown_reference_realm_p
 import { markdownSourcePlugin } from './source/markdown_source_realm_plugin';
 import { MarkdownSourceModeControls } from './source/markdown_source_mode_controls';
 import type { MarkdownSourceController } from './source/markdown_source_controller';
-import { routeJsonProjectLink } from '../../services/json/json_link_navigation';
 import { markdownLinkPlugin } from './links/markdown_link_realm_plugin';
+import { openMarkdownLink } from './links/markdown_link_dialog_navigation';
 
 const DEFAULT_CODE_LANGUAGE = ''
 const CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScript', tsx: 'TSX', bash: 'Shell' }
@@ -163,6 +163,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const initialDocumentSnapshot = initialDocumentRef.current
     const { markdownContentSx, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
+    const linkAnchorRef = useRef<HTMLAnchorElement | null>(null)
     const plainTextEditorRef = useRef<LexicalEditor | null>(null)
     const sourceControllerRef = useRef<MarkdownSourceController | null>(null);
     const activeDraftRef = useRef(draft)
@@ -504,16 +505,16 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }
 
     const handleClickCapture = (event: MouseEvent<HTMLDivElement>) => {
-        if (!(event.target instanceof Element)) return;
-        const anchorElement = event.target.closest<HTMLAnchorElement>('a[href]');
-        if (!anchorElement?.closest('.mdxeditor-content')) return;
-        const sourcePath = activeTargetRef.current?.document.path;
-        const href = anchorElement.dataset.markdownHref ?? anchorElement.getAttribute('href');
-        if (!sourcePath || !href || !routeJsonProjectLink(sourcePath, href, anchorElement)) return;
+        if (!(event.target instanceof Element)) return
 
-        event.preventDefault();
-        event.stopPropagation();
+        const anchorElement = event.target.closest<HTMLAnchorElement>('a[href]')
+        if (anchorElement?.closest('.mdxeditor-content')) linkAnchorRef.current = anchorElement
     }
+
+    const handleOpenLink = useCallback((url: string) => {
+        const sourcePath = activeTargetRef.current?.document.path ?? null
+        openMarkdownLink(url, sourcePath, linkAnchorRef.current)
+    }, [])
 
     const onAttachFiles = attachmentHandler && !hideAttachmentControl ? attachFiles : undefined
     const toolbarContents = useCallback(() => (
@@ -549,7 +550,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         thematicBreakPlugin(),
         linkPlugin(),
         markdownLinkPlugin(),
-        linkDialogPlugin(),
+        linkDialogPlugin({ onClickLinkCallback: handleOpenLink }),
         imagePlugin({ imagePreviewHandler }),
         tablePlugin(),
         codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),

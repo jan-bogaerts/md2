@@ -39,6 +39,11 @@ class TestDataService extends EventTarget {
         if (saveReference) this.saveReferences.push(saveReference)
         this.snapshot = { ...this.snapshot, hasPendingFileCommit: true }
     })
+    readonly saveLocalJsonFile = vi.fn(async (_file: MarkdownFile, saveReference: OpenDocumentSaveReference) => {
+        this.snapshot = { ...this.snapshot, isSaving: true }
+        saveReference.acknowledge()
+        this.snapshot = { ...this.snapshot, isSaving: false }
+    })
     readonly scheduleDiagramCommit = vi.fn((
         _diagramId: string,
         _sourcePath: string,
@@ -219,6 +224,23 @@ describe('ProjectPersistenceService', () => {
         await expect(service.flushPendingChanges()).rejects.toThrow('disk full')
 
         expect(document.dirty).toBe(true)
+    })
+
+    it('saves an outside-repository JSON through tracked local persistence', async () => {
+        const { dataService, openFilesService, service } = initService()
+        const document = new JsonDataDocument('C:/shared/data.json', { value: 1 }, false, 'local')
+        document.setCurrentChild('value', 2)
+        openFilesService.documents = [document]
+
+        await service.flushPendingChanges()
+
+        expect(dataService.saveLocalJsonFile).toHaveBeenCalledWith(
+            { content: '{\n  "value": 2\n}\n', path: 'C:/shared/data.json' },
+            expect.objectContaining({ document }),
+        )
+        expect(dataService.scheduleFileCommit).not.toHaveBeenCalled()
+        expect(dataService.drainPendingStorageWrites).toHaveBeenCalledOnce()
+        expect(document.dirty).toBe(false)
     })
 
     it('reconciles live dependencies after a flush without relying on dependency events', async () => {
