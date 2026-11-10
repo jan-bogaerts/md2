@@ -661,6 +661,33 @@
       "startedAt": "2026-11-10T09:11:40.544Z",
       "status": "completed",
       "rootConversationId": "agent-dfdfb317-47d7-4c0e-91c9-0c45a365adf3"
+    },
+    {
+      "commits": [
+        {
+          "commit": "163d1b31819af75730a058c690c5d9302986a260",
+          "committedAt": "2026-11-10T10:31:13+01:00",
+          "deletions": 215,
+          "filePaths": [
+            "app/src/components/actions/run/state/action_run_history.test.tsx",
+            "app/src/components/actions/run/state/action_run_history.tsx",
+            "app/src/components/actions/run/state/action_run_history_entry.test.tsx",
+            "app/src/components/actions/run/state/action_run_history_entry.tsx",
+            "app/src/components/actions/run/state/action_run_history_order.node.test.ts",
+            "app/src/components/actions/run/state/action_run_history_order.ts"
+          ],
+          "filesChanged": 6,
+          "insertions": 347,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-10T10:31:13+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "83c5615c-4c5c-4c99-8fa6-4ab6e1f61bd5",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
