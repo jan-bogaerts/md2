@@ -3,13 +3,20 @@ author:
 id: F_471
 internalId: ae5e8eda-0616-4f77-9fc9-c756450dcd7e
 title: improve design json editor card
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__ae5e8eda-0616-4f77-9fc9-c756450dcd7e.json
 policy:
 after: da4aee5d-5816-4fa9-ae35-cdd114954868
+changedFiles:
+  - app/src/components/json_data_editor/json_array_actions_footer.test.tsx
+  - app/src/components/json_data_editor/json_array_actions_footer.tsx
+  - app/src/components/json_data_editor/json_array_editor.tsx
+  - app/src/components/json_data_editor/json_data_editor.test.tsx
+  - app/src/components/json_data_editor/json_data_editor.tsx
+  - app/src/components/json_data_editor/json_data_popup.tsx
 ---
 see the current json editor (for lists):
 
