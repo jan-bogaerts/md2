@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__d5f63dfb-c3f3-41f4-b300-0db72fc93f21.json
 policy:
-branch: f_467_json_data_editor
-worktree: 2
 changedFiles:
   - app/src/components/editor/file_search/markdown_file_search_selection.ts
   - app/src/components/editor/links/markdown_link_node.ts
