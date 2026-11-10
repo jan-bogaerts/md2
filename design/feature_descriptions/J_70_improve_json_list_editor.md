@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__a1bb555a-bf8b-4111-a211-23e18445fe00.json
 policy:
-branch: j_70_improve_json_list_editor
-worktree: 1
 changedFiles:
   - app/src/components/json_data_editor/json_array_column_header_cell.tsx
   - app/src/components/json_data_editor/json_array_editor.tsx
