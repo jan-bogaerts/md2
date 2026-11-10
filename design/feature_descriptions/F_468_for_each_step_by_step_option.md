@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__56755966-50b9-466a-8a42-cd433b5f1f2d.json
 policy:
+branch: f_468_for_each_step_by_step_option
+worktree: 1
 ---
 
 we recently added the for-each function to actions. See [F_458_add_for_each_feature.md](design/releases/0.11.0/F_458_add_for_each_feature.md) . It automatically iterates over the records and moves to the next record when the agent is ready (stopped or is waiting for input).

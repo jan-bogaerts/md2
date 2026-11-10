@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__d5f63dfb-c3f3-41f4-b300-0db72fc93f21.json
 policy:
 ---
 We need to add support for a json data editor, similar like we have the markdown editor.
