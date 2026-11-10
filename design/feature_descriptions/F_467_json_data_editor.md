@@ -3,7 +3,7 @@ author:
 id: F_467
 internalId: d5f63dfb-c3f3-41f4-b300-0db72fc93f21
 title: json data editor
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,44 @@ agents:
 policy:
 branch: f_467_json_data_editor
 worktree: 2
+changedFiles:
+  - app/src/components/editor/file_search/markdown_file_search_selection.ts
+  - app/src/components/editor/links/markdown_link_node.ts
+  - app/src/components/editor/links/markdown_link_realm_plugin.ts
+  - app/src/components/editor/markdown_editor.tsx
+  - app/src/components/editor/markdown_editor_json_link.real.test.tsx
+  - app/src/components/editor/placeholders/markdown_placeholder_toolbar_control.grouped.test.tsx
+  - app/src/components/editor/references/markdown_reference_realm_plugin.ts
+  - app/src/components/json_data_editor/json_array_editor.tsx
+  - app/src/components/json_data_editor/json_breadcrumbs.tsx
+  - app/src/components/json_data_editor/json_data_editor.test.tsx
+  - app/src/components/json_data_editor/json_data_editor.tsx
+  - app/src/components/json_data_editor/json_data_popup.tsx
+  - app/src/components/json_data_editor/json_object_editor.tsx
+  - app/src/components/json_data_editor/json_scalar_editor.tsx
+  - app/src/components/project_workspace.tsx
+  - app/src/components/text_view/json_editor_pane.tsx
+  - app/src/components/text_view/json_text_view_integration.test.tsx
+  - app/src/components/text_view/tab_bar.tsx
+  - app/src/components/text_view/text_editor_pane.tsx
+  - app/src/services/card_popup_service.test.ts
+  - app/src/services/card_popup_service.ts
+  - app/src/services/clipboard_text.ts
+  - app/src/services/data/data_service.ts
+  - app/src/services/json/json_data_document.node.test.ts
+  - app/src/services/json/json_data_document.ts
+  - app/src/services/json/json_data_service.node.test.ts
+  - app/src/services/json/json_data_service.ts
+  - app/src/services/json/json_link_navigation.test.ts
+  - app/src/services/json/json_link_navigation.ts
+  - app/src/services/json/json_link_path.node.test.ts
+  - app/src/services/json/json_link_path.ts
+  - app/src/services/json/json_types.ts
+  - app/src/services/open_document.ts
+  - app/src/services/open_files_service.node.test.ts
+  - app/src/services/open_files_service.ts
+  - app/src/services/project/project_persistence_service.node.test.ts
+  - app/src/services/project/project_persistence_service.ts
 ---
 We need to add support for a json data editor, similar like we have the markdown editor.
 
