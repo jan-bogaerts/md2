@@ -5,7 +5,7 @@ import type { ActionForEachConfig } from '../../../../data/action_run_types';
 import { AppThemeProvider } from '../../../../theme/theme_provider';
 import { ActionForEachMenu } from './action_for_each_menu';
 
-const CONFIG: ActionForEachConfig = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', startIndex: 0, value: { items: [1] } };
+const CONFIG: ActionForEachConfig = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', recordsPerBatch: 1, startIndex: 0, value: { items: [1] } };
 
 async function openMenu(disabled = false) {
     const user = userEvent.setup();

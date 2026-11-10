@@ -761,6 +761,7 @@ class ActionRun {
     async executeAgentForEach(action, phase, project) {
         const config = this.runInput.forEach;
         const records = forEachRecords(config.value, config.dataPath);
+        const recordsPerBatch = config.recordsPerBatch ?? 1;
         const startIndex = config.startIndex ?? 0;
         const recordsToProcess = records.slice(startIndex);
         if (recordsToProcess.length === 0) {
@@ -779,15 +780,21 @@ class ActionRun {
         for (const [recordOffset, record] of recordsToProcess.entries()) {
             const index = startIndex + recordOffset;
             this.throwIfCancelled();
-            const continueConversation = config.mode !== 'newConversation' && previousResult?.reference;
+            const startsLaterBatch = config.mode === 'newConversation'
+                && recordOffset > 0
+                && recordOffset % recordsPerBatch === 0;
+            const continueConversation = !startsLaterBatch && previousResult?.reference;
             const runInput = {
                 ...this.runInput,
                 ...(continueConversation ? { continueFrom: previousResult.reference, conversationId: previousResult.conversationId } : {}),
                 ...(!continueConversation && recordOffset > 0 ? { conversationId: `agent-${crypto.randomUUID()}` } : {}),
             };
             if (config.mode === 'newConversation') {
-                delete runInput.continueFrom;
-                if (recordOffset > 0 || this.runInput.continueFrom) runInput.conversationId = `agent-${crypto.randomUUID()}`;
+                if (startsLaterBatch) delete runInput.continueFrom;
+                if (recordOffset === 0 && this.runInput.continueFrom) {
+                    delete runInput.continueFrom;
+                    runInput.conversationId = `agent-${crypto.randomUUID()}`;
+                }
             }
             try {
                 const result = await this.executeAgentActionOnce(
@@ -814,7 +821,8 @@ class ActionRun {
                     }
                     continue;
                 }
-                if (config.mode === 'compact' && recordOffset < recordsToProcess.length - 1) {
+                const completedBatch = (recordOffset + 1) % recordsPerBatch === 0;
+                if (config.mode === 'compact' && completedBatch && recordOffset < recordsToProcess.length - 1) {
                     const compactInput = {
                         agent: result.agent,
                         conversationId: result.conversationId,

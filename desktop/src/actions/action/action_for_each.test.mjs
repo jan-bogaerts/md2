@@ -44,7 +44,7 @@ describe('action for-each helpers', () => {
 
     it('retains a configured data path and rejects a non-string one', () => {
         const config = { dataPath: 'items', failurePolicy: 'logAndContinue', fileName: 'data.json', mode: 'addPrompt', value: { items: [] } };
-        expect(validateForEachConfig(config)).toEqual({ ...config, startIndex: 0 });
+        expect(validateForEachConfig(config)).toEqual({ ...config, recordsPerBatch: 1, startIndex: 0 });
         expect(() => validateForEachConfig({ ...config, dataPath: 1 })).toThrow('Invalid forEach.dataPath');
     });
 
@@ -58,6 +58,19 @@ describe('action for-each helpers', () => {
 
         expect(validateForEachConfig(config)).toMatchObject({ startIndex: 0 });
         expect(validateForEachConfig({ ...config, startIndex: 2 })).toMatchObject({ startIndex: 2 });
+    });
+
+    it('defaults a missing records-per-batch value to one and retains a valid value', () => {
+        const config = { failurePolicy: 'logAndContinue', fileName: 'data.json', mode: 'compact', value: [] };
+
+        expect(validateForEachConfig(config)).toMatchObject({ recordsPerBatch: 1 });
+        expect(validateForEachConfig({ ...config, recordsPerBatch: 3 })).toMatchObject({ recordsPerBatch: 3 });
+    });
+
+    it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, '3', null, Number.NaN])('rejects invalid records per batch %s', (recordsPerBatch) => {
+        const config = { failurePolicy: 'logAndContinue', fileName: 'data.json', mode: 'compact', recordsPerBatch, value: [] };
+
+        expect(() => validateForEachConfig(config)).toThrow('Invalid forEach.recordsPerBatch');
     });
 
     it.each([-1, 1.5, Number.MAX_SAFE_INTEGER + 1, '2', null])('rejects invalid start index %s', (startIndex) => {

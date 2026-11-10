@@ -16,13 +16,17 @@ function validateJsonValue(value, fieldName) {
 /** Validate one conversation-owned for-each configuration. */
 export function validateForEachConfig(value, fieldName = 'forEach') {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Invalid ${fieldName}`);
-    const allowedFields = new Set(['dataPath', 'failurePolicy', 'fileName', 'mode', 'startIndex', 'value']);
+    const allowedFields = new Set(['dataPath', 'failurePolicy', 'fileName', 'mode', 'recordsPerBatch', 'startIndex', 'value']);
     const unsupportedField = Object.keys(value).find((name) => !allowedFields.has(name));
     if (unsupportedField) throw new Error(`Unsupported ${fieldName} field: ${unsupportedField}`);
     if (value.dataPath !== undefined && typeof value.dataPath !== 'string') throw new Error(`Invalid ${fieldName}.dataPath`);
     if (typeof value.fileName !== 'string' || value.fileName.length === 0) throw new Error(`Invalid ${fieldName}.fileName`);
     if (!FOR_EACH_MODES.has(value.mode)) throw new Error(`Invalid ${fieldName}.mode`);
     if (!FOR_EACH_FAILURE_POLICIES.has(value.failurePolicy)) throw new Error(`Invalid ${fieldName}.failurePolicy`);
+    const recordsPerBatch = value.recordsPerBatch === undefined ? 1 : value.recordsPerBatch;
+    if (typeof recordsPerBatch !== 'number' || !Number.isSafeInteger(recordsPerBatch) || recordsPerBatch <= 0) {
+        throw new Error(`Invalid ${fieldName}.recordsPerBatch`);
+    }
     const startIndex = value.startIndex === undefined ? 0 : value.startIndex;
     if (typeof startIndex !== 'number' || !Number.isSafeInteger(startIndex) || startIndex < 0) {
         throw new Error(`Invalid ${fieldName}.startIndex`);
@@ -33,6 +37,7 @@ export function validateForEachConfig(value, fieldName = 'forEach') {
         failurePolicy: value.failurePolicy,
         fileName: value.fileName,
         mode: value.mode,
+        recordsPerBatch,
         startIndex,
         value: validateJsonValue(value.value, `${fieldName}.value`),
     };

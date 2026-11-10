@@ -160,6 +160,7 @@ describe('ActionRun', () => {
             runInput: {
                 forEach: {
                     failurePolicy: 'logAndContinue', fileName: 'records.json', mode,
+                    recordsPerBatch: 1,
                     value: [{ name: 'first' }, { name: 'second' }, { name: 'third' }],
                 },
                 prompt: '{{data name}}',
@@ -184,6 +185,143 @@ describe('ActionRun', () => {
             expect(recordCalls[1][0].runInput.continueFrom).toBe('run-1.json');
             expect(recordCalls.slice(1).map(([input]) => input.runInput.conversationId)).toEqual(['conversation-1', 'conversation-1']);
         }
+    });
+
+    it('compacts after each full batch when another processed record remains', async () => {
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                if (input.compactOnly) {
+                    return {
+                        agent: 'codex', changedPaths: [], conversationId: input.runInput.conversationId, exitCode: 0,
+                        model: 'gpt', prompt: '', reference: input.runInput.continueFrom, stderr: '', stdout: '', thinkingLevel: 'none',
+                    };
+                }
+                return {
+                    agent: 'codex', changedPaths: [], conversationId: input.runInput.conversationId ?? 'conversation-1', exitCode: 0,
+                    model: 'gpt', prompt: 'run', reference: `record-${input.forEachRecord}.json`, stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent'});
+        const { events, run } = createRun(rootAction, {
+            agentExecutor,
+            runInput: {
+                forEach: {
+                    failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'compact', recordsPerBatch: 3,
+                    startIndex: 2, value: ['skip-1', 'skip-2', 'one', 'two', 'three', 'four', 'five'],
+                },
+                prompt: 'run',
+            },
+        });
+
+        const completed = await run.completion;
+
+        expect(completed.status).toBe('completed');
+        const recordCalls = agentExecutor.execute.mock.calls.filter(([input]) => !input.compactOnly);
+        const compactCalls = agentExecutor.execute.mock.calls.filter(([input]) => input.compactOnly);
+        expect(recordCalls.map(([input]) => input.forEachRecord)).toEqual(['one', 'two', 'three', 'four', 'five']);
+        expect(compactCalls).toHaveLength(1);
+        expect(compactCalls[0][0].runInput.continueFrom).toBe('record-three.json');
+        expect(events.filter(({ update }) => update?.kind === 'forEachProgress').map(({ update }) => update.processedCount))
+            .toEqual([2, 3, 4, 5, 6, 7]);
+    });
+
+    it('starts one new canonical conversation for each later batch', async () => {
+        const agentExecutor = {
+            execute: vi.fn(async (input) => ({
+                agent: 'codex', changedPaths: [], conversationId: input.runInput.conversationId ?? 'conversation-1', exitCode: 0,
+                model: 'gpt', prompt: 'run', reference: `record-${input.forEachRecord}.json`, stderr: '', stdout: '', thinkingLevel: 'none',
+            })),
+        };
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent'});
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            runInput: {
+                forEach: {
+                    failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'newConversation', recordsPerBatch: 3,
+                    startIndex: 1, value: ['skip', 'one', 'two', 'three', 'four', 'five', 'six', 'seven'],
+                },
+                prompt: 'run',
+            },
+        });
+
+        const completed = await run.completion;
+
+        expect(completed.status).toBe('completed');
+        const recordInputs = agentExecutor.execute.mock.calls.map(([input]) => input);
+        const conversationIds = recordInputs.map(({ runInput }) => runInput.conversationId ?? 'conversation-1');
+        expect(conversationIds.slice(0, 3)).toEqual(['conversation-1', 'conversation-1', 'conversation-1']);
+        expect(new Set(conversationIds.slice(3, 6))).toEqual(new Set([conversationIds[3]]));
+        expect(conversationIds[3]).not.toBe('conversation-1');
+        expect(conversationIds[6]).not.toBe(conversationIds[3]);
+        expect(recordInputs.map(({ runInput }) => runInput.continueFrom)).toEqual([
+            undefined, 'record-one.json', 'record-two.json', undefined, 'record-four.json', 'record-five.json', undefined,
+        ]);
+    });
+
+    it('does not compact a failed boundary record', async () => {
+        const appendActivityConversationEvent = vi.fn(async () => undefined);
+        const agentExecutor = {
+            execute: vi.fn(async (input) => ({
+                agent: 'codex', changedPaths: [], conversationId: 'conversation-1',
+                exitCode: input.forEachRecord === 'two' ? 1 : 0, model: 'gpt', prompt: 'run', reference: `record-${input.forEachRecord}.json`,
+                stderr: input.forEachRecord === 'two' ? 'bad boundary' : '', stdout: '', thinkingLevel: 'none',
+            })),
+        };
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent'});
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            localGitService: { appendActivityConversationEvent },
+            runInput: {
+                forEach: {
+                    failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'compact', recordsPerBatch: 2,
+                    value: ['one', 'two', 'three'],
+                },
+                prompt: 'run',
+            },
+        });
+
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
+        expect(agentExecutor.execute.mock.calls.every(([input]) => !input.compactOnly)).toBe(true);
+        expect(appendActivityConversationEvent).toHaveBeenCalledWith(
+            project, 'record-two.json', expect.objectContaining({ content: 'For-each record 2 failed: bad boundary' }),
+        );
+    });
+
+    it('logs a failed batch compaction and continues with the next record', async () => {
+        const appendActivityConversationEvent = vi.fn(async () => undefined);
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                if (input.compactOnly) {
+                    return {
+                        agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: 1,
+                        model: 'gpt', prompt: '', reference: input.runInput.continueFrom, stderr: 'compact failed', stdout: '', thinkingLevel: 'none',
+                    };
+                }
+                return {
+                    agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: 0,
+                    model: 'gpt', prompt: 'run', reference: `record-${input.forEachRecord}.json`, stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent'});
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            localGitService: { appendActivityConversationEvent },
+            runInput: {
+                forEach: {
+                    failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'compact', recordsPerBatch: 2,
+                    value: ['one', 'two', 'three'],
+                },
+                prompt: 'run',
+            },
+        });
+
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
+        expect(agentExecutor.execute.mock.calls.map(([input]) => input.forEachRecord ?? 'compact')).toEqual(['one', 'two', 'compact', 'three']);
+        expect(appendActivityConversationEvent).toHaveBeenCalledWith(
+            project, 'record-two.json', expect.objectContaining({ content: 'For-each record 2 failed: compact failed' }),
+        );
     });
 
     it.each(['question', 'approval'])('keeps a streaming for-each record active for a pending %s', async (interaction) => {

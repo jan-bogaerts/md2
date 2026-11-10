@@ -22,6 +22,7 @@ export interface ActionForEachConfig {
     failurePolicy:'logAndContinue' | 'stopOnFirstFailure'
     fileName: string
     mode: 'addPrompt' | 'compact' | 'newConversation'
+    recordsPerBatch: number
     startIndex: number
     value: JsonValue
 }

@@ -304,6 +304,7 @@ describe('runPopupAction waiting follow-up', () => {
         const inputStore = new ActionRunInputStore()
         const forEach = {
             failurePolicy: 'logAndContinue' as const, fileName: 'records.json', mode: 'addPrompt' as const,
+            recordsPerBatch: 1,
             startIndex: 2,
             value: [{ name: 'first' }],
         }
