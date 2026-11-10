@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__3ebe8ff2-d685-40eb-8937-0bba0f8d5487.json
 policy:
+branch: j_69_poor_object_editor_behaviour
+worktree: 1
 ---
 
 we just introduced the new json editor. it contains an object editor which shows 2 columns: the fieldname: field value (can be a button.
