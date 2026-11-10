@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 ---
-see the current json editor:
+see the current json editor (for lists):
 
 <img height="329" width="436" alt="pasted image" src="pasted-image-4e056b05-a9dd-4bb2-bb13-094ca7510720.png" />
+
+and for the objects:
