@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__56755966-50b9-466a-8a42-cd433b5f1f2d.json
 policy:
-branch: f_468_for_each_step_by_step_option
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/popup/action_for_each_menu.test.tsx
   - app/src/components/actions/run/popup/action_for_each_setup_dialog.test.tsx
