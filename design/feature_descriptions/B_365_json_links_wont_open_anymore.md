@@ -3,12 +3,13 @@ author:
 id: B_365
 internalId: 05c8cd40-0825-4fc1-abc8-b5f0389c2954
 title: json links wont open anymore
-status: ready for implementation
+status: design
 owner: 
 affects:
 agents:
   - design/activity/card__05c8cd40-0825-4fc1-abc8-b5f0389c2954.json
 policy:
+after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 ---
 when clicking on a link in the markdown editor pointing to a json file, we now get a white screen with a text: `md2 desktop bridges blocked for origin: null`
 
