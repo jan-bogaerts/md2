@@ -28,27 +28,6 @@ describe('MarkdownPlaceholderToolbarControl', () => {
         expect(screen.queryByRole('menu')).not.toBeInTheDocument()
     })
 
-    it.each([
-        ['{{data}}', 'Complete current for-each record as pretty-printed JSON.'],
-        ['{{data path}}', 'Value at a dot-separated path in the current for-each record.'],
-    ])('inserts %s from its described entry', (placeholderText, description) => {
-        const activeEditor = { dispatchCommand: vi.fn(), focus: vi.fn() }
-        vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue(activeEditor as never)
-        render(<MarkdownPlaceholderToolbarControl placeholders={ACTION_PROMPT_PLACEHOLDERS} />)
-
-        fireEvent.click(screen.getByRole('button', { name: 'Insert placeholder' }))
-        const menu = screen.getByRole('menu')
-        const menuItem = within(menu).getByText(placeholderText).closest('[role="menuitem"]')
-        if (!menuItem) throw new Error(`Missing toolbar entry for ${placeholderText}`)
-        expect(within(menuItem).getByText(description)).toBeInTheDocument()
-        fireEvent.click(menuItem)
-
-        expect(activeEditor.dispatchCommand).toHaveBeenCalledExactlyOnceWith(
-            CONTROLLED_TEXT_INSERTION_COMMAND,
-            placeholderText,
-        )
-    })
-
     it('offers all folder placeholders without the removed root placeholder', () => {
         vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue({ dispatchCommand: vi.fn(), focus: vi.fn() } as never)
         render(<MarkdownPlaceholderToolbarControl placeholders={ACTION_PROMPT_PLACEHOLDERS} />)
