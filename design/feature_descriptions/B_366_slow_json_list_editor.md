@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__6da27e85-7e64-4ca3-ba18-56eea259e434.json
 policy:
+branch: b_366_slow_json_list_editor
+worktree: 3
 ---
 
 check this trace: [Trace-scroll.json](file:///C:/Users/janbo/Documents/dev/Trace-scroll.json)
