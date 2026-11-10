@@ -1,5 +1,20 @@
 {
-  "actionSettings": {},
+  "actionSettings": {
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -609,7 +624,7 @@
         "totalTokens": 607456
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -636,14 +651,14 @@
         "agent-a5e8c675-d7da-4ada-99aa-1517826e2ff7"
       ],
       "details": {
+        "type": "agent",
         "accountId": "codex-initial",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-bbf8bc29-ab69-42e4-9bd5-e3f60312f7f6",
       "origin": {
@@ -652,9 +667,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-a5e8c675-d7da-4ada-99aa-1517826e2ff7",
       "startedAt": "2026-11-10T14:52:39.376Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a5e8c675-d7da-4ada-99aa-1517826e2ff7"
     }
   ],
   "version": 5
