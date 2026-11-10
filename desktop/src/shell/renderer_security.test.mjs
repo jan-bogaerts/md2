@@ -47,29 +47,78 @@ describe('renderer navigation guards', () => {
         return { listeners, webContents };
     }
 
+    function createNavigationDetails(url, isMainFrame = true) {
+        return { isMainFrame, preventDefault: vi.fn(), url };
+    }
+
     it('allows only the trusted renderer document navigation', () => {
         expect(isTrustedRendererLocation('file:///C:/Program%20Files/MD2/index.html#board', 'file:///C:/Program%20Files/MD2/index.html')).toBe(true);
         expect(isTrustedRendererLocation('https://evil.example', 'file:///C:/Program%20Files/MD2/index.html')).toBe(false);
     });
 
-    it('blocks remote navigation and opens approved links externally', () => {
+    it('allows trusted main-frame navigation including hash changes', () => {
         const { listeners, webContents } = createWebContents();
         const openExternal = vi.fn(async () => undefined);
-        const event = { preventDefault: vi.fn() };
+        const details = createNavigationDetails('file:///C:/MD2/index.html#board');
         registerNavigationGuards(webContents, 'file:///C:/MD2/index.html', openExternal);
 
-        listeners['will-navigate'](event, 'https://docs.example/path');
+        listeners['will-frame-navigate'](details);
 
-        expect(event.preventDefault).toHaveBeenCalled();
-        expect(openExternal).toHaveBeenCalledWith('https://docs.example/path');
+        expect(details.preventDefault).not.toHaveBeenCalled();
+        expect(openExternal).not.toHaveBeenCalled();
     });
 
-    it('denies popups and does not launch unapproved protocols', () => {
+    it.each(['http://docs.example/path', 'https://docs.example/path'])(
+        'blocks main-frame navigation and opens %s externally',
+        (url) => {
+            const { listeners, webContents } = createWebContents();
+            const openExternal = vi.fn(async () => undefined);
+            const details = createNavigationDetails(url);
+            registerNavigationGuards(webContents, 'file:///C:/MD2/index.html', openExternal);
+
+            listeners['will-frame-navigate'](details);
+
+            expect(details.preventDefault).toHaveBeenCalled();
+            expect(openExternal).toHaveBeenCalledWith(url);
+        },
+    );
+
+    it.each(['file:///C:/project/data.json', 'mailto:user@example.com', 'md2:open'])('blocks untrusted main-frame navigation to %s', (url) => {
+        const { listeners, webContents } = createWebContents();
+        const openExternal = vi.fn(async () => undefined);
+        const details = createNavigationDetails(url);
+        registerNavigationGuards(webContents, 'file:///C:/MD2/index.html', openExternal);
+
+        listeners['will-frame-navigate'](details);
+
+        expect(details.preventDefault).toHaveBeenCalled();
+        expect(openExternal).not.toHaveBeenCalled();
+    });
+
+    it('ignores subframe navigation', () => {
+        const { listeners, webContents } = createWebContents();
+        const openExternal = vi.fn(async () => undefined);
+        const details = createNavigationDetails('https://embedded.example/path', false);
+        registerNavigationGuards(webContents, 'file:///C:/MD2/index.html', openExternal);
+
+        listeners['will-frame-navigate'](details);
+
+        expect(details.preventDefault).not.toHaveBeenCalled();
+        expect(openExternal).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ['http://docs.example/path', true],
+        ['https://docs.example/path', true],
+        ['file:///C:/project/data.json', false],
+        ['javascript:alert(1)', false],
+    ])('denies new-window request for %s and applies external protocol policy', (url, shouldOpenExternal) => {
         const { webContents } = createWebContents();
         const openExternal = vi.fn(async () => undefined);
         registerNavigationGuards(webContents, 'file:///C:/MD2/index.html', openExternal);
 
-        expect(webContents.windowOpenHandler({ url: 'javascript:alert(1)' })).toEqual({ action: 'deny' });
-        expect(openExternal).not.toHaveBeenCalled();
+        expect(webContents.windowOpenHandler({ url })).toEqual({ action: 'deny' });
+        if (shouldOpenExternal) expect(openExternal).toHaveBeenCalledWith(url);
+        else expect(openExternal).not.toHaveBeenCalled();
     });
 });

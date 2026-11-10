@@ -46,18 +46,23 @@ function isApprovedExternalUrl(candidateUrl) {
     }
 }
 
+function handleFrameNavigation(trustedLocation, openExternal, details) {
+    const { isMainFrame, url } = details;
+    if (!isMainFrame || isTrustedRendererLocation(url, trustedLocation)) return;
+
+    details.preventDefault();
+    if (isApprovedExternalUrl(url)) void openExternal(url);
+}
+
+function handleWindowOpen(openExternal, { url }) {
+    if (isApprovedExternalUrl(url)) void openExternal(url);
+
+    return { action: 'deny' };
+}
+
 function registerNavigationGuards(webContents, trustedLocation, openExternal) {
-    webContents.on('will-navigate', (event, url) => {
-        if (isTrustedRendererLocation(url, trustedLocation)) return;
-
-        event.preventDefault();
-        if (isApprovedExternalUrl(url)) void openExternal(url);
-    });
-    webContents.setWindowOpenHandler(({ url }) => {
-        if (isApprovedExternalUrl(url)) void openExternal(url);
-
-        return { action: 'deny' };
-    });
+    webContents.on('will-frame-navigate', handleFrameNavigation.bind(null, trustedLocation, openExternal));
+    webContents.setWindowOpenHandler(handleWindowOpen.bind(null, openExternal));
 }
 
 module.exports = {
