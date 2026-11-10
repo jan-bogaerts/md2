@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__83c5615c-4c5c-4c99-8fa6-4ab6e1f61bd5.json
 policy:
 after: d2e9440e-e79e-4abe-9092-d786540e29d3
 branch: j_68_split_action_run_history_into_focused_units
