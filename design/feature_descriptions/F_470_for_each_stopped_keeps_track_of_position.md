@@ -10,8 +10,6 @@ agents:
   - design/activity/card__da4aee5d-5816-4fa9-ae35-cdd114954868.json
 policy:
 after: d2e9440e-e79e-4abe-9092-d786540e29d3
-branch: f_470_for_each_stopped_keeps_track_of_position
-worktree: 1
 ---
 
 When we stop a for-each, we continue to show the progress bar. this is ok, but the position is lost, we should keep this so we can find the last position easier again
