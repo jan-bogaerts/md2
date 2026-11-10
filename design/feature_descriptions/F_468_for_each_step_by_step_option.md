@@ -3,7 +3,7 @@ author:
 id: F_468
 internalId: 56755966-50b9-466a-8a42-cd433b5f1f2d
 title: for-each step by step option
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,35 @@ agents:
 policy:
 branch: f_468_for_each_step_by_step_option
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/action_for_each_menu.test.tsx
+  - app/src/components/actions/run/popup/action_for_each_setup_dialog.test.tsx
+  - app/src/components/actions/run/popup/action_for_each_setup_dialog.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_defaults.ts
+  - app/src/components/actions/run/popup/action_popup_operations.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_operations.ts
+  - app/src/components/actions/run/popup/action_popup_run_controls.tsx
+  - app/src/components/actions/run/popup/action_prompt_menu.test.tsx
+  - app/src/components/actions/run/popup/action_prompt_menu.tsx
+  - app/src/data/action_run_types.ts
+  - app/src/data/electron_action_bridge.ts
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
+  - app/src/services/agents/agent_conversation_service.node.test.ts
+  - desktop/src/actions/action/action_for_each.test.mjs
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run.test.mjs
+  - desktop/src/actions/action/action_run_request.test.mjs
+  - desktop/src/actions/action/action_runner_service.js
+  - desktop/src/actions/action/action_runner_service.test.mjs
+  - desktop/src/actions/agent/agent_runner_service.js
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.js
+  - desktop/src/shell/preload.test.mjs
+  - shared/action_for_each.mjs
 ---
 
 we recently added the for-each function to actions. See [F_458_add_for_each_feature.md](design/releases/0.11.0/F_458_add_for_each_feature.md) . It automatically iterates over the records and moves to the next record when the agent is ready (stopped or is waiting for input).
