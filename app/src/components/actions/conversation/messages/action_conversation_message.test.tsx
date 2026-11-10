@@ -147,3 +147,20 @@ describe('ActionConversationMessage code copying', () => {
         expect(commands.saveAsResponsePhrase).not.toHaveBeenCalled();
     });
 });
+
+describe('ActionConversationMessage email links', () => {
+    afterEach(() => {
+        cleanup();
+    });
+
+    it.each([
+        ['an explicit mailto link', '[Mail me](mailto:user@example.com)', 'Mail me'],
+        ['a bare email address', 'Contact user@example.com today', 'user@example.com'],
+    ])('renders %s as a mailto link without a new-window target', (_label, content, linkName) => {
+        renderMessage(message(content, 'assistant'), 'completed');
+        const link = screen.getByRole('link', { name: linkName });
+
+        expect(link).toHaveAttribute('href', 'mailto:user@example.com');
+        expect(link).not.toHaveAttribute('target', '_blank');
+    });
+});

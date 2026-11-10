@@ -68,7 +68,7 @@ describe('renderer navigation guards', () => {
         expect(openExternal).not.toHaveBeenCalled();
     });
 
-    it.each(['http://docs.example/path', 'https://docs.example/path'])(
+    it.each(['http://docs.example/path', 'https://docs.example/path', 'mailto:user@example.com?subject=Hi&body=Text'])(
         'blocks main-frame navigation and opens %s externally',
         (url) => {
             const { listeners, webContents } = createWebContents();
@@ -83,7 +83,7 @@ describe('renderer navigation guards', () => {
         },
     );
 
-    it.each(['file:///C:/project/data.json', 'mailto:user@example.com', 'md2:open'])('blocks untrusted main-frame navigation to %s', (url) => {
+    it.each(['file:///C:/project/data.json', 'md2:open'])('blocks untrusted main-frame navigation to %s', (url) => {
         const { listeners, webContents } = createWebContents();
         const openExternal = vi.fn(async () => undefined);
         const details = createNavigationDetails(url);
@@ -110,6 +110,7 @@ describe('renderer navigation guards', () => {
     it.each([
         ['http://docs.example/path', true],
         ['https://docs.example/path', true],
+        ['mailto:user@example.com', true],
         ['file:///C:/project/data.json', false],
         ['javascript:alert(1)', false],
     ])('denies new-window request for %s and applies external protocol policy', (url, shouldOpenExternal) => {

@@ -2,7 +2,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { resolveAppUrl } = require('./config');
 
-const APPROVED_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:']);
+const APPROVED_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 const PACKAGED_RENDERER_DIRECTORY = 'renderer';
 const PACKAGED_RENDERER_ENTRY = 'index.html';
 

@@ -24,7 +24,7 @@ describe('openMarkdownLink', () => {
         },
     )
 
-    it.each(['http://docs.example/path', 'https://docs.example/path'])(
+    it.each(['http://docs.example/path', 'https://docs.example/path', 'mailto:user@example.com?subject=Hi&body=Text'])(
         'opens %s in a new external-window request',
         (url) => {
             const open = vi.spyOn(window, 'open').mockImplementation(() => null)
