@@ -12,6 +12,12 @@ policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 branch: f_469_add_support_to_email_links
 worktree: 2
+changedFiles:
+  - app/src/components/actions/conversation/messages/action_conversation_message.test.tsx
+  - app/src/components/editor/links/markdown_link_dialog_navigation.test.ts
+  - app/src/components/editor/links/markdown_link_dialog_navigation.ts
+  - desktop/src/shell/renderer_security.js
+  - desktop/src/shell/renderer_security.test.mjs
 ---
 
 a link for creating an email should open the systems default email program
