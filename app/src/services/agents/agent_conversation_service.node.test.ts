@@ -150,6 +150,24 @@ describe('parseAgentConversationLog', () => {
             .toEqual({ ...forEach, recordsPerBatch: 1, stepByStep: false })
     })
 
+    it('keeps valid for-each progress across reloads', () => {
+        const forEachProgress = { processedCount: 2, totalCount: 5 }
+        const source = {entries: [], forEachProgress, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'cancelled'}
+
+        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEachProgress).toEqual(forEachProgress)
+    })
+
+    it.each([
+        [{ processedCount: -1, totalCount: 5 }, 'processedCount'],
+        [{ processedCount: 1, totalCount: -1 }, 'totalCount'],
+        [{ processedCount: 6, totalCount: 5 }, 'exceeds totalCount'],
+        [{ processedCount: Number.MAX_SAFE_INTEGER + 1, totalCount: Number.MAX_SAFE_INTEGER + 1 }, 'processedCount'],
+    ])('rejects invalid for-each progress %o', (forEachProgress, expectedMessage) => {
+        const source = {entries: [], forEachProgress, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'cancelled'}
+
+        expect(() => parseAgentConversationValue(source, 'activity.json')).toThrow(expectedMessage)
+    })
+
     it('keeps records per batch across reloads', () => {
         const forEach = {
             failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'newConversation', recordsPerBatch: 3,

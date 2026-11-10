@@ -339,6 +339,29 @@ async function updateActivityConversationForEach(project, reference, forEach) {
     });
 }
 
+async function updateActivityConversationForEachProgress(project, reference, forEachProgress) {
+    if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { activityPath, conversationId } = parseConversationActivityReference(reference);
+    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
+
+    return queueActivityUpdate(rootPath, absolutePath, async () => {
+        const stored = await readStoredActivity(absolutePath);
+        const activity = activityValue(stored);
+        const conversation = findActivityConversation(activity, conversationId);
+        const updatedConversation = parseAgentConversationValue({ ...conversation, forEachProgress }, reference);
+        const storedConversation = Object.fromEntries(Object.entries(updatedConversation).filter(([fieldName]) => fieldName !== 'path'));
+        const updatedActivity = {
+            ...activity,
+            conversations: activity.conversations.map((current) => current.id === conversationId ? storedConversation : current),
+        };
+        await writeActivityFile(absolutePath, updatedActivity);
+
+        return updatedConversation;
+    }, { markProjectWrite: false });
+}
+
 async function appendActivityConversationEvent(project, reference, event) {
     if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');
     const rootPath = requireRootPath(project);
@@ -635,6 +658,7 @@ module.exports = {
     upsertActivityConversation,
     updateCardActionSettings,
     updateActivityConversationForEach,
+    updateActivityConversationForEachProgress,
     updateActivityConversationViewed,
     writeActivityFile,
 };

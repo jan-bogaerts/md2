@@ -730,7 +730,7 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
-    it('stores for-each progress by run and clears it only when that run becomes terminal', () => {
+    it('stores for-each progress by run and clears it when that run completes', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
         const service = new ActionRunRegistry()
@@ -760,6 +760,49 @@ describe('ActionRunRegistry', () => {
         release()
         service.stop()
     })
+
+    it('preserves for-each progress when that run is cancelled', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        emit({
+            actionId: 'review', context, phase: 'main', rootActionId: 'review', runId: 'run-1', status: 'running',
+            type: 'update', update: { kind: 'forEachProgress', processedCount: 2, totalCount: 5 },
+        })
+        const store = service.getRunStore('run-1')
+        if (!store) throw new Error('Missing run store')
+        const release = store.subscribe(vi.fn())
+
+        emit({ ...runEvent('cancelled'), actionId: 'review', rootActionId: 'review' })
+
+        expect(store.getSnapshot().forEachProgress).toEqual({ processedCount: 2, totalCount: 5 })
+        release()
+        service.stop()
+    })
+
+    it.each(['completed', 'failed', 'okButNotAfter'] as const)(
+        'clears for-each progress when terminal status is %s',
+        (status) => {
+            const { bridge, emit } = bridgeWithEvents()
+            setActionBridgeOverride(bridge)
+            const service = new ActionRunRegistry()
+            service.start()
+            emit({
+                actionId: 'review', context, phase: 'main', rootActionId: 'review', runId: 'run-1', status: 'running',
+                type: 'update', update: { kind: 'forEachProgress', processedCount: 2, totalCount: 5 },
+            })
+            const store = service.getRunStore('run-1')
+            if (!store) throw new Error('Missing run store')
+            const release = store.subscribe(vi.fn())
+
+            emit({ ...runEvent(status), actionId: 'review', rootActionId: 'review' })
+
+            expect(store.getSnapshot().forEachProgress).toBeNull()
+            release()
+            service.stop()
+        },
+    )
 
     it('replaces live usage immutably without changing other run state', () => {
         const { bridge, emit } = bridgeWithEvents()
@@ -1279,6 +1322,36 @@ describe('ActionRunRegistry', () => {
         expect(store.getSnapshot().logs[0]).toMatchObject({ message: 'build completed', status: 'completed' })
         expect(second.bridge.loadActionRunRecoverySnapshot).toHaveBeenCalledWith(['run-1'])
         await expect(completion).resolves.toMatchObject({changedPaths: ['app/recovered.ts'], diagramPath: 'design/diagrams/recovered.json', status: 'completed'})
+        release()
+        service.stop()
+    })
+
+    it('preserves for-each progress when cancellation is recovered after disconnect', async () => {
+        const first = bridgeWithEvents({ startAction: vi.fn(async () => 'run-1') })
+        setActionBridgeOverride(first.bridge)
+        const service = new ActionRunRegistry()
+        const completion = service.startRun({ id: 'build' } as ActionDefinition, context, {})
+        first.emit({ ...runEvent('running'), sequence: 1 })
+        first.emit({
+            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', sequence: 2,
+            status: 'running', type: 'update', update: { kind: 'forEachProgress', processedCount: 3, totalCount: 7 },
+        })
+        const store = service.getRunStore('run-1')
+        if (!store) throw new Error('Missing run store')
+        const release = store.subscribe(vi.fn())
+        const second = bridgeWithEvents({
+            loadActionRunRecoverySnapshot: vi.fn(async () => ({
+                activeRunEvents: [],
+                terminalResults: [{ changedPaths: [], failure: null, runId: 'run-1', status: 'cancelled' as const }],
+            })),
+        })
+
+        setActionBridgeOverride(second.bridge)
+        service.start()
+
+        await vi.waitFor(() => expect(store.getSnapshot().status).toBe('cancelled'))
+        expect(store.getSnapshot().forEachProgress).toEqual({ processedCount: 3, totalCount: 7 })
+        await expect(completion).resolves.toMatchObject({ status: 'cancelled' })
         release()
         service.stop()
     })

@@ -354,6 +354,24 @@ function normalizeTaskList(value) {
     return { tasks: value.tasks.map(normalizeTask), updatedAt };
 }
 
+function normalizeForEachProgress(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Malformed agent conversation: invalid forEachProgress');
+    }
+    const { processedCount, totalCount } = value;
+    if (!Number.isSafeInteger(processedCount) || processedCount < 0) {
+        throw new Error('Malformed agent conversation: invalid forEachProgress.processedCount');
+    }
+    if (!Number.isSafeInteger(totalCount) || totalCount < 0) {
+        throw new Error('Malformed agent conversation: invalid forEachProgress.totalCount');
+    }
+    if (processedCount > totalCount) {
+        throw new Error('Malformed agent conversation: forEachProgress.processedCount exceeds totalCount');
+    }
+
+    return { processedCount, totalCount };
+}
+
 function normalizeArray(value, normalize) {
     if (!Array.isArray(value)) return [];
 
@@ -431,6 +449,7 @@ export function parseAgentConversationValue(parsed, referencePath) {
     }
     const timer = parsed.timer === undefined ? null : normalizeTimer(parsed.timer);
     const taskList = parsed.taskList === undefined ? null : normalizeTaskList(parsed.taskList);
+    const forEachProgress = parsed.forEachProgress === undefined ? null : normalizeForEachProgress(parsed.forEachProgress);
     if (parsed.viewed !== undefined && typeof parsed.viewed !== 'boolean') {
         throw new Error('Malformed agent conversation: invalid viewed');
     }
@@ -443,6 +462,7 @@ export function parseAgentConversationValue(parsed, referencePath) {
         ...(contextWindowUsage ? { contextWindowUsage } : {}),
         entries: normalizeEntries(parsed.entries),
         ...(parsed.forEach !== undefined ? { forEach: validateForEachConfig(parsed.forEach, 'agent conversation forEach') } : {}),
+        ...(forEachProgress ? { forEachProgress } : {}),
         hasExplicitTitle,
         id,
         path: referencePath,

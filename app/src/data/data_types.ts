@@ -463,6 +463,7 @@ export interface AgentConversation {
     contextWindowUsage?: AgentContextWindowUsage
     entries: AgentConversationEntry[]
     forEach?: import('./action_run_types').ActionForEachConfig
+    forEachProgress?: import('./action_run_types').ActionForEachProgress
     hasExplicitTitle: boolean
     id: string
     path: string

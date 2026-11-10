@@ -79,7 +79,9 @@ class ActionRun {
         this.compactTarget = snapshot.compactTarget ?? null;
         this.activeConversationId = this.compactTarget?.conversationId
             ?? snapshot.runInput.conversationId ?? snapshot.conversationReservation?.conversationId ?? null;
+        this.activeConversationReference = this.compactTarget?.reference ?? snapshot.runInput.continueFrom ?? null;
         this.activeAgentProvider = null;
+        this.forEachProgress = null;
     }
 
     start(finalize) {
@@ -495,6 +497,7 @@ class ActionRun {
         let changedPaths = [];
         let activityPath = null;
         try {
+            if (status === 'cancelled') await this.persistCancelledForEachProgress();
             activityPath = await this.persistRootActivity(status, failure);
             changedPaths = [...this.changedPaths];
         } catch (error) {
@@ -873,10 +876,21 @@ class ActionRun {
     }
 
     publishForEachProgress(action, phase, processedCount, totalCount) {
+        this.forEachProgress = { processedCount, totalCount };
         this.publish(action, phase, 'running', {
             type: 'update',
             update: { kind: 'forEachProgress', processedCount, totalCount },
         });
+    }
+
+    async persistCancelledForEachProgress() {
+        if (!this.runInput.forEach || !this.forEachProgress || !this.activeConversationReference) return;
+
+        await this.localGitService.updateActivityConversationForEachProgress(
+            this.project,
+            this.activeConversationReference,
+            this.forEachProgress,
+        );
     }
 
     async recordLoopFailure(reference, recordIndex, message) {
@@ -932,12 +946,18 @@ class ActionRun {
             if (agentEvent.type === 'started') {
                 const { continued, conversation } = agentEvent;
                 this.activeConversationId = conversation.id;
+                if (typeof conversation.path === 'string' && conversation.path.length > 0) {
+                    this.activeConversationReference = conversation.path;
+                }
                 this.activeAgentProvider = agentEvent.provider;
                 const update = { continued, conversation, kind: 'agentStarted', provider: agentEvent.provider };
                 this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 return;
             }
             if (agentEvent.type === 'closed') {
+                if (typeof agentEvent.conversation.path === 'string' && agentEvent.conversation.path.length > 0) {
+                    this.activeConversationReference = agentEvent.conversation.path;
+                }
                 const update = {
                     conversation: agentEvent.conversation,
                     kind: 'agentClosed',
@@ -1092,6 +1112,9 @@ class ActionRun {
             if (watcher) await watcher.start();
             this.throwDiagramWatcherFailure();
             let result = await this.agentExecutor.execute(input);
+            if (typeof result.reference === 'string' && result.reference.length > 0) {
+                this.activeConversationReference = result.reference;
+            }
             this.throwDiagramWatcherFailure();
             const changedPaths = new Set(result.changedPaths ?? []);
             let stderr = result.stderr ?? '';
@@ -1109,6 +1132,9 @@ class ActionRun {
                         submissionId: queuedPrompt.id,
                     },
                 });
+                if (typeof result.reference === 'string' && result.reference.length > 0) {
+                    this.activeConversationReference = result.reference;
+                }
                 this.throwDiagramWatcherFailure();
                 for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);
                 stderr += result.stderr ?? '';

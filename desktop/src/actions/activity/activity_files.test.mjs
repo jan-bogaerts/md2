@@ -24,6 +24,7 @@ const {
     splitActivityConversation,
     upsertActivityConversation,
     updateCardActionSettings,
+    updateActivityConversationForEachProgress,
     updateActivityConversationViewed,
 } = require('./activity_files');
 const { projectOperationCoordinator } = require('../../project/project_operation_coordinator');
@@ -669,6 +670,29 @@ describe('project activity conversations', () => {
             expect(updated).toMatchObject({ id: source.id, path: reference, viewed: false });
             expect(persisted.conversations.find(({ id }) => id === source.id).viewed).toBe(false);
             expect(persisted.conversations.find(({ id }) => id === untouched.id).viewed).toBe(true);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('persists for-each progress only on the targeted conversation', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-progress-conversation-'));
+        const project = { branch: 'main', rootPath };
+        const reference = 'design/activity/project.json#conversation=conversation-1';
+        const source = waitingConversation();
+        const untouched = { ...waitingConversation(), id: 'conversation-2', title: 'Untouched' };
+        const forEachProgress = { processedCount: 2, totalCount: 5 };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, source);
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, untouched);
+
+            const updated = await updateActivityConversationForEachProgress(project, reference, forEachProgress);
+            const persisted = JSON.parse(await readFile(join(rootPath, 'design', 'activity', 'project.json'), 'utf8'));
+
+            expect(updated).toMatchObject({ forEachProgress, id: source.id, path: reference });
+            expect(persisted.conversations.find(({ id }) => id === source.id).forEachProgress).toEqual(forEachProgress);
+            expect(persisted.conversations.find(({ id }) => id === untouched.id)).not.toHaveProperty('forEachProgress');
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

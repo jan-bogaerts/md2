@@ -64,7 +64,7 @@ export function ActionConversationChat(
                 store={store}
             />
             <ConversationMetaInfo bindingStore={bindingStore} store={store} usageValuesService={usageValuesService} />
-            <ForEachProgressIndicator runId={boundRunId} />
+            <ForEachProgressIndicator bindingStore={bindingStore} store={store} />
             <AgentTaskList bindingStore={bindingStore} store={store} />
         </Stack>
     )

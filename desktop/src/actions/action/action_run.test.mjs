@@ -47,6 +47,7 @@ function createRun(rootAction, overrides = {}) {
     const events = [];
     const appendActionRunHistory = overrides.localGitService?.appendActionRunHistory ?? vi.fn(async () => []);
     const localGitService = {
+        appendActivityConversationEvent: vi.fn(async () => undefined),
         appendActionActivity: vi.fn(async (_project, _projectFolder, _origin, record) => {
             const commits = record.commits.map((commit) => ({
                 ...commit,
@@ -67,6 +68,7 @@ function createRun(rootAction, overrides = {}) {
             return { relativePath: 'design/activity/card__card-1.json' };
         }),
         appendActionRunHistory,
+        updateActivityConversationForEachProgress: vi.fn(async () => undefined),
         ...overrides.localGitService,
     };
     const commandRunner = overrides.commandRunner ?? vi.fn(async (_project, command, _signal, onOutput) => {
@@ -742,7 +744,7 @@ describe('ActionRun', () => {
             stop: vi.fn(() => firstTurn.resolve(result)),
         };
         const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
-        const { events, run } = createRun(rootAction, {
+        const { events, localGitService, run } = createRun(rootAction, {
             agentExecutor,
             agentRunnerService,
             runInput: {
@@ -764,6 +766,68 @@ describe('ActionRun', () => {
         expect(agentRunnerService.finish).not.toHaveBeenCalled();
         expect(events.filter(({ update }) => update?.kind === 'forEachProgress').map(({ update }) => update.processedCount))
             .toEqual([0]);
+        expect(localGitService.updateActivityConversationForEachProgress)
+            .toHaveBeenCalledWith(project, 'run.json', { processedCount: 0, totalCount: 2 });
+        expect(localGitService.updateActivityConversationForEachProgress.mock.invocationCallOrder[0])
+            .toBeLessThan(localGitService.appendActionActivity.mock.invocationCallOrder[0]);
+    });
+
+    it.each([
+        { firstExitCode: 0, scenario: 'completed' },
+        { firstExitCode: 1, scenario: 'logAndContinue failed' },
+    ])('counts a $scenario record from the initial offset before later cancellation', async ({ firstExitCode }) => {
+        const interruptedTurn = deferred();
+        const interruptedTurnStarted = deferred();
+        let callIndex = 0;
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                callIndex += 1;
+                if (callIndex === 1) {
+                    return {
+                        agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: firstExitCode,
+                        model: 'gpt', prompt: 'run', reference: 'run.json', stderr: firstExitCode === 0 ? '' : 'bad record',
+                        stdout: '', thinkingLevel: 'none',
+                    };
+                }
+                input.onActiveRunChange('agent-run');
+                interruptedTurnStarted.resolve();
+                const result = await interruptedTurn.promise;
+                input.onActiveRunChange(null);
+
+                return result;
+            }),
+        };
+        const result = {
+            agent: 'codex', changedPaths: [], conversationId: 'conversation-1', exitCode: 0,
+            model: 'gpt', prompt: 'run', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+        };
+        const agentRunnerService = {
+            finish: vi.fn(),
+            hasPendingInteraction: () => false,
+            stop: vi.fn(() => interruptedTurn.resolve(result)),
+        };
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const { events, localGitService, run } = createRun(rootAction, {
+            agentExecutor,
+            agentRunnerService,
+            runInput: {
+                forEach: {
+                    failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', startIndex: 1,
+                    stepByStep: true, value: ['zero', 'one', 'two'],
+                },
+                prompt: 'run',
+            },
+        });
+        await interruptedTurnStarted.promise;
+        run.cancel();
+
+        const completed = await run.completion;
+
+        expect(completed.status).toBe('cancelled');
+        expect(events.filter(({ update }) => update?.kind === 'forEachProgress').map(({ update }) => update.processedCount))
+            .toEqual([1, 2]);
+        expect(localGitService.updateActivityConversationForEachProgress)
+            .toHaveBeenCalledWith(project, 'run.json', { processedCount: 2, totalCount: 3 });
     });
 
     it('records two same-card runs independently while release waits for both', async () => {

@@ -960,7 +960,7 @@ export class ActionRunRegistry extends EventTarget {
                 approvals: [],
                 changedPaths: result.changedPaths,
                 diagramPath: result.diagramPath ?? null,
-                forEachProgress: null,
+                forEachProgress: result.status === 'cancelled' ? current.forEachProgress : null,
                 conversation,
                 interactionReady: false,
                 logs,
@@ -1054,7 +1054,13 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
             queueTerminalActivity(event.activityPath)
-            next = { ...next, approvals: [], forEachProgress: null, question: null, queuedPrompts: [] }
+            next = {
+                ...next,
+                approvals: [],
+                forEachProgress: event.status === 'cancelled' ? next.forEachProgress : null,
+                question: null,
+                queuedPrompts: [],
+            }
             actionPromptDraftService.flushContextDrafts(next.rootActionId, next.context)
         }
         if (event.type === 'agentState') next = { ...next, status: event.status }
