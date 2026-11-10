@@ -1230,12 +1230,12 @@
         "agent-cd73a555-6aed-4cd5-9b52-61520d692b6c"
       ],
       "details": {
+        "type": "agent",
         "accountId": "claude-initial",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-623840ef-c14e-4141-892f-f42f2ec9f33c",
       "origin": {
@@ -1244,9 +1244,35 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-cd73a555-6aed-4cd5-9b52-61520d692b6c",
       "startedAt": "2026-11-10T18:10:15.895Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-cd73a555-6aed-4cd5-9b52-61520d692b6c"
+    },
+    {
+      "commits": [
+        {
+          "commit": "182c6b66402300e9535bf54dbb9130e6d1066df9",
+          "committedAt": "2026-11-10T19:38:26+01:00",
+          "deletions": 5,
+          "filePaths": [
+            "app/src/components/actions/conversation/messages/action_conversation_message.test.tsx",
+            "app/src/components/editor/links/markdown_link_dialog_navigation.test.ts",
+            "app/src/components/editor/links/markdown_link_dialog_navigation.ts",
+            "desktop/src/shell/renderer_security.js",
+            "desktop/src/shell/renderer_security.test.mjs"
+          ],
+          "filesChanged": 5,
+          "insertions": 23,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-10T19:38:26+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "644f4bf0-b21a-42ba-be1e-5b0daaecb1b8",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
