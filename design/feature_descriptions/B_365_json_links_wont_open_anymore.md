@@ -3,7 +3,7 @@ author:
 id: B_365
 internalId: 05c8cd40-0825-4fc1-abc8-b5f0389c2954
 title: json links wont open anymore
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,13 @@ policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 branch: b_365_json_links_wont_open_anymore
 worktree: 1
+changedFiles:
+  - desktop/src/shell/renderer_navigation.electron.test.mjs
+  - desktop/src/shell/renderer_security.js
+  - desktop/src/shell/renderer_security.test.mjs
+  - desktop/src/test/fixtures/trusted_navigation.html
+  - desktop/src/test/fixtures/untrusted_navigation.html
+  - desktop/src/test/renderer_navigation_electron.js
 ---
 when clicking on a link in the markdown editor pointing to a json file, we now get a white screen with a text: `md2 desktop bridges blocked for origin: null`
 
