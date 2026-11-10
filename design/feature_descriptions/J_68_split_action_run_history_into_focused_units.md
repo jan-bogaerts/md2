@@ -3,7 +3,7 @@ author:
 id: J_68
 internalId: 83c5615c-4c5c-4c99-8fa6-4ab6e1f61bd5
 title: split action run history into focused units
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,13 @@ policy:
 after: d2e9440e-e79e-4abe-9092-d786540e29d3
 branch: j_68_split_action_run_history_into_focused_units
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/state/action_run_history.test.tsx
+  - app/src/components/actions/run/state/action_run_history.tsx
+  - app/src/components/actions/run/state/action_run_history_entry.test.tsx
+  - app/src/components/actions/run/state/action_run_history_entry.tsx
+  - app/src/components/actions/run/state/action_run_history_order.node.test.ts
+  - app/src/components/actions/run/state/action_run_history_order.ts
 ---
 
 `app/src/components/actions/run/state/action_run_history.tsx` currently owns the history section layout, entry ordering, agent and command summary formatting, account-name resolution, error reporting, and entry rendering. Split these responsibilities into focused units without changing run-history behavior.
