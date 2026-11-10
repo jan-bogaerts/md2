@@ -3,7 +3,7 @@ author:
 id: J_70
 internalId: a1bb555a-bf8b-4111-a211-23e18445fe00
 title: improve json list editor
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,13 @@ agents:
 policy:
 branch: j_70_improve_json_list_editor
 worktree: 1
+changedFiles:
+  - app/src/components/json_data_editor/json_array_column_header_cell.tsx
+  - app/src/components/json_data_editor/json_array_editor.tsx
+  - app/src/components/json_data_editor/json_array_virtual_table.tsx
+  - app/src/components/json_data_editor/json_data_editor.test.tsx
+  - app/src/services/json/json_data_document.node.test.ts
+  - app/src/services/json/json_data_document.ts
 ---
 
 * make columns resizable
