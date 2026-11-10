@@ -10,8 +10,6 @@ agents:
   - design/activity/card__05c8cd40-0825-4fc1-abc8-b5f0389c2954.json
 policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
-branch: b_365_json_links_wont_open_anymore
-worktree: 1
 changedFiles:
   - desktop/src/shell/renderer_navigation.electron.test.mjs
   - desktop/src/shell/renderer_security.js
