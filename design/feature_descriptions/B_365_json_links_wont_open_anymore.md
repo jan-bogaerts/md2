@@ -17,7 +17,28 @@ changedFiles:
   - app/src/components/editor/links/markdown_link_dialog_navigation.ts
   - app/src/components/editor/markdown_editor.tsx
   - app/src/components/editor/markdown_editor_json_link.real.test.tsx
+  - app/src/data/data_types.ts
+  - app/src/data/electron_data_bridge.ts
+  - app/src/services/data/data_service.ts
+  - app/src/services/data/local_git_storage_service.ts
+  - app/src/services/json/json_data_document.ts
+  - app/src/services/json/json_data_service.node.test.ts
+  - app/src/services/json/json_data_service.ts
+  - app/src/services/json/json_link_navigation.test.ts
+  - app/src/services/json/json_link_navigation.ts
+  - app/src/services/json/json_link_path.node.test.ts
+  - app/src/services/json/json_link_path.ts
+  - app/src/services/project/project_persistence_service.node.test.ts
+  - app/src/services/project/project_persistence_service.ts
+  - app/src/services/project/save_state_service.node.test.ts
+  - app/src/services/project/save_state_service.ts
   - desktop/.codex_electron_probe.js
+  - desktop/src/project/project_files.js
+  - desktop/src/project/project_files.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.js
+  - desktop/src/shell/preload.test.mjs
   - desktop/src/shell/renderer_navigation.electron.test.mjs
   - desktop/src/shell/renderer_security.js
   - desktop/src/shell/renderer_security.test.mjs
