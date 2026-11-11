@@ -1428,7 +1428,7 @@
         "costUsd": 1.3138862
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1503,6 +1503,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "3a0de74a281c0ca71605b473bf018cea4d0e12b6",
           "committedAt": "2026-11-10T16:42:00+01:00",
           "deletions": 23,
@@ -1515,8 +1516,7 @@
             "app/src/services/json/json_data_document.ts"
           ],
           "filesChanged": 6,
-          "insertions": 280,
-          "branch": "dev_main"
+          "insertions": 280
         }
       ],
       "completedAt": "2026-11-10T16:42:00+01:00",
