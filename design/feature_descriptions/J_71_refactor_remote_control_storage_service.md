@@ -3,7 +3,7 @@ author:
 id: J_71
 internalId: 6848789c-38d0-479c-ad68-4da42008eefa
 title: refactor remote control storage service
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,29 @@ policy:
 after: d2e9440e-e79e-4abe-9092-d786540e29d3
 branch: j_71_refactor_remote_control_storage_service
 worktree: 1
+changedFiles:
+  - app/src/services/data/remote_connection_service.ts
+  - app/src/services/data/remote_control_action_bridge.node.test.ts
+  - app/src/services/data/remote_control_action_bridge.ts
+  - app/src/services/data/remote_control_broadcast_subscription.node.test.ts
+  - app/src/services/data/remote_control_broadcast_subscription.ts
+  - app/src/services/data/remote_control_callback_subscription.node.test.ts
+  - app/src/services/data/remote_control_callback_subscription.ts
+  - app/src/services/data/remote_control_claude_runtime_bridge.node.test.ts
+  - app/src/services/data/remote_control_claude_runtime_bridge.ts
+  - app/src/services/data/remote_control_client.node.test.ts
+  - app/src/services/data/remote_control_client.ts
+  - app/src/services/data/remote_control_codex_runtime_bridge.node.test.ts
+  - app/src/services/data/remote_control_codex_runtime_bridge.ts
+  - app/src/services/data/remote_control_connection_error.ts
+  - app/src/services/data/remote_control_desktop_config_transport.node.test.ts
+  - app/src/services/data/remote_control_desktop_config_transport.ts
+  - app/src/services/data/remote_control_project_watch.node.test.ts
+  - app/src/services/data/remote_control_project_watch.ts
+  - app/src/services/data/remote_control_storage_service.node.test.ts
+  - app/src/services/data/remote_control_storage_service.ts
+  - app/src/services/data/remote_control_subscription_failure.ts
+  - app/src/services/test_support/mock_web_socket.ts
 ---
 
 `app/src/services/data/remote_control_storage_service.ts` is approximately 1,430 lines and combines WebSocket transport, RPC correlation, reconnection, remote subscriptions, event routing, pending-push tracking, and five public service contracts. Split it into focused units without changing the remote-control protocol or established application behavior.

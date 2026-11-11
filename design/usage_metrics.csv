@@ -11167,3 +11167,9 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-11T14:54:24.194Z,account_usage,claude,default,weekly,10080,2026-11-15T17:00:00.000Z,,,,,,11,0,claude-initial
 2026-11-11T14:56:24.199Z,account_usage,claude,default,weekly,10080,2026-11-15T16:59:00.000Z,,,,,,11,0,claude-initial
 2026-11-11T15:00:24.215Z,account_usage,claude,default,weekly,10080,2026-11-15T17:00:00.000Z,,,,,,11,0,claude-initial
+2026-11-11T15:04:24.232Z,account_usage,claude,default,weekly,10080,2026-11-15T16:59:00.000Z,,,,,,11,0,claude-initial
+2026-11-11T15:06:24.235Z,account_usage,claude,default,weekly,10080,2026-11-15T16:59:00.000Z,,,,,,12,1,claude-initial
+2026-11-11T15:10:24.245Z,account_usage,claude,default,weekly,10080,2026-11-15T17:00:00.000Z,,,,,,12,0,claude-initial
+2026-11-11T15:12:24.256Z,account_usage,claude,default,weekly,10080,2026-11-15T17:00:00.000Z,,,,,,13,1,claude-initial
+2026-11-11T15:14:24.269Z,account_usage,claude,default,weekly,10080,2026-11-15T16:59:00.000Z,,,,,,13,0,claude-initial
+2026-11-11T15:17:22.364Z,token_usage,claude,,,,,80,7363278,74410,0,7437768,,,claude-initial
