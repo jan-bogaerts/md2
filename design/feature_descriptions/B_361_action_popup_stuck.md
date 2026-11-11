@@ -3,7 +3,7 @@ author:
 id: B_361
 internalId: d2e9440e-e79e-4abe-9092-d786540e29d3
 title: action popup stuck
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,12 @@ agents:
 policy:
 branch: b_361_action_popup_stuck
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/state/action_run_binding_store.node.test.ts
+  - app/src/data/action_run_types.ts
+  - desktop/src/actions/action/action_prompt_queue_closed_error.js
+  - desktop/src/actions/action/action_runner_prompt_continuation.test.mjs
+  - desktop/src/actions/action/action_runner_service.js
 ---
 We were doing a conversation in an action popup. there were a couple of tasks to complete. the UI appeared as if it was stuck on task 2, and everything was still running.
 
