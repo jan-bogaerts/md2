@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__6848789c-38d0-479c-ad68-4da42008eefa.json
 policy:
 after: d2e9440e-e79e-4abe-9092-d786540e29d3
 branch: j_71_refactor_remote_control_storage_service
