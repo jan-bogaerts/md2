@@ -20,10 +20,10 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "6848789c-38d0-479c-ad68-4da42008eefa",
       "cardPath": "design/feature_descriptions/J_71_refactor_remote_control_storage_service.md",
-      "completedAt": "2026-11-11T15:17:22.743Z",
+      "completedAt": "2026-11-11T16:01:21.312Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 234034
+        "usedTokens": 252279
       },
       "entries": [
         {
@@ -1639,6 +1639,275 @@
           "role": "assistant",
           "sequence": 128,
           "timestamp": "2026-11-11T15:17:22.743Z"
+        },
+        {
+          "content": "this refactor is not complete. it did not move the functions, but kept them as shells. you need to update the call-sites as well.",
+          "id": "submission-6cdb0665-51f7-4e30-87f5-5a5e7ad3dc43",
+          "kind": "message",
+          "role": "user",
+          "sequence": 129,
+          "timestamp": "2026-11-11T15:51:22.070Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-130",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwQbm15uTvqQV6vVetch:thinking:0",
+          "sequence": 130,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T15:51:30.071Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\services\\\\data\\\\remote_control_callback_subscription.ts\"}",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-131",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport {\n2\t    SOCKET_CLOSED_EVENT,\n3\t    SOCKET_OPENED_EVENT,\n4\t    type RemoteControlClient,\n5\t    type RemoteControlSubscriptionResult,\n6\t} from './remote_control_client';\n7\timport { reportSubscriptionFailure } from './remote_control_subscription_failure';\n8\t\n9\t/** Routing fields carried by every persistent-subscription event payload. */\n10\texport interface RemoteControlSubscriptionPayload {\n11\t    requestId: string;\n12\t    subscriptionId: string;\n13\t}\n14\t\n15\t/** Protocol names and payload selection for one callback subscription stream. */\n16\texport interface RemoteControlCallbackSubscriptionOptions<TPayload extends RemoteControlSubscriptionPayload, TValue> {\n17\t    eventName: string;\n18\t    method: string;\n19\t    select: (payload: TPayload) => TValue;\n20\t}\n21\t\n22\t/**\n23\t * One local listener backed by one server subscription.\n24\t * Routes events by setup request ID before the response and by server subscription ID afterwards,\n25\t * and restores itself once after every reconnect while active.\n26\t */\n27\texport class RemoteControlCallbackSubscription<TPayload extends RemoteControlSubscriptionPayload, TValue> {\n28\t    private active = true;\n29\t    private readonly callback: (value: TValue) => void;\n30\t    private readonly client: RemoteControlClient;\n31\t    private readonly options: RemoteControlCallbackSubscriptionOptions<TPayload, TValue>;\n32\t    private requestId: string | null = null;\n33\t    private serverSubscriptionId: string | null = null;\n34\t\n35\t    constructor(\n36\t        client: RemoteControlClient,\n37\t        options: RemoteControlCallbackSubscriptionOptions<TPayload, TValue>,\n38\t        callback: (value: TValue) => void,\n39\t    ) {\n40\t        this.client = client;\n41\t        this.options = options;\n42\t        this.callback = callback;\n43\t    }\n44\t\n45\t    start() {\n46\t        this.client.addEventListener(this.options.eventName, this.handleEvent);\n47\t        this.client.addEventListener(SOCKET_OPENED_EVENT, this.handleSocketOpened);\n48\t        this.client.addEventListener(SOCKET_CLOSED_EVENT, this.handleSocketClosed);\n49\t        void this.subscribe();\n50\t    }\n51\t\n52\t    /** Stops local delivery and best-effort unsubscribes the server subscription. Safe to call repeatedly. */\n53\t    stop() {\n54\t        if (!this.active) return;\n55\t\n56\t        this.active = false;\n57\t        this.client.removeEventListener(this.options.eventName, this.handleEvent);\n58\t        this.client.removeEventListener(SOCKET_OPENED_EVENT, this.handleSocketOpened);\n59\t        this.client.removeEventListener(SOCKET_CLOSED_EVENT, this.handleSocketClosed);\n60\t        this.requestId = null;\n61\t        const subscriptionId = this.serverSubscriptionId;\n62\t        this.serverSubscriptionId = null;\n63\t        if (!subscriptionId) return;\n64\t\n65\t        this.client.unsubscribeBestEffort(subscriptionId);\n66\t    }\n67\t\n68\t    private async subscribe() {\n69\t        if (!this.active || this.requestId || this.serverSubscriptionId) return;\n70\t\n71\t        const id = this.client.createRequestId();\n72\t        this.requestId = id;\n73\t        try {\n74\t            const result = await this.client.sendRequest<RemoteControlSubscriptionResult>(id, this.options.method, []);\n75\t            if (!this.active) {\n76\t                this.client.unsubscribeBestEffort(result.subscriptionId);\n77\t                return;\n78\t            }\n79\t\n80\t            this.serverSubscriptionId = result.subscriptionId;\n81\t        } catch (error) {\n82\t            reportSubscriptionFailure(this.options.method, error);\n83\t        } finally {\n84\t            if (this.requestId === id) this.requestId = null;\n85\t        }\n86\t    }\n87\t\n88\t    private readonly handleEvent = (event: Event) => {\n89\t        const payload = (event as CustomEvent<TPayload>).detail;\n90\t        const matchesSubscription = !!this.serverSubscriptionId && payload.subscriptionId === this.serverSubscriptionId;\n91\t        const matchesRequest = !!this.requestId && payload.requestId === this.requestId;\n92\t        if (!matchesSubscription && !matchesRequest) return;\n93\t\n94\t        this.callback(this.options.select(payload));\n95\t    };\n96\t\n97\t    private readonly handleSocketOpened = () => {\n98\t        void this.subscribe();\n99\t    };\n100\t\n101\t    private readonly handleSocketClosed = () => {\n102\t        this.requestId = null;\n103\t        this.serverSubscriptionId = null;\n104\t    };\n105\t}\n106\t\n107\t/** Starts one callback subscription and returns its idempotent cleanup. */\n108\texport function startCallbackSubscription<TPayload extends RemoteControlSubscriptionPayload, TValue>(\n109\t    client: RemoteControlClient,\n110\t    options: RemoteControlCallbackSubscriptionOptions<TPayload, TValue>,\n111\t    callback: (value: TValue) => void,\n112\t): () => void {\n113\t    const subscription = new RemoteControlCallbackSubscription(client, options, callback);\n114\t    subscription.start();\n115\t\n116\t    return () => subscription.stop();\n117\t}\n118\t",
+          "providerItemId": "toolu_01LdqLgwJe7AVuHUtwhJd9SW",
+          "sequence": 131,
+          "status": "completed",
+          "timestamp": "2026-11-11T15:51:30.167Z",
+          "type": "tool.Read"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src; grep -rnE \"\\b(storage|Storage|remoteStorage|firstStorage|first\\.storage|control\\.storage|this\\.activeStorage|this\\.connectingStorage|this\\.retryStorage|activeStorage|connectingStorage|retryStorage|initialStorage)\\??\\.(init|connect|disconnect|retire|getConnectionSettings|onConnectionChanged)\\(|spyOn\\([a-zA-Z.]*[sS]torage[a-zA-Z.]*, '(init|connect|disconnect|retire|getConnectionSettings|onConnectionChanged)'\\)|RemoteControlStorageService\\.prototype, '(init|connect|disconnect|retire|getConnectionSettings|onConnectionChanged)'\" --include=*.ts --include=*.tsx . | cut -c1-170",
+          "content": "./components/actions/run/popup/action_popup.test.tsx:1881:        storage.init({ endpoint: 'ws://desktop:1234' })\n./components/actions/run/popup/action_popup.test.tsx:1882:        vi.spyOn(storage, 'connect').mockReturnValue(connectionReady.promise)\n./components/actions/run/popup/action_popup.test.tsx:1917:        vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()\n./components/actions/run/popup/action_popup.test.tsx:1929:        firstStorage.init({ endpoint: 'ws://desktop:1234' })\n./components/actions/run/popup/action_popup.test.tsx:1930:        vi.spyOn(firstStorage, 'onConnectionChanged').mockImplementation((listener) => {\n./data/bridge_error_rehydration.node.test.ts:80:        storage.init({ bridge })\n./data/project_session.ts:47:        storage.init()\n./data/project_session.ts:54:        storage.init({\n./data/project_session.ts:63:    storage.init()\n./services/data/remote_connection_service.service.test.ts:26:    const retire = vi.spyOn(storage, 'retire')\n./services/data/remote_connection_service.service.test.ts:27:    vi.spyOn(storage, 'connect').mockImplementation(connectMock)\n./services/data/remote_connection_service.service.test.ts:28:    vi.spyOn(storage, 'disconnect').mockImplementation(disconnect)\n./services/data/remote_connection_service.service.test.ts:29:    vi.spyOn(storage, 'onConnectionChanged').mockImplementation((listener) => {\n./services/data/remote_connection_service.ts:119:        return this.startConnection(storage.getConnectionSettings(), storage)\n./services/data/remote_connection_service.ts:192:        if (!initialStorage) storage.init(settings)\n./services/data/remote_connection_service.ts:197:            : storage.onConnectionChanged((connected) => {\n./services/data/remote_connection_service.ts:204:            await storage.connect()\n./services/data/remote_connection_service.ts:210:                storage.retire()\n./services/data/remote_connection_service.ts:230:            storage.retire()\n./services/data/remote_connection_service.ts:294:        connectingStorage?.retire()\n./services/data/remote_connection_service.ts:296:        if (activeStorage !== connectingStorage) activeStorage?.retire()\n./services/github/github_storage_read_only.service.test.ts:46:        storage.init({ accessToken: 'token', fetchImplementation })\n./services/github/github_storage_read_only.service.test.ts:58:        storage.init({ accessToken: 'token', fetchImplementation })\n./services/project/project_loading.test.ts:187:        storage.init({ bridge })\n./services/project/project_loading.test.ts:1829:        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })\n./services/project/project_loading.test.ts:1914:        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })\n./services/project/project_loading.test.ts:1990:        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })\n./services/project/project_loading.test.ts:2035:        const reconnection = remoteStorage.connect()\n./services/project/project_session_service.service.test.ts:103:        vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()\n./services/project/project_session_service.service.test.ts:163:        storage.init({ endpoint: 'ws://127.0.0.1:1234' })\n./services/project/project_session_service.service.test.ts:175:        storage.init({ endpoint: 'ws://127.0.0.1:1234' })\n./services/project/project_session_service.service.test.ts:192:        storage.init({ endpoint: 'ws://127.0.0.1:1234' })\n./services/project/project_session_service.service.test.ts:204:        storage.init({ endpoint: 'ws://127.0.0.1:1234' })\n./services/project/project_session_service.service.test.ts:206:        vi.spyOn(storage, 'onConnectionChanged').mockImplementation((callback) => {\n./services/project/project_session_service.ts:102:    storage.init({ accessToken: accessToken ?? '' })",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-132",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src; grep -rnE \"\\b(storage|Storage|remoteStorage|firstStorage|first\\.storage|control\\.storage|this\\.activeStorage|this\\.connectingStorage|this\\.retryStorage|activeStorage|connectingStorage|retryStorage|initialStorage)\\??\\.(init|connect|disconnect|retire|getConnectionSettings|onConnectionChanged)\\(|spyOn\\([a-zA-Z.]*[sS]torage[a-zA-Z.]*, '(init|connect|disconnect|retire|getConnectionSettings|onConnectionChanged)'\\)|RemoteControlStorageService\\.prototype, '(init|connect|disconnect|retire|getConnectionSettings|onConnectionChanged)'\" --include=*.ts --include=*.tsx . | cut -c1-170",
+          "providerItemId": "toolu_01M4vFxTm9Jrvsx9dtedebPk",
+          "sequence": 132,
+          "status": "completed",
+          "timestamp": "2026-11-11T15:51:33.245Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "The storage service's forwarding shells are init, connect, disconnect, retire, getConnectionSettings and onConnectionChanged. I'm checking whether init belongs to the StorageService contract.\n\n",
+          "details": [
+            "The storage service's forwarding shells are init, connect, disconnect, retire, getConnectionSettings and onConnectionChanged. I'm checking whether init belongs to the StorageService contract.\n\n"
+          ],
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-133",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwQcUWBMbkbL2572Pr1w:thinking:0",
+          "sequence": 133,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T15:51:37.432Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "The storage service's forwarding shells are init, connect, disconnect, retire, getConnectionSettings and onConnectionChanged. I'm checking whether init belongs to the StorageService contract.\n\n",
+          "details": [
+            "The storage service's forwarding shells are init, connect, disconnect, retire, getConnectionSettings and onConnectionChanged. I'm checking whether init belongs to the StorageService contract.\n\n"
+          ],
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-134",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwQcUWBMbkbL2572Pr1w:thinking:1",
+          "sequence": 134,
+          "status": "inProgress",
+          "summary": [],
+          "timestamp": "2026-11-11T15:51:37.406Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src; sed -n 40,66p data/project_session.ts; grep -n \"init\" data/data_types.ts | head; sed -n 110,125p services/data/remote_connection_service.ts; sed -n 185,235p services/data/remote_connection_service.ts; sed -n 285,300p services/data/remote_connection_service.ts",
+          "content": "    applicationStorage.removeItem(LAST_PROJECT_STORAGE_KEY)\n}\n\n/** Create only the storage backend for the chosen source. GitHub requires an access token. */\nexport function createStorageService(storageType: StorageType, accessToken: string | null): StorageService {\n    if (storageType === 'remote') {\n        const storage = new RemoteControlStorageService()\n        storage.init()\n\n        return storage\n    }\n\n    if (storageType === 'github' || storageType === 'github-readonly') {\n        const storage = new GithubStorageService(storageType === 'github-readonly')\n        storage.init({\n            accessToken: accessToken ?? '',\n            onUnauthorized: () => githubAuthService.handleUnauthorized(),\n        })\n\n        return storage\n    }\n\n    const storage = new LocalGitStorageService()\n    storage.init()\n\n    return storage\n}\n356:    /** Missing means the agent's initial account. */\n\n        return () => this.removeEventListener('changed', listener)\n    }\n\n    async connect(settings: RemoteControlConnectionSettings): Promise<RemoteControlStorageService> {\n        return this.startConnection(settings)\n    }\n\n    connectExisting(storage: RemoteControlStorageService) {\n        return this.startConnection(storage.getConnectionSettings(), storage)\n    }\n\n    connectStored() {\n        return this.connect(readRemoteControlConnection())\n    }\n\n    private async connectOnce(\n        settings: RemoteControlConnectionSettings,\n        lifecycleId: number,\n        reconnecting: boolean,\n        initialStorage?: RemoteControlStorageService,\n    ): Promise<RemoteControlStorageService | null> {\n        const storage = initialStorage ?? this.dependencies.createStorage()\n        if (!initialStorage) storage.init(settings)\n        this.connectingStorage = storage\n        const connectionLossCount = this.connectionLossCount\n        const unsubscribe = reconnecting\n            ? null\n            : storage.onConnectionChanged((connected) => {\n                if (connected) return\n                this.connectionLossCount += 1\n                if (this.activeStorage === storage && this.snapshot.status === 'ready') this.startReconnecting(lifecycleId)\n            })\n\n        try {\n            await storage.connect()\n            if (connectionLossCount !== this.connectionLossCount) throw new RemoteControlConnectionError('Remote-control connection closed')\n            await this.dependencies.activate(storage, reconnecting)\n            if (connectionLossCount !== this.connectionLossCount) throw new RemoteControlConnectionError('Remote-control connection closed')\n            if (lifecycleId !== this.lifecycleId) {\n                if (this.connectingStorage === storage) this.connectingStorage = null\n                storage.retire()\n\n                return null\n            }\n\n            if (unsubscribe) {\n                this.unsubscribeConnection?.()\n                this.unsubscribeConnection = unsubscribe\n            }\n            this.activeStorage = storage\n            if (this.connectingStorage === storage) this.connectingStorage = null\n            this.reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS\n            this.publish({ endpoint: settings.endpoint, errorMessage: null, status: 'ready' })\n\n            return storage\n        } catch (error) {\n            if (this.connectingStorage === storage) this.connectingStorage = null\n            if (reconnecting) throw error\n\n            unsubscribe?.()\n            storage.retire()\n            if (lifecycleId !== this.lifecycleId) return null\n            this.dependencies.clearActivation()\n            const errorMessage = error instanceof Error ? error.message : 'Remote-control connection failed'\n            if (!reconnecting) this.publish({ endpoint: settings.endpoint, errorMessage, status: 'disconnected' })\n            throw error\n\n    private stopCurrentConnection() {\n        if (this.retryTimeout !== null) window.clearTimeout(this.retryTimeout)\n        this.reconnectResolve?.(null)\n        this.clearRetryState()\n        this.unsubscribeConnection?.()\n        this.unsubscribeConnection = null\n        const connectingStorage = this.connectingStorage\n        const activeStorage = this.activeStorage\n        connectingStorage?.retire()\n        this.connectingStorage = null\n        if (activeStorage !== connectingStorage) activeStorage?.retire()\n        this.activeStorage = null\n        this.connectionPromise = null\n    }",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-135",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src; sed -n 40,66p data/project_session.ts; grep -n \"init\" data/data_types.ts | head; sed -n 110,125p services/data/remote_connection_service.ts; sed -n 185,235p services/data/remote_connection_service.ts; sed -n 285,300p services/data/remote_connection_service.ts",
+          "providerItemId": "toolu_01B3nLGQTJdDYu5dVaVd8Ui1",
+          "sequence": 135,
+          "status": "completed",
+          "timestamp": "2026-11-11T15:51:39.125Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "I'm moving the lifecycle shells off the storage service so callers use `storage.client.*` directly, and the `onConnectionChanged` methods stay because the Electron bridges require them.\n\n",
+          "details": [
+            "I'm moving the lifecycle shells off the storage service so callers use `storage.client.*` directly, and the `onConnectionChanged` methods stay because the Electron bridges require them.\n\n"
+          ],
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-136",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwQcuZZ8ydWvrGvcwVkp:thinking:0",
+          "sequence": 136,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T15:51:45.051Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "I'm moving the lifecycle shells off the storage service so callers use `storage.client.*` directly, and the `onConnectionChanged` methods stay because the Electron bridges require them.\n\n",
+          "details": [
+            "I'm moving the lifecycle shells off the storage service so callers use `storage.client.*` directly, and the `onConnectionChanged` methods stay because the Electron bridges require them.\n\n"
+          ],
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-137",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwQcuZZ8ydWvrGvcwVkp:thinking:1",
+          "sequence": 137,
+          "status": "inProgress",
+          "summary": [],
+          "timestamp": "2026-11-11T15:51:45.023Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/services/data && python - <<'EOF'\np='remote_control_storage_service.ts'\ns=open(p,encoding='utf-8',newline='').read()\nold_block=\"\"\"    init(settings: Partial<RemoteControlConnectionSettings> = {}) {\n        this.client.init(settings);\n    }\n\n    async connect(): Promise<void> {\n        await this.client.connect();\n    }\n\n    disconnect() {\n        this.client.disconnect();\n    }\n\n    retire() {\n        this.client.retire();\n    }\n\n    getConnectionSettings(): RemoteControlConnectionSettings {\n        return this.client.getConnectionSettings();\n    }\n\n    onConnectionChanged(callback: (connected: boolean) => void): () => void {\n        return this.client.onConnectionChanged(callback);\n    }\n\n\"\"\"\nassert old_block in s\ns=s.replace(old_block,\"\")\ns=s.replace(\"import type { RemoteControlConnectionSettings } from '../../data/remote_control_connection';\\n\",\"\")\ns=s.replace(\"    private readonly client = new RemoteControlClient();\\n\",\"    readonly client = new RemoteControlClient();\\n\")\ns=s.replace(\"\"\" * Owns one remote-control client per instance and exposes the action, runtime, and desktop-config adapters sharing it.\"\"\",\n\"\"\" * Owns one remote-control client per instance and exposes it, for connection lifecycle,\n * together with the action, runtime, and desktop-config adapters sharing it.\"\"\")\nopen(p,'w',encoding='utf-8',newline='').write(s)\nEOF\ngrep -n \"client\" remote_control_storage_service.ts | head -5",
+          "content": "45:import { RemoteControlClient } from './remote_control_client';\n68: * Owns one remote-control client per instance and exposes it, for connection lifecycle,\n72:    readonly client = new RemoteControlClient();\n73:    readonly actionBridge = new RemoteControlActionBridge(this.client);\n74:    readonly claudeRuntimeBridge = new RemoteControlClaudeRuntimeBridge(this.client);",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-138",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/services/data && python - <<'EOF'\np='remote_control_storage_service.ts'\ns=open(p,encoding='utf-8',newline='').read()\nold_block=\"\"\"    init(settings: Partial<RemoteControlConnectionSettings> = {}) {\n        this.client.init(settings);\n    }\n\n    async connect(): Promise<void> {\n        await this.client.connect();\n    }\n\n    disconnect() {\n        this.client.disconnect();\n    }\n\n    retire() {\n        this.client.retire();\n    }\n\n    getConnectionSettings(): RemoteControlConnectionSettings {\n        return this.client.getConnectionSettings();\n    }\n\n    onConnectionChanged(callback: (connected: boolean) => void): () => void {\n        return this.client.onConnectionChanged(callback);\n    }\n\n\"\"\"\nassert old_block in s\ns=s.replace(old_block,\"\")\ns=s.replace(\"import type { RemoteControlConnectionSettings } from '../../data/remote_control_connection';\\n\",\"\")\ns=s.replace(\"    private readonly client = new RemoteControlClient();\\n\",\"    readonly client = new RemoteControlClient();\\n\")\ns=s.replace(\"\"\" * Owns one remote-control client per instance and exposes the action, runtime, and desktop-config adapters sharing it.\"\"\",\n\"\"\" * Owns one remote-control client per instance and exposes it, for connection lifecycle,\n * together with the action, runtime, and desktop-config adapters sharing it.\"\"\")\nopen(p,'w',encoding='utf-8',newline='').write(s)\nEOF\ngrep -n \"client\" remote_control_storage_service.ts | head -5",
+          "providerItemId": "toolu_01G2tMtGgSk7CS2fZyzgudnW",
+          "sequence": 138,
+          "status": "completed",
+          "timestamp": "2026-11-11T15:51:49.371Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-139",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwQdfJagsTeQhYtCGrcm:thinking:0",
+          "sequence": 139,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T15:51:54.485Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Updating the production call sites.",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 140,
+          "timestamp": "2026-11-11T15:51:54.487Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src && python - <<'EOF'\ndef edit(path, pairs):\n    b=open(path,'rb').read()\n    for old,new,count in pairs:\n        n=b.count(old.encode())\n        assert n==count,(path,old,n)\n        b=b.replace(old.encode(),new.encode())\n    open(path,'wb').write(b)\n\nedit('data/project_session.ts',[\n (\"const storage = new RemoteControlStorageService()\\n        storage.init()\",\"const storage = new RemoteControlStorageService()\\n        storage.client.init()\",1)])\nedit('services/data/remote_connection_service.ts',[\n (\"storage.getConnectionSettings()\",\"storage.client.getConnectionSettings()\",1),\n (\"storage.init(settings)\",\"storage.client.init(settings)\",1),\n (\"storage.onConnectionChanged(\",\"storage.client.onConnectionChanged(\",1),\n (\"await storage.connect()\",\"await storage.client.connect()\",1),\n (\"storage.retire()\",\"storage.client.retire()\",2),\n (\"connectingStorage?.retire()\",\"connectingStorage?.client.retire()\",1),\n (\"activeStorage?.retire()\",\"activeStorage?.client.retire()\",1),\n])\nEOF\ngrep -rn \"\\.retire()\\|\\.disconnect()\\|\\.connect()\" services/data/remote_connection_service.ts components/shell/remote_connect_button.tsx data/project_storage_activation.ts services/project/project_session_service.ts | cut -c1-160",
+          "content": "services/data/remote_connection_service.ts:204:            await storage.client.connect()\nservices/data/remote_connection_service.ts:210:                storage.client.retire()\nservices/data/remote_connection_service.ts:230:            storage.client.retire()\nservices/data/remote_connection_service.ts:294:        connectingStorage?.client.retire()\nservices/data/remote_connection_service.ts:296:        if (activeStorage !== connectingStorage) activeStorage?.client.retire()\ncomponents/shell/remote_connect_button.tsx:72:        remoteConnectionService.disconnect()\ndata/project_storage_activation.ts:16:        remoteConnectionService.disconnect()",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-141",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src && python - <<'EOF'\ndef edit(path, pairs):\n    b=open(path,'rb').read()\n    for old,new,count in pairs:\n        n=b.count(old.encode())\n        assert n==count,(path,old,n)\n        b=b.replace(old.encode(),new.encode())\n    open(path,'wb').write(b)\n\nedit('data/project_session.ts',[\n (\"const storage = new RemoteControlStorageService()\\n        storage.init()\",\"const storage = new RemoteControlStorageService()\\n        storage.client.init()\",1)])\nedit('services/data/remote_connection_service.ts',[\n (\"storage.getConnectionSettings()\",\"storage.client.getConnectionSettings()\",1),\n (\"storage.init(settings)\",\"storage.client.init(settings)\",1),\n (\"storage.onConnectionChanged(\",\"storage.client.onConnectionChanged(\",1),\n (\"await storage.connect()\",\"await storage.client.connect()\",1),\n (\"storage.retire()\",\"storage.client.retire()\",2),\n (\"connectingStorage?.retire()\",\"connectingStorage?.client.retire()\",1),\n (\"activeStorage?.retire()\",\"activeStorage?.client.retire()\",1),\n])\nEOF\ngrep -rn \"\\.retire()\\|\\.disconnect()\\|\\.connect()\" services/data/remote_connection_service.ts components/shell/remote_connect_button.tsx data/project_storage_activation.ts services/project/project_session_service.ts | cut -c1-160",
+          "providerItemId": "toolu_01M5BpNSwLR7AXKC2X3KnZ62",
+          "sequence": 141,
+          "status": "completed",
+          "timestamp": "2026-11-11T15:51:59.027Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the test call sites.",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 142,
+          "timestamp": "2026-11-11T15:52:00.112Z"
+        },
+        {
+          "command": "python - <<'EOF'\nimport re\ndef edit(path, pairs):\n    b=open(path,'rb').read()\n    for old,new,count in pairs:\n        n=b.count(old.encode())\n        assert n==count,(path,old,n)\n        b=b.replace(old.encode(),new.encode())\n    open(path,'wb').write(b)\n\nedit('components/actions/run/popup/action_popup.test.tsx',[\n (\"storage.init({ endpoint: 'ws://desktop:1234' })\",\"storage.client.init({ endpoint: 'ws://desktop:1234' })\",1),\n (\"vi.spyOn(storage, 'connect')\",\"vi.spyOn(storage.client, 'connect')\",1),\n (\"vi.spyOn(RemoteControlStorageService.prototype, 'connect')\",\"vi.spyOn(RemoteControlClient.prototype, 'connect')\",1),\n (\"firstStorage.init({\",\"firstStorage.client.init({\",1),\n (\"vi.spyOn(firstStorage, 'onConnectionChanged')\",\"vi.spyOn(firstStorage.client, 'onConnectionChanged')\",1),\n (\"import { RemoteControlCodexRuntimeBridge } from '../../../../services/data/remote_control_codex_runtime_bridge'\",\n  \"import { RemoteControlClient } from '../../../../services/data/remote_control_client'\\nimport { RemoteControlCodexRuntimeBridge } from '../../../../services/data/remote_control_codex_runtime_bridge'\",1),\n])\nedit('services/data/remote_connection_service.service.test.ts',[\n (\"vi.spyOn(storage, 'retire')\",\"vi.spyOn(storage.client, 'retire')\",1),\n (\"vi.spyOn(storage, 'connect')\",\"vi.spyOn(storage.client, 'connect')\",1),\n (\"vi.spyOn(storage, 'disconnect')\",\"vi.spyOn(storage.client, 'disconnect')\",1),\n (\"vi.spyOn(storage, 'onConnectionChanged')\",\"vi.spyOn(storage.client, 'onConnectionChanged')\",1),\n])\nedit('services/project/project_loading.test.ts',[\n (\"remoteStorage.init({\",\"remoteStorage.client.init({\",3),\n (\"remoteStorage.connect()\",\"remoteStorage.client.connect()\",1),\n])\np='services/project/project_session_service.service.test.ts'\nb=open(p,'rb').read()\neol=b'\\r\\n' if b\"import { RemoteControlCodexRuntimeBridge } from '../data/remote_control_codex_runtime_bridge'\\r\\n\" in b else b'\\n'\nopen(p,'wb').write(b)\nedit(p,[\n (\"vi.spyOn(RemoteControlStorageService.prototype, 'connect')\",\"vi.spyOn(RemoteControlClient.prototype, 'connect')\",1),\n (\"storage.init({ endpoint: 'ws://127.0.0.1:1234' })\",\"storage.client.init({ endpoint: 'ws://127.0.0.1:1234' })\",4),\n (\"vi.spyOn(storage, 'onConnectionChanged')\",\"vi.spyOn(storage.client, 'onConnectionChanged')\",1),\n (\"import { RemoteControlCodexRuntimeBridge } from '../data/remote_control_codex_runtime_bridge'\",\n  \"import { RemoteControlClient } from '../data/remote_control_client'\"+eol.decode()+\"import { RemoteControlCodexRuntimeBridge } from '../data/remote_control_codex_runtime_bridge'\",1),\n])\nedit('services/data/remote_control_storage_service.node.test.ts',[\n (\"service.init({ endpoint: TEST_ENDPOINT });\",\"service.client.init({ endpoint: TEST_ENDPOINT });\",1),\n (\"openConnection(service)\",\"openConnection(service.client)\",6),\n (\"openConnection(first)\",\"openConnection(first.client)\",1),\n (\"openConnection(second)\",\"openConnection(second.client)\",1),\n (\"service.onConnectionChanged(listener);\",\"service.client.onConnectionChanged(listener);\",1),\n (\"service.disconnect();\",\"service.client.disconnect();\",1),\n (\"service.getConnectionSettings()\",\"service.client.getConnectionSettings()\",1),\n (\"service.retire();\",\"service.client.retire();\",1),\n])\nEOF\ncd ..; npm run typecheck 2>&1 | grep \"error TS\" | cut -c1-220",
+          "content": "Traceback (most recent call last):\r\n  File \"<stdin>\", line 40, in <module>\r\n  File \"<stdin>\", line 6, in edit\r\nAssertionError: ('services/data/remote_control_storage_service.node.test.ts', 'openConnection(service)', 5)\r\nsrc/services/data/remote_control_storage_service.node.test.ts(121,13): error TS2339: Property 'init' does not exist on type 'RemoteControlStorageService'.\nsrc/services/data/remote_control_storage_service.node.test.ts(154,45): error TS2345: Argument of type 'RemoteControlStorageService' is not assignable to parameter of type '{ connect(): Promise<void>; }'.\nsrc/services/data/remote_control_storage_service.node.test.ts(169,45): error TS2345: Argument of type 'RemoteControlStorageService' is not assignable to parameter of type '{ connect(): Promise<void>; }'.\nsrc/services/data/remote_control_storage_service.node.test.ts(187,45): error TS2345: Argument of type 'RemoteControlStorageService' is not assignable to parameter of type '{ connect(): Promise<void>; }'.\nsrc/services/data/remote_control_storage_service.node.test.ts(214,17): error TS2339: Property 'onConnectionChanged' does not exist on type 'RemoteControlStorageService'.\nsrc/services/data/remote_control_storage_service.node.test.ts(215,45): error TS2345: Argument of type 'RemoteControlStorageService' is not assignable to parameter of type '{ connect(): Promise<void>; }'.\nsrc/services/data/remote_control_storage_service.node.test.ts(216,17): error TS2339: Property 'disconnect' does not exist on type 'RemoteControlStorageService'.\nsrc/services/data/remote_control_storage_service.node.test.ts(218,24): error TS2339: Property 'getConnectionSettings' does not exist on type 'RemoteControlStorageService'.\nsrc/services/data/remote_control_storage_service.node.test.ts(226,17): error TS2339: Property 'retire' does not exist on type 'RemoteControlStorageService'.\nsrc/services/data/remote_control_storage_service.node.test.ts(282,45): error TS2345: Argument of type 'RemoteControlStorageService' is not assignable to parameter of type '{ connect(): Promise<void>; }'.\nsrc/services/data/remote_control_storage_service.node.test.ts(302,50): error TS2345: Argument of type 'RemoteControlStorageService' is not assignable to parameter of type '{ connect(): Promise<void>; }'.\nsrc/services/data/remote_control_storage_service.node.test.ts(303,51): error TS2345: Argument of type 'RemoteControlStorageService' is not assignable to parameter of type '{ connect(): Promise<void>; }'.",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-143",
+          "kind": "event",
+          "label": "python - <<'EOF'\nimport re\ndef edit(path, pairs):\n    b=open(path,'rb').read()\n    for old,new,count in pairs:\n        n=b.count(old.encode())\n        assert n==count,(path,old,n)\n        b=b.replace(old.encode(),new.encode())\n    open(path,'wb').write(b)\n\nedit('components/actions/run/popup/action_popup.test.tsx',[\n (\"storage.init({ endpoint: 'ws://desktop:1234' })\",\"storage.client.init({ endpoint: 'ws://desktop:1234' })\",1),\n (\"vi.spyOn(storage, 'connect')\",\"vi.spyOn(storage.client, 'connect')\",1),\n (\"vi.spyOn(RemoteControlStorageService.prototype, 'connect')\",\"vi.spyOn(RemoteControlClient.prototype, 'connect')\",1),\n (\"firstStorage.init({\",\"firstStorage.client.init({\",1),\n (\"vi.spyOn(firstStorage, 'onConnectionChanged')\",\"vi.spyOn(firstStorage.client, 'onConnectionChanged')\",1),\n (\"import { RemoteControlCodexRuntimeBridge } from '../../../../services/data/remote_control_codex_runtime_bridge'\",\n  \"import { RemoteControlClient } from '../../../../services/data/remote_control_client'\\nimport { RemoteControlCodexRuntimeBridge } from '../../../../services/data/remote_control_codex_runtime_bridge'\",1),\n])\nedit('services/data/remote_connection_service.service.test.ts',[\n (\"vi.spyOn(storage, 'retire')\",\"vi.spyOn(storage.client, 'retire')\",1),\n (\"vi.spyOn(storage, 'connect')\",\"vi.spyOn(storage.client, 'connect')\",1),\n (\"vi.spyOn(storage, 'disconnect')\",\"vi.spyOn(storage.client, 'disconnect')\",1),\n (\"vi.spyOn(storage, 'onConnectionChanged')\",\"vi.spyOn(storage.client, 'onConnectionChanged')\",1),\n])\nedit('services/project/project_loading.test.ts',[\n (\"remoteStorage.init({\",\"remoteStorage.client.init({\",3),\n (\"remoteStorage.connect()\",\"remoteStorage.client.connect()\",1),\n])\np='services/project/project_session_service.service.test.ts'\nb=open(p,'rb').read()\neol=b'\\r\\n' if b\"import { RemoteControlCodexRuntimeBridge } from '../data/remote_control_codex_runtime_bridge'\\r\\n\" in b else b'\\n'\nopen(p,'wb').write(b)\nedit(p,[\n (\"vi.spyOn(RemoteControlStorageService.prototype, 'connect')\",\"vi.spyOn(RemoteControlClient.prototype, 'connect')\",1),\n (\"storage.init({ endpoint: 'ws://127.0.0.1:1234' })\",\"storage.client.init({ endpoint: 'ws://127.0.0.1:1234' })\",4),\n (\"vi.spyOn(storage, 'onConnectionChanged')\",\"vi.spyOn(storage.client, 'onConnectionChanged')\",1),\n (\"import { RemoteControlCodexRuntimeBridge } from '../data/remote_control_codex_runtime_bridge'\",\n  \"import { RemoteControlClient } from '../data/remote_control_client'\"+eol.decode()+\"import { RemoteControlCodexRuntimeBridge } from '../data/remote_control_codex_runtime_bridge'\",1),\n])\nedit('services/data/remote_control_storage_service.node.test.ts',[\n (\"service.init({ endpoint: TEST_ENDPOINT });\",\"service.client.init({ endpoint: TEST_ENDPOINT });\",1),\n (\"openConnection(service)\",\"openConnection(service.client)\",6),\n (\"openConnection(first)\",\"openConnection(first.client)\",1),\n (\"openConnection(second)\",\"openConnection(second.client)\",1),\n (\"service.onConnectionChanged(listener);\",\"service.client.onConnectionChanged(listener);\",1),\n (\"service.disconnect();\",\"service.client.disconnect();\",1),\n (\"service.getConnectionSettings()\",\"service.client.getConnectionSettings()\",1),\n (\"service.retire();\",\"service.client.retire();\",1),\n])\nEOF\ncd ..; npm run typecheck 2>&1 | grep \"error TS\" | cut -c1-220",
+          "providerItemId": "toolu_01CANAgf4uVN4GLeJnrJBpKz",
+          "sequence": 143,
+          "status": "completed",
+          "timestamp": "2026-11-11T15:52:26.170Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nOnly the last file's count was off (5, not 6); earlier files were written. Rerunning that file's edit.",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 144,
+          "timestamp": "2026-11-11T15:52:28.415Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src && python - <<'EOF'\np='services/data/remote_control_storage_service.node.test.ts'\nb=open(p,'rb').read()\nfor old,new in [(\"service.init({ endpoint: TEST_ENDPOINT });\",\"service.client.init({ endpoint: TEST_ENDPOINT });\"),\n (\"openConnection(service)\",\"openConnection(service.client)\"),\n (\"openConnection(first)\",\"openConnection(first.client)\"),\n (\"openConnection(second)\",\"openConnection(second.client)\"),\n (\"service.onConnectionChanged(listener);\",\"service.client.onConnectionChanged(listener);\"),\n (\"service.disconnect();\",\"service.client.disconnect();\"),\n (\"service.getConnectionSettings()\",\"service.client.getConnectionSettings()\"),\n (\"service.retire();\",\"service.client.retire();\")]:\n    assert old.encode() in b, old\n    b=b.replace(old.encode(),new.encode())\nopen(p,'wb').write(b)\nEOF\ncd ..; npm run typecheck 2>&1 | grep \"error TS\" | cut -c1-220; cd /c/Users/janbo/Documents/dev/md2_workers/dev1; git diff --stat | tail -15",
+          "content": " app/src/App.test.tsx                               |    2 +-\n .../actions/run/popup/action_popup.test.tsx        |   45 +-\n .../actions/run/popup/action_popup_defaults.ts     |    2 +-\n app/src/data/project_session.ts                    |    2 +-\n .../action_prompt_draft_service.node.test.ts       |    2 +-\n .../actions/action_prompt_draft_service.ts         |    2 +-\n .../services/application_startup_service.test.ts   |    2 +-\n app/src/services/application_startup_service.ts    |    2 +-\n .../data/remote_connection_service.service.test.ts |   25 +-\n app/src/services/data/remote_connection_service.ts |   33 +-\n .../remote_control_storage_service.node.test.ts    | 1841 +++-----------------\n .../data/remote_control_storage_service.ts         | 1433 ++-------------\n app/src/services/project/project_loading.test.ts   |    8 +-\n .../project_session_service.service.test.ts        |   47 +-\n 14 files changed, 529 insertions(+), 2917 deletions(-)",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-145",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src && python - <<'EOF'\np='services/data/remote_control_storage_service.node.test.ts'\nb=open(p,'rb').read()\nfor old,new in [(\"service.init({ endpoint: TEST_ENDPOINT });\",\"service.client.init({ endpoint: TEST_ENDPOINT });\"),\n (\"openConnection(service)\",\"openConnection(service.client)\"),\n (\"openConnection(first)\",\"openConnection(first.client)\"),\n (\"openConnection(second)\",\"openConnection(second.client)\"),\n (\"service.onConnectionChanged(listener);\",\"service.client.onConnectionChanged(listener);\"),\n (\"service.disconnect();\",\"service.client.disconnect();\"),\n (\"service.getConnectionSettings()\",\"service.client.getConnectionSettings()\"),\n (\"service.retire();\",\"service.client.retire();\")]:\n    assert old.encode() in b, old\n    b=b.replace(old.encode(),new.encode())\nopen(p,'wb').write(b)\nEOF\ncd ..; npm run typecheck 2>&1 | grep \"error TS\" | cut -c1-220; cd /c/Users/janbo/Documents/dev/md2_workers/dev1; git diff --stat | tail -15",
+          "providerItemId": "toolu_01Fzt337NpYThhvYt99v1Y2B",
+          "sequence": 145,
+          "status": "completed",
+          "timestamp": "2026-11-11T15:53:21.391Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-146",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwQkT7ZGoS1MJLjb8dQq:thinking:0",
+          "sequence": 146,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T15:53:25.551Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nTypecheck clean and line endings preserved. Running the affected tests and lint.",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 147,
+          "timestamp": "2026-11-11T15:53:25.553Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; npm run test -- src/services/data/ src/services/project/project_session_service.service.test.ts src/services/project/project_loading.test.ts src/components/actions/run/popup/action_popup.test.tsx src/data/ src/components/shell/ 2>&1 | grep -E \"×|FAIL|Test Files|Tests |Error:\" | head -20; npm run lint 2>&1 | tail -6",
+          "content": " Test Files  76 passed (76)\n      Tests  1230 passed (1230)\n\n> app@0.11.5 lint\n> eslint .",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-148",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; npm run test -- src/services/data/ src/services/project/project_session_service.service.test.ts src/services/project/project_loading.test.ts src/components/actions/run/popup/action_popup.test.tsx src/data/ src/components/shell/ 2>&1 | grep -E \"×|FAIL|Test Files|Tests |Error:\" | head -20; npm run lint 2>&1 | tail -6",
+          "providerItemId": "toolu_014N6teepVXUoLMezHeLYGyF",
+          "sequence": 148,
+          "status": "completed",
+          "timestamp": "2026-11-11T15:55:31.140Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-event-149",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwQv1tXfRpuB9YW7Yxtv:thinking:0",
+          "sequence": 149,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T15:55:36.696Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nYou were right: `RemoteControlStorageService` still had six methods that only passed calls on to the client: `init`, `connect`, `disconnect`, `retire`, `getConnectionSettings` and `onConnectionChanged`. They're gone now. The storage service exposes the client directly as `readonly client`, and every caller uses `storage.client.*`. Typecheck and lint are clean, and the affected tests pass (76 files, 1,230 tests).\n\n**Production call sites updated**\n- `data/project_session.ts`: the remote branch of `createStorageService()` now calls `storage.client.init()`.\n- `services/data/remote_connection_service.ts`: `getConnectionSettings`, `init`, `onConnectionChanged`, `connect` and the four `retire` calls now go through `.client`.\n\n**Test call sites updated**\n- `action_popup.test.tsx`\n- `remote_connection_service.service.test.ts`\n- `project_loading.test.ts`\n- `project_session_service.service.test.ts`\n- `remote_control_storage_service.node.test.ts`\n\nThe prototype spies in these tests now target `RemoteControlClient.prototype.connect`, and the instance spies target `storage.client`.\n\n**What stays as it is**\n- The storage operations are the actual `StorageService` implementation, not forwarders, so they stay.\n- `onConnectionChanged` on the Codex and Claude runtime bridges also stays. It's part of their interfaces, and the rate-limit services call it to refresh limits after a reconnect.\n\nI edited these files at the byte level, and their original line endings are unchanged.",
+          "id": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 150,
+          "timestamp": "2026-11-11T16:01:21.312Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1649,17 +1918,17 @@
           "agent": "claude",
           "conversationId": "0515d61a-8258-4471-aa6e-5947bc002bc9",
           "createdAt": "2026-11-11T14:47:54.161Z",
-          "lastUsedAt": "2026-11-11T15:17:22.743Z",
-          "synchronizedThroughMessageId": "agent-turn-73a4c620-13e6-44f3-b45f-3b44c018436c-turn-2-assistant-24",
+          "lastUsedAt": "2026-11-11T16:01:21.312Z",
+          "synchronizedThroughMessageId": "agent-turn-e683e53b-cb35-4097-a47d-fc8a457cfa91-turn-1-assistant-5",
           "usageBaseline": {
-            "costUsd": 5.2070555999999995,
-            "resultId": "e680dc53-1811-457e-addc-43cad993bdc5",
+            "costUsd": 5.874115599999998,
+            "resultId": "9dfbaf72-31e5-4db8-8587-7d107aa9e45a",
             "tokens": {
-              "cachedInputTokens": 8678769,
-              "inputTokens": 105,
-              "outputTokens": 89175,
+              "cachedInputTokens": 10645760,
+              "inputTokens": 121,
+              "outputTokens": 95932,
               "reasoningTokens": 0,
-              "totalTokens": 8768049
+              "totalTokens": 10741813
             }
           }
         }
@@ -1708,20 +1977,20 @@
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 155414,
-          "toolMs": 679812
+          "reasoningMs": 187826,
+          "toolMs": 898089
         },
-        "elapsedMs": 946329,
+        "elapsedMs": 1200999,
         "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 8678769,
-        "inputTokens": 105,
-        "outputTokens": 89175,
+        "cachedInputTokens": 10645760,
+        "inputTokens": 121,
+        "outputTokens": 95932,
         "reasoningTokens": 0,
-        "totalTokens": 8768049,
-        "costUsd": 5.2070555999999995
+        "totalTokens": 10741813,
+        "costUsd": 5.874115599999998
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -1756,6 +2025,31 @@
       "startedAt": "2026-11-11T14:47:51.207Z",
       "status": "completed",
       "rootConversationId": "agent-1b6b7887-507d-4c11-a38f-ba9bb7b41603"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-11T16:01:21.321Z",
+      "conversationIds": [
+        "agent-1b6b7887-507d-4c11-a38f-ba9bb7b41603"
+      ],
+      "details": {
+        "accountId": "claude-initial",
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-ceb2d291-9342-493d-8155-7e6536acdace",
+      "origin": {
+        "cardInternalId": "6848789c-38d0-479c-ad68-4da42008eefa",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "rootConversationId": "agent-1b6b7887-507d-4c11-a38f-ba9bb7b41603",
+      "startedAt": "2026-11-11T15:51:21.268Z",
+      "status": "completed"
     }
   ],
   "version": 5
