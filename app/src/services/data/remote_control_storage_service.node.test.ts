@@ -1,1614 +1,315 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../../shared/action_errors.mjs'
-import { RemoteControlStorageService } from './remote_control_storage_service'
-import { MissingWorkingFolderError } from '../../data/data_types'
-import { DEFAULT_AGENT_ACCOUNTS } from '../../data/agent_accounts'
-import type { ActionScheduleRegistrationRequest } from '../../data/electron_action_bridge'
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+    flushPromises,
+    installWebSocket,
+    lastSocket,
+    MockWebSocket,
+    openConnection,
+    settle,
+    TEST_ENDPOINT,
+} from '../test_support/mock_web_socket';
+import { RemoteControlStorageService } from './remote_control_storage_service';
 
-class MockWebSocket extends EventTarget {
-    static instances: MockWebSocket[] = []
+const PROJECT = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+const OPERATION_REQUEST = { project: PROJECT, worktree: 1, worktreeBranch: 'feature' };
+const MERGE_SESSION_REQUEST = { sessionId: 'session-1' };
+const MERGE_PATH_REQUEST = { path: 'src/file.ts', sessionId: 'session-1' };
 
-    readyState = 0
-    protocol: string | string[] | undefined
-    sent: string[] = []
-    url: string
-
-    constructor(url: string, protocol?: string | string[]) {
-        super()
-        this.protocol = protocol
-        this.url = url
-        MockWebSocket.instances.push(this)
-    }
-
-    send(message: string) {
-        this.sent.push(message)
-    }
-
-    open() {
-        this.readyState = 1
-        this.dispatchEvent(new Event('open'))
-    }
-
-    close() {
-        this.readyState = 3
-        this.dispatchEvent(new Event('close'))
-    }
-
-    receive(message: unknown) {
-        this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(message) }))
-    }
+interface ForwardingCase {
+    call: (service: RemoteControlStorageService) => Promise<unknown>;
+    method: string;
+    params: unknown[];
 }
 
-function installWebSocket() {
-    MockWebSocket.instances = []
-    vi.stubGlobal('WebSocket', MockWebSocket)
-}
+const forwardingCases: ForwardingCase[] = [
+    { call: (service) => service.getActiveProject(), method: 'getActiveProject', params: [] },
+    { call: (service) => service.listBranches(PROJECT), method: 'listBranches', params: [PROJECT] },
+    { call: (service) => service.checkoutBranch(PROJECT, 'topic'), method: 'checkoutBranch', params: [PROJECT, 'topic'] },
+    { call: (service) => service.deleteLocalBranch(PROJECT, 'feature'), method: 'deleteLocalBranch', params: [PROJECT, 'feature'] },
+    { call: (service) => service.loadProject(PROJECT, 'design'), method: 'loadProject', params: [PROJECT, 'design'] },
+    {
+        call: (service) => service.loadProject(PROJECT, 'design', 'design/active'),
+        method: 'loadProject',
+        params: [PROJECT, 'design', 'design/active'],
+    },
+    { call: (service) => service.loadProjectRoot(PROJECT, 'design'), method: 'loadProjectRoot', params: [PROJECT, 'design'] },
+    { call: (service) => service.loadProjectConfig(PROJECT), method: 'loadProjectConfig', params: [PROJECT] },
+    { call: (service) => service.loadFile(PROJECT, 'design/F-1.md'), method: 'loadFile', params: [PROJECT, 'design/F-1.md'] },
+    { call: (service) => service.loadTextFile(PROJECT, 'design/a.json'), method: 'loadTextFile', params: [PROJECT, 'design/a.json'] },
+    { call: (service) => service.loadProjectAsset(PROJECT, 'design/i.png'), method: 'loadProjectAsset', params: [PROJECT, 'design/i.png'] },
+    { call: (service) => service.loadImageFile('C:/images/photo.png'), method: 'loadImageFile', params: ['C:/images/photo.png'] },
+    { call: (service) => service.listRepositoryFiles(PROJECT), method: 'listRepositoryFiles', params: [PROJECT] },
+    { call: (service) => service.listTopLevelFolders(PROJECT), method: 'listTopLevelFolders', params: [PROJECT] },
+    { call: (service) => service.loadActionFiles(PROJECT, 'actions'), method: 'loadActionFiles', params: [PROJECT, 'actions'] },
+    { call: (service) => service.loadActionSchedules(PROJECT, 'actions'), method: 'loadActionSchedules', params: [PROJECT, 'actions'] },
+    { call: (service) => service.saveActionSchedules(PROJECT, 'actions', []), method: 'saveActionSchedules', params: [PROJECT, 'actions', []] },
+    {
+        call: (service) => service.cancelActionSchedule(PROJECT, 'actions', 'schedule-1'),
+        method: 'cancelActionSchedule',
+        params: [PROJECT, 'actions', 'schedule-1'],
+    },
+    { call: (service) => service.loadAgentConversation(PROJECT, 'a.json#c=1'), method: 'loadAgentConversation', params: ['a.json#c=1'] },
+    { call: (service) => service.loadActivityConversations(PROJECT, 'a.json'), method: 'loadActivityConversations', params: ['a.json'] },
+    {
+        call: (service) => service.listAgentConversationReferences(PROJECT, 'design'),
+        method: 'listAgentConversationReferences',
+        params: [PROJECT, 'design'],
+    },
+    { call: (service) => service.stopAgent(PROJECT, 'run-1'), method: 'stopAgent', params: ['run-1'] },
+    { call: (service) => service.trashPrimaryChange({ path: 'a.md' } as never), method: 'trashPrimaryChange', params: [{ path: 'a.md' }] },
+    { call: (service) => service.pull(PROJECT), method: 'pull', params: [PROJECT] },
+    { call: (service) => service.selectWorktreeFolder(), method: 'selectWorktreeFolder', params: [] },
+    { call: (service) => service.addWorktree(PROJECT, 'C:/feature'), method: 'addWorktree', params: [PROJECT, 'C:/feature'] },
+    {
+        call: (service) => service.removeWorktree(PROJECT, 'C:/feature', 'files'),
+        method: 'removeWorktree',
+        params: [PROJECT, 'C:/feature', 'files'],
+    },
+    {
+        call: (service) => service.prepareWorktree({ ...OPERATION_REQUEST, branchName: 'card-title' }),
+        method: 'prepareWorktree',
+        params: [{ ...OPERATION_REQUEST, branchName: 'card-title' }],
+    },
+    {
+        call: (service) => service.commitWorktree({ ...OPERATION_REQUEST, message: 'F-1: Card' }),
+        method: 'commitWorktree',
+        params: [{ ...OPERATION_REQUEST, message: 'F-1: Card' }],
+    },
+    { call: (service) => service.discardWorktreeChanges(OPERATION_REQUEST), method: 'discardWorktreeChanges', params: [OPERATION_REQUEST] },
+    { call: (service) => service.parkWorktree(OPERATION_REQUEST), method: 'parkWorktree', params: [OPERATION_REQUEST] },
+    { call: (service) => service.pullWorktree(OPERATION_REQUEST), method: 'pullWorktree', params: [OPERATION_REQUEST] },
+    { call: (service) => service.rebaseWorktree(OPERATION_REQUEST), method: 'rebaseWorktree', params: [OPERATION_REQUEST] },
+    { call: (service) => service.pushWorktree(OPERATION_REQUEST), method: 'pushWorktree', params: [OPERATION_REQUEST] },
+    { call: (service) => service.refreshWorktrees(PROJECT), method: 'refreshWorktrees', params: [PROJECT] },
+    { call: (service) => service.getMergeConflictSession(), method: 'getMergeConflictSession', params: [] },
+    { call: (service) => service.abortMergeConflict(MERGE_SESSION_REQUEST), method: 'abortMergeConflict', params: [MERGE_SESSION_REQUEST] },
+    { call: (service) => service.continueMergeConflict(MERGE_SESSION_REQUEST), method: 'continueMergeConflict', params: [MERGE_SESSION_REQUEST] },
+    { call: (service) => service.rescanMergeConflict(MERGE_SESSION_REQUEST), method: 'rescanMergeConflict', params: [MERGE_SESSION_REQUEST] },
+    {
+        call: (service) => service.launchMergeConflictResolver(MERGE_PATH_REQUEST),
+        method: 'launchMergeConflictResolver',
+        params: [MERGE_PATH_REQUEST],
+    },
+    {
+        call: (service) => service.markMergeConflictResolved(MERGE_PATH_REQUEST),
+        method: 'markMergeConflictResolved',
+        params: [MERGE_PATH_REQUEST],
+    },
+    {
+        call: (service) => service.writeFiles({ branch: 'main', files: [{ content: '# New', path: 'design/F-1.md' }] }),
+        method: 'writeFiles',
+        params: [{ branch: 'main', files: [{ content: '# New', path: 'design/F-1.md' }] }],
+    },
+];
+
+const pendingPushCases: ForwardingCase[] = [
+    { call: (service) => service.commit({ branch: 'main', files: [], message: 'Commit' }), method: 'commit', params: [] },
+    { call: (service) => service.deleteFile({ branch: 'main', message: 'Delete', path: 'a.md' }), method: 'deleteFile', params: [] },
+    { call: (service) => service.deleteFolder({ branch: 'main', message: 'Delete', path: 'notes' }), method: 'deleteFolder', params: [] },
+    { call: (service) => service.moveFiles({ branch: 'main', moves: [] } as never), method: 'moveFiles', params: [] },
+    {
+        call: (service) => service.integrateWorktree({ ...OPERATION_REQUEST, cardInternalId: 'card-1', projectFolder: 'design' }),
+        method: 'integrateWorktree',
+        params: [],
+    },
+    { call: (service) => service.commitPrimaryChanges({ message: 'Primary', project: PROJECT } as never), method: 'commitPrimaryChanges', params: [] },
+    { call: (service) => service.saveProjectConfig(PROJECT, {} as never), method: 'saveProjectConfig', params: [] },
+];
 
 function createService() {
-    const service = new RemoteControlStorageService()
-    service.init({ endpoint: 'ws://127.0.0.1:1234' })
+    const service = new RemoteControlStorageService();
+    service.client.init({ endpoint: TEST_ENDPOINT });
 
-    return service
+    return service;
 }
 
-function lastSocket() {
-    const socket = MockWebSocket.instances.at(-1)
-    if (!socket) throw new Error('Missing mock socket')
-
-    return socket
-}
-
-function actionStartRequest() {
-    return { actionId: 'action-test', context: { file: 'design/F-1.md', kind: 'card' as const }, runInput: {} }
-}
-
-interface PersistentSubscriptionCase {
-    method: string
-    name: string
-    subscribe(service: RemoteControlStorageService): () => void
-}
-
-const persistentSubscriptionCases: PersistentSubscriptionCase[] = [
-    {
-        method: 'onAgentModelCatalogChanged', name: 'agent-model-catalog',
-        subscribe: (service) => service.onAgentModelCatalogChanged(() => undefined),
-    },
-    {
-        method: 'onMergeConflictSessionChanged',
-        name: 'merge-conflict',
-        subscribe: (service) => service.onMergeConflictSessionChanged(() => undefined),
-    },
-    { method: 'onActionRun', name: 'action-run', subscribe: (service) => service.onActionRun(() => undefined) },
-    {
-        method: 'onActionConversationViewed',
-        name: 'conversation-view',
-        subscribe: (service) => service.onActionConversationViewed(() => undefined),
-    },
-    { method: 'onClaudeRateLimits', name: 'Claude-rate-limit', subscribe: (service) => service.onClaudeRateLimits(() => undefined) },
-    { method: 'onCodexRateLimits', name: 'Codex-rate-limit', subscribe: (service) => service.onCodexRateLimits(() => undefined) },
-    {
-        method: 'watchProject',
-        name: 'project-watch',
-        subscribe: (service) => service.watchProject(
-            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            () => undefined,
-            () => undefined,
-            () => undefined,
-        ),
-    },
-    { method: 'onWorktreesChanged', name: 'worktree', subscribe: (service) => service.onWorktreesChanged(() => undefined) },
-]
-
-async function flushPromises() {
-    await Promise.resolve()
-    await Promise.resolve()
+async function respond(socket: MockWebSocket, result: unknown) {
+    socket.receive({ id: socket.request(-1).id, result });
+    await flushPromises();
 }
 
 describe('RemoteControlStorageService', () => {
-    it('transports compact request identity and receives queued acknowledgement', async () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it.each(forwardingCases)('forwards $method with unchanged parameters', async ({ call, method, params }) => {
         installWebSocket();
         const service = createService();
-        const request = {
-            actionId: 'review', context: { kind: 'project' as const }, conversationId: 'conversation-1',
-            provider: 'claude', reference: 'activity.json#conversation=conversation-1', requestId: 'compact-1',
-        };
-        const compact = service.compactActionConversation(request);
+        const result = call(service);
         const socket = lastSocket();
         socket.open();
         await flushPromises();
-        const sent = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] };
-        expect(sent).toMatchObject({ method: 'compactActionConversation', params: [request] });
-        socket.receive({ id: sent.id, result: { ...request, state: 'queued' } });
-        await expect(compact).resolves.toMatchObject({ ...request, state: 'queued' });
+
+        expect(socket.request(0)).toMatchObject({ method, params });
+        expect(socket.request(0).params).toHaveLength(params.length);
+        await respond(socket, null);
+        await result;
+        expect(service.hasPendingPush(PROJECT)).toBe(false);
     });
 
-    afterEach(() => {
-        vi.unstubAllGlobals()
-    })
+    it.each(pendingPushCases)('marks the affected branch as pending push after $method', async ({ call, method }) => {
+        installWebSocket();
+        const service = createService();
+        const socket = await openConnection(service.client);
+        const result = call(service);
+        await flushPromises();
 
-    it('matches concurrent responses by request id', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const first = service.loadProject(project, 'design')
-        const second = service.listBranches(project)
-        const socket = lastSocket()
+        expect(socket.request(0).method).toBe(method);
+        expect(service.hasPendingPush(PROJECT)).toBe(false);
+        await respond(socket, null);
+        await result;
+        expect(service.hasPendingPush(PROJECT)).toBe(true);
+        expect(service.hasPendingPush({ ...PROJECT, branch: 'other' })).toBe(false);
+    });
 
-        socket.open()
-        await flushPromises()
-        const firstRequest = JSON.parse(socket.sent[0]) as { id: string }
-        const secondRequest = JSON.parse(socket.sent[1]) as { id: string }
-        socket.receive({ id: secondRequest.id, result: [{ name: 'main' }] })
-        socket.receive({ id: firstRequest.id, result: { files: [], workingFolder: 'design' } })
+    it('clears the pending push of the branch after a primary push', async () => {
+        installWebSocket();
+        const service = createService();
+        const socket = await openConnection(service.client);
+        const commit = service.commit({ branch: 'main', files: [], message: 'Commit' });
+        await flushPromises();
+        await respond(socket, []);
+        await commit;
 
-        await expect(first).resolves.toEqual({ files: [], workingFolder: 'design' })
-        await expect(second).resolves.toEqual([{ name: 'main' }])
-    })
+        const push = service.push(PROJECT);
+        await flushPromises();
+        expect(socket.request(-1)).toMatchObject({ method: 'push', params: [PROJECT] });
+        await respond(socket, null);
+        await push;
 
-    it('forwards project root exclusion to the remote host', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const result = service.loadProject(project, 'design', 'design/active')
-        const socket = lastSocket()
+        expect(service.hasPendingPush(PROJECT)).toBe(false);
+    });
 
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+    it('replaces cached pending-push state with the host result', async () => {
+        installWebSocket();
+        const service = createService();
+        const socket = await openConnection(service.client);
+        const firstLoad = service.loadPendingPush(PROJECT);
+        await flushPromises();
+        expect(socket.request(0)).toMatchObject({ method: 'hasPendingPush', params: [PROJECT] });
+        await respond(socket, true);
+        await firstLoad;
+        expect(service.hasPendingPush(PROJECT)).toBe(true);
 
-        expect(request).toMatchObject({ method: 'loadProject', params: [project, 'design', 'design/active'] })
-        socket.receive({ id: request.id, result: { files: [], workingFolder: 'design' } })
-        await expect(result).resolves.toEqual({ files: [], workingFolder: 'design' })
-    })
+        const secondLoad = service.loadPendingPush(PROJECT);
+        await flushPromises();
+        await respond(socket, false);
+        await secondLoad;
+        expect(service.hasPendingPush(PROJECT)).toBe(false);
+    });
 
-    it('forwards a move whose source may already be absent for host-side recovery', async () => {
-        installWebSocket()
-        const service = createService()
-        const commitRequest = {
-            branch: 'main',
-            files: [],
-            message: 'Rename action',
-            moves: [{
-                content: '{"id":"review"}',
-                fromPath: 'actions/new-action.json',
-                toPath: 'actions/review.json',
-            }],
-        }
-        const result = service.commit(commitRequest)
-        const socket = lastSocket()
+    it('lists no repositories without a remote request after initialization', async () => {
+        installWebSocket();
 
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(request).toMatchObject({ method: 'commit', params: [commitRequest] })
-        socket.receive({ id: request.id, result: [] })
-        await expect(result).resolves.toEqual([])
-    })
+        await expect(new RemoteControlStorageService().listRepositories()).rejects.toThrow('Remote-control storage is not initialized');
+        await expect(createService().listRepositories()).resolves.toEqual([]);
+        expect(MockWebSocket.instances).toEqual([]);
+    });
 
-    it('forwards write-only files and moves to the remote host without marking a pending push', async () => {
-        installWebSocket()
-        const service = createService()
-        const writeRequest = {
-            branch: 'main',
-            files: [{ content: '# New card', path: 'design/F-1.md' }],
-            moves: [{ content: '{"id":"review"}', fromPath: 'actions/new-action.json', toPath: 'actions/review.json' }],
-        }
-        const result = service.writeFiles(writeRequest)
-        const socket = lastSocket()
+    it('reports its connection settings and connection changes', async () => {
+        installWebSocket();
+        const service = createService();
+        const listener = vi.fn();
+        service.client.onConnectionChanged(listener);
+        const socket = await openConnection(service.client);
+        service.client.disconnect();
 
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(request).toMatchObject({ method: 'writeFiles', params: [writeRequest] })
-        socket.receive({ id: request.id, result: null })
-        await expect(result).resolves.toBeUndefined()
-        expect(service.hasPendingPush({ branch: 'main', id: 'project' })).toBe(false)
-    })
+        expect(service.client.getConnectionSettings()).toEqual({ endpoint: TEST_ENDPOINT });
+        expect(socket.readyState).toBe(3);
+        expect(listener.mock.calls).toEqual([[true], [false]]);
+    });
 
-    it.each(persistentSubscriptionCases)('cleans retired $name subscriptions locally without reconnecting', async ({ method, subscribe }) => {
-        installWebSocket()
-        const service = createService()
-        const cleanup = subscribe(service)
-        const socket = lastSocket()
-        const unhandledRejections: unknown[] = []
-        const handleUnhandledRejection = (reason: unknown) => unhandledRejections.push(reason)
+    it('rejects requests after retirement without creating a socket', async () => {
+        installWebSocket();
+        const service = createService();
+        service.client.retire();
 
-        process.on('unhandledRejection', handleUnhandledRejection)
-        try {
-            socket.open()
-            await flushPromises()
-            const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
-            expect(subscriptionRequest.method).toBe(method)
-            socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: `${method}-1` } })
-            await flushPromises()
-            service.retire()
+        await expect(service.getActiveProject()).rejects.toThrow('Remote-control connection was replaced');
+        await expect(service.actionBridge.startAction({ actionId: 'review', context: { kind: 'project' }, runInput: {} }))
+            .rejects.toThrow('Remote-control connection was replaced');
+        expect(MockWebSocket.instances).toEqual([]);
+    });
 
-            cleanup()
-            cleanup()
-            await new Promise((resolve) => setTimeout(resolve, 0))
+    it('delivers worktree state and merge-conflict sessions through their server subscriptions', async () => {
+        installWebSocket();
+        const service = createService();
+        const worktreeCallback = vi.fn();
+        const mergeConflictCallback = vi.fn();
+        service.onWorktreesChanged(worktreeCallback);
+        service.onMergeConflictSessionChanged(mergeConflictCallback);
+        const socket = lastSocket();
+        socket.open();
+        await flushPromises();
+        const [worktreeRequest, mergeConflictRequest] = [socket.request(0), socket.request(1)];
+        const state = { error: null, primaryStatus: null, project: PROJECT, records: [] };
+        const session = { id: 'session-1' };
 
-            expect(socket.sent).toHaveLength(1)
-            expect(MockWebSocket.instances).toHaveLength(1)
-            expect(unhandledRejections).toEqual([])
-        } finally {
-            process.off('unhandledRejection', handleUnhandledRejection)
-        }
-    })
-
-    it.each(persistentSubscriptionCases)('sends one unsubscribe for repeated active $name cleanup', async ({ method, subscribe }) => {
-        installWebSocket()
-        const service = createService()
-        const cleanup = subscribe(service)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
-        expect(subscriptionRequest.method).toBe(method)
-        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: `${method}-1` } })
-        await flushPromises()
-
-        cleanup()
-        cleanup()
-
-        expect(socket.sent).toHaveLength(2)
-        expect(JSON.parse(socket.sent[1])).toEqual(expect.objectContaining({
-            method: 'unsubscribe',
-            params: [`${method}-1`],
-        }))
-    })
-
-    it.each(persistentSubscriptionCases)('unsubscribes one active $name response received after cancellation', async ({ method, subscribe }) => {
-        installWebSocket()
-        const service = createService()
-        const cleanup = subscribe(service)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
-        expect(subscriptionRequest.method).toBe(method)
-        cleanup()
-        cleanup()
-        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: `${method}-1` } })
-        await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
-
-        expect(JSON.parse(socket.sent[1])).toEqual(expect.objectContaining({
-            method: 'unsubscribe',
-            params: [`${method}-1`],
-        }))
-    })
-
-    it('keeps normal requests through retired storage rejected without creating a socket', async () => {
-        installWebSocket()
-        const service = createService()
-        service.retire()
-
-        await expect(service.getActiveProject()).rejects.toThrow('Remote-control connection was replaced')
-        expect(MockWebSocket.instances).toEqual([])
-    })
-
-    it('loads and saves complete host desktop config through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const desktopConfig = {
-            agentSelection: { activeAgent: 'custom', permissionMode: 'full-access' as const, settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' as const } } },
-            agentAccounts: DEFAULT_AGENT_ACCOUNTS,
-            agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none' as const, models: ['custom-model'], name: 'custom' }],
-            codexSearchEnabled: false,
-            editorCommand: 'code "{{file}}"',
-            mergeConflictResolverCommand: '',
-            remoteControlPort: 20877,
-        }
-        const load = service.loadDesktopConfig()
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const loadRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(loadRequest).toMatchObject({ method: 'loadDesktopConfig', params: [] })
-        socket.receive({ id: loadRequest.id, result: desktopConfig })
-        await expect(load).resolves.toEqual(desktopConfig)
-
-        const save = service.saveDesktopConfig(desktopConfig)
-        await flushPromises()
-        const saveRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
-        expect(saveRequest).toMatchObject({ method: 'saveDesktopConfig', params: [desktopConfig] })
-        socket.receive({ id: saveRequest.id, result: desktopConfig })
-        await expect(save).resolves.toEqual(desktopConfig)
-    })
-
-    it('reads the current Claude rate limits of one account through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const load = service.getClaudeRateLimits('claude-initial')
-        const socket = lastSocket()
-        const snapshot = { accountId: 'claude-initial', available: true, observedAt: 10, windows: [] }
-
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(request).toMatchObject({ method: 'getClaudeRateLimits', params: ['claude-initial'] })
-        socket.receive({ id: request.id, result: snapshot })
-
-        await expect(load).resolves.toEqual(snapshot)
-    })
-
-    it('loads one markdown file through remote control and propagates desktop errors', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const firstLoad = service.loadFile(project, 'design/F-1.md')
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const firstRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(firstRequest).toMatchObject({ method: 'loadFile', params: [project, 'design/F-1.md'] })
-        socket.receive({ id: firstRequest.id, result: { content: '# Changed', path: 'design/F-1.md' } })
-        await expect(firstLoad).resolves.toEqual({ content: '# Changed', path: 'design/F-1.md' })
-
-        const missingLoad = service.loadFile(project, 'design/missing.md')
-        await flushPromises()
-        const secondRequest = JSON.parse(socket.sent[1]) as { id: string }
-        socket.receive({ error: { message: 'File not found: design/missing.md' }, id: secondRequest.id })
-
-        await expect(missingLoad).rejects.toThrow('File not found: design/missing.md')
-    })
-
-    it('loads a repository text file through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const path = 'design/activity/card__card-1.json'
-        const load = service.loadTextFile(project, path)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(request).toMatchObject({ method: 'loadTextFile', params: [project, path] })
-        socket.receive({ id: request.id, result: { content: '{"version":2}', path } })
-
-        await expect(load).resolves.toEqual({ content: '{"version":2}', path })
-    })
-
-    it('sends project and path when loading a project asset through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const asset = { content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'design/image.png' }
-        const load = service.loadProjectAsset(project, 'design/image.png')
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(request).toMatchObject({ method: 'loadProjectAsset', params: [project, 'design/image.png'] })
-        socket.receive({ id: request.id, result: asset })
-
-        await expect(load).resolves.toEqual(asset)
-    })
-
-    it('sends the absolute path when loading an image file through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const asset = { content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'C:/images/photo.png' }
-        const load = service.loadImageFile('C:/images/photo.png')
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(request).toMatchObject({ method: 'loadImageFile', params: ['C:/images/photo.png'] })
-        socket.receive({ id: request.id, result: asset })
-
-        await expect(load).resolves.toEqual(asset)
-    })
-
-    it('loads current worktree diff through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const load = service.generateWorktreeDiff({ worktree: 2, worktreeBranch: 'feature' })
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(request).toMatchObject({ method: 'generateWorktreeDiff', params: [{ worktree: 2, worktreeBranch: 'feature' }] })
-        socket.receive({ id: request.id, result: { files: [], repositoryRoot: 'C:/worktree' } })
-
-        await expect(load).resolves.toEqual({ files: [], repositoryRoot: 'C:/worktree' })
-    })
-
-    it('receives account-wide Codex runtime snapshots through dedicated remote subscription', async () => {
-        installWebSocket()
-        const service = createService()
-        const callback = vi.fn()
-        service.onCodexRateLimits(callback)
-        const socket = lastSocket()
-        const snapshot = { available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null }
-
-        socket.open()
-        await flushPromises()
-        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
-        expect(subscriptionRequest.method).toBe('onCodexRateLimits')
+        expect(socket.methods()).toEqual(['onWorktreesChanged', 'onMergeConflictSessionChanged']);
+        socket.receive({ event: 'worktreesChanged', payload: { requestId: worktreeRequest.id, state, subscriptionId: 'worktrees-1' } });
         socket.receive({
-            event: 'codexRateLimits',
-            payload: { requestId: subscriptionRequest.id, snapshot, subscriptionId: 'codex-rate-limits-1' },
-        })
-        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: 'codex-rate-limits-1' } })
-        await flushPromises()
-
-        expect(callback).toHaveBeenCalledWith(snapshot)
-    })
-
-    it('receives account-wide Claude runtime snapshots through dedicated remote subscription', async () => {
-        installWebSocket()
-        const service = createService()
-        const callback = vi.fn()
-        service.onClaudeRateLimits(callback)
-        const socket = lastSocket()
-        const snapshot = { available: true, observedAt: 10, windows: [] }
-
-        socket.open()
-        await flushPromises()
-        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
-        expect(subscriptionRequest.method).toBe('onClaudeRateLimits')
-        socket.receive({
-            event: 'claudeRateLimits',
-            payload: { requestId: subscriptionRequest.id, snapshot, subscriptionId: 'claude-rate-limits-1' },
-        })
-        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: 'claude-rate-limits-1' } })
-        await flushPromises()
-
-        expect(callback).toHaveBeenCalledWith(snapshot)
-    })
-
-    it('proxies linked worktree mutations', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const selection = service.selectWorktreeFolder()
-        const addition = service.addWorktree(project, 'C:/feature')
-        const preparationRequest = { branchName: 'card-title', project, worktree: 1, worktreeBranch: 'feature' }
-        const operationRequest = { project, worktree: 1, worktreeBranch: 'feature' }
-        const integrationRequest = { ...operationRequest, cardInternalId: 'stable-card-id', projectFolder: 'design' }
-        const commitRequest = { ...operationRequest, message: 'F-1: Card' }
-        const commit = service.commitWorktree(commitRequest)
-        const discard = service.discardWorktreeChanges(operationRequest)
-        const integration = service.integrateWorktree(integrationRequest)
-        const parking = service.parkWorktree(operationRequest)
-        const preparation = service.prepareWorktree(preparationRequest)
-        const pull = service.pullWorktree(operationRequest)
-        const push = service.pushWorktree(operationRequest)
-        const refresh = service.refreshWorktrees(project)
-        const removal = service.removeWorktree(project, 'C:/feature', 'files')
-        const deletion = service.deleteLocalBranch(project, 'feature')
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const selectionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        const addRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
-        const commitSentRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
-        const discardRequest = JSON.parse(socket.sent[3]) as { id: string, method: string, params: unknown[] }
-        const integrateRequest = JSON.parse(socket.sent[4]) as { id: string, method: string, params: unknown[] }
-        const parkRequest = JSON.parse(socket.sent[5]) as { id: string, method: string, params: unknown[] }
-        const prepareRequest = JSON.parse(socket.sent[6]) as { id: string, method: string, params: unknown[] }
-        const pullRequest = JSON.parse(socket.sent[7]) as { id: string, method: string, params: unknown[] }
-        const pushRequest = JSON.parse(socket.sent[8]) as { id: string, method: string, params: unknown[] }
-        const refreshRequest = JSON.parse(socket.sent[9]) as { id: string, method: string, params: unknown[] }
-        const removeRequest = JSON.parse(socket.sent[10]) as { id: string, method: string, params: unknown[] }
-        const deleteRequest = JSON.parse(socket.sent[11]) as { id: string, method: string, params: unknown[] }
-        expect(selectionRequest).toMatchObject({ method: 'selectWorktreeFolder', params: [] })
-        expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project, 'C:/feature'] })
-        expect(commitSentRequest).toMatchObject({ method: 'commitWorktree', params: [commitRequest] })
-        expect(discardRequest).toMatchObject({ method: 'discardWorktreeChanges', params: [operationRequest] })
-        expect(integrateRequest).toMatchObject({ method: 'integrateWorktree', params: [integrationRequest] })
-        expect(parkRequest).toMatchObject({ method: 'parkWorktree', params: [operationRequest] })
-        expect(prepareRequest).toMatchObject({ method: 'prepareWorktree', params: [preparationRequest] })
-        expect(pullRequest).toMatchObject({ method: 'pullWorktree', params: [operationRequest] })
-        expect(pushRequest).toMatchObject({ method: 'pushWorktree', params: [operationRequest] })
-        expect(refreshRequest).toMatchObject({ method: 'refreshWorktrees', params: [project] })
-        expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature', 'files'] })
-        expect(deleteRequest).toMatchObject({ method: 'deleteLocalBranch', params: [project, 'feature'] })
-        for (const request of [
-            selectionRequest, addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,
-            pullRequest, pushRequest, refreshRequest, removeRequest, deleteRequest,
-        ]) {
-            const result = request === selectionRequest
-                ? 'C:/feature'
-                : request === integrateRequest ? { status: 'completed' } : undefined
-            socket.receive({ id: request.id, result })
-        }
-        await expect(selection).resolves.toBe('C:/feature')
-
-        await expect(addition).resolves.toBeUndefined()
-        await expect(commit).resolves.toBeUndefined()
-        await expect(discard).resolves.toBeUndefined()
-        await expect(integration).resolves.toEqual({ status: 'completed' })
-        await expect(parking).resolves.toBeUndefined()
-        await expect(preparation).resolves.toBeUndefined()
-        await expect(pull).resolves.toBeUndefined()
-        await expect(push).resolves.toBeUndefined()
-        await expect(refresh).resolves.toBeUndefined()
-        await expect(removal).resolves.toBeUndefined()
-        await expect(deletion).resolves.toBeUndefined()
-    })
-
-    it('proxies merge conflict lifecycle and session events', async () => {
-        installWebSocket()
-        const service = createService()
-        const session = {
-            branch: 'topic',
-            conflictedPaths: ['src/file.ts'], externalResolverConfigured: true, id: 'session-1',
-            operation: 'rebase' as const, phase: 'rebase' as const, repositoryRoot: 'C:/repo', worktree: 1,
-        }
-        const callback = vi.fn()
-        service.onMergeConflictSessionChanged(callback)
-        const socket = lastSocket()
-        socket.open()
-        await flushPromises()
-        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
-        expect(subscriptionRequest.method).toBe('onMergeConflictSessionChanged')
-        socket.receive({ event: 'mergeConflictSessionChanged', payload: { requestId: subscriptionRequest.id, session, subscriptionId: 'conflict-1' } })
-        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: 'conflict-1' } })
-        await flushPromises()
-        expect(callback).toHaveBeenCalledWith(session)
-
-        const loaded = service.getMergeConflictSession()
-        await flushPromises()
-        const loadRequest = JSON.parse(socket.sent[1]) as { id: string, method: string }
-        expect(loadRequest.method).toBe('getMergeConflictSession')
-        socket.receive({ id: loadRequest.id, result: session })
-        await expect(loaded).resolves.toEqual(session)
-
-        const pathRequest = { path: 'src/file.ts', sessionId: 'session-1' }
-        const launch = service.launchMergeConflictResolver(pathRequest)
-        await flushPromises()
-        const launchRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
-        expect(launchRequest).toMatchObject({ method: 'launchMergeConflictResolver', params: [pathRequest] })
-        socket.receive({ id: launchRequest.id })
-        await expect(launch).resolves.toBeUndefined()
-    })
-
-    it('proxies primary pull', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const pull = service.pull(project)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(request).toMatchObject({ method: 'pull', params: [project] })
-        socket.receive({ id: request.id, result: null })
-
-        await expect(pull).resolves.toBeUndefined()
-    })
-
-    it('delivers initial and later pushed shared model lists and unsubscribes', async () => {
-        installWebSocket()
-        const service = createService()
-        const callback = vi.fn()
-        const unsubscribe = service.onAgentModelCatalogChanged(callback)
-        const socket = lastSocket()
-        const catalog = { agent: 'codex', models: [{ id: 'shared-model', displayName: 'Shared model', hidden: false }] }
-
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string, method: string }
-        expect(request.method).toBe('onAgentModelCatalogChanged')
-        socket.receive({ event: 'agentModelCatalog', payload: { requestId: request.id, catalog, subscriptionId: 'catalog-1' } })
-        socket.receive({ id: request.id, result: { subscriptionId: 'catalog-1' } })
-        await flushPromises()
-        socket.receive({ event: 'agentModelCatalog', payload: { requestId: request.id, catalog, subscriptionId: 'catalog-1' } })
-
-        expect(callback).toHaveBeenCalledTimes(2)
-        expect(callback).toHaveBeenLastCalledWith(catalog)
-        unsubscribe()
-        await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
-        const unsubscribeRequest = JSON.parse(socket.sent[1]) as { method: string, params: unknown[] }
-        expect(unsubscribeRequest).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['catalog-1'] }))
-    })
-
-    it('delivers initial and later pushed worktree state and unsubscribes', async () => {
-        installWebSocket()
-        const service = createService()
-        const callback = vi.fn()
-        const unsubscribe = service.onWorktreesChanged(callback)
-        const socket = lastSocket()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const state = { error: null, primaryStatus: null, project, records: [] }
-
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string, method: string }
-        expect(request.method).toBe('onWorktreesChanged')
-        socket.receive({ event: 'worktreesChanged', payload: { requestId: request.id, state, subscriptionId: 'worktrees-1' } })
-        socket.receive({ id: request.id, result: { subscriptionId: 'worktrees-1' } })
-        await flushPromises()
-        socket.receive({ event: 'worktreesChanged', payload: { requestId: request.id, state, subscriptionId: 'worktrees-1' } })
-
-        expect(callback).toHaveBeenCalledTimes(2)
-        unsubscribe()
-        await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
-        const unsubscribeRequest = JSON.parse(socket.sent[1]) as { method: string, params: unknown[] }
-        expect(unsubscribeRequest).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['worktrees-1'] }))
-    })
-
-    it('unsubscribes when cleanup runs before subscription setup completes', async () => {
-        installWebSocket()
-        const service = createService()
-        const callback = vi.fn()
-        const unsubscribe = service.onWorktreesChanged(callback)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const request = JSON.parse(socket.sent[0]) as { id: string }
-        unsubscribe()
-        socket.receive({ id: request.id, result: { subscriptionId: 'worktrees-1' } })
-        await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
-        const unsubscribeRequest = JSON.parse(socket.sent[1]) as { method: string, params: unknown[] }
-
-        expect(unsubscribeRequest).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['worktrees-1'] }))
-        socket.receive({
-            event: 'worktreesChanged',
-            payload: {
-                requestId: request.id,
-                state: { error: null, primaryStatus: null, project: null, records: [] },
-                subscriptionId: 'worktrees-1',
-            },
-        })
-        expect(callback).not.toHaveBeenCalled()
-    })
-
-    it('restores one worktree subscription and delivers replacement snapshots once after reconnect', async () => {
-        installWebSocket()
-        const service = createService()
-        const callback = vi.fn()
-        const unsubscribe = service.onWorktreesChanged(callback)
-        const firstSocket = lastSocket()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const dirtyState = {
-            error: null,
-            primaryStatus: null,
-            project,
-            records: [{ baseAhead: 0, baseBehind: 1, branch: 'feature', dirty: true, folderPath: 'C:/feature', worktree: 1 }],
-        }
-        const cleanState = {
-            error: null,
-            primaryStatus: null,
-            project,
-            records: [{ baseAhead: 0, baseBehind: 0, branch: 'feature', dirty: false, folderPath: 'C:/feature', worktree: 1 }],
-        }
-
-        firstSocket.open()
-        await flushPromises()
-        const firstRequest = JSON.parse(firstSocket.sent[0]) as { id: string, method: string }
-        firstSocket.receive({ id: firstRequest.id, result: { subscriptionId: 'worktrees-1' } })
-        await flushPromises()
-        firstSocket.close()
-
-        const reconnection = service.connect()
-        const secondSocket = lastSocket()
-        secondSocket.open()
-        await reconnection
-        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
-        const replacementRequest = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
-        expect(replacementRequest.method).toBe('onWorktreesChanged')
-        await service.connect()
-        await flushPromises()
-        expect(secondSocket.sent).toHaveLength(1)
-
-        secondSocket.receive({
-            event: 'worktreesChanged',
-            payload: { requestId: replacementRequest.id, state: dirtyState, subscriptionId: 'worktrees-2' },
-        })
-        expect(callback).toHaveBeenCalledTimes(1)
-        expect(callback).toHaveBeenLastCalledWith(dirtyState)
-        secondSocket.receive({ id: replacementRequest.id, result: { subscriptionId: 'worktrees-2' } })
-        await flushPromises()
-        secondSocket.receive({
-            event: 'worktreesChanged',
-            payload: { requestId: replacementRequest.id, state: cleanState, subscriptionId: 'worktrees-2' },
-        })
-        expect(callback).toHaveBeenCalledTimes(2)
-        expect(callback).toHaveBeenLastCalledWith(cleanState)
-
-        unsubscribe()
-        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(2))
-        expect(JSON.parse(secondSocket.sent[1])).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['worktrees-2'] }))
-        secondSocket.receive({
-            event: 'worktreesChanged',
-            payload: { requestId: replacementRequest.id, state: dirtyState, subscriptionId: 'worktrees-2' },
-        })
-        expect(callback).toHaveBeenCalledTimes(2)
-
-        secondSocket.close()
-        const finalReconnection = service.connect()
-        const thirdSocket = lastSocket()
-        thirdSocket.open()
-        await finalReconnection
-        await flushPromises()
-        expect(thirdSocket.sent).toEqual([])
-    })
-
-    it('unsubscribes a replacement worktree subscription stopped during setup', async () => {
-        installWebSocket()
-        const service = createService()
-        const callback = vi.fn()
-        const unsubscribe = service.onWorktreesChanged(callback)
-        const firstSocket = lastSocket()
-
-        firstSocket.open()
-        await flushPromises()
-        const firstRequest = JSON.parse(firstSocket.sent[0]) as { id: string }
-        firstSocket.receive({ id: firstRequest.id, result: { subscriptionId: 'worktrees-1' } })
-        await flushPromises()
-        firstSocket.close()
-
-        const reconnection = service.connect()
-        const secondSocket = lastSocket()
-        secondSocket.open()
-        await reconnection
-        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
-        const replacementRequest = JSON.parse(secondSocket.sent[0]) as { id: string }
-        unsubscribe()
-        secondSocket.receive({
-            event: 'worktreesChanged',
-            payload: {
-                requestId: replacementRequest.id,
-                state: { error: null, primaryStatus: null, project: null, records: [] },
-                subscriptionId: 'worktrees-2',
-            },
-        })
-        secondSocket.receive({ id: replacementRequest.id, result: { subscriptionId: 'worktrees-2' } })
-        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(2))
-
-        expect(JSON.parse(secondSocket.sent[1])).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['worktrees-2'] }))
-        expect(callback).not.toHaveBeenCalled()
-    })
-
-
-    it('prepares action prompts through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const request = { actionId: 'action-test', context: { file: 'design/F-1.md', kind: 'card' as const } }
-        const preparation = service.prepareActionPrompt(request)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(sentRequest).toMatchObject({ method: 'prepareActionPrompt', params: [request] })
-        socket.receive({ id: sentRequest.id, result: { prompt: 'Prepared prompt' } })
-
-        await expect(preparation).resolves.toEqual({ prompt: 'Prepared prompt' })
-    })
-
-    it('preserves the missing this-card context error through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const request = { actionId: 'action-test', context: { kind: 'project' as const } }
-        const preparation = service.prepareActionPrompt(request)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
-        socket.receive({
-            error: {
-                code: MISSING_THIS_CARD_CONTEXT_ERROR,
-                fields: {},
-                message: 'Missing card context',
-                name: 'Error',
-            },
-            id: sentRequest.id,
-        })
-
-        const error = await preparation.catch((failure: unknown) => failure) as Error & { code?: string }
-
-        expect(error.message).toBe('Missing card context')
-        expect(error.code).toBe(MISSING_THIS_CARD_CONTEXT_ERROR)
-    })
-
-    it.each([
-        { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' },
-        { agent: 'codex', expectedResetAt: '2099-07-07T10:30:00.000Z', limitId: 'primary', type: 'account-reset', windowId: 'five-hour' },
-        { cardInternalId: 'trigger-card', registrationState: 'todo', targetState: 'done', type: 'card-state' },
-    ] as ActionScheduleRegistrationRequest['trigger'][])(
-        'forwards $type action schedule payload and waits for desktop confirmation',
-        async (trigger) => {
-            installWebSocket()
-            const service = createService()
-            const request = {
-                actionId: 'implement',
-                context: { cardInternalId: 'target-card', file: 'design/F-1.md', kind: 'card' as const },
-                trigger,
-            }
-            const registration = service.registerActionSchedule(request)
-            const socket = lastSocket()
-
-            socket.open()
-            await flushPromises()
-            const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-            expect(sentRequest).toMatchObject({ method: 'registerActionSchedule', params: [request] })
-            socket.receive({ id: sentRequest.id, result: { id: 'schedule-1' } })
-
-            await expect(registration).resolves.toBeUndefined()
-        },
-    )
-
-    it('lists and deletes schedules through desktop, returning confirmed results', async () => {
-        installWebSocket()
-        const service = createService()
-        const listing = service.listActiveSchedules()
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const listRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(listRequest).toMatchObject({ method: 'listActiveSchedules', params: [] })
-        const schedule = {
-            actionId: 'implement', context: { cardInternalId: 'target-card', kind: 'card' },
-            createdAt: '2099-07-07T10:00:00.000Z', id: 'schedule-1', kind: 'action', status: 'pending',
-            trigger: { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' },
-        }
-        socket.receive({ id: listRequest.id, result: [schedule] })
-        await expect(listing).resolves.toEqual([schedule])
-
-        const deletion = service.deleteSchedule('schedule-1')
-        await flushPromises()
-        const deleteRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
-        expect(deleteRequest).toMatchObject({ method: 'deleteSchedule', params: ['schedule-1'] })
-        socket.receive({ id: deleteRequest.id, result: [] })
-        await expect(deletion).resolves.toEqual([])
-    })
-
-    it('reports desktop schedule registration and deletion failures', async () => {
-        installWebSocket()
-        const service = createService()
-        const request = {
-            actionId: 'implement', context: { cardInternalId: 'target-card', kind: 'card' as const },
-            trigger: { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' as const },
-        }
-        const registration = service.registerActionSchedule(request)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const registrationRequest = JSON.parse(socket.sent[0]) as { id: string }
-        socket.receive({ error: { message: 'Schedule time must be in the future' }, id: registrationRequest.id })
-        await expect(registration).rejects.toThrow('Remote method registerActionSchedule failed: Schedule time must be in the future')
-
-        const deletion = service.deleteSchedule('missing')
-        await flushPromises()
-        const deletionRequest = JSON.parse(socket.sent[1]) as { id: string }
-        socket.receive({ error: { message: 'Schedule not found: missing' }, id: deletionRequest.id })
-        await expect(deletion).rejects.toThrow('Remote method deleteSchedule failed: Schedule not found: missing')
-
-        const listing = service.listActiveSchedules()
-        await flushPromises()
-        const listRequest = JSON.parse(socket.sent[2]) as { id: string }
-        socket.receive({ error: { message: 'Scheduler unavailable' }, id: listRequest.id })
-        await expect(listing).rejects.toThrow('Remote method listActiveSchedules failed: Scheduler unavailable')
-    })
-
-    it('rejects schedule operations when remote connection was replaced', async () => {
-        installWebSocket()
-        const service = createService()
-        service.retire()
-
-        await expect(service.registerActionSchedule({
-            actionId: 'implement', context: { cardInternalId: 'target-card', kind: 'card' },
-            trigger: { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' },
-        })).rejects.toThrow('Remote-control connection was replaced')
-        await expect(service.deleteSchedule('schedule-1')).rejects.toThrow('Remote-control connection was replaced')
-        expect(MockWebSocket.instances).toEqual([])
-    })
-
-    it('proxies card activity and historical file requests', async () => {
-        installWebSocket()
-        const service = createService()
-        const activityRequest = { cardInternalId: 'card-1' }
-        const fileRequest = { commit: 'a'.repeat(40), parent: true, path: 'design/F-1.md' }
-        const settingsRequest = {
-            actionId: 'review', cardInternalId: 'card-1',
-            settings: { activeAgent: 'codex', permissionMode: 'ask-for-approval' as const, settingsByAgent: { codex: { model: 'gpt-5', thinkingLevel: 'high' as const } } },
-        }
-        const activity = service.loadCardActivity(activityRequest)
-        const historicalFile = service.readFileAtCommit(fileRequest)
-        const settingsUpdate = service.updateCardActionSettings(settingsRequest)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const activityMessage = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        const fileMessage = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
-        const settingsMessage = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
-        expect(activityMessage).toMatchObject({ method: 'loadCardActivity', params: [activityRequest] })
-        expect(fileMessage).toMatchObject({ method: 'readFileAtCommit', params: [fileRequest] })
-        expect(settingsMessage).toMatchObject({ method: 'updateCardActionSettings', params: [settingsRequest] })
-        socket.receive({ id: activityMessage.id, result: { actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 5 } })
-        socket.receive({ id: fileMessage.id, result: { content: '# Card', exists: true } })
-        socket.receive({ id: settingsMessage.id, result: undefined })
-
-        await expect(activity).resolves.toMatchObject({ version: 5 })
-        await expect(historicalFile).resolves.toEqual({ content: '# Card', exists: true })
-        await expect(settingsUpdate).resolves.toBeUndefined()
-    })
-
-    it('lists agent conversation references through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const references = service.listAgentConversationReferences(project, 'design')
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(sentRequest).toMatchObject({ method: 'listAgentConversationReferences', params: [project, 'design'] })
-        socket.receive({ id: sentRequest.id, result: ['design/activity/project.json#conversation=conversation-1'] })
-
-        await expect(references).resolves.toEqual(['design/activity/project.json#conversation=conversation-1'])
-    })
-
-    it('loads one activity file through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const path = 'design/activity/card__card-1.json'
-        const conversations = service.loadActivityConversations(project, path)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(sentRequest).toMatchObject({ method: 'loadActivityConversations', params: [path] })
-        socket.receive({ id: sentRequest.id, result: [] })
-
-        await expect(conversations).resolves.toEqual([])
-    })
-
-    it('adds remote method context while preserving response error as cause', async () => {
-        installWebSocket()
-        const service = createService()
-        const request = service.sendActionMessage('unknown-run', 'continue')
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
-        socket.receive({ error: { message: 'Unknown action run: unknown-run' }, id: sentRequest.id })
-
-        const error = await request.catch((caughtError: unknown) => caughtError)
-
-        expect(error).toMatchObject({
-            cause: expect.objectContaining({ message: 'Unknown action run: unknown-run' }),
-            message: 'Remote method sendActionMessage failed: Unknown action run: unknown-run',
-        })
-    })
-
-    it('preserves permission-mode overrides in remote action requests', async () => {
-        installWebSocket()
-        const service = createService()
-        const actionRequest = {
-            ...actionStartRequest(),
-            runInput: { accountId: 'codex-initial', permissionMode: 'approve-for-me' as const },
-        }
-        const request = service.startAction(actionRequest)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(sentRequest).toMatchObject({ method: 'startAction', params: [actionRequest] })
-        socket.receive({ id: sentRequest.id, result: 'run-1' })
-
-        await expect(request).resolves.toBe('run-1')
-    })
-
-    it('reserves card agent conversations through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const actionRequest = actionStartRequest()
-        const reservationRequest = service.reserveActionConversation(actionRequest)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(sentRequest).toMatchObject({ method: 'reserveActionConversation', params: [actionRequest] })
-        const reservation = {
-            activityPath: 'design/activity/card.json',
-            conversationId: 'conversation-1',
-            reference: 'design/activity/card.json#conversation=conversation-1',
-        }
-        socket.receive({ id: sentRequest.id, result: reservation })
-
-        await expect(reservationRequest).resolves.toEqual(reservation)
-    })
-
-    it('routes streaming interaction methods through remote control', async () => {
-        installWebSocket()
-        const service = createService()
-        const firstOperation = service.sendActionMessage('action-1', 'approved')
-        await flushPromises()
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const operations = [
-            firstOperation,
-            service.enqueueActionPrompt('action-1', 'next', 'submission-1'),
-            service.editActionQueuedPrompt('action-1', 'prompt-1', 0, 'edited'),
-            service.deleteActionQueuedPrompt('action-1', 'prompt-1', 1),
-            service.answerActionApproval('action-1', 41, 'accept'),
-            service.answerActionQuestion('action-1', 7, { confirm: ['Yes'] }),
-            service.dismissActionQuestions('action-1', 7),
-            service.closeWaitingActionConversation('activity.json#conversation=one', 'completed'),
-            service.dismissWaitingActionConversationQuestions('activity.json#conversation=one'),
-            service.updateActionConversationViewed('activity.json#conversation=one', false),
-            service.splitActionConversation('activity.json#conversation=one', 'message-2'),
-            service.finishActionRun('action-1'),
-            service.restartActionRun('action-1', { actionId: 'review', context: { kind: 'project' }, runInput: {} }),
-        ]
-        await flushPromises()
-        const requests = socket.sent.map((entry) => JSON.parse(entry) as { id: string, method: string, params: unknown[] })
-        expect(requests.map(({ method, params }) => ({ method, params }))).toEqual([
-            { method: 'sendActionMessage', params: ['action-1', 'approved'] },
-            { method: 'enqueueActionPrompt', params: ['action-1', 'next', 'submission-1'] },
-            { method: 'editActionQueuedPrompt', params: ['action-1', 'prompt-1', 0, 'edited'] },
-            { method: 'deleteActionQueuedPrompt', params: ['action-1', 'prompt-1', 1] },
-            { method: 'answerActionApproval', params: ['action-1', 41, 'accept'] },
-            { method: 'answerActionQuestion', params: ['action-1', 7, { confirm: ['Yes'] }] },
-            { method: 'dismissActionQuestions', params: ['action-1', 7] },
-            { method: 'closeWaitingActionConversation', params: ['activity.json#conversation=one', 'completed'] },
-            { method: 'dismissWaitingActionConversationQuestions', params: ['activity.json#conversation=one'] },
-            { method: 'updateActionConversationViewed', params: ['activity.json#conversation=one', false] },
-            { method: 'splitActionConversation', params: ['activity.json#conversation=one', 'message-2'] },
-            { method: 'finishActionRun', params: ['action-1'] },
-            { method: 'restartActionRun', params: ['action-1', { actionId: 'review', context: { kind: 'project' }, runInput: {} }] },
-        ])
-        requests.forEach(({ id, method }) => {
-            const result = method === 'enqueueActionPrompt' || method === 'editActionQueuedPrompt'
-                ? { content: 'next', dispatchState: 'queued', id: 'prompt-1', revision: 0 }
-                : method === 'deleteActionQueuedPrompt' ? { deleted: true } : null
-            socket.receive({ id, result })
-        })
-
-        await Promise.all(operations)
-    })
-
-    it('loads authoritative action recovery for renderer run IDs', async () => {
-        installWebSocket()
-        const service = createService()
-        const recovery = service.loadActionRunRecoverySnapshot(['run-active', 'run-ended'])
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(sentRequest).toMatchObject({
-            method: 'loadActionRunRecoverySnapshot',
-            params: [['run-active', 'run-ended']],
-        })
-        const snapshot = {
-            activeRunEvents: [],
-            terminalResults: [{ changedPaths: [], failure: null, runId: 'run-ended', status: 'completed' }],
-        }
-        socket.receive({ id: sentRequest.id, result: snapshot })
-
-        await expect(recovery).resolves.toEqual(snapshot)
-    })
-
-    it('delivers backend conversation view changes to a remote window', async () => {
-        installWebSocket()
-        const service = createService()
-        const callback = vi.fn()
-        service.onActionConversationViewed(callback)
-        const socket = lastSocket()
-        socket.open()
-        await flushPromises()
-        const subscription = JSON.parse(socket.sent[0]) as { id: string, method: string }
-        expect(subscription.method).toBe('onActionConversationViewed')
-        socket.receive({ id: subscription.id, result: { subscriptionId: 'conversation-view-1' } })
-        await flushPromises()
-        const event = { conversationId: 'conversation-1', viewed: false }
-
-        socket.receive({
-            event: 'conversationViewed',
-            payload: { event, requestId: subscription.id, subscriptionId: 'conversation-view-1' },
-        })
-
-        expect(callback).toHaveBeenCalledWith(event)
-    })
-
-    it('reattaches action run subscription after reconnect', async () => {
-        installWebSocket()
-        const service = createService()
-        const callback = vi.fn()
-        service.onActionRun(callback)
-        const firstSocket = lastSocket()
-        firstSocket.open()
-        await flushPromises()
-        const firstSubscription = JSON.parse(firstSocket.sent[0]) as { id: string }
-        firstSocket.receive({ id: firstSubscription.id, result: { subscriptionId: 'action-events-1' } })
-        await flushPromises()
-        firstSocket.close()
-
-        const reconnection = service.connect()
-        const secondSocket = lastSocket()
-        secondSocket.open()
-        await reconnection
-        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
-        const secondSubscription = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
-        expect(secondSubscription.method).toBe('onActionRun')
-        secondSocket.receive({ id: secondSubscription.id, result: { subscriptionId: 'action-events-2' } })
-        const event = {
-            actionId: 'review',
-            context: { file: 'design/F-1.md', kind: 'card' },
-            runId: 'run-1',
-            phase: 'main',
-            rootActionId: 'review',
-            sequence: 1,
-            status: 'running',
-            type: 'run',
-        }
-        secondSocket.receive({
-            event: 'actionRun',
-            payload: { event, requestId: secondSubscription.id, subscriptionId: 'action-events-2' },
-        })
-
-        await vi.waitFor(() => expect(callback).toHaveBeenCalledWith(event))
-    })
-
-    it('restores one live merge-conflict subscription after reconnect', async () => {
-        installWebSocket()
-        const service = createService()
-        const callback = vi.fn()
-        service.onMergeConflictSessionChanged(callback)
-        const firstSocket = lastSocket()
-        firstSocket.open()
-        await flushPromises()
-        const firstSubscription = JSON.parse(firstSocket.sent[0]) as { id: string }
-        firstSocket.receive({ id: firstSubscription.id, result: { subscriptionId: 'conflict-1' } })
-        await flushPromises()
-        firstSocket.close()
-
-        const reconnection = service.connect()
-        const secondSocket = lastSocket()
-        secondSocket.open()
-        await reconnection
-        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
-        const secondSubscription = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
-        expect(secondSubscription.method).toBe('onMergeConflictSessionChanged')
-        secondSocket.receive({ id: secondSubscription.id, result: { subscriptionId: 'conflict-2' } })
-        const session = { id: 'session-2', paths: ['design/F-1.md'] }
-        secondSocket.receive({
             event: 'mergeConflictSessionChanged',
-            payload: { requestId: secondSubscription.id, session, subscriptionId: 'conflict-2' },
-        })
+            payload: { requestId: mergeConflictRequest.id, session, subscriptionId: 'conflict-1' },
+        });
 
-        expect(callback).toHaveBeenCalledOnce()
-        expect(callback).toHaveBeenCalledWith(session)
-    })
+        expect(worktreeCallback).toHaveBeenCalledWith(state);
+        expect(mergeConflictCallback).toHaveBeenCalledWith(session);
+    });
 
-    it('clears stale Claude callback state and restores one subscription after reconnect', async () => {
-        installWebSocket()
-        const service = createService()
-        const callback = vi.fn()
-        service.onClaudeRateLimits(callback)
-        const firstSocket = lastSocket()
-        firstSocket.open()
-        await flushPromises()
-        const firstSubscription = JSON.parse(firstSocket.sent[0]) as { id: string }
-        firstSocket.receive({ id: firstSubscription.id, result: { subscriptionId: 'claude-limits-1' } })
-        await flushPromises()
-        firstSocket.close()
-        firstSocket.receive({
-            event: 'claudeRateLimits',
-            payload: {
-                requestId: firstSubscription.id,
-                snapshot: { available: true, observedAt: 10, windows: [] },
-                subscriptionId: 'claude-limits-1',
-            },
-        })
-
-        const reconnection = service.connect()
-        const secondSocket = lastSocket()
-        secondSocket.open()
-        await reconnection
-        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
-        const secondSubscription = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
-        expect(secondSubscription.method).toBe('onClaudeRateLimits')
-        secondSocket.receive({ id: secondSubscription.id, result: { subscriptionId: 'claude-limits-2' } })
-        const snapshot = { available: true, observedAt: 11, windows: [] }
-        secondSocket.receive({
-            event: 'claudeRateLimits',
-            payload: { requestId: secondSubscription.id, snapshot, subscriptionId: 'claude-limits-2' },
-        })
-
-        await vi.waitFor(() => expect(callback).toHaveBeenCalledOnce())
-        expect(callback).toHaveBeenCalledWith(snapshot)
-    })
-
-    it('sends recursive folder deletion requests', async () => {
-        installWebSocket()
-        const service = createService()
-        const deleteRequest = { branch: 'main', message: 'Delete design/notes', path: 'design/notes' }
-        const deletion = service.deleteFolder(deleteRequest)
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(sentRequest).toMatchObject({ method: 'deleteFolder', params: [deleteRequest] })
-        socket.receive({ id: sentRequest.id, result: null })
-
-        await expect(deletion).resolves.toBeUndefined()
-    })
-
-    it('delivers watch push events', async () => {
-        installWebSocket()
-        const service = createService()
-        const watchCallback = vi.fn()
-        const watchError = vi.fn()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-
-        service.watchProject(project, watchCallback, vi.fn(), watchError)
-        const socket = lastSocket()
-        socket.open()
-        await flushPromises()
-        const watchRequest = JSON.parse(socket.sent[0]) as { id: string }
-        socket.receive({ id: watchRequest.id, result: { subscriptionId: 'sub-1' } })
+    it('watches a project through its server subscription', async () => {
+        installWebSocket();
+        const service = createService();
+        const onChange = vi.fn();
+        const stop = service.watchProject(PROJECT, onChange, vi.fn(), vi.fn());
+        const socket = lastSocket();
+        socket.open();
+        await flushPromises();
+        expect(socket.request(0)).toMatchObject({ method: 'watchProject', params: [PROJECT] });
+        await respond(socket, { subscriptionId: 'watch-1' });
         socket.receive({
             event: 'watchProject',
-            payload: { event: { changeKind: 'changed', path: 'design/F-1.md' }, requestId: watchRequest.id, subscriptionId: 'sub-1' },
-        })
-        socket.receive({
-            event: 'watchProject',
-            payload: { event: { error: 'Native watcher unavailable' }, requestId: watchRequest.id, subscriptionId: 'sub-1' },
-        })
-        expect(watchCallback).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' })
-        expect(watchError).toHaveBeenCalledWith(expect.objectContaining({ message: 'Native watcher unavailable' }))
-    })
+            payload: { event: { changeKind: 'changed', path: 'design/F-1.md' }, requestId: 'other', subscriptionId: 'watch-1' },
+        });
+        stop();
 
-    it('routes every server-push message and cleans persistent subscriptions', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const watchCallback = vi.fn()
-        const agentCallback = vi.fn()
-        const actionCallback = vi.fn()
-        const rateLimitCallback = vi.fn()
-        const worktreeCallback = vi.fn()
-        const stopWatch = service.watchProject(project, watchCallback, vi.fn(), vi.fn())
-        const stopAction = service.onActionRun(actionCallback)
-        const stopRateLimits = service.onCodexRateLimits(rateLimitCallback)
-        const stopWorktrees = service.onWorktreesChanged(worktreeCallback)
-        const agentRun = service.runSearchRegexpAgent('find cards', agentCallback)
-        const socket = lastSocket()
+        expect(onChange).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' });
+        expect(socket.request(-1)).toMatchObject({ method: 'unsubscribe', params: ['watch-1'] });
+    });
 
-        socket.open()
-        await flushPromises()
-        const requests = socket.sent.map((message) => JSON.parse(message) as { id: string, method: string })
-        const requestByMethod = new Map(requests.map((request) => [request.method, request]))
-        const actionEvent = { runId: 'action-1', sequence: 1, status: 'running', type: 'run' }
-        const agentEvent = { content: 'working', runId: 'agent-1', type: 'output' }
-        const snapshot = { available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null }
-        const worktreeState = { error: null, primaryStatus: null, project, records: [] }
-        const subscriptions = [
-            ['watchProject', 'watch-1'],
-            ['onActionRun', 'action-1'],
-            ['onCodexRateLimits', 'limits-1'],
-            ['onWorktreesChanged', 'worktrees-1'],
-        ] as const
+    it('shares one client between storage and its adapters', async () => {
+        installWebSocket();
+        const service = createService();
+        const socket = await openConnection(service.client);
+        const storageRequest = service.getActiveProject();
+        const actionRequest = service.actionBridge.listActiveActionRuns();
+        const claudeRequest = service.claudeRuntimeBridge.getClaudeRateLimits('claude-1');
+        const codexRequest = service.codexRuntimeBridge.getCodexRateLimits('codex-1');
+        const configRequest = service.desktopConfigTransport.loadDesktopConfig();
+        await flushPromises();
 
-        socket.receive({
-            event: 'watchProject',
-            payload: { event: { changeKind: 'changed', path: 'design/F-1.md' }, requestId: requestByMethod.get('watchProject')?.id, subscriptionId: 'watch-1' },
-        })
-        socket.receive({ event: 'agentRun', payload: { event: agentEvent, requestId: requestByMethod.get('runSearchRegexpAgent')?.id } })
-        socket.receive({
-            event: 'actionRun',
-            payload: { event: actionEvent, requestId: requestByMethod.get('onActionRun')?.id, subscriptionId: 'action-1' },
-        })
-        socket.receive({
-            event: 'codexRateLimits',
-            payload: { requestId: requestByMethod.get('onCodexRateLimits')?.id, snapshot, subscriptionId: 'limits-1' },
-        })
-        socket.receive({
-            event: 'worktreesChanged',
-            payload: { requestId: requestByMethod.get('onWorktreesChanged')?.id, state: worktreeState, subscriptionId: 'worktrees-1' },
-        })
-        for (const [method, subscriptionId] of subscriptions) {
-            const request = requestByMethod.get(method)
-            if (!request) throw new Error(`Missing ${method} request`)
-            socket.receive({ id: request.id, result: { subscriptionId } })
-        }
-        const agentRequest = requestByMethod.get('runSearchRegexpAgent')
-        if (!agentRequest) throw new Error('Missing runSearchRegexpAgent request')
-        socket.receive({ id: agentRequest.id, result: 'agent-1' })
-        await expect(agentRun).resolves.toBe('agent-1')
+        expect(MockWebSocket.instances).toHaveLength(1);
+        expect(socket.methods()).toEqual([
+            'getActiveProject', 'listActiveActionRuns', 'getClaudeRateLimits', 'getCodexRateLimits', 'loadDesktopConfig',
+        ]);
+        for (const [index] of socket.sent.entries()) socket.receive({ id: socket.request(index).id, result: null });
+        await Promise.all([storageRequest, actionRequest, claudeRequest, codexRequest, configRequest]);
+    });
 
-        expect(watchCallback).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' })
-        expect(agentCallback).toHaveBeenCalledWith(agentEvent)
-        expect(actionCallback).toHaveBeenCalledWith(actionEvent)
-        expect(rateLimitCallback).toHaveBeenCalledWith(snapshot)
-        expect(worktreeCallback).toHaveBeenCalledWith(worktreeState)
+    it('keeps sockets, subscriptions, and pending-push state isolated per instance', async () => {
+        installWebSocket();
+        const first = createService();
+        const second = createService();
+        const firstSocket = await openConnection(first.client);
+        const secondSocket = await openConnection(second.client);
+        first.onWorktreesChanged(vi.fn());
+        const commit = first.commit({ branch: 'main', files: [], message: 'Commit' });
+        await settle();
 
-        stopWatch()
-        stopAction()
-        stopRateLimits()
-        stopWorktrees()
-        await vi.waitFor(() => expect(socket.sent).toHaveLength(requests.length + subscriptions.length))
-        const unsubscribeIds = socket.sent.slice(requests.length).map((message) => {
-            const request = JSON.parse(message) as { method: string, params: string[] }
-            expect(request.method).toBe('unsubscribe')
-
-            return request.params[0]
-        })
-        expect(unsubscribeIds).toEqual(expect.arrayContaining(subscriptions.map(([, subscriptionId]) => subscriptionId)))
-    })
-
-    it('unsubscribes a project watcher stopped before setup completes', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const callback = vi.fn()
-        const stop = service.watchProject(project, callback, vi.fn(), vi.fn())
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const watchRequest = JSON.parse(socket.sent[0]) as { id: string }
-        stop()
-        socket.receive({ id: watchRequest.id, result: { subscriptionId: 'watch-1' } })
-        await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
-        expect(JSON.parse(socket.sent[1])).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['watch-1'] }))
-        socket.receive({
-            event: 'watchProject',
-            payload: { event: { changeKind: 'changed', path: 'design/F-1.md' }, requestId: watchRequest.id, subscriptionId: 'watch-1' },
-        })
-
-        expect(callback).not.toHaveBeenCalled()
-    })
-
-    it('restores each live project watch once per reconnect and never restores a stopped watch', async () => {
-        installWebSocket()
-        const service = createService()
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const callback = vi.fn()
-        const restored = vi.fn()
-        const stop = service.watchProject(project, callback, restored, vi.fn())
-        const firstSocket = lastSocket()
-
-        firstSocket.open()
-        await flushPromises()
-        const firstRequest = JSON.parse(firstSocket.sent[0]) as { id: string, method: string }
-        expect(firstRequest.method).toBe('watchProject')
-        firstSocket.receive({ id: firstRequest.id, result: { subscriptionId: 'watch-1' } })
-        await flushPromises()
-        expect(restored).not.toHaveBeenCalled()
-
-        firstSocket.close()
-        const firstReconnect = service.connect()
-        const secondSocket = lastSocket()
-        secondSocket.open()
-        await firstReconnect
-        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
-        const secondRequest = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
-        expect(secondRequest.method).toBe('watchProject')
-        secondSocket.receive({ id: secondRequest.id, result: { subscriptionId: 'watch-2' } })
-        await vi.waitFor(() => expect(restored).toHaveBeenCalledTimes(1))
-        secondSocket.receive({
-            event: 'watchProject',
-            payload: {
-                event: { changeKind: 'changed', path: 'design/F-1.md' },
-                requestId: secondRequest.id,
-                subscriptionId: 'watch-2',
-            },
-        })
-        expect(callback).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' })
-
-        secondSocket.close()
-        const secondReconnect = service.connect()
-        const thirdSocket = lastSocket()
-        thirdSocket.open()
-        await secondReconnect
-        await vi.waitFor(() => expect(thirdSocket.sent).toHaveLength(1))
-        const thirdRequest = JSON.parse(thirdSocket.sent[0]) as { id: string, method: string }
-        expect(thirdRequest.method).toBe('watchProject')
-        thirdSocket.receive({ id: thirdRequest.id, result: { subscriptionId: 'watch-3' } })
-        await vi.waitFor(() => expect(restored).toHaveBeenCalledTimes(2))
-
-        stop()
-        await vi.waitFor(() => expect(thirdSocket.sent).toHaveLength(2))
-        expect(JSON.parse(thirdSocket.sent[1])).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['watch-3'] }))
-        thirdSocket.close()
-        const thirdReconnect = service.connect()
-        const fourthSocket = lastSocket()
-        fourthSocket.open()
-        await thirdReconnect
-        await flushPromises()
-
-        expect(fourthSocket.sent).toEqual([])
-        expect(restored).toHaveBeenCalledTimes(2)
-    })
-
-    it('fails an in-flight request once and does not replay it after reconnect', async () => {
-        installWebSocket()
-        const service = createService()
-        const request = service.startAction(actionStartRequest())
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        socket.close()
-
-        await expect(request).rejects.toThrow('Remote-control connection closed')
-        const reconnection = service.connect()
-        const replacementSocket = lastSocket()
-        replacementSocket.open()
-        await reconnection
-        await flushPromises()
-
-        expect(replacementSocket.sent).toEqual([])
-    })
-
-    it('holds requests started during reconnection for the shared socket attempt', async () => {
-        installWebSocket()
-        const service = createService()
-        const firstConnection = service.connect()
-        const firstSocket = lastSocket()
-        firstSocket.open()
-        await firstConnection
-        firstSocket.close()
-
-        const request = service.getActiveProject()
-        await flushPromises()
-        expect(MockWebSocket.instances).toHaveLength(1)
-
-        const reconnection = service.connect()
-        const secondSocket = lastSocket()
-        expect(MockWebSocket.instances).toHaveLength(2)
-        secondSocket.open()
-        await reconnection
-        await flushPromises()
-
-        expect(secondSocket.sent).toHaveLength(1)
-        const sentRequest = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
-        expect(sentRequest.method).toBe('getActiveProject')
-        secondSocket.receive({ id: sentRequest.id, result: null })
-        await expect(request).resolves.toBeNull()
-    })
-
-    it('fails requests waiting for reconnection when explicitly disconnected', async () => {
-        installWebSocket()
-        const service = createService()
-        const connection = service.connect()
-        const socket = lastSocket()
-        socket.open()
-        await connection
-        socket.close()
-
-        const request = service.getActiveProject()
-        service.disconnect()
-
-        await expect(request).rejects.toThrow('Remote-control connection closed')
-        expect(MockWebSocket.instances).toHaveLength(1)
-    })
-
-    it('ignores late close and error events from an older socket', async () => {
-        installWebSocket()
-        const service = createService()
-        const connectionChanges = vi.fn()
-        service.onConnectionChanged(connectionChanges)
-        const firstConnection = service.connect()
-        const firstSocket = lastSocket()
-        firstSocket.open()
-        await firstConnection
-        firstSocket.close()
-
-        const reconnection = service.connect()
-        const secondSocket = lastSocket()
-        secondSocket.open()
-        await reconnection
-        firstSocket.dispatchEvent(new Event('close'))
-        firstSocket.dispatchEvent(new Event('error'))
-
-        const request = service.getActiveProject()
-        await flushPromises()
-        const sentRequest = JSON.parse(secondSocket.sent[0]) as { id: string }
-        secondSocket.receive({ id: sentRequest.id, result: null })
-
-        await expect(request).resolves.toBeNull()
-        expect(connectionChanges.mock.calls).toEqual([[true], [false], [true]])
-    })
-
-    it('connects and disconnects without a request', async () => {
-        installWebSocket()
-        const service = createService()
-        const connection = service.connect()
-        const socket = lastSocket()
-
-        socket.open()
-        await expect(connection).resolves.toBeUndefined()
-        expect(socket.url).toBe('ws://127.0.0.1:1234')
-
-        service.disconnect()
-        expect(socket.readyState).toBe(3)
-    })
-
-    it('rejects connect when the socket errors before opening', async () => {
-        installWebSocket()
-        const service = createService()
-        const connection = service.connect()
-        const socket = lastSocket()
-
-        socket.dispatchEvent(new Event('error'))
-
-        await expect(connection).rejects.toThrow('Remote-control connection failed')
-    })
-
-    it('constructs WebSocket with endpoint only', async () => {
-        installWebSocket()
-        const service = createService()
-        const request = service.startAction(actionStartRequest())
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
-        socket.receive({ id: sentRequest.id, result: 'action-1' })
-
-        await expect(request).resolves.toBe('action-1')
-        expect(socket.url).toBe('ws://127.0.0.1:1234')
-        expect(socket.protocol).toBeUndefined()
-    })
-    it('rebuilds a missing working folder error from the remote response marker', async () => {
-        installWebSocket()
-        const service = createService()
-        const request = service.loadProject({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, 'design/feature_descriptions')
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
-        socket.receive({
-            error: {
-                code: 'missing-working-folder',
-                fields: { workingFolder: 'design/feature_descriptions' },
-                message: 'Working folder is missing: design/feature_descriptions',
-                name: 'Error',
-            },
-            id: sentRequest.id,
-        })
-
-        const error = await request.catch((failure: unknown) => failure) as MissingWorkingFolderError
-
-        expect(error).toBeInstanceOf(MissingWorkingFolderError)
-        expect(error.code).toBe('missing-working-folder')
-        expect(error.workingFolder).toBe('design/feature_descriptions')
-    })
-
-    it('keeps reporting unmarked remote failures with the remote method prefix', async () => {
-        installWebSocket()
-        const service = createService()
-        const request = service.startAction(actionStartRequest())
-        const socket = lastSocket()
-
-        socket.open()
-        await flushPromises()
-        const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
-        socket.receive({ error: { message: 'Action failed' }, id: sentRequest.id })
-
-        await expect(request).rejects.toThrow('Remote method startAction failed: Action failed')
-    })
-})
+        expect(firstSocket.methods()).toEqual(['onWorktreesChanged', 'commit']);
+        expect(secondSocket.sent).toEqual([]);
+        firstSocket.receive({ id: firstSocket.request(1).id, result: [] });
+        await commit;
+        expect(first.hasPendingPush(PROJECT)).toBe(true);
+        expect(second.hasPendingPush(PROJECT)).toBe(false);
+    });
+});

@@ -25,7 +25,7 @@ import { initDefaultSentryConnectionService, sentryConnectionService } from './s
 import { sentryImportService } from './sentry/sentry_import_service'
 import { agentInstructionsService } from './agent_instructions/agent_instructions_service'
 import { keyboardShortcutService } from './shortcuts/keyboard_shortcut_service'
-import { isRemoteControlConnectionError } from './data/remote_control_storage_service'
+import { isRemoteControlConnectionError } from './data/remote_control_connection_error'
 import { cardPopupService } from './card_popup_service'
 import { initDefaultJsonDataService, jsonDataService } from './json/json_data_service'
 import type { JsonDataDocument } from './json/json_data_document'

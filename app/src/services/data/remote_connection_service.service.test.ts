@@ -7,7 +7,8 @@ import { ActionRunRegistry } from '../actions/action_run_registry'
 import { ProjectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
 import { createDeferred } from '../test_support/data_service_test_support'
 import { RemoteConnectionService, type RemoteConnectionServiceDependencies } from './remote_connection_service'
-import { RemoteControlConnectionError, RemoteControlStorageService } from './remote_control_storage_service'
+import { RemoteControlConnectionError } from './remote_control_connection_error'
+import { RemoteControlStorageService } from './remote_control_storage_service'
 
 interface MockStorageControl {
     close(): void
@@ -22,10 +23,10 @@ function createMockStorage(connect: () => Promise<void> = async () => undefined)
     let connectionListener: ((connected: boolean) => void) | null = null
     const connectMock = vi.fn(connect)
     const disconnect = vi.fn()
-    const retire = vi.spyOn(storage, 'retire')
-    vi.spyOn(storage, 'connect').mockImplementation(connectMock)
-    vi.spyOn(storage, 'disconnect').mockImplementation(disconnect)
-    vi.spyOn(storage, 'onConnectionChanged').mockImplementation((listener) => {
+    const retire = vi.spyOn(storage.client, 'retire')
+    vi.spyOn(storage.client, 'connect').mockImplementation(connectMock)
+    vi.spyOn(storage.client, 'disconnect').mockImplementation(disconnect)
+    vi.spyOn(storage.client, 'onConnectionChanged').mockImplementation((listener) => {
         connectionListener = listener
 
         return () => {
@@ -94,15 +95,15 @@ describe('RemoteConnectionService', () => {
         const setup = createService([first])
         const firstActionCleanup = vi.fn()
         const firstRateLimitCleanup = vi.fn()
-        const firstActionSubscription = vi.spyOn(first.storage, 'onActionRun').mockReturnValue(firstActionCleanup)
-        const firstRateLimitSubscription = vi.spyOn(first.storage, 'onCodexRateLimits').mockReturnValue(firstRateLimitCleanup)
+        const firstActionSubscription = vi.spyOn(first.storage.actionBridge, 'onActionRun').mockReturnValue(firstActionCleanup)
+        const firstRateLimitSubscription = vi.spyOn(first.storage.codexRuntimeBridge, 'onCodexRateLimits').mockReturnValue(firstRateLimitCleanup)
         let actionCleanup: (() => void) | null = null
         let rateLimitCleanup: (() => void) | null = null
         setup.activate.mockImplementation(async (storage) => {
             actionCleanup?.()
             rateLimitCleanup?.()
-            actionCleanup = storage.onActionRun(() => undefined)
-            rateLimitCleanup = storage.onCodexRateLimits(() => undefined)
+            actionCleanup = storage.actionBridge.onActionRun(() => undefined)
+            rateLimitCleanup = storage.codexRuntimeBridge.onCodexRateLimits(() => undefined)
         })
         await setup.service.connect(SETTINGS)
         setup.service.setProjectStorageActive(true)
@@ -158,15 +159,15 @@ describe('RemoteConnectionService', () => {
             actionId: 'build', context: { kind: 'project' }, phase: 'main', rootActionId: 'build', runId: 'run-1',
             sequence: 1, status: 'running', type: 'run',
         }
-        vi.spyOn(first.storage, 'onActionRun').mockReturnValue(vi.fn())
-        const recovery = vi.spyOn(first.storage, 'loadActionRunRecoverySnapshot')
+        vi.spyOn(first.storage.actionBridge, 'onActionRun').mockReturnValue(vi.fn())
+        const recovery = vi.spyOn(first.storage.actionBridge, 'loadActionRunRecoverySnapshot')
             .mockResolvedValueOnce({ activeRunEvents: [runningEvent], terminalResults: [] })
             .mockResolvedValue({
                 activeRunEvents: [],
                 terminalResults: [{ changedPaths: [], failure: null, runId: 'run-1', status: 'completed' }],
             })
         setup.activate.mockImplementation(async (storage, reconnecting) => {
-            setActionBridgeOverride(storage)
+            setActionBridgeOverride(storage.actionBridge)
             registry.start()
             if (reconnecting) await registry.recoverConnection()
         })

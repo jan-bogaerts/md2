@@ -24,7 +24,12 @@ import {
     type CardField,
 } from '../../../../services/data/data_service'
 import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
-import { RemoteControlConnectionError, RemoteControlStorageService } from '../../../../services/data/remote_control_storage_service'
+import { RemoteControlConnectionError } from '../../../../services/data/remote_control_connection_error'
+import { RemoteControlActionBridge } from '../../../../services/data/remote_control_action_bridge'
+import { RemoteControlClient } from '../../../../services/data/remote_control_client'
+import { RemoteControlCodexRuntimeBridge } from '../../../../services/data/remote_control_codex_runtime_bridge'
+import { RemoteControlDesktopConfigTransport } from '../../../../services/data/remote_control_desktop_config_transport'
+import { RemoteControlStorageService } from '../../../../services/data/remote_control_storage_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
 import { openFilesService } from '../../../../services/open_files_service'
@@ -1874,16 +1879,16 @@ describe('ActionPopup', () => {
     it('keeps prompt preparation loading until remote backend becomes ready', async () => {
         const connectionReady = deferredValue<void>()
         const storage = new RemoteControlStorageService()
-        storage.init({ endpoint: 'ws://desktop:1234' })
-        vi.spyOn(storage, 'connect').mockReturnValue(connectionReady.promise)
-        vi.spyOn(storage, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
-        vi.spyOn(storage, 'loadAgentAvailability').mockResolvedValue({})
-        vi.spyOn(storage, 'getCodexRateLimits').mockResolvedValue(null)
-        vi.spyOn(storage, 'loadActionRunRecoverySnapshot')
+        storage.client.init({ endpoint: 'ws://desktop:1234' })
+        vi.spyOn(storage.client, 'connect').mockReturnValue(connectionReady.promise)
+        vi.spyOn(storage.desktopConfigTransport, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
+        vi.spyOn(storage.actionBridge, 'loadAgentAvailability').mockResolvedValue({})
+        vi.spyOn(storage.codexRuntimeBridge, 'getCodexRateLimits').mockResolvedValue(null)
+        vi.spyOn(storage.actionBridge, 'loadActionRunRecoverySnapshot')
             .mockResolvedValue({ activeRunEvents: [], terminalResults: [] })
-        vi.spyOn(storage, 'onActionRun').mockReturnValue(() => undefined)
-        vi.spyOn(storage, 'onCodexRateLimits').mockReturnValue(() => undefined)
-        const prepareActionPrompt = vi.spyOn(storage, 'prepareActionPrompt').mockResolvedValue({ prompt: 'Remote prompt' })
+        vi.spyOn(storage.actionBridge, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(storage.codexRuntimeBridge, 'onCodexRateLimits').mockReturnValue(() => undefined)
+        const prepareActionPrompt = vi.spyOn(storage.actionBridge, 'prepareActionPrompt').mockResolvedValue({ prompt: 'Remote prompt' })
         delete window.md2Actions
         const connection = remoteConnectionService.connectExisting(storage)
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
@@ -1910,20 +1915,20 @@ describe('ActionPopup', () => {
     it('retries prompt preparation through replacement bridge after remote close', async () => {
         const firstPreparation = rejectableDeferred<never>()
         const connectionListeners: Array<(connected: boolean) => void> = []
-        vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()
-        vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
-        vi.spyOn(RemoteControlStorageService.prototype, 'loadAgentAvailability').mockResolvedValue({})
-        vi.spyOn(RemoteControlStorageService.prototype, 'getCodexRateLimits').mockResolvedValue(null)
-        vi.spyOn(RemoteControlStorageService.prototype, 'loadActionRunRecoverySnapshot')
+        vi.spyOn(RemoteControlClient.prototype, 'connect').mockResolvedValue()
+        vi.spyOn(RemoteControlDesktopConfigTransport.prototype, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
+        vi.spyOn(RemoteControlActionBridge.prototype, 'loadAgentAvailability').mockResolvedValue({})
+        vi.spyOn(RemoteControlCodexRuntimeBridge.prototype, 'getCodexRateLimits').mockResolvedValue(null)
+        vi.spyOn(RemoteControlActionBridge.prototype, 'loadActionRunRecoverySnapshot')
             .mockResolvedValue({ activeRunEvents: [], terminalResults: [] })
-        vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)
-        vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
-        const prepareActionPrompt = vi.spyOn(RemoteControlStorageService.prototype, 'prepareActionPrompt')
+        vi.spyOn(RemoteControlActionBridge.prototype, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(RemoteControlCodexRuntimeBridge.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
+        const prepareActionPrompt = vi.spyOn(RemoteControlActionBridge.prototype, 'prepareActionPrompt')
             .mockReturnValueOnce(firstPreparation.promise)
             .mockResolvedValueOnce({ prompt: 'Reconnected prompt' })
         const firstStorage = new RemoteControlStorageService()
-        firstStorage.init({ endpoint: 'ws://desktop:1234' })
-        vi.spyOn(firstStorage, 'onConnectionChanged').mockImplementation((listener) => {
+        firstStorage.client.init({ endpoint: 'ws://desktop:1234' })
+        vi.spyOn(firstStorage.client, 'onConnectionChanged').mockImplementation((listener) => {
             connectionListeners.push(listener)
 
             return () => true

@@ -44,7 +44,7 @@ function discardLastProject() {
 export function createStorageService(storageType: StorageType, accessToken: string | null): StorageService {
     if (storageType === 'remote') {
         const storage = new RemoteControlStorageService()
-        storage.init()
+        storage.client.init()
 
         return storage
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { RemoteControlConnectionError } from '../data/remote_control_storage_service'
+import { RemoteControlConnectionError } from '../data/remote_control_connection_error'
 import { ActionPromptDraftService } from './action_prompt_draft_service'
 
 const context = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }

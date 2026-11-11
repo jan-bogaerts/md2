@@ -20,7 +20,7 @@ import {
 import { actionService } from '../../../../services/actions/action_service'
 import { dataService } from '../../../../services/data/data_service'
 import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
-import { RemoteControlConnectionError } from '../../../../services/data/remote_control_storage_service'
+import { RemoteControlConnectionError } from '../../../../services/data/remote_control_connection_error'
 import { projectAccessService } from '../../../../services/project/project_access_service'
 import { activeScheduleService } from '../../../../services/actions/active_schedule_service'
 import { cancelElectronAction, restartElectronAction, runElectronAction } from '../../../../services/actions/electron_action_runner'

@@ -8,7 +8,7 @@ import {
 } from './services/application_startup_service'
 import { configService } from './services/config/config_service'
 import { dataService } from './services/data/data_service'
-import { RemoteControlConnectionError } from './services/data/remote_control_storage_service'
+import { RemoteControlConnectionError } from './services/data/remote_control_connection_error'
 import { dialogService } from './services/dialog_service'
 import { createDeferred } from './services/test_support/data_service_test_support'
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ApplicationStartupService, type ApplicationStartupDependencies } from './application_startup_service'
-import { RemoteControlConnectionError } from './data/remote_control_storage_service'
+import { RemoteControlConnectionError } from './data/remote_control_connection_error'
 
 function createDependencies(overrides: Partial<ApplicationStartupDependencies> = {}): ApplicationStartupDependencies {
     return {

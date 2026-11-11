@@ -1826,7 +1826,7 @@ describe('ProjectLoading', () => {
         vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
         configService.init()
         const remoteStorage = new RemoteControlStorageService()
-        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })
+        remoteStorage.client.init({ endpoint: 'ws://127.0.0.1:1234' })
         const storage = createStorage({
             loadFile: remoteStorage.loadFile.bind(remoteStorage),
             watchProject: remoteStorage.watchProject.bind(remoteStorage),
@@ -1911,7 +1911,7 @@ describe('ProjectLoading', () => {
         vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
         configService.init()
         const remoteStorage = new RemoteControlStorageService()
-        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })
+        remoteStorage.client.init({ endpoint: 'ws://127.0.0.1:1234' })
         const storage = createStorage({
             loadFile: remoteStorage.loadFile.bind(remoteStorage),
             watchProject: remoteStorage.watchProject.bind(remoteStorage),
@@ -1987,7 +1987,7 @@ describe('ProjectLoading', () => {
         vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
         configService.init()
         const remoteStorage = new RemoteControlStorageService()
-        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234' })
+        remoteStorage.client.init({ endpoint: 'ws://127.0.0.1:1234' })
         let currentFiles = storageFiles
         const loadProject = vi.fn(async () => ({ files: currentFiles, workingFolder: 'design' }))
         const loadFile = vi.fn(async (_project, path: string) => {
@@ -2032,7 +2032,7 @@ describe('ProjectLoading', () => {
             ? { ...file, content: file.content.replace('status: active', 'status: ready').replace('# Root', '# Updated remotely') }
             : file)
 
-        const reconnection = remoteStorage.connect()
+        const reconnection = remoteStorage.client.connect()
         const secondSocket = ProjectLoadingMockWebSocket.instances[1]
         if (!secondSocket) throw new Error('Replacement remote-control socket was not created')
         secondSocket.open()

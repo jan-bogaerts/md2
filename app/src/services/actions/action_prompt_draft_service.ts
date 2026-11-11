@@ -1,6 +1,6 @@
 import { actionContextIdentity, type ActionContext } from '../../data/action_context'
 import type { PreparedActionPrompt } from '../../data/action_run_types'
-import { isRemoteControlConnectionError } from '../data/remote_control_storage_service'
+import { isRemoteControlConnectionError } from '../data/remote_control_connection_error'
 import { register } from '../service_injector'
 import { MarkdownDraft, type MarkdownDraftBinding } from '../markdown/markdown_draft'
 
