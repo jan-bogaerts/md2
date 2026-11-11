@@ -627,6 +627,299 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "212c070c-0ec8-4bed-be93-77c2d0b8fd99",
+      "cardPath": "design/feature_descriptions/B_367_non_streaming_conversations_cant_use_a_plan_or_task_list.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_367_non_streaming_conversations_cant_use_a_plan_or_task_list.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_367_non_streaming_conversations_cant_use_a_plan_or_task_list.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "submission-18a0f1b0-da71-4940-a37f-ab7c361aaac7",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-11T14:33:25.736Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-2",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwJf4qGiU15a1NHuYwG6:thinking:0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T14:33:29.632Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_367_non_streaming_conversations_cant_use_a_plan_or_task_list.md\"}",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-3",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_367\n4\tinternalId: 212c070c-0ec8-4bed-be93-77c2d0b8fd99\n5\ttitle: non streaming conversations cant use a plan or task list\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__212c070c-0ec8-4bed-be93-77c2d0b8fd99.json\n11\tpolicy:\n12\tafter: d2e9440e-e79e-4abe-9092-d786540e29d3\n13\t---\n14\t\n15\tWhen starting an action that is not configured a streaming, we still appear to ask the agent to prepare a plan.\n16\t\n17\tcodex replied with:\n18\t\n19\t> I’ll use update_plan for multi-step work and explicit task lists, and skip it for simple requests and answer-only questions.\n20\t\n21\tNo plan request was done, it was just to shorten a text.\n22\t\n23\tso most likely, we also pass the switch to use plans when we are in non-streaming mode. this is wrong.\n24\t\n25\t## Current state\n26\t\n27\t* `resolveAgentExecution` applies `desktop.agentTaskTrackingEnabled` to both streaming and non-streaming runs.\n28\t* Non-streaming Codex commands explicitly enable `tools.update_plan` when task tracking is enabled. `AgentRunnerService` also prepends the Codex task-tracking instruction to the one-shot user prompt. This injected text can be treated as part of a simple transformation request, which explains the observed response.\n29\t* Non-streaming Claude runs likewise receive the environment setting that enables task tools.\n30\t* The one-shot provider parser and conversation UI can decode and display task lists, but non-streaming actions must not request or use them.\n31\t\n32\t## Implementation details\n33\t\n34\t* In `resolveAgentExecution`, derive the effective task-tracking value as `streaming && (config.agentTaskTrackingEnabled ?? false)`. Use that value for command construction and return it in the resolved result so downstream Codex and Claude paths receive the same decision.\n35\t* Remove `codexOneShotPrompt` and stop modifying non-streaming Codex prompts. Keep the shared Codex task-tracking instruction for streaming app-server sessions.\n36\t* Keep the existing task-list decoders, persistence, and conversation UI unchanged. Historical task lists and streaming task tracking remain supported.\n37\t* Update the task-tracking configuration description to state that it applies to streaming conversations.\n38\t* Add focused tests proving that non-streaming Codex disables `update_plan`, non-streaming Claude does not enable task tools, and one-shot prompts remain unchanged. Retain coverage for enabled streaming runs.\n39\t\n40\t## Acceptance criteria\n41\t\n42\t* Starting a non-streaming action makes MD² disable Codex `update_plan` and refrain from enabling Claude task tools, regardless of the desktop task-tracking setting.\n43\t* A non-streaming Codex action receives the original action prompt without task-tracking instructions.\n44\t* Simple non-streaming transformations do not produce responses that repeat or paraphrase hidden task-tracking instructions.\n45\t* Streaming Codex and Claude conversations still receive task-tracking instructions and tools when task tracking is enabled.\n46\t* Disabling task tracking continues to disable task tools in both execution modes.\n47\t* Existing task-list decoding, persistence, and rendering behavior remains unchanged.\n48\t",
+          "providerItemId": "toolu_012zz3zLAfEA8TCn8nomRkto",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:33:30.197Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"agentTaskTrackingEnabled|codexOneShotPrompt|taskTrackingEnabled\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\",\"glob\":\"!**/node_modules/**\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-4",
+          "kind": "event",
+          "label": "Grep",
+          "output": "<persisted-output>\nOutput too large (30KB). Full output saved to: C:\\Users\\janbo\\.claude\\projects\\C--Users-janbo-Documents-dev-md2\\fdef3bd4-8713-4417-87c7-8c73a5ea7136\\tool-results\\toolu_01XaSu4Y364EFgyYvrYFBPvD.txt\n\nPreview (first 2KB):\ndesktop\\src\\shell\\config.test.mjs:52:            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,\ndesktop\\src\\shell\\config.test.mjs:65:            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,\ndesktop\\src\\shell\\config.test.mjs:82:            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,\ndesktop\\src\\shell\\config.test.mjs:97:            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,\ndesktop\\src\\shell\\config.test.mjs:145:            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,\ndesktop\\src\\shell\\config.test.mjs:204:            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,\ndesktop\\src\\shell\\config.test.mjs:222:            agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,\ndesktop\\src\\shell\\config.test.mjs:241:        writeDesktopConfig(store, { agentTaskTrackingEnabled: true });\ndesktop\\src\\shell\\config.test.mjs:243:        expect(readDesktopConfig(store, {})).toMatchObject({ agentTaskTrackingEnabled: true });\ndesktop\\src\\shell\\config.test.mjs:292:        agentTaskTrackingEnabled: false,\ndesktop\\src\\shell\\config.test.mjs:349:        ['missing task tracking', { ...validConfig, agentTaskTrackingEnabled: undefined }, 'Missing config field: desktop.agentTaskTrackingEnabled'],\ndesktop\\src\\shell\\config.test.mjs:350:        ['invalid task tracking', { ...validConfig, agentTaskTrackingEnabled: 'yes' }, 'Missing config field: desktop.agentTaskTrackingEnabled'],\ndesktop\\src\\shell\\config.js:54:    if (typeof values.agentTaskTrackingEnabled !== 'boolean') throw new Error('Missing config field: desktop.agentTaskTrackingEnabled');\ndesktop\\src\\shell\\config.js:67:        agentTaskTrackingEnabled: values.agentTaskTrackingEnabled,\ndesktop\\src\\shell\\config.js:112:        agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,\ndesktop\\src\\shell\\local_bridge_dispatch.test.mjs:1348:            agentTaskTrackingEnabled: false,\n...\n</persisted-output>",
+          "providerItemId": "toolu_01XaSu4Y364EFgyYvrYFBPvD",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:33:33.706Z",
+          "type": "tool.Grep"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; grep -v \"\\.test\\.\\|design[/\\\\\\\\]\" \"C:/Users/janbo/.claude/projects/C--Users-janbo-Documents-dev-md2/fdef3bd4-8713-4417-87c7-8c73a5ea7136/tool-results/toolu_01XaSu4Y364EFgyYvrYFBPvD.txt\"; echo ---; grep -c \"\" \"C:/Users/janbo/.claude/projects/C--Users-janbo-Documents-dev-md2/fdef3bd4-8713-4417-87c7-8c73a5ea7136/tool-results/toolu_01XaSu4Y364EFgyYvrYFBPvD.txt\"",
+          "content": "desktop\\src\\shell\\config.js:54:    if (typeof values.agentTaskTrackingEnabled !== 'boolean') throw new Error('Missing config field: desktop.agentTaskTrackingEnabled');\ndesktop\\src\\shell\\config.js:67:        agentTaskTrackingEnabled: values.agentTaskTrackingEnabled,\ndesktop\\src\\shell\\config.js:112:        agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,\ndesktop\\src\\shell\\local_bridge_dispatch.js:839:                agentTaskTrackingEnabled: resolved.agentTaskTrackingEnabled,\nshared\\agent_profiles.mjs:371:function buildAgentTaskTrackingCommand(command, profile, agentTaskTrackingEnabled) {\nshared\\agent_profiles.mjs:374:    return [...command, '-c', `tools.update_plan.enabled=${agentTaskTrackingEnabled}`];\nshared\\agent_profiles.mjs:377:export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined, speedSettings = {}, agentTaskTrackingEnabled = true) {\nshared\\agent_profiles.mjs:388:    command = buildAgentTaskTrackingCommand(command, profile, agentTaskTrackingEnabled);\nshared\\agent_profiles.mjs:399:export function buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode = undefined, speedSettings = {}, agentTaskTrackingEnabled = true) {\nshared\\agent_profiles.mjs:411:    command = buildAgentTaskTrackingCommand(command, profile, agentTaskTrackingEnabled);\nshared\\agent_profiles.d.mts:58:export function buildAgentExecutionCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, searchEnabled?: boolean, permissionMode?: PermissionMode, speedSettings?: AgentSpeedSettings, agentTaskTrackingEnabled?: boolean): string[]\nshared\\agent_profiles.d.mts:59:export function buildAgentStreamingCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, permissionMode?: PermissionMode, speedSettings?: AgentSpeedSettings, agentTaskTrackingEnabled?: boolean): string[]\ndocs\\guide\\configuration.md:47:| `desktop.agentTaskTrackingEnabled` | `false` | Let Codex and Claude publish task lists shown in conversations and as progress below a running card's **Run** button. Uses additional context. |\ndesktop\\src\\actions\\agent\\agent_task_tracking.js:3:function codexOneShotPrompt(prompt, agent, taskTrackingEnabled) {\ndesktop\\src\\actions\\agent\\agent_task_tracking.js:4:    if (agent !== 'codex' || !taskTrackingEnabled) return prompt;\ndesktop\\src\\actions\\agent\\agent_task_tracking.js:9:module.exports = { CODEX_TASK_TRACKING_INSTRUCTIONS, codexOneShotPrompt };\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.js:183:        taskTrackingEnabled = false,\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.js:191:        this.taskTrackingEnabled = taskTrackingEnabled;\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.js:486:            ...(this.taskTrackingEnabled ? { developerInstructions: CODEX_TASK_TRACKING_INSTRUCTIONS } : {}),\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.js:1007:    taskTrackingEnabled = false,\ndesktop\\src\\actions\\agent\\agent_streaming_adapter.js:1021:            taskTrackingEnabled,\ndesktop\\src\\actions\\agent\\agent_run_state.js:166:            run.request.agentTaskTrackingEnabled === true,\ndesktop\\src\\actions\\agent\\agent_runner_service.js:52:const { codexOneShotPrompt } = require('./agent_task_tracking');\ndesktop\\src\\actions\\agent\\agent_runner_service.js:191:        const environment = createAgentEnvironment(this.environment, agent, request.agentTaskTrackingEnabled === true, account);\ndesktop\\src\\actions\\agent\\agent_runner_service.js:194:        const providerPrompt = codexOneShotPrompt(prompt, agent, request.agentTaskTrackingEnabled === true);\ndesktop\\src\\actions\\agent\\agent_execution.js:7:    const agentTaskTrackingEnabled = config.agentTaskTrackingEnabled ?? false;\ndesktop\\src\\actions\\agent\\agent_execution.js:13:            agentTaskTrackingEnabled,\ndesktop\\src\\actions\\agent\\agent_execution.js:17:            config.codexSearchEnabled ?? true, resolved.permissionMode, speedSettings, agentTaskTrackingEnabled,\ndesktop\\src\\actions\\agent\\agent_execution.js:27:    return { ...resolved, agentTaskTrackingEnabled, command, executionSettings };\ndesktop\\src\\actions\\agent\\agent_environment.js:25:function createAgentEnvironment(environment, agent, agentTaskTrackingEnabled = false, account = null) {\ndesktop\\src\\actions\\agent\\agent_environment.js:33:        ...(agentTaskTrackingEnabled && !hasEnvironmentVariable(copied, CLAUDE_TODO_TOOLS_VARIABLE)\ndesktop\\src\\actions\\action\\action_agent_executor.js:143:            agentTaskTrackingEnabled: resolvedAgent.agentTaskTrackingEnabled,\ndesktop\\src\\actions\\action\\action_agent_executor.js:195:        const agentTaskTrackingEnabled = config.agentTaskTrackingEnabled ?? false;\ndesktop\\src\\actions\\action\\action_agent_executor.js:198:            {}, agentTaskTrackingEnabled,\ndesktop\\src\\actions\\action\\action_agent_executor.js:203:            activityProject: input.primaryProject, agent: resolvedAgent.agent, agentTaskTrackingEnabled,\napp\\src\\services\\config\\config_service.ts:325:        agentTaskTrackingEnabled: values['desktop.agentTaskTrackingEnabled'],\napp\\src\\services\\config\\config_service.ts:369:    if (desktopConfig.agentTaskTrackingEnabled !== undefined) {\napp\\src\\services\\config\\config_service.ts:370:        nextValues = mergeValue(nextValues, 'desktop.agentTaskTrackingEnabled', desktopConfig.agentTaskTrackingEnabled)\napp\\src\\services\\config\\config_entries.ts:33:    'desktop.agentTaskTrackingEnabled': boolean\napp\\src\\services\\config\\config_entries.ts:102:    agentTaskTrackingEnabled?: boolean\napp\\src\\services\\config\\config_entries.ts:359:        key: 'desktop.agentTaskTrackingEnabled',\n\n[Showing results with pagination = limit: 250]\n---\n252",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-5",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; grep -v \"\\.test\\.\\|design[/\\\\\\\\]\" \"C:/Users/janbo/.claude/projects/C--Users-janbo-Documents-dev-md2/fdef3bd4-8713-4417-87c7-8c73a5ea7136/tool-results/toolu_01XaSu4Y364EFgyYvrYFBPvD.txt\"; echo ---; grep -c \"\" \"C:/Users/janbo/.claude/projects/C--Users-janbo-Documents-dev-md2/fdef3bd4-8713-4417-87c7-8c73a5ea7136/tool-results/toolu_01XaSu4Y364EFgyYvrYFBPvD.txt\"",
+          "providerItemId": "toolu_01ATFCRZJy5Yag2Y6KKtq5uN",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:33:39.759Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions; cat agent/agent_execution.js agent/agent_task_tracking.js; sed -n 120,215p action/action_agent_executor.js; sed -n 180,200p agent/agent_runner_service.js; sed -n 820,850p ../shell/local_bridge_dispatch.js; sed -n 350,370p ../../../app/src/services/config/config_entries.ts",
+          "content": "const { buildAgentExecutionCommand, buildAgentStreamingCommand, CODEX_MAX_THINKING_LEVEL } = require('../../../../shared/agent_profiles.mjs');\nconst { resolveAgentConfiguration } = require('./agent_profiles.mjs');\n\n/** Prepare launch settings without reading or refreshing the model catalog. */\nfunction resolveAgentExecution(config, selection, streaming) {\n    const resolved = resolveAgentConfiguration(config, selection);\n    const agentTaskTrackingEnabled = config.agentTaskTrackingEnabled ?? false;\n    const serviceTier = resolved.speedMode === 'fast' ? 'priority' : resolved.speedMode === 'standard' ? 'default' : undefined;\n    const speedSettings = { speedMode: resolved.speedMode, serviceTier };\n    const command = streaming\n        ? buildAgentStreamingCommand(\n            resolved.profile, resolved.model, resolved.thinkingLevel, resolved.permissionMode, speedSettings,\n            agentTaskTrackingEnabled,\n        )\n        : buildAgentExecutionCommand(\n            resolved.profile, resolved.model, resolved.thinkingLevel,\n            config.codexSearchEnabled ?? true, resolved.permissionMode, speedSettings, agentTaskTrackingEnabled,\n        );\n    const reasoningEffort = resolved.agent === 'codex' && resolved.thinkingLevel === 'max'\n        ? CODEX_MAX_THINKING_LEVEL : resolved.thinkingLevel;\n    const executionSettings = {\n        model: resolved.model,\n        ...(resolved.thinkingLevel !== 'none' ? { effort: reasoningEffort } : {}),\n        ...(serviceTier !== undefined ? { serviceTier } : {}),\n    };\n\n    return { ...resolved, agentTaskTrackingEnabled, command, executionSettings };\n}\n\nmodule.exports = { resolveAgentExecution };\nconst CODEX_TASK_TRACKING_INSTRUCTIONS = 'Use `update_plan` to create and maintain a task list for multi-step work and whenever the user explicitly requests tasks. Do not create a plan for a simple one-step request or answer-only question.';\n\nfunction codexOneShotPrompt(prompt, agent, taskTrackingEnabled) {\n    if (agent !== 'codex' || !taskTrackingEnabled) return prompt;\n\n    return `${CODEX_TASK_TRACKING_INSTRUCTIONS}\\n\\n${prompt}`;\n}\n\nmodule.exports = { CODEX_TASK_TRACKING_INSTRUCTIONS, codexOneShotPrompt };\n                    input.diagramFooter,\n                    input.diagramFile,\n                    input.version,\n                    input.forEachRecord,\n                );\n        const prompt = await appendCurrentCardReferences(\n            basePrompt,\n            input.context,\n            input.primaryProject,\n            this.localGitService,\n        );\n        const command = executionCommand(resolvedAgent, providerSession, streaming);\n        const contextInput = sourceConversation\n            ? normalizeConversationContext(sourceConversation, providerSession?.synchronizedThroughMessageId ?? null)\n            : '';\n        const reference = input.runInput.continueFrom\n            ? continuationReferencePath(input.runInput.continueFrom)\n            : input.conversationReservation?.reference;\n        const deferProjectWriteQueue = !!input.runInput.forEach || input.runInput.deferProjectWriteQueue === true;\n        const request = {\n            ...(resolvedAgent.account ? { account: resolvedAgent.account } : {}),\n            actionId: input.action.id,\n            agent: resolvedAgent.agent,\n            agentTaskTrackingEnabled: resolvedAgent.agentTaskTrackingEnabled,\n            activityOrigin: input.activityOrigin,\n            activityProject: input.primaryProject,\n            ...(input.context.file ? { cardPath: input.context.file } : {}),\n            command,\n            executionSettings: resolvedAgent.executionSettings,\n            ...(deferProjectWriteQueue ? { deferProjectWriteQueue: true } : {}),\n            ...(input.runInput.forEach ? { forEach: input.runInput.forEach } : {}),\n            ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),\n            ...(!sourceConversation ? {\n                conversationId: input.conversationReservation?.conversationId ?? input.runInput.conversationId,\n                reference,\n            } \n[3756 characters omitted]\nesult;\n\n            // The existing transcript remains intact; initialization is not a user message.\n        } else if (request.reuseLastUserMessage) {\n            if (lastMessage?.role !== 'user' || lastMessage.content !== prompt) throw new Error('Missing failed-turn user message for agent retry');\n        } else {\n            conversation.entries.push(createMessageEntry(request.submissionId ?? `${id}-user`, 'user', prompt, startedAt, undefined, nextSequence));\n            nextSequence += 1;\n        }\n        const initialConversation = snapshotConversation(conversation);\n        await this.persistConversationCheckpoint({ conversation: initialConversation, request });\n        onConversationSaved?.();\n        const [configuredExecutable, ...configuredArguments] = command;\n        const environment = createAgentEnvironment(this.environment, agent, request.agentTaskTrackingEnabled === true, account);\n        const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });\n        if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);\n        const providerPrompt = codexOneShotPrompt(prompt, agent, request.agentTaskTrackingEnabled === true);\n        const argumentsList = streaming ? configuredArguments : [...configuredArguments, providerPrompt];\n        this.requestUsagePoll({ accountId: account?.id ?? null, agent, environment, executable, rootPath });\n        const child = this.spawn(executable, argumentsList, {\n            cwd: rootPath,\n            detached: process.platform !== 'win32',\n            env: environment,\n\n            return actionRunnerService.restart(runId, request);\n        },\n        runSearchRegexpAgent: async (input, callback) => {\n            if (typeof input !== 'string' || input.length === 0) throw new Error('Missing regular expression search input');\n\n            if (!currentLocalProject) throw new Error('No project is selected for agent search');\n            const resolved = resolveAgentExecution(\n                readDesktopConfig(desktopConfigStore), {}, false,\n            );\n            const projectConfig = await localGitService.loadProjectConfig(currentLocalProject);\n            const projectFolder = typeof projectConfig?.projectFolder === 'string' ? projectConfig.projectFolder : '';\n            const configuredReleasesFolder = typeof projectConfig?.releasesFolder === 'string' ? projectConfig.releasesFolder : 'history';\n            const releasesFolder = projectFolder.length > 0\n                ? `${projectFolder.replace(/[\\\\/]$/u, '')}/${configuredReleasesFolder.replace(/^[\\\\/]/u, '')}`\n                : configuredReleasesFolder;\n            const request = {\n                ...(resolved.account ? { account: resolved.account } : {}),\n                agent: resolved.agent,\n                agentTaskTrackingEnabled: resolved.agentTaskTrackingEnabled,\n                activityOrigin: { kind: 'project' },\n                activityProject: currentLocalProject,\n                command: resolved.command,\n                executionSettings: resolved.executionSettings,\n                prompt: `${SEARCH_AGENT_PROMPT_PREFIX}${input}`,\n                projectFolder,\n                releasesFolder,\n                title: 'Search RegExp',\n            };\n            const result = await agentRunnerService.run(currentLocalProject, request, callback);\n\n        label: 'Agent accounts',\n        section: 'desktop',\n        source: 'desktop',\n        type: 'json',\n    },\n    {\n        defaultValue: false,\n        description: 'Lets Claude and Codex keep a task list shown in the conversation; costs extra context.',\n        editable: true,\n        key: 'desktop.agentTaskTrackingEnabled',\n        label: 'Agent task tracking',\n        section: 'desktop',\n        source: 'desktop',\n        type: 'boolean',\n    },\n    {\n        defaultValue: true,\n        description: 'Allow Codex desktop actions to use live web search.',\n        editable: true,\n        key: 'desktop.codexSearchEnabled',\n        label: 'Codex web search',",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-6",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions; cat agent/agent_execution.js agent/agent_task_tracking.js; sed -n 120,215p action/action_agent_executor.js; sed -n 180,200p agent/agent_runner_service.js; sed -n 820,850p ../shell/local_bridge_dispatch.js; sed -n 350,370p ../../../app/src/services/config/config_entries.ts",
+          "providerItemId": "toolu_01MRutcB4eAUWWaRBc6E5dwQ",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:33:47.228Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwJgWD2xGvdW5McXKMeR:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T14:33:50.684Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; sed -n 365,415p shared/agent_profiles.mjs; sed -n 155,175p desktop/src/actions/agent/agent_run_state.js; grep -rln \"codexOneShotPrompt\\|agent_task_tracking\\|resolveAgentExecution\\|CODEX_TASK_TRACKING\" --include=*.mjs --include=*.js --include=*.ts desktop/src app/src shared | grep -v node_modules",
+          "content": "        ...command,\n        ...(speedMode === 'fast' ? ['-c', 'features.fast_mode=true'] : []),\n        '-c', `service_tier=${JSON.stringify(settings.serviceTier)}`,\n    ];\n}\n\nfunction buildAgentTaskTrackingCommand(command, profile, agentTaskTrackingEnabled) {\n    if (profile.name !== 'codex') return command;\n\n    return [...command, '-c', `tools.update_plan.enabled=${agentTaskTrackingEnabled}`];\n}\n\nexport function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined, speedSettings = {}, agentTaskTrackingEnabled = true) {\n    const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)\n    let command = buildAgentCommand(profile, model)\n\n    if (validatedThinkingLevel !== 'none') {\n        const thinkingAdapter = THINKING_LEVEL_ADAPTERS.get(profile.name)\n        if (!thinkingAdapter) throw new Error(`Agent profile does not support thinking levels: ${profile.name}`)\n        command = thinkingAdapter(command, validatedThinkingLevel)\n    }\n    command = buildPermissionModeCommand(command, profile, permissionMode)\n    command = buildSpeedCommand(command, profile, speedSettings);\n    command = buildAgentTaskTrackingCommand(command, profile, agentTaskTrackingEnabled);\n\n    const outputAdapter = OUTPUT_COMMAND_ADAPTERS.get(profile.name)\n\n    return outputAdapter ? outputAdapter(command, searchEnabled) : command\n}\n\nexport function supportsAgentStreaming(profile) {\n    return STREAMING_COMMAND_ADAPTERS.has(profile.name)\n}\n\nexport function buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode = undefined, speedSettings = {}, agentTaskTrackingEnabled = true) {\n    if (!supportsAgentStreaming(profile)) throw new Error(`Agent profile does not support streaming: ${profile.name}`)\n    const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)\n    let command = buildAgentCommand(profile, model)\n\n    if (validatedThinkingLevel !== 'none') {\n        const thinkingAdapter = THINKING_LEVEL_ADAPTERS.get(profile.name)\n        if (!thinkingAdapter) throw new Error(`Agent profile does not support thinking levels: ${profile.name}`)\n        command = thinkingAdapter(command, validatedThinkingLevel)\n    }\n    command = buildPermissionModeCommand(command, profile, permissionMode)\n    command = buildSpeedCommand(command, profile, speedSettings);\n    command = buildAgentTaskTrackingCommand(command, profile, agentTaskTrackingEnabled);\n\n    return STREAMING_COMMAND_ADAPTERS.get(profile.name)(command)\n}\n\n        : null;\n    run.streamingAdapter = run.streaming\n        ? createAgentStreamingAdapter(\n            run.agent,\n            writeLine,\n            (event) => run.streamingEventPublisher.publish(event),\n            rootPath,\n            providerConversationId,\n            onCodexRuntimeEvent,\n            run.request.executionSettings,\n            run.claudeUsageTracker,\n            run.request.agentTaskTrackingEnabled === true,\n            run.conversation.taskList,\n        )\n        : null;\n    run.protocolLines = run.streaming ? new JsonLineBuffer(run.id, onStreamingLine) : null;\n    run.parser = run.streaming\n        ? null\n        : createAgentProviderProtocolParser(\n            run.agent,\n            onProviderEvent,\ndesktop/src/actions/action/action_agent_executor.js\ndesktop/src/actions/agent/agent_execution.js\ndesktop/src/actions/agent/agent_execution.test.mjs\ndesktop/src/actions/agent/agent_profiles.test.mjs\ndesktop/src/actions/agent/agent_runner_service.js\ndesktop/src/actions/agent/agent_runner_state.test.mjs\ndesktop/src/actions/agent/agent_streaming_adapter.js\ndesktop/src/actions/agent/agent_streaming_adapter.test.mjs\ndesktop/src/actions/agent/agent_task_tracking.js\ndesktop/src/actions/agent/agent_task_tracking.test.mjs\ndesktop/src/shell/local_bridge_dispatch.js",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-8",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; sed -n 365,415p shared/agent_profiles.mjs; sed -n 155,175p desktop/src/actions/agent/agent_run_state.js; grep -rln \"codexOneShotPrompt\\|agent_task_tracking\\|resolveAgentExecution\\|CODEX_TASK_TRACKING\" --include=*.mjs --include=*.js --include=*.ts desktop/src app/src shared | grep -v node_modules",
+          "providerItemId": "toolu_011S1gJesrySFRBv4HZwMQQ5",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:33:56.577Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "Reading tests next, then plan.",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 9,
+          "timestamp": "2026-11-11T14:33:58.038Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent; cat agent_task_tracking.test.mjs agent_execution.test.mjs; grep -n \"TaskTracking\\|task tracking\\|CODEX_TASK\\|update_plan\\|TODO\" agent_runner_state.test.mjs | head -40",
+          "content": "import { createRequire } from 'node:module';\nimport { describe, expect, it } from 'vitest';\n\nconst require = createRequire(import.meta.url);\nconst { CODEX_TASK_TRACKING_INSTRUCTIONS, codexOneShotPrompt } = require('./agent_task_tracking');\n\ndescribe('codexOneShotPrompt', () => {\n    it('prepends task instructions for tracked Codex runs', () => {\n        expect(codexOneShotPrompt('Review card', 'codex', true))\n            .toBe(`${CODEX_TASK_TRACKING_INSTRUCTIONS}\\n\\nReview card`);\n    });\n\n    it.each([\n        ['codex', false],\n        ['claude', true],\n    ])('keeps provider prompt unchanged for %s with task tracking %s', (agent, taskTrackingEnabled) => {\n        expect(codexOneShotPrompt('Review card', agent, taskTrackingEnabled)).toBe('Review card');\n    });\n});\nimport { createRequire } from 'node:module';\r\nimport { describe, expect, it, vi } from 'vitest';\r\n\r\nconst require = createRequire(import.meta.url);\r\nconst { resolveAgentExecution } = require('./agent_execution');\r\nconst { AgentModelCatalogService } = require('./agent_model_catalog_service');\r\nconst { BUILTIN_AGENT_PROFILES, buildResumeAgentCommand } = require('./agent_profiles.mjs');\r\n\r\nfunction config(speedMode) {\r\n    const profile = { ...BUILTIN_AGENT_PROFILES.find(({ name }) => name === 'codex'), defaultModel: 'gpt-6.1-sol' };\r\n\r\n    return {\n        agentTaskTrackingEnabled: false,\n        agentProfiles: [profile],\n        agentSelection: {\r\n            activeAgent: 'codex', permissionMode: 'ask-for-approval',\r\n            settingsByAgent: { codex: { model: 'gpt-6.1-sol', thinkingLevel: 'max', speedMode } },\r\n        },\r\n    };\r\n}\r\n\r\ndescribe('agent execution settings', () => {\r\n    it.each([false, true])('prepares selected settings without reading model lists when streaming is %s', (streaming) => {\r\n        const loadCatalog = vi.spyOn(AgentModelCatalogService.prototype, 'load').mockRejectedValue(new Error('Catalog unavailable'));\r\n        try {\r\n            const resolved = resolveAgentExecution(config('fast'), { model: 'new-model', thinkingLevel: 'high' }, streaming);\r\n\r\n            expect(resolved.executionSettings).toEqual({ model: 'new-model', effort: 'high', serviceTier: 'priority' });\r\n            expect(loadCatalog).not.toHaveBeenCalled();\r\n        } finally {\r\n            loadCatalog.mockRestore();\r\n        }\r\n    });\r\n\r\n    it('applies Fast settings and retains them during one-shot resume', () => {\n        const resolved = resolveAgentExecution(config('fast'), {}, false);\n        expect(resolved.agentTaskTrackingEnabled).toBe(false);\n        expect(resolved.command).toContain('tools.update_plan.enabled=false');\n        expect(resolved.command).toContain('service_tier=\"priority\"');\r\n        expect(resolved.command).toContain('features.fast_mode=true');\r\n        expect(resolved.executionSettings).toEqual({ model: 'gpt-6.1-sol', effort: 'xhigh', serviceTier: 'priority' });\r\n        const resumed = buildResumeAgentCommand(resolved.profile, 'saved-session', resolved.command);\r\n        expect(resumed).toContain('service_tier=\"priority\"');\r\n        expect(resumed.slice(-4)).toEqual(['exec', 'resume', '--json', 'saved-session']);\r\n    });\r\n\r\n    it('explicitly clears Fast for Standard and leaves provider default unoverridden', () => {\r\n        const standard = resolveAgentExecution(config('standard'), {}, true);\r\n        expect(standard.executionSettings.serviceTier).toBe('default');\r\n        expect(standard.command).toContain('service_tier=\"default\"');\r\n        const inherited = resolveAgentExecution(config('default'), {}, true);\r\n        expect(inherited.executionSettings).not.toHaveProperty('serviceTier');\r\n        expect(inherited.command.some((value) => value.startsWith('service_tier='))).toBe(false);\r\n    });\r\n\r\n    it('preserves a selected model without adding a reasoning override for none', () => {\r\n        const resolved = resolveAgentExecution(config('default'), { model: 'new-model', thinkingLevel: 'none' }, true);\r\n\r\n        expect(resolved.executionSettings).toEqual({ model: 'new-model' });\r\n    });\r\n});\r\n16:const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');\n965:            agentTaskTrackingEnabled: true,\n976:            `${CODEX_TASK_TRACKING_INSTRUCTIONS}\\n\\nStart work`,",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-10",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent; cat agent_task_tracking.test.mjs agent_execution.test.mjs; grep -n \"TaskTracking\\|task tracking\\|CODEX_TASK\\|update_plan\\|TODO\" agent_runner_state.test.mjs | head -40",
+          "providerItemId": "toolu_01Pin8drVoUf4ndTg5sRGFdt",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:34:01.405Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent; sed -n 940,1000p agent_runner_state.test.mjs; grep -n \"agentTaskTrackingEnabled\\|CLAUDE_CODE_ENABLE_TASKS\\|TODO_TOOLS\" agent_runner_state.test.mjs agent_environment*.mjs agent_environment.js ../action/*.test.mjs | head -30",
+          "content": "        await expect(service.start(project, request, onEvent, vi.fn(), vi.fn())).rejects.toBe(failure);\n\n        expect(spawn).not.toHaveBeenCalled();\n        expect(onEvent).not.toHaveBeenCalled();\n    });\n\n    it('injects Codex task instructions only into one-shot provider input', async () => {\n        const child = new EventEmitter();\n        child.pid = 43;\n        child.stdin = new PassThrough();\n        child.stdout = new PassThrough();\n        child.stderr = new PassThrough();\n        const persistConversation = vi.fn(async () => undefined);\n        const persistConversationCheckpoint = vi.fn(async () => undefined);\n        const spawn = vi.fn(() => child);\n        const onEvent = vi.fn();\n        const service = new AgentRunnerService({\n            executableResolver: { find: vi.fn(async () => '/tools/codex') },\n            persistConversation,\n            persistConversationCheckpoint,\n            spawn,\n        });\n        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };\n        const request = {\n            agent: 'codex',\n            agentTaskTrackingEnabled: true,\n            command: ['codex', 'exec', '--json'],\n            projectFolder: 'design',\n            prompt: 'Start work',\n        };\n\n        await service.start(project, request, onEvent, vi.fn(), vi.fn());\n\n        expect(spawn).toHaveBeenCalledWith('/tools/codex', [\n            'exec',\n            '--json',\n            `${CODEX_TASK_TRACKING_INSTRUCTIONS}\\n\\nStart work`,\n        ], expect.any(Object));\n        expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expect.objectContaining({ entries: [expect.objectContaining({ content: 'Start work', role: 'user' })] }) }));\n        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ entries: [] }),\n            type: 'started',\n        }));\n        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            type: 'userMessage',\n            userMessage: expect.objectContaining({ content: 'Start work' }),\n        }));\n\n        child.emit('close', 0);\n        await vi.waitFor(() => expect(persistConversation).toHaveBeenCalledOnce());\n    });\n\n    it('captures a resolved directory account and uses its environment for the process', async () => {\n        const child = new EventEmitter();\n        child.pid = 44;\n        child.stdin = new PassThrough();\n        child.stdout = new PassThrough();\n        child.stderr = new PassThrough();\n        const account = {\n            agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111',\n            kind: 'directory', name: 'Work',\nagent_runner_state.test.mjs:965:            agentTaskTrackingEnabled: true,\nagent_environment.test.mjs:32:            CLAUDE_CODE_ENABLE_TODO_TOOLS: '1',\nagent_environment.test.mjs:38:            .not.toHaveProperty('CLAUDE_CODE_ENABLE_TODO_TOOLS');\nagent_environment.test.mjs:66:            CLAUDE_CODE_ENABLE_TODO_TOOLS: '1',\nagent_environment.js:8:const CLAUDE_TODO_TOOLS_VARIABLE = 'CLAUDE_CODE_ENABLE_TODO_TOOLS';\nagent_environment.js:25:function createAgentEnvironment(environment, agent, agentTaskTrackingEnabled = false, account = null) {\nagent_environment.js:33:        ...(agentTaskTrackingEnabled && !hasEnvironmentVariable(copied, CLAUDE_TODO_TOOLS_VARIABLE)\nagent_environment.js:34:            ? { [CLAUDE_TODO_TOOLS_VARIABLE]: '1' } : {}),\n../action/action_agent_executor.test.mjs:12:function agentConfig(activeAgent = 'codex', model = '', agentProfiles = [], permissionMode = 'ask-for-approval', agentTaskTrackingEnabled = true) {\n../action/action_agent_executor.test.mjs:14:        agentTaskTrackingEnabled,\n../action/action_agent_executor.test.mjs:195:        expect(request.agentTaskTrackingEnabled).toBe(false);\n../action/action_agent_executor.test.mjs:234:        expect(request.agentTaskTrackingEnabled).toBe(false);",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-11",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent; sed -n 940,1000p agent_runner_state.test.mjs; grep -n \"agentTaskTrackingEnabled\\|CLAUDE_CODE_ENABLE_TASKS\\|TODO_TOOLS\" agent_runner_state.test.mjs agent_environment*.mjs agent_environment.js ../action/*.test.mjs | head -30",
+          "providerItemId": "toolu_01HR12DDnkebi4XGYj167nP6",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:34:04.553Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwJhnMQX6wF5BseoyvUv:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T14:34:06.438Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop/src; grep -rn \"update_plan\\|agentTaskTrackingEnabled).toBe\\|agentTaskTrackingEnabled: true\" --include=*.test.mjs . | head -30; grep -n \"agentTaskTrackingEnabled\\|update_plan\" ../../shared/*.test.* 2>/dev/null | head",
+          "content": "./actions/action/action_agent_executor.test.mjs:195:        expect(request.agentTaskTrackingEnabled).toBe(false);\n./actions/action/action_agent_executor.test.mjs:196:        expect(request.command).toContain('tools.update_plan.enabled=false');\n./actions/action/action_agent_executor.test.mjs:234:        expect(request.agentTaskTrackingEnabled).toBe(false);\n./actions/action/action_agent_executor.test.mjs:235:        expect(request.command).toContain('tools.update_plan.enabled=false');\n./actions/action/action_agent_executor.test.mjs:305:            '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json',\n./actions/action/action_agent_executor.test.mjs:506:                '-c', 'tools.update_plan.enabled=true', 'app-server', '--stdio',\n./actions/action/action_scheduler_service.test.mjs:972:                '--ask-for-approval', 'on-request', '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json',\n./actions/action/action_scheduler_service.test.mjs:996:                '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json',\n./actions/action/action_scheduler_service.test.mjs:1019:            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=low', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json'],\n./actions/action/action_scheduler_service.test.mjs:1020:            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json'],\n./actions/agent/agent_execution.test.mjs:37:        expect(resolved.agentTaskTrackingEnabled).toBe(false);\n./actions/agent/agent_execution.test.mjs:38:        expect(resolved.command).toContain('tools.update_plan.enabled=false');\n./actions/agent/agent_profiles.test.mjs:53:                '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json',\n./actions/agent/agent_profiles.test.mjs:78:            ...(agent === 'codex' ? ['-c', 'tools.update_plan.enabled=true'] : []),\n./actions/agent/agent_profiles.test.mjs:115:        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'high')).toEqual(['codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=high', '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json']);\n./actions/agent/agent_profiles.test.mjs:116:        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'max')).toEqual(['codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=xhigh', '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json']);\n./actions/agent/agent_profiles.test.mjs:118:        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none')).toEqual(['codex', '--model', 'gpt-5', '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json']);\n./actions/agent/agent_profiles.test.mjs:119:        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none', false)).toEqual(['codex', '--model', 'gpt-5', '-c', 'tools.update_plan.enabled=true', 'exec', '--json']);\n./actions/agent/agent_profiles.test.mjs:129:            '-c', 'tools.update_plan.enabled=true', 'app-server', '--stdio',\n./actions/agent/agent_profiles.test.mjs:143:        const disabledArguments = ['-c', 'tools.update_plan.enabled=false'];\n./actions/agent/agent_profiles.test.mjs:153:            .toContain('tools.update_plan.enabled=true');\n./actions/agent/agent_profiles.test.mjs:155:            .toContain('tools.update_plan.enabled=true');\n./actions/agent/agent_profiles.test.mjs:174:        const taskTrackingArguments = ['-c', 'tools.update_plan.enabled=true'];\n./actions/agent/agent_profiles.test.mjs:238:            'codex', '-c', 'tools.update_plan.enabled=true', 'exec', 'resume', '--json', 'session-1',\n./actions/agent/agent_profiles_parity.test.mjs:30:            '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json',\n./actions/agent/agent_profiles_parity.test.mjs:33:            'codex', '--model', 'gpt-5', '-c', 'tools.update_plan.enabled=true', 'app-server', '--stdio',\n./actions/agent/agent_runner_state.test.mjs:965:            agentTaskTrackingEnabled: true,\n./shell/config.test.mjs:241:        writeDesktopConfig(store, { agentTaskTrackingEnabled: true });\n./shell/config.test.mjs:243:        expect(readDesktopConfig(store, {})).toMatchObject({ agentTaskTrackingEnabled: true });\n./shell/local_bridge_dispatch.test.mjs:1352:                '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json',",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-13",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop/src; grep -rn \"update_plan\\|agentTaskTrackingEnabled).toBe\\|agentTaskTrackingEnabled: true\" --include=*.test.mjs . | head -30; grep -n \"agentTaskTrackingEnabled\\|update_plan\" ../../shared/*.test.* 2>/dev/null | head",
+          "providerItemId": "toolu_01RhVNQtizqyKTmpid8vtQ6E",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:34:08.079Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/action; sed -n 285,320p action_agent_executor.test.mjs",
+          "content": "        expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({\n            conversationId: conversationReservation.conversationId,\n            reference: conversationReservation.reference,\n        });\n    });\n\n    it('resolves run permission overrides before action and desktop defaults', async () => {\n        const agentConfigProvider = () => agentConfig();\n        const { agentRunnerService, executor } = createExecutor({ agentConfigProvider });\n        const permissionAction = { ...action, permissionMode: 'approve-for-me' };\n\n        const result = await executor.execute(executionInput({\n            action: permissionAction,\n            runInput: { extraPrompt: '', permissionMode: 'full-access' },\n        }));\n\n        expect(result).toMatchObject({ permissionMode: 'full-access' });\n        expect(agentRunnerService.start.mock.calls[0][1].command).toEqual([\n            'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-access', '--ask-for-approval', 'never',\n            '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json',\n        ]);\n    });\n\n    it('resolves run account before action and desktop defaults without changing process request', async () => {\n        const work = { agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111', kind: 'directory', name: 'Work' };\n        const personal = { agent: 'codex', configDirectory: 'C:/accounts/personal', id: '22222222-2222-4222-8222-222222222222', kind: 'directory', name: 'Personal' };\n        const config = agentConfig();\n        config.agentAccounts = [\n            { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' },\n            { agent: 'claude', id: 'claude-initial', kind: 'initial', name: 'Default' },\n            work, personal,\n        ];\n        config.agentSelection.settingsByAgent.codex.accountId = work.id;\n        const { agentRunnerService, executor } = createExecutor({ agentConfigProvider: () => config });",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-14",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/action; sed -n 285,320p action_agent_executor.test.mjs",
+          "providerItemId": "toolu_01R2R3nQUF9f58PRWn7vNfyp",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:34:12.395Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-15",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwJiMmaa5KWteqcwvtgN:thinking:0",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T14:34:13.882Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"query\":\"select:TaskCreate,TaskUpdate\",\"max_results\":2}",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-16",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskCreate\"},{\"type\":\"tool_reference\",\"tool_name\":\"TaskUpdate\"}]",
+          "providerItemId": "toolu_016nY8wV7kwUhzDyVkGphJNX",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:34:14.998Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-17",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwJjBtYU8WjHVgqoQbR2:thinking:0",
+          "sequence": 17,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T14:34:32.183Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nHere's the plan. I haven't changed any files yet.\n\n**Root cause:** `resolveAgentExecution` in `desktop/src/actions/agent/agent_execution.js` takes `config.agentTaskTrackingEnabled` as-is for every run, streaming or not. That one value then drives three things:\n- the Codex `tools.update_plan.enabled=...` command flag;\n- the `request.agentTaskTrackingEnabled` field, which `createAgentEnvironment` uses to set Claude's `CLAUDE_CODE_ENABLE_TODO_TOOLS`;\n- `codexOneShotPrompt`, which adds the planning instruction to the front of the Codex one-shot prompt. That added text is what Codex was answering.\n\n**Call sites of `resolveAgentExecution`:**\n- `action_agent_executor.js` (normal action runs): streaming runs keep the setting; non-streaming runs get `false`.\n- `local_bridge_dispatch.js` `runSearchRegexpAgent`: always passes `streaming=false`, so it now gets `false`. That matches the spec.\n- `executeCompact` doesn't use it. It always streams and builds its own command, so it stays as it is.\n\n### Block 1: only allow task tracking in streaming runs (Task 1)\n- `agent_execution.js`: `const agentTaskTrackingEnabled = streaming && (config.agentTaskTrackingEnabled ?? false);`.\n- Tests in `agent_execution.test.mjs`, with task tracking turned on in config:\n  - non-streaming Codex gets `update_plan.enabled=false` and a resolved value of `false`;\n  - streaming Codex gets `true`;\n  - non-streaming Claude gets a resolved value of `false`.\n- One existing test is out of date: `action_agent_executor.test.mjs` \"resolves run permission overrides…\" expects `update_plan.enabled=true` on a non-streaming run. I'll change it to expect `false`, because the spec says non-streaming runs must turn `update_plan` off.\n\n### Block 2: remove `codexOneShotPrompt` (Task 2)\n- `agent_task_tracking.js`: keep only `CODEX_TASK_TRACKING_INSTRUCTIONS`, which streaming app-server sessions still use.\n- `agent_runner_service.js`: pass the original `prompt` unchanged.\n- Tests:\n  - delete the `codexOneShotPrompt` tests (the file would then be empty, so I'll delete it);\n  - rewrite the `agent_runner_state.test.mjs` test \"injects Codex task instructions only into one-shot provider input\" so it checks that the one-shot Codex prompt arrives unchanged.\n- Streaming coverage is already in `agent_streaming_adapter.test.mjs` and stays untouched.\n\n### Block 3: config description, checks and status (Task 3)\n- `app/src/services/config/config_entries.ts`: change the description to say the setting applies to streaming conversations.\n- Run the related test files and lint in `desktop` and `app`.\n- Set the spec's `status` to `ready`.\n\n**Open question:** `docs/guide/configuration.md` line 47 describes the same setting. The spec only mentions \"the configuration description\", so I won't touch the guide unless you say so.\n\nShould I go ahead, and should the guide be updated too?",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 18,
+          "timestamp": "2026-11-11T14:34:40.008Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-6096b796-19c1-4df3-a6a2-94ce8bd005a7",
+      "providerSessions": [
+        {
+          "accountId": "claude-initial",
+          "agent": "claude",
+          "conversationId": "fdef3bd4-8713-4417-87c7-8c73a5ea7136",
+          "createdAt": "2026-11-11T14:33:28.848Z",
+          "lastUsedAt": "2026-11-11T14:34:40.008Z",
+          "synchronizedThroughMessageId": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-turn-1-assistant-2",
+          "usageBaseline": {
+            "costUsd": 0.5564984,
+            "resultId": "ea0f0c37-75d0-4010-b7d9-274cbf54475a",
+            "tokens": {
+              "cachedInputTokens": 604163,
+              "inputTokens": 25,
+              "outputTokens": 4068,
+              "reasoningTokens": 0,
+              "totalTokens": 608256
+            }
+          }
+        }
+      ],
+      "startedAt": "2026-11-11T14:33:25.736Z",
+      "status": "waitingForInput",
+      "taskList": {
+        "tasks": [
+          {
+            "id": "1",
+            "subject": "Block 1: gate task tracking on streaming in resolveAgentExecution",
+            "status": "pending"
+          },
+          {
+            "id": "2",
+            "subject": "Block 2: remove codexOneShotPrompt",
+            "status": "pending"
+          },
+          {
+            "id": "3",
+            "subject": "Block 3: config description + status update",
+            "status": "pending"
+          }
+        ],
+        "updatedAt": "2026-11-11T14:34:23.640Z"
+      },
+      "timer": {
+        "breakdown": {
+          "reasoningMs": 12680,
+          "toolMs": 31439
+        },
+        "elapsedMs": 74272,
+        "runningStartedAt": null
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 604163,
+        "inputTokens": 25,
+        "outputTokens": 4068,
+        "reasoningTokens": 0,
+        "totalTokens": 608256,
+        "costUsd": 0.5564984
+      },
+      "usageSchemaVersion": 1,
+      "viewed": false
     }
   ],
   "origin": {

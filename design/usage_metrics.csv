@@ -11155,3 +11155,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-11T14:22:26.359Z,token_usage,codex,,,,,7354,737280,1628,487,746749,,,codex-initial
 2026-11-11T14:22:24.075Z,account_usage,claude,default,weekly,10080,2026-11-15T16:59:00.000Z,,,,,,10,0,claude-initial
 2026-11-11T14:30:05.511Z,token_usage,codex,,,,,97567,4480640,11241,5033,4594481,,,codex-initial
+2026-11-11T14:34:40.008Z,token_usage,claude,,,,,25,604163,4068,0,608256,,,claude-initial
