@@ -11185,3 +11185,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-11T15:55:36.740Z,token_usage,claude,,,,,16,1966991,6757,0,1973764,,,claude-initial
 2026-11-11T15:54:27.968Z,account_usage,claude,default,weekly,10080,2026-11-15T17:00:00.000Z,,,,,,14,0,claude-initial
 2026-11-11T15:56:27.980Z,account_usage,claude,default,weekly,10080,2026-11-15T16:59:00.000Z,,,,,,14,0,claude-initial
+2026-11-11T16:08:15.255Z,token_usage,claude,,,,,53,2916475,29638,0,2946166,,,claude-initial
