@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: a1bb555a-bf8b-4111-a211-23e18445fe00
+after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 ---
 
 `app/src/services/data/remote_control_storage_service.ts` is approximately 1,430 lines and combines WebSocket transport, RPC correlation, reconnection, remote subscriptions, event routing, pending-push tracking, and five public service contracts. Split it into focused units without changing the remote-control protocol or established application behavior.

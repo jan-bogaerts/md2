@@ -1,5 +1,20 @@
 {
-  "actionSettings": {},
+  "actionSettings": {
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
   "conversations": [
     {
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
@@ -611,7 +626,7 @@
         "totalTokens": 1501732
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {

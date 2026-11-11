@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__212c070c-0ec8-4bed-be93-77c2d0b8fd99.json
 policy:
+after: d2e9440e-e79e-4abe-9092-d786540e29d3
 ---
 
 When starting an action that is not configured a streaming, we still appear to ask the agent to prepare a plan.

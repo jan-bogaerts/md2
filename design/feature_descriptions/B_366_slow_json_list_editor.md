@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__6da27e85-7e64-4ca3-ba18-56eea259e434.json
 policy:
-branch: b_366_slow_json_list_editor
-worktree: 3
 changedFiles:
   - app/json-array-performance.html
   - app/src/components/json_data_editor/json_array_editor.tsx
