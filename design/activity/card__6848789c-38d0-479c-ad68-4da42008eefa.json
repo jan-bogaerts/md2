@@ -2033,12 +2033,12 @@
         "agent-1b6b7887-507d-4c11-a38f-ba9bb7b41603"
       ],
       "details": {
+        "type": "agent",
         "accountId": "claude-initial",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-ceb2d291-9342-493d-8155-7e6536acdace",
       "origin": {
@@ -2047,9 +2047,63 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-1b6b7887-507d-4c11-a38f-ba9bb7b41603",
       "startedAt": "2026-11-11T15:51:21.268Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-1b6b7887-507d-4c11-a38f-ba9bb7b41603"
+    },
+    {
+      "commits": [
+        {
+          "commit": "e3e32944c59c9ec6103e66f6c3847369075d9423",
+          "committedAt": "2026-11-11T17:01:30+01:00",
+          "deletions": 2917,
+          "filePaths": [
+            "app/src/App.test.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_defaults.ts",
+            "app/src/data/project_session.ts",
+            "app/src/services/actions/action_prompt_draft_service.node.test.ts",
+            "app/src/services/actions/action_prompt_draft_service.ts",
+            "app/src/services/application_startup_service.test.ts",
+            "app/src/services/application_startup_service.ts",
+            "app/src/services/data/remote_connection_service.service.test.ts",
+            "app/src/services/data/remote_connection_service.ts",
+            "app/src/services/data/remote_control_action_bridge.node.test.ts",
+            "app/src/services/data/remote_control_action_bridge.ts",
+            "app/src/services/data/remote_control_broadcast_subscription.node.test.ts",
+            "app/src/services/data/remote_control_broadcast_subscription.ts",
+            "app/src/services/data/remote_control_callback_subscription.node.test.ts",
+            "app/src/services/data/remote_control_callback_subscription.ts",
+            "app/src/services/data/remote_control_claude_runtime_bridge.node.test.ts",
+            "app/src/services/data/remote_control_claude_runtime_bridge.ts",
+            "app/src/services/data/remote_control_client.node.test.ts",
+            "app/src/services/data/remote_control_client.ts",
+            "app/src/services/data/remote_control_codex_runtime_bridge.node.test.ts",
+            "app/src/services/data/remote_control_codex_runtime_bridge.ts",
+            "app/src/services/data/remote_control_connection_error.ts",
+            "app/src/services/data/remote_control_desktop_config_transport.node.test.ts",
+            "app/src/services/data/remote_control_desktop_config_transport.ts",
+            "app/src/services/data/remote_control_project_watch.node.test.ts",
+            "app/src/services/data/remote_control_project_watch.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/data/remote_control_subscription_failure.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "app/src/services/project/project_session_service.service.test.ts",
+            "app/src/services/test_support/mock_web_socket.ts"
+          ],
+          "filesChanged": 33,
+          "insertions": 2868,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-11T17:01:30+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "6848789c-38d0-479c-ad68-4da42008eefa",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
