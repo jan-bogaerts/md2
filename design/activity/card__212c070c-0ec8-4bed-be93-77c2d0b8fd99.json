@@ -1,0 +1,48 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "cardInternalId": "212c070c-0ec8-4bed-be93-77c2d0b8fd99",
+      "cardPath": "design/feature_descriptions/B_367_non_streaming_conversations_cant_use_a_plan_or_task_list.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_367_non_streaming_conversations_cant_use_a_plan_or_task_list.md. investigate what is happening, report your findings. Propose solution. Be short and to the point, full sentences.",
+          "id": "submission-683d4cad-a93a-471d-b2ae-ec0fe21c859a",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-11T14:18:06.716Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-265d19a8-450d-4c92-9beb-b22e30b27171",
+      "providerSessions": [
+        {
+          "accountId": "codex-initial",
+          "agent": "codex",
+          "conversationId": "01a1caf9-2083-7a61-b3c6-1343aa065ca0",
+          "createdAt": "2026-11-11T14:18:07.314Z",
+          "lastUsedAt": "2026-11-11T14:18:07.314Z",
+          "synchronizedThroughMessageId": "submission-683d4cad-a93a-471d-b2ae-ec0fe21c859a"
+        }
+      ],
+      "startedAt": "2026-11-11T14:18:06.716Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-11T14:18:06.716Z"
+      },
+      "title": "investigate",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "212c070c-0ec8-4bed-be93-77c2d0b8fd99",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
