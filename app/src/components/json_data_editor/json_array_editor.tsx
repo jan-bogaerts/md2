@@ -1,19 +1,29 @@
 import {
-    Box, Checkbox, Link, TableCell, TableRow, Typography,
+    Box, TableCell, TableRow, Typography,
 } from '@mui/material';
 import { useMemo, type ReactNode } from 'react';
-import { TableVirtuoso, type TableComponents, type TableVirtuosoProps } from 'react-virtuoso';
+import {
+    TableVirtuoso, type ScrollSeekConfiguration, type TableComponents, type TableVirtuosoProps,
+} from 'react-virtuoso';
 import { JSON_ARRAY_DEFAULT_COLUMN_WIDTH, type JsonDataDocument } from '../../services/json/json_data_document';
 import { isJsonObject, isJsonPrimitive, type JsonLocationSegment, type JsonValue } from '../../services/json/json_types';
-import { JsonScalarEditor } from './json_scalar_editor';
 import { JsonArrayActionsFooter } from './json_array_actions_footer';
 import { JsonArrayColumnHeaderCell } from './json_array_column_header_cell';
+import { JsonArrayScalarEditor } from './json_array_scalar_editor';
+import { JsonArrayScrollSeekRow } from './json_array_scroll_seek_row';
 import { JsonArrayVirtualTable } from './json_array_virtual_table';
 import { JsonArrayVirtualTableHead } from './json_array_virtual_table_head';
 
 const JSON_ARRAY_ESTIMATED_ROW_HEIGHT = 53;
 const JSON_ARRAY_OVERSCAN = 106;
+const JSON_ARRAY_SCROLL_SEEK_ENTER_VELOCITY = 200;
+const JSON_ARRAY_SCROLL_SEEK_EXIT_VELOCITY = 30;
 const JSON_ARRAY_SELECTION_COLUMN_WIDTH = 48;
+
+const JSON_ARRAY_SCROLL_SEEK_CONFIGURATION: ScrollSeekConfiguration = {
+    enter: (velocity) => Math.abs(velocity) > JSON_ARRAY_SCROLL_SEEK_ENTER_VELOCITY,
+    exit: (velocity) => Math.abs(velocity) < JSON_ARRAY_SCROLL_SEEK_EXIT_VELOCITY,
+};
 
 interface JsonArrayEditorProps {
     document: JsonDataDocument;
@@ -36,6 +46,7 @@ interface JsonArrayTableContext {
 }
 
 const JSON_ARRAY_TABLE_COMPONENTS: TableComponents<JsonValue, JsonArrayTableContext> = {
+    ScrollSeekPlaceholder: JsonArrayScrollSeekRow,
     Table: JsonArrayVirtualTable,
     TableHead: JsonArrayVirtualTableHead,
 };
@@ -71,8 +82,7 @@ function renderHeader(columns: JsonArrayColumn[], document: JsonDataDocument) {
 function renderRow(rowIndex: number, row: JsonValue, context: JsonArrayTableContext): ReactNode {
     const { columns, document, location, objectTable, selectedRows } = context;
     const selected = selectedRows.has(rowIndex);
-    const selectionCellSx = { boxSizing: 'border-box', ...(selected ? { bgcolor: 'action.selected' } : undefined) };
-    const cellSx = { ...selectionCellSx, '& .MuiTextField-root': { minWidth: 0, width: '100%' } };
+    const cellClassName = `json-array-body-cell${selected ? ' json-array-body-cell-selected' : ''}`;
     const handleSelection = () => {
         const nextSelection = new Set(selectedRows);
         if (selected) nextSelection.delete(rowIndex);
@@ -82,13 +92,15 @@ function renderRow(rowIndex: number, row: JsonValue, context: JsonArrayTableCont
 
     return (
         <>
-            <TableCell padding="checkbox" style={{ width: JSON_ARRAY_SELECTION_COLUMN_WIDTH }} sx={selectionCellSx}>
-                <Checkbox
+            <td className={`${cellClassName} json-array-selection-cell`} style={{ width: JSON_ARRAY_SELECTION_COLUMN_WIDTH }}>
+                <input
+                    aria-label={`Select row ${rowIndex + 1}`}
                     checked={selected}
+                    className="json-array-checkbox"
                     onChange={handleSelection}
-                    slotProps={{ input: { 'aria-label': `Select row ${rowIndex + 1}` } }}
+                    type="checkbox"
                 />
-            </TableCell>
+            </td>
             {columns.map(({ name: column, width }) => {
                 const fieldPresent = !objectTable || isJsonObject(row) && Object.hasOwn(row, column);
                 const fieldValue = objectTable && isJsonObject(row) ? row[column] : row;
@@ -104,9 +116,9 @@ function renderRow(rowIndex: number, row: JsonValue, context: JsonArrayTableCont
                 };
 
                 return (
-                    <TableCell key={`${rowIndex}:${column}`} style={{ width }} sx={cellSx}>
+                    <td className={cellClassName} key={`${rowIndex}:${column}`} style={{ width }}>
                         {!fieldPresent ? (
-                            <JsonScalarEditor
+                            <JsonArrayScalarEditor
                                 accessibleName={accessibleName}
                                 document={document}
                                 location={fieldLocation}
@@ -114,18 +126,18 @@ function renderRow(rowIndex: number, row: JsonValue, context: JsonArrayTableCont
                                 value=""
                             />
                         ) : isJsonPrimitive(fieldValue) ? (
-                            <JsonScalarEditor
+                            <JsonArrayScalarEditor
                                 accessibleName={accessibleName}
                                 document={document}
                                 location={fieldLocation}
                                 value={fieldValue}
                             />
                         ) : (
-                            <Link aria-label={`Open ${accessibleName}`} component="button" onClick={handleOpen} type="button" variant="body2">
+                            <button aria-label={`Open ${accessibleName}`} className="json-array-open-button" onClick={handleOpen} type="button">
                                 Open
-                            </Link>
+                            </button>
                         )}
-                    </TableCell>
+                    </td>
                 );
             })}
         </>
@@ -158,7 +170,79 @@ export function JsonArrayEditor({ document, value }: JsonArrayEditorProps) {
     );
 
     return (
-        <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
+        <Box
+            sx={{
+                display: 'flex',
+                flex: 1,
+                flexDirection: 'column',
+                minHeight: 0,
+                '& .json-array-body-cell': {
+                    bgcolor: 'background.paper',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    boxSizing: 'border-box',
+                    height: JSON_ARRAY_ESTIMATED_ROW_HEIGHT,
+                    overflow: 'hidden',
+                    px: 2,
+                    py: 0.75,
+                    verticalAlign: 'middle',
+                },
+                '& .json-array-body-cell-selected': { bgcolor: 'action.selected' },
+                '& .json-array-selection-cell': { px: 1.5, textAlign: 'center' },
+                '& .json-array-input': {
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'custom.borderStrong',
+                    borderRadius: 1,
+                    boxSizing: 'border-box',
+                    color: 'text.primary',
+                    font: 'inherit',
+                    height: 40,
+                    minWidth: 0,
+                    px: 1,
+                    width: '100%',
+                    '&:hover:not(:disabled):not(:read-only)': { borderColor: 'custom.borderHover' },
+                    '&:focus-visible': {
+                        borderColor: 'primary.main',
+                        boxShadow: (theme) => `0 0 0 3px ${theme.palette.custom.primaryBg}`,
+                        outline: 'none',
+                    },
+                    '&:disabled': { bgcolor: 'action.disabledBackground', color: 'text.disabled' },
+                },
+                '& .json-array-input-error': { borderColor: 'error.main' },
+                '& .json-array-number-control': { minWidth: 0, width: '100%' },
+                '& .json-array-input-helper': {
+                    color: 'error.main',
+                    display: 'block',
+                    fontSize: (theme) => theme.typography.caption.fontSize,
+                    lineHeight: (theme) => theme.typography.caption.lineHeight,
+                },
+                '& .json-array-boolean-control': {
+                    alignItems: 'center',
+                    color: 'text.primary',
+                    display: 'flex',
+                    font: 'inherit',
+                    gap: 1,
+                    height: 40,
+                },
+                '& .json-array-checkbox': {
+                    accentColor: (theme) => theme.palette.primary.main,
+                    height: 18,
+                    margin: 0,
+                    width: 18,
+                },
+                '& .json-array-open-button': {
+                    bgcolor: 'transparent',
+                    border: 0,
+                    color: 'primary.main',
+                    cursor: 'pointer',
+                    font: 'inherit',
+                    p: 0,
+                    textDecoration: 'underline',
+                    '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                },
+            }}
+        >
             <TableVirtuoso
                 components={JSON_ARRAY_TABLE_COMPONENTS}
                 context={tableContext}
@@ -167,6 +251,7 @@ export function JsonArrayEditor({ document, value }: JsonArrayEditorProps) {
                 fixedHeaderContent={fixedHeaderContent}
                 itemContent={renderRow}
                 overscan={JSON_ARRAY_OVERSCAN}
+                scrollSeekConfiguration={JSON_ARRAY_SCROLL_SEEK_CONFIGURATION}
                 style={{ flex: 1, height: '100%', minHeight: 0, width: '100%' }}
             />
             <JsonArrayActionsFooter document={document} />

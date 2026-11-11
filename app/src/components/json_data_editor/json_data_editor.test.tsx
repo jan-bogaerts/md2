@@ -223,7 +223,8 @@ describe('JsonDataEditor', () => {
         const objectLink = screen.getByRole('button', { name: 'Open details row 1' });
 
         expect(objectLink).toHaveTextContent(/^Open$/u);
-        expect(objectLink).toHaveClass('MuiLink-root');
+        expect(objectLink.tagName).toBe('BUTTON');
+        expect(objectLink.className).toBe('json-array-open-button');
         await user.click(objectLink);
         expect(document.getSnapshot().location).toEqual([0, 'details']);
         await user.click(screen.getByRole('button', { name: 'data.json' }));
