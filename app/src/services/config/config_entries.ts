@@ -354,7 +354,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: false,
-        description: 'Lets Claude and Codex keep a task list shown in the conversation; costs extra context.',
+        description: 'Lets Claude and Codex keep a task list shown in streaming conversations; costs extra context.',
         editable: true,
         key: 'desktop.agentTaskTrackingEnabled',
         label: 'Agent task tracking',

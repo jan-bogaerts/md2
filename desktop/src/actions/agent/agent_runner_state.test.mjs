@@ -13,7 +13,6 @@ const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 const { AgentStreamingEventPublisher } = require('./agent_streaming_event_publisher');
-const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');
 
 const WORK_ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const CLAUDE_ACCOUNT_ID = '22222222-2222-4222-8222-222222222222';
@@ -943,7 +942,7 @@ describe('AgentRunnerService state handling', () => {
         expect(onEvent).not.toHaveBeenCalled();
     });
 
-    it('injects Codex task instructions only into one-shot provider input', async () => {
+    it('passes the original prompt to one-shot Codex input without task instructions', async () => {
         const child = new EventEmitter();
         child.pid = 43;
         child.stdin = new PassThrough();
@@ -973,7 +972,7 @@ describe('AgentRunnerService state handling', () => {
         expect(spawn).toHaveBeenCalledWith('/tools/codex', [
             'exec',
             '--json',
-            `${CODEX_TASK_TRACKING_INSTRUCTIONS}\n\nStart work`,
+            'Start work',
         ], expect.any(Object));
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expect.objectContaining({ entries: [expect.objectContaining({ content: 'Start work', role: 'user' })] }) }));
         expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({

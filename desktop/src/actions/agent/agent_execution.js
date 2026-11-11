@@ -4,7 +4,7 @@ const { resolveAgentConfiguration } = require('./agent_profiles.mjs');
 /** Prepare launch settings without reading or refreshing the model catalog. */
 function resolveAgentExecution(config, selection, streaming) {
     const resolved = resolveAgentConfiguration(config, selection);
-    const agentTaskTrackingEnabled = config.agentTaskTrackingEnabled ?? false;
+    const agentTaskTrackingEnabled = !!streaming && (config.agentTaskTrackingEnabled ?? false);
     const serviceTier = resolved.speedMode === 'fast' ? 'priority' : resolved.speedMode === 'standard' ? 'default' : undefined;
     const speedSettings = { speedMode: resolved.speedMode, serviceTier };
     const command = streaming

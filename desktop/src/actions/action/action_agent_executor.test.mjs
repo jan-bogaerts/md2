@@ -302,7 +302,7 @@ describe('ActionAgentExecutor', () => {
         expect(result).toMatchObject({ permissionMode: 'full-access' });
         expect(agentRunnerService.start.mock.calls[0][1].command).toEqual([
             'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-access', '--ask-for-approval', 'never',
-            '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json',
+            '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json',
         ]);
     });
 

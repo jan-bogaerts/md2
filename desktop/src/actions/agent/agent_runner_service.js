@@ -49,7 +49,6 @@ const {
 const { redactSecrets } = require('./agent_secret_redaction');
 const { filterCompleteStderrLines, isHiddenStderrLine, stripAnsi } = require('./agent_stderr_filter');
 const { STREAMING_EVENT_HANDLERS } = require('./agent_streaming_event_handlers');
-const { codexOneShotPrompt } = require('./agent_task_tracking');
 const { terminateProcessTree } = require('../process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/git_commands');
 
@@ -191,8 +190,7 @@ class AgentRunnerService {
         const environment = createAgentEnvironment(this.environment, agent, request.agentTaskTrackingEnabled === true, account);
         const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
         if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);
-        const providerPrompt = codexOneShotPrompt(prompt, agent, request.agentTaskTrackingEnabled === true);
-        const argumentsList = streaming ? configuredArguments : [...configuredArguments, providerPrompt];
+        const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
         this.requestUsagePoll({ accountId: account?.id ?? null, agent, environment, executable, rootPath });
         const child = this.spawn(executable, argumentsList, {
             cwd: rootPath,
