@@ -3,12 +3,14 @@ author:
 id: J_71
 internalId: 6848789c-38d0-479c-ad68-4da42008eefa
 title: refactor remote control storage service
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
-after: 41d340e6-afae-44bd-82e7-41ab673c94e0
+after: d2e9440e-e79e-4abe-9092-d786540e29d3
+branch: j_71_refactor_remote_control_storage_service
+worktree: 1
 ---
 
 `app/src/services/data/remote_control_storage_service.ts` is approximately 1,430 lines and combines WebSocket transport, RPC correlation, reconnection, remote subscriptions, event routing, pending-push tracking, and five public service contracts. Split it into focused units without changing the remote-control protocol or established application behavior.
