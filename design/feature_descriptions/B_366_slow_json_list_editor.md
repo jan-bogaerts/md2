@@ -3,7 +3,7 @@ author:
 id: B_366
 internalId: 6da27e85-7e64-4ca3-ba18-56eea259e434
 title: slow json list editor
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,15 @@ agents:
 policy:
 branch: b_366_slow_json_list_editor
 worktree: 3
+changedFiles:
+  - app/json-array-performance.html
+  - app/src/components/json_data_editor/json_array_editor.tsx
+  - app/src/components/json_data_editor/json_array_scalar_editor.test.tsx
+  - app/src/components/json_data_editor/json_array_scalar_editor.tsx
+  - app/src/components/json_data_editor/json_array_scroll_seek_row.test.tsx
+  - app/src/components/json_data_editor/json_array_scroll_seek_row.tsx
+  - app/src/components/json_data_editor/json_data_editor.test.tsx
+  - app/src/json_array_performance.tsx
 ---
 
 check this trace: [Trace-scroll.json](file:///C:/Users/janbo/Documents/dev/Trace-scroll.json)
