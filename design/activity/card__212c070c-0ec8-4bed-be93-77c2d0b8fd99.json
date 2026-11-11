@@ -632,7 +632,11 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "212c070c-0ec8-4bed-be93-77c2d0b8fd99",
       "cardPath": "design/feature_descriptions/B_367_non_streaming_conversations_cant_use_a_plan_or_task_list.md",
-      "completedAt": null,
+      "completedAt": "2026-11-11T14:42:48.461Z",
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 72625
+      },
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_367_non_streaming_conversations_cant_use_a_plan_or_task_list.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_367_non_streaming_conversations_cant_use_a_plan_or_task_list.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -862,6 +866,359 @@
           "role": "user",
           "sequence": 19,
           "timestamp": "2026-11-11T14:41:08.758Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwKF67cLGanq5vYqdTWf:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T14:41:11.158Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_execution.js",
+          "deletions": 1,
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-21",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_execution.js has been updated successfully.",
+          "providerItemId": "toolu_015m9ew3pfNpyhKAfkeUAvhi",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:19.001Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_agent_executor.test.mjs",
+          "deletions": 1,
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-22",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\action\\action_agent_executor.test.mjs has been updated successfully.",
+          "providerItemId": "toolu_015WVFQTXk4fSKPZmg7i64b6",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:19.034Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_execution.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-23",
+          "insertions": 26,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_execution.test.mjs has been updated successfully.",
+          "providerItemId": "toolu_015edjaBKFAhNqHyK2V5bxTz",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:19.058Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "Block 2.",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 24,
+          "timestamp": "2026-11-11T14:41:19.897Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent; cat > agent_task_tracking.js <<'EOF'\nconst CODEX_TASK_TRACKING_INSTRUCTIONS = 'Use `update_plan` to create and maintain a task list for multi-step work and whenever the user explicitly requests tasks. Do not create a plan for a simple one-step request or answer-only question.';\n\nmodule.exports = { CODEX_TASK_TRACKING_INSTRUCTIONS };\nEOF\ngit diff --stat agent_task_tracking.js; file agent_task_tracking.js; git show HEAD:desktop/src/actions/agent/agent_task_tracking.js | file -; rm agent_task_tracking.test.mjs; sed -i \"/const { codexOneShotPrompt } = require('.\\/agent_task_tracking');/d; s/const providerPrompt = codexOneShotPrompt(prompt, agent, request.agentTaskTrackingEnabled === true);\\n//\" agent_runner_service.js; grep -n \"codexOneShotPrompt\\|providerPrompt\" agent_runner_service.js",
+          "content": " desktop/src/actions/agent/agent_task_tracking.js | 8 +-------\n 1 file changed, 1 insertion(+), 7 deletions(-)\nagent_task_tracking.js: JavaScript source, ASCII text\n/dev/stdin: JavaScript source, ASCII text\n193:        const providerPrompt = codexOneShotPrompt(prompt, agent, request.agentTaskTrackingEnabled === true);\n194:        const argumentsList = streaming ? configuredArguments : [...configuredArguments, providerPrompt];",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-25",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent; cat > agent_task_tracking.js <<'EOF'\nconst CODEX_TASK_TRACKING_INSTRUCTIONS = 'Use `update_plan` to create and maintain a task list for multi-step work and whenever the user explicitly requests tasks. Do not create a plan for a simple one-step request or answer-only question.';\n\nmodule.exports = { CODEX_TASK_TRACKING_INSTRUCTIONS };\nEOF\ngit diff --stat agent_task_tracking.js; file agent_task_tracking.js; git show HEAD:desktop/src/actions/agent/agent_task_tracking.js | file -; rm agent_task_tracking.test.mjs; sed -i \"/const { codexOneShotPrompt } = require('.\\/agent_task_tracking');/d; s/const providerPrompt = codexOneShotPrompt(prompt, agent, request.agentTaskTrackingEnabled === true);\\n//\" agent_runner_service.js; grep -n \"codexOneShotPrompt\\|providerPrompt\" agent_runner_service.js",
+          "providerItemId": "toolu_01JGy8YQuSjzJHFmupC3oASs",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:25.152Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_runner_service.js",
+          "deletions": 2,
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-26",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_runner_service.js has been updated successfully.",
+          "providerItemId": "toolu_01KdzPS6PMcKmrqnxi95gnHW",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:30.787Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_runner_state.test.mjs",
+          "deletions": 1,
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-27",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_runner_state.test.mjs has been updated successfully.",
+          "providerItemId": "toolu_015fXXT4nUQc29bbto3iRTyq",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:30.818Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_runner_state.test.mjs",
+          "deletions": 1,
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-28",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_runner_state.test.mjs has been updated successfully.",
+          "providerItemId": "toolu_01934WGALdfQzHWMHnGstG66",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:30.850Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent; grep -n \"CODEX_TASK_TRACKING_INSTRUCTIONS\\|agent_task_tracking\" agent_runner_state.test.mjs agent_runner_service.js",
+          "content": "agent_runner_state.test.mjs:16:const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-29",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent; grep -n \"CODEX_TASK_TRACKING_INSTRUCTIONS\\|agent_task_tracking\" agent_runner_state.test.mjs agent_runner_service.js",
+          "providerItemId": "toolu_017XKMKQP6MjPecPxpdxiuni",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:33.439Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-30",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwKGu3uf4MQFqRM9MaiJ:thinking:0",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T14:41:35.277Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent; sed -i \"16{/CODEX_TASK_TRACKING_INSTRUCTIONS/d}\" agent_runner_state.test.mjs; sed -n 14,17p agent_runner_state.test.mjs",
+          "content": "const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');\nconst { AgentStreamingEventPublisher } = require('./agent_streaming_event_publisher');\n\nconst WORK_ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';\n[This command modified 1 file you've previously read: agent_runner_state.test.mjs. Call Read before editing.]",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-31",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent; sed -i \"16{/CODEX_TASK_TRACKING_INSTRUCTIONS/d}\" agent_runner_state.test.mjs; sed -n 14,17p agent_runner_state.test.mjs",
+          "providerItemId": "toolu_01MWWZ5iC4qM4Zm4ZKZPFfBh",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:39.952Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\config\\config_entries.ts",
+          "deletions": 1,
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-32",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\config\\config_entries.ts has been updated successfully.",
+          "providerItemId": "toolu_01UP31nh7Ri5azYGLKGbaRmr",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:39.994Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; grep -rn \"task list shown in the conversation\" app/src --include=*.test.* | head; cd desktop; npm run test -- src/actions/agent/agent_execution.test.mjs src/actions/agent/agent_runner_state.test.mjs src/actions/action/action_agent_executor.test.mjs src/actions/action/action_scheduler_service.test.mjs src/shell/local_bridge_dispatch.test.mjs src/actions/agent/agent_streaming_adapter.test.mjs 2>&1 | tail -15",
+          "content": "    301|\n    302|         expect(result).toMatchObject({ permissionMode: 'full-access' }…\n    303|         expect(agentRunnerService.start.mock.calls[0][1].command).toEq…\n       |                                                                   ^\n    304|             'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-a…\n    305|             '-c', 'tools.update_plan.enabled=false', '--search', 'exec…\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯\n\n\n Test Files  1 failed | 5 passed (6)\n      Tests  2 failed | 412 passed (414)\n   Start at  15:41:53\n   Duration  1.85s (transform 535ms, setup 0ms, import 1.02s, tests 2.37s, environment 0ms)",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-33",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; grep -rn \"task list shown in the conversation\" app/src --include=*.test.* | head; cd desktop; npm run test -- src/actions/agent/agent_execution.test.mjs src/actions/agent/agent_runner_state.test.mjs src/actions/action/action_agent_executor.test.mjs src/actions/action/action_scheduler_service.test.mjs src/shell/local_bridge_dispatch.test.mjs src/actions/agent/agent_streaming_adapter.test.mjs 2>&1 | tail -15",
+          "providerItemId": "toolu_017x2w7eCpRauFmjGao9Q23D",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:55.213Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop; npm run test -- src/actions/action/action_agent_executor.test.mjs 2>&1 | grep -B5 -A40 \"FAIL\" | head -120",
+          "content": "     × passes disabled task tracking into command and agent run request 14ms\n     × resolves run permission overrides before action and desktop defaults 5ms\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  src/actions/action/action_agent_executor.test.mjs > ActionAgentExecutor > passes disabled task tracking into command and agent run request\nAssertionError: expected undefined to be false // Object.is equality\n\n- Expected:\nfalse\n\n+ Received:\nundefined\n\n ❯ src/actions/action/action_agent_executor.test.mjs:234:50\n    232|\n    233|         const request = agentRunnerService.start.mock.calls[0][1];\n    234|         expect(request.agentTaskTrackingEnabled).toBe(false);\n       |                                                  ^\n    235|         expect(request.command).toContain('tools.update_plan.enabled=f…\n    236|     });\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯\n\n FAIL  src/actions/action/action_agent_executor.test.mjs > ActionAgentExecutor > resolves run permission overrides before action and desktop defaults\nAssertionError: expected [ 'codex', '--model', 'gpt-5.5', …(9) ] to deeply equal [ 'codex', '--model', 'gpt-5.5', …(9) ]\n\n- Expected\n+ Received\n\n@@ -5,10 +5,10 @@\n    \"--sandbox\",\n    \"danger-full-access\",\n    \"--ask-for-approval\",\n    \"never\",\n    \"-c\",\n-   \"tools.update_plan.enabled=false\",\n+   \"tools.update_plan.enabled=true\",\n    \"--search\",\n    \"exec\",\n    \"--json\",\n  ]\n\n ❯ src/actions/action/action_agent_executor.test.mjs:303:67\n    301|\n    302|         expect(result).toMatchObject({ permissionMode: 'full-access' }…\n    303|         expect(agentRunnerService.start.mock.calls[0][1].command).toEq…\n       |                                                                   ^\n    304|             'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-a…\n    305|             '-c', 'tools.update_plan.enabled=false', '--search', 'exec…\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯\n\n\n Test Files  1 failed (1)\n      Tests  2 failed | 48 passed (50)\n   Start at  15:41:58\n   Duration  363ms (transform 49ms, setup 0ms, import 129ms, tests 65ms, environment 0ms)",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-34",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop; npm run test -- src/actions/action/action_agent_executor.test.mjs 2>&1 | grep -B5 -A40 \"FAIL\" | head -120",
+          "providerItemId": "toolu_014EsU6nsMsWQ2zhdHJc7x4j",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:41:59.499Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-35",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwKJoAzVL8f3RbHnJEAE:thinking:0",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T14:42:01.352Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nTwo executor tests are failing, so I'm checking how the executor resolves the agent.",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-11-11T14:42:01.353Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/action; grep -n \"resolveAgentExecution\\|streaming\\b\\|const streaming\\|resolvedAgent =\" action_agent_executor.js | head -20; sed -n 205,240p action_agent_executor.test.mjs",
+          "content": "2:const { resolveAgentExecution } = require('../agent/agent_execution');\n27:function executionCommand(resolvedAgent, providerSession, streaming) {\n29:    if (!streaming || resolvedAgent.agent === 'claude') {\n49:        const streaming = input.action.streaming;\n50:        const resolvedAgent = resolveAgentExecution(config, {\n59:        }, streaming);\n131:        const command = executionCommand(resolvedAgent, providerSession, streaming);\n162:            streaming,\n194:        const resolvedAgent = resolveAgentConfiguration(config, { ...(accountId ? { accountId } : {}), agent: providerSession.agent });\n206:            reference: input.runInput.continueFrom, releasesFolder: input.releasesFolder, streaming: true, title: conversation.title,\n        expect(agentRunnerService.start.mock.calls[1][1].prompt).toBe('Edited candidate 2');\n    });\n    it('rejects unsupported streaming profiles before process start', async () => {\n        const profile = { command: ['custom-agent'], models: ['default'], name: 'custom' };\n        const agentConfigProvider = () => agentConfig('custom', 'default', [profile]);\n        const { agentRunnerService, executor } = createExecutor({ agentConfigProvider });\n        const streamingAction = { ...action, agent: 'custom', model: 'default', streaming: true };\n\n        await expect(executor.execute(executionInput({ action: streamingAction })))\n            .rejects.toThrow('Agent profile does not support streaming: custom');\n        expect(agentRunnerService.start).not.toHaveBeenCalled();\n    });\n\n    it('runs initial card action with runtime overrides and active-run hooks', async () => {\n        const { agentRunnerService, executor } = createExecutor();\n        const input = executionInput({ runInput: { agent: 'codex', extraPrompt: 'focus', model: 'gpt-5.5', thinkingLevel: 'high' } });\n\n        await expect(executor.execute(input)).resolves.toMatchObject({agent: 'codex', conversationId: 'run-conversation', exitCode: 0, model: 'gpt-5.5', prompt: 'Review design/card.md\\n\\nfocus', thinkingLevel: 'high'});\n        expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, cardPath: cardContext.file, prompt: 'Review design/card.md\\n\\nfocus'}), expect.any(Function), expect.any(Function), expect.any(Function), undefined);\n        expect(input.onActiveRunChange.mock.calls.map(([runId]) => runId)).toEqual(['active-run', null]);\n    });\n\n    it('passes disabled task tracking into command and agent run request', async () => {\n        const agentConfigProvider = () => agentConfig('codex', '', [], 'ask-for-approval', false);\n        const { agentRunnerService, executor } = createExecutor({ agentConfigProvider });\n\n        await executor.execute(executionInput());\n\n        const request = agentRunnerService.start.mock.calls[0][1];\n        expect(request.agentTaskTrackingEnabled).toBe(false);\n        expect(request.command).toContain('tools.update_plan.enabled=false');\n    });\n\n    it('passes the client conversation and submission IDs into the first agent turn', async () => {\n        const { agentRunnerService, executor } = createExecutor();\n        const runInput = { conversationId: 'agent-client', extraPrompt: '', submissionId: 'submission-1' };",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-37",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop/src/actions/action; grep -n \"resolveAgentExecution\\|streaming\\b\\|const streaming\\|resolvedAgent =\" action_agent_executor.js | head -20; sed -n 205,240p action_agent_executor.test.mjs",
+          "providerItemId": "toolu_01MVGMMZTCPbrwzC8NbTUQq9",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:42:03.012Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "The test action has no `streaming` field, so the default `true` gets applied; I'm coercing `streaming` to a boolean to fix it.\n\n",
+          "details": [
+            "The test action has no `streaming` field, so the default `true` gets applied; I'm coercing `streaming` to a boolean to fix it.\n\n"
+          ],
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwKK41is5SXvKeW3ESZR:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T14:42:07.887Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "The test action has no `streaming` field, so the default `true` gets applied; I'm coercing `streaming` to a boolean to fix it.\n\n",
+          "details": [
+            "The test action has no `streaming` field, so the default `true` gets applied; I'm coercing `streaming` to a boolean to fix it.\n\n"
+          ],
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-39",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwKK41is5SXvKeW3ESZR:thinking:1",
+          "sequence": 39,
+          "status": "inProgress",
+          "summary": [],
+          "timestamp": "2026-11-11T14:42:07.879Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_execution.js",
+          "deletions": 1,
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-40",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_execution.js has been updated successfully.",
+          "providerItemId": "toolu_01R3rs7EmikXFrS8bFqPLg2Y",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:42:08.312Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-41",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CgwKKShUQQnS6qa8uPa1q:thinking:0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-11T14:42:10.352Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_execution.test.mjs",
+          "deletions": 2,
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-42",
+          "insertions": 2,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_execution.test.mjs has been updated successfully.",
+          "providerItemId": "toolu_01QHBso9JhuqCiNQtCWeEMuY",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:42:14.099Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop; npm run test -- src/actions/agent/agent_execution.test.mjs src/actions/agent/agent_runner_state.test.mjs src/actions/action/action_agent_executor.test.mjs src/actions/action/action_scheduler_service.test.mjs src/shell/local_bridge_dispatch.test.mjs src/actions/agent/agent_streaming_adapter.test.mjs src/actions/agent/agent_environment.test.mjs 2>&1 | tail -5",
+          "content": " Test Files  7 passed (7)\n      Tests  424 passed (424)\n   Start at  15:42:15\n   Duration  1.75s (transform 312ms, setup 0ms, import 929ms, tests 2.44s, environment 1ms)",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-43",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop; npm run test -- src/actions/agent/agent_execution.test.mjs src/actions/agent/agent_runner_state.test.mjs src/actions/action/action_agent_executor.test.mjs src/actions/action/action_scheduler_service.test.mjs src/shell/local_bridge_dispatch.test.mjs src/actions/agent/agent_streaming_adapter.test.mjs src/actions/agent/agent_environment.test.mjs 2>&1 | tail -5",
+          "providerItemId": "toolu_01LfyscDYc1dYmqFNT5PrY48",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:42:16.937Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/desktop; npx eslint src/actions/agent/agent_execution.js src/actions/agent/agent_execution.test.mjs src/actions/agent/agent_task_tracking.js src/actions/agent/agent_runner_service.js src/actions/agent/agent_runner_state.test.mjs src/actions/action/action_agent_executor.test.mjs; echo desktop=$?; cd ../app; npx eslint src/services/config/config_entries.ts; echo app=$?; grep -rln \"Lets Claude and Codex keep a task list\" src",
+          "content": "desktop=0\napp=0\nsrc/services/config/config_entries.ts",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-44",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/desktop; npx eslint src/actions/agent/agent_execution.js src/actions/agent/agent_execution.test.mjs src/actions/agent/agent_task_tracking.js src/actions/agent/agent_runner_service.js src/actions/agent/agent_runner_state.test.mjs src/actions/action/action_agent_executor.test.mjs; echo desktop=$?; cd ../app; npx eslint src/services/config/config_entries.ts; echo app=$?; grep -rln \"Lets Claude and Codex keep a task list\" src",
+          "providerItemId": "toolu_01HugDDjVcMVs6mKwKNVaKuH",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:42:37.571Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_367_non_streaming_conversations_cant_use_a_plan_or_task_list.md",
+          "deletions": 1,
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-event-45",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_367_non_streaming_conversations_cant_use_a_plan_or_task_list.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01WtqGsqemzbrUiMXWxm2tpq",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-11-11T14:42:40.286Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nFixed: non-streaming actions no longer ask Codex or Claude to make a plan or task list, even when task tracking is on. Streaming conversations still get the task tools when it's on. The 7 related desktop test files pass (424 tests), and lint is clean on the changed files.\n\n**What changed:**\n- **`agent_execution.js`:** task tracking is now `!!streaming && (config.agentTaskTrackingEnabled ?? false)`. For non-streaming runs this turns Codex's `update_plan` off and stops Claude's task tools being switched on. The spec's search action, which always runs non-streaming, is covered by the same change.\n- **`agent_task_tracking.js`:** `codexOneShotPrompt` is removed, so a non-streaming Codex run gets the action prompt unchanged. `agent_runner_service.js` passes it straight through. The instruction text itself stays for streaming sessions.\n- **`config_entries.ts`:** the setting's description now says it applies to \"streaming conversations\".\n- **Spec status:** set to `ready`.\n\n**Bug found while testing:** the plan's version (without `!!`) broke two executor tests. An action with no `streaming` field made the value `undefined`, and `buildAgentExecutionCommand` then fell back to its default of `true`, which turned `update_plan` back on. The `!!` fixes this, and a new test covers a missing `streaming` value.\n\n**Tests:**\n- New: non-streaming Codex gets `update_plan=false` (for `streaming` both `false` and missing), streaming Codex gets `true`, and Claude gets task tools only when streaming.\n- `agent_runner_state.test.mjs`: the old injection test now checks that a one-shot Codex run receives the prompt unchanged.\n- `action_agent_executor.test.mjs`: the permission-override test expected `update_plan.enabled=true` on a non-streaming run. That is what the spec forbids now, so it expects `false`.\n- `agent_task_tracking.test.mjs` is deleted, because it only tested the removed function.\n\n**Not done:** `docs/guide/configuration.md` line 47 still describes the setting without the streaming limit. You didn't answer whether to update it, so I left it.",
+          "id": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-11-11T14:42:48.461Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -872,62 +1229,62 @@
           "agent": "claude",
           "conversationId": "fdef3bd4-8713-4417-87c7-8c73a5ea7136",
           "createdAt": "2026-11-11T14:33:28.848Z",
-          "lastUsedAt": "2026-11-11T14:41:10.174Z",
-          "synchronizedThroughMessageId": "submission-d5f5c172-3b02-4aff-aafb-1d502879f5c6",
+          "lastUsedAt": "2026-11-11T14:42:48.461Z",
+          "synchronizedThroughMessageId": "agent-turn-392f4482-2812-4774-bb4b-204f13f2c019-turn-2-assistant-3",
           "usageBaseline": {
-            "costUsd": 0.5564984,
-            "resultId": "ea0f0c37-75d0-4010-b7d9-274cbf54475a",
+            "costUsd": 0.9447736,
+            "resultId": "9cedc5de-19ed-438f-82bd-d47a2ea595cb",
             "tokens": {
-              "cachedInputTokens": 604163,
-              "inputTokens": 25,
-              "outputTokens": 4068,
+              "cachedInputTokens": 1488509,
+              "inputTokens": 53,
+              "outputTokens": 10214,
               "reasoningTokens": 0,
-              "totalTokens": 608256
+              "totalTokens": 1498776
             }
           }
         }
       ],
       "startedAt": "2026-11-11T14:33:25.736Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
             "id": "1",
             "subject": "Block 1: gate task tracking on streaming in resolveAgentExecution",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 2: remove codexOneShotPrompt",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Block 3: config description + status update",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-11T14:34:23.640Z"
+        "updatedAt": "2026-11-11T14:42:40.240Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 12680,
-          "toolMs": 31439
+          "reasoningMs": 30574,
+          "toolMs": 93227
         },
-        "elapsedMs": 74272,
-        "runningStartedAt": "2026-11-11T14:41:08.758Z"
+        "elapsedMs": 173975,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 604163,
-        "inputTokens": 25,
-        "outputTokens": 4068,
+        "cachedInputTokens": 1488509,
+        "inputTokens": 53,
+        "outputTokens": 10214,
         "reasoningTokens": 0,
-        "totalTokens": 608256,
-        "costUsd": 0.5564984
+        "totalTokens": 1498776,
+        "costUsd": 0.9447736
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -961,6 +1318,31 @@
       "startedAt": "2026-11-11T14:18:06.713Z",
       "status": "completed",
       "rootConversationId": "agent-265d19a8-450d-4c92-9beb-b22e30b27171"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-11T14:42:48.467Z",
+      "conversationIds": [
+        "agent-6096b796-19c1-4df3-a6a2-94ce8bd005a7"
+      ],
+      "details": {
+        "type": "agent",
+        "accountId": "claude-initial",
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium"
+      },
+      "runId": "action-6f1015ba-4951-452b-ba43-d768dd2868e7",
+      "origin": {
+        "cardInternalId": "212c070c-0ec8-4bed-be93-77c2d0b8fd99",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "startedAt": "2026-11-11T14:33:25.734Z",
+      "status": "completed",
+      "rootConversationId": "agent-6096b796-19c1-4df3-a6a2-94ce8bd005a7"
     }
   ],
   "version": 5

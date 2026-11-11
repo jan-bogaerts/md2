@@ -3,13 +3,20 @@ author:
 id: B_367
 internalId: 212c070c-0ec8-4bed-be93-77c2d0b8fd99
 title: non streaming conversations cant use a plan or task list
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__212c070c-0ec8-4bed-be93-77c2d0b8fd99.json
 policy:
 after: d2e9440e-e79e-4abe-9092-d786540e29d3
+changedFiles:
+  - app/src/services/config/config_entries.ts
+  - desktop/src/actions/action/action_agent_executor.test.mjs
+  - desktop/src/actions/agent/agent_execution.js
+  - desktop/src/actions/agent/agent_execution.test.mjs
+  - desktop/src/actions/agent/agent_runner_service.js
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
 ---
 
 When starting an action that is not configured a streaming, we still appear to ask the agent to prepare a plan.
