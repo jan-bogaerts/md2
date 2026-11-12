@@ -3,7 +3,7 @@ author:
 id: J_72
 internalId: d9488ddc-6774-41c7-a7cc-eb4aa3283e20
 title: restore readable Sentry production stack traces
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,15 @@ agents:
 policy:
 branch: j_72_restore_readable_sentry_production_stack_traces
 worktree: 2
+changedFiles:
+  - app/src/main.test.tsx
+  - app/src/main.tsx
+  - app/src/services/telemetry/telemetry_service.ts
+  - desktop/main.js
+  - desktop/main.test.mjs
+  - desktop/packaging/verify_renderer_source_maps.js
+  - desktop/packaging/verify_renderer_source_maps.test.mjs
+  - desktop/packaging/verify_windows_package.test.mjs
 ---
 
 Production renderer errors reach Sentry without the source information required to recover their original TypeScript and React locations. Restore reliable error capture and readable stack traces for the Electron main process and renderer.
