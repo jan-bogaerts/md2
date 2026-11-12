@@ -20,6 +20,8 @@ export function ActionQueuedPromptRow({ entry, runId }: ActionQueuedPromptProps)
     const [editValue, setEditValue] = useState(entry.content)
     const [saving, setSaving] = useState(false)
     const dispatched = entry.dispatchState === 'dispatching'
+    // A deferred prompt belongs to a finalizing run whose queue no longer changes; its successor run sends it.
+    const locked = dispatched || entry.dispatchState === 'deferred'
 
     const handleEdit = () => {
         setEditValue(entry.content)
@@ -66,22 +68,22 @@ export function ActionQueuedPromptRow({ entry, runId }: ActionQueuedPromptProps)
                 <Typography color="text.secondary" sx={{ flex: 1 }} variant="caption">
                     {dispatched ? 'Sending' : 'Queued'}
                 </Typography>
-                {!editing || dispatched ? (
+                {!editing || locked ? (
                     <>
                         <Tooltip title="Edit queued prompt">
-                            <IconButton aria-label="Edit queued prompt" disabled={dispatched} onClick={handleEdit} size="small">
+                            <IconButton aria-label="Edit queued prompt" disabled={locked} onClick={handleEdit} size="small">
                                 <EditOutlined sx={{ fontSize: 16 }} />
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Delete queued prompt">
-                            <IconButton aria-label="Delete queued prompt" disabled={dispatched} onClick={handleDelete} size="small">
+                            <IconButton aria-label="Delete queued prompt" disabled={locked} onClick={handleDelete} size="small">
                                 <DeleteOutlineOutlined sx={{ fontSize: 16 }} />
                             </IconButton>
                         </Tooltip>
                     </>
                 ) : null}
             </Stack>
-            {editing && !dispatched ? (
+            {editing && !locked ? (
                 <Stack spacing={1}>
                     <TextField
                         autoFocus

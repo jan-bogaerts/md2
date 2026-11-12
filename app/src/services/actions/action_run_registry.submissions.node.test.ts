@@ -305,4 +305,90 @@ describe('registry-owned submissions', () => {
         unsubscribe();
         registry.stop();
     });
+
+    describe('deferred continuation', () => {
+        const successorBase = { ...eventBase, runId: 'run-2' };
+
+        async function deferSubmission() {
+            const enqueueActionPrompt = vi.fn(async (_runId: string, content: string, id: string) => (
+                { content, dispatchState: 'deferred' as const, id, revision: 0 }
+            ));
+            const setupResult = setup({ enqueueActionPrompt });
+            const { emit, registry } = setupResult;
+            emit({ ...eventBase, status: 'running', type: 'update', update: { continued: true, conversation, kind: 'agentStarted' } });
+            const id = registry.beginSubmission(action.id, context, 'Continue', eventBase.runId, conversation.id);
+            await registry.enqueueSubmission(id);
+            return { ...setupResult, id };
+        }
+
+        it('keeps a deferred prompt queued through the predecessor terminal event and rebinds it to the successor', async () => {
+            const { emit, id, registry } = await deferSubmission();
+            const listener = vi.fn();
+            const unsubscribe = registry.subscribeSubmissions(action.id, context, listener);
+            emit({ ...eventBase, status: 'completed', type: 'run' });
+            expect(registry.getVisibleSubmissions(action.id, context, conversation.id, eventBase.runId)).toMatchObject([
+                { id, prompt: { dispatchState: 'deferred', id }, state: 'queued' },
+            ]);
+
+            emit({ ...successorBase, status: 'running', type: 'run' });
+            emit({
+                ...successorBase, status: 'running', type: 'update',
+                update: { entry: { content: 'Continue', dispatchState: 'queued', id, revision: 0 }, kind: 'agentPromptQueued' },
+            });
+            expect(registry.getSubmissions(action.id, context)).toMatchObject([{ id, prompt: { dispatchState: 'queued' }, state: 'queued' }]);
+            emit({ ...successorBase, status: 'running', type: 'update', update: { kind: 'agentPromptDispatched', promptId: id, revision: 0 } });
+            expect(registry.getSubmissions(action.id, context)).toMatchObject([{ id, prompt: { dispatchState: 'dispatching' }, state: 'queued' }]);
+            expect(listener).toHaveBeenCalledTimes(2);
+
+            emit({ ...successorBase, status: 'running', type: 'update', update: { continued: true, conversation, kind: 'agentStarted' } });
+            emit({
+                ...successorBase, status: 'running', type: 'update',
+                update: { kind: 'agentUserMessage', userMessage: { content: 'Continue', id, kind: 'message', role: 'user', timestamp: 'now' } },
+            });
+            expect(registry.getSubmissions(action.id, context)).toEqual([]);
+            unsubscribe();
+            registry.stop();
+        });
+
+        it('fails a deferred prompt when the backend reports that its continuation could not start', async () => {
+            const { emit, id, registry } = await deferSubmission();
+            emit({ ...eventBase, status: 'completed', type: 'run' });
+            emit({
+                ...eventBase, status: 'failed', type: 'update',
+                update: { kind: 'agentContinuationFailed', message: 'Action cancelled before the queued prompt was sent', promptId: id },
+            });
+            expect(registry.getSubmissions(action.id, context)).toMatchObject([
+                { content: 'Continue', error: 'Action cancelled before the queued prompt was sent', id, state: 'failed' },
+            ]);
+            expect(registry.getRunStore(eventBase.runId)).toBeNull();
+            registry.stop();
+        });
+
+        it('fails a continued prompt when its successor starts another conversation', async () => {
+            const { emit, id, registry } = await deferSubmission();
+            emit({ ...eventBase, status: 'completed', type: 'run' });
+            emit({
+                ...successorBase, status: 'running', type: 'update',
+                update: { entry: { content: 'Continue', dispatchState: 'queued', id, revision: 0 }, kind: 'agentPromptQueued' },
+            });
+            const otherConversation = { ...conversation, id: 'conversation-2' };
+            emit({ ...successorBase, status: 'running', type: 'update', update: { continued: false, conversation: otherConversation, kind: 'agentStarted' } });
+            expect(registry.getSubmissions(action.id, context)).toMatchObject([
+                { error: 'Conversation changed before the queued prompt was sent', id, state: 'failed' },
+            ]);
+            registry.stop();
+        });
+
+        it('still fails an ordinary queued prompt when its run ends', async () => {
+            const enqueueActionPrompt = vi.fn(async (_runId: string, content: string, id: string) => (
+                { content, dispatchState: 'queued' as const, id, revision: 0 }
+            ));
+            const { emit, registry } = setup({ enqueueActionPrompt });
+            const id = registry.beginSubmission(action.id, context, 'Queued', eventBase.runId, conversation.id);
+            await registry.enqueueSubmission(id);
+            emit({ ...eventBase, status: 'completed', type: 'run' });
+            expect(registry.getSubmissions(action.id, context)).toMatchObject([{ id, state: 'failed' }]);
+            registry.stop();
+        });
+    });
 });

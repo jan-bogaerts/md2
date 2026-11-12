@@ -4,6 +4,7 @@ const { runCommand, runCommandInWindow } = require('./action_command_executor');
 const { ActionDefinitionCache } = require('./action_definition_cache');
 const { resolveActionDefinition } = require('./action_definition_resolver');
 const { ActionRun } = require('./action_run');
+const { ActionPromptQueueClosedError } = require('./action_prompt_queue_closed_error');
 const { appendCurrentCardReferences } = require('./action_card_references');
 const { createDiagramPath, resolveDiagramFile } = require('./action_diagram_output');
 const { resolveAgentPrompt } = require('./action_text');
@@ -25,6 +26,25 @@ function allocateConversationId() {
 }
 
 const TERMINAL_RECOVERY_RETENTION_MS = 5 * 60 * 1000;
+// Agent settings a deferred continuation inherits from the run it continues.
+const CONTINUATION_SETTING_FIELDS = ['accountId', 'agent', 'model', 'permissionMode', 'thinkingLevel', 'speedMode'];
+
+function errorMessage(error, fallback) {
+    return error instanceof Error ? error.message : fallback;
+}
+
+/** Tells observers that a deferred prompt will not reach its conversation; the run itself is not changed. */
+function publishContinuationFailure(run, entry, error) {
+    const message = errorMessage(error, 'Queued prompt could not continue the conversation');
+    const update = { kind: 'agentContinuationFailed', message, promptId: entry.id };
+    run.publish(run.rootAction, 'main', 'failed', { type: 'update', update });
+}
+
+function createDeferredPrompt(content, submissionId) {
+    if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Queued agent prompt is empty');
+
+    return { content, dispatchState: 'deferred', id: submissionId ?? `prompt-${crypto.randomUUID()}`, revision: 0 };
+}
 
 // Activity ownership follows the presence of cardInternalId, not the context kind.
 function activityOrigin(context) {
@@ -100,6 +120,8 @@ class ActionRunnerService {
         this.compactTargetCancellations = new Map();
         this.pendingCompactAcceptances = new Map();
         this.compactConversationCancellations = new Map();
+        // Predecessor run ID -> prompts submitted while that run was finalizing, continued by one successor run.
+        this.promptContinuations = new Map();
     }
 
     // Paths arrive already resolved and validated from resolveProjectPaths, and states from the same
@@ -211,6 +233,7 @@ class ActionRunnerService {
             diagramFooter: this.diagramFooter,
             diagramsFolder: this.diagramsFolder,
             diagramPath,
+            ...(options.continuationPrompt ? { continuationPrompt: options.continuationPrompt } : {}),
             runId,
             project,
             projectFolder: this.projectFolder,
@@ -372,9 +395,114 @@ class ActionRunnerService {
     }
 
     async enqueueAgentPrompt(runId, content, submissionId) {
+        const continuation = this.promptContinuations.get(runId);
+        if (continuation && !this.runs.has(runId)) return this.routeToContinuation(continuation, content, submissionId);
         const run = this.requireRun(runId);
         await this.waitForCompactAcceptance(run);
-        return run.enqueueAgentPrompt(content, submissionId);
+        try {
+            return await run.enqueueAgentPrompt(content, submissionId);
+        } catch (error) {
+            if (!(error instanceof ActionPromptQueueClosedError)) throw error;
+
+            return this.deferPrompt(run, content, submissionId, error);
+        }
+    }
+
+    /** Routes a prompt for an already finalized run to its successor, or keeps it until the successor starts. */
+    routeToContinuation(continuation, content, submissionId) {
+        if (continuation.successorRunId) return this.enqueueAgentPrompt(continuation.successorRunId, content, submissionId);
+        const entry = createDeferredPrompt(content, submissionId);
+        continuation.entries.push(entry);
+
+        return { ...entry };
+    }
+
+    /**
+     * Keeps a prompt submitted while its run finalizes. The conversation continues in a successor run once the
+     * predecessor has finished its Git, persistence, and worktree work.
+     */
+    deferPrompt(run, content, submissionId, closedError) {
+        const conversationId = run.rootAgentConversationId;
+        if (
+            this.restartingRuns.has(run.runId)
+            || run.rootAction.type !== 'agent'
+            || !conversationId
+            || run.activeConversationId !== conversationId
+            || run.context.sequenceId
+            || run.runInput.forEach
+        ) throw closedError;
+        const existing = this.promptContinuations.get(run.runId);
+        const continuation = existing ?? { conversationId, entries: [], predecessor: run, successorRunId: null };
+        const entry = createDeferredPrompt(content, submissionId);
+        continuation.entries.push(entry);
+        if (!existing) {
+            this.promptContinuations.set(run.runId, continuation);
+            void this.startPromptContinuation(continuation);
+        }
+
+        return { ...entry };
+    }
+
+    /** Starts the successor only after the predecessor's completion, which covers commits, activity, and worktree release. */
+    async startPromptContinuation(continuation) {
+        const { predecessor } = continuation;
+        try {
+            const result = await predecessor.completion;
+            if (result.status === 'cancelled') throw new Error('Action cancelled before the queued prompt was sent');
+            const [firstEntry] = continuation.entries;
+            const request = this.continuationRequest(predecessor, continuation.conversationId, firstEntry);
+            const continuationPrompt = { ...firstEntry, dispatchState: 'queued' };
+            const successorRunId = await this.start(request, { continuationPrompt });
+            continuation.entries.shift();
+            const successor = this.requireRun(successorRunId);
+            // Queue operations are chained synchronously, so forwarded prompts keep their submission order.
+            const forwards = continuation.entries.map((entry) => (
+                this.settleForwardedPrompt(successor, entry, successor.enqueueAgentPrompt(entry.content, entry.id))
+            ));
+            continuation.entries = [];
+            continuation.successorRunId = successorRunId;
+            await Promise.all(forwards);
+        } catch (error) {
+            this.promptContinuations.delete(predecessor.runId);
+            const entries = continuation.entries;
+            continuation.entries = [];
+            for (const entry of entries) publishContinuationFailure(predecessor, entry, error);
+        }
+    }
+
+    async settleForwardedPrompt(successor, entry, operation) {
+        try {
+            await operation;
+        } catch (error) {
+            try {
+                if (!(error instanceof ActionPromptQueueClosedError)) throw error;
+                this.deferPrompt(successor, entry.content, entry.id, error);
+            } catch (deferError) {
+                publishContinuationFailure(successor, entry, deferError);
+            }
+        }
+    }
+
+    continuationRequest(predecessor, conversationId, entry) {
+        const settings = CONTINUATION_SETTING_FIELDS
+            .filter((field) => predecessor.runInput[field] !== undefined)
+            .map((field) => [field, predecessor.runInput[field]]);
+        const continueFrom = this.localGitService.activityConversationReference(
+            this.projectFolder,
+            predecessor.activityOrigin,
+            conversationId,
+        );
+        const runInput = {
+            ...Object.fromEntries(settings),
+            continueFrom,
+            conversationId,
+            ...(predecessor.diagramPath ? { diagramPath: predecessor.diagramPath } : {}),
+            prompt: entry.content,
+            submissionId: entry.id,
+            ...(predecessor.version !== undefined ? { version: predecessor.version } : {}),
+        };
+
+        return { actionId: predecessor.rootAction.id, context: predecessor.context, runInput };
     }
 
     async waitForCompactAcceptance(run) {
@@ -607,6 +735,9 @@ class ActionRunnerService {
         this.invalidateCompactAcceptance(run);
         this.runs.delete(run.runId);
         this.runEvents.delete(run.runId);
+        for (const [predecessorRunId, { successorRunId }] of this.promptContinuations) {
+            if (successorRunId === run.runId) this.promptContinuations.delete(predecessorRunId);
+        }
         this.completedRunResults.set(run.runId, result);
         this.recoveryRunResults.set(run.runId, {
             expiresAt: Date.now() + TERMINAL_RECOVERY_RETENTION_MS,

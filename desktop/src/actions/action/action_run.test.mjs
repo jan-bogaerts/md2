@@ -4,6 +4,7 @@ import { createActivityFile, parseActivityValue } from '../../../../shared/card_
 
 const require = createRequire(import.meta.url);
 const { ActionRun } = require('./action_run');
+const { ActionPromptQueueClosedError } = require('./action_prompt_queue_closed_error');
 const { ActionWorktreeRunService } = require('./action_worktree_run_service');
 
 const context = { cardInternalId: 'card-1', file: 'design/card.md', kind: 'card' };
@@ -98,6 +99,7 @@ function createRun(rootAction, overrides = {}) {
             ? { kind: 'project' }
             : { cardInternalId: 'card-1', kind: 'card' },
         context: overrides.context ?? context,
+        continuationPrompt: overrides.continuationPrompt,
         diagramFooter: overrides.diagramFooter,
         diagramsFolder: overrides.diagramsFolder,
         diagramPath: overrides.diagramPath,
@@ -2371,5 +2373,62 @@ describe('ActionRun', () => {
 
         await expect(run.completion).resolves.toMatchObject({ failure: 'history failed', status: 'failed' });
         expect(events.filter(({ type }) => type === 'action').at(-1)).toMatchObject({ message: 'history failed', status: 'failed' });
+    });
+
+    it('rejects a prompt with a typed closed-queue error while the run finalizes its root conversation', async () => {
+        const persistence = deferred();
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                input.onActiveRunChange('agent-run-1');
+                input.onEvent({ continued: false, conversation: { id: 'conversation-1' }, provider: 'claude', status: 'running', type: 'started' });
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'claude', conversationId: 'conversation-1', exitCode: 0, model: 'claude', prompt: 'run',
+                    reference: 'conversation.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const appendActionActivity = vi.fn(async () => {
+            await persistence.promise;
+
+            return { relativePath: 'design/activity/card__card-1.json' };
+        });
+        const rootAction = action('main', { agent: 'claude', model: 'claude', prompt: 'run', streaming: true, type: 'agent' });
+        const { run } = createRun(rootAction, { agentExecutor, localGitService: { appendActionActivity } });
+        await vi.waitFor(() => expect(appendActionActivity).toHaveBeenCalledOnce());
+
+        await expect(run.enqueueAgentPrompt('Too early for a successor')).rejects.toBeInstanceOf(ActionPromptQueueClosedError);
+        expect(run.rootAgentConversationId).toBe('conversation-1');
+
+        persistence.resolve();
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
+    });
+
+    it('publishes a successor prompt as queued and dispatches it under the same ID when its turn starts', async () => {
+        const continuationPrompt = { content: 'Next step', dispatchState: 'queued', id: 'submission-1', revision: 0 };
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                input.onEvent({ status: 'running', type: 'state' });
+                return {
+                    agent: 'claude', conversationId: 'conversation-1', exitCode: 0, model: 'claude', prompt: 'Next step',
+                    reference: 'conversation.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const rootAction = action('main', { agent: 'claude', model: 'claude', prompt: 'run', streaming: true, type: 'agent' });
+        const { events, run } = createRun(rootAction, {
+            agentExecutor,
+            continuationPrompt,
+            runInput: { continueFrom: 'conversation.json', conversationId: 'conversation-1', prompt: 'Next step', submissionId: 'submission-1' },
+        });
+        await run.completion;
+
+        const kinds = events.map(({ type, update }) => update?.kind ?? type);
+        const turnStartIndex = kinds.indexOf('agentState');
+        expect(kinds.indexOf('agentPromptQueued')).toBeLessThan(kinds.indexOf('agentPromptDispatched'));
+        expect(kinds.indexOf('agentPromptDispatched')).toBeLessThan(turnStartIndex);
+        expect(events.find(({ update }) => update?.kind === 'agentPromptQueued').update.entry).toEqual(continuationPrompt);
+        expect(events.find(({ update }) => update?.kind === 'agentPromptDispatched').update).toMatchObject({ promptId: 'submission-1', revision: 0 });
     });
 });

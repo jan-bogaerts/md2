@@ -2583,6 +2583,81 @@ describe('ActionPopup', () => {
         expect(screen.getAllByText('Send this')).toHaveLength(1)
     })
 
+    it('keeps a prompt sent while the run finalizes queued and moves it to the successor run without failing', async () => {
+        actionRunRegistry.stop()
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
+        const reportError = vi.spyOn(dialogService, 'error')
+        const waitingContext: ActionContext = { kind: 'project' }
+        const enqueueActionPrompt = vi.fn(async (_runId: string, content: string, id: string) => (
+            { content, dispatchState: 'deferred' as const, id, revision: 0 }
+        ))
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            enqueueActionPrompt,
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup(waitingContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const predecessorBase = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: waitingContext,
+            interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        const successorBase = { ...predecessorBase, runId: 'run-2' }
+        const liveConversation = agentConversation({ actionId: 'stream', cardInternalId: null, cardPath: null })
+        act(() => {
+            runListener?.({ ...predecessorBase, status: 'running', type: 'run' })
+            runListener?.({ ...predecessorBase, status: 'running', type: 'action' })
+            runListener?.({
+                ...predecessorBase, status: 'running', type: 'update',
+                update: { continued: false, conversation: liveConversation, kind: 'agentStarted' },
+            })
+        })
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Next task' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+        await waitFor(() => expect(enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Next task', expect.any(String)))
+        const submissionId = enqueueActionPrompt.mock.calls[0]?.[2]
+        if (!submissionId) throw new Error('Missing local submission ID')
+        expect(await screen.findByLabelText('Queued prompt')).toHaveTextContent('Next task')
+
+        act(() => runListener?.({ ...predecessorBase, status: 'completed', type: 'run' }))
+        expect(screen.getByLabelText('Queued prompt')).toHaveTextContent('Queued')
+        expect(screen.getByRole('button', { name: 'Edit queued prompt' })).toBeDisabled()
+        expect(screen.queryByText(/Run ended before the prompt was sent/u)).not.toBeInTheDocument()
+
+        const queuedPrompt = { content: 'Next task', dispatchState: 'queued' as const, id: submissionId, revision: 0 }
+        act(() => {
+            runListener?.({ ...successorBase, status: 'running', type: 'run' })
+            runListener?.({ ...successorBase, status: 'running', type: 'update', update: { entry: queuedPrompt, kind: 'agentPromptQueued' } })
+            runListener?.({ ...successorBase, status: 'running', type: 'action' })
+            runListener?.({ ...successorBase, status: 'running', type: 'update', update: { kind: 'agentPromptDispatched', promptId: submissionId, revision: 0 } })
+            runListener?.({
+                ...successorBase, status: 'running', type: 'update',
+                update: { continued: true, conversation: liveConversation, kind: 'agentStarted' },
+            })
+        })
+        expect(screen.getAllByLabelText('Queued prompt')).toHaveLength(1)
+        expect(screen.getByLabelText('Queued prompt')).toHaveTextContent('Sending')
+
+        act(() => runListener?.({
+            ...successorBase, status: 'running', type: 'update',
+            update: { kind: 'agentUserMessage', userMessage: { agent: 'codex', content: 'Next task', id: submissionId, kind: 'message', role: 'user', timestamp: 'now' } },
+        }))
+        expect(screen.queryByLabelText('Queued prompt')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('Pending prompt')).not.toBeInTheDocument()
+        expect(screen.getAllByText('Next task')).toHaveLength(1)
+        expect(reportError).not.toHaveBeenCalledWith(expect.anything(), { fallbackMessage: 'Could not send agent message' })
+    })
+
     it.each(['keep', 'replace context', 'replace action', 'reopen'])('preserves a new-run submission through %s before startup returns', async (operation) => {
         const reportError = vi.spyOn(dialogService, 'error');
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([]);

@@ -1,12 +1,27 @@
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import type { ActionContext } from '../../../../data/action_context'
+import type { ActionRunStatus } from '../../../../data/action_run_types'
 
 const BINDING_CHANGED_EVENT = 'bindingChanged'
+const ACTIVE_RUN_STATUSES = new Set<ActionRunStatus>(['queued', 'running', 'waitingForInput'])
+
+/** Finds the active run that continues a conversation after its bound run ended. */
+function findConversationSuccessor(actionId: string, context: ActionContext, boundRunId: string) {
+    const bound = actionRunRegistry.getRunStore(boundRunId)?.getSnapshot()
+    const conversationId = bound?.conversation?.id
+    if (!bound || !conversationId || ACTIVE_RUN_STATUSES.has(bound.status)) return null
+
+    return actionRunRegistry.getActionRunStores(actionId, context).findLast((store) => {
+        const { conversation, runId, status } = store.getSnapshot()
+        return runId !== boundRunId && conversation?.id === conversationId && ACTIVE_RUN_STATUSES.has(status)
+    })?.getSnapshot().runId ?? null
+}
 
 /** Owns run selected by one popup action/context runtime. Null selects New conversation. */
 export class ActionRunBindingStore extends EventTarget {
     private boundRunId: string | null
     private selectionConfigured: boolean
+    private unsubscribeSuccessor: (() => void) | null = null
     private unsubscribeInitialRun: (() => void) | null = null
     private unsubscribeRun: (() => void) | null
 
@@ -57,7 +72,20 @@ export class ActionRunBindingStore extends EventTarget {
         })
     }
 
+    /** Keeps the popup on its conversation when the backend continues it in a successor run. */
+    followConversationSuccessor(actionId: string, context: ActionContext) {
+        if (this.unsubscribeSuccessor) return
+
+        this.unsubscribeSuccessor = actionRunRegistry.subscribeActionRun(actionId, context, () => {
+            if (!this.boundRunId) return
+            const successorRunId = findConversationSuccessor(actionId, context, this.boundRunId)
+            if (successorRunId) this.setRunId(successorRunId)
+        })
+    }
+
     dispose() {
+        this.unsubscribeSuccessor?.()
+        this.unsubscribeSuccessor = null
         this.unsubscribeInitialRun?.()
         this.unsubscribeInitialRun = null
         this.unsubscribeRun?.()

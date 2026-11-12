@@ -60,7 +60,8 @@ export interface PreparedActionPrompt {
 
 export interface ActionQueuedPrompt {
     content: string
-    dispatchState: 'dispatching' | 'queued'
+    /** `deferred` prompts arrived while their run was finalizing; a successor run of the same conversation sends them. */
+    dispatchState: 'deferred' | 'dispatching' | 'queued'
     id: string
     revision: number
 }
@@ -240,6 +241,11 @@ export type ActionRunUpdate =
         kind: 'agentPromptDeleted' | 'agentPromptDiscarded' | 'agentPromptDispatched'
         promptId: string
         revision: number
+    }
+    | {
+        kind: 'agentContinuationFailed'
+        message: string
+        promptId: string
     }
     | {
         command?: string

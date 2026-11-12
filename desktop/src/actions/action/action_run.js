@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const { ActionCancellationError } = require('./action_cancellation_error');
 const { executeCommandAction } = require('./action_command_executor');
 const { ActionPhaseError } = require('./action_phase_error');
+const { ActionPromptQueueClosedError } = require('./action_prompt_queue_closed_error');
 const { runWithGitOperationContext } = require('../../git/git_operation_context');
 const { resolveDiagramFile } = require('./action_diagram_output');
 const { ActionDiagramOutputWatcher } = require('./action_diagram_output_watcher');
@@ -82,6 +83,9 @@ class ActionRun {
         this.activeConversationReference = this.compactTarget?.reference ?? snapshot.runInput.continueFrom ?? null;
         this.activeAgentProvider = null;
         this.forEachProgress = null;
+        this.rootAgentConversationId = null;
+        // A successor run's first prompt was submitted to its predecessor; it is published as queued until dispatched.
+        this.continuationPrompt = snapshot.continuationPrompt ?? null;
     }
 
     start(finalize) {
@@ -226,9 +230,8 @@ class ActionRun {
     }
 
     requirePromptQueueOpen() {
-        if (this.promptQueueClosed || this.controller.signal.aborted) {
-            throw new Error(`Action run no longer accepts queued prompts: ${this.runId}`);
-        }
+        if (this.controller.signal.aborted) throw new Error(`Action run no longer accepts queued prompts: ${this.runId}`);
+        if (this.promptQueueClosed) throw new ActionPromptQueueClosedError(this.runId);
         if (this.activeAction?.type !== 'agent') throw new Error(`Action run has no active agent: ${this.runId}`);
     }
 
@@ -393,6 +396,10 @@ class ActionRun {
             );
         }
         this.publish(this.rootAction, 'main', 'running', { type: 'run' });
+        if (this.continuationPrompt) {
+            const update = { entry: { ...this.continuationPrompt }, kind: 'agentPromptQueued' };
+            this.publish(this.rootAction, 'main', 'running', { type: 'update', update });
+        }
         let result;
         try {
             if (this.requestedInput && this.runInput[this.requestedInput.type] === undefined) {
@@ -949,6 +956,7 @@ class ActionRun {
                 if (typeof conversation.path === 'string' && conversation.path.length > 0) {
                     this.activeConversationReference = conversation.path;
                 }
+                if (isRoot) this.rootAgentConversationId = conversation.id;
                 this.activeAgentProvider = agentEvent.provider;
                 const update = { continued, conversation, kind: 'agentStarted', provider: agentEvent.provider };
                 this.publish(action, phase, agentEvent.status, { type: 'update', update });
@@ -1111,6 +1119,7 @@ class ActionRun {
         try {
             if (watcher) await watcher.start();
             this.throwDiagramWatcherFailure();
+            this.dispatchContinuationPrompt(isRoot, runInput);
             let result = await this.agentExecutor.execute(input);
             if (typeof result.reference === 'string' && result.reference.length > 0) {
                 this.activeConversationReference = result.reference;
@@ -1146,6 +1155,14 @@ class ActionRun {
         } finally {
             if (watcher) await watcher.close();
         }
+    }
+
+    /** Publishes the successor's first prompt as dispatched when its agent turn starts with it. */
+    dispatchContinuationPrompt(isRoot, runInput) {
+        const entry = this.continuationPrompt;
+        if (!isRoot || !entry || runInput.submissionId !== entry.id) return;
+        this.continuationPrompt = null;
+        this.publishPromptQueueUpdate('agentPromptDispatched', { promptId: entry.id, revision: entry.revision });
     }
 
     handleDiagramWatcherFailure(error) {

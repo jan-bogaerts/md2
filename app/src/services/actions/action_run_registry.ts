@@ -51,6 +51,8 @@ export interface PendingActionSubmission {
 interface SubmissionOwner {
     actionId: string;
     context: ActionContext;
+    /** True after a deferred prompt moved from its finalizing run to the successor run of the same conversation. */
+    continuation: boolean;
     conversationId: string | null;
     runId: string | null;
 }
@@ -548,7 +550,7 @@ export class ActionRunRegistry extends EventTarget {
         this.start();
         const id = `submission-${generateUuid()}`;
         const submission: PendingActionSubmission = { content, id, prompt: null, state: 'transmitting' };
-        this.submissionOwners.set(id, { actionId, context, conversationId, runId });
+        this.submissionOwners.set(id, { actionId, context, continuation: false, conversationId, runId });
         this.publishSubmissions(actionId, context, [...this.getSubmissions(actionId, context), submission]);
         return id;
     }
@@ -610,6 +612,26 @@ export class ActionRunRegistry extends EventTarget {
         )), notify);
     }
 
+    private markSubmissionDispatched(id: string, notify: boolean) {
+        const owner = this.submissionOwners.get(id);
+        if (!owner) return;
+        const submissions = this.getSubmissions(owner.actionId, owner.context);
+        const current = submissions.find((submission) => submission.id === id);
+        if (!current?.prompt || current.state !== 'queued') return;
+        const prompt: ActionQueuedPrompt = { ...current.prompt, dispatchState: 'dispatching' };
+        this.publishSubmissions(owner.actionId, owner.context, submissions.map((submission) => (
+            submission.id === id ? { ...submission, prompt } : submission
+        )), notify);
+    }
+
+    /** A deferred prompt outlives its finalizing run; the backend continues its conversation in a successor run. */
+    private isDeferredContinuation(id: string) {
+        const owner = this.submissionOwners.get(id);
+        if (!owner) return false;
+        const submission = this.getSubmissions(owner.actionId, owner.context).find((current) => current.id === id);
+        return submission?.state === 'queued' && submission.prompt?.dispatchState === 'deferred';
+    }
+
     private bindSubmission(id: string, runId: string) {
         const owner = this.submissionOwners.get(id);
         // An early acknowledgement has already replaced and removed the local submission.
@@ -650,6 +672,10 @@ export class ActionRunRegistry extends EventTarget {
             for (const [id, owner] of [...this.submissionOwners]) {
                 if (owner.actionId !== event.actionId || contextKey(owner.context) !== contextKey(event.context)) continue;
                 if (owner.runId !== event.runId && !(owner.runId === null && owner.conversationId === conversation.id)) continue;
+                if (owner.continuation && owner.conversationId !== conversation.id) {
+                    this.failSubmission(id, 'Conversation changed before the queued prompt was sent');
+                    continue;
+                }
                 this.submissionOwners.set(id, { ...owner, conversationId: conversation.id, runId: event.runId });
                 matched = true;
             }
@@ -658,25 +684,33 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
             for (const [id, owner] of [...this.submissionOwners]) {
-                if (owner.runId === event.runId) this.failSubmission(id, 'Run ended before the prompt was sent', notify);
+                if (owner.runId !== event.runId || this.isDeferredContinuation(id)) continue;
+                this.failSubmission(id, 'Run ended before the prompt was sent', notify);
             }
         }
         if (event.type !== 'update') return;
         const update = event.update;
         const id = update.kind === 'agentUserMessage' ? update.userMessage.id
             : update.kind === 'agentPromptQueued' ? update.entry.id
-                : update.kind === 'agentPromptDeleted' || update.kind === 'agentPromptDiscarded' ? update.promptId : null;
+                : update.kind === 'agentPromptDeleted' || update.kind === 'agentPromptDiscarded'
+                    || update.kind === 'agentPromptDispatched' ? update.promptId : null;
         if (!id) return;
         const owner = this.submissionOwners.get(id);
         if (!owner || owner.actionId !== event.actionId || contextKey(owner.context) !== contextKey(event.context)) return;
-        if (owner.runId !== null && owner.runId !== event.runId) return;
+        const successorRun = owner.runId !== null && owner.runId !== event.runId;
+        if (successorRun && (update.kind !== 'agentPromptQueued' || !this.isDeferredContinuation(id))) return;
         const submission = this.getSubmissions(owner.actionId, owner.context).find((current) => current.id === id);
         if (!submission || submission.state === 'failed') return;
+        const continuation = owner.continuation || successorRun;
+        // Observers of a continued submission may still be bound to its predecessor run, so they are notified directly.
+        const notifyOwner = notify || continuation;
         if (update.kind === 'agentPromptQueued') {
-            this.submissionOwners.set(id, { ...owner, runId: event.runId });
-            this.acceptSubmission(id, update.entry, notify);
+            this.submissionOwners.set(id, { ...owner, continuation, runId: event.runId });
+            this.acceptSubmission(id, update.entry, notifyOwner);
+        } else if (update.kind === 'agentPromptDispatched') {
+            this.markSubmissionDispatched(id, notifyOwner);
         } else {
-            this.removeSubmission(id, notify);
+            this.removeSubmission(id, notifyOwner);
         }
     }
 
@@ -974,7 +1008,8 @@ export class ActionRunRegistry extends EventTarget {
         }
 
         for (const [id, owner] of [...this.submissionOwners]) {
-            if (owner.runId === result.runId) this.failSubmission(id, result.failure ?? 'Run ended before the prompt was sent');
+            if (owner.runId !== result.runId || this.isDeferredContinuation(id)) continue;
+            this.failSubmission(id, result.failure ?? 'Run ended before the prompt was sent');
         }
         const waiters = this.waiters.get(result.runId)
         this.waiters.delete(result.runId)
@@ -1001,6 +1036,11 @@ export class ActionRunRegistry extends EventTarget {
     private handleEvent(event: ActionRunEvent) {
         if (event.type === 'update' && event.update.kind === 'agentCompact') {
             this.dispatchEvent(new CustomEvent('compactRequest', { detail: event }));
+            return;
+        }
+        // Published after the predecessor run ended, so it changes only the submission, never a run store.
+        if (event.type === 'update' && event.update.kind === 'agentContinuationFailed') {
+            this.failSubmission(event.update.promptId, event.update.message);
             return;
         }
         const currentStatus = this.runs.get(event.runId)?.getSnapshot().status
