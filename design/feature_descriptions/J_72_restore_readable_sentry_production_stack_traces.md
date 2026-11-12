@@ -3,7 +3,7 @@ author:
 id: J_72
 internalId: d9488ddc-6774-41c7-a7cc-eb4aa3283e20
 title: restore readable Sentry production stack traces
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
