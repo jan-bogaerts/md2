@@ -8,6 +8,8 @@ owner:
 affects:
 agents:
 policy:
+branch: j_72_restore_readable_sentry_production_stack_traces
+worktree: 2
 ---
 
 Production renderer errors reach Sentry without the source information required to recover their original TypeScript and React locations. Restore reliable error capture and readable stack traces for the Electron main process and renderer.
