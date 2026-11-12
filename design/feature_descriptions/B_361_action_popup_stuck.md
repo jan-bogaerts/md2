@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__d2e9440e-e79e-4abe-9092-d786540e29d3.json
 policy:
-branch: b_361_action_popup_stuck
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/state/action_run_binding_store.node.test.ts
   - app/src/data/action_run_types.ts

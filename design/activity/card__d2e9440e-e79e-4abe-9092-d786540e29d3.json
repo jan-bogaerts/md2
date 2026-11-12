@@ -4102,6 +4102,41 @@
       "startedAt": "2026-11-11T16:02:53.157Z",
       "status": "completed",
       "rootConversationId": "agent-0c4e25e9-669b-4d18-9848-6f0f91104466"
+    },
+    {
+      "commits": [
+        {
+          "commit": "d0f5906544a9acc74b3f56f12f25c98b5e538e73",
+          "committedAt": "2026-11-12T15:19:33+01:00",
+          "deletions": 103,
+          "filePaths": [
+            "app/src/components/actions/conversation/transcript/action_queued_prompt.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_runtime.ts",
+            "app/src/components/actions/run/state/action_run_binding_store.node.test.ts",
+            "app/src/components/actions/run/state/action_run_binding_store.ts",
+            "app/src/data/action_run_types.ts",
+            "app/src/services/actions/action_run_registry.submissions.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "desktop/src/actions/action/action_command_executor.test.mjs",
+            "desktop/src/actions/action/action_prompt_queue_closed_error.js",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/action/action_runner_prompt_continuation.test.mjs",
+            "desktop/src/actions/action/action_runner_service.js"
+          ],
+          "filesChanged": 14,
+          "insertions": 796,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-12T15:19:33+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d2e9440e-e79e-4abe-9092-d786540e29d3",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
