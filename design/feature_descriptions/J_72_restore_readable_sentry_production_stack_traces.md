@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__d9488ddc-6774-41c7-a7cc-eb4aa3283e20.json
 policy:
-branch: j_72_restore_readable_sentry_production_stack_traces
-worktree: 2
 changedFiles:
   - app/src/main.test.tsx
   - app/src/main.tsx
