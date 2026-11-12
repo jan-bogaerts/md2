@@ -1,7 +1,9 @@
 const { spawn } = require('node:child_process');
 const path = require('node:path');
+const { verifyRendererSourceMaps } = require('./verify_renderer_source_maps');
 
 const repositoryRoot = path.resolve(__dirname, '..', '..');
+const SENTRY_UPLOAD_VARIABLE_NAMES = ['SENTRY_AUTH_TOKEN', 'SENTRY_ORG', 'SENTRY_PROJECT'];
 
 function runNpm(args, spawnImplementation = spawn) {
     return new Promise((resolve, reject) => {
@@ -28,8 +30,22 @@ function runNpm(args, spawnImplementation = spawn) {
     });
 }
 
-async function buildWindows(runNpmImplementation = runNpm) {
+/** Release builds must upload renderer source maps, so the build-only Sentry upload values are required. */
+function assertSentryUploadConfigured(environment) {
+    const missingNames = SENTRY_UPLOAD_VARIABLE_NAMES.filter((name) => !environment[name]?.trim());
+    if (missingNames.length > 0) {
+        throw new Error(`Release build requires Sentry source-map upload configuration; missing: ${missingNames.join(', ')}`);
+    }
+}
+
+async function buildWindows(
+    runNpmImplementation = runNpm,
+    environment = process.env,
+    verifySourceMapsImplementation = verifyRendererSourceMaps,
+) {
+    assertSentryUploadConfigured(environment);
     await runNpmImplementation(['run', 'build', '--prefix', 'app']);
+    await verifySourceMapsImplementation();
     await runNpmImplementation(['run', 'package:windows', '--prefix', 'desktop']);
 }
 

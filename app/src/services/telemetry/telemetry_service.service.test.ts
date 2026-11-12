@@ -6,6 +6,7 @@ const telemetryMocks = vi.hoisted(() => ({
     aptabaseElectronTrackEvent: vi.fn(async () => undefined),
     aptabaseWebInit: vi.fn(),
     aptabaseWebTrackEvent: vi.fn(async () => undefined),
+    electronSentryInit: vi.fn(),
     sentryCaptureException: vi.fn(),
     sentryFlush: vi.fn(async () => true),
     sentryInit: vi.fn(),
@@ -17,6 +18,8 @@ vi.mock('@aptabase/web', () => ({
 }))
 
 vi.mock('@aptabase/electron/renderer', () => ({ trackEvent: telemetryMocks.aptabaseElectronTrackEvent }))
+
+vi.mock('@sentry/electron/renderer', () => ({ init: telemetryMocks.electronSentryInit }))
 
 vi.mock('@sentry/react', () => ({
     captureException: telemetryMocks.sentryCaptureException,
@@ -54,9 +57,12 @@ describe('TelemetryService', () => {
         vi.stubEnv('MD2_APTABASE_APP_KEY', 'aptabase-key')
         vi.stubEnv('MD2_SENTRY_DSN', 'sentry-dsn')
         vi.stubEnv('PROD', true)
+        // Each started service registers a window unload listener; keep them from leaking across tests.
+        vi.spyOn(window, 'addEventListener').mockImplementation(() => undefined)
         telemetryMocks.aptabaseElectronTrackEvent.mockReset().mockResolvedValue(undefined)
         telemetryMocks.aptabaseWebInit.mockReset()
         telemetryMocks.aptabaseWebTrackEvent.mockReset().mockResolvedValue(undefined)
+        telemetryMocks.electronSentryInit.mockReset()
         telemetryMocks.sentryCaptureException.mockReset()
         telemetryMocks.sentryFlush.mockReset().mockResolvedValue(true)
         telemetryMocks.sentryInit.mockReset()
@@ -82,6 +88,29 @@ describe('TelemetryService', () => {
         expect(telemetryMocks.aptabaseWebTrackEvent).toHaveBeenCalledOnce()
         expect(telemetryMocks.aptabaseWebTrackEvent).toHaveBeenCalledWith('react_start', { runtime: 'react_web' })
         expect(telemetryMocks.aptabaseElectronTrackEvent).not.toHaveBeenCalled()
+        expect(telemetryMocks.electronSentryInit).not.toHaveBeenCalled()
+    })
+
+    it('initializes the Electron renderer SDK combined with the React initializer and no renderer DSN', () => {
+        window.md2Data = createBridge()
+        const service = new TelemetryService()
+
+        service.start()
+
+        expect(telemetryMocks.electronSentryInit).toHaveBeenCalledOnce()
+        expect(telemetryMocks.electronSentryInit).toHaveBeenCalledWith({}, telemetryMocks.sentryInit)
+        expect(telemetryMocks.sentryInit).not.toHaveBeenCalled()
+    })
+
+    it('captures handled errors through the shared React client in the Electron runtime', () => {
+        window.md2Data = createBridge()
+        const service = new TelemetryService()
+        const error = new Error('renderer failed')
+        service.start()
+
+        service.captureError(error)
+
+        expect(telemetryMocks.sentryCaptureException).toHaveBeenCalledWith(error)
     })
 
     it('classifies usage as Electron-connected when the preload bridge exists', () => {
@@ -123,6 +152,7 @@ describe('TelemetryService', () => {
         await service.flush()
 
         expect(telemetryMocks.sentryInit).not.toHaveBeenCalled()
+        expect(telemetryMocks.electronSentryInit).not.toHaveBeenCalled()
         expect(telemetryMocks.aptabaseWebInit).not.toHaveBeenCalled()
         expect(telemetryMocks.aptabaseWebTrackEvent).not.toHaveBeenCalled()
         expect(telemetryMocks.aptabaseElectronTrackEvent).not.toHaveBeenCalled()

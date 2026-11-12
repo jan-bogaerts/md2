@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@sentry/vite-plugin": "^11.12.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.4",
@@ -58,7 +59,8 @@
     "@mdxeditor/editor": "^4.3.3",
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
-    "@sentry/react": "^10.63.0",
+    "@sentry/electron": "7.15.0",
+    "@sentry/react": "10.62.0",
     "lexical": "^0.48.0",
     "mdast-util-from-markdown": "^2.1.0",
     "mdi-material-ui": "^8.0.0",

@@ -10,6 +10,11 @@ const desktopEnvironmentPath = app.isPackaged
     : path.join(__dirname, '.env');
 if (existsSync(desktopEnvironmentPath)) process.loadEnvFile(desktopEnvironmentPath);
 
+// Sentry must start before application modules load so import and construction failures are captured.
+const { captureError, flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./src/integrations/telemetry');
+const electronTelemetryStarted = startElectronTelemetry({ isDevelopment: !app.isPackaged });
+registerProcessErrorHandlers();
+
 const Store = require('electron-store');
 const windowStateKeeper = require('electron-window-state');
 const {
@@ -41,7 +46,6 @@ const { sendSentryRequest } = require('./src/integrations/sentry_service');
 const { WorktreeService } = require('./src/git/worktree_service');
 const { MergeConflictService } = require('./src/git/merge_conflict_service');
 const { ActionWorktreeRunService } = require('./src/actions/action/action_worktree_run_service');
-const { captureError, flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./src/integrations/telemetry');
 const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./src/shell/theme');
 const { registerNavigationGuards, resolveRendererStaticDir, resolveRendererTarget } = require('./src/shell/renderer_security');
 const { registerTextContextMenu } = require('./src/shell/text_context_menu');
@@ -207,7 +211,6 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     worktreeService,
 });
 const remoteControlService = new RemoteControlService(localBridgeDispatch);
-const electronTelemetryStarted = startElectronTelemetry({ isDevelopment: !app.isPackaged });
 const subscriptionCleanups = new Map();
 let isQuittingAfterTelemetry = false;
 const closeCoordinator = new CloseCoordinator({
@@ -222,8 +225,6 @@ const updateService = new UpdateService({
     requestApplicationQuit: () => closeCoordinator.requestApplicationQuit(),
     shell,
 });
-
-registerProcessErrorHandlers();
 
 async function openProjectFolder(window) {
     const result = await dialog.showOpenDialog(window, {

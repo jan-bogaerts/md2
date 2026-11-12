@@ -1,7 +1,7 @@
 import { extractFile, listPackage } from '@electron/asar';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { readdir, rename } from 'node:fs/promises';
+import { readdir, readFile, rename } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,9 +28,12 @@ const REQUIRED_ASAR_ENTRIES = [
     'node_modules/ws/package.json',
 ];
 const FORBIDDEN_ENTRY_PATTERN = /(?:(?:^|\/).+\.(?:key|map|p12|pem|pfx)|(?:^|\/)signing_secrets\.json)$/iu;
+const SENTRY_AUTH_TOKEN_NAME = 'SENTRY_AUTH_TOKEN';
 const FORBIDDEN_APP_CONTENT = ['http://localhost:5173', 'certificateSha1'];
+const SECRET_MASK = '[redacted]';
 const APP_OWNED_ENTRY_PATTERN = /^(?:desktop|shared)\/.+\.(?:css|html|js|json|mjs|svg|txt)$/u;
 const WINDOWS_EXECUTABLE_CODE_EXTENSIONS = new Set(['.dll', '.exe', '.node']);
+const SOURCE_MAP_EXTENSIONS = new Set(['.map']);
 
 function normalizeAsarEntry(entry) {
     return entry.replace(/^[/\\]+/u, '').replaceAll('\\', '/');
@@ -65,43 +68,72 @@ export function assertPackageEntries(entries) {
     return normalizedEntries;
 }
 
-export function assertAppContentIsReleaseSafe(asarPath, entries, extractFileImplementation = extractFile) {
+/** The build-only Sentry upload secret: its variable name, plus its value when the build environment holds one. */
+export function collectSentryUploadSecrets(environment) {
+    const sentryAuthToken = environment[SENTRY_AUTH_TOKEN_NAME]?.trim();
+
+    return sentryAuthToken ? [SENTRY_AUTH_TOKEN_NAME, sentryAuthToken] : [SENTRY_AUTH_TOKEN_NAME];
+}
+
+function describeForbiddenValue(value) {
+    return value === SENTRY_AUTH_TOKEN_NAME || FORBIDDEN_APP_CONTENT.includes(value) ? value : SECRET_MASK;
+}
+
+export function assertAppContentIsReleaseSafe(
+    asarPath,
+    entries,
+    extractFileImplementation = extractFile,
+    forbiddenValues = FORBIDDEN_APP_CONTENT,
+) {
     const appEntries = entries.filter((entry) => APP_OWNED_ENTRY_PATTERN.test(entry));
 
     for (const entry of appEntries) {
         const archiveEntry = entry.replaceAll('/', path.sep);
         const content = extractFileImplementation(asarPath, archiveEntry);
-        const forbiddenValue = FORBIDDEN_APP_CONTENT.find((value) => content.includes(Buffer.from(value)));
-        if (forbiddenValue) throw new Error(`Forbidden release content in ${entry}: ${forbiddenValue}`);
+        const forbiddenValue = forbiddenValues.find((value) => content.includes(Buffer.from(value)));
+        if (forbiddenValue) throw new Error(`Forbidden release content in ${entry}: ${describeForbiddenValue(forbiddenValue)}`);
     }
 }
 
-export async function collectWindowsExecutableCodePaths(directory, readDirectoryImplementation = readdir) {
+/** The packaged runtime `.env` may carry the public DSN, never the Sentry upload secret. */
+export function assertEnvironmentFileIsReleaseSafe(content, sentryUploadSecrets) {
+    const forbiddenValue = sentryUploadSecrets.find((value) => content.includes(value));
+    if (forbiddenValue) throw new Error(`Forbidden release content in resources/.env: ${describeForbiddenValue(forbiddenValue)}`);
+}
+
+export async function collectFilePathsByExtension(directory, extensions, readDirectoryImplementation = readdir) {
     const entries = await readDirectoryImplementation(directory, { withFileTypes: true });
-    const executableCodePaths = [];
+    const filePaths = [];
 
     for (const entry of entries) {
         const entryPath = path.join(directory, entry.name);
         if (entry.isDirectory()) {
-            const nestedExecutableCodePaths = await collectWindowsExecutableCodePaths(entryPath, readDirectoryImplementation);
-            executableCodePaths.push(...nestedExecutableCodePaths);
+            const nestedFilePaths = await collectFilePathsByExtension(entryPath, extensions, readDirectoryImplementation);
+            filePaths.push(...nestedFilePaths);
             continue;
         }
 
-        if (entry.isFile() && WINDOWS_EXECUTABLE_CODE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
-            executableCodePaths.push(entryPath);
+        if (entry.isFile() && extensions.has(path.extname(entry.name).toLowerCase())) {
+            filePaths.push(entryPath);
         }
     }
 
-    return executableCodePaths.sort();
+    return filePaths.sort();
 }
 
 export async function collectSignatureVerificationPaths(paths, readDirectoryImplementation = readdir) {
-    const executableCodePaths = await collectWindowsExecutableCodePaths(
+    const executableCodePaths = await collectFilePathsByExtension(
         paths.unpackedDirectory,
+        WINDOWS_EXECUTABLE_CODE_EXTENSIONS,
         readDirectoryImplementation,
     );
     return [...executableCodePaths, paths.installerPath];
+}
+
+/** Source maps are uploaded to Sentry during the build and must not ship in unpacked resources either. */
+export async function assertNoUnpackedSourceMaps(unpackedDirectory, readDirectoryImplementation = readdir) {
+    const sourceMapPaths = await collectFilePathsByExtension(unpackedDirectory, SOURCE_MAP_EXTENSIONS, readDirectoryImplementation);
+    if (sourceMapPaths.length > 0) throw new Error(`Forbidden unpacked source maps: ${sourceMapPaths.join(', ')}`);
 }
 
 export function createAuthenticodeVerificationArgs(scriptPath, artifactPath, expectedPublisher, paths) {
@@ -150,8 +182,12 @@ export async function verifyWindowsPackage(secrets = loadSigningSecrets()) {
         if (!existsSync(artifactPath)) throw new Error(`Missing release artifact: ${artifactPath}`);
     }
 
+    const sentryUploadSecrets = collectSentryUploadSecrets(process.env);
     const entries = assertPackageEntries(listPackage(paths.asarPath));
-    assertAppContentIsReleaseSafe(paths.asarPath, entries);
+    assertAppContentIsReleaseSafe(paths.asarPath, entries, extractFile, [...FORBIDDEN_APP_CONTENT, ...sentryUploadSecrets]);
+    const environmentContent = await readFile(paths.environmentPath, 'utf8');
+    assertEnvironmentFileIsReleaseSafe(environmentContent, sentryUploadSecrets);
+    await assertNoUnpackedSourceMaps(paths.unpackedDirectory);
     await verifySignatures(paths, secrets.publisherName);
 }
 

@@ -1,5 +1,6 @@
 import { trackEvent as trackElectronAptabaseEvent } from '@aptabase/electron/renderer'
 import { init as initAptabase, trackEvent as trackWebAptabaseEvent } from '@aptabase/web'
+import { init as initElectronRendererSentry } from '@sentry/electron/renderer'
 import * as Sentry from '@sentry/react'
 import { getElectronDataBridge } from '../../data/electron_data_bridge'
 import { register } from '../service_injector'
@@ -36,6 +37,16 @@ function hasValue(value: string | undefined) {
 
 function getRuntime(): TelemetryRuntime {
     return getElectronDataBridge() ? 'react_electron' : 'react_web'
+}
+
+/** Electron renderers report through the main-process SDK; the web runtime has no main process and uses its own DSN. */
+function initializeSentry(runtime: TelemetryRuntime) {
+    if (runtime === 'react_electron') {
+        initElectronRendererSentry({}, Sentry.init)
+        return
+    }
+
+    Sentry.init({ dsn: import.meta.env.MD2_SENTRY_DSN })
 }
 
 function settlePendingEvents(events: Promise<void>[]) {
@@ -82,7 +93,7 @@ export class TelemetryService {
 
         if (this.sentryEnabled) {
             try {
-                Sentry.init({ dsn: import.meta.env.MD2_SENTRY_DSN })
+                initializeSentry(this.runtime)
             } catch {
                 this.sentryEnabled = false
             }

@@ -14,16 +14,18 @@ function renderApplication(content: ReactNode) {
 }
 
 async function bootstrap() {
+    // Telemetry starts first so storage startup failures can still be reported.
+    telemetryService.start()
     try {
         await applicationStorage.initialize()
     } catch (error) {
+        telemetryService.captureError(error)
         const message = error instanceof Error ? error.message : 'Application state could not be loaded'
         renderApplication(<main role="alert">Application state could not be loaded: {message}</main>)
 
         return
     }
 
-    telemetryService.start()
     void applicationStartupService.start()
     renderApplication(
         <StrictMode>
