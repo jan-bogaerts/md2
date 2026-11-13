@@ -69,6 +69,7 @@ web_modules/
 .env
 .env.*
 !.env.example
+!.env.sentry-build-plugin.example
 
 # Code-signing secrets
 signing_secrets.json

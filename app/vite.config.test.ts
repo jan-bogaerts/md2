@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import viteConfig, { createSentryPlugins, sanitizeOptimizedDependencySourceMap } from './vite.config'
 
@@ -8,11 +11,7 @@ const sentryPluginMocks = vi.hoisted(() => ({
 
 vi.mock('@sentry/vite-plugin', () => ({ sentryVitePlugin: sentryPluginMocks.sentryVitePlugin }))
 
-const SENTRY_UPLOAD_ENVIRONMENT = {
-    SENTRY_AUTH_TOKEN: 'build-secret',
-    SENTRY_ORG: 'md2-org',
-    SENTRY_PROJECT: 'md2-project',
-}
+const SENTRY_BUILD_CONFIGURATION = 'SENTRY_AUTH_TOKEN=build-secret\nSENTRY_ORG=md2-org\nSENTRY_PROJECT=md2-project\n'
 
 describe('production build configuration', () => {
     it('uses relative asset paths with hidden source maps and only exposes MD2_ client variables', () => {
@@ -26,54 +25,41 @@ describe('production build configuration', () => {
 })
 
 describe('createSentryPlugins', () => {
-    beforeEach(() => {
+    let configurationDirectory: string
+    let configurationPath: string
+
+    beforeEach(async () => {
         sentryPluginMocks.sentryVitePlugin.mockReset()
+        configurationDirectory = await mkdtemp(join(tmpdir(), 'md2-sentry-build-'))
+        configurationPath = join(configurationDirectory, '.env.sentry-build-plugin')
     })
 
-    afterEach(() => {
-        vi.unstubAllEnvs()
+    afterEach(async () => {
+        await rm(configurationDirectory, { force: true, recursive: true })
     })
 
-    it('adds no upload plugin when Sentry upload is not configured', () => {
-        expect(createSentryPlugins({})).toEqual([])
+    it('adds no upload plugin when the Sentry build configuration file is absent', () => {
+        expect(createSentryPlugins(configurationPath)).toEqual([])
         expect(sentryPluginMocks.sentryVitePlugin).not.toHaveBeenCalled()
     })
 
-    it('rejects a partial upload configuration with the missing variable names', () => {
-        const environment = { SENTRY_AUTH_TOKEN: 'build-secret', SENTRY_ORG: ' ' }
-
-        expect(() => createSentryPlugins(environment))
-            .toThrow('Sentry source-map upload is partially configured; missing: SENTRY_ORG, SENTRY_PROJECT')
-    })
-
-    it('creates the upload plugin from build-only values without release injection', () => {
+    it('creates the upload plugin without release injection when the configuration file exists', async () => {
+        await writeFile(configurationPath, SENTRY_BUILD_CONFIGURATION, 'utf8')
         sentryPluginMocks.sentryVitePlugin.mockReturnValueOnce(sentryPluginMocks.plugin)
 
-        const plugins = createSentryPlugins(SENTRY_UPLOAD_ENVIRONMENT)
+        const plugins = createSentryPlugins(configurationPath)
 
         expect(plugins).toEqual([sentryPluginMocks.plugin])
         expect(sentryPluginMocks.sentryVitePlugin).toHaveBeenCalledWith({
-            authToken: 'build-secret',
             errorHandler: expect.any(Function),
-            org: 'md2-org',
-            project: 'md2-project',
             release: { create: false, finalize: false, inject: false, setCommits: false },
         })
     })
 
-    it('applies the upload plugin to separately bundled workers', () => {
-        vi.stubEnv('SENTRY_AUTH_TOKEN', SENTRY_UPLOAD_ENVIRONMENT.SENTRY_AUTH_TOKEN)
-        vi.stubEnv('SENTRY_ORG', SENTRY_UPLOAD_ENVIRONMENT.SENTRY_ORG)
-        vi.stubEnv('SENTRY_PROJECT', SENTRY_UPLOAD_ENVIRONMENT.SENTRY_PROJECT)
-        sentryPluginMocks.sentryVitePlugin.mockReturnValueOnce(sentryPluginMocks.plugin)
+    it('turns a configured source-map upload error into a build failure', async () => {
+        await writeFile(configurationPath, SENTRY_BUILD_CONFIGURATION, 'utf8')
 
-        const workerPlugins = viteConfig.worker?.plugins?.()
-
-        expect(workerPlugins).toEqual([sentryPluginMocks.plugin])
-    })
-
-    it('turns a source-map upload error into a build failure', () => {
-        createSentryPlugins(SENTRY_UPLOAD_ENVIRONMENT)
+        createSentryPlugins(configurationPath)
         const [{ errorHandler }] = sentryPluginMocks.sentryVitePlugin.mock.calls[0]
 
         expect(() => errorHandler(new Error('Network error'))).toThrow('Sentry source-map upload failed: Network error')
