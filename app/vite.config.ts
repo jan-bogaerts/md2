@@ -1,5 +1,6 @@
 import { sentryVitePlugin } from '@sentry/vite-plugin'
 import react from '@vitejs/plugin-react'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { resolve, sep } from 'node:path'
@@ -17,7 +18,8 @@ const SERVICE_TEST_GROUP_ORDER = 1
 const UI_TEST_GROUP_ORDER = 2
 const REAL_EDITOR_TEST_GROUP_ORDER = 3
 const TEST_WORKERS = 2
-const SENTRY_UPLOAD_VARIABLE_NAMES = ['SENTRY_AUTH_TOKEN', 'SENTRY_ORG', 'SENTRY_PROJECT'] as const
+// Read by the Sentry plugin itself from the build working directory (app/ for `npm run build --prefix app`).
+const SENTRY_BUILD_CONFIGURATION_PATH = resolve(process.cwd(), '.env.sentry-build-plugin')
 
 type NextFunction = (error?: Error) => void
 
@@ -112,22 +114,17 @@ function failSourceMapUpload(error: Error): never {
 }
 
 /**
- * Creates the Sentry source-map upload plugin from build-only environment values.
- * Returns no plugin when upload is not configured; a partial configuration is rejected.
- * Upload failures throw, which stops the build.
+ * Creates the Sentry source-map upload plugin when the optional build configuration file exists.
+ * Builds without that file are plain builds. Configured upload failures throw, which stops the build.
  */
-export function createSentryPlugins(environment: Record<string, string | undefined>): PluginOption[] {
-    const missingNames = SENTRY_UPLOAD_VARIABLE_NAMES.filter((name) => !environment[name]?.trim())
-    if (missingNames.length === SENTRY_UPLOAD_VARIABLE_NAMES.length) return []
-    if (missingNames.length > 0) throw new Error(`Sentry source-map upload is partially configured; missing: ${missingNames.join(', ')}`)
+export function createSentryPlugins(configurationPath: string): PluginOption[] {
+    if (!existsSync(configurationPath)) return []
 
+    // The plugin loads SENTRY_AUTH_TOKEN, SENTRY_ORG and SENTRY_PROJECT from the configuration file.
     // Debug IDs match bundles to source maps, so no release is managed or injected:
     // renderer events keep the release set by the Electron main-process SDK.
     const sentryPluginOptions = {
-        authToken: environment.SENTRY_AUTH_TOKEN,
         errorHandler: failSourceMapUpload,
-        org: environment.SENTRY_ORG,
-        project: environment.SENTRY_PROJECT,
         release: { create: false, finalize: false, inject: false, setCommits: false as const },
     }
 
@@ -144,14 +141,14 @@ export default defineConfig({
     // Point `global` at `globalThis` so the assignment runs. See remote-control http serving (F-045).
     define: {global: 'globalThis'},
     // The Sentry plugin must stay last so debug IDs and uploads match the final emitted bundles.
-    plugins: [react(), dependencySourceMapNoiseFilter(), ...createSentryPlugins(process.env)],
+    plugins: [react(), dependencySourceMapNoiseFilter(), ...createSentryPlugins(SENTRY_BUILD_CONFIGURATION_PATH)],
     resolve: {
         alias: [
             { find: /^mdi-material-ui\/(.+)$/, replacement: 'mdi-material-ui/esm/$1' },
         ],
     },
     // Workers are bundled separately, so they need their own Sentry plugin instance for debug IDs and upload.
-    worker: { plugins: () => createSentryPlugins(process.env) },
+    worker: { plugins: () => createSentryPlugins(SENTRY_BUILD_CONFIGURATION_PATH) },
     test: {
         // The forks pool can crash under rolldown-vite; threads is stable and faster here.
         pool: 'threads',
