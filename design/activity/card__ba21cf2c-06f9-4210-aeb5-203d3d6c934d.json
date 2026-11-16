@@ -1994,7 +1994,7 @@
         "totalTokens": 2183659
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -2059,6 +2059,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "860879046c4c612cc62d2689ed711879b21a50a8",
           "committedAt": "2026-11-09T15:57:29+01:00",
           "deletions": 9,
@@ -2068,8 +2069,7 @@
             "desktop/src/actions/agent/agent_streaming_event_handlers.js"
           ],
           "filesChanged": 3,
-          "insertions": 169,
-          "branch": "dev_main"
+          "insertions": 169
         }
       ],
       "completedAt": "2026-11-09T15:57:29+01:00",
