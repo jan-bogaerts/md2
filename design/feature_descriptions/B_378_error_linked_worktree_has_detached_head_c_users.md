@@ -3,7 +3,7 @@ author:
 id: B_378
 internalId: 08b55903-731a-4a0d-be87-6818029c82b2
 title: Error: Linked worktree has detached HEAD: C:\Users
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 161607340
 sentryOrganization: elastetic
-after: 10a9acbd-97f0-4cfe-a9f2-85cd354f65b8
+after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 ---
 
 ## Sentry issue
