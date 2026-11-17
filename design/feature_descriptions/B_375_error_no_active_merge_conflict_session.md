@@ -15,6 +15,35 @@ sentryOrganization: elastetic
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 ---
 
+## Current state
+
+The desktop owns the active merge conflict session for one paused Git rebase or worktree integration. The renderer keeps a snapshot of that session to display the conflict dialog.
+
+When the desktop reports that the session ended, the renderer ignores the null session until it reloads the paths that were conflicted. This reload only applies to card Markdown in the configured project folder; other source files are ignored. The explicit reload is needed because project file watcher events are suppressed while a path is conflicted, preventing conflict markers from entering the card model.
+
+While the reload is pending, the renderer still exposes the ended session and leaves the conflict dialog interactive. Continuing during that interval reaches the desktop after its session has already been cleared and produces `No active merge conflict session`.
+
+## Implementation details
+
+Close the renderer session immediately when the desktop reports that it ended. Capture the accumulated conflicted paths first, clear the session snapshot and affected-path tracking, and let the conflict dialog close without waiting for project data to reload.
+
+After closing the session, reload the captured paths when project storage is available. `ProjectLoading.reloadConflictPaths` must retain its current filtering, so only affected card Markdown is reloaded and ordinary source files require no renderer work. Report reload failures through the existing error path, but do not restore an ended session or reopen the conflict dialog.
+
+Use one idempotent session-closing path for desktop null events, successful Continue, successful Cancel, and verification that finds no active desktop session. This path must consume the captured paths once so concurrent notifications do not cause duplicate reloads. Preserve the existing integration activity and branch-cleanup processing after a successful Continue.
+
+Add focused service tests for immediate session closure, asynchronous card reload, ignored source paths, reload failure, and duplicate end notifications. The tests must also verify that Continue cannot be sent for a session after the desktop has reported it ended.
+
+## Acceptance criteria
+
+- The conflict dialog closes as soon as the desktop reports that the merge conflict session ended.
+- Closing the dialog does not wait for affected files to reload.
+- A user cannot Continue or Cancel an ended session.
+- Affected card Markdown is reloaded after the dialog closes because its watcher events were suppressed during the conflict.
+- Conflicted files outside the configured project folder are not reloaded into renderer state.
+- A card reload failure is reported without restoring the ended session or reopening the dialog.
+- Multiple end notifications close and reload the session only once.
+- Successful Continue still records integration activity and performs branch cleanup.
+
 ## Sentry issue
 
 **Title:** Error: No active merge conflict session
