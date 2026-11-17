@@ -3,7 +3,7 @@ author:
 id: B_375
 internalId: 61bfe480-a372-4927-84d6-a26973fc8c66
 title: Error: No active merge conflict session
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
@@ -12,7 +12,9 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 161833899
 sentryOrganization: elastetic
-after: 41d340e6-afae-44bd-82e7-41ab673c94e0
+after: f5778432-59ae-4f09-a254-7b450bf873a1
+branch: b_375_error_no_active_merge_conflict_session
+worktree: 2
 ---
 
 ## Current state

@@ -5,7 +5,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "61bfe480-a372-4927-84d6-a26973fc8c66",
       "cardPath": "design/feature_descriptions/B_375_error_no_active_merge_conflict_session.md",
-      "completedAt": null,
+      "completedAt": "2026-11-17T14:09:58.446Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 70073
@@ -650,7 +650,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 52,
-          "timestamp": "2026-11-17T14:08:23.180Z"
+          "timestamp": "2026-11-17T14:09:58.446Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -661,12 +661,12 @@
           "agent": "codex",
           "conversationId": "01a1e9b4-10bd-7203-aeba-0808c20510df",
           "createdAt": "2026-11-17T13:30:55.952Z",
-          "lastUsedAt": "2026-11-17T14:08:23.180Z",
+          "lastUsedAt": "2026-11-17T14:09:58.446Z",
           "synchronizedThroughMessageId": "agent-turn-363cf1d4-b0bd-4a86-b54b-97b5614e3b63-turn-5-assistant-3"
         }
       ],
       "startedAt": "2026-11-17T13:30:54.246Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -704,13 +704,41 @@
         "totalTokens": 1346169
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
     "cardInternalId": "61bfe480-a372-4927-84d6-a26973fc8c66",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-11-17T14:09:58.454Z",
+      "conversationIds": [
+        "agent-de41ae4f-1cdc-4415-bb58-530c75106a05"
+      ],
+      "details": {
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-1a5fcf43-827b-421e-9738-2c992b25ac31",
+      "origin": {
+        "cardInternalId": "61bfe480-a372-4927-84d6-a26973fc8c66",
+        "kind": "card"
+      },
+      "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "rootActionLabel": "investigate",
+      "rootConversationId": "agent-de41ae4f-1cdc-4415-bb58-530c75106a05",
+      "startedAt": "2026-11-17T13:30:54.245Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
