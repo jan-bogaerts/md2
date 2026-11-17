@@ -3,7 +3,7 @@ author:
 id: B_377
 internalId: 7f47e34c-9a6a-44c7-8ed7-3316d963780e
 title: TypeError: Cannot read properties of undefined (re
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 161833878
 sentryOrganization: elastetic
-after: 10a9acbd-97f0-4cfe-a9f2-85cd354f65b8
+after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 ---
 
 ## Sentry issue

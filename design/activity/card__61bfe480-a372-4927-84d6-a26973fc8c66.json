@@ -746,6 +746,43 @@
       "title": "implement",
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "cardInternalId": "61bfe480-a372-4927-84d6-a26973fc8c66",
+      "cardPath": "design/feature_descriptions/B_375_error_no_active_merge_conflict_session.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read and fix the bug described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_375_error_no_active_merge_conflict_session.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned bug description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).&#x20;\n2. create a task for each block\n3. Wait for approval.\n4. include tests\n5. After implementation is done, update the field `status` in the markdown feature description file to `ready`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_375_error_no_active_merge_conflict_session.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria. Keep everything short and to the point.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "submission-9dcd2456-544b-45dd-a134-0ed633225896",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-17T14:10:31.812Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-18b7b838-6942-4b56-96c3-c7c3463514a3",
+      "providerSessions": [
+        {
+          "accountId": "codex-initial",
+          "agent": "codex",
+          "conversationId": "01a1e9d8-57b4-7480-92f7-e07f23b7f48d",
+          "createdAt": "2026-11-17T14:10:32.871Z",
+          "lastUsedAt": "2026-11-17T14:10:32.871Z",
+          "synchronizedThroughMessageId": "submission-9dcd2456-544b-45dd-a134-0ed633225896"
+        }
+      ],
+      "startedAt": "2026-11-17T14:10:31.812Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-11-17T14:10:31.812Z"
+      },
+      "title": "fix bug",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -787,14 +824,14 @@
         "agent-bbd668ad-8b90-40cb-a000-91d482c64523"
       ],
       "details": {
+        "type": "agent",
         "accountId": "codex-initial",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-86ef3bd4-3264-453d-bed5-aff410c0ec96",
       "origin": {
@@ -803,9 +840,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-bbd668ad-8b90-40cb-a000-91d482c64523",
       "startedAt": "2026-11-17T14:10:17.854Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-bbd668ad-8b90-40cb-a000-91d482c64523"
     }
   ],
   "version": 5
