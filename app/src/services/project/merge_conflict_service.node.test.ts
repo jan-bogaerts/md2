@@ -68,26 +68,33 @@ describe('MergeConflictService', () => {
         expect(service.getSnapshot().session?.conflictedPaths).toEqual(['src/one.ts', 'src/two.ts'])
     })
 
-    it('reloads affected paths before closing an externally ended session', async () => {
+    it('closes an externally ended session before affected paths finish reloading', async () => {
+        let finishReload: () => void = () => undefined
         const { reloadPaths, service, storage } = createHarness()
         await service.load()
         storage.getMergeConflictSession.mockResolvedValueOnce(null)
+        reloadPaths.mockImplementationOnce(() => new Promise<void>((resolve) => {
+            finishReload = resolve
+        }))
 
-        await service.verifyCurrentSession()
+        const verification = service.verifyCurrentSession()
 
+        await vi.waitFor(() => expect(service.getSnapshot().session).toBeNull())
         expect(reloadPaths).toHaveBeenCalledWith(['src/one.ts', 'src/two.ts'])
-        expect(service.getSnapshot().session).toBeNull()
+        finishReload()
+        await verification
     })
 
-    it('keeps the last known session when external-session reconciliation fails', async () => {
-        const { reloadPaths, service, storage } = createHarness()
+    it('reports reload failure without restoring an ended session', async () => {
+        const { reloadPaths, reportError, service, storage } = createHarness()
         await service.load()
         storage.getMergeConflictSession.mockResolvedValueOnce(null)
         reloadPaths.mockRejectedValueOnce(new Error('reload failed'))
 
-        await expect(service.verifyCurrentSession()).rejects.toThrow('reload failed')
+        await service.verifyCurrentSession()
 
-        expect(service.getSnapshot().session).toEqual(session())
+        expect(reportError).toHaveBeenCalledWith(expect.objectContaining({ message: 'reload failed' }))
+        expect(service.getSnapshot().session).toBeNull()
     })
 
     it('reports initial conflict-session load failures', async () => {
@@ -106,6 +113,27 @@ describe('MergeConflictService', () => {
         await vi.waitFor(() => expect(service.getSnapshot().session).toBeNull())
 
         expect(reloadPaths).toHaveBeenCalledWith(['src/one.ts', 'src/two.ts'])
+    })
+
+    it('consumes affected paths once across duplicate end notifications', async () => {
+        const { changeCallback, reloadPaths, service } = createHarness()
+
+        changeCallback(null)
+        changeCallback(null)
+
+        await vi.waitFor(() => expect(reloadPaths).toHaveBeenCalledOnce())
+        expect(service.getSnapshot().session).toBeNull()
+    })
+
+    it('blocks Continue and Cancel after desktop reports the session ended', async () => {
+        const { changeCallback, service, storage } = createHarness()
+
+        changeCallback(null)
+
+        await expect(service.continue()).rejects.toThrow('No active merge conflict session')
+        await expect(service.abort()).rejects.toThrow('No active merge conflict session')
+        expect(storage.continueMergeConflict).not.toHaveBeenCalled()
+        expect(storage.abortMergeConflict).not.toHaveBeenCalled()
     })
 
     it('marks selected path then keeps current Git rescan result', async () => {

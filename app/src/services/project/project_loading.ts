@@ -465,7 +465,7 @@ export class ProjectLoading {
         }
         if (this.markdownReloadEventsByPath.size === 0) return
 
-        await this.reloadMarkdownFilesFromWatchEvents()
+        await this.reloadMarkdownFilesFromWatchEvents(true)
     }
 
     private clearFailedProjectLoad() {
@@ -1076,7 +1076,7 @@ export class ProjectLoading {
         this.markdownRemovalTimeoutsByPath.clear()
     }
 
-    private async reloadMarkdownFilesFromWatchEvents() {
+    private async reloadMarkdownFilesFromWatchEvents(throwOnLoadFailure = false) {
         const { commitBatcher, storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject || !storage.loadFile) return
@@ -1090,7 +1090,7 @@ export class ProjectLoading {
         const removedPaths: string[] = []
 
         for (const event of events) {
-            const loadedFile = event.changeKind === 'removed' ? null : await this.loadWatchedMarkdownFile(event)
+            const loadedFile = event.changeKind === 'removed' ? null : await this.loadWatchedMarkdownFile(event, throwOnLoadFailure)
             if (loadedFile && this.dependencies.matchesCurrentContent(loadedFile.path, loadedFile.content)) continue
             const dirtyOpenDocument = openFilesService.getRegisteredDocuments().some((document) => (
                 document.kind === 'card' && document.path === event.path && document.dirty
@@ -1164,7 +1164,7 @@ export class ProjectLoading {
         await this.dependencies.ensureCardInternalIds(deferredPersistencePaths)
     }
 
-    private async loadWatchedMarkdownFile(event: ProjectWatchEvent) {
+    private async loadWatchedMarkdownFile(event: ProjectWatchEvent, throwOnLoadFailure = false) {
         const { storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject || !storage.loadFile) return null
@@ -1172,6 +1172,7 @@ export class ProjectLoading {
         try {
             return await storage.loadFile(currentProject, event.path)
         } catch (error) {
+            if (throwOnLoadFailure && !isMissingFileError(error)) throw error
             if (event.changeKind === 'unknown' || event.changeKind === 'removed') return null
 
             console.error('Failed to load watched markdown file', error)

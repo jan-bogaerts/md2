@@ -93,12 +93,7 @@ export class MergeConflictService extends EventTarget {
             return
         }
 
-        const affectedPaths = [...this.affectedPaths]
-        await dependencies.reloadPaths(affectedPaths)
-        if (this.snapshot.session?.id !== session.id) return
-
-        this.affectedPaths.clear()
-        this.publish({ ...this.snapshot, session: null })
+        await this.closeSession(session.id)
     }
 
     async markResolved(path: string) {
@@ -145,7 +140,6 @@ export class MergeConflictService extends EventTarget {
         const session = this.requireSession()
         if (!dependencies.storage.continueMergeConflict) throw new Error('Continuing merge conflicts requires desktop')
         if (session.conflictedPaths.length > 0) throw new Error('Resolve every conflicted file before continuing')
-        const affectedPaths = [...this.affectedPaths]
         this.setBusy(true)
         try {
             const outcome = await dependencies.storage.continueMergeConflict({ sessionId: session.id })
@@ -153,11 +147,10 @@ export class MergeConflictService extends EventTarget {
                 this.publish({ busy: true, session: outcome.session })
                 return
             }
+            const reload = this.closeSession(session.id)
             if (outcome.activityPath) await dependencies.queueIntegratedActivity(outcome.activityPath)
             if (outcome.branchDeleted && outcome.cardInternalId) dependencies.completeBranchCleanup(outcome.cardInternalId)
-            await dependencies.reloadPaths(affectedPaths)
-            this.affectedPaths.clear()
-            this.publish({ busy: true, session: null })
+            await reload
         } finally {
             this.setBusy(false)
         }
@@ -167,22 +160,36 @@ export class MergeConflictService extends EventTarget {
         const dependencies = this.requireDependencies()
         const session = this.requireSession()
         if (!dependencies.storage.abortMergeConflict) throw new Error('Aborting merge conflicts requires desktop')
-        const affectedPaths = [...this.affectedPaths]
         this.setBusy(true)
         try {
             await dependencies.storage.abortMergeConflict({ sessionId: session.id })
-            await dependencies.reloadPaths(affectedPaths)
-            this.affectedPaths.clear()
-            this.publish({ busy: true, session: null })
+            await this.closeSession(session.id)
         } finally {
             this.setBusy(false)
         }
     }
 
     private handleSessionChanged(session: MergeConflictSession | null) {
-        if (!session && this.snapshot.session) return
+        if (!session && this.snapshot.session) {
+            void this.closeSession(this.snapshot.session.id)
+            return
+        }
 
         this.publish({ ...this.snapshot, session })
+    }
+
+    private async closeSession(sessionId: string) {
+        const dependencies = this.requireDependencies()
+        if (this.snapshot.session?.id !== sessionId) return
+
+        const affectedPaths = [...this.affectedPaths]
+        this.affectedPaths.clear()
+        this.publish({ ...this.snapshot, session: null })
+        try {
+            await dependencies.reloadPaths(affectedPaths)
+        } catch (error) {
+            dependencies.reportError(error)
+        }
     }
 
     private async loadSafely() {

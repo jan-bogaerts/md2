@@ -1789,6 +1789,40 @@ describe('ProjectLoading', () => {
         verifyCurrentSession.mockRestore()
     })
 
+    it('reloads conflicted card Markdown and ignores paths outside the project folder', async () => {
+        configService.init()
+        const changedFile = { ...files[0], content: files[0].content.replace('# Root', '# Conflict resolved') }
+        const loadFile = vi.fn(async () => changedFile)
+        const loadProjectConfig = vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'design' }))
+        const storage = createStorage({ loadFile, loadProjectConfig })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        loadFile.mockClear()
+
+        await service.projectLoading.reloadConflictPaths([files[0].path, 'src/source.ts', 'outside/card.md'])
+
+        const snapshot = service.getState().snapshot
+        const reloadedCard = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+            .find(({ path }) => path === files[0].path)
+        expect(loadFile).toHaveBeenCalledOnce()
+        expect(loadFile).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, files[0].path)
+        expect(reloadedCard?.content).toContain('# Conflict resolved')
+    })
+
+    it('propagates conflicted card reload failures', async () => {
+        configService.init()
+        const loadFile = vi.fn(async () => {
+            throw new Error('reload failed')
+        })
+        const storage = createStorage({ loadFile })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.projectLoading.reloadConflictPaths([files[0].path])).rejects.toThrow('reload failed')
+    })
+
     it('keeps a committed worktree assignment when another markdown file reloads', async () => {
         vi.useFakeTimers()
         configService.init()
