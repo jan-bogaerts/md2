@@ -3,7 +3,7 @@ author:
 id: B_375
 internalId: 61bfe480-a372-4927-84d6-a26973fc8c66
 title: Error: No active merge conflict session
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,7 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 161833899
 sentryOrganization: elastetic
-after: b3d4732c-6b1a-41d7-88bf-0347982fc7a9
+after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 ---
 
 ## Sentry issue

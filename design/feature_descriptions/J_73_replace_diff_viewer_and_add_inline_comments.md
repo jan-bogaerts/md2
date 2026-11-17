@@ -8,6 +8,7 @@ type: job
 owner:
 affects:
 agents:
+  - design/activity/card__f5778432-59ae-4f09-a254-7b450bf873a1.json
 policy:
 changedFiles:
   - app/package-lock.json
