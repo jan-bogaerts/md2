@@ -3,7 +3,7 @@ author:
 id: J_73
 internalId: f5778432-59ae-4f09-a254-7b450bf873a1
 title: replace diff viewer and add inline comments
-status: ready for implementation
+status: ready
 type: job
 owner:
 affects:
@@ -14,19 +14,30 @@ changedFiles:
   - app/package-lock.json
   - app/package.json
   - app/src/app.tsx
-  - app/src/components/actions/conversation/events/diff_comment_thread.test.tsx
-  - app/src/components/actions/conversation/events/diff_comment_thread.tsx
   - app/src/components/actions/conversation/events/diff_comment_service.node.test.ts
   - app/src/components/actions/conversation/events/diff_comment_service.ts
-  - app/src/components/actions/conversation/events/diff_view.grouped.test.tsx
-  - app/src/components/actions/conversation/events/diff_view.tsx
+  - app/src/components/actions/conversation/events/diff_comment_thread.test.tsx
+  - app/src/components/actions/conversation/events/diff_comment_thread.tsx
+  - app/src/components/actions/conversation/events/diff_file_view.tsx
   - app/src/components/actions/conversation/events/diff_line_mapping.ts
+  - app/src/components/actions/conversation/events/diff_view.grouped.test.tsx
+  - app/src/components/actions/conversation/events/diff_view.test.tsx
+  - app/src/components/actions/conversation/events/diff_view.tsx
   - app/src/components/card_view/card_commit_diff_panel.test.tsx
+  - app/src/components/shell/main_window.test.tsx
+  - app/src/data/electron_action_bridge.node.test.ts
   - app/src/data/electron_action_bridge.ts
+  - app/src/data/project_session.service.test.ts
+  - app/src/services/actions/electron_action_runner.node.test.ts
+  - app/src/services/data/diff_service.node.test.ts
+  - app/src/services/project/project_session_service.service.test.ts
+  - app/src/services/project/worktree_service.node.test.ts
+  - app/src/services/search/search_regexp_agent.node.test.ts
   - desktop/package-lock.json
   - desktop/package.json
   - desktop/src/git/diff_service.js
   - desktop/src/git/diff_service.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
 branch: j_73_replace_diff_viewer_and_add_inline_comments
 worktree: 1
 ---
