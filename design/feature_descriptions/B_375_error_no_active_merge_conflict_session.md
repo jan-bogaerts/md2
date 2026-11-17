@@ -13,8 +13,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 161833899
 sentryOrganization: elastetic
 after: f5778432-59ae-4f09-a254-7b450bf873a1
-branch: b_375_error_no_active_merge_conflict_session
-worktree: 2
 changedFiles:
   - app/src/services/project/merge_conflict_service.node.test.ts
   - app/src/services/project/merge_conflict_service.ts

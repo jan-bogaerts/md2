@@ -2082,6 +2082,31 @@
       "startedAt": "2026-11-17T14:10:30.428Z",
       "status": "completed",
       "rootConversationId": "agent-18b7b838-6942-4b56-96c3-c7c3463514a3"
+    },
+    {
+      "commits": [
+        {
+          "commit": "aea97b73bc5fa4ff1d21c1a54af3f69057e5fc20",
+          "committedAt": "2026-11-17T16:32:42+01:00",
+          "deletions": 26,
+          "filePaths": [
+            "app/src/services/project/merge_conflict_service.node.test.ts",
+            "app/src/services/project/merge_conflict_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "app/src/services/project/project_loading.ts"
+          ],
+          "filesChanged": 4,
+          "insertions": 96,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-17T16:32:42+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "61bfe480-a372-4927-84d6-a26973fc8c66",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
