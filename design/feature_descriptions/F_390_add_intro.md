@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__e43f6e59-8ffb-4668-8c07-49858b1bfeaa.json
 policy:
+after: f8b4d73f-61ad-4922-b790-d9bcb164616e
 ---
 
 When app first runs and there is no project yet to open, we now show the ´open project´ folder i believe.

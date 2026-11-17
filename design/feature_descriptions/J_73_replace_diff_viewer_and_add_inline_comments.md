@@ -3,7 +3,7 @@ author:
 id: J_73
 internalId: f5778432-59ae-4f09-a254-7b450bf873a1
 title: replace diff viewer and add inline comments
-status: design
+status: ready for implementation
 type: job
 owner:
 affects:
@@ -12,6 +12,7 @@ policy:
 changedFiles:
   - app/package-lock.json
   - app/package.json
+  - app/src/app.tsx
   - app/src/components/actions/conversation/events/diff_comment_thread.test.tsx
   - app/src/components/actions/conversation/events/diff_comment_thread.tsx
   - app/src/components/actions/conversation/events/diff_comment_service.node.test.ts
@@ -25,6 +26,8 @@ changedFiles:
   - desktop/package.json
   - desktop/src/git/diff_service.js
   - desktop/src/git/diff_service.test.mjs
+branch: j_73_replace_diff_viewer_and_add_inline_comments
+worktree: 1
 ---
 
 Replace `react-diff-viewer-continued` with `react-diff-view` for commit and worktree diffs. Preserve opening a changed line in the configured external editor and add session-scoped inline review comments through the new viewer's gutter events and widgets.
@@ -90,6 +93,8 @@ The service must:
 * clear all comment state when the active project session changes; and
 * replace comments for a worktree revision when a newly loaded worktree result has a different revision.
 
+Give the service a two-phase lifecycle. Its constructor creates no project-dependent state. Initialize it from the application bootstrap with access to the current `DataService` project snapshot and its `changed` event. Compare the canonical project reference fields, clear comment state only when the active project changes, and unsubscribe during application teardown. Do not use the repository root path as project identity.
+
 Do not create comment state during React rendering and do not add a hand-written listener registry, revision counter, or whole-view refresh event. `DiffCommentThread` subscribes at the individual target rendered by its widget so editing one thread does not rerender every file.
 
 ## Affected call sites
@@ -99,6 +104,7 @@ Do not create comment state during React rendering and do not add a hand-written
 * `diff_service.ts` continues adapting a `CommitReference` to the existing `generateDiff` bridge request and attaching the known repository root to the result.
 * `worktree_service.ts` continues selecting the assigned worktree and calling `generateWorktreeDiff`; it does not own comment state.
 * `remote_control_action_bridge.ts` continues forwarding `generateDiff` and `generateWorktreeDiff` without reshaping their results.
+* `app.tsx` initializes the comment service after the data service exists and provides the project-change subscription used to clear session comments.
 * Tests and mocks in project-session, action-runner, worktree, search, and shell modules that construct empty diff results receive the required `patch` and worktree `revision` fields. Their behavior otherwise stays unchanged.
 
 ## Comment interaction

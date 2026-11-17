@@ -3,7 +3,7 @@ author:
 id: B_374
 internalId: 1f4193b2-d04c-4ade-8628-de3072d3692c
 title: claude agent gives problems with waitingForInput
-status: design
+status: new
 owner: 
 affects:
 agents:
