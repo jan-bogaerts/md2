@@ -11727,3 +11727,17 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-17T14:17:40.476Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,10,0,claude-initial
 2026-11-17T14:23:26.966Z,token_usage,codex,,,,,51736,14615040,30010,11770,14708556,,,codex-initial
 2026-11-17T14:21:40.562Z,account_usage,claude,default,weekly,10080,2026-11-22T16:59:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T14:25:40.570Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T14:31:40.596Z,account_usage,claude,default,weekly,10080,2026-11-22T16:59:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T14:33:40.610Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T14:35:40.619Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,9,-1,claude-initial
+2026-11-17T14:37:40.632Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,10,1,claude-initial
+2026-11-17T14:39:40.645Z,account_usage,claude,default,weekly,10080,2026-11-22T16:59:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T14:45:40.654Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T14:57:40.714Z,account_usage,claude,default,weekly,10080,2026-11-22T16:59:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T14:59:40.729Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T15:05:40.760Z,account_usage,claude,default,weekly,10080,2026-11-22T16:59:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T15:07:40.765Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T15:23:40.911Z,account_usage,claude,default,weekly,10080,2026-11-22T16:59:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T15:27:40.985Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,10,0,claude-initial
+2026-11-17T15:29:40.990Z,account_usage,claude,default,weekly,10080,2026-11-22T16:59:00.000Z,,,,,,10,0,claude-initial
