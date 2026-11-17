@@ -10,6 +10,12 @@ agents:
   - design/activity/card__ba21cf2c-06f9-4210-aeb5-203d3d6c934d.json
 policy:
 changedFiles:
+  - app/src/components/actions/conversation/state/action_conversation_store.node.test.ts
+  - app/src/components/actions/conversation/state/action_conversation_store.ts
+  - app/src/components/actions/run/popup/action_prompt_menu.test.tsx
+  - app/src/components/actions/run/popup/action_prompt_menu.tsx
+  - desktop/src/actions/action/action_compact_queue.test.mjs
+  - desktop/src/actions/action/action_runner_service.js
   - desktop/src/actions/agent/agent_compact.test.mjs
   - desktop/src/actions/agent/agent_streaming_adapter.js
   - desktop/src/actions/agent/agent_streaming_event_handlers.js
