@@ -38,8 +38,6 @@ changedFiles:
   - desktop/src/git/diff_service.js
   - desktop/src/git/diff_service.test.mjs
   - desktop/src/shell/local_bridge_dispatch.test.mjs
-branch: j_73_replace_diff_viewer_and_add_inline_comments
-worktree: 1
 ---
 
 Replace `react-diff-viewer-continued` with `react-diff-view` for commit and worktree diffs. Preserve opening a changed line in the configured external editor and add session-scoped inline review comments through the new viewer's gutter events and widgets.
