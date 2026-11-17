@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 118157
+        "usedTokens": 119306
       },
       "entries": [
         {
@@ -608,6 +608,106 @@
           "role": "user",
           "sequence": 45,
           "timestamp": "2026-11-17T13:28:01.842Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-47565e97-a2de-49ac-a0d1-a37528ac7671-event-46",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_03a1f725edbc014d016afc5664d58487d2868b0586c89d0fce",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-17T13:28:04.577Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll update only B_374 to record that this is a known Claude Code stream-json issue, without adding a workaround or proposed solution.\n\n",
+          "id": "agent-turn-47565e97-a2de-49ac-a0d1-a37528ac7671-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 47,
+          "timestamp": "2026-11-17T13:28:05.335Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_374_claude_agent_gives_problems_with_waitingforinput.md'\"",
+          "content": "---\nauthor: \nid: B_374\ninternalId: 1f4193b2-d04c-4ade-8628-de3072d3692c\ntitle: claude agent gives problems with waitingForInput\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__1f4193b2-d04c-4ade-8628-de3072d3692c.json\npolicy:\n---\n\nI have several claude agents that printed a last message that is clearly a question (open question, so not structured, but just a final response containing a question sentence). Yet the system did not correctly detect that the agent is now waiting for a response, the UI (action popup) still indicates that the agent is running: so the button's border is spinning and we are still showing the 'stop' button.\n\nsomething is going wrong here.\r\n",
+          "durationMs": 91,
+          "exitCode": 0,
+          "id": "agent-turn-47565e97-a2de-49ac-a0d1-a37528ac7671-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/B_374_claude_agent_gives_problems_with_waitingforinput.md'\"",
+          "providerItemId": "exec-aeccad9f-db04-4c51-b886-a103ef4ca746",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-11-17T13:28:07.395Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-47565e97-a2de-49ac-a0d1-a37528ac7671-event-49",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_03a1f725edbc014d016afc566a976087d2a482e2f4011b43c2",
+          "sequence": 49,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-17T13:28:10.361Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_374_claude_agent_gives_problems_with_waitingforinput.md",
+          "deletions": 1,
+          "id": "agent-turn-47565e97-a2de-49ac-a0d1-a37528ac7671-event-50",
+          "insertions": 7,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-a0b8958a-8cfb-4b61-90f3-a98244c965cf",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-11-17T13:28:14.127Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-47565e97-a2de-49ac-a0d1-a37528ac7671-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_03a1f725edbc014d016afc5670eeec87d280e973fd3bca0630",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-17T13:28:16.754Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/B_374_claude_agent_gives_problems_with_waitingforinput.md'\"",
+          "content": "diff --git a/design/feature_descriptions/B_374_claude_agent_gives_problems_with_waitingforinput.md b/design/feature_descriptions/B_374_claude_agent_gives_problems_with_waitingforinput.md\nindex 3582c5c34..5fe207628 100644\n--- a/design/feature_descriptions/B_374_claude_agent_gives_problems_with_waitingforinput.md\n+++ b/design/feature_descriptions/B_374_claude_agent_gives_problems_with_waitingforinput.md\n@@ -13,4 +13,10 @@ policy:\n \n I have several claude agents that printed a last message that is clearly a question (open question, so not structured, but just a final response containing a question sentence). Yet the system did not correctly detect that the agent is now waiting for a response, the UI (action popup) still indicates that the agent is running: so the button's border is spinning and we are still showing the 'stop' button.\n \n-something is going wrong here.\n\\ No newline at end of file\n+something is going wrong here.\n+\n+## Investigation\n+\n+This is a known Claude Code issue. In stream-JSON mode, Claude can emit its final assistant message but omit the terminal `result` event and remain running. MD² currently depends on that event to change a streaming conversation from `running` to `waitingForInput`, so the UI continues to show the running state.\n+\n+Upstream report: https://github.com/anthropics/claude-code/issues/39700\n",
+          "durationMs": 46,
+          "exitCode": 0,
+          "id": "agent-turn-47565e97-a2de-49ac-a0d1-a37528ac7671-event-52",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/B_374_claude_agent_gives_problems_with_waitingforinput.md'\"",
+          "providerItemId": "exec-e3ea70f4-573a-4267-8f58-252fbf4287eb",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-11-17T13:28:19.171Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_374](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_374_claude_agent_gives_problems_with_waitingforinput.md) with the known Claude Code issue and upstream report. No solution was added.\n\n",
+          "id": "agent-turn-47565e97-a2de-49ac-a0d1-a37528ac7671-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 53,
+          "timestamp": "2026-11-17T13:28:21.688Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -618,12 +718,12 @@
           "agent": "codex",
           "conversationId": "01a1e999-aac4-7813-b0a2-8cac22457164",
           "createdAt": "2026-11-17T13:02:05.669Z",
-          "lastUsedAt": "2026-11-17T13:28:01.912Z",
-          "synchronizedThroughMessageId": "submission-4135c780-5bf4-4b0b-955c-e09247b1a4d4"
+          "lastUsedAt": "2026-11-17T13:28:21.688Z",
+          "synchronizedThroughMessageId": "agent-turn-47565e97-a2de-49ac-a0d1-a37528ac7671-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-11-17T13:02:04.256Z",
-      "status": "running",
+      "status": "waitingForInput",
       "taskList": {
         "tasks": [
           {
@@ -647,21 +747,21 @@
       "timer": {
         "breakdown": {
           "reasoningMs": 481,
-          "toolMs": 10485
+          "toolMs": 11132
         },
-        "elapsedMs": 192506,
-        "runningStartedAt": "2026-11-17T13:28:01.842Z"
+        "elapsedMs": 212352,
+        "runningStartedAt": null
       },
       "title": "investigate",
       "usage": {
-        "cachedInputTokens": 1364992,
-        "inputTokens": 116012,
-        "outputTokens": 3692,
-        "reasoningTokens": 1995,
-        "totalTokens": 1486691
+        "cachedInputTokens": 1838464,
+        "inputTokens": 117342,
+        "outputTokens": 4139,
+        "reasoningTokens": 2080,
+        "totalTokens": 1962025
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
