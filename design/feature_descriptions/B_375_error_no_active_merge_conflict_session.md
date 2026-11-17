@@ -3,7 +3,7 @@ author:
 id: B_375
 internalId: 61bfe480-a372-4927-84d6-a26973fc8c66
 title: Error: No active merge conflict session
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -15,6 +15,11 @@ sentryOrganization: elastetic
 after: f5778432-59ae-4f09-a254-7b450bf873a1
 branch: b_375_error_no_active_merge_conflict_session
 worktree: 2
+changedFiles:
+  - app/src/services/project/merge_conflict_service.node.test.ts
+  - app/src/services/project/merge_conflict_service.ts
+  - app/src/services/project/project_loading.test.ts
+  - app/src/services/project/project_loading.ts
 ---
 
 ## Current state
