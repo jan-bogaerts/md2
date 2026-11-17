@@ -137,7 +137,7 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
             };
             const accepted = await actionCompactService.request(request);
             if (mounted.current && accepted?.runId && conversationStore.getSnapshot().selectedConversation?.id === request.conversationId) {
-                await conversationStore.select(request.conversationId);
+                conversationStore.bindRun(accepted.runId, request.conversationId);
             }
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Compaction failed' });

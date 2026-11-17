@@ -202,14 +202,9 @@ describe('ActionPromptMenu', () => {
 
     it('binds resumed saved conversation for later input without clearing its draft', async () => {
         let emit!: (event: ActionRunEvent) => void;
-        const compact = vi.fn(async (request: ActionCompactRequest): Promise<ActionCompactState> => {
-            emit({
-                actionId: 'review', actionType: 'agent', context, phase: 'main', rootActionId: 'review', runId: 'resumed-run',
-                status: 'waitingForInput', type: 'update',
-                update: { conversation: conversation('resumed-conversation'), kind: 'agentStarted', provider: 'codex' },
-            });
-            return { ...request, runId: 'resumed-run', state: 'running' };
-        });
+        const compact = vi.fn(async (request: ActionCompactRequest): Promise<ActionCompactState> => (
+            { ...request, runId: 'resumed-run', state: 'queued' }
+        ));
         const bridge = {
             compactActionConversation: compact,
             onActionRun: vi.fn((listener: (event: ActionRunEvent) => void) => { emit = listener; return vi.fn(); }),
@@ -220,7 +215,14 @@ describe('ActionPromptMenu', () => {
         await user.click(screen.getByRole('button', { name: 'Prompt menu' }));
         await user.click(screen.getByRole('menuitem', { name: 'Compact' }));
         await waitFor(() => expect(conversationStore.bindingStore.getSnapshot()).toBe('resumed-run'));
+        expect(conversationStore.getSnapshot().selectedConversation).toBeNull();
         expect(promptDraft.getSnapshot()).toBe('Keep draft and ![attachment](asset.png)');
+        act(() => emit({
+            actionId: 'review', actionType: 'agent', context, phase: 'main', rootActionId: 'review', runId: 'resumed-run',
+            status: 'waitingForInput', type: 'update',
+            update: { conversation: conversation('resumed-conversation'), kind: 'agentStarted', provider: 'codex' },
+        }));
+        expect(actionRunRegistry.getRunStore('resumed-run')?.getSnapshot().conversation?.id).toBe('resumed-conversation');
     });
 
     it('offers Compact before Add file and supports keyboard navigation and Escape dismissal', async () => {

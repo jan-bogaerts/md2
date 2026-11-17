@@ -182,6 +182,23 @@ describe('compact scheduling', () => {
 });
 
 describe('compact captured targets', () => {
+    it('returns saved-session run identity before compact queue state is published', async () => {
+        const { runner } = runnerHarness();
+        runner.runs.clear();
+        const start = vi.spyOn(runner, 'start').mockImplementation(async (_request, options) => options.runId);
+
+        const accepted = await runner.compactConversation(request);
+
+        expect(accepted).toMatchObject({ ...request, runId: expect.any(String), state: 'queued' });
+        expect(start).toHaveBeenCalledWith(
+            expect.objectContaining({ runInput: expect.objectContaining({ conversationId: request.conversationId }) }),
+            expect.objectContaining({
+                compactTarget: expect.objectContaining({ runId: accepted.runId }),
+                runId: accepted.runId,
+            }),
+        );
+    });
+
     it.each(['delete', 'finish'])('cancels saved-session startup during action loading after target %s', async (operation) => {
         const { runner } = runnerHarness();
         runner.runs.clear();

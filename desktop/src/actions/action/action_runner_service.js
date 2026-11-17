@@ -592,11 +592,14 @@ class ActionRunnerService {
         const captured = { ...request, context: startRequest.context, state: 'queued' };
         if (liveRun) await liveRun.enqueueCompact(captured);
         else {
+            const runId = createRunId();
+            const capturedRun = { ...captured, runId };
             const startupRequest = {
                 actionId: request.actionId, context: startRequest.context,
                 runInput: { agent: provider, conversationId: conversation.id, continueFrom: request.reference },
             };
-            await this.start(startupRequest, { compactTarget: captured, compactGuard: guard });
+            await this.start(startupRequest, { compactTarget: capturedRun, compactGuard: guard, runId });
+            return this.compactRequests.get(request.requestId) ?? capturedRun;
         }
         return this.compactRequests.get(request.requestId) ?? captured;
     }

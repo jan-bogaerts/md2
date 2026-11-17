@@ -82,6 +82,23 @@ describe('ActionConversationStore', () => {
         expect(bindingStore.getSnapshot()).toBeNull();
     });
 
+    it('binds accepted provider work only when it targets selected conversation', async () => {
+        const persisted = conversation('conversation-1.json')
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([persisted])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(persisted)
+        const { store, bindingStore } = createConversationStore()
+        await store.load()
+        await store.select(persisted.id)
+
+        store.bindRun('other-run', 'other-conversation')
+        expect(bindingStore.getSnapshot()).toBeNull()
+        expect(store.getSnapshot().selectedConversation).toBe(persisted)
+
+        store.bindRun('compact-run', persisted.id)
+        expect(bindingStore.getSnapshot()).toBe('compact-run')
+        expect(store.getSnapshot().selectedConversation).toBeNull()
+    })
+
     it('resolves explicit history while retaining matching live snapshots', () => {
         const liveConversation = conversation('conversation-live.json')
         const persistedLiveConversation = { ...liveConversation, path: 'moved-conversation-live.json', title: 'Persisted live' }
