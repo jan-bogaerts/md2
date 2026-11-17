@@ -485,7 +485,8 @@ describe('WorktreeService', () => {
         const service = new WorktreeService()
         const assignedCard = card('design/F-1.md', 'Assigned', 1)
         initService(service, storage, snapshot([assignedCard]))
-        const generateWorktreeDiff = vi.fn(async () => ({ files: [], repositoryRoot: first.path }))
+        const result = { files: [], patch: '', repositoryRoot: first.path, revision: 'worktree-1' }
+        const generateWorktreeDiff = vi.fn(async () => result)
         setActionBridgeOverride({ generateWorktreeDiff } as unknown as ElectronActionBridge)
 
         emit(project, [first])
@@ -494,7 +495,7 @@ describe('WorktreeService', () => {
 
         emit(project, [{ ...first, status: { ...first.status, dirty: true } }])
         expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(true)
-        await expect(service.generateCardWorktreeDiff(assignedCard.path)).resolves.toEqual({ files: [], repositoryRoot: first.path })
+        await expect(service.generateCardWorktreeDiff(assignedCard.path)).resolves.toEqual(result)
         expect(generateWorktreeDiff).toHaveBeenCalledWith({ worktree: 1, worktreeBranch: first.branch })
 
         emit(project, [{ ...first, status: { ...first.status, baseAhead: 1, dirty: false } }])

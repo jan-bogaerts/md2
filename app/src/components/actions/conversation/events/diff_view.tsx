@@ -1,143 +1,121 @@
-import { Box, Typography } from '@mui/material'
-import { useEffect, useRef, useState, type Ref } from 'react'
-import DiffViewer from 'react-diff-viewer-continued'
-import type { DiffFile, DiffResult, OpenInEditorRequest, WorktreeDiffResult } from '../../../../data/electron_action_bridge'
-import { dialogService } from '../../../../services/dialog_service'
+import { Box, Typography } from '@mui/material';
+import { useEffect, useRef, useState } from 'react';
+import { parseDiff, type FileData } from 'react-diff-view';
+import 'react-diff-view/style/index.css';
+import type { DiffResult, OpenInEditorRequest, WorktreeDiffResult } from '../../../../data/electron_action_bridge';
+import { dialogService } from '../../../../services/dialog_service';
 import {
     generateDiff as defaultGenerateDiff,
     openDiffLine as defaultOpenDiffLine,
     type DiffCommitReference,
-} from '../../../../services/data/diff_service'
-import { resolveClickedLine } from './diff_line_mapping'
+} from '../../../../services/data/diff_service';
+import { diffCommentService } from './diff_comment_service';
+import { DiffFileView } from './diff_file_view';
 
-type GenerateDiff = (commitReference: DiffCommitReference) => Promise<DiffResult>
-type OpenDiffLine = (request: OpenInEditorRequest) => Promise<void>
+type GenerateDiff = (commitReference: DiffCommitReference) => Promise<DiffResult>;
+type OpenDiffLine = (request: OpenInEditorRequest) => Promise<void>;
 
 interface DiffViewProps {
-    commitReference?: DiffCommitReference
-    generateDiff?: GenerateDiff
-    initialPath?: string
-    label?: string
-    openDiffLine?: OpenDiffLine
-    result?: WorktreeDiffResult
+    commitReference?: DiffCommitReference;
+    generateDiff?: GenerateDiff;
+    initialPath?: string;
+    label?: string;
+    openDiffLine?: OpenDiffLine;
+    result?: WorktreeDiffResult;
 }
 
-interface DiffFileViewProps {
-    containerRef?: Ref<HTMLDivElement>
-    file: DiffFile
-    onOpenLine: (request: OpenInEditorRequest) => void
+interface DiffLoadState {
+    files: FileData[] | null;
+    key: string;
+    result: DiffResult | WorktreeDiffResult | null;
+    unavailable: boolean;
 }
 
-function DiffFileView(props: DiffFileViewProps) {
-    const { containerRef, file, onOpenLine } = props
-
-    const handleLineNumberClick = (lineId: string) => {
-        const request = resolveClickedLine(file, lineId)
-        if (request) onOpenLine(request)
-    }
-
-    return (
-        <Box ref={containerRef} sx={{ mt: 1 }}>
-            <Typography sx={{ fontFamily: 'monospace' }} variant="caption">
-                {file.path}
-            </Typography>
-            <DiffViewer
-                disableWorker
-                leftTitle={file.oldPath ?? file.path}
-                newValue={file.newValue}
-                oldValue={file.oldValue}
-                onLineNumberClick={handleLineNumberClick}
-                splitView
-            />
-        </Box>
-    )
+function parsedFileMatchesPath(file: FileData, filePath: string) {
+    return file.oldPath === filePath || file.newPath === filePath;
 }
 
-/**
- * Diff view for an action log entry that carries commit metadata. Loads normalized diff data
- * through configured Electron commands and opens external editor when a changed line is clicked.
- */
+function parsedFilesWithNormalizedTypes(result: DiffResult | WorktreeDiffResult) {
+    return parseDiff(result.patch).map((file, index) => {
+        const changeType = result.files[index]?.changeType;
+        if (!changeType) return file;
+        const type = changeType === 'added' ? 'add' : changeType === 'deleted' ? 'delete' : changeType === 'renamed' ? 'rename' : 'modify';
+
+        return { ...file, type };
+    });
+}
+
+/** Loads and parses a unified patch, then composes independently rendered file diffs. */
 export function DiffView(props: DiffViewProps) {
-    const { commitReference, initialPath, label = 'Commit diff', result: providedResult } = props
-    const generateDiff = props.generateDiff ?? defaultGenerateDiff
-    const openDiffLine = props.openDiffLine ?? defaultOpenDiffLine
-    const [result, setResult] = useState<DiffResult | WorktreeDiffResult | null>(providedResult ?? null)
-    const [isUnavailable, setIsUnavailable] = useState(false)
-    const initialFileRef = useRef<HTMLDivElement | null>(null)
+    const { commitReference, initialPath, label = 'Commit diff', result: providedResult } = props;
+    const generateDiff = props.generateDiff ?? defaultGenerateDiff;
+    const openDiffLine = props.openDiffLine ?? defaultOpenDiffLine;
+    const requestKey = providedResult ? `worktree:${providedResult.revision}` : `commit:${commitReference?.commit ?? 'missing'}`;
+    const [loadState, setLoadState] = useState<DiffLoadState>({ files: null, key: requestKey, result: null, unavailable: false });
+    const initialFileRef = useRef<HTMLDivElement | null>(null);
+    const currentLoadState = loadState.key === requestKey ? loadState : null;
+    const result = currentLoadState?.result ?? null;
+    const parsedFiles = currentLoadState?.files ?? null;
+    const isUnavailable = currentLoadState?.unavailable ?? false;
 
     useEffect(() => {
-        if (result && initialPath) initialFileRef.current?.scrollIntoView({ block: 'start' })
-    }, [initialPath, result])
-
-    useEffect(() => {
-        let isActive = true
+        let isActive = true;
 
         async function loadDiff() {
-            if (providedResult) {
-                setIsUnavailable(false)
-                setResult(providedResult)
-                return
-            }
-            if (!commitReference) {
-                setIsUnavailable(true)
-                dialogService.error(new Error('Missing commit diff reference'), { fallbackMessage: 'Could not load diff' })
-                return
-            }
-            setIsUnavailable(false)
-            setResult(null)
             try {
-                const diff = await generateDiff(commitReference)
-                if (isActive) setResult(diff)
-            } catch (loadError) {
-                if (isActive) {
-                    setIsUnavailable(true)
-                    dialogService.error(loadError, { fallbackMessage: 'Could not load diff' })
+                await Promise.resolve();
+                if (!providedResult && !commitReference) throw new Error('Missing commit diff reference');
+                const diff = providedResult ?? await generateDiff(commitReference!);
+                const files = parsedFilesWithNormalizedTypes(diff);
+                if (files.length === 0 || files.some((file) => !file.oldPath && !file.newPath)) {
+                    throw new Error('Diff patch contains no parseable files');
                 }
+                if (!isActive) return;
+                if ('revision' in diff) diffCommentService.activateWorktreeRevision(diff.revision);
+                setLoadState({ files, key: requestKey, result: diff, unavailable: false });
+            } catch (loadError) {
+                if (!isActive) return;
+                setLoadState({ files: null, key: requestKey, result: null, unavailable: true });
+                dialogService.error(loadError, { fallbackMessage: 'Could not load diff' });
             }
         }
 
-        void loadDiff()
+        void loadDiff();
 
         return () => {
-            isActive = false
-        }
-    }, [commitReference, generateDiff, providedResult])
+            isActive = false;
+        };
+    }, [commitReference, generateDiff, providedResult, requestKey]);
+
+    useEffect(() => {
+        if (parsedFiles && initialPath) initialFileRef.current?.scrollIntoView({ block: 'start' });
+    }, [initialPath, parsedFiles]);
 
     const handleOpenLine = async (request: OpenInEditorRequest) => {
         try {
-            if (!result?.repositoryRoot) throw new Error('Diff result is missing execution repository root')
-            await openDiffLine({ ...request, repositoryRoot: result.repositoryRoot })
+            if (!result?.repositoryRoot) throw new Error('Diff result is missing execution repository root');
+            await openDiffLine({ ...request, repositoryRoot: result.repositoryRoot });
         } catch (openError) {
-            dialogService.error(openError, { fallbackMessage: 'Could not open local file' })
+            dialogService.error(openError, { fallbackMessage: 'Could not open local file' });
         }
-    }
+    };
 
-    if (isUnavailable) {
-        return (
-            <Typography color="text.secondary" variant="caption">
-                Diff unavailable.
-            </Typography>
-        )
-    }
+    if (isUnavailable) return <Typography color="text.secondary" variant="caption">Diff unavailable.</Typography>;
+    if (!result || !parsedFiles) return <Typography color="text.secondary" variant="caption">Loading diff…</Typography>;
 
-    if (!result) {
-        return (
-            <Typography color="text.secondary" variant="caption">
-                Loading diff…
-            </Typography>
-        )
-    }
+    const revision = 'commit' in result ? result.commit : result.revision;
 
     return (
-        <Box role="region" aria-label={label}>
-            {result.files.map((file) => (
+        <Box aria-label={label} role="region">
+            {parsedFiles.map((file, index) => (
                 <DiffFileView
-                    containerRef={file.path === initialPath ? initialFileRef : undefined}
+                    containerRef={initialPath && parsedFileMatchesPath(file, initialPath) ? initialFileRef : undefined}
                     file={file}
-                    key={file.path}
+                    key={`${file.oldPath}:${file.newPath}:${index}`}
                     onOpenLine={handleOpenLine}
+                    revision={revision}
                 />
             ))}
         </Box>
-    )
+    );
 }

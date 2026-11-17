@@ -133,15 +133,10 @@ export interface DiffRequest {
     workingFolder: string
 }
 
-/**
- * One changed file in a diff. `oldValue`/`newValue` are the reconstructed sides fed to the viewer;
- * `oldLineNumbers`/`newLineNumbers` map each rendered side line back to its real file line.
- */
+/** One changed file. Reconstructed values remain available for card-body Markdown diffs. */
 export interface DiffFile {
     changeType?: 'added' | 'deleted' | 'modified' | 'renamed'
-    newLineNumbers: number[]
     newValue: string
-    oldLineNumbers: number[]
     oldPath?: string
     oldValue: string
     path: string
@@ -150,6 +145,7 @@ export interface DiffFile {
 export interface DiffResult {
     commit: string
     files: DiffFile[]
+    patch: string
     repositoryRoot?: string
 }
 
@@ -160,7 +156,9 @@ export interface WorktreeDiffRequest {
 
 export interface WorktreeDiffResult {
     files: DiffFile[]
+    patch: string
     repositoryRoot: string
+    revision: string
 }
 
 /** Request to open a local file in configured external editor. */

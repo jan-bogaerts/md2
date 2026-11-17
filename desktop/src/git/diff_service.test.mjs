@@ -44,7 +44,7 @@ describe('diff-service', () => {
         ]);
     });
 
-    it('parses unified diff into per-file sides with real line numbers', () => {
+    it('parses unified diff into normalized per-file sides', () => {
         const files = parseUnifiedDiff(SAMPLE_DIFF);
 
         expect(files).toHaveLength(1);
@@ -52,8 +52,7 @@ describe('diff-service', () => {
         expect(file.path).toBe('design/F-010.md');
         expect(file.oldValue).toBe('unchanged line\nold line\ntrailing line');
         expect(file.newValue).toBe('unchanged line\nnew line one\nnew line two\ntrailing line');
-        expect(file.oldLineNumbers).toEqual([10, 11, 12]);
-        expect(file.newLineNumbers).toEqual([10, 11, 12, 13]);
+        expect(file.oldPath).toBe('design/F-010.md');
     });
 
     it('rejects empty diff output', () => {
@@ -102,6 +101,19 @@ describe('diff-service', () => {
         expect(runner).toHaveBeenCalledWith('git show abc1234', expect.objectContaining({ cwd: 'C:/repo' }));
         expect(result.commit).toBe('abc1234');
         expect(result.files).toHaveLength(1);
+        expect(result.patch).toBe(SAMPLE_DIFF);
+    });
+
+    it('preserves unchanged gaps by returning the exact multi-hunk command patch', async () => {
+        const multiHunkPatch = `${SAMPLE_DIFF}\n@@ -40,1 +41,1 @@ later\n-old later\n+new later`;
+        const result = await generateDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: '', template: 'git show {{commit}}' },
+            vi.fn(async () => ({ stdout: multiHunkPatch })),
+        );
+
+        expect(result.patch).toBe(multiHunkPatch);
+        expect(result.files[0].oldValue).toBe('unchanged line\nold line\ntrailing line\nold later');
     });
 
     it('resolves custom releases folder from the opened repository for diff commands', async () => {
@@ -213,6 +225,76 @@ describe('diff-service', () => {
             { branch: 'main', commit: '', filePath: '', projectFolder: '', template: 'git show {{commit}}' },
             vi.fn(),
         )).rejects.toThrow('Missing diff commit hash');
+    });
+
+    it('generates bounded added, deleted, and renamed worktree patches with no-newline markers', async () => {
+        const service = {
+            readDiffContext: vi.fn(async () => ({
+                baseCommit: 'base-1',
+                changes: 'A\0added.txt\0D\0deleted.txt\0R100\0old.txt\0new.txt\0',
+                path: 'C:/worktree',
+                untracked: '',
+            })),
+        };
+        const oldValues = new Map([
+            ['deleted.txt', 'deleted without newline'],
+            ['old.txt', 'renamed content\n'],
+        ]);
+        const newValues = new Map([
+            ['added.txt', 'added without newline'],
+            ['new.txt', 'renamed content\n'],
+        ]);
+        const result = await generateWorktreeDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            { worktree: 1, worktreeBranch: 'feature' },
+            service,
+            {
+                readFile: vi.fn(async (filePath) => newValues.get(path.basename(filePath))),
+                readRevisionFile: vi.fn(async (_root, _revision, filePath) => oldValues.get(filePath)),
+            },
+        );
+
+        expect(result.revision).toEqual(expect.any(String));
+        expect(result.patch).toContain('diff --git a/added.txt b/added.txt');
+        expect(result.patch).toContain('--- /dev/null');
+        expect(result.patch).toContain('+++ b/added.txt');
+        expect(result.patch).toContain('--- a/deleted.txt');
+        expect(result.patch).toContain('+++ /dev/null');
+        expect(result.patch).toContain('diff --git a/old.txt b/new.txt');
+        expect(result.patch).toContain('rename from old.txt\nrename to new.txt');
+        expect(result.patch).toContain('\\ No newline at end of file');
+    });
+
+    it('fails clearly when worktree patch generation exceeds its bound', async () => {
+        const createPatch = vi.fn(() => undefined);
+        const service = {
+            readDiffContext: vi.fn(async () => ({
+                baseCommit: 'base-1',
+                changes: 'M\0large.txt\0',
+                path: 'C:/worktree',
+                untracked: '',
+            })),
+        };
+
+        await expect(generateWorktreeDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            { worktree: 1, worktreeBranch: 'feature' },
+            service,
+            {
+                createPatch,
+                readFile: vi.fn(async () => 'new'),
+                readRevisionFile: vi.fn(async () => 'old'),
+            },
+        )).rejects.toThrow('Worktree patch generation exceeded complexity bound: large.txt');
+        expect(createPatch).toHaveBeenCalledWith(
+            'a/large.txt',
+            'b/large.txt',
+            'old',
+            'new',
+            undefined,
+            undefined,
+            expect.objectContaining({ maxEditLength: expect.any(Number), timeout: expect.any(Number) }),
+        );
     });
 
     it('reads complete worktree contribution without changing HEAD, index, or files', async () => {

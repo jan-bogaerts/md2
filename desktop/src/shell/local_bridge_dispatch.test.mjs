@@ -439,7 +439,7 @@ describe('createLocalBridgeDispatch', () => {
     it('generates worktree diff only through current project and WorktreeService', async () => {
         const { diffService, dispatch, localGitService, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
-        const result = { files: [], repositoryRoot: 'C:/worktree' };
+        const result = { files: [], patch: '', repositoryRoot: 'C:/worktree', revision: 'worktree-1' };
         diffService.generateWorktreeDiff.mockResolvedValue(result);
         await dispatch.dataBridge.loadProject(project, 'design');
 

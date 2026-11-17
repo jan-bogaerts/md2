@@ -16,6 +16,8 @@ import type { ApplicationStartupService } from './services/application_startup_s
 import { SentryImportConfirmationDialog } from './components/sentry_import_confirmation_dialog'
 import { ActionVersionDialog } from './components/actions/run/action_version_dialog'
 import { updateService } from './services/update_service'
+import { dataService } from './services/data/data_service'
+import { diffCommentService } from './components/actions/conversation/events/diff_comment_service'
 
 interface AppProps {
     startupService?: ApplicationStartupService
@@ -30,6 +32,12 @@ export function App({ startupService }: AppProps = {}) {
         void updateService.start()
 
         return () => updateService.stop()
+    }, [])
+
+    useEffect(() => {
+        diffCommentService.init(dataService)
+
+        return () => diffCommentService.dispose()
     }, [])
 
     useEffect(() => {

@@ -27,7 +27,7 @@ describe('generateDiff', () => {
     beforeEach(() => generateDiffBridge.mockReset())
 
     it('requests diff using selected commit reference metadata', async () => {
-        generateDiffBridge.mockResolvedValue({ commit: commitReference.commit, files: [] })
+        generateDiffBridge.mockResolvedValue({ commit: commitReference.commit, files: [], patch: '' })
 
         await generateDiff(commitReference)
 

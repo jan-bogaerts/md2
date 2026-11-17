@@ -8,8 +8,8 @@ import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY } from '.
 function createActionBridge(): ElectronActionBridge {
     return {
         cancelActionRun: vi.fn(async () => {}),
-        generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [] })),
-        generateWorktreeDiff: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree' })),
+        generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [], patch: '' })),
+        generateWorktreeDiff: vi.fn(async () => ({ files: [], patch: '', repositoryRoot: 'C:/worktree', revision: 'worktree-1' })),
         loadActionRunHistory: vi.fn(async () => []),
         onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(),

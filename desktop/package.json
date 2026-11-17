@@ -36,6 +36,7 @@
     "@sentry/electron": "^7.15.0",
     "@xterm/headless": "^6.0.0",
     "cross-spawn": "^7.0.6",
+    "diff": "^8.0.4",
     "electron-store": "^8.2.0",
     "electron-window-state": "^5.0.3",
     "node-pty": "^1.1.0",

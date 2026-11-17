@@ -142,23 +142,21 @@ describe('CardCommitDiffPanel', () => {
             files: [
                 {
                     changeType: 'modified',
-                    newLineNumbers: [1, 2, 3, 4],
                     newValue: '---\ntitle: New\n---\nNew body',
-                    oldLineNumbers: [1, 2, 3, 4],
                     oldValue: '---\ntitle: Old\n---\nOld body',
                     path: cardPath,
                 },
                 {
                     changeType: 'renamed',
-                    newLineNumbers: [1],
                     newValue: 'content',
-                    oldLineNumbers: [1],
                     oldPath: 'app/old.ts',
                     oldValue: 'content',
                     path: 'app/new.ts',
                 },
             ],
+            patch: 'diff --git a/app/old.ts b/app/new.ts',
             repositoryRoot: 'C:/worktree',
+            revision: 'worktree-1',
         })
 
         renderPanel({ kind: 'worktree' })

@@ -1,7 +1,9 @@
 const { exec, execFile, spawn } = require('node:child_process');
+const crypto = require('node:crypto');
 const { readFile, stat } = require('node:fs/promises');
 const path = require('node:path');
 const { promisify } = require('node:util');
+const { createTwoFilesPatch } = require('diff');
 
 const { requireRootPath } = require('./git_commands');
 const {
@@ -20,6 +22,8 @@ const OLD_PATH_HEADER = '--- ';
 const NEW_PATH_HEADER = '+++ ';
 const FILE_URL_PATTERN = /^file:\/+/iu;
 const NAME_STATUS_RENAME_PATTERN = /^[RC]\d+$/u;
+const WORKTREE_PATCH_MAX_EDIT_LENGTH = 100_000;
+const WORKTREE_PATCH_TIMEOUT_MS = 250;
 
 function resolveProjectFolder(rootPath, projectFolder) {
     if (typeof projectFolder !== 'string') return null;
@@ -49,14 +53,14 @@ function startDiffFile(headerLine) {
     const parts = headerLine.slice(DIFF_FILE_HEADER.length).trim().split(' ');
     const rawPath = parts[parts.length - 1];
 
-    return { newLineNumbers: [], newValue: [], oldLineNumbers: [], oldValue: [], path: stripPathPrefix(rawPath) };
+    return { changeType: 'modified', newValue: [], oldValue: [], path: stripPathPrefix(rawPath) };
 }
 
 function finalizeDiffFile(file) {
     return {
-        newLineNumbers: file.newLineNumbers,
+        changeType: file.changeType,
         newValue: file.newValue.join('\n'),
-        oldLineNumbers: file.oldLineNumbers,
+        oldPath: file.oldPath,
         oldValue: file.oldValue.join('\n'),
         path: file.path,
     };
@@ -68,8 +72,6 @@ function parseUnifiedDiff(text) {
 
     const files = [];
     let current = null;
-    let oldLine = 0;
-    let newLine = 0;
 
     for (const line of text.split(/\r?\n/)) {
         if (line.startsWith(DIFF_FILE_HEADER)) {
@@ -79,30 +81,44 @@ function parseUnifiedDiff(text) {
         }
         if (!current) continue;
 
-        if (line.startsWith(OLD_PATH_HEADER)) continue;
+        if (line.startsWith('new file mode ')) {
+            current.changeType = 'added';
+            continue;
+        }
+        if (line.startsWith('deleted file mode ')) {
+            current.changeType = 'deleted';
+            continue;
+        }
+        if (line.startsWith('rename from ')) {
+            current.changeType = 'renamed';
+            current.oldPath = line.slice('rename from '.length).trim();
+            continue;
+        }
+        if (line.startsWith('rename to ')) {
+            current.path = line.slice('rename to '.length).trim();
+            continue;
+        }
+        if (line.startsWith(OLD_PATH_HEADER)) {
+            const oldPath = stripPathPrefix(line.slice(OLD_PATH_HEADER.length).trim());
+            if (oldPath !== '/dev/null') current.oldPath = oldPath;
+            continue;
+        }
         if (line.startsWith(NEW_PATH_HEADER)) {
-            current.path = stripPathPrefix(line.slice(NEW_PATH_HEADER.length).trim());
+            const newPath = stripPathPrefix(line.slice(NEW_PATH_HEADER.length).trim());
+            if (newPath !== '/dev/null') current.path = newPath;
             continue;
         }
 
         const hunk = HUNK_HEADER_PATTERN.exec(line);
-        if (hunk) {
-            oldLine = Number(hunk[1]);
-            newLine = Number(hunk[2]);
-            continue;
-        }
+        if (hunk) continue;
 
         if (line.startsWith(' ')) {
             current.oldValue.push(line.slice(1));
-            current.oldLineNumbers.push(oldLine++);
             current.newValue.push(line.slice(1));
-            current.newLineNumbers.push(newLine++);
         } else if (line.startsWith('-')) {
             current.oldValue.push(line.slice(1));
-            current.oldLineNumbers.push(oldLine++);
         } else if (line.startsWith('+')) {
             current.newValue.push(line.slice(1));
-            current.newLineNumbers.push(newLine++);
         }
     }
 
@@ -143,7 +159,7 @@ async function generateDiff(project, request, runner = execAsync) {
         throw new Error(`Diff command failed: ${detail ?? 'unknown error'}`);
     }
 
-    return { commit: request.commit, files: parseUnifiedDiff(stdout) };
+    return { commit: request.commit, files: parseUnifiedDiff(stdout), patch: stdout };
 }
 
 function parseNullSeparatedValues(output) {
@@ -176,22 +192,30 @@ function parseNameStatus(output) {
     return changes;
 }
 
-function lineNumbers(value) {
-    if (value.length === 0) return [];
-
-    return value.split(/\r?\n/u).map((_line, index) => index + 1);
-}
-
 function normalizeWorktreeFile(change, oldValue, newValue) {
     return {
         changeType: change.changeType,
-        newLineNumbers: lineNumbers(newValue),
         newValue,
-        oldLineNumbers: lineNumbers(oldValue),
         oldPath: change.oldPath,
         oldValue,
         path: change.path,
     };
+}
+
+function generateWorktreeFilePatch(file, createPatch) {
+    const oldPath = file.oldPath ?? file.path;
+    const oldHeaderPath = file.changeType === 'added' ? '/dev/null' : `a/${oldPath}`;
+    const newHeaderPath = file.changeType === 'deleted' ? '/dev/null' : `b/${file.path}`;
+    const patch = createPatch(oldHeaderPath, newHeaderPath, file.oldValue, file.newValue, undefined, undefined, {
+        maxEditLength: WORKTREE_PATCH_MAX_EDIT_LENGTH,
+        timeout: WORKTREE_PATCH_TIMEOUT_MS,
+    });
+    if (typeof patch !== 'string') throw new Error(`Worktree patch generation exceeded complexity bound: ${file.path}`);
+    const renameMetadata = file.changeType === 'renamed'
+        ? `rename from ${oldPath}\nrename to ${file.path}\n`
+        : '';
+
+    return `diff --git a/${oldPath} b/${file.path}\n${renameMetadata}${patch}`;
 }
 
 async function readWorktreeFile(worktreePath, filePath, readFileValue) {
@@ -216,6 +240,7 @@ async function generateWorktreeDiff(project, request, worktreeService, dependenc
     if (!request || !Number.isInteger(request.worktree) || request.worktree <= 0) throw new Error('Missing worktree diff index');
     if (!worktreeService?.readDiffContext) throw new Error('Worktree diff service is unavailable');
     const readFileValue = dependencies.readFile ?? readFile;
+    const createPatch = dependencies.createPatch ?? createTwoFilesPatch;
     const readRevisionFileValue = dependencies.readRevisionFile
         ?? ((worktreePath, revision, filePath) => readRevisionFile(worktreePath, revision, filePath, execFileAsync));
 
@@ -239,7 +264,9 @@ async function generateWorktreeDiff(project, request, worktreeService, dependenc
         return normalizeWorktreeFile(change, oldValue, newValue);
     }));
 
-    return { files, repositoryRoot: context.path };
+    const patch = files.map((file) => generateWorktreeFilePatch(file, createPatch)).join('');
+
+    return { files, patch, repositoryRoot: context.path, revision: crypto.randomUUID() };
 }
 
 function pathKey(filePath) {
