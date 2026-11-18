@@ -305,7 +305,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 23,
-          "timestamp": "2026-11-18T10:04:13.615Z"
+          "timestamp": "2026-11-18T12:45:19.314Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -358,6 +358,32 @@
     "cardInternalId": "10a9acbd-97f0-4cfe-a9f2-85cd354f65b8",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-11-18T12:45:19.324Z",
+      "conversationIds": [
+        "agent-9241584d-27dc-4e0a-b932-2cdae704aee5"
+      ],
+      "details": {
+        "accountId": "claude-initial",
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-fde9ebdb-b85f-40be-81bd-6d844a8420fa",
+      "origin": {
+        "cardInternalId": "10a9acbd-97f0-4cfe-a9f2-85cd354f65b8",
+        "kind": "card"
+      },
+      "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
+      "rootActionLabel": "investigate",
+      "rootConversationId": "agent-9241584d-27dc-4e0a-b932-2cdae704aee5",
+      "startedAt": "2026-11-18T10:02:57.032Z",
+      "status": "cancelled"
+    }
+  ],
   "version": 5
 }
