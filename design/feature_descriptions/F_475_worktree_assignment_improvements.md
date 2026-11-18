@@ -9,4 +9,6 @@ affects:
 agents:
 policy:
 ---
-This is the performance trace of the desktop app:&#x20;
+This is the performance trace of the desktop app: [CPU-assignworktree.cpuprofile](file:///C:/Users/janbo/Documents/dev/CPU-assignworktree.cpuprofile)
+
+this is the performance trace of the renderer:&#x20;
