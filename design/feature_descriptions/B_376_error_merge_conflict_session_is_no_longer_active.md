@@ -12,7 +12,6 @@ sentryBaseUrl: https://sentry.io
 sentryIssueId: 161833901
 sentryOrganization: elastetic
 ---
-
 ## Sentry issue
 
 **Title:** Error: Merge conflict session is no longer active
@@ -37,9 +36,11 @@ sentryOrganization: elastetic
 
 ### Application stack frames
 
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:2611:15279` — async v
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:507:1361` — async EventTarget.abort
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:516:41010` — async Cbe.abortMergeConflict
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:146:2554` — kre
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:146:2422` — nh
-- `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:146:2274` — Dre
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:2611:15279` — async v
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:507:1361` — async EventTarget.abort
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:516:41010` — async Cbe.abortMergeConflict
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:146:2554` — kre
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:146:2422` — nh
+* `/C:/Users/janbo/AppData/Local/Programs/desktop/resources/app.asar/desktop/renderer/assets/index-CL6H7ZGC.js:146:2274` — Dre
+
+I think we got this message after trying to resolve a merge conflict had given an error and the application was restarted.
