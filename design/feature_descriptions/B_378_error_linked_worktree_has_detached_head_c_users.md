@@ -3,7 +3,7 @@ author:
 id: B_378
 internalId: 08b55903-731a-4a0d-be87-6818029c82b2
 title: Error: Linked worktree has detached HEAD: C:\Users
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -14,6 +14,14 @@ sentryIssueId: 161607340
 sentryOrganization: elastetic
 branch: b_378_error_linked_worktree_has_detached_head_c_users
 worktree: 1
+changedFiles:
+  - app/src/components/worktree_selector.test.tsx
+  - app/src/components/worktree_selector.tsx
+  - app/src/data/bridge_error_rehydration.node.test.ts
+  - desktop/src/git/worktree_service.js
+  - desktop/src/git/worktree_service.test.mjs
+  - shared/worktree_errors.d.mts
+  - shared/worktree_errors.mjs
 ---
 
 ## Current state
