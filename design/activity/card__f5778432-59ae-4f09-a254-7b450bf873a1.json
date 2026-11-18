@@ -5,10 +5,10 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "f5778432-59ae-4f09-a254-7b450bf873a1",
       "cardPath": "design/feature_descriptions/J_73_replace_diff_viewer_and_add_inline_comments.md",
-      "completedAt": "2026-11-17T16:00:34.765Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 29516
+        "usedTokens": 47692
       },
       "entries": [
         {
@@ -3928,6 +3928,139 @@
           "role": "assistant",
           "sequence": 290,
           "timestamp": "2026-11-17T16:00:34.765Z"
+        },
+        {
+          "content": "we need to give the user the option to switch between unified and split view",
+          "id": "submission-3dfaa198-5752-487f-a38f-f7a8ea32dfd4",
+          "kind": "message",
+          "role": "user",
+          "sequence": 291,
+          "timestamp": "2026-11-18T09:56:34.419Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-39ab3764-83e0-4cb1-bd31-45f341227f6b-event-292",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_013d0844d5ec595c016afd7658e4b887d2bfe671ec107efc14",
+          "sequence": 292,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-18T09:56:40.405Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll inspect the current diff component, service state, and tests first. Then I’ll add the smallest service-owned view-mode setting, UI switch, and focused tests.\n\n",
+          "id": "agent-turn-39ab3764-83e0-4cb1-bd31-45f341227f6b-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 293,
+          "timestamp": "2026-11-18T09:56:41.287Z"
+        },
+        {
+          "content": "how can we best do this",
+          "id": "submission-dd2e0769-ad29-4781-839a-b385c718248e",
+          "kind": "message",
+          "role": "user",
+          "sequence": 294,
+          "timestamp": "2026-11-18T09:56:40.739Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"DiffFileView|diff_file_view|viewType|split|unified|Diff\" src/components/actions/conversation/events src -g \"*.tsx\" -g \"*.ts\"'",
+          "content": "src\\components\\config\\agent_profiles_editor.tsx:68:    return value.split(COMMA_SEPARATOR).map((model) => model.trim()).filter((model) => model.length > 0)\nsrc/components/actions/conversation/events\\event_display.ts:28:    return value?.trim() ? value.split(/\\r?\\n/u) : []\nsrc/components/actions/conversation/events\\diff_view.tsx:3:import { parseDiff, type FileData } from 'react-diff-view';\nsrc/components/actions/conversation/events\\diff_view.tsx:5:import type { DiffResult, OpenInEditorRequest, WorktreeDiffResult } from '../../../../data/electron_action_bridge';\nsrc/components/actions/conversation/events\\diff_view.tsx:8:    generateDiff as defaultGenerateDiff,\nsrc/components/actions/conversation/events\\diff_view.tsx:9:    openDiffLine as defaultOpenDiffLine,\nsrc/components/actions/conversation/events\\diff_view.tsx:10:    type DiffCommitReference,\nsrc/components/actions/conversation/events\\diff_view.tsx:13:import { DiffFileView } from './diff_file_view';\nsrc/components/actions/conversation/events\\diff_view.tsx:15:type GenerateDiff = (commitReference: DiffCommitReference) => Promise<DiffResult>;\nsrc/components/actions/conversation/events\\diff_view.tsx:16:type OpenDiffLine = (request: OpenInEditorRequest) => Promise<void>;\nsrc/components/actions/conversation/events\\diff_view.tsx:18:interface DiffViewProps {\nsrc/components/actions/conversation/events\\diff_view.tsx:19:    commitReference?: DiffCommitReference;\nsrc/components/actions/conversation/events\\diff_view.tsx:20:    generateDiff?: GenerateDiff;\nsrc/components/actions/conversation/events\\diff_view.tsx:23:    openDiffLine?: OpenDiffLine;\nsrc/components/actions/conversation/events\\diff_view.tsx:24:    result?: WorktreeDiffResult;\nsrc/components/actions/conversation/events\\diff_view.tsx:27:interface DiffLoadState {\nsrc/components/actions/conversation/events\\diff_view.tsx:30:    result: DiffResult | WorktreeDiffResult | null;\nsrc/components/actions/conversation/events\\diff_view.tsx:38:function parsedFilesWithNormalizedTypes(result: DiffResult | WorktreeDiffResult) {\nsrc/components/actions/conversation/events\\diff_view.tsx:39:    return parseDiff(result.patch).map((file, index) => {\nsrc/components/actions/conversation/events\\diff_view.tsx:48:/** Loads and parses a unified patch, then composes independently rendered file diffs. */\nsrc/components/actions/conversation/events\\diff_view.tsx:49:export function DiffView(props: DiffViewProps) {\nsrc/components/actions/conversation/events\\diff_view.tsx:51:    const generateDiff = props.generateDiff ?? defaultGenerateDiff;\nsrc/components/actions/conversation/events\\diff_view.tsx:52:    const openDiffLine = props.openDiffLine ?? defaultOpenDiffLine;\nsrc/components/actions/conversation/events\\diff_view.tsx:54:    const [loadState, setLoadState] = useState<DiffLoadState>({ files: null, key: requestKey, result: null, unavailable: false });\nsrc/components/actions/conversation/events\\diff_view.tsx:64:        async function loadDiff() {\nsrc/components/actions/conversation/events\\diff_view.tsx:68:                const diff = providedResult ?? await generateDiff(commitReference!);\nsrc/components/actions/conversation/events\\diff_view.tsx:71:                    throw new Error('Diff patch contains no parseable files');\nsrc/components/actions/conversation/events\\diff_view.tsx:83:        void loadDiff();\nsrc/components/actions/conversation/events\\diff_view.tsx:88:    }, [commitReference, generateDiff, providedResult, requestKey]);\nsrc/components/actions/conversation/events\\diff_view.tsx:96:            if (!result?.repositoryRoot) throw new Error('Diff result is missing execution repository root');\nsrc/components/actions/conversation/events\\diff_view.tsx:97:            await openDiffLine({ ...request, repositoryRoot: result.repositoryRoot });\nsrc/components/actions/conversation/events\\diff_view.tsx:103:    if (isUnavailable) return <Typography color=\"text.secondary\" variant=\"caption\">Diff unavailable.</Typography>;\nsrc/components/actions/conversation/events\\diff_view.tsx:111:                <DiffFileView\nsrc\\theme\\app_theme.node.test.ts:\n[85555 characters omitted]\nes\\data\\diff_service.ts:1:import type { CommitReference, DiffResult, OpenInEditorRequest } from '../../data/electron_action_bridge'\nsrc\\services\\data\\diff_service.ts:6:export type DiffCommitReference = Pick<CommitReference, 'branch' | 'commit' | 'filePaths'>\nsrc\\services\\data\\diff_service.ts:11:export async function generateDiff(commitReference: DiffCommitReference): Promise<DiffResult> {\nsrc\\services\\data\\diff_service.ts:13:    if (!bridge) throw new Error('Diff view requires Electron local mode')\nsrc\\services\\data\\diff_service.ts:19:    return bridge.generateDiff({ actionsFolder, branch, commit, filePath: filePaths[0] ?? '', projectFolder, releasesFolder, template, workingFolder })\nsrc\\services\\data\\diff_service.ts:23:export async function openDiffLine(request: OpenInEditorRequest): Promise<void> {\nsrc\\services\\data\\diff_service.node.test.ts:4:const generateDiffBridge = vi.fn()\nsrc\\services\\data\\diff_service.node.test.ts:6:vi.mock('../../data/electron_action_bridge', () => ({getElectronActionBridge: () => ({ generateDiff: generateDiffBridge })}))\nsrc\\services\\data\\diff_service.node.test.ts:18:const { generateDiff } = await import('./diff_service')\nsrc\\services\\data\\diff_service.node.test.ts:26:describe('generateDiff', () => {\nsrc\\services\\data\\diff_service.node.test.ts:27:    beforeEach(() => generateDiffBridge.mockReset())\nsrc\\services\\data\\diff_service.node.test.ts:30:        generateDiffBridge.mockResolvedValue({ commit: commitReference.commit, files: [], patch: '' })\nsrc\\services\\data\\diff_service.node.test.ts:32:        await generateDiff(commitReference)\nsrc\\services\\data\\diff_service.node.test.ts:34:        expect(generateDiffBridge).toHaveBeenCalledWith({\nsrc\\services\\project\\project_loading.ts:88:    const fileName = normalizedPath.split('/').pop()\nsrc\\services\\json\\json_link_path.ts:9:    const sourceSegments = normalizePath(sourcePath).split('/');\nsrc\\services\\json\\json_link_path.ts:12:    const linkSegments = normalizePath(linkPath).replace(/^\\/+/, '').split('/');\nsrc\\services\\project\\project_session_service.service.test.ts:54:        generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [], patch: '' })),\nsrc\\services\\project\\project_session_service.service.test.ts:55:        generateWorktreeDiff: vi.fn(async () => ({ files: [], patch: '', repositoryRoot: 'C:/worktree', revision: 'worktree-1' })),\nsrc\\services\\project\\project_session_service.ts:113:    const { activeCards } = markdownParsingService.splitCards(projectFiles.files, resolvedConfig.workingFolder)\nsrc\\services\\project\\project_session_service.ts:146:    if (normalizedFolder.split('/').some((segment) => segment === '.' || segment === '..' || segment.length === 0)) {\nsrc\\services\\project\\project_session_service.ts:182:        const segments = filePath.split('/')\nsrc\\services\\project\\worktree_service.ts:3:import { getElectronActionBridge, type WorktreeDiffResult } from '../../data/electron_action_bridge'\nsrc\\services\\project\\worktree_service.ts:197:    async generateCardWorktreeDiff(path: string): Promise<WorktreeDiffResult> {\nsrc\\services\\project\\worktree_service.ts:201:        if (!bridge?.generateWorktreeDiff) throw new Error('Worktree diff requires Electron local mode')\nsrc\\services\\project\\worktree_service.ts:203:        return bridge.generateWorktreeDiff({ worktree, worktreeBranch })\nsrc\\services\\project\\worktree_service.node.test.ts:489:        const generateWorktreeDiff = vi.fn(async () => result)\nsrc\\services\\project\\worktree_service.node.test.ts:490:        setActionBridgeOverride({ generateWorktreeDiff } as unknown as ElectronActionBridge)\nsrc\\services\\project\\worktree_service.node.test.ts:494:        await expect(service.generateCardWorktreeDiff(assignedCard.path)).rejects.toThrow('no changes to integrate')\nsrc\\services\\project\\worktree_service.node.test.ts:498:        await expect(service.generateCardWorktreeDiff(assignedCard.path)).resolves.toEqual(result)\nsrc\\services\\project\\worktree_service.node.test.ts:499:        expect(generateWorktreeDiff).toHaveBeenCalledWith({ worktree: 1, worktreeBranch: first.branch })\n",
+          "durationMs": 278,
+          "exitCode": 0,
+          "id": "agent-turn-39ab3764-83e0-4cb1-bd31-45f341227f6b-event-295",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"DiffFileView|diff_file_view|viewType|split|unified|Diff\" src/components/actions/conversation/events src -g \"*.tsx\" -g \"*.ts\"'",
+          "providerItemId": "exec-d2b36d61-5fe7-4306-b0d2-8bdca498810d",
+          "sequence": 295,
+          "status": "completed",
+          "timestamp": "2026-11-18T09:56:45.154Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-39ab3764-83e0-4cb1-bd31-45f341227f6b-event-296",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_013d0844d5ec595c016afd7661b5fc87d2adca263d6ff0b49b",
+          "sequence": 296,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-18T09:56:49.188Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’m treating this as a design decision before edits. I’ll ground the recommendation in the current component boundaries and existing control patterns.\n\n",
+          "id": "agent-turn-39ab3764-83e0-4cb1-bd31-45f341227f6b-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 297,
+          "timestamp": "2026-11-18T09:56:49.903Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content src/components/actions/conversation/events/diff_view.tsx; Get-Content src/components/actions/conversation/events/diff_file_view.tsx; rg -n \"ToggleButtonGroup|Segmented|view mode|View mode\" src/components -g \"*.tsx\"'",
+          "content": "import { Box, Typography } from '@mui/material';\r\nimport { useEffect, useRef, useState } from 'react';\r\nimport { parseDiff, type FileData } from 'react-diff-view';\r\nimport 'react-diff-view/style/index.css';\r\nimport type { DiffResult, OpenInEditorRequest, WorktreeDiffResult } from '../../../../data/electron_action_bridge';\r\nimport { dialogService } from '../../../../services/dialog_service';\r\nimport {\r\n    generateDiff as defaultGenerateDiff,\r\n    openDiffLine as defaultOpenDiffLine,\r\n    type DiffCommitReference,\r\n} from '../../../../services/data/diff_service';\r\nimport { diffCommentService } from './diff_comment_service';\r\nimport { DiffFileView } from './diff_file_view';\r\n\r\ntype GenerateDiff = (commitReference: DiffCommitReference) => Promise<DiffResult>;\r\ntype OpenDiffLine = (request: OpenInEditorRequest) => Promise<void>;\r\n\r\ninterface DiffViewProps {\r\n    commitReference?: DiffCommitReference;\r\n    generateDiff?: GenerateDiff;\r\n    initialPath?: string;\r\n    label?: string;\r\n    openDiffLine?: OpenDiffLine;\r\n    result?: WorktreeDiffResult;\r\n}\r\n\r\ninterface DiffLoadState {\r\n    files: FileData[] | null;\r\n    key: string;\r\n    result: DiffResult | WorktreeDiffResult | null;\r\n    unavailable: boolean;\r\n}\r\n\r\nfunction parsedFileMatchesPath(file: FileData, filePath: string) {\r\n    return file.oldPath === filePath || file.newPath === filePath;\r\n}\r\n\r\nfunction parsedFilesWithNormalizedTypes(result: DiffResult | WorktreeDiffResult) {\r\n    return parseDiff(result.patch).map((file, index) => {\r\n        const changeType = result.files[index]?.changeType;\r\n        if (!changeType) return file;\r\n        const type = changeType === 'added' ? 'add' : changeType === 'deleted' ? 'delete' : changeType === 'renamed' ? 'rename' : 'modify';\r\n\r\n        return { ...file, type };\r\n    });\r\n}\r\n\r\n/** Loads and parses a unified patch, then composes independently rendered file diffs. */\r\nexport function DiffView(props: DiffViewProps) {\r\n    const { commitReference, initialPath, label = 'Commit diff', result: providedResult } = props;\r\n    const generateDiff = props.generateDiff ?? defaultGenerateDiff;\r\n    const openDiffLine = props.openDiffLine ?? defaultOpenDiffLine;\r\n    const requestKey = providedResult ? `worktree:${providedResult.revision}` : `commit:${commitReference?.commit ?? 'missing'}`;\r\n    const [loadState, setLoadState] = useState<DiffLoadState>({ files: null, key: requestKey, result: null, unavailable: false });\r\n    const initialFileRef = useRef<HTMLDivElement | null>(null);\r\n    const currentLoadState = loadState.key === requestKey ? loadState : null;\r\n    const result = currentLoadState?.result ?? null;\r\n    const parsedFiles = currentLoadState?.files ?? null;\r\n    const isUnavailable = currentLoadState?.unavailable ?? false;\r\n\r\n    useEffect(() => {\r\n        let isActive = true;\r\n\r\n        async function loadDiff() {\r\n            try {\r\n                await Promise.resolve();\r\n                if (!providedResult && !commitReference) throw new Error('Missing commit diff reference');\r\n                const diff = providedResult ?? await generateDiff(commitReference!);\r\n                const files = parsedFilesWithNormalizedTypes(diff);\r\n                if (files.length === 0 || files.some((file) => !file.oldPath && !file.newPath)) {\r\n                    throw new Error('Diff patch contains no parseable files');\r\n                }\r\n                if (!isActive) return;\r\n                if ('revision' in diff) diffCommentService.activateWorktreeRevision(diff.revision);\r\n                setLoadState({ files, key: requestKey, result: diff, unavailable: false });\r\n            } catch (loadError) {\r\n                if (!isActive) return;\r\n                setLoadState({ files: null, key: requestKey, result: null, unavailable: true });\r\n                dialogService.error(loadError, { fallbackMessage: 'Could not load diff' });\r\n            }\r\n        }\r\n\r\n        void loadDiff();\r\n\r\n        return () => {\r\n            isActive = false;\r\n        };\r\n    }, [commitReference, generateDiff, providedResult, requestKey]);\r\n\r\n   \n[10617 characters omitted]\nfile.type} hunks={file.hunks} renderGutter={renderGutter} viewType=\"split\" widgets={widgets}>\r\n                        {(hunks) => hunks.map((hunk) => <Hunk hunk={hunk} key={hunk.content} />)}\r\n                    </Diff>\r\n                </Box>\r\n            )}\r\n        </Box>\r\n    );\r\n}\r\nsrc/components\\diagram_view\\surface\\diagram_breadcrumb_bar.test.tsx:188:    it('shows final title and exactly one Current subtitle in view mode', () => {\nsrc/components\\editor\\source\\markdown_source_mode_controls.tsx:4:import { ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';\nsrc/components\\editor\\source\\markdown_source_mode_controls.tsx:16:        <ToggleButtonGroup aria-label=\"Markdown view\" exclusive onChange={handleModeChange} size=\"small\" value={mode}>\nsrc/components\\editor\\source\\markdown_source_mode_controls.tsx:27:        </ToggleButtonGroup>\nsrc/components\\actions\\run\\sequence\\card_sequence_action_selector.tsx:1:import { ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material'\nsrc/components\\actions\\run\\sequence\\card_sequence_action_selector.tsx:24:        <ToggleButtonGroup\nsrc/components\\actions\\run\\sequence\\card_sequence_action_selector.tsx:37:        </ToggleButtonGroup>\nsrc/components\\actions\\run\\popup\\action_selector_button.tsx:54:                        '&.MuiToggleButton-root.MuiToggleButtonGroup-grouped': {\nsrc/components\\actions\\run\\popup\\action_selector_button.tsx:65:                        '&.MuiToggleButton-root.MuiToggleButtonGroup-grouped': {\nsrc/components\\actions\\run\\popup\\action_selector.tsx:1:import { ToggleButtonGroup } from '@mui/material'\nsrc/components\\actions\\run\\popup\\action_selector.tsx:15:    '& .MuiToggleButtonGroup-grouped': {\nsrc/components\\actions\\run\\popup\\action_selector.tsx:16:        ...ACTION_SELECTOR_GROUP_SX['& .MuiToggleButtonGroup-grouped'],\nsrc/components\\actions\\run\\popup\\action_selector.tsx:51:            <ToggleButtonGroup\nsrc/components\\actions\\run\\popup\\action_selector.tsx:69:            </ToggleButtonGroup>\nsrc/components\\diagram_view\\comparison\\diagram_comparison_menu_control.tsx:1:import { ToggleButton, ToggleButtonGroup, Tooltip, useMediaQuery, useTheme } from '@mui/material';\nsrc/components\\diagram_view\\comparison\\diagram_comparison_menu_control.tsx:40:        <ToggleButtonGroup aria-label=\"Diagram comparison layout\" exclusive onChange={handleChange} size=\"small\" value={renderedMode}>\nsrc/components\\diagram_view\\comparison\\diagram_comparison_menu_control.tsx:50:        </ToggleButtonGroup>\nsrc/components\\project_workspace.tsx:205:            // Reveal the card/file without changing the current view mode: highlight it in card view\nsrc/components\\shell\\mobile_layout.tsx:11:/** Mobile body layout: a single panel that is only visible while the text view mode is active. */\nsrc/components\\shell\\mobile_layout.grouped.test.tsx:22:    it('is hidden while the card view mode is active', () => {\nsrc/components\\shell\\menu\\app_menu.test.tsx:504:    it('updates the shared workspace view mode from the Home view toggle', () => {\nsrc/components\\shell\\menu\\app_menu.tsx:1:import { AppBar, Box, Button, Divider, ToggleButton, ToggleButtonGroup, Tooltip, useMediaQuery } from '@mui/material'\nsrc/components\\shell\\menu\\app_menu.tsx:89:/** View mode each view-scoped tab belongs to; such a tab is offered, and stays selected, only in that view. */\nsrc/components\\shell\\menu\\app_menu.tsx:266:            <ToggleButtonGroup\nsrc/components\\shell\\menu\\app_menu.tsx:275:                    '& .MuiToggleButtonGroup-grouped': { border: 0, borderRadius: '6px !important', height: 28, px: 1.25 },\nsrc/components\\shell\\menu\\app_menu.tsx:304:            </ToggleButtonGroup>\nsrc/components\\shell\\project\\project_open_dialog.tsx:18:    ToggleButtonGroup,\nsrc/components\\shell\\project\\project_open_dialog.tsx:274:                        <ToggleButtonGroup\nsrc/components\\shell\\project\\project_open_dialog.tsx:284:                                '& .MuiToggleButtonGroup-grouped': {\nsrc/components\\shell\\project\\project_open_dialog.tsx:307:                        </ToggleButtonGroup>\n",
+          "durationMs": 114,
+          "exitCode": 0,
+          "id": "agent-turn-39ab3764-83e0-4cb1-bd31-45f341227f6b-event-298",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content src/components/actions/conversation/events/diff_view.tsx; Get-Content src/components/actions/conversation/events/diff_file_view.tsx; rg -n \"ToggleButtonGroup|Segmented|view mode|View mode\" src/components -g \"*.tsx\"'",
+          "providerItemId": "exec-8f64b0c9-ccaa-4574-a04e-4ef53f6fce35",
+          "sequence": 298,
+          "status": "completed",
+          "timestamp": "2026-11-18T09:56:52.422Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-39ab3764-83e0-4cb1-bd31-45f341227f6b-event-299",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_013d0844d5ec595c016afd766e859887d29e4679b00cb1f039",
+          "sequence": 299,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-18T09:57:02.003Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-39ab3764-83e0-4cb1-bd31-45f341227f6b-event-300",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_013d0844d5ec595c016afd7677cf2887d2bf246dc90e714953",
+          "sequence": 300,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-18T09:57:11.283Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Best design: one session-wide diff-view preference.\n\n- Add a `Split | Unified` MUI `ToggleButtonGroup` above the diff, aligned right.\n- Keep `Split` as default, preserving current behavior.\n- Store mode in a small `EventTarget` service and subscribe with `useSyncExternalStore`, following project state rules.\n- Pass mode from `DiffView` into every `DiffFileView`.\n- Set `react-diff-view`’s `viewType` from that value.\n- Adapt file headers and comment widgets:\n  - Split: two columns.\n  - Unified: one column; old/new comments stacked and labelled.\n- Do not persist across application restarts unless requested. Avoids adding config/schema work.\n- Only verified `DiffFileView` caller is `DiffView`, so no compatibility flag needed.\n\nFocused tests should cover default split mode, switching both ways, shared mode across files/viewers, non-deselectable toggle, and unchanged line-opening/comment behavior.\n\n",
+          "id": "agent-turn-39ab3764-83e0-4cb1-bd31-45f341227f6b-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 301,
+          "timestamp": "2026-11-18T09:57:17.917Z"
+        },
+        {
+          "content": "> Keep Split as default, preserving current behavior.\n\nno, save last selected option, application wide, in the config\n\nthe rest is ok. do the update",
+          "id": "submission-e9aeb038-9a50-496c-8a7d-b60e583f4084",
+          "kind": "message",
+          "role": "user",
+          "sequence": 302,
+          "timestamp": "2026-11-18T09:58:17.115Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3938,47 +4071,47 @@
           "agent": "codex",
           "conversationId": "01a1e9b3-8461-7223-a711-1702ce30c7f5",
           "createdAt": "2026-11-17T13:30:19.541Z",
-          "lastUsedAt": "2026-11-17T16:00:34.765Z",
-          "synchronizedThroughMessageId": "agent-turn-149c88d0-b9ae-4433-8da4-9b4ed2946544-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-18T09:58:17.175Z",
+          "synchronizedThroughMessageId": "submission-e9aeb038-9a50-496c-8a7d-b60e583f4084"
         }
       ],
       "startedAt": "2026-11-17T13:30:18.223Z",
-      "status": "completed",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
             "id": "0",
-            "subject": "Inspect desktop diff import and dependency declarations",
+            "subject": "Inspect diff viewer, state ownership, styles, and existing tests",
             "status": "completed"
           },
           {
             "id": "1",
-            "subject": "Add or correct desktop diff dependency",
-            "status": "completed"
+            "subject": "Implement unified/split view selection",
+            "status": "pending"
           },
           {
             "id": "2",
-            "subject": "Run focused diff service verification",
-            "status": "completed"
+            "subject": "Add focused tests and run related lint/tests",
+            "status": "pending"
           }
         ],
-        "updatedAt": "2026-11-17T15:56:56.769Z"
+        "updatedAt": "2026-11-18T09:57:13.170Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 830,
-          "toolMs": 717875
+          "reasoningMs": 832,
+          "toolMs": 718297
         },
-        "elapsedMs": 1799420,
-        "runningStartedAt": null
+        "elapsedMs": 1842918,
+        "runningStartedAt": "2026-11-18T09:58:17.115Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 15960832,
-        "inputTokens": 193956,
-        "outputTokens": 35301,
-        "reasoningTokens": 13593,
-        "totalTokens": 16203682
+        "cachedInputTokens": 16082560,
+        "inputTokens": 240375,
+        "outputTokens": 35965,
+        "reasoningTokens": 14758,
+        "totalTokens": 16373658
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -4097,14 +4230,14 @@
         "agent-69cd223b-976b-4a7b-b043-37d42ab1d2a2"
       ],
       "details": {
+        "type": "agent",
         "accountId": "codex-initial",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-f4ab9c00-d248-4858-8f14-8a30b6796d16",
       "origin": {
@@ -4113,9 +4246,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-69cd223b-976b-4a7b-b043-37d42ab1d2a2",
       "startedAt": "2026-11-17T15:56:23.742Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-69cd223b-976b-4a7b-b043-37d42ab1d2a2"
     }
   ],
   "version": 5

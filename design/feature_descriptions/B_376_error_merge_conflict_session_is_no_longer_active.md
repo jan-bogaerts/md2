@@ -3,7 +3,7 @@ author:
 id: B_376
 internalId: 10a9acbd-97f0-4cfe-a9f2-85cd354f65b8
 title: Error: Merge conflict session is no longer active
-status: new
+status: design
 owner: 
 affects:
 agents:
@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 161833901
 sentryOrganization: elastetic
-after: b3d4732c-6b1a-41d7-88bf-0347982fc7a9
 ---
 
 ## Sentry issue
