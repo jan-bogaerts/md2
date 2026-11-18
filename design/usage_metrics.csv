@@ -11828,3 +11828,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-18T13:34:39.969Z,token_usage,codex,,,,,22224,3664384,11760,8028,3706396,,,codex-initial
 2026-11-18T13:39:10.574Z,token_usage,codex,,,,,40535,5422464,15450,6488,5484937,,,codex-initial
 2026-11-18T13:39:15.199Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,15,0,claude-initial
+2026-11-18T13:46:54.009Z,token_usage,codex,,,,,15494,1593728,1139,907,1611268,,,codex-initial
