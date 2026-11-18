@@ -9,6 +9,14 @@ affects:
 agents:
 policy:
 ---
+Assigning a card to a worktree (using the button on the card), can take a little bit of time. enough for the user to wonder if anything is happening. I am not certain why this is exactly, so I took a performance trace of both desktop and renderer:
+
 This is the performance trace of the desktop app: [CPU-assignworktree.cpuprofile](file:///C:/Users/janbo/Documents/dev/CPU-assignworktree.cpuprofile)
 
-this is the performance trace of the renderer:&#x20;
+this is the performance trace of the renderer: [Trace-assign worktree.json](file:///C:/Users/janbo/Documents/dev/Trace-assign%20worktree.json)
+
+In this run, it is already faster cause I had already assigned the card previously to the same worktree, so the branch probably already existed and the worktree had the correct code loaded.
+
+So lets first analyze what exactly is done when user assigns and then the second operation, updates the worktree. Are there any places where we could improve.
+
+secondly, we will need to show some feedback to the user that the operation is in progress.
