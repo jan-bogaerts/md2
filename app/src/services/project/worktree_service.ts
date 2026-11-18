@@ -1,6 +1,10 @@
 import { slugifyTitle } from '../../data/card_naming'
 import type { CardSeparator } from '../../data/card_identifiers'
-import { getElectronActionBridge, type WorktreeDiffResult } from '../../data/electron_action_bridge'
+import {
+    getElectronActionBridge,
+    type WorktreeChangesResult,
+    type WorktreeFileDiffResult,
+} from '../../data/electron_action_bridge'
 import type {
     Card,
     IntegrateWorktreeRequest,
@@ -193,14 +197,28 @@ export class WorktreeService extends EventTarget {
         return isWorktreeIntegratable(this.getAssignmentState(card.header).record);
     }
 
-    /** Load current diff for card's assigned worktree without changing operation state. */
-    async generateCardWorktreeDiff(path: string): Promise<WorktreeDiffResult> {
+    /** List changed files of card's assigned worktree without reading contents or changing operation state. */
+    async listCardWorktreeChanges(path: string): Promise<WorktreeChangesResult> {
+        const { bridge, request } = this.requireCardWorktreeDiff(path)
+
+        return bridge.listWorktreeChanges(request)
+    }
+
+    /** Load one changed file's diff from card's assigned worktree without changing operation state. */
+    async loadCardWorktreeFileDiff(path: string, filePath: string): Promise<WorktreeFileDiffResult> {
+        const { bridge, request } = this.requireCardWorktreeDiff(path)
+        const fileRequest = { ...request, path: filePath }
+
+        return bridge.generateWorktreeFileDiff(fileRequest)
+    }
+
+    private requireCardWorktreeDiff(path: string) {
         const { worktree, worktreeBranch } = this.requireCardOperation(path)
         if (!this.canIntegrateCardWorktree(path)) throw new Error('Card worktree has no changes to integrate')
         const bridge = getElectronActionBridge()
-        if (!bridge?.generateWorktreeDiff) throw new Error('Worktree diff requires Electron local mode')
+        if (!bridge?.listWorktreeChanges || !bridge.generateWorktreeFileDiff) throw new Error('Worktree diff requires Electron local mode')
 
-        return bridge.generateWorktreeDiff({ worktree, worktreeBranch })
+        return { bridge, request: { worktree, worktreeBranch } }
     }
 
     /** Whether the active storage backend can list worktrees (local desktop or a remote-controlled desktop). */

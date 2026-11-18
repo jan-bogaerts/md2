@@ -1,6 +1,6 @@
 import AddCommentOutlinedIcon from '@mui/icons-material/AddCommentOutlined';
 import { alpha, Box, IconButton, Tooltip, Typography } from '@mui/material';
-import { useState, type MouseEvent, type ReactNode, type Ref } from 'react';
+import { useState, type MouseEvent, type ReactNode } from 'react';
 import {
     Diff,
     Hunk,
@@ -18,7 +18,6 @@ import { diffCommentService, type DiffCommentSide, type DiffCommentTarget } from
 import { DiffCommentThread } from './diff_comment_thread';
 
 interface DiffFileViewProps {
-    containerRef?: Ref<HTMLDivElement>;
     file: FileData;
     onOpenLine: (request: OpenInEditorRequest) => void;
     revision: string;
@@ -67,7 +66,7 @@ function DiffCommentWidget(props: DiffCommentWidgetProps) {
 
 /** One parsed patch file with editor-line gutters and inline review widgets. */
 export function DiffFileView(props: DiffFileViewProps) {
-    const { containerRef, file, onOpenLine, revision, viewType } = props;
+    const { file, onOpenLine, revision, viewType } = props;
     const [activeWidgetKeys, setActiveWidgetKeys] = useState<ReadonlySet<string>>(() => new Set());
     const targetsByAction = new Map<string, DiffCommentTarget>();
     const targetsByChange = new Map<string, DiffCommentTarget[]>();
@@ -183,7 +182,7 @@ export function DiffFileView(props: DiffFileViewProps) {
     const hasTextHunks = file.hunks.length > 0 && !file.isBinary;
 
     return (
-        <Box ref={containerRef} sx={{ mt: 1.5 }}>
+        <Box sx={{ mt: 1.5 }}>
             <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: viewType === 'split' ? 'repeat(2, minmax(0, 1fr))' : '1fr', mb: 0.5 }}>
                 {viewType === 'split' ? (
                     <>

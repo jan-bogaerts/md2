@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CommitReference, DiffFile, DiffResult, WorktreeDiffResult } from '../../../../data/electron_action_bridge';
@@ -103,10 +103,13 @@ describe('DiffView', () => {
         expect(generateDiff).toHaveBeenCalledWith(commitReference);
     });
 
-    it('scrolls the initial parsed file into view', async () => {
-        renderDiff(<DiffView initialPath="design/new.md" label="Worktree diff" openDiffLine={vi.fn()} result={worktreeResult()} />);
+    it('renders a supplied single-file commit result without loading the commit', async () => {
+        const generateDiff = vi.fn(async () => diffResult());
+        renderDiff(<DiffView generateDiff={generateDiff} label="Diff design/F-010.md" openDiffLine={vi.fn()} result={diffResult()} />);
 
-        await waitFor(() => expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'start' }));
+        await screen.findByRole('region', { name: 'Diff design/F-010.md' });
+        expect(screen.getByText('new line')).toBeInTheDocument();
+        expect(generateDiff).not.toHaveBeenCalled();
     });
 
     it('opens the correct renamed old and new paths at real patch lines', async () => {

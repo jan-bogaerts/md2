@@ -32,7 +32,6 @@ export {
     DEFAULT_RELEASES_FOLDER,
     DEFAULT_WORKING_FOLDER,
 }
-export const DEFAULT_DIFF_COMMAND = 'git show {{commit}}'
 export const AUTO_COMMIT_DELAY_MS = 30000
 
 /** Card type id; projects can configure custom types beyond the default feature/job/bug. */
@@ -63,7 +62,6 @@ export interface ProjectConfig {
     cardTypes: CardTypeConfig[]
     deleteBranchAfterIntegration: boolean
     deleteBranchesAfterRelease: boolean
-    diffCommand: string
     diagramFooter: string
     diagramsFolder: string
     /** False keeps `projectFolder` local: ignored by Git and never staged or committed. */
@@ -637,7 +635,6 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     cardTypes: DEFAULT_CARD_TYPES,
     deleteBranchAfterIntegration: false,
     deleteBranchesAfterRelease: false,
-    diffCommand: DEFAULT_DIFF_COMMAND,
     diagramFooter: DEFAULT_DIAGRAM_FOOTER,
     diagramsFolder: DEFAULT_DIAGRAMS_FOLDER,
     includeProjectFolderInGit: true,

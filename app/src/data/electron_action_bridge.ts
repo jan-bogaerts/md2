@@ -121,16 +121,10 @@ export interface CommandActionRunHistoryEntry extends ActionRunHistoryEntryBase 
 
 export type ActionRunHistoryEntry = AgentActionRunHistoryEntry | CommandActionRunHistoryEntry
 
-/** Request to render a commit's diff through the configured Electron command template. */
+/** Request to render a commit's diff through Git; `filePath` limits the patch to one repository path. */
 export interface DiffRequest {
-    actionsFolder: string
-    branch: string
     commit: string
-    filePath: string
-    projectFolder: string
-    releasesFolder: string
-    template: string
-    workingFolder: string
+    filePath?: string
 }
 
 /** One changed file. Reconstructed values remain available for card-body Markdown diffs. */
@@ -159,6 +153,29 @@ export interface WorktreeDiffResult {
     patch: string
     repositoryRoot: string
     revision: string
+}
+
+/** Changed-file metadata for one worktree path; contents are not read. */
+export interface WorktreeChangedFile {
+    changeType: NonNullable<DiffFile['changeType']>
+    oldPath?: string
+    path: string
+}
+
+export interface WorktreeChangesResult {
+    files: WorktreeChangedFile[]
+    repositoryRoot: string
+    revision: string
+}
+
+export interface WorktreeFileDiffRequest extends WorktreeDiffRequest {
+    path: string
+}
+
+export interface WorktreeFileDiffResult {
+    file: DiffFile
+    patch: string
+    repositoryRoot: string
 }
 
 /** Request to open a local file in configured external editor. */
@@ -197,9 +214,10 @@ export interface ElectronActionBridge {
     enqueueActionPrompt?(runId: string, content: string, submissionId: string): Promise<ActionQueuedPrompt>
     finishActionRun?(runId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
-    generateWorktreeDiff(request: WorktreeDiffRequest): Promise<WorktreeDiffResult>
+    generateWorktreeFileDiff(request: WorktreeFileDiffRequest): Promise<WorktreeFileDiffResult>
     listActiveActionRuns?(): Promise<ActiveActionRun[]>
     listActiveSchedules?(): Promise<AnySchedule[]>
+    listWorktreeChanges(request: WorktreeDiffRequest): Promise<WorktreeChangesResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
     loadActionRunRecoverySnapshot?(rendererRunIds: string[]): Promise<ActionRunRecoverySnapshot>
     loadCardActivity?(request: CardActivityRequest): Promise<CardActivityFile>

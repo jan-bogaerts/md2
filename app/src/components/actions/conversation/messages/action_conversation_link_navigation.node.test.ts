@@ -47,7 +47,6 @@ function mockLoadedProject() {
         diagramFooter: 'Save to {{diagram-file}}.',
         diagramsFolder: 'design/diagrams',
         includeProjectFolderInGit: true,
-        diffCommand: '',
         pinnedConversations: [],
         projectFolder: 'design',
         pushMode: 'manual',

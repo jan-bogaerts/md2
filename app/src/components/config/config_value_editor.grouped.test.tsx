@@ -165,20 +165,20 @@ describe('ConfigValueEditor', () => {
 
     it('renders placeholder tokens as code in helper text', () => {
         const entry: ConfigEntry = {
-            defaultValue: 'git show {{commit}}',
-            description: 'Command template using {{commit}} and {{file}}.',
+            defaultValue: 'Save to {{diagram-file}}.',
+            description: 'Footer template using {{diagram-file}} and {{project-folder}}.',
             editable: true,
-            key: 'project.diffCommand',
-            label: 'Diff command',
+            key: 'project.diagramFooter',
+            label: 'Diagram footer',
             section: 'project',
             source: 'project',
             type: 'string',
         }
 
-        render(<ConfigValueEditor entry={entry} onChange={vi.fn()} value="git show {{commit}}" />)
+        render(<ConfigValueEditor entry={entry} onChange={vi.fn()} value="Save to {{diagram-file}}." />)
 
-        expect(screen.getByText('{{commit}}').tagName).toBe('CODE')
-        expect(screen.getByText('{{file}}').tagName).toBe('CODE')
+        expect(screen.getByText('{{diagram-file}}').tagName).toBe('CODE')
+        expect(screen.getByText('{{project-folder}}').tagName).toBe('CODE')
     })
 
     it('renders diagram footer as multiline Markdown input', () => {

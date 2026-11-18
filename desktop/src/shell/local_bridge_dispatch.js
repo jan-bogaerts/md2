@@ -680,10 +680,10 @@ function createLocalBridgeDispatch(dependencies) {
 
             return { ...result, repositoryRoot: currentLocalProject.rootPath };
         },
-        generateWorktreeDiff: async (request) => {
-            if (!request || typeof request !== 'object') throw new Error('Missing worktree diff request');
+        generateWorktreeFileDiff: async (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree file diff request');
 
-            return diffService.generateWorktreeDiff(currentLocalProject, request, worktreeService);
+            return diffService.generateWorktreeFileDiff(currentLocalProject, request, worktreeService);
         },
         loadActionRunHistory: async (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
@@ -692,6 +692,11 @@ function createLocalBridgeDispatch(dependencies) {
             const historyRequest = { ...request, projectFolder };
 
             return localGitService.loadActionRunHistory(currentLocalProject, historyRequest);
+        },
+        listWorktreeChanges: async (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree changes request');
+
+            return diffService.listWorktreeChanges(currentLocalProject, request, worktreeService);
         },
         listActiveActionRuns: () => {
             if (!actionRunnerService) throw new Error('Action runner is not available');

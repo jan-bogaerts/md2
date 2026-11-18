@@ -184,7 +184,13 @@ function createDispatch(options = {}) {
     };
     const saveDesktopConfig = vi.fn((_store, values) => values);
     const agentModelCatalogService = createAgentModelCatalogStub();
-    const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn(), openWithSystemApplication: vi.fn() };
+    const diffService = {
+        generateDiff: vi.fn(),
+        generateWorktreeFileDiff: vi.fn(),
+        listWorktreeChanges: vi.fn(),
+        openInEditor: vi.fn(),
+        openWithSystemApplication: vi.fn(),
+    };
     const projectStatsWorkerService = {
         calculate: vi.fn(async () => ({ stats: { actions: [], conversations: [] }, warnings: [] })),
         cancel: vi.fn(async () => undefined),
@@ -436,17 +442,30 @@ describe('createLocalBridgeDispatch', () => {
         });
     });
 
-    it('generates worktree diff only through current project and WorktreeService', async () => {
+    it('lists worktree changes only through current project and WorktreeService', async () => {
         const { diffService, dispatch, localGitService, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
-        const result = { files: [], patch: '', repositoryRoot: 'C:/worktree', revision: 'worktree-1' };
-        diffService.generateWorktreeDiff.mockResolvedValue(result);
+        const result = { files: [], repositoryRoot: 'C:/worktree', revision: 'worktree-1' };
+        diffService.listWorktreeChanges.mockResolvedValue(result);
         await dispatch.dataBridge.loadProject(project, 'design');
 
-        await expect(dispatch.actionBridge.generateWorktreeDiff({ worktree: 1, worktreeBranch: 'feature' })).resolves.toBe(result);
+        await expect(dispatch.actionBridge.listWorktreeChanges({ worktree: 1, worktreeBranch: 'feature' })).resolves.toBe(result);
 
-        expect(diffService.generateWorktreeDiff).toHaveBeenCalledWith(project, { worktree: 1, worktreeBranch: 'feature' }, worktreeService);
+        expect(diffService.listWorktreeChanges).toHaveBeenCalledWith(project, { worktree: 1, worktreeBranch: 'feature' }, worktreeService);
         expect(localGitService.appendSystemActivityNow).not.toHaveBeenCalled();
+    });
+
+    it('generates one worktree file diff only through current project and WorktreeService', async () => {
+        const { diffService, dispatch, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const request = { path: 'app/a.ts', worktree: 1, worktreeBranch: 'feature' };
+        const result = { file: { newValue: 'b', oldValue: 'a', path: 'app/a.ts' }, patch: '', repositoryRoot: 'C:/worktree' };
+        diffService.generateWorktreeFileDiff.mockResolvedValue(result);
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await expect(dispatch.actionBridge.generateWorktreeFileDiff(request)).resolves.toBe(result);
+
+        expect(diffService.generateWorktreeFileDiff).toHaveBeenCalledWith(project, request, worktreeService);
     });
 
     it('exposes the Codex runtime state of the requested account without execution context', async () => {

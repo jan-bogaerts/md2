@@ -30,8 +30,10 @@ import type {
     HistoricalFileContent,
     OpenInEditorRequest,
     ReadFileAtCommitRequest,
+    WorktreeChangesResult,
     WorktreeDiffRequest,
-    WorktreeDiffResult,
+    WorktreeFileDiffRequest,
+    WorktreeFileDiffResult,
 } from '../../data/electron_action_bridge';
 import { RemoteControlBroadcastSubscription } from './remote_control_broadcast_subscription';
 import {
@@ -240,8 +242,12 @@ export class RemoteControlActionBridge implements ElectronActionBridge {
         return this.client.request<DiffResult>('generateDiff', [request]);
     }
 
-    async generateWorktreeDiff(request: WorktreeDiffRequest): Promise<WorktreeDiffResult> {
-        return this.client.request<WorktreeDiffResult>('generateWorktreeDiff', [request]);
+    async listWorktreeChanges(request: WorktreeDiffRequest): Promise<WorktreeChangesResult> {
+        return this.client.request<WorktreeChangesResult>('listWorktreeChanges', [request]);
+    }
+
+    async generateWorktreeFileDiff(request: WorktreeFileDiffRequest): Promise<WorktreeFileDiffResult> {
+        return this.client.request<WorktreeFileDiffResult>('generateWorktreeFileDiff', [request]);
     }
 
     async openInEditor(request: OpenInEditorRequest): Promise<void> {

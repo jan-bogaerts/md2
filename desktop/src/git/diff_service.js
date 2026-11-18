@@ -1,4 +1,4 @@
-const { exec, execFile, spawn } = require('node:child_process');
+const { execFile, spawn } = require('node:child_process');
 const crypto = require('node:crypto');
 const { readFile, stat } = require('node:fs/promises');
 const path = require('node:path');
@@ -12,10 +12,9 @@ const {
     localFileLinkError,
 } = require('../../../shared/local_file_link_errors.mjs');
 
-const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
-const DIFF_PLACEHOLDER_NAMES = 'active-cards-folder|worktree-folder|repository-folder|project-folder|releases-folder|actions-folder|commit|branch|file';
-const DIFF_PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${DIFF_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'g');
+const GIT_OUTPUT_MAX_BUFFER_BYTES = 1024 * 1024 * 32;
+const LITERAL_PATHSPEC_ARGUMENT = '--literal-pathspecs';
 const HUNK_HEADER_PATTERN = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 const DIFF_FILE_HEADER = 'diff --git ';
 const OLD_PATH_HEADER = '--- ';
@@ -24,24 +23,6 @@ const FILE_URL_PATTERN = /^file:\/+/iu;
 const NAME_STATUS_RENAME_PATTERN = /^[RC]\d+$/u;
 const WORKTREE_PATCH_MAX_EDIT_LENGTH = 100_000;
 const WORKTREE_PATCH_TIMEOUT_MS = 250;
-
-function resolveProjectFolder(rootPath, projectFolder) {
-    if (typeof projectFolder !== 'string') return null;
-
-    return projectFolder.length === 0 ? rootPath : path.resolve(rootPath, projectFolder);
-}
-
-/** Substitute the diff command placeholders, failing fast when a referenced value is missing. */
-function resolveDiffCommand(template, values) {
-    if (typeof template !== 'string' || template.length === 0) throw new Error('Missing diff command template');
-
-    return template.replace(DIFF_PLACEHOLDER_PATTERN, (_match, name) => {
-        const value = values[name];
-        if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing diff command value: ${name}`);
-
-        return value;
-    });
-}
 
 function stripPathPrefix(rawPath) {
     if (rawPath.startsWith('a/') || rawPath.startsWith('b/')) return rawPath.slice(2);
@@ -68,7 +49,7 @@ function finalizeDiffFile(file) {
 
 /** Parse unified diff text into per-file old/new sides carrying real file line numbers. */
 function parseUnifiedDiff(text) {
-    if (typeof text !== 'string' || text.trim().length === 0) throw new Error('Diff command produced no output');
+    if (typeof text !== 'string' || text.trim().length === 0) throw new Error('Git diff produced no output');
 
     const files = [];
     let current = null;
@@ -123,43 +104,38 @@ function parseUnifiedDiff(text) {
     }
 
     if (current) files.push(finalizeDiffFile(current));
-    if (files.length === 0) throw new Error('Diff command output could not be parsed');
+    if (files.length === 0) throw new Error('Git diff output could not be parsed');
 
     return files;
 }
 
-/** Run the configured diff command for a commit and return normalized diff data. */
-async function generateDiff(project, request, runner = execAsync) {
+/** Build fixed `git show` arguments; a file path limits the patch to that one repository path. */
+function commitDiffArguments(commit, filePath) {
+    const pathArguments = filePath === undefined ? [] : ['--', filePath];
+
+    return [LITERAL_PATHSPEC_ARGUMENT, 'show', '--format=', '--find-renames', commit, ...pathArguments];
+}
+
+/** Run Git directly for one commit, optionally limited to one file, and return normalized diff data. */
+async function generateDiff(project, request, runner = execFileAsync) {
     const rootPath = requireRootPath(project);
     if (!request || typeof request.commit !== 'string' || request.commit.length === 0) throw new Error('Missing diff commit hash');
-
-    const command = resolveDiffCommand(request.template, {
-        'actions-folder': typeof request.actionsFolder === 'string' && request.actionsFolder.length > 0
-            ? path.resolve(rootPath, request.actionsFolder)
-            : null,
-        'active-cards-folder': typeof request.workingFolder === 'string' && request.workingFolder.length > 0
-            ? path.resolve(rootPath, request.workingFolder)
-            : null,
-        branch: request.branch,
-        commit: request.commit,
-        file: request.filePath,
-        'project-folder': resolveProjectFolder(rootPath, request.projectFolder),
-        'repository-folder': rootPath,
-        'releases-folder': typeof request.releasesFolder === 'string' && request.releasesFolder.length > 0
-            ? path.resolve(rootPath, request.releasesFolder)
-            : null,
-        'worktree-folder': rootPath,
-    });
+    const { commit, filePath } = request;
+    if (filePath !== undefined && (typeof filePath !== 'string' || filePath.length === 0)) throw new Error('Invalid diff file path');
 
     let stdout;
     try {
-        ({ stdout } = await runner(command, { cwd: rootPath, maxBuffer: 1024 * 1024 * 32 }));
+        ({ stdout } = await runner('git', commitDiffArguments(commit, filePath), {
+            cwd: rootPath,
+            maxBuffer: GIT_OUTPUT_MAX_BUFFER_BYTES,
+            windowsHide: true,
+        }));
     } catch (error) {
         const detail = error && typeof error.stderr === 'string' && error.stderr.length > 0 ? error.stderr : error?.message;
-        throw new Error(`Diff command failed: ${detail ?? 'unknown error'}`);
+        throw new Error(`Git diff failed: ${detail ?? 'unknown error'}`);
     }
 
-    return { commit: request.commit, files: parseUnifiedDiff(stdout), patch: stdout };
+    return { commit, files: parseUnifiedDiff(stdout), patch: stdout };
 }
 
 function parseNullSeparatedValues(output) {
@@ -228,45 +204,59 @@ async function readWorktreeFile(worktreePath, filePath, readFileValue) {
 async function readRevisionFile(worktreePath, revision, filePath, runner) {
     const { stdout } = await runner('git', ['show', `${revision}:${filePath}`], {
         cwd: worktreePath,
-        maxBuffer: 1024 * 1024 * 32,
+        maxBuffer: GIT_OUTPUT_MAX_BUFFER_BYTES,
         windowsHide: true,
     });
 
     return stdout;
 }
 
-/** Generate normalized current-worktree data without staging or otherwise mutating Git state. */
-async function generateWorktreeDiff(project, request, worktreeService, dependencies = {}) {
+function requireWorktreeRequest(request, worktreeService) {
     if (!request || !Number.isInteger(request.worktree) || request.worktree <= 0) throw new Error('Missing worktree diff index');
     if (!worktreeService?.readDiffContext) throw new Error('Worktree diff service is unavailable');
-    const readFileValue = dependencies.readFile ?? readFile;
-    const createPatch = dependencies.createPatch ?? createTwoFilesPatch;
-    const readRevisionFileValue = dependencies.readRevisionFile
-        ?? ((worktreePath, revision, filePath) => readRevisionFile(worktreePath, revision, filePath, execFileAsync));
+}
 
-    const context = await worktreeService.readDiffContext(project, request.worktreeBranch);
+/** Read changed-file metadata from name-status and untracked results without reading file contents. */
+async function readWorktreeChanges(project, worktreeBranch, worktreeService) {
+    const context = await worktreeService.readDiffContext(project, worktreeBranch);
     const changes = parseNameStatus(context.changes);
     const trackedPaths = new Set(changes.map(({ path: filePath }) => filePath));
     for (const filePath of parseNullSeparatedValues(context.untracked)) {
         if (!trackedPaths.has(filePath)) changes.push({ changeType: 'added', path: filePath });
     }
-    if (changes.length === 0) throw new Error('Linked worktree has no changes to view');
 
-    const files = await Promise.all(changes.map(async (change) => {
-        const oldPath = change.oldPath ?? change.path;
-        const oldValue = change.changeType === 'added'
-            ? ''
-            : await readRevisionFileValue(context.path, context.baseCommit, oldPath);
-        const newValue = change.changeType === 'deleted'
-            ? ''
-            : await readWorktreeFile(context.path, change.path, readFileValue);
+    return { changes, context };
+}
 
-        return normalizeWorktreeFile(change, oldValue, newValue);
-    }));
+/** List the changed files of one linked worktree; file contents stay unread. */
+async function listWorktreeChanges(project, request, worktreeService) {
+    requireWorktreeRequest(request, worktreeService);
+    const { changes, context } = await readWorktreeChanges(project, request.worktreeBranch, worktreeService);
 
-    const patch = files.map((file) => generateWorktreeFilePatch(file, createPatch)).join('');
+    return { files: changes, repositoryRoot: context.path, revision: crypto.randomUUID() };
+}
 
-    return { files, patch, repositoryRoot: context.path, revision: crypto.randomUUID() };
+/** Read and build the diff for one changed worktree path, using live metadata for its old path and change type. */
+async function generateWorktreeFileDiff(project, request, worktreeService, dependencies = {}) {
+    requireWorktreeRequest(request, worktreeService);
+    if (typeof request.path !== 'string' || request.path.length === 0) throw new Error('Missing worktree diff file path');
+    const readFileValue = dependencies.readFile ?? readFile;
+    const createPatch = dependencies.createPatch ?? createTwoFilesPatch;
+    const readRevisionFileValue = dependencies.readRevisionFile
+        ?? ((worktreePath, revision, filePath) => readRevisionFile(worktreePath, revision, filePath, execFileAsync));
+
+    const { changes, context } = await readWorktreeChanges(project, request.worktreeBranch, worktreeService);
+    const change = changes.find(({ path: filePath }) => filePath === request.path);
+    if (!change) throw new Error(`File is no longer changed in the linked worktree: ${request.path}`);
+    const oldValue = change.changeType === 'added'
+        ? ''
+        : await readRevisionFileValue(context.path, context.baseCommit, change.oldPath ?? change.path);
+    const newValue = change.changeType === 'deleted'
+        ? ''
+        : await readWorktreeFile(context.path, change.path, readFileValue);
+    const file = normalizeWorktreeFile(change, oldValue, newValue);
+
+    return { file, patch: generateWorktreeFilePatch(file, createPatch), repositoryRoot: context.path };
 }
 
 function pathKey(filePath) {
@@ -420,12 +410,12 @@ async function openInEditor(project, request, options) {
 module.exports = {
     buildEditorLaunch,
     generateDiff,
-    generateWorktreeDiff,
+    generateWorktreeFileDiff,
+    listWorktreeChanges,
     openInEditor,
     openWithSystemApplication,
     parseNameStatus,
     parseUnifiedDiff,
     parseEditorTarget,
     resolveEditorTarget,
-    resolveDiffCommand,
 };

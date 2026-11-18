@@ -485,18 +485,22 @@ describe('WorktreeService', () => {
         const service = new WorktreeService()
         const assignedCard = card('design/F-1.md', 'Assigned', 1)
         initService(service, storage, snapshot([assignedCard]))
-        const result = { files: [], patch: '', repositoryRoot: first.path, revision: 'worktree-1' }
-        const generateWorktreeDiff = vi.fn(async () => result)
-        setActionBridgeOverride({ generateWorktreeDiff } as unknown as ElectronActionBridge)
+        const manifest = { files: [], repositoryRoot: first.path, revision: 'worktree-1' }
+        const fileResult = { file: { newValue: 'b', oldValue: 'a', path: 'app/a.ts' }, patch: '', repositoryRoot: first.path }
+        const listWorktreeChanges = vi.fn(async () => manifest)
+        const generateWorktreeFileDiff = vi.fn(async () => fileResult)
+        setActionBridgeOverride({ generateWorktreeFileDiff, listWorktreeChanges } as unknown as ElectronActionBridge)
 
         emit(project, [first])
         expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(false)
-        await expect(service.generateCardWorktreeDiff(assignedCard.path)).rejects.toThrow('no changes to integrate')
+        await expect(service.listCardWorktreeChanges(assignedCard.path)).rejects.toThrow('no changes to integrate')
 
         emit(project, [{ ...first, status: { ...first.status, dirty: true } }])
         expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(true)
-        await expect(service.generateCardWorktreeDiff(assignedCard.path)).resolves.toEqual(result)
-        expect(generateWorktreeDiff).toHaveBeenCalledWith({ worktree: 1, worktreeBranch: first.branch })
+        await expect(service.listCardWorktreeChanges(assignedCard.path)).resolves.toEqual(manifest)
+        await expect(service.loadCardWorktreeFileDiff(assignedCard.path, 'app/a.ts')).resolves.toEqual(fileResult)
+        expect(listWorktreeChanges).toHaveBeenCalledWith({ worktree: 1, worktreeBranch: first.branch })
+        expect(generateWorktreeFileDiff).toHaveBeenCalledWith({ path: 'app/a.ts', worktree: 1, worktreeBranch: first.branch })
 
         emit(project, [{ ...first, status: { ...first.status, baseAhead: 1, dirty: false } }])
         expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(true)

@@ -305,7 +305,6 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
         cardTypes: values['project.cardTypes'],
         deleteBranchAfterIntegration: values['project.deleteBranchAfterIntegration'],
         deleteBranchesAfterRelease: values['project.deleteBranchesAfterRelease'],
-        diffCommand: values['project.diffCommand'],
         diagramFooter: values['project.diagramFooter'],
         diagramsFolder: values['project.diagramsFolder'],
         includeProjectFolderInGit: values['project.includeProjectFolderInGit'],
@@ -566,7 +565,6 @@ export class ConfigService extends EventTarget {
             nextValues = mergeValue(nextValues, 'project.backgroundShade', projectConfig.backgroundShade)
         }
         if (projectConfig?.projectFolder !== undefined) nextValues = mergeValue(nextValues, 'project.projectFolder', projectConfig.projectFolder)
-        if (projectConfig?.diffCommand !== undefined) nextValues = mergeValue(nextValues, 'project.diffCommand', projectConfig.diffCommand)
         if (projectConfig?.diagramFooter !== undefined) nextValues = mergeValue(nextValues, 'project.diagramFooter', projectConfig.diagramFooter)
         if (projectConfig?.diagramsFolder !== undefined) {
             nextValues = mergeValue(nextValues, 'project.diagramsFolder', projectConfig.diagramsFolder)

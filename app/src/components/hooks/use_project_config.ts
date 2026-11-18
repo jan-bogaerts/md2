@@ -9,7 +9,6 @@ function isSameProjectConfig(first: ProjectConfig | null, second: ProjectConfig 
         && first?.archivedFolder === second?.archivedFolder
         && first?.backgroundShade === second?.backgroundShade
         && first?.cardTypes === second?.cardTypes
-        && first?.diffCommand === second?.diffCommand
         && first?.projectFolder === second?.projectFolder
         && first?.pushMode === second?.pushMode
         && first?.releasesFolder === second?.releasesFolder

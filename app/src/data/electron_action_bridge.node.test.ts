@@ -10,10 +10,11 @@ function createBridge(): ElectronActionBridge {
     return {
         cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [], patch: '' })),
-        generateWorktreeDiff: vi.fn(async () => ({ files: [], patch: '', repositoryRoot: 'C:/worktree', revision: 'worktree-1' })),
-        openInEditor: vi.fn(),
+        generateWorktreeFileDiff: vi.fn(async () => ({ file: { newValue: '', oldValue: '', path: '' }, patch: '', repositoryRoot: 'C:/worktree' })),
+        listWorktreeChanges: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree', revision: 'worktree-1' })),
         loadActionRunHistory: vi.fn(async () => []),
         onActionRun: vi.fn(() => () => {}),
+        openInEditor: vi.fn(),
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent: vi.fn(async () => ''),
         startAction: vi.fn(async () => 'action-1'),

@@ -40,11 +40,10 @@ const PROJECT_CONFIG_GROUPS: ProjectConfigGroup[] = [
         label: 'Cards',
     },
     {
-        description: 'How MD² talks to Git for this project: whether the project folder is committed, diff command, push mode, branch cleanup, and how long auto-commit waits.',
+        description: 'How MD² talks to Git for this project: whether the project folder is committed, push mode, branch cleanup, and how long auto-commit waits.',
         id: 'project-git',
         keys: [
             'project.includeProjectFolderInGit',
-            'project.diffCommand',
             'project.pushMode',
             'project.deleteBranchAfterIntegration',
             'project.deleteBranchesAfterRelease',

@@ -4,7 +4,6 @@ import {
     DEFAULT_CARD_TYPES,
     DEFAULT_DIAGRAM_FOOTER,
     DEFAULT_DIAGRAMS_FOLDER,
-    DEFAULT_DIFF_COMMAND,
     DEFAULT_PROJECT_FOLDER,
     DEFAULT_RELEASES_FOLDER,
     DEFAULT_STATES,
@@ -45,7 +44,6 @@ export interface ConfigValueTypes {
     'project.cardTypes': CardTypeConfig[]
     'project.deleteBranchAfterIntegration': boolean
     'project.deleteBranchesAfterRelease': boolean
-    'project.diffCommand': string
     'project.diagramFooter': string
     'project.lastVersion': string
     'project.diagramsFolder': string
@@ -200,16 +198,6 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'project',
         source: 'project',
         type: 'select',
-    },
-    {
-        defaultValue: DEFAULT_DIFF_COMMAND,
-        description: 'Command template used to render a commit diff. Placeholders: {{worktree-folder}}, {{repository-folder}}, {{project-folder}}, {{releases-folder}}, {{actions-folder}}, {{commit}}, {{branch}}, {{file}}.',
-        editable: true,
-        key: 'project.diffCommand',
-        label: 'Diff command',
-        section: 'project',
-        source: 'project',
-        type: 'string',
     },
     {
         defaultValue: DEFAULT_DIAGRAM_FOOTER,
@@ -445,7 +433,6 @@ export const PROJECT_KEYS: ConfigKey[] = [
     'project.diagramsFolder',
     'project.archivedFolder',
     'project.backgroundShade',
-    'project.diffCommand',
     'project.diagramFooter',
     'project.pushMode',
     'project.deleteBranchAfterIntegration',

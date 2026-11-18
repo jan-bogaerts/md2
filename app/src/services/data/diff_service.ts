@@ -1,22 +1,31 @@
-import type { CommitReference, DiffResult, OpenInEditorRequest } from '../../data/electron_action_bridge'
+import type { CommitReference, DiffRequest, DiffResult, OpenInEditorRequest } from '../../data/electron_action_bridge'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
-import { resolveProjectConfigPaths } from '../../data/data_types'
-import { configService } from '../config/config_service'
 
-export type DiffCommitReference = Pick<CommitReference, 'branch' | 'commit' | 'filePaths'>
+export type DiffCommitReference = Pick<CommitReference, 'commit'>
 
-/**
- * Render one referenced commit through the configured Electron command.
- */
-export async function generateDiff(commitReference: DiffCommitReference): Promise<DiffResult> {
+function requireDiffBridge() {
     const bridge = getElectronActionBridge()
     if (!bridge) throw new Error('Diff view requires Electron local mode')
 
-    const { branch, commit, filePaths } = commitReference
-    const template = configService.get('project.diffCommand')
-    const { actionsFolder, projectFolder, releasesFolder, workingFolder } = resolveProjectConfigPaths(configService.getProjectConfig())
+    return bridge
+}
 
-    return bridge.generateDiff({ actionsFolder, branch, commit, filePath: filePaths[0] ?? '', projectFolder, releasesFolder, template, workingFolder })
+/**
+ * Render every file of one referenced commit through Git.
+ */
+export async function generateDiff(commitReference: DiffCommitReference): Promise<DiffResult> {
+    const request: DiffRequest = { commit: commitReference.commit }
+
+    return requireDiffBridge().generateDiff(request)
+}
+
+/**
+ * Render only one repository path of one commit through Git.
+ */
+export async function generateFileDiff(commit: string, filePath: string): Promise<DiffResult> {
+    const request: DiffRequest = { commit, filePath }
+
+    return requireDiffBridge().generateDiff(request)
 }
 
 /** Open configured external editor at file and line clicked in diff view. */

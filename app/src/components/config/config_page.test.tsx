@@ -132,7 +132,7 @@ describe('ConfigPage', () => {
         expect(screen.getByRole('region', { name: 'Project' })).toBeInTheDocument()
     })
 
-    it('holds diff command, push mode, branch cleanup and the auto commit delay in the git group', () => {
+    it('holds push mode, branch cleanup and the auto commit delay in the git group without a diff command', () => {
         mockMatchMedia(false)
         configService.init()
         configService.loadProjectConfig(null)
@@ -142,7 +142,7 @@ describe('ConfigPage', () => {
 
         expect(within(gitGroup).getByText(/branch cleanup/u)).toBeInTheDocument()
         expect(within(gitGroup).getByText(/auto-commit waits/u)).toBeInTheDocument()
-        expect(within(gitGroup).getByRole('textbox', { name: 'Diff command' })).toBeInTheDocument()
+        expect(within(gitGroup).queryByRole('textbox', { name: 'Diff command' })).not.toBeInTheDocument()
         expect(within(gitGroup).getByRole('combobox', { name: 'Push mode' })).toBeInTheDocument()
         expect(within(gitGroup).getByRole('switch', { name: 'Delete integrated card branch' })).toBeInTheDocument()
         expect(within(gitGroup).getByRole('switch', { name: 'Delete released card branches' })).toBeInTheDocument()
@@ -150,7 +150,6 @@ describe('ConfigPage', () => {
 
         const groupText = gitGroup.textContent ?? ''
         const fieldOrder = [
-            'Diff command',
             'Push mode',
             'Delete integrated card branch',
             'Delete released card branches',

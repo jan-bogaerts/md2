@@ -20,7 +20,7 @@ interface ConversationTextSegment {
     start: number
 }
 
-interface ConversationSearchDocument {
+export interface ConversationSearchDocument {
     segments: ConversationTextSegment[]
     text: string
     viewport: HTMLElement
@@ -46,8 +46,11 @@ function elementIsVisible(element: Element, viewport: HTMLElement) {
     return true
 }
 
-/** Builds ordered visible text and offset-to-DOM mappings for one transcript viewport. */
-export function createConversationSearchDocument(viewport: HTMLElement): ConversationSearchDocument {
+/**
+ * Builds ordered visible text and offset-to-DOM mappings for one viewport.
+ * `textSelector` limits text to nodes inside matching elements.
+ */
+export function createConversationSearchDocument(viewport: HTMLElement, textSelector?: string): ConversationSearchDocument {
     const walker = document.createTreeWalker(viewport, NodeFilter.SHOW_TEXT)
     const segments: ConversationTextSegment[] = []
     const textParts: string[] = []
@@ -57,7 +60,8 @@ export function createConversationSearchDocument(viewport: HTMLElement): Convers
         const textNode = node as Text
         const value = textNode.data
         const parentElement = textNode.parentElement
-        if (value && parentElement && elementIsVisible(parentElement, viewport)) {
+        const selected = !textSelector || !!parentElement?.closest(textSelector)
+        if (value && parentElement && selected && elementIsVisible(parentElement, viewport)) {
             const end = offset + value.length
             segments.push({ end, node: textNode, start: offset })
             textParts.push(value)
@@ -105,7 +109,8 @@ export function findConversationTextMatch(
     return matches.find(({ start }) => start >= offset) ?? matches[0]
 }
 
-function rangeForMatch(searchDocument: ConversationSearchDocument, match: ConversationTextMatch) {
+/** DOM range covering one match of a search document, or null when the mapping is gone. */
+export function rangeForMatch(searchDocument: ConversationSearchDocument, match: ConversationTextMatch) {
     const startSegment = searchDocument.segments.find(({ end, start }) => match.start >= start && match.start < end)
     const endSegment = searchDocument.segments.find(({ end, start }) => match.end > start && match.end <= end)
     if (!startSegment || !endSegment) return null

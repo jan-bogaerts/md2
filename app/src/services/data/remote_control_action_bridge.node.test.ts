@@ -106,11 +106,20 @@ const forwardingCases: ForwardingCase[] = [
         method: 'readFileAtCommit',
         params: [{ commit: 'a'.repeat(40), parent: true, path: 'design/F-1.md' }],
     },
-    { call: (bridge) => bridge.generateDiff({ path: 'design/F-1.md' } as never), method: 'generateDiff', params: [{ path: 'design/F-1.md' }] },
     {
-        call: (bridge) => bridge.generateWorktreeDiff({ worktree: 2, worktreeBranch: 'feature' }),
-        method: 'generateWorktreeDiff',
+        call: (bridge) => bridge.generateDiff({ commit: 'abc1234', filePath: 'design/F-1.md' }),
+        method: 'generateDiff',
+        params: [{ commit: 'abc1234', filePath: 'design/F-1.md' }],
+    },
+    {
+        call: (bridge) => bridge.listWorktreeChanges({ worktree: 2, worktreeBranch: 'feature' }),
+        method: 'listWorktreeChanges',
         params: [{ worktree: 2, worktreeBranch: 'feature' }],
+    },
+    {
+        call: (bridge) => bridge.generateWorktreeFileDiff({ path: 'app/a.ts', worktree: 2, worktreeBranch: 'feature' }),
+        method: 'generateWorktreeFileDiff',
+        params: [{ path: 'app/a.ts', worktree: 2, worktreeBranch: 'feature' }],
     },
     { call: (bridge) => bridge.openInEditor({ path: 'design/F-1.md' } as never), method: 'openInEditor', params: [{ path: 'design/F-1.md' }] },
     { call: (bridge) => bridge.loadAgentAvailability(), method: 'loadAgentAvailability', params: [] },

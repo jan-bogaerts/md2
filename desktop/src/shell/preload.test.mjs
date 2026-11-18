@@ -141,7 +141,9 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Actions.updateActionConversationViewed).toEqual(expect.any(Function));
         expect(exposed.md2Actions.updateCardActionSettings).toEqual(expect.any(Function));
         expect(exposed.md2Actions.finishActionRun).toEqual(expect.any(Function));
-        expect(exposed.md2Actions.generateWorktreeDiff).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.generateWorktreeFileDiff).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.listWorktreeChanges).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.generateWorktreeDiff).toBeUndefined();
         expect(exposed.md2Actions.restartActionRun).toEqual(expect.any(Function));
         expect(exposed.md2Actions.loadActionRunRecoverySnapshot).toEqual(expect.any(Function));
         expect(exposed.md2Actions.notifyActionCardStateChange).toBeUndefined();
