@@ -3,7 +3,7 @@ author:
 id: F_475
 internalId: 20a597ec-9ca8-4ae1-a47e-a8c2d7279fbf
 title: worktree assignment improvements
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,14 @@ policy:
 after: c8fdbf7f-e685-4590-8532-4103d2d68287
 branch: f_475_worktree_assignment_improvements
 worktree: 3
+changedFiles:
+  - app/src/components/hooks/use_worktree_selector_state.ts
+  - app/src/components/worktree_selector.test.tsx
+  - app/src/components/worktree_selector.tsx
+  - app/src/services/project/worktree_service.node.test.ts
+  - app/src/services/project/worktree_service.ts
+  - desktop/src/git/worktree_service.js
+  - desktop/src/git/worktree_service.test.mjs
 ---
 Assigning a card to a worktree (using the button on the card), can take a little bit of time. enough for the user to wonder if anything is happening. I am not certain why this is exactly, so I took a performance trace of both desktop and renderer:
 
