@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { serializeBridgeError } from '../../../shared/bridge_errors.mjs'
-import { DIRTY_LINKED_WORKTREE_ERROR } from '../../../shared/worktree_errors.mjs'
+import { ACTIVE_REBASE_LINKED_WORKTREE_ERROR, DIRTY_LINKED_WORKTREE_ERROR } from '../../../shared/worktree_errors.mjs'
 import { MissingWorkingFolderError } from './data_types'
 import { rehydrateBridgeError, unwrapBridgeResult, withBridgeErrorRehydration } from './bridge_error_rehydration'
 import { LocalGitStorageService } from '../services/data/local_git_storage_service'
@@ -56,6 +56,17 @@ describe('bridge error rehydration across the IPC boundary', () => {
         expect(() => unwrapBridgeResult(envelope)).toThrow(expect.objectContaining({
             code: DIRTY_LINKED_WORKTREE_ERROR,
             message: 'Linked worktree has uncommitted changes: C:\\worktree',
+        }))
+    })
+
+    it('keeps the active-rebase linked-worktree code across the IPC boundary', () => {
+        const activeRebase = new Error('Linked worktree is currently being rebased') as Error & { code?: string }
+        activeRebase.code = ACTIVE_REBASE_LINKED_WORKTREE_ERROR
+        const envelope = crossIpcBoundary(serializeBridgeError(activeRebase))
+
+        expect(() => unwrapBridgeResult(envelope)).toThrow(expect.objectContaining({
+            code: ACTIVE_REBASE_LINKED_WORKTREE_ERROR,
+            message: 'Linked worktree is currently being rebased',
         }))
     })
 

@@ -1,8 +1,9 @@
-import { mkdir, mkdtemp, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { describe, expect, it, vi } from 'vitest';
+import { ACTIVE_REBASE_LINKED_WORKTREE_ERROR } from '../../../shared/worktree_errors.mjs';
 
 const require = createRequire(import.meta.url);
 const { runGit } = require('./git_commands');
@@ -165,6 +166,60 @@ describe('WorktreeService linked worktree mutations', () => {
             const cleanCallIndex = mockedRunGit.mock.calls.findIndex(([, argumentsValue]) => argumentsValue[0] === 'clean');
             expect(mockedRunGit.mock.calls[cleanCallIndex + 1]).toEqual([repository.linkedPath, ['status', '--porcelain']]);
             expect(refreshAfterMutation).not.toHaveBeenCalled();
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+});
+
+describe('WorktreeService detached linked worktree guards', () => {
+    it.each(['rebase-merge', 'rebase-apply'])('rejects preparation during active %s state without changing the checkout', async (stateName) => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+
+        try {
+            await service.startProject(project);
+            const record = service.getRecords(project)[0];
+            const originalHead = await runGit(repository.linkedPath, ['rev-parse', 'HEAD']);
+            await writeFile(join(repository.linkedPath, 'keep.txt'), 'keep\n');
+            await runGit(repository.linkedPath, ['checkout', '--detach']);
+            const statePath = await runGit(repository.linkedPath, ['rev-parse', '--path-format=absolute', '--git-path', stateName]);
+            await mkdir(statePath);
+            vi.spyOn(service, 'resolveBranch').mockResolvedValue({ index: 1, record });
+            const runGitSpy = vi.spyOn(service, 'runGit');
+
+            await expect(service.prepare(project, 'feature', 'prepared-branch')).rejects.toMatchObject({
+                code: ACTIVE_REBASE_LINKED_WORKTREE_ERROR,
+                message: `Linked worktree is currently being rebased: ${repository.linkedPath}. Finish or abort the rebase, then retry.`,
+            });
+
+            expect(await runGit(repository.linkedPath, ['branch', '--show-current'])).toBe('');
+            expect(await runGit(repository.linkedPath, ['rev-parse', 'HEAD'])).toBe(originalHead);
+            expect(await readFile(join(repository.linkedPath, 'keep.txt'), 'utf8')).toBe('keep\n');
+            await expect(stat(statePath)).resolves.toMatchObject({});
+            expect(runGitSpy.mock.calls.some(([, argumentsValue]) => argumentsValue[0] === 'switch')).toBe(false);
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('keeps a genuinely detached checkout as an uncoded preparation error', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+
+        try {
+            await service.startProject(project);
+            const record = service.getRecords(project)[0];
+            await runGit(repository.linkedPath, ['checkout', '--detach']);
+            vi.spyOn(service, 'resolveBranch').mockResolvedValue({ index: 1, record });
+
+            const preparation = service.prepare(project, 'feature', 'prepared-branch');
+            await expect(preparation).rejects.toThrow(`Linked worktree has detached HEAD: ${repository.linkedPath}`);
+            await expect(preparation).rejects.not.toHaveProperty('code');
         } finally {
             service.stopProject();
             await rm(repository.folderPath, { force: true, recursive: true });

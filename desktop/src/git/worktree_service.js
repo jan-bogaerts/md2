@@ -1,10 +1,11 @@
 const fs = require('node:fs');
 const { checkoutOwnershipService } = require('./checkout_ownership_service');
+const { pathExists } = require('./git_commands');
 const path = require('node:path');
 
 const { withGitIndexMutations } = require('./git_index_coordinator');
 const { resolveWorktreeAssignment } = require('../../../shared/worktree_assignment.mjs');
-const { DIRTY_LINKED_WORKTREE_ERROR } = require('../../../shared/worktree_errors.mjs');
+const { ACTIVE_REBASE_LINKED_WORKTREE_ERROR, DIRTY_LINKED_WORKTREE_ERROR } = require('../../../shared/worktree_errors.mjs');
 
 const PARKING_BRANCH_PREFIX = 'md2/parking/';
 const REMOVAL_MODES = new Set(['files', 'folder', 'unregister']);
@@ -925,10 +926,27 @@ class WorktreeService {
         return parsePrimaryChanges(porcelain);
     }
 
+    /** True when Git reports rebase state for this checkout. */
+    async hasActiveRebase(folderPath) {
+        const mergeStatePath = await this.runGit(folderPath, ['rev-parse', '--path-format=absolute', '--git-path', 'rebase-merge']);
+        const applyStatePath = await this.runGit(folderPath, ['rev-parse', '--path-format=absolute', '--git-path', 'rebase-apply']);
+        const statePaths = [mergeStatePath, applyStatePath];
+        const activeStates = await Promise.all(statePaths.map((statePath) => pathExists(statePath)));
+
+        return activeStates.some((active) => active);
+    }
+
     async revalidateRecord(record, projectBranch) {
         checkoutOwnershipService.assertAvailable(record.path);
         const branch = (await this.runGit(record.path, ['branch', '--show-current'])).trim();
-        if (branch.length === 0) throw new Error(`Linked worktree has detached HEAD: ${record.path}`);
+        if (branch.length === 0) {
+            if (await this.hasActiveRebase(record.path)) {
+                const error = new Error(`Linked worktree is currently being rebased: ${record.path}. Finish or abort the rebase, then retry.`);
+                error.code = ACTIVE_REBASE_LINKED_WORKTREE_ERROR;
+                throw error;
+            }
+            throw new Error(`Linked worktree has detached HEAD: ${record.path}`);
+        }
         if (branch !== record.branch) throw new Error(`Assigned worktree branch changed to ${branch}, expected ${record.branch}: ${record.path}`);
         const status = await this.status(record.path, branch, projectBranch);
         const refreshedRecord = { ...record, branch, status };

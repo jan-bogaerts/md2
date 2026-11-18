@@ -4,7 +4,7 @@ import ArrowUp from 'mdi-material-ui/ArrowUp'
 import SourceBranch from 'mdi-material-ui/SourceBranch'
 import { useState } from 'react'
 import type { MouseEvent } from 'react'
-import { isDirtyLinkedWorktreeError } from '../../../shared/worktree_errors.mjs'
+import { isActiveRebaseLinkedWorktreeError, isDirtyLinkedWorktreeError } from '../../../shared/worktree_errors.mjs'
 import type { WorktreeAssignment } from '../data/data_types';
 import { dialogService } from '../services/dialog_service'
 import { configService } from '../services/config/config_service'
@@ -111,7 +111,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
             if (assignmentTarget.kind === 'project') worktreeService.setProjectActionWorktree(branch);
             else await worktreeService.setCardWorktree(assignmentTarget.path, branch);
         } catch (error) {
-            if (isDirtyLinkedWorktreeError(error)) dialogService.displayError(error.message)
+            if (isActiveRebaseLinkedWorktreeError(error) || isDirtyLinkedWorktreeError(error)) dialogService.displayError(error.message)
             else dialogService.error(error, { fallbackMessage: 'Could not update worktree assignment' })
         }
     }
