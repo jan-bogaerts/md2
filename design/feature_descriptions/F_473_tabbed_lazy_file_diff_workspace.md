@@ -8,6 +8,7 @@ type: feature
 owner:
 affects:
 agents:
+  - design/activity/card__a7d96183-9b8a-4c2e-a51a-925f7ca9aded.json
 policy:
 after: 08b55903-731a-4a0d-be87-6818029c82b2
 branch: f_473_tabbed_lazy_file_diff_workspace
