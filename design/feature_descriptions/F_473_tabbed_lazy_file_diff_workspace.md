@@ -3,7 +3,7 @@ author:
 id: F_473
 internalId: a7d96183-9b8a-4c2e-a51a-925f7ca9aded
 title: tabbed lazy file diff workspace
-status: ready for implementation
+status: ready
 type: feature
 owner:
 affects:
@@ -13,6 +13,28 @@ policy:
 after: 08b55903-731a-4a0d-be87-6818029c82b2
 branch: f_473_tabbed_lazy_file_diff_workspace
 worktree: 1
+changedFiles:
+  - .tmp/f473/desktop_tests.py
+  - .tmp/f473/dispatch_tests.py
+  - .tmp/f473/remove_config.py
+  - app/src/components/card_view/card_commit_diff_panel.test.tsx
+  - app/src/components/card_view/card_commit_diff_panel.tsx
+  - app/src/components/card_view/diff_workspace/commit_diff_workspace_source.ts
+  - app/src/components/card_view/diff_workspace/diff_workspace.tsx
+  - app/src/components/card_view/diff_workspace/diff_workspace_file_tab.tsx
+  - app/src/components/card_view/diff_workspace/diff_workspace_files_tab.tsx
+  - app/src/components/card_view/diff_workspace/diff_workspace_search_button.tsx
+  - app/src/components/card_view/diff_workspace/diff_workspace_search_row.tsx
+  - app/src/components/card_view/diff_workspace/diff_workspace_search_service.test.ts
+  - app/src/components/card_view/diff_workspace/diff_workspace_search_service.ts
+  - app/src/components/card_view/diff_workspace/diff_workspace_service.node.test.ts
+  - app/src/components/card_view/diff_workspace/diff_workspace_service.ts
+  - app/src/components/card_view/diff_workspace/diff_workspace_tabs.tsx
+  - app/src/components/card_view/diff_workspace/diff_workspace_types.ts
+  - app/src/components/card_view/diff_workspace/worktree_diff_workspace_source.ts
+  - app/src/services/data/diff_service.node.test.ts
+  - app/src/services/data/diff_service.ts
+  - desktop/src/git/diff_service.js
 ---
 
 ## Problem
