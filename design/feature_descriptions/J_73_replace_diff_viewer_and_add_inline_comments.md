@@ -23,20 +23,35 @@ changedFiles:
   - app/src/components/actions/conversation/events/diff_view.grouped.test.tsx
   - app/src/components/actions/conversation/events/diff_view.test.tsx
   - app/src/components/actions/conversation/events/diff_view.tsx
+  - app/src/components/actions/conversation/events/diff_view_mode.test.tsx
+  - app/src/components/actions/conversation/events/diff_view_mode_control.tsx
   - app/src/components/card_view/card_commit_diff_panel.test.tsx
+  - app/src/components/card_view/card_commit_diff_panel.tsx
+  - app/src/components/config/config_page.test.tsx
   - app/src/components/shell/main_window.test.tsx
   - app/src/data/electron_action_bridge.node.test.ts
   - app/src/data/electron_action_bridge.ts
   - app/src/data/project_session.service.test.ts
   - app/src/services/actions/electron_action_runner.node.test.ts
+  - app/src/services/config/config_entries.ts
+  - app/src/services/config/config_persistence.service.test.ts
+  - app/src/services/config/config_service.service.test.ts
+  - app/src/services/config/config_service.ts
+  - app/src/services/config/diff_view_config.node.test.ts
+  - app/src/services/config/diff_view_config.ts
   - app/src/services/data/diff_service.node.test.ts
+  - app/src/services/data/remote_control_desktop_config_transport.node.test.ts
+  - app/src/services/project/merge_conflict_service.node.test.ts
   - app/src/services/project/project_session_service.service.test.ts
   - app/src/services/project/worktree_service.node.test.ts
   - app/src/services/search/search_regexp_agent.node.test.ts
+  - design/feature_descriptions/F_473_tabbed_lazy_file_diff_workspace.md
   - desktop/package-lock.json
   - desktop/package.json
   - desktop/src/git/diff_service.js
   - desktop/src/git/diff_service.test.mjs
+  - desktop/src/shell/config.js
+  - desktop/src/shell/config.test.mjs
   - desktop/src/shell/local_bridge_dispatch.test.mjs
 ---
 
