@@ -12,6 +12,13 @@ policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
 branch: f_474_custom_size_for_cards_showing_code_diff
 worktree: 2
+changedFiles:
+  - app/src/components/card_view/card_body_popover.tsx
+  - app/src/components/card_view/card_body_popover_commit.test.tsx
+  - app/src/components/resizable_popper.test.tsx
+  - app/src/components/resizable_popper.tsx
+  - app/src/services/storage/application_storage.service.test.ts
+  - app/src/services/storage/application_storage.ts
 ---
 
 We currently use the card-popup (with the markdown editor) to show the file-diffs. This works ok.
