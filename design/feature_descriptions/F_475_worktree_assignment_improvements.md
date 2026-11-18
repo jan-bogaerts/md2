@@ -19,4 +19,4 @@ In this run, it is already faster cause I had already assigned the card previous
 
 So lets first analyze what exactly is done when user assigns and then the second operation, updates the worktree. Are there any places where we could improve.
 
-secondly, we will need to show some feedback to the user that the operation is in progress. maybe by a spinning border?
+secondly, we will need to show some feedback to the user that the operation is in progress. maybe by a spinning border? we already have something similar for the 'run' button.
