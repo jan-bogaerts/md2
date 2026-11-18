@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type Card, type WorktreeRecord } from '../../data/data_types'
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { CARD_BODY_POPOVER_SIZE_KEY, CardBodyPopover } from './card_body_popover'
+import { CARD_BODY_POPOVER_DIFF_SIZE_KEY, CARD_BODY_POPOVER_SIZE_KEY, CardBodyPopover } from './card_body_popover'
 import { cardCollectionFieldChangedEvent, dataService } from '../../services/data/data_service'
 import { cardPopupService } from '../../services/card_popup_service'
 import { worktreeService } from '../../services/project/worktree_service'
@@ -39,7 +39,9 @@ vi.mock('../hooks/use_card_commits', () => ({
 
 vi.mock('./card_commit_diff_panel', () => ({
     CardCommitDiffPanel: ({ selection }: { selection: { kind: string } }) => (
-        <div aria-label={selection.kind === 'worktree' ? 'Card worktree diff' : 'Card commit diff'} />
+        <div aria-label={selection.kind === 'worktree' ? 'Card worktree diff' : 'Card commit diff'}>
+            <input aria-label="Diff workspace tab state" defaultValue="Files" />
+        </div>
     ),
 }))
 
@@ -173,6 +175,7 @@ describe('CardBodyPopover commit diff', () => {
     it('uses dynamic viewport height and fixed mobile placement without desktop resizing or persistence', () => {
         const storedSize = JSON.stringify({ height: 700, width: 800 })
         window.localStorage.setItem(CARD_BODY_POPOVER_SIZE_KEY, storedSize)
+        window.localStorage.setItem(CARD_BODY_POPOVER_DIFF_SIZE_KEY, storedSize)
         const getStoredValue = vi.spyOn(Storage.prototype, 'getItem')
         const setStoredValue = vi.spyOn(Storage.prototype, 'setItem')
         const anchorElement = document.body.appendChild(document.createElement('button'))
@@ -201,9 +204,15 @@ describe('CardBodyPopover commit diff', () => {
         expect(within(dialog).queryByRole('separator', { name: /Resize card details popup/u })).not.toBeInTheDocument()
         expect(within(dialog).getByLabelText('Live card editor')).toBeInTheDocument()
         expect(within(dialog).getByRole('button', { name: 'Close card details' })).toBeInTheDocument()
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Card commit history' }))
+        fireEvent.click(screen.getByRole('button', { name: /Implement/ }))
+        expect(screen.getByLabelText('Card commit diff')).toBeInTheDocument()
         expect(getStoredValue).not.toHaveBeenCalledWith(CARD_BODY_POPOVER_SIZE_KEY)
+        expect(getStoredValue).not.toHaveBeenCalledWith(CARD_BODY_POPOVER_DIFF_SIZE_KEY)
         expect(setStoredValue).not.toHaveBeenCalledWith(CARD_BODY_POPOVER_SIZE_KEY, expect.any(String))
+        expect(setStoredValue).not.toHaveBeenCalledWith(CARD_BODY_POPOVER_DIFF_SIZE_KEY, expect.any(String))
         expect(window.localStorage.getItem(CARD_BODY_POPOVER_SIZE_KEY)).toBe(storedSize)
+        expect(window.localStorage.getItem(CARD_BODY_POPOVER_DIFF_SIZE_KEY)).toBe(storedSize)
     })
 
     it('uses persisted desktop size and exposes header drag plus eight resize directions', () => {
@@ -232,7 +241,102 @@ describe('CardBodyPopover commit diff', () => {
         expect(within(dialog).getAllByRole('separator', { name: /Resize card details popup from/u })).toHaveLength(8)
     })
 
-    it('keeps its desktop top inset and reaches the bottom in fullscreen', () => {
+    it('inherits first diff size, persists profiles independently, restores normal size, and reuses diff size', () => {
+        window.localStorage.setItem(CARD_BODY_POPOVER_SIZE_KEY, JSON.stringify({ height: 500, width: 600 }))
+        const anchorElement = document.body.appendChild(document.createElement('button'))
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
+        render(
+            <AppThemeProvider>
+                <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile={false}
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onOpenAffects={vi.fn()}
+                    states={states}
+                    statusColors={new Map()}
+                    visible
+                />
+            </AppThemeProvider>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'F-060 card details' })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Card title' }), { target: { value: 'Unsaved title' } })
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Card commit history' }))
+        fireEvent.click(screen.getByRole('button', { name: /Implement/ }))
+
+        expect(dialog).toHaveStyle({ height: '500px', width: '600px' })
+        const resizeHandle = within(dialog).getByRole('separator', { name: 'Resize card details popup from bottom-right' })
+        fireEvent.pointerDown(resizeHandle, { clientX: 0, clientY: 0, pointerId: 1 })
+        fireEvent.pointerMove(window, { clientX: 100, clientY: 50, pointerId: 1 })
+        fireEvent.pointerUp(window, { pointerId: 1 })
+
+        expect(JSON.parse(window.localStorage.getItem(CARD_BODY_POPOVER_SIZE_KEY) ?? '{}')).toEqual({ height: 500, width: 600 })
+        expect(JSON.parse(window.localStorage.getItem(CARD_BODY_POPOVER_DIFF_SIZE_KEY) ?? '{}')).toEqual({ height: 550, width: 700 })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Diff workspace tab state' }), { target: { value: 'Code tab' } })
+        expect(dialog).toHaveStyle({ height: '550px', width: '700px' })
+
+        fireEvent.keyDown(dialog, { key: 'Escape' })
+        expect(dialog).toHaveStyle({ height: '500px', width: '600px' })
+        expect(screen.getByRole('textbox', { name: 'Card title' })).toHaveValue('Unsaved title')
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Card commit history' }))
+        fireEvent.click(screen.getByRole('button', { name: /Implement/ }))
+
+        expect(dialog).toHaveStyle({ height: '550px', width: '700px' })
+    })
+
+    it('keeps the diff profile while switching commit and worktree sources', () => {
+        const assignedCard = { ...card, header: { ...card.header, branch: 'feature', worktree: 1, worktreeValue: '1' } }
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project: null,
+            runningAgents: [],
+            snapshot: { activeCards: [assignedCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        })
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([{
+            branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:/worktree',
+            status: { ahead: 0, baseAhead: 1, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+        }])
+        window.localStorage.setItem(CARD_BODY_POPOVER_SIZE_KEY, JSON.stringify({ height: 400, width: 500 }))
+        window.localStorage.setItem(CARD_BODY_POPOVER_DIFF_SIZE_KEY, JSON.stringify({ height: 600, width: 700 }))
+        const anchorElement = document.body.appendChild(document.createElement('button'))
+        cardPopupService.openWorktreeDiff(assignedCard.header.internalId!, anchorElement)
+        render(
+            <AppThemeProvider>
+                <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile={false}
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onOpenAffects={vi.fn()}
+                    states={states}
+                    statusColors={new Map()}
+                    visible
+                />
+            </AppThemeProvider>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'F-060 card details' })
+        const entry = cardPopupService.getSnapshot()[0]
+        const commit = {
+            branch: 'main', commit: 'b'.repeat(40), committedAt: '2026-07-21T10:00:00.000Z', deletions: 0,
+            filePaths: ['design/F-060.md'], filesChanged: 1, insertions: 1,
+            record: {
+                commits: [], completedAt: '2026-07-21T10:00:00.000Z', conversationIds: [], runId: 'run-2',
+                details: { command: 'edit', output: '', type: 'command' },
+                origin: { cardInternalId: 'card-060', kind: 'card' }, rootActionId: 'implement',
+                rootActionLabel: 'Implement', startedAt: '2026-07-21T10:00:00.000Z', status: 'completed',
+            },
+        }
+
+        expect(dialog).toHaveStyle({ height: '600px', width: '700px' })
+        act(() => cardPopupService.selectDiff(entry.id, { cardInternalId: assignedCard.header.internalId!, commit, kind: 'commit' }))
+        expect(dialog).toHaveStyle({ height: '600px', width: '700px' })
+        act(() => cardPopupService.selectDiff(entry.id, { kind: 'worktree' }))
+        expect(dialog).toHaveStyle({ height: '600px', width: '700px' })
+        expect(JSON.parse(window.localStorage.getItem(CARD_BODY_POPOVER_SIZE_KEY) ?? '{}')).toEqual({ height: 400, width: 500 })
+    })
+
+    it('keeps fullscreen as a visual override without overwriting normal or diff profiles', () => {
+        const normalSize = { height: 500, width: 600 }
+        const diffSize = { height: 650, width: 800 }
+        window.localStorage.setItem(CARD_BODY_POPOVER_SIZE_KEY, JSON.stringify(normalSize))
+        window.localStorage.setItem(CARD_BODY_POPOVER_DIFF_SIZE_KEY, JSON.stringify(diffSize))
         const anchorElement = document.body.appendChild(document.createElement('button'))
         cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
         render(
@@ -255,6 +359,15 @@ describe('CardBodyPopover commit diff', () => {
         expect(dialog).toHaveStyle({ height: 'calc(100vh - 60px)', top: '60px' })
         expect(appRegion(dialog)).toBe('no-drag')
         expect(within(dialog).getByRole('button', { name: 'Exit fullscreen' })).toBeInTheDocument()
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Card commit history' }))
+        fireEvent.click(screen.getByRole('button', { name: /Implement/ }))
+
+        expect(dialog).toHaveStyle({ height: 'calc(100vh - 60px)', top: '60px' })
+        expect(JSON.parse(window.localStorage.getItem(CARD_BODY_POPOVER_SIZE_KEY) ?? '{}')).toEqual(normalSize)
+        expect(JSON.parse(window.localStorage.getItem(CARD_BODY_POPOVER_DIFF_SIZE_KEY) ?? '{}')).toEqual(diffSize)
+        fireEvent.keyDown(dialog, { key: 'Escape' })
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Exit fullscreen' }))
+        expect(dialog).toHaveStyle({ height: '500px', width: '600px' })
     })
 
     it('keeps the board document bound when refreshed card data retains its identity', () => {

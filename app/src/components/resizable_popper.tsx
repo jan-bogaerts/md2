@@ -21,6 +21,12 @@ interface PopperPosition {
     top: number
 }
 
+interface SizeProfileTransition {
+    incomingStorageKey?: string
+    outgoingSize: PopperSize
+    outgoingStorageKey?: string
+}
+
 interface ResizablePopperBaseProps {
     anchorElement: HTMLElement | null
     boundaryElement?: HTMLElement | null
@@ -186,6 +192,16 @@ function centeredPosition(size: PopperSize): PopperPosition {
     }
 }
 
+function clampDetachedPosition(position: PopperPosition, size: PopperSize): PopperPosition {
+    const width = size.width ?? MIN_WIDTH
+    const height = size.height ?? MIN_HEIGHT
+
+    return {
+        left: clampDetachedLeft(position.left, width),
+        top: clampDetachedTop(position.top, height),
+    }
+}
+
 function extractAppRegionStyle(paperSx?: SxProps<Theme>): CSSProperties {
     if (!paperSx || typeof paperSx !== 'object' || Array.isArray(paperSx)) return {}
 
@@ -233,8 +249,11 @@ export function ResizablePopper(props: ResizablePopperProps) {
         boundaryElement,
         storageKey,
     ))
+    const [sizeStorageKey, setSizeStorageKey] = useState(storageKey)
+    const [sizeProfileTransition, setSizeProfileTransition] = useState<SizeProfileTransition | null>(null)
     const [position, setPosition] = useState<PopperPosition | null>(() => draggable && !anchorElement ? centeredPosition(size) : null)
     const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
+    const activeStorageKeyRef = useRef(storageKey)
     const anchoredLeftRef = useRef<number | null>(null)
     const focusOnMountRef = useRef(focusOnMount)
     const fullHeightRef = useRef(false)
@@ -252,8 +271,38 @@ export function ResizablePopper(props: ResizablePopperProps) {
             modal: theme.zIndex.modal + (stackPosition ?? 0) + OVERLAY_LAYER_OFFSET,
         },
     }), [stackPosition, theme])
+    if (storageKey !== sizeStorageKey) {
+        const outgoingSize = size
+        const incomingSize = loadSize(
+            outgoingSize,
+            minimumSize,
+            constrainSizeToViewport,
+            bottomInset,
+            boundaryElement,
+            storageKey,
+        )
+        setSizeProfileTransition({ incomingStorageKey: storageKey, outgoingSize, outgoingStorageKey: sizeStorageKey })
+        setSizeStorageKey(storageKey)
+        setSize(incomingSize)
+        setPosition((current) => current ? clampDetachedPosition(current, incomingSize) : current)
+        setDetachedLeft((current) => current === null
+            ? current
+            : clampDetachedLeft(current, incomingSize.width ?? MIN_WIDTH))
+    }
 
     useEffect(() => () => resizeRef.current?.abort(), [])
+    useLayoutEffect(() => {
+        if (!sizeProfileTransition || sizeProfileTransition.incomingStorageKey !== sizeStorageKey) return
+
+        resizeRef.current?.abort()
+        activeStorageKeyRef.current = sizeStorageKey
+        if (sizeProfileTransition.outgoingStorageKey) {
+            applicationStorage.setItem(
+                sizeProfileTransition.outgoingStorageKey,
+                JSON.stringify(sizeProfileTransition.outgoingSize),
+            )
+        }
+    }, [sizeProfileTransition, sizeStorageKey])
     useLayoutEffect(() => {
         if (!boundaryElement) return
 
@@ -292,10 +341,10 @@ export function ResizablePopper(props: ResizablePopperProps) {
         })
     }, [subscribeFocusRequest])
     useEffect(() => {
-        if (!storageKey || persistSizeOnResizeEndOnly) return
+        if (!sizeStorageKey || persistSizeOnResizeEndOnly) return
 
-        applicationStorage.setItem(storageKey, JSON.stringify(size))
-    }, [persistSizeOnResizeEndOnly, size, storageKey])
+        applicationStorage.setItem(sizeStorageKey, JSON.stringify(size))
+    }, [persistSizeOnResizeEndOnly, size, sizeStorageKey])
     useLayoutEffect(() => {
         if (!fullHeight) {
             fullHeightRef.current = false
@@ -400,6 +449,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
                 y: event.clientY,
             }
             let completedSize = { height: start.height, width: start.width }
+            const resizeStorageKey = activeStorageKeyRef.current
             resizeRef.current = controller
 
             window.addEventListener('pointermove', (move: PointerEvent) => {
@@ -446,8 +496,8 @@ export function ResizablePopper(props: ResizablePopperProps) {
                 }
             }, { signal: controller.signal })
             window.addEventListener('pointerup', () => {
-                if (storageKey && persistSizeOnResizeEndOnly) {
-                    applicationStorage.setItem(storageKey, JSON.stringify(completedSize))
+                if (resizeStorageKey && resizeStorageKey === activeStorageKeyRef.current && persistSizeOnResizeEndOnly) {
+                    applicationStorage.setItem(resizeStorageKey, JSON.stringify(completedSize))
                 }
                 controller.abort()
             }, { signal: controller.signal })
