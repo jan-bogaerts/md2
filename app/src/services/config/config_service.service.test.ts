@@ -87,6 +87,13 @@ describe('ConfigService', () => {
         expect(service.getDesktopValues().agentAccounts).toEqual(DEFAULT_AGENT_ACCOUNTS)
     })
 
+    it('restores the application-wide diff view from desktop config', () => {
+        service.init({ desktopConfig: { diffViewType: 'unified' } })
+
+        expect(service.get('desktop.diffViewType')).toBe('unified')
+        expect(service.getDesktopValues().diffViewType).toBe('unified')
+    })
+
     it('loads validated desktop agent accounts and rejects invalid collections', () => {
         const workAccount: AgentAccount = {
             id: '0f8fad5b-d9cb-469f-a165-70867728950e',
@@ -544,6 +551,7 @@ describe('ConfigService', () => {
             agentProfiles: BUILTIN_AGENT_PROFILES,
             agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,
+            diffViewType: 'split',
             editorCommand: 'notepad "{{file}}"',
             mergeConflictResolverCommand: 'merge-tool "{{file}}"',
             remoteControlPort: 20877,

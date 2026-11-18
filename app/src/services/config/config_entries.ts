@@ -25,6 +25,7 @@ import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from '../../data/card_iden
 
 export type ConfigSource = 'desktop' | 'project'
 export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json'
+export type DiffViewType = 'split' | 'unified'
 
 export interface ConfigValueTypes {
     'desktop.agentSelection': AgentSelectionState
@@ -32,6 +33,7 @@ export interface ConfigValueTypes {
     'desktop.agentProfiles': AgentProfile[]
     'desktop.agentTaskTrackingEnabled': boolean
     'desktop.codexSearchEnabled': boolean
+    'desktop.diffViewType': DiffViewType
     'desktop.editorCommand': string
     'desktop.mergeConflictResolverCommand': string
     'desktop.remoteControlPort': number
@@ -101,6 +103,7 @@ export interface DesktopConfigValues {
     agentProfiles: AgentProfile[]
     agentTaskTrackingEnabled?: boolean
     codexSearchEnabled?: boolean
+    diffViewType: DiffViewType
     editorCommand: string
     mergeConflictResolverCommand: string
     remoteControlPort: number
@@ -371,6 +374,20 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'desktop',
         source: 'desktop',
         type: 'boolean',
+    },
+    {
+        defaultValue: 'split',
+        description: 'Layout used for commit and worktree diffs throughout the application.',
+        editable: true,
+        key: 'desktop.diffViewType',
+        label: 'Diff view',
+        options: [
+            { label: 'Split', value: 'split' },
+            { label: 'Unified', value: 'unified' },
+        ],
+        section: 'desktop',
+        source: 'desktop',
+        type: 'select',
     },
     {
         defaultValue: DEFAULT_EDITOR_COMMAND,

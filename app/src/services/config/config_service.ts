@@ -37,6 +37,7 @@ export {
     type ConfigValues,
     type ConfigValueType,
     type DesktopConfigValues,
+    type DiffViewType,
 } from './config_entries'
 
 interface ConfigServiceInitDependencies {
@@ -324,6 +325,7 @@ function readDesktopConfig(values: ConfigValues): DesktopConfigValues {
         agentProfiles: values['desktop.agentProfiles'],
         agentTaskTrackingEnabled: values['desktop.agentTaskTrackingEnabled'],
         codexSearchEnabled: values['desktop.codexSearchEnabled'],
+        diffViewType: values['desktop.diffViewType'],
         editorCommand: values['desktop.editorCommand'],
         mergeConflictResolverCommand: values['desktop.mergeConflictResolverCommand'],
         remoteControlPort: values['desktop.remoteControlPort'],
@@ -372,6 +374,7 @@ function replaceDesktopValues(values: ConfigValues, desktopConfig: Partial<Deskt
     if (desktopConfig.codexSearchEnabled !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
     }
+    if (desktopConfig.diffViewType !== undefined) nextValues = mergeValue(nextValues, 'desktop.diffViewType', desktopConfig.diffViewType)
     if (desktopConfig.editorCommand !== undefined) nextValues = mergeValue(nextValues, 'desktop.editorCommand', desktopConfig.editorCommand)
     if (desktopConfig.mergeConflictResolverCommand !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.mergeConflictResolverCommand', desktopConfig.mergeConflictResolverCommand)

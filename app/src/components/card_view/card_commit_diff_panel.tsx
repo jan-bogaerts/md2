@@ -7,6 +7,7 @@ import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import type { DiffCommitReference } from '../../services/data/diff_service'
 import { DiffView } from '../actions/conversation/events/diff_view'
+import { DiffViewModeControl } from '../actions/conversation/events/diff_view_mode_control'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import type { CardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 import type { MarkdownBindingKind } from '../editor/data_sources/markdown_data_source'
@@ -148,6 +149,7 @@ export function CardCommitDiffPanel(props: CardCommitDiffPanelProps) {
                         {isWorktree ? 'Current repository state' : `${new Date(commit!.committedAt).toLocaleString()} · ${commit!.commit.slice(0, 7)}`}
                     </Typography>
                 </Box>
+                <DiffViewModeControl />
                 <Button onClick={onExit} size="small" variant="outlined">Exit diff</Button>
             </Box>
             {displayError ? <Typography color="error" role="alert" sx={{ p: 2 }}>{displayError.message}</Typography> : null}

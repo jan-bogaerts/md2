@@ -2,6 +2,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CommitReference, DiffFile, DiffResult, WorktreeDiffResult } from '../../../../data/electron_action_bridge';
+import { configService } from '../../../../services/config/config_service';
 import { AppThemeProvider } from '../../../../theme/theme_provider';
 import { DialogDisplay } from '../../../dialog_display';
 import { diffCommentService } from './diff_comment_service';
@@ -77,12 +78,15 @@ function renderDiff(view: React.ReactNode) {
 
 describe('DiffView', () => {
     beforeEach(() => {
+        configService.clear();
+        configService.init({ desktopConfig: { diffViewType: 'split' } });
         diffCommentService.clear();
         HTMLElement.prototype.scrollIntoView = vi.fn();
     });
 
     afterEach(() => {
         cleanup();
+        configService.clear();
         vi.restoreAllMocks();
     });
 

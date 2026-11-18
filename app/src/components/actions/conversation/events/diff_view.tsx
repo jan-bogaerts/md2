@@ -2,8 +2,9 @@ import { Box, Typography } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { parseDiff, type FileData } from 'react-diff-view';
 import 'react-diff-view/style/index.css';
-import type { DiffResult, OpenInEditorRequest, WorktreeDiffResult } from '../../../../data/electron_action_bridge';
+import type { DiffFile, DiffResult, OpenInEditorRequest, WorktreeDiffResult } from '../../../../data/electron_action_bridge';
 import { dialogService } from '../../../../services/dialog_service';
+import { useConfigValue } from '../../../hooks/use_config_value';
 import {
     generateDiff as defaultGenerateDiff,
     openDiffLine as defaultOpenDiffLine,
@@ -31,6 +32,13 @@ interface DiffLoadState {
     unavailable: boolean;
 }
 
+const DIFF_TYPE_BY_CHANGE_TYPE: Record<NonNullable<DiffFile['changeType']>, FileData['type']> = {
+    added: 'add',
+    deleted: 'delete',
+    modified: 'modify',
+    renamed: 'rename',
+};
+
 function parsedFileMatchesPath(file: FileData, filePath: string) {
     return file.oldPath === filePath || file.newPath === filePath;
 }
@@ -39,7 +47,7 @@ function parsedFilesWithNormalizedTypes(result: DiffResult | WorktreeDiffResult)
     return parseDiff(result.patch).map((file, index) => {
         const changeType = result.files[index]?.changeType;
         if (!changeType) return file;
-        const type = changeType === 'added' ? 'add' : changeType === 'deleted' ? 'delete' : changeType === 'renamed' ? 'rename' : 'modify';
+        const type = DIFF_TYPE_BY_CHANGE_TYPE[changeType];
 
         return { ...file, type };
     });
@@ -57,6 +65,7 @@ export function DiffView(props: DiffViewProps) {
     const result = currentLoadState?.result ?? null;
     const parsedFiles = currentLoadState?.files ?? null;
     const isUnavailable = currentLoadState?.unavailable ?? false;
+    const viewType = useConfigValue('desktop.diffViewType');
 
     useEffect(() => {
         let isActive = true;
@@ -114,6 +123,7 @@ export function DiffView(props: DiffViewProps) {
                     key={`${file.oldPath}:${file.newPath}:${index}`}
                     onOpenLine={handleOpenLine}
                     revision={revision}
+                    viewType={viewType}
                 />
             ))}
         </Box>

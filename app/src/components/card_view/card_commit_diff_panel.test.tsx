@@ -1,10 +1,11 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { dialogService } from '../../services/dialog_service'
+import { configService } from '../../services/config/config_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { CardCommitDiffPanel, type CardDiffSelection } from './card_commit_diff_panel'
 
@@ -71,13 +72,28 @@ function renderPanel(selection: CardDiffSelection = { commit: cardCommit(), kind
     )
 }
 
+beforeEach(() => {
+    configService.clear()
+    configService.init({ desktopConfig: { diffViewType: 'split' } })
+})
+
 afterEach(() => {
     cleanup()
+    configService.clear()
     setActionBridgeOverride(null)
     vi.restoreAllMocks()
 })
 
 describe('CardCommitDiffPanel', () => {
+    it('places the diff view control immediately before Exit diff', () => {
+        installBridge(vi.fn(async () => ({ content: 'Same body', exists: true })))
+
+        renderPanel()
+
+        const viewControl = screen.getByRole('group', { name: 'Diff view' })
+        expect(viewControl.nextElementSibling).toBe(screen.getByRole('button', { name: 'Exit diff' }))
+    })
+
     it('reports a frontmatter-only commit without mounting a historical editor', async () => {
         installBridge(vi.fn(async ({ parent }) => ({
             content: `---\ntitle: ${parent ? 'Old' : 'New'}\n---\nSame body`,

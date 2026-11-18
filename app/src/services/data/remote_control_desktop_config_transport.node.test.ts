@@ -22,6 +22,7 @@ describe('RemoteControlDesktopConfigTransport', () => {
                 settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' as const } },
             },
             codexSearchEnabled: false,
+            diffViewType: 'unified' as const,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
             remoteControlPort: 20877,

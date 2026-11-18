@@ -11,6 +11,7 @@ import {
     type DiffType,
     type FileData,
     type GutterOptions,
+    type ViewType,
 } from 'react-diff-view';
 import type { OpenInEditorRequest } from '../../../../data/electron_action_bridge';
 import { diffCommentService, type DiffCommentSide, type DiffCommentTarget } from './diff_comment_service';
@@ -21,12 +22,14 @@ interface DiffFileViewProps {
     file: FileData;
     onOpenLine: (request: OpenInEditorRequest) => void;
     revision: string;
+    viewType: ViewType;
 }
 
 interface DiffCommentWidgetProps {
     changeKey: string;
     onEmpty: (changeKey: string) => void;
     targets: DiffCommentTarget[];
+    viewType: ViewType;
 }
 
 function changeLine(change: ChangeData, side: DiffCommentSide) {
@@ -46,13 +49,17 @@ function changeTypeLabel(type: DiffType) {
 }
 
 function DiffCommentWidget(props: DiffCommentWidgetProps) {
-    const { changeKey, onEmpty, targets } = props;
+    const { changeKey, onEmpty, targets, viewType } = props;
     const handleEmpty = () => onEmpty(changeKey);
+    const showSideLabels = viewType === 'unified' && targets.length > 1;
 
     return (
-        <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: targets.length > 1 ? 'repeat(2, minmax(0, 1fr))' : '1fr' }}>
+        <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: viewType === 'split' && targets.length > 1 ? 'repeat(2, minmax(0, 1fr))' : '1fr' }}>
             {targets.map((target) => (
-                <DiffCommentThread key={`${target.side}:${target.line}`} onEmpty={handleEmpty} target={target} />
+                <Box key={`${target.side}:${target.line}`}>
+                    {showSideLabels ? <Typography color="text.secondary" variant="caption">{target.side === 'old' ? 'Old' : 'New'}</Typography> : null}
+                    <DiffCommentThread onEmpty={handleEmpty} target={target} />
+                </Box>
             ))}
         </Box>
     );
@@ -60,7 +67,7 @@ function DiffCommentWidget(props: DiffCommentWidgetProps) {
 
 /** One parsed patch file with editor-line gutters and inline review widgets. */
 export function DiffFileView(props: DiffFileViewProps) {
-    const { containerRef, file, onOpenLine, revision } = props;
+    const { containerRef, file, onOpenLine, revision, viewType } = props;
     const [activeWidgetKeys, setActiveWidgetKeys] = useState<ReadonlySet<string>>(() => new Set());
     const targetsByAction = new Map<string, DiffCommentTarget>();
     const targetsByChange = new Map<string, DiffCommentTarget[]>();
@@ -166,19 +173,26 @@ export function DiffFileView(props: DiffFileViewProps) {
         });
         if (!activeWidgetKeys.has(changeKey) && !hasContent) continue;
         widgets[changeKey] = (
-            <DiffCommentWidget changeKey={changeKey} onEmpty={removeEmptyWidget} targets={targets} />
+            <DiffCommentWidget changeKey={changeKey} onEmpty={removeEmptyWidget} targets={targets} viewType={viewType} />
         );
     }
 
     const oldPath = file.oldPath || file.newPath;
     const newPath = file.newPath || file.oldPath;
+    const unifiedPath = oldPath === newPath ? oldPath : `${oldPath} \u2192 ${newPath}`;
     const hasTextHunks = file.hunks.length > 0 && !file.isBinary;
 
     return (
         <Box ref={containerRef} sx={{ mt: 1.5 }}>
-            <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', mb: 0.5 }}>
-                <Typography sx={{ fontFamily: 'monospace', overflowWrap: 'anywhere' }} variant="caption">{oldPath}</Typography>
-                <Typography sx={{ fontFamily: 'monospace', overflowWrap: 'anywhere' }} variant="caption">{newPath}</Typography>
+            <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: viewType === 'split' ? 'repeat(2, minmax(0, 1fr))' : '1fr', mb: 0.5 }}>
+                {viewType === 'split' ? (
+                    <>
+                        <Typography sx={{ fontFamily: 'monospace', overflowWrap: 'anywhere' }} variant="caption">{oldPath}</Typography>
+                        <Typography sx={{ fontFamily: 'monospace', overflowWrap: 'anywhere' }} variant="caption">{newPath}</Typography>
+                    </>
+                ) : (
+                    <Typography sx={{ fontFamily: 'monospace', overflowWrap: 'anywhere' }} variant="caption">{unifiedPath}</Typography>
+                )}
             </Box>
             {!hasTextHunks ? (
                 <Box sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
@@ -198,7 +212,7 @@ export function DiffFileView(props: DiffFileViewProps) {
                         '& .diff-widget-content': { bgcolor: 'background.default', p: 0 },
                     })}
                 >
-                    <Diff diffType={file.type} hunks={file.hunks} renderGutter={renderGutter} viewType="split" widgets={widgets}>
+                    <Diff diffType={file.type} hunks={file.hunks} renderGutter={renderGutter} viewType={viewType} widgets={widgets}>
                         {(hunks) => hunks.map((hunk) => <Hunk hunk={hunk} key={hunk.content} />)}
                     </Diff>
                 </Box>

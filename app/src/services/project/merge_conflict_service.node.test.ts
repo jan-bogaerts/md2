@@ -35,7 +35,7 @@ function createHarness(initialSession: MergeConflictSession | null = session(), 
     }
     const completeBranchCleanup = vi.fn()
     const queueIntegratedActivity = vi.fn(async () => undefined)
-    const reloadPaths = vi.fn(async () => undefined)
+    const reloadPaths = vi.fn(async (): Promise<void> => undefined)
     const reportError = vi.fn()
     const service = new MergeConflictService()
     service.init({ completeBranchCleanup, queueIntegratedActivity, reloadPaths, reportError, storage: storage as never })
