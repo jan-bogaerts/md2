@@ -3,7 +3,7 @@ author:
 id: F_474
 internalId: c8fdbf7f-e685-4590-8532-4103d2d68287
 title: custom size for cards showing code diff
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
