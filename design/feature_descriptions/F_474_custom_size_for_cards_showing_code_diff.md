@@ -10,6 +10,8 @@ agents:
   - design/activity/card__c8fdbf7f-e685-4590-8532-4103d2d68287.json
 policy:
 after: 41d340e6-afae-44bd-82e7-41ab673c94e0
+branch: f_474_custom_size_for_cards_showing_code_diff
+worktree: 2
 ---
 
 We currently use the card-popup (with the markdown editor) to show the file-diffs. This works ok.
