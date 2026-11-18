@@ -10,8 +10,6 @@ agents:
   - design/activity/card__20a597ec-9ca8-4ae1-a47e-a8c2d7279fbf.json
 policy:
 after: c8fdbf7f-e685-4590-8532-4103d2d68287
-branch: f_475_worktree_assignment_improvements
-worktree: 3
 changedFiles:
   - app/src/components/hooks/use_worktree_selector_state.ts
   - app/src/components/worktree_selector.test.tsx
