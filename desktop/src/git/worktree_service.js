@@ -144,6 +144,15 @@ function statesEqual(first, second) {
     return JSON.stringify(first) === JSON.stringify(second);
 }
 
+function requireCleanRecord(record) {
+    if (!record.status.dirty) return record;
+
+    const error = new Error(`Linked worktree has uncommitted changes: ${record.path}`);
+    error.code = DIRTY_LINKED_WORKTREE_ERROR;
+
+    throw error;
+}
+
 class WorktreeService {
     constructor(dependencies) {
         this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
@@ -419,11 +428,12 @@ class WorktreeService {
     }
 
     prepare(project, worktreeBranch, branchName) {
-        return this.enqueueMutation(async () => {
+        const resolution = this.resolveCachedBranch(project, worktreeBranch);
+
+        return this.enqueueScopedMutation([project.rootPath, resolution.record.path], async () => {
             if (typeof branchName !== 'string' || branchName.length === 0) throw new Error('Missing worktree branch name');
             const activeProject = this.requireActiveProject(project);
-            const { record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);
-            const record = await this.requireClean(cachedRecord, activeProject.branch);
+            const record = requireCleanRecord(await this.requireSelectedRecord(activeProject, worktreeBranch));
             await this.runGit(activeProject.rootPath, ['check-ref-format', '--branch', branchName]);
             checkoutOwnershipService.assertAvailable(record.path);
             if (record.branch !== branchName) {
@@ -431,7 +441,7 @@ class WorktreeService {
                 const switchArguments = branchExists ? ['switch', branchName] : ['switch', '-c', branchName, activeProject.branch];
                 await this.runGit(record.path, switchArguments);
             }
-            await this.refreshAfterMutation();
+            await this.refreshRecordAfterMutation(activeProject, record.path);
         });
     }
 
@@ -474,12 +484,13 @@ class WorktreeService {
     }
 
     rebase(project, worktreeBranch) {
-        return this.enqueueMutation(async () => {
+        const resolution = this.resolveCachedBranch(project, worktreeBranch);
+
+        return this.enqueueScopedMutation([project.rootPath, resolution.record.path], async () => {
             const activeProject = this.requireActiveProject(project);
-            const { index, record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);
-            const record = await this.requireClean(cachedRecord, activeProject.branch);
+            const record = requireCleanRecord(await this.requireSelectedRecord(activeProject, worktreeBranch));
             if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
-            await this.commitPrimaryChanges(activeProject);
+            const primaryHeadChanged = await this.commitPrimaryChanges(activeProject);
             const worktreeCheckpointCommit = await this.runGit(record.path, ['rev-parse', 'HEAD']);
             try {
                 await this.runGit(record.path, ['rebase', activeProject.branch]);
@@ -491,11 +502,11 @@ class WorktreeService {
                     project: activeProject,
                     record,
                     repositoryRoot: record.path,
-                    worktree: index,
+                    worktree: resolution.index,
                     worktreeCheckpointCommit,
                 });
                 if (session) {
-                    await this.refreshAfterMutation();
+                    await this.refreshAfterRebase(activeProject, record.path, primaryHeadChanged);
 
                     return { session, status: 'conflict' };
                 }
@@ -504,10 +515,10 @@ class WorktreeService {
                 } catch {
                     // The rebase never started; the original failure is the one worth reporting.
                 }
-                await this.refreshAfterMutation();
+                await this.refreshAfterRebase(activeProject, record.path, primaryHeadChanged);
                 throw error;
             }
-            await this.refreshAfterMutation();
+            await this.refreshAfterRebase(activeProject, record.path, primaryHeadChanged);
 
             return { status: 'completed' };
         });
@@ -884,13 +895,7 @@ class WorktreeService {
     }
 
     async requireClean(record, projectBranch) {
-        const refreshedRecord = await this.revalidateRecord(record, projectBranch);
-        if (!refreshedRecord.status.dirty) return refreshedRecord;
-
-        const error = new Error(`Linked worktree has uncommitted changes: ${record.path}`);
-        error.code = DIRTY_LINKED_WORKTREE_ERROR;
-
-        throw error;
+        return requireCleanRecord(await this.revalidateRecord(record, projectBranch));
     }
 
     async deleteBranchNow(project, branchName) {
@@ -911,10 +916,12 @@ class WorktreeService {
         const branch = (await this.runGit(project.rootPath, ['branch', '--show-current'])).trim();
         if (branch !== project.branch) throw new Error(`Primary worktree is on ${branch || 'a detached HEAD'}, expected ${project.branch}`);
         const status = await this.primaryRepositoryStatus(project);
-        if (!status.dirty) return;
+        if (!status.dirty) return false;
 
         await this.runGit(project.rootPath, ['add', '-A']);
         await this.runGit(project.rootPath, ['commit', '-m', PRIMARY_CHECKPOINT_MESSAGE]);
+
+        return true;
     }
 
     /** Lists every dirty entry of the primary worktree, one entry per file, without changing the repository. */
@@ -1033,6 +1040,15 @@ class WorktreeService {
         this.records = this.records.map((candidate) => pathKey(candidate.path) === pathKey(folderPath) ? record : candidate);
         this.publish(null);
         this.scheduleRefresh();
+    }
+
+    async refreshAfterRebase(project, folderPath, primaryHeadChanged) {
+        if (primaryHeadChanged) {
+            await this.refreshAfterMutation();
+            return;
+        }
+
+        await this.refreshRecordAfterMutation(project, folderPath);
     }
 
     scheduleRefresh() {

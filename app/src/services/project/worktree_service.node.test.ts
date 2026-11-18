@@ -5,7 +5,7 @@ import { createDeferred } from '../test_support/data_service_test_support'
 import type { DirtyPrimaryOutcome } from '../../data/primary_change_types'
 import { primaryChangesService } from './primary_changes_service'
 import { PrimaryWorktreeSelectionError } from './worktree_errors'
-import { WorktreeService } from './worktree_service'
+import { cardWorktreeOperationEventType, WorktreeService } from './worktree_service'
 
 const project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\project' }
 const first: WorktreeRecord = {
@@ -446,6 +446,59 @@ describe('WorktreeService', () => {
         await firstAssignment
 
         expect(assignCardWorktree).toHaveBeenCalledWith(firstCard.path, 1, 'design-f-1-md-first')
+    })
+
+    it('scopes pending assignment state and notifications by card internal ID', async () => {
+        const pendingPreparation = createDeferred<void>()
+        const { emit, storage } = createStorage()
+        storage.prepareWorktree = vi.fn(() => pendingPreparation.promise)
+        const service = new WorktreeService()
+        const firstCard = card('design/F-1.md', 'First', null)
+        const secondCard = card('design/F-2.md', 'Second', null)
+        firstCard.header.internalId = 'card-1'
+        secondCard.header.internalId = 'card-2'
+        initService(service, storage, snapshot([firstCard, secondCard]))
+        emit(project, [first])
+        const firstNotifications = vi.fn()
+        const secondNotifications = vi.fn()
+        service.addEventListener(cardWorktreeOperationEventType('card-1'), firstNotifications)
+        service.addEventListener(cardWorktreeOperationEventType('card-2'), secondNotifications)
+
+        const assignment = service.setCardWorktree(firstCard.path, first.branch)
+        expect(service.isPreparingCard('card-1')).toBe(true)
+        expect(service.isPreparingCard('card-2')).toBe(false)
+        expect(firstNotifications).toHaveBeenCalledOnce()
+        expect(secondNotifications).not.toHaveBeenCalled()
+        pendingPreparation.resolve()
+        await assignment
+
+        expect(service.isPreparingCard('card-1')).toBe(false)
+        expect(firstNotifications).toHaveBeenCalledTimes(2)
+        expect(secondNotifications).not.toHaveBeenCalled()
+    })
+
+    it('keeps update pending through save flush and clears scoped state after failure', async () => {
+        const pendingFlush = createDeferred<void>()
+        const { emit, storage } = createStorage()
+        const failure = new Error('save failed')
+        const flushPendingChanges = vi.fn(() => pendingFlush.promise)
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        assignedCard.header.internalId = 'card-1'
+        initService(service, storage, snapshot([assignedCard]), flushPendingChanges)
+        emit(project, [first])
+        const notifications = vi.fn()
+        service.addEventListener(cardWorktreeOperationEventType('card-1'), notifications)
+
+        const update = service.updateCardWorktree(assignedCard.path)
+        expect(service.isPreparingCard('card-1')).toBe(true)
+        expect(storage.rebaseWorktree).not.toHaveBeenCalled()
+        pendingFlush.reject(failure)
+        await expect(update).rejects.toBe(failure)
+
+        expect(service.isPreparingCard('card-1')).toBe(false)
+        expect(notifications).toHaveBeenCalledTimes(2)
+        expect(storage.rebaseWorktree).not.toHaveBeenCalled()
     })
 
     it('keeps the card assigned when backend parking rejects newly dirty state', async () => {

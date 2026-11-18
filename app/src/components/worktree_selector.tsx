@@ -56,13 +56,13 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const deleteBranchPreference = useConfigValueOrFallback('project.deleteBranchAfterIntegration', false)
     // The remembered preference is saved through the project config file, so the dialog tracks the pending choice itself.
     const [deleteBranch, setDeleteBranch] = useState(deleteBranchPreference)
-    const cardPath = assignmentTarget.kind === 'card' ? assignmentTarget.path : null
+    const cardInternalId = assignmentTarget.kind === 'card' ? assignmentTarget.cardInternalId : null
     const assignedWorktree = assignment.worktree ?? null
     const {
         preparing,
         projectDirty: hasPendingProjectChanges,
         record: assignedRecord,
-    } = useWorktreeSelectorState({ assignment, cardPath });
+    } = useWorktreeSelectorState({ assignment, cardInternalId });
     const worktrees = useOpenWorktrees(!!anchorElement)
     const selectorDisabled = disabled || preparing
     const state = assignmentState(assignment);
@@ -100,6 +100,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const label = labelPrefix
         ? `${labelPrefix}: ${folder}${statusLabel}`
         : `${assignmentDescription}${statusLabel}`
+    const accessibleLabel = preparing ? 'Worktree operation in progress' : label
 
     const handleOpen = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
@@ -316,58 +317,84 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     }
 
     const button = (
-        <IconButton
-            aria-label={label}
-            disabled={selectorDisabled}
-            onClick={handleOpen}
-            size="small"
-            sx={{
-                border: 1,
-                borderColor: state.error ? 'error.main' : hasWorktreeChanges ? 'warning.main' : 'divider',
-                color: state.error ? 'error.main' : hasWorktreeChanges ? 'warning.main' : 'text.secondary',
+        <Box
+            sx={(theme) => ({
+                borderRadius: '50%',
+                display: 'inline-flex',
                 height: 26,
-                p: 0,
-                pointerEvents: 'auto',
+                overflow: 'hidden',
+                p: preparing ? '1.5px' : 0,
                 position: 'relative',
                 width: 26,
-            }}
+                ...(preparing && {
+                    '@keyframes md2-worktree-spin': { to: { transform: 'rotate(1turn)' } },
+                    '&::before': {
+                        animation: 'md2-worktree-spin 1s linear infinite',
+                        background: `conic-gradient(from 0deg, ${theme.palette.primary.main}, transparent 55%)`,
+                        content: '""',
+                        inset: '-50%',
+                        pointerEvents: 'none',
+                        position: 'absolute',
+                    },
+                }),
+            })}
         >
-            <Box
+            <IconButton
+                aria-label={accessibleLabel}
+                disabled={selectorDisabled}
+                onClick={handleOpen}
+                size="small"
                 sx={{
-                    alignItems: 'center',
-                    display: 'flex',
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: preparing ? 'transparent' : state.error ? 'error.main' : hasWorktreeChanges ? 'warning.main' : 'divider',
+                    color: state.error ? 'error.main' : hasWorktreeChanges ? 'warning.main' : 'text.secondary',
                     height: '100%',
-                    justifyContent: 'center',
-                    // leave room on the right for the arrow gutter so the glyph stays optically centred
-                    pr: hasWorktreeChanges ? '8px' : 0,
+                    p: 0,
+                    pointerEvents: 'auto',
+                    position: 'relative',
                     width: '100%',
+                    zIndex: 1,
+                    '&:hover': { bgcolor: 'background.paper' },
                 }}
             >
-                {state.value === 'P' ? <SourceBranch sx={{ fontSize: 14 }} /> : (
-                    <Typography component="span" sx={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>
-                        {state.value}
-                    </Typography>
-                )}
-            </Box>
-            {hasWorktreeChanges ? (
                 <Box
                     sx={{
                         alignItems: 'center',
-                        bottom: 0,
                         display: 'flex',
-                        flexDirection: 'column',
+                        height: '100%',
                         justifyContent: 'center',
-                        position: 'absolute',
-                        right: 1,
-                        top: 0,
-                        width: 8,
+                        // leave room on the right for the arrow gutter so the glyph stays optically centred
+                        pr: hasWorktreeChanges ? '8px' : 0,
+                        width: '100%',
                     }}
                 >
-                    {hasOutgoingChanges ? <ArrowUp sx={{ display: 'block', fontSize: 9 }} /> : null}
-                    {hasIncomingChanges ? <ArrowDown sx={{ display: 'block', fontSize: 9 }} /> : null}
+                    {state.value === 'P' ? <SourceBranch sx={{ fontSize: 14 }} /> : (
+                        <Typography component="span" sx={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>
+                            {state.value}
+                        </Typography>
+                    )}
                 </Box>
-            ) : null}
-        </IconButton>
+                {hasWorktreeChanges ? (
+                    <Box
+                        sx={{
+                            alignItems: 'center',
+                            bottom: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            position: 'absolute',
+                            right: 1,
+                            top: 0,
+                            width: 8,
+                        }}
+                    >
+                        {hasOutgoingChanges ? <ArrowUp sx={{ display: 'block', fontSize: 9 }} /> : null}
+                        {hasIncomingChanges ? <ArrowDown sx={{ display: 'block', fontSize: 9 }} /> : null}
+                    </Box>
+                ) : null}
+            </IconButton>
+        </Box>
     )
 
     return (

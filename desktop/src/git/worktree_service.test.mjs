@@ -811,6 +811,143 @@ describe('WorktreeService selected record validation', () => {
     });
 });
 
+async function createFocusedMutationHarness(options = {}) {
+    const repository = await createRepository();
+    const { folderPath, primaryPath } = repository;
+    const selectedPath = repository.linkedPath;
+    const unrelatedPath = join(folderPath, 'unrelated');
+    await runGit(primaryPath, ['worktree', 'add', '-b', 'unrelated', unrelatedPath, 'main']);
+    const project = { branch: 'main', id: primaryPath, rootPath: primaryPath };
+    const status = { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false };
+    const selected = { branch: 'selected', error: null, parkingBranch: null, path: selectedPath, status, valid: true };
+    const unrelated = { branch: 'unrelated', error: null, parkingBranch: null, path: unrelatedPath, status, valid: true };
+    let primaryCommitted = false;
+    const runGitMock = vi.fn(async (rootPath, argumentsValue) => {
+        const [command, option] = argumentsValue;
+        if (command === 'rev-parse' && option === '--git-common-dir') return primaryPath;
+        if (command === 'rev-parse' && option === '--git-dir') return `.git/worktrees/${rootPath === selectedPath ? 'selected' : 'unrelated'}`;
+        if (command === 'rev-parse' && option === 'HEAD') return 'selected-head';
+        if (command === 'branch' && option === '--show-current') return `${rootPath === primaryPath ? 'main' : 'selected'}\n`;
+        if (command === 'status') {
+            if (rootPath === primaryPath) return options.primaryDirty && !primaryCommitted ? ' M primary.txt' : '';
+            if (rootPath === selectedPath) return options.selectedDirty ? ' M selected.txt' : '';
+            return '';
+        }
+        if (command === 'rev-list') return '0\t0';
+        if (command === 'for-each-ref') return '';
+        if (command === 'check-ref-format') return '';
+        if (command === 'show-ref') {
+            if (options.branchExists) return '';
+            const error = new Error('Missing branch');
+            error.code = 1;
+            throw error;
+        }
+        if (command === 'switch') return '';
+        if (command === 'add') return '';
+        if (command === 'commit') {
+            primaryCommitted = true;
+            return '';
+        }
+        if (command === 'rebase') {
+            if (options.rebaseConflict) throw new Error('Rebase conflict');
+            return '';
+        }
+        if (command === 'worktree' && option === 'list') {
+            const selectedBranch = options.preparedBranch ?? 'selected';
+            return [
+                `worktree ${primaryPath}`, 'HEAD primary-head', 'branch refs/heads/main', '',
+                `worktree ${selectedPath}`, 'HEAD selected-head', `branch refs/heads/${selectedBranch}`, '',
+                `worktree ${unrelatedPath}`, 'HEAD unrelated-head', 'branch refs/heads/unrelated', '',
+            ].join('\n');
+        }
+        throw new Error(`Unexpected mocked Git command: ${argumentsValue.join(' ')}`);
+    });
+    const service = new WorktreeService({ clearTimeout: () => {}, runGit: runGitMock, setTimeout: () => 1 });
+    service.project = project;
+    service.records = [selected, unrelated];
+
+    return {
+        cleanup: () => rm(folderPath, { force: true, recursive: true }),
+        primaryPath,
+        project,
+        runGit: runGitMock,
+        selectedPath,
+        service,
+        unrelatedPath,
+    };
+}
+
+describe('WorktreeService focused assignment and update commands', () => {
+    it.each([
+        { branchExists: true, expectedSwitch: ['switch', 'card-branch'], label: 'existing' },
+        { branchExists: false, expectedSwitch: ['switch', '-c', 'card-branch', 'main'], label: 'new' },
+    ])('prepares an $label card branch without inspecting unrelated worktrees', async ({ branchExists, expectedSwitch }) => {
+        const test = await createFocusedMutationHarness({ branchExists, preparedBranch: 'card-branch' });
+        try {
+            await test.service.prepare(test.project, 'selected', 'card-branch');
+
+            expect(test.runGit).toHaveBeenCalledWith(test.selectedPath, expectedSwitch);
+            expect(test.runGit.mock.calls.some(([rootPath]) => rootPath === test.unrelatedPath)).toBe(false);
+            expect(test.runGit.mock.calls.filter(([, argumentsValue]) => argumentsValue[0] === 'worktree')).toHaveLength(1);
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('rejects dirty selected worktree after one validation and before assignment mutation', async () => {
+        const test = await createFocusedMutationHarness({ selectedDirty: true });
+        try {
+            await expect(test.service.prepare(test.project, 'selected', 'card-branch')).rejects.toThrow('uncommitted changes');
+
+            expect(test.runGit.mock.calls.filter(([, argumentsValue]) => argumentsValue[0] === 'status')).toHaveLength(1);
+            expect(test.runGit.mock.calls.some(([, argumentsValue]) => argumentsValue[0] === 'switch')).toBe(false);
+            expect(test.runGit.mock.calls.some(([rootPath]) => rootPath === test.unrelatedPath)).toBe(false);
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('rebases and refreshes only selected worktree when primary HEAD stays unchanged', async () => {
+        const test = await createFocusedMutationHarness();
+        try {
+            await expect(test.service.rebase(test.project, 'selected')).resolves.toEqual({ status: 'completed' });
+
+            expect(test.runGit).toHaveBeenCalledWith(test.selectedPath, ['rebase', 'main']);
+            expect(test.runGit.mock.calls.some(([rootPath]) => rootPath === test.unrelatedPath)).toBe(false);
+            expect(test.runGit.mock.calls.some(([, argumentsValue]) => argumentsValue[0] === 'add')).toBe(false);
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('checkpoints dirty primary HEAD and refreshes every worktree comparison status', async () => {
+        const test = await createFocusedMutationHarness({ primaryDirty: true });
+        try {
+            await expect(test.service.rebase(test.project, 'selected')).resolves.toEqual({ status: 'completed' });
+
+            expect(test.runGit).toHaveBeenCalledWith(test.primaryPath, ['add', '-A']);
+            expect(test.runGit).toHaveBeenCalledWith(test.primaryPath, ['commit', '-m', 'Save project changes before worktree synchronization']);
+            expect(test.runGit.mock.calls.some(([rootPath]) => rootPath === test.unrelatedPath)).toBe(true);
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('publishes selected conflict state without inspecting unrelated worktrees', async () => {
+        const test = await createFocusedMutationHarness({ rebaseConflict: true });
+        const session = { id: 'conflict-session' };
+        vi.spyOn(test.service, 'createConflictSession').mockResolvedValue(session);
+        try {
+            await expect(test.service.rebase(test.project, 'selected')).resolves.toEqual({ session, status: 'conflict' });
+
+            expect(test.runGit.mock.calls.some(([rootPath]) => rootPath === test.unrelatedPath)).toBe(false);
+            expect(test.runGit.mock.calls.filter(([, argumentsValue]) => argumentsValue[0] === 'rebase')).toHaveLength(1);
+        } finally {
+            await test.cleanup();
+        }
+    });
+});
+
 async function withPrimaryRepository(options, run) {
     const repository = await createRepository();
     const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };

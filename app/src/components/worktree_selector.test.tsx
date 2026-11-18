@@ -5,7 +5,8 @@ import type { WorktreeRecord } from '../data/data_types'
 import { dialogService } from '../services/dialog_service'
 import { configService } from '../services/config/config_service'
 import { projectPersistenceService } from '../services/project/project_persistence_service'
-import { worktreeService } from '../services/project/worktree_service'
+import { cardWorktreeOperationEventType, worktreeService } from '../services/project/worktree_service'
+import { createDeferred } from '../services/test_support/data_service_test_support'
 import { AppThemeProvider } from '../theme/theme_provider'
 import { WorktreeSelector } from './worktree_selector'
 import { cardPopupService } from '../services/card_popup_service'
@@ -72,7 +73,7 @@ describe('WorktreeSelector', () => {
         expect(screen.getByRole('button', { name: /Worktree 2: C:\\selected.*dirty yes/u })).toBeInTheDocument();
         act(() => {
             records.mockReturnValue([selected]);
-            worktreeService.dispatchEvent(new Event('changed'));
+            worktreeService.dispatchEvent(new Event('recordsChanged'));
         });
         expect(screen.getByRole('button', { name: /Worktree 1: C:\\selected.*dirty yes/u })).toBeInTheDocument();
         expect(assignment.worktree).toBe(2);
@@ -102,6 +103,98 @@ describe('WorktreeSelector', () => {
 
         expect(firstRender).toHaveBeenCalled()
         expect(secondRender).not.toHaveBeenCalled()
+    })
+
+    it('renders only selector whose card operation state changed', () => {
+        withRecords(worktrees)
+        const preparingCards = new Set<string>()
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => preparingCards.has(cardInternalId))
+        const firstRender = vi.fn()
+        const secondRender = vi.fn()
+        render(<AppThemeProvider>
+            <Profiler id="first" onRender={firstRender}>
+                <WorktreeSelector assignment={{ branch: 'feature', worktree: 1 }} assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }} primaryPath={null} />
+            </Profiler>
+            <Profiler id="second" onRender={secondRender}>
+                <WorktreeSelector assignment={{ branch: 'missing', worktree: 2 }} assignmentTarget={{ cardInternalId: 'card-2', kind: 'card', path: 'design/F-2.md' }} primaryPath={null} />
+            </Profiler>
+        </AppThemeProvider>)
+        firstRender.mockClear()
+        secondRender.mockClear()
+
+        act(() => {
+            preparingCards.add('card-1')
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+        })
+
+        expect(firstRender).toHaveBeenCalled()
+        expect(secondRender).not.toHaveBeenCalled()
+        expect(screen.getByRole('button', { name: 'Worktree operation in progress' })).toBeDisabled()
+    })
+
+    it('shows assignment progress until successful card publication', async () => {
+        const pendingAssignment = createDeferred<void>()
+        let preparing = false
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => cardInternalId === 'card-1' && preparing)
+        vi.spyOn(worktreeService, 'setCardWorktree').mockImplementation(async () => {
+            preparing = true
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            try {
+                await pendingAssignment.promise
+            } finally {
+                preparing = false
+                worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            }
+        })
+        withRecords(worktrees)
+        render(<AppThemeProvider>
+            <WorktreeSelector
+                assignment={{ worktree: null }}
+                assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                primaryPath={'C:\\primary'}
+            />
+        </AppThemeProvider>)
+
+        fireEvent.click(screen.getByRole('button', { name: /Primary worktree: C:\\primary/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /1 .* C:\\feature/u }))
+
+        expect(screen.getByRole('button', { name: 'Worktree operation in progress' })).toBeDisabled()
+        await act(async () => pendingAssignment.resolve())
+        expect(screen.getByRole('button', { name: /Primary worktree: C:\\primary/u })).toBeEnabled()
+    })
+
+    it('clears assignment progress after failure is reported', async () => {
+        const pendingAssignment = createDeferred<void>()
+        const failure = new Error('preparation failed')
+        let preparing = false
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => cardInternalId === 'card-1' && preparing)
+        vi.spyOn(worktreeService, 'setCardWorktree').mockImplementation(async () => {
+            preparing = true
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            try {
+                await pendingAssignment.promise
+            } finally {
+                preparing = false
+                worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            }
+        })
+        const reportError = vi.spyOn(dialogService, 'error')
+        withRecords(worktrees)
+        render(<AppThemeProvider>
+            <WorktreeSelector
+                assignment={{ worktree: null }}
+                assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                primaryPath={'C:\\primary'}
+            />
+        </AppThemeProvider>)
+
+        fireEvent.click(screen.getByRole('button', { name: /Primary worktree: C:\\primary/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /1 .* C:\\feature/u }))
+        expect(screen.getByRole('button', { name: 'Worktree operation in progress' })).toBeDisabled()
+        await act(async () => pendingAssignment.reject(failure))
+
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, { fallbackMessage: 'Could not update worktree assignment' }))
+        expect(screen.getByRole('button', { name: /Primary worktree: C:\\primary/u })).toBeEnabled()
     })
 
     it('updates open assignment menu when record validity changes', () => {
@@ -473,6 +566,31 @@ describe('WorktreeSelector', () => {
         fireEvent.click(screen.getByRole('menuitem', { name: 'Update worktree' }))
 
         await vi.waitFor(() => expect(updateCardWorktree).toHaveBeenCalledWith('design/F-1.md'))
+    })
+
+    it('shows update progress through backend completion', async () => {
+        const pendingUpdate = createDeferred<{ status: 'completed' }>()
+        let preparing = false
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => cardInternalId === 'card-1' && preparing)
+        vi.spyOn(worktreeService, 'updateCardWorktree').mockImplementation(async () => {
+            preparing = true
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            try {
+                return await pendingUpdate.promise
+            } finally {
+                preparing = false
+                worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            }
+        })
+        const behindWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseBehind: 1 } }
+        renderAssignedWorktree(behindWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Update worktree' }))
+
+        expect(screen.getByRole('button', { name: 'Worktree operation in progress' })).toBeDisabled()
+        await act(async () => pendingUpdate.resolve({ status: 'completed' }))
+        expect(screen.getByRole('button', { name: /Worktree 1/u })).toBeEnabled()
     })
 
     it('uses pending project saves for both incoming indicator and update availability', () => {
