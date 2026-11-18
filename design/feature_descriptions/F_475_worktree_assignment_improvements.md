@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__20a597ec-9ca8-4ae1-a47e-a8c2d7279fbf.json
 policy:
+after: c8fdbf7f-e685-4590-8532-4103d2d68287
 ---
 Assigning a card to a worktree (using the button on the card), can take a little bit of time. enough for the user to wonder if anything is happening. I am not certain why this is exactly, so I took a performance trace of both desktop and renderer:
 
