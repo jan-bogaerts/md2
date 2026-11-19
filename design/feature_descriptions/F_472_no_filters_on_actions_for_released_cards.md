@@ -3,12 +3,11 @@ author:
 id: F_472
 internalId: 9700b31c-8ed5-4ec1-bf04-012a1bef1eb5
 title: no filters on actions for released cards
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: b3d4732c-6b1a-41d7-88bf-0347982fc7a9
 ---
 
 When opening the action-popup for a released card from list-view, (so action popup is opened from the card-editor), we only get the '+' action, so we can't see any historical conversation logs. this is not ok.

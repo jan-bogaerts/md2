@@ -5,7 +5,7 @@
       "actionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "cardInternalId": "1f4193b2-d04c-4ade-8628-de3072d3692c",
       "cardPath": "design/feature_descriptions/B_374_claude_agent_gives_problems_with_waitingforinput.md",
-      "completedAt": null,
+      "completedAt": "2026-11-19T10:33:17.650Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 119306
@@ -723,7 +723,7 @@
         }
       ],
       "startedAt": "2026-11-17T13:02:04.256Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -761,7 +761,7 @@
         "totalTokens": 1962025
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -776,14 +776,14 @@
         "agent-2ea7394f-c656-4746-b1fb-07858c909ca8"
       ],
       "details": {
+        "type": "agent",
         "accountId": "codex-initial",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-a5030831-3c62-4aa7-9961-141f0e6ad39e",
       "origin": {
@@ -792,9 +792,9 @@
       },
       "rootActionId": "a82ceffa-4aa0-4d06-b6db-ac3edb008575",
       "rootActionLabel": "investigate",
-      "rootConversationId": "agent-2ea7394f-c656-4746-b1fb-07858c909ca8",
       "startedAt": "2026-11-17T13:02:04.254Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-2ea7394f-c656-4746-b1fb-07858c909ca8"
     }
   ],
   "version": 5

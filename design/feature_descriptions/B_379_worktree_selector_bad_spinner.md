@@ -3,12 +3,16 @@ author:
 id: B_379
 internalId: cfb5544b-315c-4a57-ac8c-cbcad60d6a65
 title: worktree selector bad spinner
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__cfb5544b-315c-4a57-ac8c-cbcad60d6a65.json
 policy:
+after: 61bfe480-a372-4927-84d6-a26973fc8c66
+changedFiles:
+  - app/src/components/worktree_selector.test.tsx
+  - app/src/components/worktree_selector.tsx
 ---
 this is the spinner on the worktree selector:
 
