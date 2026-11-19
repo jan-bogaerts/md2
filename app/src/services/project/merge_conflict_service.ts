@@ -5,6 +5,7 @@ import { register } from '../service_injector'
 
 export interface MergeConflictSnapshot {
     busy: boolean
+    continuing: boolean
     session: MergeConflictSession | null
 }
 
@@ -20,7 +21,7 @@ interface MergeConflictServiceDependencies {
 export class MergeConflictService extends EventTarget {
     private affectedPaths: Set<string> = new Set()
     private dependencies: MergeConflictServiceDependencies | null = null
-    private snapshot: MergeConflictSnapshot = { busy: false, session: null }
+    private snapshot: MergeConflictSnapshot = { busy: false, continuing: false, session: null }
     private unsubscribe: (() => void) | null = null
 
     constructor() {
@@ -33,7 +34,7 @@ export class MergeConflictService extends EventTarget {
         this.dependencies = dependencies
         this.affectedPaths = new Set()
         const { storage } = dependencies
-        this.publish({ busy: false, session: null })
+        this.publish({ busy: false, continuing: false, session: null })
         if (!storage.getMergeConflictSession || !storage.onMergeConflictSessionChanged) return
 
         this.unsubscribe = storage.onMergeConflictSessionChanged((session) => this.handleSessionChanged(session))
@@ -45,7 +46,7 @@ export class MergeConflictService extends EventTarget {
         this.unsubscribe = null
         this.dependencies = null
         this.affectedPaths.clear()
-        this.publish({ busy: false, session: null })
+        this.publish({ busy: false, continuing: false, session: null })
     }
 
     getSnapshot() {
@@ -103,7 +104,7 @@ export class MergeConflictService extends EventTarget {
         this.setBusy(true)
         try {
             const nextSession = await storage.markMergeConflictResolved({ path, sessionId: session.id })
-            this.publish({ busy: true, session: nextSession })
+            this.publish({ ...this.snapshot, session: nextSession })
         } finally {
             this.setBusy(false)
         }
@@ -140,11 +141,11 @@ export class MergeConflictService extends EventTarget {
         const session = this.requireSession()
         if (!dependencies.storage.continueMergeConflict) throw new Error('Continuing merge conflicts requires desktop')
         if (session.conflictedPaths.length > 0) throw new Error('Resolve every conflicted file before continuing')
-        this.setBusy(true)
+        this.publish({ ...this.snapshot, busy: true, continuing: true })
         try {
             const outcome = await dependencies.storage.continueMergeConflict({ sessionId: session.id })
             if (outcome.status === 'conflict') {
-                this.publish({ busy: true, session: outcome.session })
+                this.publish({ ...this.snapshot, session: outcome.session })
                 return
             }
             const reload = this.closeSession(session.id)
@@ -152,7 +153,7 @@ export class MergeConflictService extends EventTarget {
             if (outcome.branchDeleted && outcome.cardInternalId) dependencies.completeBranchCleanup(outcome.cardInternalId)
             await reload
         } finally {
-            this.setBusy(false)
+            this.publish({ ...this.snapshot, busy: false, continuing: false })
         }
     }
 
@@ -205,7 +206,11 @@ export class MergeConflictService extends EventTarget {
     }
 
     private publish(snapshot: MergeConflictSnapshot) {
-        if (this.snapshot.busy === snapshot.busy && this.snapshot.session === snapshot.session) return
+        if (
+            this.snapshot.busy === snapshot.busy
+            && this.snapshot.continuing === snapshot.continuing
+            && this.snapshot.session === snapshot.session
+        ) return
         for (const path of snapshot.session?.conflictedPaths ?? []) this.affectedPaths.add(path)
         this.snapshot = snapshot
         this.dispatchEvent(new CustomEvent<MergeConflictSnapshot>('changed', { detail: snapshot }))

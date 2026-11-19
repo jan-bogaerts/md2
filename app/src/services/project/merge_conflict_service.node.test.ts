@@ -54,7 +54,7 @@ describe('MergeConflictService', () => {
         await service.load()
 
         expect(storage.getMergeConflictSession).toHaveBeenCalled()
-        expect(service.getSnapshot()).toEqual({ busy: false, session: null })
+        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: null })
         expect(service.getSnapshot()).toBe(service.getSnapshot())
     })
 
@@ -197,7 +197,51 @@ describe('MergeConflictService', () => {
 
         await expect(service.rescanSession('session-1')).rejects.toThrow('rescan failed')
 
-        expect(service.getSnapshot()).toEqual({ busy: false, session: session() })
+        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: session() })
+    })
+
+    it('publishes Continue operation state until desktop finalization completes', async () => {
+        let finishContinue: () => void = () => undefined
+        const continueMergeConflict = vi.fn(async () => {
+            await new Promise<void>((resolve) => {
+                finishContinue = resolve
+            })
+
+            return { activityPath: '', branchDeleted: true, cardInternalId: 'card-1', status: 'completed' as const }
+        })
+        const { service } = createHarness(session([]), { continueMergeConflict })
+
+        const continuation = service.continue()
+
+        expect(service.getSnapshot()).toEqual({ busy: true, continuing: true, session: session([]) })
+        finishContinue()
+        await continuation
+        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: null })
+    })
+
+    it('ends Continue progress and retains session when finalization fails so Continue can retry', async () => {
+        const continueMergeConflict = vi.fn()
+            .mockRejectedValueOnce(new Error('finalization failed'))
+            .mockResolvedValueOnce({ activityPath: '', branchDeleted: true, cardInternalId: 'card-1', status: 'completed' })
+        const { service } = createHarness(session([]), { continueMergeConflict })
+
+        await expect(service.continue()).rejects.toThrow('finalization failed')
+
+        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: session([]) })
+
+        await service.continue()
+        expect(continueMergeConflict).toHaveBeenCalledTimes(2)
+        expect(service.getSnapshot().session).toBeNull()
+    })
+
+    it('ends Continue progress and publishes renewed conflicts', async () => {
+        const renewedSession = session(['src/renewed.ts'])
+        const continueMergeConflict = vi.fn(async () => ({ session: renewedSession, status: 'conflict' as const }))
+        const { service } = createHarness(session([]), { continueMergeConflict })
+
+        await service.continue()
+
+        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: renewedSession })
     })
 
     it('continues only with no unmerged paths and reloads every path seen in session', async () => {
@@ -216,7 +260,7 @@ describe('MergeConflictService', () => {
         expect(queueIntegratedActivity.mock.invocationCallOrder[0]).toBeLessThan(completeBranchCleanup.mock.invocationCallOrder[0])
         expect(completeBranchCleanup).toHaveBeenCalledWith('card-1')
         expect(reloadPaths).toHaveBeenCalledWith(['src/one.ts', 'src/two.ts'])
-        expect(service.getSnapshot().session).toBeNull()
+        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: null })
     })
 
     it('aborts session and reloads affected paths', async () => {
