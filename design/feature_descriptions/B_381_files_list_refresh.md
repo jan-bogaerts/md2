@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__d09dffff-8eaf-40b4-a7b4-2a25c28f9923.json
 policy:
-branch: b_381_files_list_refresh
-worktree: 2
 changedFiles:
   - app/src/services/data/data_service.ts
   - app/src/services/project/project_loading.test.ts
