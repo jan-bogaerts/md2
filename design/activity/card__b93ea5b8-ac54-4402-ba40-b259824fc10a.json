@@ -904,10 +904,10 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "b93ea5b8-ac54-4402-ba40-b259824fc10a",
       "cardPath": "design/feature_descriptions/B_380_resolve_merge_conflicts_remains_open_too_long.md",
-      "completedAt": null,
+      "completedAt": "2026-11-19T15:07:07.465Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 56608
+        "usedTokens": 71744
       },
       "entries": [
         {
@@ -1165,6 +1165,615 @@
           "role": "user",
           "sequence": 20,
           "timestamp": "2026-11-19T15:00:26.009Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-21",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0f169ae887d2ac0dfb4849e90d26",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:00:37.250Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Plan approved. Starting Block 1: service-owned `continuing` state plus focused lifecycle tests.\n\n",
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 22,
+          "timestamp": "2026-11-19T15:00:37.903Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-23",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0f25f43887d2ac4ab7a0d2df3a10",
+          "sequence": 23,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:00:52.536Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\project\\merge_conflict_service.node.test.ts\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\project\\merge_conflict_service.ts",
+          "deletions": 10,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-24",
+          "insertions": 59,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-df5a013b-b1ea-4c6a-8b26-f2035c5bfc2e",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:01:14.513Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-25",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0f3d76bc87d2bbadef5c77f52d5d",
+          "sequence": 25,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:01:16.032Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app\\\\src\\\\services\\\\project\\\\merge_conflict_service.ts'; \"'$lines[0..175]; rg -n \"busy: false, session|busy: true, session|MergeConflictSnapshot|continuing\" app'\"\\\\src\"",
+          "content": "import type { ActionContext } from '../../data/action_context'\r\nimport type { StorageService } from '../../data/data_types'\r\nimport type { MergeConflictSession } from '../../data/merge_conflict_types'\r\nimport { register } from '../service_injector'\r\n\r\nexport interface MergeConflictSnapshot {\r\n    busy: boolean\r\n    continuing: boolean\r\n    session: MergeConflictSession | null\r\n}\r\n\r\ninterface MergeConflictServiceDependencies {\r\n    completeBranchCleanup(cardInternalId: string): void\r\n    queueIntegratedActivity(path: string): Promise<void>\r\n    reloadPaths(paths: string[]): Promise<void>\r\n    reportError(error: unknown): void\r\n    storage: StorageService\r\n}\r\n\r\n/** Renderer owner for active desktop conflict state and resolution operations. */\r\nexport class MergeConflictService extends EventTarget {\r\n    private affectedPaths: Set<string> = new Set()\r\n    private dependencies: MergeConflictServiceDependencies | null = null\r\n    private snapshot: MergeConflictSnapshot = { busy: false, continuing: false, session: null }\r\n    private unsubscribe: (() => void) | null = null\r\n\r\n    constructor() {\r\n        super()\r\n        register('mergeConflictService', this)\r\n    }\r\n\r\n    init(dependencies: MergeConflictServiceDependencies) {\r\n        this.unsubscribe?.()\r\n        this.dependencies = dependencies\r\n        this.affectedPaths = new Set()\r\n        const { storage } = dependencies\r\n        this.publish({ busy: false, continuing: false, session: null })\r\n        if (!storage.getMergeConflictSession || !storage.onMergeConflictSessionChanged) return\r\n\r\n        this.unsubscribe = storage.onMergeConflictSessionChanged((session) => this.handleSessionChanged(session))\r\n        void this.loadSafely()\r\n    }\r\n\r\n    clear() {\r\n        this.unsubscribe?.()\r\n        this.unsubscribe = null\r\n        this.dependencies = null\r\n        this.affectedPaths.clear()\r\n        this.publish({ busy: false, continuing: false, session: null })\r\n    }\r\n\r\n    getSnapshot() {\r\n        return this.snapshot\r\n    }\r\n\r\n    isConflictedPath(path: string) {\r\n        return this.snapshot.session?.conflictedPaths.includes(path) ?? false\r\n    }\r\n\r\n    async load() {\r\n        const { storage } = this.requireDependencies()\r\n        if (!storage.getMergeConflictSession) return\r\n        if (this.snapshot.session) {\r\n            await this.verifyCurrentSession()\r\n            return\r\n        }\r\n\r\n        const session = await storage.getMergeConflictSession()\r\n        this.handleSessionChanged(session)\r\n    }\r\n\r\n    async launchResolver(path: string) {\r\n        const { storage } = this.requireDependencies()\r\n        const session = this.requireSession()\r\n        if (!storage.launchMergeConflictResolver) throw new Error('External merge conflict resolver requires desktop')\r\n        this.setBusy(true)\r\n        try {\r\n            await storage.launchMergeConflictResolver({ path, sessionId: session.id })\r\n            await this.verifyCurrentSession()\r\n        } finally {\r\n            this.setBusy(false)\r\n        }\r\n    }\r\n\r\n    async verifyCurrentSession() {\r\n        const dependencies = this.requireDependencies()\r\n        const session = this.snapshot.session\r\n        if (!session || !dependencies.storage.getMergeConflictSession) return\r\n\r\n        const nextSession = await dependencies.storage.getMergeConflictSession()\r\n        if (this.snapshot.session?.id !== session.id) return\r\n        if (nextSession) {\r\n            this.publish({ ...this.snapshot, session: nextSession })\r\n            return\r\n        }\r\n\r\n        await this.closeSession(session.id)\r\n    }\r\n\r\n    async markResolved(path: string) {\r\n        const { storage } = this.requireDependencies()\r\n        const session = this.requireSession()\r\n        if (!storage.markMergeConflictResolved) throw new Error('Marking merge conflicts resolved requires desktop')\r\n        this.setBusy(true)\r\n        try {\r\n            const nextSession = await storage.markMergeConflictResolved({ path, sessionId: session.id })\r\n            this.publish({ ...this.snapshot, session: nextSession })\r\n        } finally {\r\n          \n[3201 characters omitted]\n3:    constructor(value: MergeConflictSnapshot) {\napp\\src\\components\\merge_conflict_dialog.test.tsx:112:    setSnapshot(snapshot: MergeConflictSnapshot) {\napp\\src\\components\\merge_conflict_dialog.test.tsx:142:        const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts', 'src/two.ts']) })\napp\\src\\components\\merge_conflict_dialog.test.tsx:159:        const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts'], false) })\napp\\src\\components\\merge_conflict_dialog.test.tsx:169:        const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts']) })\napp\\src\\components\\merge_conflict_dialog.test.tsx:201:        const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts']) })\napp\\src\\components\\merge_conflict_dialog.test.tsx:215:        service.setSnapshot({ busy: false, session: session(['src/one.ts']) })\napp\\src\\components\\merge_conflict_dialog.test.tsx:238:            const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts']) })\napp\\src\\components\\merge_conflict_dialog.test.tsx:272:        const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts']) })\napp\\src\\components\\merge_conflict_dialog.test.tsx:297:        const service = new FakeMergeConflictService({ busy: false, session: session([]) })\napp\\src\\services\\project\\merge_conflict_service.ts:6:export interface MergeConflictSnapshot {\napp\\src\\services\\project\\merge_conflict_service.ts:8:    continuing: boolean\napp\\src\\services\\project\\merge_conflict_service.ts:24:    private snapshot: MergeConflictSnapshot = { busy: false, continuing: false, session: null }\napp\\src\\services\\project\\merge_conflict_service.ts:37:        this.publish({ busy: false, continuing: false, session: null })\napp\\src\\services\\project\\merge_conflict_service.ts:49:        this.publish({ busy: false, continuing: false, session: null })\napp\\src\\services\\project\\merge_conflict_service.ts:128:        this.publish({ ...this.snapshot, busy: true, continuing: true })\napp\\src\\services\\project\\merge_conflict_service.ts:143:        if (session.conflictedPaths.length > 0) throw new Error('Resolve every conflicted file before continuing')\napp\\src\\services\\project\\merge_conflict_service.ts:148:                this.publish({ busy: true, session: outcome.session })\napp\\src\\services\\project\\merge_conflict_service.ts:156:            this.publish({ ...this.snapshot, busy: false, continuing: false })\napp\\src\\services\\project\\merge_conflict_service.ts:208:    private publish(snapshot: MergeConflictSnapshot) {\napp\\src\\services\\project\\merge_conflict_service.ts:211:            && this.snapshot.continuing === snapshot.continuing\napp\\src\\services\\project\\merge_conflict_service.ts:216:        this.dispatchEvent(new CustomEvent<MergeConflictSnapshot>('changed', { detail: snapshot }))\napp\\src\\services\\project\\merge_conflict_service.node.test.ts:57:        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: null })\napp\\src\\services\\project\\merge_conflict_service.node.test.ts:200:        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: session() })\napp\\src\\services\\project\\merge_conflict_service.node.test.ts:216:        expect(service.getSnapshot()).toEqual({ busy: true, continuing: true, session: session([]) })\napp\\src\\services\\project\\merge_conflict_service.node.test.ts:219:        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: null })\napp\\src\\services\\project\\merge_conflict_service.node.test.ts:230:        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: session([]) })\napp\\src\\services\\project\\merge_conflict_service.node.test.ts:244:        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: renewedSession })\napp\\src\\services\\project\\merge_conflict_service.node.test.ts:263:        expect(service.getSnapshot()).toEqual({ busy: false, continuing: false, session: null })\n",
+          "durationMs": 144,
+          "exitCode": 0,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-26",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app\\\\src\\\\services\\\\project\\\\merge_conflict_service.ts'; \"'$lines[0..175]; rg -n \"busy: false, session|busy: true, session|MergeConflictSnapshot|continuing\" app'\"\\\\src\"",
+          "providerItemId": "exec-cd20cb64-3779-45dd-83d2-ef64ea90b9a9",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:01:20.004Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-27",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0f4371a887d2b6456eac0ddb228e",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:01:22.078Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\project\\merge_conflict_service.ts",
+          "deletions": 3,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-28",
+          "insertions": 3,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-676e11f8-4983-4453-a4a6-dc9f22ce2187",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:01:25.754Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-29",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0f5417f487d29a5a25c98f581a8e",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:01:38.673Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-30",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0f59a36087d2bbea642d43a72fc1",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:01:44.206Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Block 1 code in place. Moving to Block 2: dialog progress UI and component behavior tests.\n\n",
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 31,
+          "timestamp": "2026-11-19T15:01:44.823Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\merge_conflict_dialog.test.tsx\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\merge_conflict_dialog.tsx",
+          "deletions": 11,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-32",
+          "insertions": 27,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-b62d6312-8b03-4e31-bdb6-d1d111dc7245",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:02:08.667Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-33",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0f73739c87d28dd0638b74c66d39",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:02:10.031Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"new FakeMergeConflictService|setSnapshot\\\\(\\\" app\\\\src\\\\components\\\\merge_conflict_dialog.test.tsx; Get-Content 'app\\\\src\\\\components\\\\merge_conflict_dialog.test.tsx' | Select-Object -Last 90\"",
+          "content": "112:    setSnapshot(snapshot: MergeConflictSnapshot) {\n142:        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts', 'src/two.ts']) })\n159:        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts'], false) })\n169:        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts']) })\n201:        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts']) })\n215:        service.setSnapshot({ busy: false, continuing: false, session: session(['src/one.ts']) })\n238:            const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts']) })\n272:        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts']) })\n297:        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session([]) })\n        expect(screen.getByRole('button', { name: 'Mark resolved' })).toBeDisabled()\r\n        expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()\r\n        expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()\r\n        expect(screen.getAllByRole('button', { name: /Other agent/u }).every((button) => button.hasAttribute('disabled'))).toBe(true)\r\n        expect(screen.getAllByRole('button', { name: /Resolve conflict/u })[0]).toBeEnabled()\r\n\r\n        fireEvent.click(screen.getAllByRole('button', { name: /Resolve conflict/u })[0])\r\n        expect(screen.getByRole('dialog', { name: 'Action popup' })).toBeInTheDocument()\r\n        expect(popupProbe.start).not.toHaveBeenCalled()\r\n    })\r\n\r\n    it.each(['completed', 'failed', 'cancelled', 'okButNotAfter'] as const)(\r\n        'rescans matching session once after %s terminal result',\r\n        async (status) => {\r\n            let actionEventListener: ((event: ActionRunEvent) => void) | null = null\r\n            vi.spyOn(actionRunRegistry, 'subscribeContextEvents').mockImplementation((_context, listener) => {\r\n                actionEventListener = listener\r\n\r\n                return vi.fn()\r\n            })\r\n            const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts']) })\r\n            renderDialog(service, [action('Resolve conflict', 'merge-conflict')])\r\n            fireEvent.click(screen.getAllByRole('button', { name: /Resolve conflict/u })[0])\r\n            await waitFor(() => expect(actionEventListener).not.toBeNull())\r\n\r\n            emitActionEvent(actionEventListener, {\r\n                actionId: 'Resolve conflict',\r\n                context: popupProbe.current?.context ?? { kind: 'merge-conflict' },\r\n                phase: 'main',\r\n                rootActionId: 'Resolve conflict',\r\n                runId: `run-${status}`,\r\n                status,\r\n                type: 'run',\r\n            })\r\n\r\n            await waitFor(() => expect(service.rescanSession).toHaveBeenCalledWith('session-1'))\r\n            expect(service.rescanSession).toHaveBeenCalledOnce()\r\n        },\r\n    )\r\n\r\n    it('reports popup launch and terminal rescan failures', async () => {\r\n        let actionEventListener: ((event: ActionRunEvent) => void) | null = null\r\n        vi.spyOn(actionRunRegistry, 'subscribeContextEvents').mockImplementation((_context, listener) => {\r\n            actionEventListener = listener\r\n\r\n            return vi.fn()\r\n        })\r\n        const reportError = vi.spyOn(dialogService, 'error').mockReturnValue({\r\n            critical: false,\r\n            id: 1,\r\n            message: '',\r\n            severity: 'error',\r\n            title: '',\r\n        })\r\n        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts']) })\r\n        service.createActionContext.mockImplementationOnce(() => {\r\n            throw new Error('popup failed')\r\n        })\r\n        renderDialog(service, [action('Resolve conflict', 'merge-conflict')])\r\n        fireEvent.click(screen.getAllByRole('button', { name: /Resolve conflict/u })[0])\r\n        expect(reportError).toHaveBeenCalledWith(expect.any(Error), {fallbackMessage: 'Could not open merge conflict action: Resolve conflict'})\r\n\r\n        fireEvent.click(screen.getAllByRole('button', { name: /Resolve conflict/u })[0])\r\n        await waitFor(() => expect(actionEventListener).not.toBeNull())\r\n        service.rescanSession.mockRejectedValueOnce(new Error('rescan failed'))\r\n        emitActionEvent(actionEventListener, {\r\n            actionId: 'Resolve conflict',\r\n            context: popupProbe.current?.context ?? { kind: 'merge-conflict' },\r\n            phase: 'main',\r\n            rootActionId: 'Resolve conflict',\r\n            runId: 'run-1',\r\n            status: 'failed',\r\n            type: 'run',\r\n        })\r\n\r\n        await waitFor(() => expect(reportError).toHaveBeenCalledWith(expect.any(Error), {fallbackMessage: 'Could not rescan merge conflicts after agent action'}))\r\n    })\r\n\r\n    it('enables Continue only after Git reports no unmerged paths', async () => {\r\n        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session([]) })\r\n        renderDialog(service, [])\r\n\r\n        expect(screen.getByText('All conflict entries are staged. Continue when ready.')).toBeInTheDocument()\r\n        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))\r\n        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))\r\n\r\n        await waitFor(() => expect(service.continue).toHaveBeenCalledOnce())\r\n        expect(service.abort).toHaveBeenCalledOnce()\r\n    })\r\n})\r\n",
+          "durationMs": 134,
+          "exitCode": 0,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-34",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"new FakeMergeConflictService|setSnapshot\\\\(\\\" app\\\\src\\\\components\\\\merge_conflict_dialog.test.tsx; Get-Content 'app\\\\src\\\\components\\\\merge_conflict_dialog.test.tsx' | Select-Object -Last 90\"",
+          "providerItemId": "exec-efaa3fc6-2f68-4157-97a0-7f3537485620",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:02:13.497Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-35",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0f7ff70887d290d988009649f1c3",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:02:22.543Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\merge_conflict_dialog.test.tsx\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\merge_conflict_dialog.tsx",
+          "deletions": 1,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-36",
+          "insertions": 67,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-f6abd5f3-28a4-4a3a-bf0f-e0af6c336aae",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:02:45.824Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-37",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0f99298c87d29666a49b966f4b8a",
+          "sequence": 37,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:02:47.731Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app\\\\src\\\\services\\\\project\\\\merge_conflict_service.ts'; \"'$lines[118..162]; rg -n \"busy: (true|false), session\" app'\"\\\\src\\\\services\\\\project\\\\merge_conflict_service.ts app\\\\src\\\\components\\\\merge_conflict_dialog.test.tsx app\\\\src\\\\services\\\\project\\\\merge_conflict_service.node.test.ts\"",
+          "content": "            conflictSessionId: session.id,\r\n            kind: 'merge-conflict',\r\n        }\r\n    }\r\n\r\n    async rescanSession(sessionId: string) {\r\n        const { storage } = this.requireDependencies()\r\n        if (this.snapshot.session?.id !== sessionId) return\r\n        if (!storage.rescanMergeConflict) throw new Error('Rescanning merge conflicts requires desktop')\r\n        this.setBusy(true)\r\n        try {\r\n            const nextSession = await storage.rescanMergeConflict({ sessionId })\r\n            if (this.snapshot.session?.id !== sessionId) return\r\n\r\n            this.publish({ ...this.snapshot, session: nextSession })\r\n        } finally {\r\n            if (this.snapshot.session?.id === sessionId) this.setBusy(false)\r\n        }\r\n    }\r\n\r\n    async continue() {\r\n        const dependencies = this.requireDependencies()\r\n        const session = this.requireSession()\r\n        if (!dependencies.storage.continueMergeConflict) throw new Error('Continuing merge conflicts requires desktop')\r\n        if (session.conflictedPaths.length > 0) throw new Error('Resolve every conflicted file before continuing')\r\n        this.publish({ ...this.snapshot, busy: true, continuing: true })\r\n        try {\r\n            const outcome = await dependencies.storage.continueMergeConflict({ sessionId: session.id })\r\n            if (outcome.status === 'conflict') {\r\n                this.publish({ ...this.snapshot, session: outcome.session })\r\n                return\r\n            }\r\n            const reload = this.closeSession(session.id)\r\n            if (outcome.activityPath) await dependencies.queueIntegratedActivity(outcome.activityPath)\r\n            if (outcome.branchDeleted && outcome.cardInternalId) dependencies.completeBranchCleanup(outcome.cardInternalId)\r\n            await reload\r\n        } finally {\r\n            this.publish({ ...this.snapshot, busy: false, continuing: false })\r\n        }\r\n    }\r\n\r\n    async abort() {\r\n        const dependencies = this.requireDependencies()\r\n        const session = this.requireSession()\r\n        if (!dependencies.storage.abortMergeConflict) throw new Error('Aborting merge conflicts requires desktop')\r\n",
+          "durationMs": 95,
+          "exitCode": 1,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-38",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app\\\\src\\\\services\\\\project\\\\merge_conflict_service.ts'; \"'$lines[118..162]; rg -n \"busy: (true|false), session\" app'\"\\\\src\\\\services\\\\project\\\\merge_conflict_service.ts app\\\\src\\\\components\\\\merge_conflict_dialog.test.tsx app\\\\src\\\\services\\\\project\\\\merge_conflict_service.node.test.ts\"",
+          "providerItemId": "exec-b24ef410-bcc9-4dae-9460-d080a9890b17",
+          "sequence": 38,
+          "status": "failed",
+          "timestamp": "2026-11-19T15:02:51.680Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-39",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0f9f863887d2b9215327f0c28e05",
+          "sequence": 39,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:02:54.142Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Blocks 1–2 implemented. Service state now spans full desktop finalization. Dialog progress replaces staged-success UI, keeps session visible, disables controls. Starting related tests and static checks.\n\n",
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 40,
+          "timestamp": "2026-11-19T15:02:55.001Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0fa89bb887d2a8dedaf48d971cb3",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:03:03.180Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/project/merge_conflict_service.node.test.ts src/components/merge_conflict_dialog.test.tsx'",
+          "content": "\n> app@0.11.6 test\n> vitest run src/services/project/merge_conflict_service.node.test.ts src/components/merge_conflict_dialog.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  2 passed (2)\n      Tests  31 passed (31)\n   Start at  16:03:07\n   Duration  7.51s (transform 501ms, setup 216ms, import 2.78s, tests 2.78s, environment 1.46s)\n\n",
+          "durationMs": 8782,
+          "exitCode": 0,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-42",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/project/merge_conflict_service.node.test.ts src/components/merge_conflict_dialog.test.tsx'",
+          "providerItemId": "exec-8909c194-0ea5-4535-bd2d-1c60d6224aeb",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:03:14.760Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-43",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0fb580c887d295c3c5a7dbde0dad",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:03:16.065Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> app@0.11.6 lint\n> eslint .\n\n\nC:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\merge_conflict_dialog.test.tsx\n  351:89  error  Unexpected line break after this opening brace   object-curly-newline\n  353:9   error  Unexpected line break before this closing brace  object-curly-newline\n\n✖ 2 problems (2 errors, 0 warnings)\n  2 errors and 0 warnings potentially fixable with the `--fix` option.\n\n",
+          "durationMs": 68720,
+          "exitCode": 1,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-44",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-9b7d8255-910b-4d19-a4eb-5438f4ca0182",
+          "sequence": 44,
+          "status": "failed",
+          "timestamp": "2026-11-19T15:04:26.645Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0fda257887d2b93b47f72003ecdb",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:03:52.723Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "item/commandExecution/terminalInteraction: unknown (exec-9b7d8255-910b-4d19-a4eb-5438f4ca0182)",
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-46",
+          "kind": "event",
+          "label": "Codex protocol diagnostic",
+          "providerItemId": "diagnostic:exec-9b7d8255-910b-4d19-a4eb-5438f4ca0182:1",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:04:23.574Z",
+          "type": "diagnostic"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0ffa262487d2ad1f23935f0ff8d5",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:04:24.719Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-48",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff0ffd863887d299618717092b96e0",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:04:28.079Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app\\\\src\\\\components\\\\merge_conflict_dialog.test.tsx'; for (\"'$index = 344; $index -le 356; $index++) { '\"'{0}: {1}' -f (\"'$index + 1), $lines[$index] }'",
+          "content": "345:             throw new Error('finalization failed')\r\n346:         })\r\n347:         renderDialog(service, [])\r\n348: \r\n349:         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))\r\n350: \r\n351:         await waitFor(() => expect(reportError).toHaveBeenCalledWith(expect.any(Error), {\r\n352:             fallbackMessage: 'Could not continue paused Git operation',\r\n353:         }))\r\n354:         expect(screen.getByRole('dialog', { name: 'Resolve merge conflicts' })).toBeInTheDocument()\r\n355:         expect(screen.getByText('All conflict entries are staged. Continue when ready.')).toBeInTheDocument()\r\n356:         expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()\r\n357: \r\n",
+          "durationMs": 64,
+          "exitCode": 0,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-49",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app\\\\src\\\\components\\\\merge_conflict_dialog.test.tsx'; for (\"'$index = 344; $index -le 356; $index++) { '\"'{0}: {1}' -f (\"'$index + 1), $lines[$index] }'",
+          "providerItemId": "exec-0f6daafd-3d2c-45b2-8e41-c03097e69520",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:04:32.184Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-50",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff10063f6887d29f5260ffc54c71c1",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:04:36.815Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\merge_conflict_dialog.test.tsx",
+          "deletions": 3,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-51",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-63a5893f-daa8-4418-aeae-5ca6fa10e6e4",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:04:40.079Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-52",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff100ab75c87d29e00f4fd15c22078",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:04:41.285Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> app@0.11.6 lint\n> eslint .\n\n",
+          "durationMs": 53987,
+          "exitCode": 0,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-53",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-1b380644-dc7e-4b0b-a9f2-2355fb0589e8",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:05:37.188Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-54",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff102bab4087d289140a001ded8f2f",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:05:14.656Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-55",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff1043b57c87d286e7adccbe8f9fae",
+          "sequence": 55,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:05:38.264Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run typecheck'",
+          "content": "\n> app@0.11.6 typecheck\n> tsc --noEmit\n\n",
+          "durationMs": 38061,
+          "exitCode": 0,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-56",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run typecheck'",
+          "providerItemId": "exec-ae453c6a-866d-478c-8582-42c47eb8054d",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:06:19.072Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-57",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff1065f1d087d283fcaca0e4cee45e",
+          "sequence": 57,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:06:12.497Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-58",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff1068cf6887d2a3c318757e428baf",
+          "sequence": 58,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:06:15.411Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-59",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff106fc25087d28d8ae243d654b7b7",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:06:22.324Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Related checks pass: 31 tests, app lint, app typecheck. Starting final block: update source feature status only.\n\n",
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 60,
+          "timestamp": "2026-11-19T15:06:23.209Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_380_resolve_merge_conflicts_remains_open_too_long.md",
+          "deletions": 1,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-61",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-2125b5f4-f88e-41b7-abe4-74dde0fdd4ce",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:06:35.283Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-62",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff1083519c87d2a4dc47e894d2430e",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:06:41.891Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_380_resolve_merge_conflicts_remains_open_too_long.md' -Pattern '\"'^status:'\"'\"",
+          "content": "\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_380_resolve_merge_conflicts_remains_open_too_long.md:6:s\r\ntatus: ready\r\n\r\n\r\n",
+          "durationMs": 105,
+          "exitCode": 0,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-63",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Select-String -Path 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_380_resolve_merge_conflicts_remains_open_too_long.md' -Pattern '\"'^status:'\"'\"",
+          "providerItemId": "exec-a20144be-428c-4c40-af2d-817992c81732",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:06:47.441Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/project/merge_conflict_service.node.test.ts src/components/merge_conflict_dialog.test.tsx'",
+          "content": "\n> app@0.11.6 test\n> vitest run src/services/project/merge_conflict_service.node.test.ts src/components/merge_conflict_dialog.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  2 passed (2)\n      Tests  31 passed (31)\n   Start at  16:06:48\n   Duration  5.92s (transform 333ms, setup 111ms, import 1.91s, tests 2.72s, environment 924ms)\n\n",
+          "durationMs": 7018,
+          "exitCode": 0,
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-64",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/services/project/merge_conflict_service.node.test.ts src/components/merge_conflict_dialog.test.tsx'",
+          "providerItemId": "exec-3b145a70-f9ac-43da-a355-712b6c9d0c01",
+          "sequence": 64,
+          "status": "completed",
+          "timestamp": "2026-11-19T15:06:54.427Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-65",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff109141cc87d2b2ea139f1c12134f",
+          "sequence": 65,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:06:55.854Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-event-66",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0f3995fa33768795016aff1098247887d28dd9a3ed74f85f80",
+          "sequence": 66,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T15:07:02.696Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Implemented feature.\n\n- Added service-owned `continuing` state across full finalization lifecycle in [merge_conflict_service.ts](C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\project\\merge_conflict_service.ts:6).\n- Added progress message, spinner, `Finishing...` button, and disabled controls in [merge_conflict_dialog.tsx](C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\merge_conflict_dialog.tsx:70).\n- Added success, failure/retry, renewed-conflict, closure, spinner, and disabled-control tests.\n- Preserved desktop finalization and worktree-selector behavior.\n- Set feature [status to `ready`](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_380_resolve_merge_conflicts_remains_open_too_long.md:6).\n\nVerification:\n\n- Related tests: 31 passed.\n- App lint: passed.\n- App typecheck: passed.\n\n",
+          "id": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 67,
+          "timestamp": "2026-11-19T15:07:07.465Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1175,55 +1784,55 @@
           "agent": "codex",
           "conversationId": "01a1f3fe-7789-7843-ab50-23043134d49c",
           "createdAt": "2026-11-19T13:28:23.772Z",
-          "lastUsedAt": "2026-11-19T15:00:26.142Z",
-          "synchronizedThroughMessageId": "submission-8cd74d18-af63-4877-a567-185e6105f966"
+          "lastUsedAt": "2026-11-19T15:07:07.465Z",
+          "synchronizedThroughMessageId": "agent-turn-19c6676b-04f3-4013-9dde-b26070ee2b8a-turn-2-assistant-5"
         }
       ],
       "startedAt": "2026-11-19T13:28:22.426Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
             "id": "0",
             "subject": "Block 1 — Add renderer MergeConflictService Continue-operation snapshot state; set before desktop call, clear in existing finally path; preserve busy/session/finalization/retry behavior. Add focused service tests for running, success, conflict, and failure state.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "1",
             "subject": "Block 2 — Update MergeConflictDialog to render finishing spinner/message and Finishing... button spinner from service state; keep all controls disabled. Add focused component tests for immediate progress UI, disabled controls, successful close, and failure retry UI.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Block 3 — Run only related app service/component tests, related lint, and typecheck; fix failures within feature scope.",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Block 4 — After implementation and verification, change source feature status to ready in C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_380_resolve_merge_conflicts_remains_open_too_long.md.",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-19T13:29:09.276Z"
+        "updatedAt": "2026-11-19T15:07:00.624Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 32,
-          "toolMs": 1431
+          "reasoningMs": 66,
+          "toolMs": 188712
         },
-        "elapsedMs": 59511,
-        "runningStartedAt": "2026-11-19T15:00:26.009Z"
+        "elapsedMs": 460967,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 341888,
-        "inputTokens": 42916,
-        "outputTokens": 1350,
-        "reasoningTokens": 894,
-        "totalTokens": 387048
+        "cachedInputTokens": 2068736,
+        "inputTokens": 52805,
+        "outputTokens": 8032,
+        "reasoningTokens": 4045,
+        "totalTokens": 2133618
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -1257,6 +1866,33 @@
       "startedAt": "2026-11-19T10:37:47.275Z",
       "status": "completed",
       "rootConversationId": "agent-b8cc85d2-0ad3-400d-9b14-9413ba9c93b9"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-19T15:07:07.481Z",
+      "conversationIds": [
+        "agent-948a3e59-1a0d-42ab-93fc-8a754b26d280"
+      ],
+      "details": {
+        "type": "agent",
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default"
+      },
+      "runId": "action-80b23cce-6250-458e-86fa-e2c40b9fff1c",
+      "origin": {
+        "cardInternalId": "b93ea5b8-ac54-4402-ba40-b259824fc10a",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "startedAt": "2026-11-19T13:28:17.863Z",
+      "status": "completed",
+      "rootConversationId": "agent-948a3e59-1a0d-42ab-93fc-8a754b26d280"
     }
   ],
   "version": 5

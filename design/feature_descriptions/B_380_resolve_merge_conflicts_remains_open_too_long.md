@@ -3,7 +3,7 @@ author:
 id: B_380
 internalId: b93ea5b8-ac54-4402-ba40-b259824fc10a
 title: resolve merge conflicts remains open too long
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,11 @@ policy:
 after: d09dffff-8eaf-40b4-a7b4-2a25c28f9923
 branch: b_380_resolve_merge_conflicts_remains_open_too_long
 worktree: 1
+changedFiles:
+  - app/src/components/merge_conflict_dialog.test.tsx
+  - app/src/components/merge_conflict_dialog.tsx
+  - app/src/services/project/merge_conflict_service.node.test.ts
+  - app/src/services/project/merge_conflict_service.ts
 ---
 
 ## Current state
