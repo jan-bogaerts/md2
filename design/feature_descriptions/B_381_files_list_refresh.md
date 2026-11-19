@@ -3,7 +3,7 @@ author:
 id: B_381
 internalId: d09dffff-8eaf-40b4-a7b4-2a25c28f9923
 title: files list refresh
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,14 @@ agents:
 policy:
 branch: b_381_files_list_refresh
 worktree: 2
+changedFiles:
+  - app/src/services/data/data_service.ts
+  - app/src/services/project/project_loading.test.ts
+  - app/src/services/project/project_loading.ts
+  - app/src/services/project/project_state.node.test.ts
+  - app/src/services/project/project_state.ts
+  - desktop/src/project/project_files.js
+  - desktop/src/project/project_files.test.mjs
 ---
 
 we already have a file watcher in the desktop which monitors file changes in the repository.
