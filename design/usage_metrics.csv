@@ -12100,3 +12100,6 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-19T09:25:02.088Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,18,0,claude-initial
 2026-11-19T09:30:25.567Z,account_usage,claude,default,weekly,10080,2026-11-22T16:59:00.000Z,,,,,,18,0,claude-initial
 2026-11-19T09:30:59.309Z,token_usage,claude,,,,,21,505141,2960,0,508122,,,claude-initial
+2026-11-19T09:30:51.946Z,account_usage,claude,default,weekly,10080,2026-11-22T16:59:00.000Z,,,,,,19,1,claude-initial
+2026-11-19T09:40:51.994Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,19,0,claude-initial
+2026-11-19T09:42:52.002Z,account_usage,claude,default,weekly,10080,2026-11-22T17:00:00.000Z,,,,,,20,1,claude-initial
