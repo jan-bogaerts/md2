@@ -13,6 +13,7 @@ const {
     commit,
     commitNow,
     deleteFileNow,
+    isWatchedProjectEvent,
     isWatchedProjectPath,
     listRepositoryFiles,
     loadImageFile,
@@ -38,6 +39,13 @@ describe('project-files', () => {
         expect(isWatchedProjectPath('README.TXT')).toBe(true);
         expect(isWatchedProjectPath('action.json')).toBe(true);
         expect(isWatchedProjectPath('image.png')).toBe(false);
+    });
+
+    it('watches structural events for every repository path', () => {
+        expect(isWatchedProjectEvent('create', 'images/photo.png')).toBe(true);
+        expect(isWatchedProjectEvent('delete', 'assets')).toBe(true);
+        expect(isWatchedProjectEvent('update', 'images/photo.png')).toBe(false);
+        expect(isWatchedProjectEvent('update', 'README.md')).toBe(true);
     });
 
     it('writes move target and stages tracked source deletion when source is already absent', async () => {

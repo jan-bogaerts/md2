@@ -239,6 +239,14 @@ export class ProjectState {
         this.currentSnapshot = { ...this.currentSnapshot, repositoryFiles }
     }
 
+    replaceRepositoryFiles(repositoryFiles: string[]) {
+        if (!this.currentSnapshot || isSameArray(this.currentSnapshot.repositoryFiles, repositoryFiles)) return false
+
+        this.currentSnapshot = { ...this.currentSnapshot, repositoryFiles }
+
+        return true
+    }
+
     addRepositoryFile(path: string) {
         this.updateRepositoryFile({ changeKind: 'added', path })
     }

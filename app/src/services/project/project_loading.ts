@@ -56,6 +56,7 @@ const PROJECT_CONFIG_PATH = 'md2.config.json'
 const MARKDOWN_RELOAD_DEBOUNCE_MS = 50
 const MARKDOWN_REMOVAL_GRACE_MS = 750
 const PROJECT_LOAD_ERROR_REPORTED = Symbol('project-load-error-reported')
+const REPOSITORY_LIST_REFRESH_DEBOUNCE_MS = 250
 
 type ReportedProjectLoadError = object & { [PROJECT_LOAD_ERROR_REPORTED]?: boolean }
 
@@ -159,6 +160,7 @@ export interface ProjectLoadingDeps {
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
     replaceProject(project: ProjectReference | null): void
     replaceProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
+    replaceRepositoryFiles(repositoryFiles: string[]): boolean
     updateFiles(updatedFiles: MarkdownFile[], removedPaths: string[], workingFolder: string): void
     updateRepositoryFile(event: ProjectWatchEvent): void
     requireDependencies(): RequiredDataServiceDependencies
@@ -178,6 +180,8 @@ export class ProjectLoading {
     private markdownReloadTimeout: number | null = null
     private mergeConflictVerifyTimeout: number | null = null
     private pendingDetectedCardImportsBySourcePath: Map<string, PendingDetectedCardImport> = new Map()
+    private repositoryListRefreshRevision = 0
+    private repositoryListRefreshTimeout: number | null = null
     private watchCleanup: (() => void) | null = null
 
     constructor(
@@ -234,6 +238,7 @@ export class ProjectLoading {
 
     async openProject(project: ProjectReference) {
         const { storage } = this.dependencies.requireDependencies()
+        this.clearRepositoryListRefresh()
         await this.dependencies.flushPendingChanges()
         this.clearMarkdownReloadTimeout()
         this.clearMarkdownRemovalTimeouts()
@@ -432,6 +437,7 @@ export class ProjectLoading {
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot reload project snapshot before a project is open')
 
+        this.clearRepositoryListRefresh()
         const projectLoadToken = this.dependencies.beginProjectLoad()
         this.prepareAgentConversationLoading(projectLoadToken)
         void this.hydrateProjectConversations()
@@ -451,6 +457,7 @@ export class ProjectLoading {
     }
 
     stopProjectWatch() {
+        this.clearRepositoryListRefresh()
         if (!this.watchCleanup) return
 
         this.watchCleanup()
@@ -801,6 +808,7 @@ export class ProjectLoading {
     }
 
     private handleProjectWatchEvent(event: ProjectWatchEvent) {
+        this.scheduleRepositoryListRefreshIfStructural(event)
         if (mergeConflictService.isConflictedPath(event.path)) {
             this.scheduleMergeConflictVerification()
             return
@@ -816,14 +824,15 @@ export class ProjectLoading {
     }
 
     private handleExternalProjectWatchEvent(event: ProjectWatchEvent) {
+        const isStructural = this.isStructuralRepositoryEvent(event)
         if (agentInstructionsService.hasFile(event.path)) {
-            this.dependencies.updateRepositoryFile(event)
+            if (!isStructural) this.dependencies.updateRepositoryFile(event)
             this.dependencies.dispatchRepositoryChanged(event)
             void this.reloadAgentInstructionFromWatch(event)
             return
         }
 
-        this.dependencies.updateRepositoryFile(event)
+        if (!isStructural) this.dependencies.updateRepositoryFile(event)
         this.dependencies.dispatchRepositoryChanged(event)
         if (event.path === PROJECT_CONFIG_PATH) {
             void this.reloadProjectConfigFromWatch()
@@ -844,6 +853,69 @@ export class ProjectLoading {
         if (!isProjectMarkdownPath(event.path, config.projectFolder)) return
 
         this.scheduleMarkdownReload(event)
+    }
+
+    private scheduleRepositoryListRefreshIfStructural(event: ProjectWatchEvent) {
+        if (!this.isStructuralRepositoryEvent(event)) return
+
+        const project = this.dependencies.project()
+        const storage = this.dependencies.storage()
+        if (!project || !storage) return
+
+        this.clearRepositoryListRefresh()
+        const projectLoadToken = this.dependencies.projectToken()
+        const refreshRevision = this.repositoryListRefreshRevision
+        this.repositoryListRefreshTimeout = window.setTimeout(() => {
+            this.repositoryListRefreshTimeout = null
+            void this.refreshRepositoryList(project, projectLoadToken, refreshRevision)
+        }, REPOSITORY_LIST_REFRESH_DEBOUNCE_MS)
+    }
+
+    private isStructuralRepositoryEvent(event: ProjectWatchEvent) {
+        if (event.changeKind === 'removed') return true
+
+        const repositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []
+        const normalizedPath = normalizePath(event.path)
+
+        return !repositoryFiles.some((path) => normalizePath(path) === normalizedPath)
+    }
+
+    private async refreshRepositoryList(
+        project: ProjectReference,
+        projectLoadToken: number,
+        refreshRevision: number,
+    ) {
+        const storage = this.dependencies.storage()
+        if (!storage || !this.isCurrentRepositoryListRefresh(project, projectLoadToken, refreshRevision)) return
+
+        try {
+            const listedPaths = await storage.listRepositoryFiles(project)
+            if (!this.isCurrentRepositoryListRefresh(project, projectLoadToken, refreshRevision)) return
+
+            const repositoryFiles = excludeAgentInstructionPaths(listedPaths)
+                .sort((left, right) => left.localeCompare(right))
+            if (this.dependencies.replaceRepositoryFiles(repositoryFiles)) this.dependencies.dispatchChanged()
+        } catch (error) {
+            if (!this.isCurrentRepositoryListRefresh(project, projectLoadToken, refreshRevision)) return
+            reportOptionalProjectLoadFailure('Repository file index', error)
+        }
+    }
+
+    private isCurrentRepositoryListRefresh(
+        project: ProjectReference,
+        projectLoadToken: number,
+        refreshRevision: number,
+    ) {
+        return refreshRevision === this.repositoryListRefreshRevision
+            && this.dependencies.isCurrentLoad(project, projectLoadToken)
+    }
+
+    private clearRepositoryListRefresh() {
+        this.repositoryListRefreshRevision += 1
+        if (this.repositoryListRefreshTimeout === null) return
+
+        window.clearTimeout(this.repositoryListRefreshTimeout)
+        this.repositoryListRefreshTimeout = null
     }
 
     private async reloadAgentInstructionFromWatch(event: ProjectWatchEvent) {

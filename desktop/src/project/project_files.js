@@ -506,8 +506,7 @@ function watchProject(project, onChange, onError) {
         for (const event of events) {
             const fullPath = ensureInsideRoot(rootPath, event.path);
             const normalizedPath = normalizePath(path.relative(rootPath, fullPath));
-            const lowerPath = normalizedPath.toLowerCase();
-            if (!isWatchedProjectPath(lowerPath)) continue;
+            if (!isWatchedProjectEvent(event.type, normalizedPath)) continue;
 
             const pendingTimer = settleTimersByPath.get(normalizedPath);
             if (pendingTimer) clearTimeout(pendingTimer);
@@ -538,6 +537,10 @@ function isWatchedProjectPath(filePath) {
         || lowerPath.endsWith(TEXT_EXTENSION);
 }
 
+function isWatchedProjectEvent(eventType, filePath) {
+    return eventType === 'create' || eventType === 'delete' || isWatchedProjectPath(filePath);
+}
+
 module.exports = {
     commit,
     commitNow,
@@ -555,6 +558,7 @@ module.exports = {
     loadProjectConfig,
     loadProjectRoot,
     loadTextFile,
+    isWatchedProjectEvent,
     isWatchedProjectPath,
     moveFiles,
     resolveExistingProjectEntry,

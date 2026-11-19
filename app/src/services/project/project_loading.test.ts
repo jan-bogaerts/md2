@@ -162,6 +162,200 @@ describe('ProjectLoading', () => {
         }
     })
 
+    it('debounces repository-list refreshes for structural bursts and skips known-path content changes', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        let repositoryFiles = ['assets/old.png', 'design/F-1-root.md', 'src/app.ts']
+        const listRepositoryFiles = vi.fn(async () => repositoryFiles)
+        const storage = createStorage({
+            listRepositoryFiles,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.reloadCurrentProjectSnapshot()
+        listRepositoryFiles.mockClear()
+        const changed = vi.fn()
+        service.addEventListener('changed', changed)
+
+        watchChange({ changeKind: 'changed', path: 'src/app.ts' })
+        await vi.advanceTimersByTimeAsync(250)
+        expect(listRepositoryFiles).not.toHaveBeenCalled()
+
+        repositoryFiles = ['assets/new.png', 'design/F-1-root.md', 'src/app.ts']
+        watchChange({ changeKind: 'removed', path: 'assets/old.png' })
+        await vi.advanceTimersByTimeAsync(150)
+        watchChange({ changeKind: 'changed', path: 'assets/new.png' })
+        await vi.advanceTimersByTimeAsync(249)
+        expect(listRepositoryFiles).not.toHaveBeenCalled()
+        await vi.advanceTimersByTimeAsync(1)
+
+        expect(listRepositoryFiles).toHaveBeenCalledOnce()
+        expect(service.getState().snapshot?.repositoryFiles).toEqual(repositoryFiles)
+        expect(changed).toHaveBeenCalledOnce()
+    })
+
+    it('sorts refreshed repository files and excludes agent instruction paths', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const listRepositoryFiles = vi.fn(async () => ['design/F-1-root.md'])
+        const storage = createStorage({
+            listRepositoryFiles,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.reloadCurrentProjectSnapshot()
+        listRepositoryFiles.mockClear()
+        listRepositoryFiles.mockResolvedValue(['src/z.ts', 'AGENTS.md', 'design/F-1-root.md', 'src/a.ts'])
+
+        watchChange({ changeKind: 'changed', path: 'src/a.ts' })
+        await vi.advanceTimersByTimeAsync(250)
+
+        expect(service.getState().snapshot?.repositoryFiles).toEqual([
+            'design/F-1-root.md',
+            'src/a.ts',
+            'src/z.ts',
+        ])
+    })
+
+    it('ignores an older repository-list request after a newer structural refresh starts', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const firstRefresh = createDeferred<string[]>()
+        const secondRefresh = createDeferred<string[]>()
+        const listRepositoryFiles = vi.fn(async () => ['design/F-1-root.md'])
+        const storage = createStorage({
+            listRepositoryFiles,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.reloadCurrentProjectSnapshot()
+        listRepositoryFiles.mockReset()
+        listRepositoryFiles
+            .mockImplementationOnce(async () => firstRefresh.promise)
+            .mockImplementationOnce(async () => secondRefresh.promise)
+
+        watchChange({ changeKind: 'changed', path: 'assets/first.png' })
+        await vi.advanceTimersByTimeAsync(250)
+        watchChange({ changeKind: 'changed', path: 'assets/second.png' })
+        await vi.advanceTimersByTimeAsync(250)
+        secondRefresh.resolve(['assets/second.png', 'design/F-1-root.md'])
+        await vi.advanceTimersByTimeAsync(0)
+        expect(service.getState().snapshot?.repositoryFiles).toEqual(['assets/second.png', 'design/F-1-root.md'])
+
+        firstRefresh.resolve(['assets/first.png', 'design/F-1-root.md'])
+        await vi.advanceTimersByTimeAsync(0)
+        expect(service.getState().snapshot?.repositoryFiles).toEqual(['assets/second.png', 'design/F-1-root.md'])
+    })
+
+    it('invalidates an in-flight repository-list refresh when the project switches', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const oldRefresh = createDeferred<string[]>()
+        const listRepositoryFiles = vi.fn(async () => ['design/F-1-root.md'])
+        const storage = createStorage({
+            listRepositoryFiles,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'first' })
+        await service.projectLoading.reloadCurrentProjectSnapshot()
+        listRepositoryFiles.mockReset()
+        listRepositoryFiles
+            .mockImplementationOnce(async () => oldRefresh.promise)
+            .mockResolvedValue(['design/F-1-root.md', 'second-project.txt'])
+
+        watchChange({ changeKind: 'changed', path: 'old-project.txt' })
+        await vi.advanceTimersByTimeAsync(250)
+        await service.projectLoading.openProject({ branch: 'main', id: 'second' })
+        await vi.advanceTimersByTimeAsync(0)
+        oldRefresh.resolve(['design/F-1-root.md', 'old-project.txt'])
+        await vi.advanceTimersByTimeAsync(0)
+
+        expect(service.getState().project).toEqual({ branch: 'main', id: 'second' })
+        expect(service.getState().snapshot?.repositoryFiles).not.toContain('old-project.txt')
+    })
+
+    it('keeps repository files after a failed refresh and retries on a later structural event', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const listRepositoryFiles = vi.fn(async () => ['design/F-1-root.md'])
+        const storage = createStorage({
+            listRepositoryFiles,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        const warnings = recordDialogMessages('warning')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+
+        try {
+            service.init({ storage })
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+            await service.projectLoading.reloadCurrentProjectSnapshot()
+            listRepositoryFiles.mockReset()
+            listRepositoryFiles
+                .mockRejectedValueOnce(new Error('index unavailable'))
+                .mockResolvedValueOnce(['assets/retried.png', 'design/F-1-root.md'])
+
+            watchChange({ changeKind: 'changed', path: 'assets/failed.png' })
+            const repositoryFilesBeforeFailure = service.getState().snapshot?.repositoryFiles
+            await vi.advanceTimersByTimeAsync(250)
+            expect(service.getState().snapshot?.repositoryFiles).toEqual(repositoryFilesBeforeFailure)
+            expect(warnings.messages).toContain(
+                'Repository file index could not be loaded and was skipped. index unavailable',
+            )
+
+            watchChange({ changeKind: 'changed', path: 'assets/retried.png' })
+            await vi.advanceTimersByTimeAsync(250)
+            expect(listRepositoryFiles).toHaveBeenCalledTimes(2)
+            expect(service.getState().snapshot?.repositoryFiles).toEqual(['assets/retried.png', 'design/F-1-root.md'])
+        } finally {
+            warnings.stop()
+            captureError.mockRestore()
+        }
+    })
+
     it('creates a missing summary through the local bridge without reading the absent path', async () => {
         configService.init()
         const project = { branch: 'main', id: 'C:/repo', rootPath: 'C:/repo' }

@@ -548,6 +548,7 @@ export class DataService extends EventTarget {
             replaceProjectFiles: (files, workingFolder, repositoryFiles) => (
                 this.projectState.replaceProjectFiles(files, workingFolder, repositoryFiles)
             ),
+            replaceRepositoryFiles: (repositoryFiles) => this.projectState.replaceRepositoryFiles(repositoryFiles),
             updateFiles: (updatedFiles, removedPaths, workingFolder) => (
                 this.projectState.updateFiles(updatedFiles, removedPaths, workingFolder)
             ),
