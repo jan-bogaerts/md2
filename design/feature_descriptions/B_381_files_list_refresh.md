@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__d09dffff-8eaf-40b4-a7b4-2a25c28f9923.json
 policy:
 ---
 
