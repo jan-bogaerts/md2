@@ -50,6 +50,7 @@ changedFiles:
   - app/src/services/open_files_service.ts
   - app/src/services/project/project_persistence_service.node.test.ts
   - app/src/services/project/project_persistence_service.ts
+after: 333abc51-f716-4c5e-a14e-20a0e966b9cc
 ---
 We need to add support for a json data editor, similar like we have the markdown editor.
 

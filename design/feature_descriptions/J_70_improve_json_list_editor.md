@@ -16,6 +16,7 @@ changedFiles:
   - app/src/components/json_data_editor/json_data_editor.test.tsx
   - app/src/services/json/json_data_document.node.test.ts
   - app/src/services/json/json_data_document.ts
+after: 3ebe8ff2-d685-40eb-8937-0bba0f8d5487
 ---
 
 * make columns resizable

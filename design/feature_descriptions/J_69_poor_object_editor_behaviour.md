@@ -14,6 +14,7 @@ changedFiles:
   - app/src/components/json_data_editor/json_object_editor.tsx
   - app/src/visual_j69.tsx
   - app/visual_j69.html
+after: 83c5615c-4c5c-4c99-8fa6-4ab6e1f61bd5
 ---
 
 we just introduced the new json editor. it contains an object editor which shows 2 columns: the fieldname: field value (can be a button.

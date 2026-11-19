@@ -23,6 +23,7 @@ changedFiles:
   - desktop/src/actions/action/action_run.test.mjs
   - desktop/src/actions/action/action_run_request.test.mjs
   - shared/action_for_each.mjs
+after: 57c8f8e6-a9fa-4e24-b262-ccacc65cb570
 ---
 
 In the config popup of the for-each function (applied to the action), we can already select to 'compact' after every record. but we should add the option to enter how many records should be skipped before compacting

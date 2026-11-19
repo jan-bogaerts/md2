@@ -9,7 +9,6 @@ affects:
 agents:
   - design/activity/card__1f4193b2-d04c-4ade-8628-de3072d3692c.json
 policy:
-after: 7f47e34c-9a6a-44c7-8ed7-3316d963780e
 ---
 
 I have several claude agents that printed a last message that is clearly a question (open question, so not structured, but just a final response containing a question sentence). Yet the system did not correctly detect that the agent is now waiting for a response, the UI (action popup) still indicates that the agent is running: so the button's border is spinning and we are still showing the 'stop' button.

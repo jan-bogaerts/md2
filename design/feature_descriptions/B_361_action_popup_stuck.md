@@ -15,6 +15,7 @@ changedFiles:
   - desktop/src/actions/action/action_prompt_queue_closed_error.js
   - desktop/src/actions/action/action_runner_prompt_continuation.test.mjs
   - desktop/src/actions/action/action_runner_service.js
+after: 0f515f9c-2043-46a5-87e1-547488b1a772
 ---
 We were doing a conversation in an action popup. there were a couple of tasks to complete. the UI appeared as if it was stuck on task 2, and everything was still running.
 

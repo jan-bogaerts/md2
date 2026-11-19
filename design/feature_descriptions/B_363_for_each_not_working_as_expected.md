@@ -14,6 +14,7 @@ changedFiles:
   - desktop/src/actions/action/action_run.test.mjs
   - desktop/src/actions/agent/agent_runner_state.test.mjs
   - desktop/src/actions/agent/agent_streaming_event_handlers.js
+after: ba21cf2c-06f9-4210-aeb5-203d3d6c934d
 ---
 we used the 'custom' or '+' action on the card which uses a streaming agent. We also used a for-each file with the action so that it should loop over every record in the file. The file contains an object, but we specified a path in the 'for-each' setup to the field that contains the actual array data. this worked for the first record, but then the conversation went into 'waitingForInput' mode. So I pressed the stop button and then the entire for-each loop stopped.
 

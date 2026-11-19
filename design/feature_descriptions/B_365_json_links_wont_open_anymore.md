@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__05c8cd40-0825-4fc1-abc8-b5f0389c2954.json
 policy:
-after: 41d340e6-afae-44bd-82e7-41ab673c94e0
+after: fecd4bcd-90cc-417a-acc4-7f240de40d71
 changedFiles:
   - .codex_electron_probe.js
   - .codex_trace_analysis.cjs

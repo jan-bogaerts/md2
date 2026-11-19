@@ -19,6 +19,7 @@ changedFiles:
   - desktop/src/actions/agent/agent_compact.test.mjs
   - desktop/src/actions/agent/agent_streaming_adapter.js
   - desktop/src/actions/agent/agent_streaming_event_handlers.js
+after: 212c070c-0ec8-4bed-be93-77c2d0b8fd99
 ---
 
 We did a compact on a conversation with the codex agent. this went ok, but after the operation, the context size indictor still indicated the same size.

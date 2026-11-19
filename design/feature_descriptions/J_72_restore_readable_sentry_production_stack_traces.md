@@ -18,6 +18,7 @@ changedFiles:
   - desktop/packaging/verify_renderer_source_maps.js
   - desktop/packaging/verify_renderer_source_maps.test.mjs
   - desktop/packaging/verify_windows_package.test.mjs
+after: 6848789c-38d0-479c-ad68-4da42008eefa
 ---
 
 Production renderer errors reach Sentry without the source information required to recover their original TypeScript and React locations. Restore reliable error capture and readable stack traces for the Electron main process and renderer.

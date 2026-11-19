@@ -18,6 +18,7 @@ changedFiles:
   - app/src/components/json_data_editor/json_array_scroll_seek_row.tsx
   - app/src/components/json_data_editor/json_data_editor.test.tsx
   - app/src/json_array_performance.tsx
+after: 05c8cd40-0825-4fc1-abc8-b5f0389c2954
 ---
 
 check this trace: [Trace-scroll.json](file:///C:/Users/janbo/Documents/dev/Trace-scroll.json)

@@ -18,6 +18,7 @@ changedFiles:
   - desktop/src/actions/action/action_text.js
   - desktop/src/actions/action/action_text.test.mjs
   - shared/action_for_each.mjs
+after: c7fa6216-d134-4237-8f14-c494ac314c01
 ---
 
 We already have support for the `{{ data path}}` placeholder (added space to prevent placeholder to be applied). This version selects a specific field value of the currently active record.

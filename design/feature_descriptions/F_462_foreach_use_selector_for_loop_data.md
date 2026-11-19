@@ -23,6 +23,7 @@ changedFiles:
   - desktop/src/actions/action/action_run_request.test.mjs
   - shared/action_for_each.d.mts
   - shared/action_for_each.mjs
+after: a7d96183-9b8a-4c2e-a51a-925f7ca9aded
 ---
 
 We recently added support for the `for-each` feature, which lets the engine perform a prompt over a series of data records. So, for each record in the list, a prompt is run.

@@ -53,6 +53,7 @@ changedFiles:
   - desktop/src/shell/config.js
   - desktop/src/shell/config.test.mjs
   - desktop/src/shell/local_bridge_dispatch.test.mjs
+after: d9488ddc-6774-41c7-a7cc-eb4aa3283e20
 ---
 
 Replace `react-diff-viewer-continued` with `react-diff-view` for commit and worktree diffs. Preserve opening a changed line in the configured external editor and add session-scoped inline review comments through the new viewer's gutter events and widgets.

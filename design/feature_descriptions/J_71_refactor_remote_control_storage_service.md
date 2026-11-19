@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__6848789c-38d0-479c-ad68-4da42008eefa.json
 policy:
-after: d2e9440e-e79e-4abe-9092-d786540e29d3
+after: a1bb555a-bf8b-4111-a211-23e18445fe00
 changedFiles:
   - app/src/services/data/remote_connection_service.ts
   - app/src/services/data/remote_control_action_bridge.node.test.ts
