@@ -10,8 +10,6 @@ agents:
   - design/activity/card__b93ea5b8-ac54-4402-ba40-b259824fc10a.json
 policy:
 after: d09dffff-8eaf-40b4-a7b4-2a25c28f9923
-branch: b_380_resolve_merge_conflicts_remains_open_too_long
-worktree: 1
 changedFiles:
   - app/src/components/merge_conflict_dialog.test.tsx
   - app/src/components/merge_conflict_dialog.tsx
