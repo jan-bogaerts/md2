@@ -8,6 +8,7 @@ import { cardCollectionFieldChangedEvent, dataService } from '../../services/dat
 import { cardPopupService } from '../../services/card_popup_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { actionService } from '../../services/actions/action_service'
+import type { CardCommit } from '../../services/actions/card_commit_history'
 import { CardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 
 vi.mock('../hooks/use_card_commits', () => ({
@@ -313,7 +314,7 @@ describe('CardBodyPopover commit diff', () => {
         )
         const dialog = screen.getByRole('dialog', { name: 'F-060 card details' })
         const entry = cardPopupService.getSnapshot()[0]
-        const commit = {
+        const commit: CardCommit = {
             branch: 'main', commit: 'b'.repeat(40), committedAt: '2026-07-21T10:00:00.000Z', deletions: 0,
             filePaths: ['design/F-060.md'], filesChanged: 1, insertions: 1,
             record: {

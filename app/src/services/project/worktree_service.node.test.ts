@@ -75,7 +75,7 @@ function initService(
     service: WorktreeService,
     storage: StorageService,
     projectSnapshot = snapshot(),
-    flushPendingChanges = vi.fn(async () => undefined),
+    flushPendingChanges: () => Promise<void> = vi.fn(async () => undefined),
     projectFolder = 'design',
 ) {
     const assignCardWorktree = vi.fn()

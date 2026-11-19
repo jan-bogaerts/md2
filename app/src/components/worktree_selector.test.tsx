@@ -132,6 +132,26 @@ describe('WorktreeSelector', () => {
         expect(screen.getByRole('button', { name: 'Worktree operation in progress' })).toBeDisabled()
     })
 
+    it('keeps the button background opaque while an operation is in progress so only the border spins', () => {
+        withRecords(worktrees)
+        let preparing = false
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => cardInternalId === 'card-1' && preparing)
+        render(<AppThemeProvider>
+            <WorktreeSelector assignment={{ branch: 'feature', worktree: 1 }} assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }} primaryPath={null} />
+        </AppThemeProvider>)
+        const idleBackground = window.getComputedStyle(screen.getByRole('button', { name: /Worktree 1/u })).backgroundColor
+
+        act(() => {
+            preparing = true
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+        })
+
+        const busyButton = screen.getByRole('button', { name: 'Worktree operation in progress' })
+        expect(busyButton).toBeDisabled()
+        expect(idleBackground).not.toBe('transparent')
+        expect(busyButton).toHaveStyle({ backgroundColor: idleBackground })
+    })
+
     it('shows assignment progress until successful card publication', async () => {
         const pendingAssignment = createDeferred<void>()
         let preparing = false

@@ -319,13 +319,11 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const button = (
         <Box
             sx={(theme) => ({
-                borderRadius: '50%',
+                borderRadius: 1,
                 display: 'inline-flex',
-                height: 26,
                 overflow: 'hidden',
                 p: preparing ? '1.5px' : 0,
                 position: 'relative',
-                width: 26,
                 ...(preparing && {
                     '@keyframes md2-worktree-spin': { to: { transform: 'rotate(1turn)' } },
                     '&::before': {
@@ -349,13 +347,15 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                     border: 1,
                     borderColor: preparing ? 'transparent' : state.error ? 'error.main' : hasWorktreeChanges ? 'warning.main' : 'divider',
                     color: state.error ? 'error.main' : hasWorktreeChanges ? 'warning.main' : 'text.secondary',
-                    height: '100%',
+                    height: 26,
                     p: 0,
                     pointerEvents: 'auto',
                     position: 'relative',
-                    width: '100%',
+                    width: 26,
                     zIndex: 1,
                     '&:hover': { bgcolor: 'background.paper' },
+                    // MUI clears a disabled IconButton's background; keep it opaque so only the border ring spins
+                    '&.Mui-disabled': { bgcolor: 'background.paper' },
                 }}
             >
                 <Box
