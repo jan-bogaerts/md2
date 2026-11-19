@@ -261,6 +261,14 @@
           "role": "assistant",
           "sequence": 19,
           "timestamp": "2026-11-19T09:30:59.309Z"
+        },
+        {
+          "content": "go",
+          "id": "submission-8832ee70-b450-4131-9a75-3578cc0c9122",
+          "kind": "message",
+          "role": "user",
+          "sequence": 20,
+          "timestamp": "2026-11-19T10:31:51.440Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -271,8 +279,8 @@
           "agent": "claude",
           "conversationId": "ff808d03-55bb-40c4-b0c8-ba68fb7f1cfa",
           "createdAt": "2026-11-19T09:30:27.662Z",
-          "lastUsedAt": "2026-11-19T09:30:59.309Z",
-          "synchronizedThroughMessageId": "agent-turn-2e22f979-ffe4-4526-a10c-2dc3dda5b999-turn-1-assistant-2",
+          "lastUsedAt": "2026-11-19T10:31:52.762Z",
+          "synchronizedThroughMessageId": "submission-8832ee70-b450-4131-9a75-3578cc0c9122",
           "usageBaseline": {
             "costUsd": 0.4971942,
             "resultId": "70a594d3-4c16-4921-a759-8ac7db0ab62f",
@@ -287,7 +295,7 @@
         }
       ],
       "startedAt": "2026-11-19T09:30:25.561Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -317,7 +325,7 @@
           "toolMs": 7222
         },
         "elapsedMs": 33748,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-19T10:31:51.440Z"
       },
       "title": "fix bug",
       "usage": {
