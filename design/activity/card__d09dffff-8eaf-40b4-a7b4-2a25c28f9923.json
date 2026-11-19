@@ -5,10 +5,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "d09dffff-8eaf-40b4-a7b4-2a25c28f9923",
       "cardPath": "design/feature_descriptions/B_381_files_list_refresh.md",
-      "completedAt": null,
+      "completedAt": "2026-11-19T13:28:05.349Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 95556
+        "usedTokens": 98988
       },
       "entries": [
         {
@@ -511,6 +511,112 @@
           "role": "assistant",
           "sequence": 38,
           "timestamp": "2026-11-19T12:59:36.398Z"
+        },
+        {
+          "content": "use 250ms",
+          "id": "submission-20fb8622-697d-4e5e-bcf2-027d8ff39bd8",
+          "kind": "message",
+          "role": "user",
+          "sequence": 39,
+          "timestamp": "2026-11-19T13:27:17.311Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-228c07ab-f183-4962-a633-d6c7abed6350-event-40",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c9ed3e1919d88d5016afef94166a887d28fe54b3b2421fb95",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T13:27:28.252Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-228c07ab-f183-4962-a633-d6c7abed6350-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c9ed3e1919d88d5016afef944108887d2a843c485da5f5857",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T13:27:30.886Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "250 ms fixed. Writing design with structural-event detection, debounced canonical reload, stale-result guards, failure behavior, and focused tests.\n\n",
+          "id": "agent-turn-228c07ab-f183-4962-a633-d6c7abed6350-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 42,
+          "timestamp": "2026-11-19T13:27:31.665Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_381_files_list_refresh.md",
+          "deletions": 2,
+          "id": "agent-turn-228c07ab-f183-4962-a633-d6c7abed6350-event-43",
+          "insertions": 33,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-45fffe49-9000-4471-8946-d8b8ad9b338a",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-11-19T13:27:54.025Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-228c07ab-f183-4962-a633-d6c7abed6350-event-44",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c9ed3e1919d88d5016afef95dc01487d28d7b55d8d1457cbc",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T13:27:56.576Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\B_381_files_list_refresh.md'\"",
+          "content": "---\nauthor: \nid: B_381\ninternalId: d09dffff-8eaf-40b4-a7b4-2a25c28f9923\ntitle: files list refresh\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__d09dffff-8eaf-40b4-a7b4-2a25c28f9923.json\npolicy:\n---\n\nwe already have a file watcher in the desktop which monitors file changes in the repository.\n\nIn the react app, we also have a list of all the files in the repository for auto completes in the markdown editor (triggered by the 'at' symbol.\n\nThe problem is, after changes in the folders, the files-list is not updated.\n\nThis update shouldn't happen for every change, but filechanges (adding, moving, deleting) should trigger a request to update the list, with a timeout, so we don't continuously reload the list\n\n## Current state\n\n`desktop/src/project/project_files.js` watches the repository, ignores `.git`, settles repeated native events per path, and forwards changes only for Markdown, JSON, and text files. Existing paths are reported as `changed`; missing paths are reported as `removed`.\n\n`ProjectLoading` loads the complete repository path list through `StorageService.listRepositoryFiles` during the background project load. `ProjectState` stores that list in `ProjectSnapshot.repositoryFiles`. `MarkdownEditor` reads the snapshot through `useProjectState` and gives the list to the `@` file-search plugin.\n\nWatcher handling updates `ProjectSnapshot.repositoryFiles` one path at a time and publishes `repositoryChanged`, but it does not publish the project-wide `changed` event consumed by `useProjectState`. Mounted editors therefore keep their previous file-search list. Changes involving other file extensions or folders are not forwarded by the desktop watcher, so the renderer cannot repair the list from those events.\n\n## Implementation details\n\n* In `desktop/src/project/project_files.js`, continue ignoring `.git`. Forward create and delete events for every repository path so structural changes involving any file extension or folder reach the renderer. Continue filtering content-only update events to Markdown, JSON, and text files. Keep the existing per-path settle timer for duplicate native events.\n* Keep `ProjectWatchEvent` and the preload, local, and remote-control bridge contracts unchanged. A path is structurally changed when it is reported as removed or when it is absent from the repository list held before the event. This also handles a move, which the watcher reports as removal of the old path plus creation of the new path.\n* Add a repository-list refresh timer to `ProjectLoading`. Each structural event cancels and restarts the timer. After 250 ms without another structural event, call `storage.listRepositoryFiles` once for the active project. This reset-on-change delay is the debounce period.\n* Do not reload the repository list for a content-only change to a path already present in the list. Continue publishing granular `repositoryChanged` events so existing file-specific reloads still run.\n* On a successful request, exclude agent instruction paths using the same rule as project loading, replace `ProjectSnapshot.repositoryFiles` with the returned sorted list through `ProjectState`, and publish `changed` only when the list differs. Mounted editors then receive the new snapshot and rebuild their file-search options.\n* Clear the pending timer when project loading resets, fails, stops, or switches project. Associate each request with the project reference, project-load token, and refresh revision that started it. Ignore a result when the project changed or a newer refresh superseded it.\n* If listing fails, keep the previous repository list, report the failure through the existing optional-project-load warning path, and allow a later structural event to retry.\n* Add focused tests in `desktop/src/project/project_files.test.mjs`, `app/src/services/project/project_loading.test.ts`, and `app/src/services/project/project_state.node.test.ts`. Cover non-text structural events, 250 ms batching, no refresh for known-path content changes, add/remove/move bursts, stale results, project switches, failures, and snapshot replacement. Existing Markdown editor file-search tests continue to verify that a new snapshot reaches the plugin.\n\n## Acceptance criteria\n\n* Adding, moving, or deleting a repository file of any extension causes the active repository file list to be requested after 250 ms without another structural event.\n* Adding, moving, or deleting a folder causes the same refresh, so all contained repository paths are reflected.\n* Multiple structural events within one 250 ms window produce one `listRepositoryFiles` request after the last event.\n* Editing contents of a file already present in the repository list does not request a repository-list refresh.\n* Successful refresh replaces the list atomically; `@` file autocomplete in an already mounted Markdown editor shows added and moved paths and stops showing deleted paths without reopening the project or editor.\n* Agent instruction paths remain excluded from autocomplete after refresh, matching initial project loading.\n* A refresh result from an old project or an older refresh request never changes the active project snapshot.\n* A failed refresh leaves the previous list usable, reports a warning, and does not stop later structural events from scheduling another refresh.\n* Existing Markdown, JSON, action, schedule, and agent-instruction watcher behavior remains unchanged.\n\r\n",
+          "durationMs": 62,
+          "exitCode": 0,
+          "id": "agent-turn-228c07ab-f183-4962-a633-d6c7abed6350-event-45",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\B_381_files_list_refresh.md'\"",
+          "providerItemId": "exec-7a79d062-3a5b-4748-962f-256de68d7a9c",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-11-19T13:27:58.640Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-228c07ab-f183-4962-a633-d6c7abed6350-event-46",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c9ed3e1919d88d5016afef960f37087d29c4d5901b7746c5f",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-19T13:27:59.769Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_381_files_list_refresh.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_381_files_list_refresh.md):\n\n- Status: `ready for implementation`\n- Added `Current state`\n- Added `Implementation details`\n- Added `Acceptance criteria`\n- Set debounce to 250 ms\n- No staging or commit\n- No tests run; documentation-only change\n\n",
+          "id": "agent-turn-228c07ab-f183-4962-a633-d6c7abed6350-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 47,
+          "timestamp": "2026-11-19T13:28:05.349Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -521,61 +627,101 @@
           "agent": "codex",
           "conversationId": "01a1f3e1-f6ce-77f1-8890-91f29b83b491",
           "createdAt": "2026-11-19T12:57:16.315Z",
-          "lastUsedAt": "2026-11-19T12:59:36.398Z",
-          "synchronizedThroughMessageId": "agent-turn-228c07ab-f183-4962-a633-d6c7abed6350-turn-1-assistant-4"
+          "lastUsedAt": "2026-11-19T13:28:05.349Z",
+          "synchronizedThroughMessageId": "agent-turn-228c07ab-f183-4962-a633-d6c7abed6350-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-11-19T12:57:14.529Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
             "id": "0",
             "subject": "Read skill, feature file, and all non-agent references",
-            "status": "inProgress"
+            "status": "completed"
           },
           {
             "id": "1",
             "subject": "Trace current files-list refresh implementation and affected tests",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "2",
             "subject": "Update feature status and requested sections",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Review diff for scope and accuracy",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-19T12:57:21.865Z"
+        "updatedAt": "2026-11-19T13:28:01.888Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 48,
-          "toolMs": 3327
+          "reasoningMs": 49,
+          "toolMs": 3922
         },
-        "elapsedMs": 141869,
+        "elapsedMs": 189907,
         "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 882432,
-        "inputTokens": 92939,
-        "outputTokens": 2021,
-        "reasoningTokens": 3459,
-        "totalTokens": 980851
+        "cachedInputTokens": 1367296,
+        "inputTokens": 95147,
+        "outputTokens": 3498,
+        "reasoningTokens": 4228,
+        "totalTokens": 1470169
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "d09dffff-8eaf-40b4-a7b4-2a25c28f9923",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "f4f931d5b3dafb4813506ecea50fdf09ea0f4c1f",
+          "committedAt": "2026-11-19T14:28:05+01:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_381_files_list_refresh.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 33
+        }
+      ],
+      "completedAt": "2026-11-19T13:28:06.002Z",
+      "conversationIds": [
+        "agent-7d47793e-bf09-4a24-8e2c-bdf15b2ce712"
+      ],
+      "details": {
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-635d15a6-4883-41fa-93e6-5d01b846610b",
+      "origin": {
+        "cardInternalId": "d09dffff-8eaf-40b4-a7b4-2a25c28f9923",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-7d47793e-bf09-4a24-8e2c-bdf15b2ce712",
+      "startedAt": "2026-11-19T12:57:14.527Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
