@@ -1,6 +1,6 @@
 {
   "name": "desktop",
-  "version": "0.11.6",
+  "version": "0.11.7",
   "private": true,
   "description": "MD² Electron host shell",
   "main": "main.js",
@@ -22,7 +22,7 @@
   "devDependencies": {
     "@electron/asar": "^4.2.0",
     "@eslint/js": "^9.39.4",
-    "electron": "^43.0.0",
+    "electron": "^43.8.12",
     "electron-builder": "^26.15.3",
     "eslint": "^9.39.4",
     "eslint-plugin-import": "^2.32.0",
