@@ -282,6 +282,14 @@
           "role": "assistant",
           "sequence": 21,
           "timestamp": "2026-11-23T09:01:18.818Z"
+        },
+        {
+          "content": "1. default: the way it is currently. released default to 'has conversation log'. user choice is globally, for all projects, persisted\n2. right click",
+          "id": "submission-ebeb4f58-5840-4e3c-8913-2a4437538d7c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 22,
+          "timestamp": "2026-11-23T12:27:41.077Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -292,12 +300,12 @@
           "agent": "codex",
           "conversationId": "01a1f35e-b9ff-74d1-bf43-14aa07c77e40",
           "createdAt": "2026-11-19T10:33:55.206Z",
-          "lastUsedAt": "2026-11-19T10:35:05.615Z",
-          "synchronizedThroughMessageId": "agent-turn-03c4d953-2232-483a-84b6-a0cc37e0a5c9-turn-1-assistant-3"
+          "lastUsedAt": "2026-11-23T12:27:41.863Z",
+          "synchronizedThroughMessageId": "submission-ebeb4f58-5840-4e3c-8913-2a4437538d7c"
         }
       ],
       "startedAt": "2026-11-19T10:33:53.730Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -334,7 +342,7 @@
           "toolMs": 3093
         },
         "elapsedMs": 71885,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-23T12:27:41.077Z"
       },
       "title": "complete",
       "usage": {

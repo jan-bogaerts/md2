@@ -3,7 +3,7 @@ author:
 id: F_476
 internalId: 5221030b-ed7e-4860-bd8f-177274dc9a02
 title: integrate into project dialog feedback
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,14 @@ agents:
 policy:
 branch: f_476_integrate_into_project_dialog_feedback
 worktree: 1
+changedFiles:
+  - app/src/components/hooks/use_worktree_selector_state.ts
+  - app/src/components/worktree_integration_dialog.test.tsx
+  - app/src/components/worktree_integration_dialog.tsx
+  - app/src/components/worktree_selector.test.tsx
+  - app/src/components/worktree_selector_controller.tsx
+  - app/src/services/project/worktree_service.node.test.ts
+  - app/src/services/project/worktree_service.ts
 ---
 we recently did some improvements to other dialogs, see [J_74_uncommitted_project_changes_dialog_improvements.md](design/feature_descriptions/J_74_uncommitted_project_changes_dialog_improvements.md) .&#x20;
 
