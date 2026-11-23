@@ -4,5 +4,8 @@
   "label": "publish",
   "phrases": [],
   "type": "command",
-  "command": "C:\\Users\\janbo\\Documents\\dev\\md2\\scripts\\publish_release.ps1"
+  "command": "powershell.exe -NoProfile -File \"C:\\Users\\janbo\\Documents\\dev\\md2\\scripts\\publish_release.ps1\"",
+  "appliesTo": {
+    "kind": "project"
+  }
 }
