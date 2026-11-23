@@ -4,5 +4,5 @@
   "label": "publish",
   "phrases": [],
   "type": "command",
-  "command": ""
+  "command": "C:\\Users\\janbo\\Documents\\dev\\md2\\scripts\\publish_release.ps1"
 }
