@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__1281ca20-aa25-484f-a577-8c52cfcf02ee.json
 policy:
-branch: f_477_check_typing_trace
-worktree: 1
 changedFiles:
   - app/src/components/worktree_selector.test.tsx
   - app/src/components/worktree_selector.tsx

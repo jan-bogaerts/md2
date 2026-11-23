@@ -3121,6 +3121,35 @@
       "startedAt": "2026-11-23T09:59:47.977Z",
       "status": "completed",
       "rootConversationId": "agent-078a0269-4e4a-4079-86c2-0dc2b782b265"
+    },
+    {
+      "commits": [
+        {
+          "commit": "49c873a7ff09f51c805ee9700d651c7c2f1383aa",
+          "committedAt": "2026-11-23T12:41:59+01:00",
+          "deletions": 450,
+          "filePaths": [
+            "app/src/components/worktree_selector.test.tsx",
+            "app/src/components/worktree_selector.tsx",
+            "app/src/components/worktree_selector_assignment_state.ts",
+            "app/src/components/worktree_selector_controller.tsx",
+            "app/src/components/worktree_selector_status_button.tsx",
+            "app/src/components/worktree_selector_types.ts",
+            "app/src/services/project/worktree_service.node.test.ts",
+            "desktop/src/git/worktree_service.test.mjs"
+          ],
+          "filesChanged": 8,
+          "insertions": 657,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-23T12:41:59+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1281ca20-aa25-484f-a577-8c52cfcf02ee",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
