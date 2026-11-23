@@ -9,4 +9,4 @@ affects:
 agents:
 policy:
 ---
-
+we currently show all the 'global' actions on the 'run' menu-bar tab, in the list section, just before 'view active schedules'. these need to be removed.
