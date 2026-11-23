@@ -33,6 +33,8 @@ Dropping a card into a state that some action declares as its `onState` starts t
 
 Click a card to open the card popup: the Markdown editor with its formatting toolbar, plus **Delete**, **Affects**, **Open in file mode**, token usage, and save status. **Open in file mode** switches to list view with the card open in a tab.
 
+Opening a JSON link from the card Markdown shows the data in a resizable structured popup, so the card stays visible beside the data it describes. See [Edit JSON data](json-data-editor.md).
+
 Several card, action, and sequence popups can stay open at once. Press Ctrl+Tab to bring the bottom-most popup to the front, or Ctrl+Shift+Tab to cycle in the opposite direction. Focus moves into the newly active popup.
 
 When commits were recorded for the card, a commit icon appears in the popup. Pick a commit to see its diff in place.
@@ -47,4 +49,4 @@ On a phone the board scrolls horizontally through the columns, the menu collapse
 
 Along the bottom: card counts, save state (`Saved locally`), sync state (`Synced` or `Changes ready to push`), accumulated token usage, and the number of running agents.
 
-See also: [Cards and files](../concepts/cards-and-files.md), [Text view](text-view.md), [Stats](stats.md), [Running actions](../actions/running-actions.md).
+See also: [JSON data editor](json-data-editor.md), [Cards and files](../concepts/cards-and-files.md), [Text view](text-view.md), [Stats](stats.md), [Running actions](../actions/running-actions.md).

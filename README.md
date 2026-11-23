@@ -96,6 +96,14 @@ md² lets you create smaller reusable actions for specific tasks. Actions can co
 
 This keeps prompts focused on the current task.
 
+### Run one action across structured data
+
+Attach a JSON dataset to an agent action and md² can run the same focused prompt for every record. Use the complete record or select individual fields in the prompt, choose how much work shares a conversation, and decide whether failures stop the loop or allow later records to continue.
+
+Progress stays visible while the records run. If you stop, md² retains the completed position so you can restart from the first unfinished record. Step-by-step mode lets you inspect or continue each result before moving on.
+
+This turns inventories such as endpoints, modules, findings, or migration targets into controlled agent work without copying prompts or building a one-off orchestration script. [Learn how for-each actions work](https://jan-bogaerts.github.io/md2/actions/for-each/).
+
 ### Automation without unnecessary agent calls
 
 Not every development task requires an AI agent.

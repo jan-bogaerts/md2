@@ -1,7 +1,9 @@
 # md² documentation
 
-md² is a local, Git-native workspace for coordinating coding agents, features, worktrees, prompts, commits, and automations. 
+md² is a local, Git-native workspace for coordinating coding agents, features, worktrees, prompts, commits, and automations.
 Every card is a Markdown file, every action and log a json file, all in your repository — agents read and write the same files you do.
+
+Open linked JSON as structured fields and editable tables, navigate nested data, and prepare agent datasets without leaving the feature context.
 
 Know what AI-assisted work costs by agent, action, feature, and release. Stats connects project activity with measured time, tokens, tool calls, account usage, and estimated subscription cost, with filtered CSV export for further analysis.
 
@@ -43,6 +45,7 @@ Step-by-step walkthroughs of one workflow each. They link to the reference pages
 | --- | --- |
 | [Board view](guide/board-view.md) | Columns, cards, drag and drop, policies, card popup |
 | [List view](guide/text-view.md) | Tree, tabs, editors, conversation panel |
+| [JSON data editor](guide/json-data-editor.md) | Edit objects and arrays, navigate nested data, and manage table rows |
 | [Diagrams](guide/diagrams.md) | Create, explore, edit, review, and save diagrams |
 | [Stats](guide/stats.md) | Compare activity, agents, models, tokens, account usage, and estimated cost |
 | [Search](guide/search.md) | Text and RegExp search, scopes, results |
@@ -56,8 +59,9 @@ Step-by-step walkthroughs of one workflow each. They link to the reference pages
 | Page | What it covers |
 | --- | --- |
 | [Action definition](actions/action-definition.md) | Every field, `appliesTo` filters, validation rules |
-| [Placeholders](actions/placeholders.md) | {% raw %}`{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{worktree-folder}}`, `{{repository-folder}}`, `{{project-folder}}`, `{{releases-folder}}`, `{{actions-folder}}`, diagram and conflict placeholders{% endraw %} |
+| [Placeholders](actions/placeholders.md) | {% raw %}Card, folder, diagram, conflict, and for-each data placeholders such as `{{card-file}}`, `{{worktree-folder}}`, and `{{data}}`{% endraw %} |
 | [Running actions](actions/running-actions.md) | Entry points, popup, conversations, chains, state triggers, scheduling, card sequences |
+| [For-each actions](actions/for-each.md) | Run one agent action across JSON records with data placeholders, progress, batching, and failure controls |
 | [Agent setup](actions/agent-setup.md) | Profiles, models, reasoning levels, conversation logs |
 | [Cookbook](actions/cookbook.md) | Copy-paste action definitions |
 

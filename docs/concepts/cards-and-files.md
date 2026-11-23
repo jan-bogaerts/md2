@@ -95,6 +95,8 @@ New cards get the configured **card body template** inserted before whatever bod
 
 Any other Markdown file in the project is a plain document — architecture notes, specs, anything. They show up in the tree, open in the same editor, and are searchable, but they have no board presence.
 
+Markdown documents can link to JSON data in the repository. Opening such a link shows objects as structured fields and arrays as editable tables in a board popup or list-view tab. This keeps specifications and their datasets connected without hiding either one in an application database. See [Edit JSON data](../guide/json-data-editor.md).
+
 Markdown files that appear in the root of the working folder without following the card naming convention are treated as cards entered by something else and imported with status `new`. A header is filled in for them.
 
-See also: [Project layout](project-layout.md), [Board view](../guide/board-view.md).
+See also: [JSON data editor](../guide/json-data-editor.md), [Project layout](project-layout.md), [Board view](../guide/board-view.md).

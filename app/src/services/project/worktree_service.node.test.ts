@@ -81,7 +81,7 @@ function initService(
     const assignCardWorktree = vi.fn()
     const clearCardBranch = vi.fn()
     const unassignCardWorktree = vi.fn()
-    const queueIntegratedActivity = vi.fn(async () => undefined)
+    const queueIntegratedActivity = vi.fn<() => Promise<void>>(async () => undefined)
     service.init({
         assignCardWorktree,
         cardSeparatorProvider: () => '-',

@@ -19,16 +19,19 @@ On mobile the tree moves into the hamburger menu.
 
 ## Tabs
 
-Open files appear as tabs, with an icon showing what each one is: card, plain Markdown file, or action. Selecting a file that is already open activates its tab instead of opening a second one.
+Open files appear as tabs, with an icon showing what each one is: card, plain Markdown file, action, or JSON data. Selecting a file that is already open activates its tab instead of opening a second one.
 
-Each tab has:
-
-- a properties box at the top — the card header fields, or the action definition fields;
-- the Markdown editor below it, with a formatting toolbar (bold, italic, lists, links, images, tables, code blocks).
+Card tabs show their properties above a Markdown editor with a formatting toolbar for bold, italic, lists, links, images, tables, and code blocks. Plain Markdown files use the same editor without card properties. Actions and JSON data use their own structured editors, described below.
 
 Undo history is kept per document, so switching tabs does not throw it away.
 
 Press Ctrl+Tab to select the next open document or Ctrl+Shift+Tab to select the previous one.
+
+## Editing JSON data
+
+Open a JSON link from a Markdown document to show the file in a structured tab. Objects use field and value columns, while arrays use editable tables with selection and row actions. Nested objects and arrays open in place, with a breadcrumb back to their parent values.
+
+Project JSON follows the normal save and commit flow. For layouts, row operations, local-file links, and error handling, see [Edit JSON data](json-data-editor.md).
 
 ## Editing actions
 
@@ -44,4 +47,4 @@ The **Agents** button on the editor toolbar opens the conversation panel next to
 
 The **Properties** button opens the card header fields — status, owner, policies, affects, worktree — without leaving the editor.
 
-See also: [Board view](board-view.md), [Action definition](../actions/action-definition.md), [Running actions](../actions/running-actions.md).
+See also: [JSON data editor](json-data-editor.md), [Board view](board-view.md), [Action definition](../actions/action-definition.md), [Running actions](../actions/running-actions.md).
