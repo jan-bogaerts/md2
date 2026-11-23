@@ -846,10 +846,15 @@ describe('ActionPopup', () => {
     it('keeps released-card conversation history available without run controls', () => {
         actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
         vi.spyOn(dataService, 'getConfig').mockReturnValue({ releasesFolder: 'design/releases' } as never)
+        vi.spyOn(dataService.agents, 'getAgentConversations').mockReturnValue([
+            agentConversation({ actionId: 'review', cardInternalId: 'card-10' }),
+        ])
 
         renderPopup({ cardInternalId: 'card-10', file: 'design/releases/v1/F-010.md', kind: 'card' })
 
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        expect(within(dialog.getByRole('group', { name: 'Actions' })).getByRole('button', { name: /^Review/u })).toBeInTheDocument()
+        expect(within(dialog.getByRole('group', { name: 'Actions' })).queryByRole('button', { name: 'Custom prompt' })).not.toBeInTheDocument()
         expect(dialog.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
         expect(dialog.getByRole('note')).toHaveTextContent('Released cards are read-only. Create a new card for more work.')
         expect(dialog.queryByRole('textbox', { name: 'Prompt' })).not.toBeInTheDocument()
@@ -1496,6 +1501,70 @@ describe('ActionPopup', () => {
         const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
         expect(actionGroup.getByRole('button', { name: 'Card action' })).toBeInTheDocument()
         expect(actionGroup.queryByRole('button', { name: 'Project action' })).not.toBeInTheDocument()
+    })
+
+    it('shows every loaded user action in All mode and persists the global choice', () => {
+        actionService.loadFromFiles([
+            file(commandDefinition('card', { appliesTo: { kind: 'card' }, label: 'Card action' })),
+            file(commandDefinition('project', { appliesTo: { kind: 'project' }, label: 'Project action' })),
+        ])
+        renderPopup()
+        const actionGroup = screen.getByRole('group', { name: 'Actions' })
+
+        fireEvent.contextMenu(actionGroup)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'All' }))
+
+        expect(within(actionGroup).getByRole('button', { name: 'Card action' })).toBeInTheDocument()
+        expect(within(actionGroup).getByRole('button', { name: 'Project action' })).toBeInTheDocument()
+        expect(within(actionGroup).getByRole('button', { name: 'Custom prompt' })).toBeInTheDocument()
+        expect(window.localStorage.getItem('md2.actionVisibilityMode')).toBe('all')
+
+        cleanup()
+        renderPopup({ kind: 'project' })
+        const reopenedGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        expect(reopenedGroup.getByRole('button', { name: 'Card action' })).toBeInTheDocument()
+        expect(reopenedGroup.getByRole('button', { name: 'Project action' })).toBeInTheDocument()
+    })
+
+    it('selects the first visible action when a mode change hides the selection', () => {
+        actionService.loadFromFiles([
+            file(commandDefinition('card', { appliesTo: { kind: 'card' }, label: 'Card action' })),
+            file(commandDefinition('project', { appliesTo: { kind: 'project' }, label: 'Project action' })),
+        ])
+        renderPopup()
+        const actionGroup = screen.getByRole('group', { name: 'Actions' })
+        fireEvent.contextMenu(actionGroup)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'All' }))
+        fireEvent.click(within(actionGroup).getByRole('button', { name: 'Project action' }))
+        expect(within(actionGroup).getByRole('button', { name: 'Project action' })).toHaveAttribute('aria-pressed', 'true')
+
+        fireEvent.contextMenu(actionGroup)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Specific for context' }))
+
+        expect(within(actionGroup).queryByRole('button', { name: 'Project action' })).not.toBeInTheDocument()
+        expect(within(actionGroup).getByRole('button', { name: 'Card action' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('updates conversation-log actions from live card conversation events', () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        actionService.loadFromFiles([
+            file(agentDefinition('first', { label: 'First action' })),
+            file(agentDefinition('second', { label: 'Second action' })),
+        ])
+        let conversations = [agentConversation({ actionId: 'second' })]
+        vi.spyOn(dataService.agents, 'getAgentConversations').mockImplementation(() => conversations)
+        renderPopup(cardContext)
+        const actionGroup = screen.getByRole('group', { name: 'Actions' })
+        fireEvent.contextMenu(actionGroup)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Has conversation log' }))
+        expect(within(actionGroup).getByRole('button', { name: /^Second action/u })).toBeInTheDocument()
+        expect(within(actionGroup).queryByRole('button', { name: 'First action' })).not.toBeInTheDocument()
+
+        conversations = [agentConversation({ actionId: 'first', id: 'conversation-2' })]
+        act(() => agentAcknowledgementService.announceConversationsChanged('card-1', ['first', 'second']))
+
+        expect(within(actionGroup).getByRole('button', { name: /^First action/u })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(actionGroup).queryByRole('button', { name: 'Second action' })).not.toBeInTheDocument()
     })
 
     it('keeps the selected running action when its run changes the card context', () => {
@@ -4231,26 +4300,38 @@ describe('ActionPopup', () => {
             })
         }
 
-        it.each([
-            { path: 'design/releases/0_7_0/F-010.md', released: true },
-            { path: 'design/archive/F-010.md', released: false },
-        ])('shows stored command history for $path', async ({ path, released }) => {
+        it('keeps a released popup open while activity loads and excludes command-only history', async () => {
+            const path = 'design/releases/0_7_0/F-010.md'
             const card = backgroundCard('card-1', path)
             mockBackgroundCard(card)
             vi.spyOn(dataService, 'getConfig').mockReturnValue({ ...configService.getProjectConfig(), releasesFolder: 'design/releases' })
+            const pendingActivity = deferredValue<CardActivityFile[]>()
+            vi.spyOn(dataService, 'loadReferencedCardActivities').mockReturnValue(pendingActivity.promise)
+            actionService.loadFromFiles([file(commandDefinition('current', { label: 'Current command' }))])
+
+            renderPopup({ cardInternalId: 'card-1', file: path, kind: 'file', state: 'archived' })
+
+            expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
+            expect(within(screen.getByRole('group', { name: 'Actions' })).queryAllByRole('button')).toEqual([])
+            pendingActivity.resolve([activity('card-1')])
+
+            await waitFor(() => expect(dataService.loadReferencedCardActivities).toHaveBeenCalledWith('card-1'))
+            expect(within(screen.getByRole('group', { name: 'Actions' })).queryByRole('button', { name: 'Removed command' }))
+                .not.toBeInTheDocument()
+            expect(screen.getByRole('note')).toHaveTextContent('Released cards are read-only. Create a new card for more work.')
+        })
+
+        it('keeps context-specific actions on a non-released background card', () => {
+            const path = 'design/archive/F-010.md'
+            mockBackgroundCard(backgroundCard('card-1', path))
             vi.spyOn(dataService, 'loadReferencedCardActivities').mockResolvedValue([activity('card-1')])
             actionService.loadFromFiles([file(commandDefinition('current', { label: 'Current command' }))])
 
             renderPopup({ cardInternalId: 'card-1', file: path, kind: 'file', state: 'archived' })
 
-            
-            const historicalButton = await within(screen.getByRole('group', { name: 'Actions' })).findByRole('button', { name: 'Removed command' })
-            fireEvent.click(historicalButton)
-            expect(await screen.findByText(/card-1 output/u)).toBeInTheDocument()
-            expect(screen.getByText(released
-                ? 'Released cards are read-only. Create a new card for more work.'
-                : 'Historical action cannot be run in this card context.')).toBeInTheDocument()
-            expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: 'Custom prompt' })).toBeInTheDocument()
+            const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+            expect(actionGroup.getByRole('button', { name: 'Current command' })).toBeInTheDocument()
+            expect(actionGroup.queryByRole('button', { name: 'Removed command' })).not.toBeInTheDocument()
         })
 
         it('reports referenced activity load failure', async () => {

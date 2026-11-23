@@ -12,9 +12,11 @@ import type { ActionRunResultStore } from '../state/action_run_result_store'
 import type { ActionUsageValuesService } from './action_usage_values_service'
 import type { ActionInputLayoutStore } from './action_input_layout_store';
 import type { ActionPopupFocusRequest } from './action_popup_focus_request';
+import type { ActionVisibilityMode } from './action_visibility_mode_store';
 
 export interface ActionPopupContentProps {
     action: ActionDefinition
+    actionVisibilityMode: ActionVisibilityMode
     actions: ActionDefinition[]
     anchorElement: HTMLElement | null
     assignmentContext: ActionContext
@@ -27,6 +29,7 @@ export interface ActionPopupContentProps {
     onActivate?: () => void
     onClose: () => void
     onSelectAction: (actionId: string) => void
+    onVisibilityModeChange: (mode: ActionVisibilityMode) => void
     onToggleFullHeight: () => void
     open: boolean
     popupEntryId?: string

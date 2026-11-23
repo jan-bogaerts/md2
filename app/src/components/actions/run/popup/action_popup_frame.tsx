@@ -58,9 +58,9 @@ export function ActionPopupFrame(
     { bindingStore, children, contentProps, conversationSearchService, conversationStore, inputStore }: ActionPopupFrameProps,
 ) {
     const {
-        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,
+        action, actions, actionVisibilityMode, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,
         onClose, onSelectAction, onToggleFullHeight, open, primaryPath, readOnlyMessage, stackPosition,
-        subscribeFocusRequest, titleId,
+        subscribeFocusRequest, titleId, onVisibilityModeChange,
     } = contentProps
     const theme = useTheme()
     const boundRunId = useBoundRunId(bindingStore)
@@ -190,8 +190,10 @@ export function ActionPopupFrame(
                             actions={actions}
                             context={assignmentContext}
                             onSelect={onSelectAction}
+                            onVisibilityModeChange={onVisibilityModeChange}
                             selectedAction={action}
                             selectedHasForEach={selectedHasForEach}
+                            visibilityMode={actionVisibilityMode}
                         />
                         <ActionConversationSearchRow service={conversationSearchService} />
                     </Box>
