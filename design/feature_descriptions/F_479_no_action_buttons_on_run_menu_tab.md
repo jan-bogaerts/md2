@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__f6820653-0398-4b52-a2ca-be1509597cda.json
 policy:
 ---
 we currently show all the 'global' actions on the 'run' menu-bar tab, in the list section, just before 'view active schedules'. these need to be removed.
