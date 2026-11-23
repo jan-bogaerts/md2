@@ -2848,14 +2848,14 @@
         "agent-c9ba93e8-0a42-405e-b871-5df17173dbff"
       ],
       "details": {
+        "type": "agent",
         "accountId": "codex-initial",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-5cf039a3-0185-47c2-8ca9-6996fdab6b4c",
       "origin": {
@@ -2864,9 +2864,46 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-c9ba93e8-0a42-405e-b871-5df17173dbff",
       "startedAt": "2026-11-23T12:33:06.733Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-c9ba93e8-0a42-405e-b871-5df17173dbff"
+    },
+    {
+      "commits": [
+        {
+          "commit": "699559e82521066580d09d4b27e3a70e05a4b675",
+          "committedAt": "2026-11-23T14:04:19+01:00",
+          "deletions": 111,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup.tsx",
+            "app/src/components/actions/run/popup/action_popup_empty_state.tsx",
+            "app/src/components/actions/run/popup/action_popup_frame.tsx",
+            "app/src/components/actions/run/popup/action_popup_types.ts",
+            "app/src/components/actions/run/popup/action_selector.test.tsx",
+            "app/src/components/actions/run/popup/action_selector.tsx",
+            "app/src/components/actions/run/popup/action_visibility.node.test.ts",
+            "app/src/components/actions/run/popup/action_visibility.ts",
+            "app/src/components/actions/run/popup/action_visibility_mode_store.test.ts",
+            "app/src/components/actions/run/popup/action_visibility_mode_store.ts",
+            "app/src/components/actions/run/popup/historical_card_actions.node.test.ts",
+            "app/src/components/actions/run/popup/historical_card_actions.ts",
+            "app/src/components/actions/run/popup/use_historical_activity_key.ts",
+            "app/src/components/hooks/use_action_visibility_conversations.ts",
+            "app/src/services/storage/application_storage.ts"
+          ],
+          "filesChanged": 16,
+          "insertions": 698,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-23T14:04:19+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "9700b31c-8ed5-4ec1-bf04-012a1bef1eb5",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
