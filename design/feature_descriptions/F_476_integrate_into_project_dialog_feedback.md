@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__5221030b-ed7e-4860-bd8f-177274dc9a02.json
 policy:
-branch: f_476_integrate_into_project_dialog_feedback
-worktree: 1
 changedFiles:
   - app/src/components/hooks/use_worktree_selector_state.ts
   - app/src/components/worktree_integration_dialog.test.tsx
