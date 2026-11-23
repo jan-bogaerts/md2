@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__1281ca20-aa25-484f-a577-8c52cfcf02ee.json
 policy:
+branch: f_477_check_typing_trace
+worktree: 1
 ---
 
 Check this trace: [Trace-typing.json](file:///C:/Users/janbo/Documents/dev/Trace-typing.json)
