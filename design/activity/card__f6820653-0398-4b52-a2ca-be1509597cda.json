@@ -5,7 +5,11 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "f6820653-0398-4b52-a2ca-be1509597cda",
       "cardPath": "design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md",
-      "completedAt": null,
+      "completedAt": "2026-11-23T14:04:05.536Z",
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 74867
+      },
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except files listed under 'agents' in the header. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
@@ -14,6 +18,522 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-11-23T14:00:54.478Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-2",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b04472219b087d296b957392081c224",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:01:04.834Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Using `caveman` for terse updates. First read skill, target header, every non-agent reference. Then inspect code paths, edit only requested feature file, verify diff.\n\n",
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 3,
+          "timestamp": "2026-11-23T14:01:05.870Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents\\\\skills\\\\caveman\\\\SKILL.md'\"",
+          "content": "---\nname: caveman\ndescription: >\n  Ultra-compressed communication mode. Cuts output tokens 65% (measured) by speaking like caveman\n  while keeping full technical accuracy. Supports intensity levels: lite, full (default), ultra,\n  wenyan-lite, wenyan-full, wenyan-ultra.\n  Use when user says \"caveman mode\", \"talk like caveman\", \"use caveman\", \"less tokens\",\n  \"be brief\", or invokes /caveman. Also auto-triggers when token efficiency is requested.\n---\n\nRespond terse like smart caveman. All technical substance stay. Only fluff die.\n\n## Persistence\n\nACTIVE EVERY RESPONSE. No revert after many turns. No filler drift. Still active if unsure. Off only: \"stop caveman\" / \"normal mode\".\n\nDefault: **full**. Switch: `/caveman lite|full|ultra`.\n\n## Rules\n\nDrop: articles (a/an/the), filler (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging. Fragments OK. Short synonyms (big not extensive, fix not \"implement a solution for\"). No tool-call narration, no decorative tables/emoji, no dumping long raw error logs unless asked â€” quote shortest decisive line. Standard well-known tech acronyms OK (DB/API/HTTP); never invent new abbreviations (cfg/impl/req/res/fn) â€” tokenizer split them same as full word: zero token saved, reader still decode. Full word cheaper AND clearer. No causal arrows (â†’) either â€” own token, save nothing. Technical terms exact. Code blocks unchanged. Errors quoted exact.\n\nPreserve user's dominant language. User write Portuguese â†’ reply Portuguese caveman. User write Spanish â†’ reply Spanish caveman. Compress the style, not the language. No forced English openings or status phrases. ALWAYS keep technical terms, code, API names, CLI commands, commit-type keywords (feat/fix/...), and exact error strings verbatim â€” unless user explicitly ask for translation.\n\nNo self-reference. Never name or announce the style. No \"caveman mode on\", \"me caveman think\", no third-person caveman tags. Output caveman-only â€” never normal answer plus \"Caveman:\" recap. Exception: user explicitly ask what the mode is.\n\nPattern: `[thing] [action] [reason]. [next step].`\n\nNot: \"Sure! I'd be happy to help you with that. The issue you're experiencing is likely caused by...\"\nYes: \"Bug in auth middleware. Token expiry check use `<` not `<=`. Fix:\"\n\n## Intensity\n\n| Level | What change |\n|-------|------------|\n| **lite** | No filler/hedging. Keep articles + full sentences. Professional but tight |\n| **full** | Drop articles, fragments OK, short synonyms. Classic caveman. No tool-call narration, no decorative tables/emoji, no long raw error-log dumps unless asked. Standard acronyms OK; no invented abbreviations |\n| **ultra** | Strip conjunctions when cause-then-effect stay unambiguous. One word when one word enough. State each fact once. NO prose abbreviations (cfg/impl/req/res/fn/auth), NO arrows (X â†’ Y) â€” measured zero token saving under tokenizer, cost decode clarity. Code symbols, function names, API names, error strings: never touch |\n| **wenyan-lite** | Semi-classical. Drop filler/hedging but keep grammar structure, classical register |\n| **wenyan-full** | Maximum classical terseness. Fully æ–‡è¨€æ–‡. 80-90% character reduction. Classical sentence patterns, verbs precede objects, subjects often omitted, classical particles (ä¹‹/ä¹ƒ/ç‚º/å…¶) |\n| **wenyan-ultra** | Extreme abbreviation while keeping classical Chinese feel. Maximum compression, ultra terse |\n\nExample â€” \"Why React component re-render?\"\n- lite: \"Your component re-renders because you create a new object reference each render. Wrap it in `useMemo`.\"\n- full: \"New object ref each render. Inline object prop = new ref = re-render. Wrap in `useMemo`.\"\n- ultra: \"Inline obj prop, new ref, re-render. `useMemo`.\"\n- wenyan-lite: \"çµ„ä»¶é »é‡ç¹ªï¼Œä»¥æ¯ç¹ªæ–°ç”Ÿå°è±¡åƒç…§æ•…ã€‚ä»¥ useMemo åŒ…ä¹‹ã€‚\"\n- wenyan-full: \"æ¯ç¹ªæ–°ç”Ÿå°è±¡åƒç…§ï¼Œæ•…é‡ç¹ªï¼›ä»¥ useMemo åŒ…ä¹‹å‰‡å…ã€‚\"\n- wenyan-ultra: \"æ–°åƒç…§å‰‡é‡ç¹ªã€‚useMemo åŒ…ä¹‹ã€‚\"\n\nExample â€” \"Explain database connection pooling.\"\n- lite: \"Connection pooling reuses open connections instead of creating new ones per request. Avoids repeated handshake overhead.\"\n- full: \"Pool reuse open DB connections. No new connection per request. Skip handshake overhead.\"\n- ultra: \"Pool reuse open DB connections. No per-request handshake.\"\n- wenyan-full: \"æ± è“„å·²é–‹ä¹‹é€£ï¼Œä¸é€è«‹è€Œæ–°é–‹ï¼Œçœæ¡æ‰‹ä¹‹è²»ã€‚\"\n- wenyan-ultra: \"æ± è“„é€£ï¼Œå…é€è«‹æ–°é–‹ï¼Œçœæ¡æ‰‹ã€‚\"\n\n## Auto-Clarity\n\nDrop caveman when:\n- Security warnings\n- Irreversible action confirmations\n- Multi-step sequences where fragment order or omitted conjunctions risk misread\n- Compression itself creates technical ambiguity (e.g., `\"migrate table drop column backup first\"` â€” order unclear without articles/conjunctions)\n- User asks to clarify or repeats question\n\nResume caveman after clear part done.\n\nExample â€” destructive op:\n> **Warning:** This will permanently delete all rows in the `users` table and cannot be undone.\n> ```sql\n> DROP TABLE users;\n> ```\n> Caveman resume. Verify backup exist first.\n\n## Boundaries\n\nCode/commits/PRs: write normal. \"stop caveman\" or \"normal mode\": revert. Level persist until changed or session end.\r\n",
+          "durationMs": 209,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-4",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents\\\\skills\\\\caveman\\\\SKILL.md'\"",
+          "providerItemId": "exec-aa16c20c-e43f-430e-94f2-0a028873b783",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:01:10.361Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-5",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b04472df55087d2ac2975594816ea56",
+          "sequence": 5,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:01:16.786Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_479_no_action_buttons_on_run_menu_tab.md'\"",
+          "content": "---\nauthor: \nid: F_479\ninternalId: f6820653-0398-4b52-a2ca-be1509597cda\ntitle: no action buttons on run menu tab\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__f6820653-0398-4b52-a2ca-be1509597cda.json\npolicy:\n---\nwe currently show all the 'global' actions on the 'run' menu-bar tab, in the list section, just before 'view active schedules'. these need to be removed.\r\n",
+          "durationMs": 104,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-6",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_479_no_action_buttons_on_run_menu_tab.md'\"",
+          "providerItemId": "exec-dfaf3779-1195-477a-ad4f-1d54334287d3",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:01:19.434Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-7",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b04473a598087d2b9a0ecc4d52b5cb1",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:01:29.218Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Target has no non-agent references. `agents` JSON intentionally skipped. Now trace run tab, global actions, schedules entry, related tests and style guide before writing.\n\n",
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 8,
+          "timestamp": "2026-11-23T14:01:29.997Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n --hidden --glob '\"'!design/activity/**'\"' --glob '\"'!node_modules/**'\"' \\\"view active schedules|View active schedules|active schedules|global actions|run menu|Run\\\" app desktop design\"",
+          "content": "desktop\\main.js:25:const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');\ndesktop\\main.js:28:const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');\ndesktop\\main.js:29:const { ClaudeRuntimeService } = require('./src/actions/agent/claude_runtime_service');\ndesktop\\main.js:38:const { ActionRunnerService } = require('./src/actions/action/action_runner_service');\ndesktop\\main.js:48:const { ActionWorktreeRunService } = require('./src/actions/action/action_worktree_run_service');\ndesktop\\main.js:88:    'onActionRun',\ndesktop\\main.js:109:const claudeRuntimeService = new ClaudeRuntimeService();\ndesktop\\main.js:110:const codexRuntimeService = new CodexRuntimeService();\ndesktop\\main.js:113:    claudeRuntimeService,\ndesktop\\main.js:114:    codexRuntimeService,\ndesktop\\main.js:118:const agentRunnerService = new AgentRunnerService({\ndesktop\\main.js:120:    claudeRuntimeService,\ndesktop\\main.js:121:    codexRuntimeService,\ndesktop\\main.js:137:const actionWorktreeRunService = new ActionWorktreeRunService({\ndesktop\\main.js:142:const actionRunnerService = new ActionRunnerService({\ndesktop\\main.js:143:    actionWorktreeRunService,\ndesktop\\main.js:145:    agentRunnerService,\ndesktop\\main.js:146:    codexRuntimeService,\ndesktop\\main.js:156:        buttons: ['Run now', 'Cancel schedule'],\ndesktop\\main.js:173:    actionRunnerService,\ndesktop\\main.js:175:    claudeRuntimeService,\ndesktop\\main.js:176:    codexRuntimeService,\ndesktop\\main.js:186:    actionRunnerService,\ndesktop\\main.js:188:    actionWorktreeRunService,\ndesktop\\main.js:190:    agentRunnerService,\ndesktop\\main.js:192:    claudeRuntimeService,\ndesktop\\main.js:193:    codexRuntimeService,\ndesktop\\main.js:450:        await actionRunnerService.suspend();\ndesktop\\main.js:451:        await agentRunnerService.stopAll();\ndesktop\\packaging\\BUILDING_WINDOWS.md:3:Run from repository root:\ndesign\\CODEMAP.md:13:- [app/](../app/) — Vite + React 19 renderer (TypeScript, ESM). This is the whole UI. Runs in Electron **and** unchanged in a plain browser (remote-control / mobile).\napp\\.playwright-cli\\page-2026-07-27T07-34-38-234Z.yml:7:        - tab \"Run\" [ref=e13] [cursor=pointer]\napp\\.playwright-cli\\page-2026-07-27T07-34-38-234Z.yml:63:    - 'button \"Running agents: 0\" [ref=e94] [cursor=pointer]': 0 agents\napp\\src\\data\\action_run_types.ts:15:export type ActionRunTerminalStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'\napp\\src\\data\\action_run_types.ts:16:export type ActionRunStatus = ActionRunTerminalStatus | 'queued' | 'running' | 'waitingForInput'\napp\\src\\data\\action_run_types.ts:17:export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'\napp\\src\\data\\action_run_types.ts:33:export interface ActionRunInput {\napp\\src\\data\\action_run_types.ts:94:    runInput: ActionRunInput\napp\\src\\data\\action_run_types.ts:157:interface ActionRunEventBase {\napp\\src\\data\\action_run_types.ts:168:    phase: ActionRunPhase\napp\\src\\data\\action_run_types.ts:179:export type ActionRunUpdate =\napp\\src\\data\\action_run_types.ts:265:export type ActionRunEvent =\napp\\src\\data\\action_run_types.ts:266:    | ActionRunEventBase & {\napp\\src\\data\\action_run_types.ts:272:    | ActionRunEventBase & {\napp\\src\\data\\action_run_types.ts:273:        status: ActionRunStatus\napp\\src\\data\\action_run_types.ts:276:    | ActionRunEventBase & {\napp\\src\\data\\action_run_types.ts:284:        status: ActionRunStatus\napp\\src\\data\\action_run_types.ts:291:    | ActionRunEventBase & {\napp\\src\\data\\action_run_types.ts:296:    | ActionRunEventBase & {\napp\\src\\data\\action_run_types.ts:297:        status: ActionRunStatus\napp\\src\\data\\action_run_types.ts:301:        update: ActionRunUpdate\napp\\src\\data\\action_run_types.ts:304:export interface ActionRunLogEntry {\napp\\src\\data\\action_run_types.ts:310:    phase: ActionRunPhase\napp\\src\\data\\action_run_types.ts:312:    status: ActionRunStatus\napp\\src\\data\\action_run_types.ts:321:export interface ActionRunResult {\napp\\src\\data\\action_run_types.ts:324:    logs: ActionRunLogEntry[]\napp\\src\\data\\action_run_types.ts:325:    sta\n[1040064 characters omitted]\n and continuation fields where applicable.\ndesign\\releases\\0_0_2\\F_057_edit_prepared_action_prompt.md:60:- Clear the previous action's prompt as soon as the selected action id or context changes, then show a loading state and disable `Run` until preparation completes.\ndesign\\releases\\0_0_2\\F_057_edit_prepared_action_prompt.md:63:- If preparation fails, show the error through `dialogService`, leave `Run` disabled, and do not fall back to the renderer's copy of the action prompt.\ndesign\\releases\\0_0_2\\F_057_edit_prepared_action_prompt.md:76:- Editing that prompt and pressing `Run` sends the exact edited text once; the stored action prompt is neither prepended nor appended.\ndesign\\releases\\0_0_2\\F_057_edit_prepared_action_prompt.md:78:- `Run` is disabled while prompt preparation is pending or failed, and preparation errors are shown through `dialogService`.\ndesign\\releases\\0_0_2\\J_006_split_local_git_service.md:24:- Run the desktop test suite after each commit; move tests alongside the code they cover where they are function-specific.\ndesign\\releases\\0_0_2\\F_060_card_commit_diff_viewer.md:83:Running conversations stay in `AgentRunnerService` memory; structured events keep streaming directly to the live UI.\ndesign\\releases\\0_0_2\\F_059_mobile_toolbar.md:39:- Desktop Home and the Run tab keep their current layout and behavior.\ndesign\\releases\\0_0_2\\F_052_agent_popup_conversation_layout_and_expansion.md:19:`ActionPopup` is shared by the card `Run` entry point and the project agent FAB. In its card-run layout, `ActionAgentForm` renders the Agent, Model and Thinking selectors followed immediately by the prompt. `ActionRunStatus` is rendered below the form and shows phase summaries rather than the persisted conversation messages. `ActionRunHistory` then renders every action-history entry inline.\ndesign\\releases\\0_0_2\\F_052_agent_popup_conversation_layout_and_expansion.md:27:- Apply the new layout to agent actions in both shared popup entry points: card `Run` and the project agent FAB. Command-action history and its diff controls keep their current behavior.\ndesign\\releases\\0_0_2\\F_052_agent_popup_conversation_layout_and_expansion.md:36:- Replace `ActionRunHistory` in the agent popup with the dropdown; do not derive the picker from `ActionRunHistoryEntry` summaries.\ndesign\\releases\\0_0_2\\F_052_agent_popup_conversation_layout_and_expansion.md:46:- Expanding detaches the popup's positioning from its FAB or card `Run` anchor while retaining the selected action and context. Position its top and bottom edges at the application viewport edges so it occupies the full application height; preserve its current width and horizontal position within the viewport.\ndesign\\releases\\0_0_2\\F_052_agent_popup_conversation_layout_and_expansion.md:75:- Agent popups no longer show the inline `ActionRunHistory`; command history and diff behavior are unchanged.\ndesign\\releases\\0_0_2\\J_005_split_data_service_collaborators.md:27:- Run `npm run typecheck` and the app test suite after each commit.\ndesign\\releases\\0_0_2\\F_054_agent_token_usage_tracking.md:15:Agent turns run through the desktop `AgentRunnerService` (`desktop/src/actions/agent_runner_service.js`), which streams each provider JSONL event into a per-conversation log file (the `.md2-agent-logs/*.json` files referenced from a card's `agents:` header). The providers already report token usage at the end of a turn, but md2 discards it — nothing extracts, stores, or displays it. Users have no idea how many tokens (or how much cost) a card, a release, or the whole project has consumed.\ndesign\\releases\\0_0_2\\F_054_agent_token_usage_tracking.md:33:- Capture that record in `AgentRunnerService`: store the turn's normalized usage on the conversation (e.g. `conversation.usage`) and persist it with the conversation log via `agent_conversation_persistence`. A conversation that spans multiple resumed turns accumulates usage across turns.\ndesign\\releases\\0_0_2\\J_007_split_action_scheduler_service.md:23:- Run the desktop test suite after each commit; add/move unit tests for the pure store functions.\n",
+          "durationMs": 1589,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-9",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n --hidden --glob '\"'!design/activity/**'\"' --glob '\"'!node_modules/**'\"' \\\"view active schedules|View active schedules|active schedules|global actions|run menu|Run\\\" app desktop design\"",
+          "providerItemId": "exec-02ec00e8-febe-4b36-8f09-fb25ce77438a",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:01:34.336Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-10",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b0447455f0c87d2a34487611feb4343",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:01:40.118Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -i --glob '\"'!node_modules/**'\"' --glob '\"'!dist/**'\"' --glob '\"'!build/**'\"' --glob '\"'!*playwright*'\"' --glob '*.{ts,tsx,js,jsx,md}' \\\"view active schedules\\\" app desktop design\"",
+          "content": "design\\feature_descriptions\\F_479_no_action_buttons_on_run_menu_tab.md:13:we currently show all the 'global' actions on the 'run' menu-bar tab, in the list section, just before 'view active schedules'. these need to be removed.\ndesign\\releases\\0.9.0\\release_notes.md:11:* View active schedules from the status bar.\ndesign\\releases\\0_7_0\\F_354_add_active_schedules_dialog.md:42:* Add `View active schedules` to Run tab and open MUI dialog. Dedicated schedule service loads active records when project opens, refreshes after registration/deletion and `.md2-schedules.json` changes, and exposes stable schedule list through `EventTarget` plus `useSyncExternalStore`.\ndesign\\releases\\0.9.0\\F_424_add_schedule_overview_to_status_bar.md:27:* Active schedules are only reachable from app bar → `Run` tab → `Actions` section → `View active schedules` icon button (`app_menu.tsx`). It opens `ActiveSchedulesDialog` (`components/actions/run/schedule/active_schedules_dialog.tsx`), a modal with list, details, `Delete` and `Open`. The button is disabled when no project is open or `hasActiveScheduleBackend()` is false.\napp\\src\\components\\shell\\menu\\app_menu.tsx:418:                            label=\"View active schedules\"\napp\\src\\components\\shell\\menu\\app_menu.test.tsx:283:        fireEvent.click(screen.getByRole('button', { name: 'View active schedules' }))\n",
+          "durationMs": 162,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-11",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -i --glob '\"'!node_modules/**'\"' --glob '\"'!dist/**'\"' --glob '\"'!build/**'\"' --glob '\"'!*playwright*'\"' --glob '*.{ts,tsx,js,jsx,md}' \\\"view active schedules\\\" app desktop design\"",
+          "providerItemId": "exec-97152052-4719-4084-ad61-c165972d754e",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:01:43.251Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-12",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b044751b7f887d285445b6570a5d123",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:01:52.485Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.test.tsx'\"",
+          "content": "import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'\nimport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\nimport type { UseGithubAuthResult } from '../../../auth/use_github_auth'\nimport type { StorageService } from '../../../data/data_types'\nimport type { ElectronDataBridge } from '../../../data/electron_data_bridge'\nimport { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'\nimport { actionService } from '../../../services/actions/action_service'\nimport { configService } from '../../../services/config/config_service'\nimport { dataService } from '../../../services/data/data_service'\nimport { dialogService } from '../../../services/dialog_service'\nimport { diagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'\nimport { diagramSaveService } from '../../../services/diagrams/diagram_save_service'\nimport { diagramViewService } from '../../../services/diagrams/diagram_view_service'\nimport { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'\nimport { workspaceViewService } from '../../../services/project/workspace_view_service'\nimport { projectAccessService } from '../../../services/project/project_access_service'\nimport { projectPersistenceService } from '../../../services/project/project_persistence_service'\nimport { projectSessionService, type ProjectOpenResolution } from '../../../services/project/project_session_service'\nimport { projectOpenFlowService } from '../../../services/project/project_open_flow_service'\nimport { openFilesService } from '../../../services/open_files_service'\nimport { sentryConnectionService } from '../../../services/sentry/sentry_connection_service'\nimport { sentryImportService } from '../../../services/sentry/sentry_import_service'\nimport { createDefaultSentryProjectSettings } from '../../../services/sentry/sentry_types'\nimport { AppThemeProvider } from '../../../theme/theme_provider'\nimport { DialogDisplay } from '../../dialog_display'\nimport { AppMenu } from './app_menu'\nimport { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../../shared/agent_token_usage_summary.mjs'\nimport { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'\nimport { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'\n\nconst auth: UseGithubAuthResult = {\n    accessToken: null,\n    errorMessage: null,\n    isAuthenticated: false,\n    isLoadingUser: false,\n    logout: vi.fn(),\n    savePersonalAccessToken: vi.fn(),\n    status: 'idle',\n    user: null,\n}\n\nconst LOCAL_PROJECT = { branch: 'main', id: 'local', rootPath: 'C:/repo' }\n\ninterface Deferred<T> {\n    promise: Promise<T>\n    resolve: (value: T) => void\n}\n\nfunction createDeferred<T>(): Deferred<T> {\n    let resolvePromise: ((value: T) => void) | null = null\n    const promise = new Promise<T>((resolve) => {\n        resolvePromise = resolve\n    })\n    if (!resolvePromise) throw new Error('Deferred promise resolver was not created')\n\n    return { promise, resolve: resolvePromise }\n}\n\nfunction createBridge(): ElectronDataBridge {\n    const usageSummary = {\n        content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()),\n        path: 'agent_token_usage.json',\n    }\n\n    return {\n        checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),\n        commit: vi.fn(async () => []),\n        deleteFile: vi.fn(),\n        deleteFolder: vi.fn(),\n        getMergeConflictSession: vi.fn(async () => null),\n        hasPendingPush: vi.fn(async () => false),\n        listBranches: vi.fn(async () => [{ name: 'main' }]),\n        listRepositoryFiles: vi.fn(async () => [usageSummary.path]),\n        listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),\n        loadActionFiles: vi.fn(async () => []),\n        loadFile: vi.fn(async () => ({ content: '', path: 'design/empty.md' })),\n        loadProject: vi.fn(async () => ({ files: [], workingFo\n[39368 characters omitted]\n())\n        renderMenu()\n        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))\n        expect(screen.queryByRole('button', { name: 'Import Sentry issues' })).not.toBeInTheDocument()\n\n        await connectSentry()\n\n        expect(await screen.findByRole('button', { name: 'Import Sentry issues' })).toBeEnabled()\n    })\n\n    it('keeps the Sentry import button hidden while settings are incomplete', async () => {\n        await activateLocalProject(createBridge())\n        await connectSentry()\n        act(() => {\n            sentryConnectionService.saveSettings({ ...completeSentrySettings(), cardType: '' })\n        })\n\n        renderMenu()\n        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))\n\n        expect(screen.queryByRole('button', { name: 'Import Sentry issues' })).not.toBeInTheDocument()\n    })\n\n    it('disables the Sentry import button while an import runs', async () => {\n        await activateLocalProject(createBridge())\n        await connectSentry()\n        vi.spyOn(sentryImportService, 'getSnapshot').mockReturnValue({\n            confirmation: null,\n            isPolling: true,\n            lastImportCount: null,\n            lastSuccessfulPollAt: null,\n            latestError: null,\n        })\n\n        renderMenu()\n        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))\n\n        const importButton = screen.getByRole('button', { name: 'Import Sentry issues' })\n        expect(importButton).toBeDisabled()\n        fireEvent.mouseOver(importButton.parentElement as HTMLElement)\n        expect(await screen.findByRole('tooltip')).toHaveTextContent('Checking Sentry...')\n    })\n\n    it('disables the Sentry import button for a read-only project', async () => {\n        await activateLocalProject(createBridge())\n        await connectSentry()\n        renderMenu()\n        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))\n        expect(screen.getByRole('button', { name: 'Import Sentry issues' })).toBeEnabled()\n\n        act(() => projectAccessService.setReadOnly(true))\n\n        expect(screen.getByRole('button', { name: 'Import Sentry issues' })).toBeDisabled()\n    })\n\n    it('runs one manual Sentry import per click from the Run menu', async () => {\n        await activateLocalProject(createBridge())\n        await connectSentry()\n        const importNow = vi.spyOn(sentryImportService, 'importNow').mockResolvedValue(0)\n\n        renderMenu()\n        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))\n        fireEvent.click(screen.getByRole('button', { name: 'Import Sentry issues' }))\n\n        expect(importNow).toHaveBeenCalledTimes(1)\n    })\n\n    it('pulls only when the primary worktree monitor reports clean incoming commits', async () => {\n        let onWorktreesChanged: ((state: {\n            error: string | null\n            primaryStatus: {\n                ahead: number\n                baseAhead: number\n                baseBehind: number\n                behind: number\n                dirty: boolean\n                hasUpstream: boolean\n            }\n            project: { branch: string, id: string, rootPath: string }\n            records: []\n        }) => void) | null = null\n        const bridge = createBridge()\n        bridge.onWorktreesChanged = vi.fn((callback) => {\n            onWorktreesChanged = callback\n\n            return vi.fn()\n        })\n        await activateLocalProject(bridge)\n        renderMenu()\n        const pullButton = screen.getByRole('button', { name: 'Pull' })\n        expect(pullButton).toBeDisabled()\n\n        act(() => {\n            onWorktreesChanged?.({\n                error: null,\n                primaryStatus: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 1, dirty: false, hasUpstream: true },\n                project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },\n                records: [],\n            })\n        })\n\n        await waitFor(() => expect(pullButton).toBeEnabled())\n        fireEvent.click(pullButton)\n        await waitFor(() => expect(bridge.pull).toHaveBeenCalledWith(expect.objectContaining({ id: 'local' })))\n    })\n})\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-13",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.test.tsx'\"",
+          "providerItemId": "exec-1d602b48-d447-4394-a496-13ddb18097b2",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:02:01.505Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.tsx'\"",
+          "content": "import { AppBar, Box, Button, Divider, ToggleButton, ToggleButtonGroup, Tooltip, useMediaQuery } from '@mui/material'\nimport type { SelectChangeEvent } from '@mui/material'\nimport type { MouseEvent as ReactMouseEvent, ReactNode } from 'react'\nimport { useCallback, useEffect, useState } from 'react'\nimport CardsOutline from 'mdi-material-ui/CardsOutline'\nimport BugOutline from 'mdi-material-ui/BugOutline'\nimport CheckCircleOutline from 'mdi-material-ui/CheckCircleOutline'\nimport CloudArrowDownOutline from 'mdi-material-ui/CloudArrowDownOutline'\nimport CloudArrowUpOutline from 'mdi-material-ui/CloudArrowUpOutline'\nimport Cog from 'mdi-material-ui/Cog'\nimport ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'\nimport FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'\nimport FolderOpen from 'mdi-material-ui/FolderOpen'\nimport TextBoxOutline from 'mdi-material-ui/TextBoxOutline'\nimport BarChartOutlined from '@mui/icons-material/BarChartOutlined'\nimport AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'\nimport ScheduleOutlined from '@mui/icons-material/ScheduleOutlined'\nimport PlaylistAddOutlined from '@mui/icons-material/PlaylistAddOutlined'\nimport {\n    projectSessionService,\n    type ProjectOpenResolution,\n} from '../../../services/project/project_session_service'\nimport { workspaceViewService, type WorkspaceViewMode } from '../../../services/project/workspace_view_service'\nimport { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'\nimport { actionService } from '../../../services/actions/action_service'\nimport { dialogService } from '../../../services/dialog_service'\nimport { diagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'\nimport { diagramSaveService } from '../../../services/diagrams/diagram_save_service'\nimport type { EmptyDiagramChoice } from '../../../services/diagrams/empty_diagram_factory'\nimport { diagramViewService } from '../../../services/diagrams/diagram_view_service'\nimport { sentryImportService } from '../../../services/sentry/sentry_import_service'\nimport { isSentryConfigurationComplete } from '../../../services/sentry/sentry_types'\nimport { projectContext } from '../../../data/action_context'\nimport type { UseGithubAuthResult } from '../../../auth/use_github_auth'\nimport { useProjectReference } from '../../hooks/use_project_reference'\nimport { useProjectOpenPhase } from '../../hooks/use_project_open_phase'\nimport { useProjectPersistence } from '../../hooks/use_project_persistence'\nimport { useProjectConfig } from '../../hooks/use_project_config'\nimport { useProjectReadOnly } from '../../hooks/use_project_read_only'\nimport { useSentryConnection } from '../../hooks/use_sentry_connection'\nimport { useSentryImport } from '../../hooks/use_sentry_import'\nimport { usePrimaryWorktreeStatus } from '../../hooks/use_worktrees'\nimport { useWorkspaceView } from '../../hooks/use_workspace_view'\nimport { ActionEntryPoints } from '../../actions/run/trigger/action_entry_points'\nimport { MainToolbar } from './main_toolbar'\nimport { GithubAuthToolbarButton } from '../github_auth_toolbar_button'\nimport { NO_DRAG_REGION } from '../drag_region'\nimport { BranchSwitchDialog } from '../project/branch_switch_dialog'\nimport { CompleteReleaseDialog } from '../project/complete_release_dialog'\nimport { NewCardDialog } from '../project/new_card_dialog'\nimport { ProjectOpenDialog } from '../project/project_open_dialog'\nimport { useProjectToolbarMenuActions } from '../project/use_project_toolbar_menu_actions'\nimport { Menu } from './menu'\nimport { BranchMenuSelect } from './branch_menu_select'\nimport { MenuIconButton } from './menu_icon_button'\nimport { NewDiagramMenu } from './new_diagram_menu'\nimport { Section } from './section'\nimport { Tab } from './tab'\nimport { DiagramMenuTab } from '../../diagram_view/commands/diagram_menu_tab'\nimport { StatsMenuTab } from '../../stats_view/stats_menu_tab'\nimport { ActiveSchedulesDialog } from '../../actions/run/schedule/active_schedules_dialog'\nimport { DIAGRA\n[16288 characters omitted]\nhandleImportSentryIssues}\n                                tooltip={sentryImport.isPolling ? 'Checking Sentry...' : 'Import Sentry issues'}\n                            >\n                                <BugOutline fontSize=\"small\" />\n                            </MenuIconButton>\n                        ) : null}\n                    </Section>\n                </Tab>\n            </Box>\n            {viewMode === 'diagrams' ? (\n                <Box role=\"tabpanel\" sx={{ display: visibleCurrentTab === 'diagram' ? 'block' : 'none' }}>\n                    <DiagramMenuTab />\n                </Box>\n            ) : null}\n            {viewMode === 'stats' ? (\n                <Box role=\"tabpanel\" sx={{ display: visibleCurrentTab === 'stats' ? 'block' : 'none' }}>\n                    <StatsMenuTab />\n                </Box>\n            ) : null}\n            {projectOpenPhase === 'selecting' || projectOpenPhase === 'folder-setup'\n                || projectOpenPhase === 'git-initialization' ? (\n                    <ProjectOpenDialog key={projectOpenPhase} />\n                ) : null}\n            {dialogMode === 'schedules' ? (\n                <ActiveSchedulesDialog\n                    onClose={closeDialog}\n                    open\n                    readOnly={readOnly}\n                />\n            ) : null}\n            {dialogMode === 'branch' ? (\n                <BranchSwitchDialog\n                    branches={actions.branches}\n                    isLoading={actions.isLoading}\n                    onBranchChange={actions.setSwitchBranch}\n                    onClose={actions.closeDialog}\n                    onSwitchBranch={(branch) => void actions.switchProjectBranch(branch)}\n                    open\n                    selectedBranch={actions.switchBranch}\n                />\n            ) : null}\n            {dialogMode === 'release' ? (\n                <CompleteReleaseDialog\n                    branchCandidates={actions.releaseBranchCandidates}\n                    defaultSelectAll={actions.releaseSelectAllDefault}\n                    isLoading={actions.isLoading}\n                    key={dialogMode === 'release' ? 'release-open' : 'release-closed'}\n                    suggestedReleaseName={projectConfig?.lastVersion ?? ''}\n                    onClose={actions.closeDialog}\n                    onCompleteRelease={actions.completeRelease}\n                    onSelectAllDefaultChange={actions.setReleaseSelectAllDefault}\n                    open\n                />\n            ) : null}\n            {dialogMode === 'card' ? (\n                <NewCardDialog\n                    cardTypes={actions.cardTypes}\n                    initialTargetStatus={actions.newCardInitialStatus}\n                    isLoading={actions.isLoading}\n                    isProjectOpen={actions.isProjectOpen}\n                    onClose={actions.closeDialog}\n                    onCreateCard={actions.createCard}\n                    open\n                    states={actions.states}\n                />\n            ) : null}\n        </Menu>\n    )\n\n    return (\n        <AppBar\n            color=\"default\"\n            elevation={0}\n            position=\"static\"\n            sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}\n        >\n            <MainToolbar\n                availableTabs={availableMenuTabs}\n                currentTab={visibleCurrentTab}\n                isCompact={isCompactHeader}\n                isMobile={isMobile}\n                isNewActionDisabled={!project || readOnly}\n                isNewCardDisabled={!actions.isProjectOpen || readOnly}\n                isNewDiagramDisabled={!actions.isProjectOpen || readOnly || isCreatingDiagram}\n                onCreateAction={handleCreateAction}\n                onCreateCard={handleOpenCardDialog}\n                onCreateDiagram={handleCreateDiagram}\n                onOpenMenu={onOpenMobileMenu}\n                onTabChange={handleTabChange}\n                regexpAgent={regexpAgent}\n            />\n            <Box style={NO_DRAG_REGION}>{menuPanel}</Box>\n        </AppBar>\n    )\n}\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-14",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.tsx'\"",
+          "providerItemId": "exec-0523b4f5-b02e-4cea-bae7-40ad0be23c67",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:02:01.534Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\releases\\\\0_7_0\\\\F_354_add_active_schedules_dialog.md'\"",
+          "content": "---\nauthor: \nid: F_354\ninternalId: 57ceeeca-6732-42a3-b77f-b1c459a2f268\ntitle: Add active schedules dialog\nstatus: ready\nowner: \naffects:\nagents:\n  - design/releases/0_7_0/card__57ceeeca-6732-42a3-b77f-b1c459a2f268.json\npolicy:\nafter: 3a0d1119-4bc6-4bba-b47d-ddfabe12d56d\nchangedFiles:\n  - app/src/components/actions/run/popup/action_popup_defaults.node.test.ts\n  - app/src/components/actions/run/popup/action_popup_defaults.ts\n  - app/src/components/actions/run/schedule/active_schedules_dialog.test.tsx\n  - app/src/components/actions/run/schedule/active_schedules_dialog.tsx\n  - app/src/components/hooks/use_active_schedules.ts\n  - app/src/components/project_workspace.tsx\n  - app/src/components/project_workspace_rendering.test.tsx\n  - app/src/components/shell/menu/app_menu.test.tsx\n  - app/src/components/shell/menu/app_menu.tsx\n  - app/src/data/electron_action_bridge.ts\n  - app/src/services/actions/active_schedule_projection.node.test.ts\n  - app/src/services/actions/active_schedule_projection.ts\n  - app/src/services/actions/active_schedule_service.node.test.ts\n  - app/src/services/actions/active_schedule_service.ts\n  - app/src/services/application_startup_service.ts\n  - app/src/services/card_popup_service.test.ts\n  - app/src/services/card_popup_service.ts\n  - app/src/services/project/workspace_navigation_service.node.test.ts\n  - app/src/services/project/workspace_navigation_service.ts\n---\nAdd active-schedule management UI for [F\\_331](F_331_improve_schedule_action.md), using APIs from [F\\_352](F_352_extend_schedule_contract_and_apis.md).\n\n## Current state\n\nRun tab contains agent setup and action buttons only. Schedules can be loaded through data storage, but no service owns live schedule view data and no screen lists them. Workspace navigation opens paths; board reveal selects and scrolls card, while list view opens documents in tabs.\n\n## implementation details\n\n* Add `View active schedules` to Run tab and open MUI dialog. Dedicated schedule service loads active records when project opens, refreshes after registration/deletion and `.md2-schedules.json` changes, and exposes stable schedule list through `EventTarget` plus `useSyncExternalStore`.\n* Show one selectable row per pending or running record. Expand row for kind, action, status, trigger, creation time, selected tracker or trigger card, ready state, sequence progress, and unavailable reason. Resolve labels and current paths from loaded actions/cards; retain IDs when target disappeared.\n* `Open` and row double-click resolve current target by `cardInternalId`. For action schedule use action context card; for sequence use current item, or first item before start. Board view selects, scrolls, and opens card details. List view opens or activates card tab. Missing card reports through `dialogService`.\n* `Delete` asks confirmation, calls delete API, disables repeated action while pending, then updates list. Running deletion text states current action will be cancelled.\n* Dialog follows style guide: scrollable body, pinned right-aligned actions, one contained primary action at most, accessible expansion and selection, empty state.\n* Add menu, service, dialog, navigation, deletion, missing-target, empty, and error tests.\n\n## acceptance criteria\n\n* Run menu opens dialog containing every active action and sequence schedule, and no terminal schedule.\n* Selection and expansion work independently; details identify exact trigger and current sequence progress.\n* Open button and double-click reveal and open correct current card in board view, or open correct tab in list view.\n* Navigation resolves `cardInternalId` to current path, so rename does not break Open.\n* Confirmed delete cancels running work when needed, removes schedule, and removes row. Cancel leaves it unchanged.\n* Missing action, card, or tracker remains inspectable and produces clear unavailable state instead of render error.\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-15",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\releases\\\\0_7_0\\\\F_354_add_active_schedules_dialog.md'\"",
+          "providerItemId": "exec-192597bd-561b-466a-a17b-794b1e48bc19",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:02:01.535Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\releases\\\\0.9.0\\\\F_424_add_schedule_overview_to_status_bar.md'\"",
+          "content": "---\nauthor: \nid: F_424\ninternalId: f65510e2-6beb-4c9d-87be-077031583414\ntitle: add schedule overview to status bar\nstatus: ready\nowner: \naffects:\nagents:\n  - design/releases/0.9.0/card__f65510e2-6beb-4c9d-87be-077031583414.json\npolicy:\nchangedFiles:\n  - app/src/components/shell/active_schedules_indicator.test.tsx\n  - app/src/components/shell/active_schedules_indicator.tsx\n  - app/src/components/shell/status_bar.tsx\nafter: ef3c3a56-28a9-4ca5-9402-16972e140c01\n---\n\nit is currently difficult to track if there are cards and/or sequences scheduled.\n\nso we should add a status indicator icon for this on the status bar.\n\nwhen user clicks on it, show popup with list of current schedules and sequences, same or similar as the one currently shown when accessed from app bar's run tab\n## Current state\n\n* `StatusBar` (`app/src/components/shell/status_bar.tsx`) is desktop only (`MainWindow` renders it when not mobile). It holds card count, sync, usage, rate limits, remote control, keyboard, pinned conversations and running agents. No schedule indicator.\n* Active schedules are only reachable from app bar â†’ `Run` tab â†’ `Actions` section â†’ `View active schedules` icon button (`app_menu.tsx`). It opens `ActiveSchedulesDialog` (`components/actions/run/schedule/active_schedules_dialog.tsx`), a modal with list, details, `Delete` and `Open`. The button is disabled when no project is open or `hasActiveScheduleBackend()` is false.\n* `activeScheduleService` (`services/actions/active_schedule_service.ts`) owns the data. It starts at app startup and reloads when the project changes or when `<actionsFolder>/<ACTION_SCHEDULES_FILE>` changes. Its snapshot `items` holds both action schedules and sequence schedules. \"Active\" means status `pending` or `running`; the desktop `listActiveSchedules()` filters out the rest. The service publishes the whole snapshot on a single `changed` event, so selection, expand and delete changes in the dialog also fire it.\n* Without the Electron bridge (web or remote mode), `hasActiveScheduleBackend()` is false and the service snapshot holds an error with no items.\n\n## Implementation details\n\n* New `app/src/components/shell/active_schedules_indicator.tsx` â†’ `ActiveSchedulesIndicator`:\n  * Count: `useSyncExternalStore(activeScheduleService.subscribe, getActiveScheduleCount)` where `getActiveScheduleCount = () => activeScheduleService.getSnapshot().items.length`. Primitive snapshot â†’ the indicator repaints only when the count changes, not when the dialog changes selection or expansion. No service change.\n  * Visibility: render `null` when no project is open or `hasActiveScheduleBackend()` is false. Project-open check uses a primitive `useSyncExternalStore` selector (`!!dataService.getState().project`), not `useProjectState`, so that card snapshot changes do not repaint the indicator. Otherwise always visible, including count `0`.\n  * Button: same style as `PinnedConversationsIndicator` (neutral pill, `height: 22`, `fontSize: 11.5`), `ScheduleOutlined` start icon, text = count, `aria-label=\"Active schedules: <count>\"`.\n  * Click: local `open` state â†’ mount `<ActiveSchedulesDialog open onClose={handleClose} readOnly={readOnly} />` only while open (same lazy-mount pattern as `app_menu.tsx`). `readOnly` comes from `useProjectReadOnly()`. Handlers are named constants.\n* `status_bar.tsx`: render `<ActiveSchedulesIndicator />` between `PinnedConversationsIndicator` and `RunningAgentsIndicator`.\n* No change to `ActiveSchedulesDialog`, `activeScheduleService`, desktop, or the app bar `Run` tab entry.\n* Edge cases:\n  * Initial load or error: count shows `0`. The dialog shows the loading spinner or the error alert.\n  * Project switch: the service resets to empty and reloads â†’ count follows.\n  * Schedule finishes or is deleted: the schedules file changes â†’ service refresh â†’ count drops.\n  * Read-only project: dialog opens. `Delete` disabled. `Open` still allowed.\n  * Mobile: out of scope (`StatusBar` is not rendered).\n\n## Acceptance criteria\n\n* With a local Electron project open, the status bar shows a schedule icon with the count of pending and running schedules (actions and sequences), `0` included.\n* The indicator is hidden when no project is open or the schedule backend is unavailable.\n* Registering, finishing or deleting a schedule updates the count without a manual refresh.\n* Clicking the indicator opens the same `Active schedules` dialog as the `Run` tab button. Select, expand, `Open`, `Delete` and `Close` behave the same.\n* In a read-only project, `Delete` in the dialog is disabled.\n* Selecting or expanding rows in the dialog does not re-render the indicator.\n* Tests (`active_schedules_indicator.test.tsx`, mock the bridge and service boundaries):\n  * renders the count and accessible name;\n  * hidden without a project or backend;\n  * count updates after a service `changed` event;\n  * click opens the dialog; `Close` closes it.\n* Existing `status_bar.grouped.test.tsx` keeps passing (no bridge in that test â†’ indicator hidden).\n\r\n",
+          "durationMs": 468,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-16",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\releases\\\\0.9.0\\\\F_424_add_schedule_overview_to_status_bar.md'\"",
+          "providerItemId": "exec-fadad203-5b40-487a-9926-2842f9b85b15",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:02:02.432Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-17",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b044763d66487d2821466101585356b",
+          "sequence": 17,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:02:11.380Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 18 \\\"ActionEntryPoints|View active schedules|Complete release|Import Sentry\\\" 'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.tsx' 'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.test.tsx'\"",
+          "content": "app\\src\\components\\shell\\menu\\app_menu.tsx-26-import { dialogService } from '../../../services/dialog_service'\napp\\src\\components\\shell\\menu\\app_menu.tsx-27-import { diagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'\napp\\src\\components\\shell\\menu\\app_menu.tsx-28-import { diagramSaveService } from '../../../services/diagrams/diagram_save_service'\napp\\src\\components\\shell\\menu\\app_menu.tsx-29-import type { EmptyDiagramChoice } from '../../../services/diagrams/empty_diagram_factory'\napp\\src\\components\\shell\\menu\\app_menu.tsx-30-import { diagramViewService } from '../../../services/diagrams/diagram_view_service'\napp\\src\\components\\shell\\menu\\app_menu.tsx-31-import { sentryImportService } from '../../../services/sentry/sentry_import_service'\napp\\src\\components\\shell\\menu\\app_menu.tsx-32-import { isSentryConfigurationComplete } from '../../../services/sentry/sentry_types'\napp\\src\\components\\shell\\menu\\app_menu.tsx-33-import { projectContext } from '../../../data/action_context'\napp\\src\\components\\shell\\menu\\app_menu.tsx-34-import type { UseGithubAuthResult } from '../../../auth/use_github_auth'\napp\\src\\components\\shell\\menu\\app_menu.tsx-35-import { useProjectReference } from '../../hooks/use_project_reference'\napp\\src\\components\\shell\\menu\\app_menu.tsx-36-import { useProjectOpenPhase } from '../../hooks/use_project_open_phase'\napp\\src\\components\\shell\\menu\\app_menu.tsx-37-import { useProjectPersistence } from '../../hooks/use_project_persistence'\napp\\src\\components\\shell\\menu\\app_menu.tsx-38-import { useProjectConfig } from '../../hooks/use_project_config'\napp\\src\\components\\shell\\menu\\app_menu.tsx-39-import { useProjectReadOnly } from '../../hooks/use_project_read_only'\napp\\src\\components\\shell\\menu\\app_menu.tsx-40-import { useSentryConnection } from '../../hooks/use_sentry_connection'\napp\\src\\components\\shell\\menu\\app_menu.tsx-41-import { useSentryImport } from '../../hooks/use_sentry_import'\napp\\src\\components\\shell\\menu\\app_menu.tsx-42-import { usePrimaryWorktreeStatus } from '../../hooks/use_worktrees'\napp\\src\\components\\shell\\menu\\app_menu.tsx-43-import { useWorkspaceView } from '../../hooks/use_workspace_view'\napp\\src\\components\\shell\\menu\\app_menu.tsx:44:import { ActionEntryPoints } from '../../actions/run/trigger/action_entry_points'\napp\\src\\components\\shell\\menu\\app_menu.tsx-45-import { MainToolbar } from './main_toolbar'\napp\\src\\components\\shell\\menu\\app_menu.tsx-46-import { GithubAuthToolbarButton } from '../github_auth_toolbar_button'\napp\\src\\components\\shell\\menu\\app_menu.tsx-47-import { NO_DRAG_REGION } from '../drag_region'\napp\\src\\components\\shell\\menu\\app_menu.tsx-48-import { BranchSwitchDialog } from '../project/branch_switch_dialog'\napp\\src\\components\\shell\\menu\\app_menu.tsx-49-import { CompleteReleaseDialog } from '../project/complete_release_dialog'\napp\\src\\components\\shell\\menu\\app_menu.tsx-50-import { NewCardDialog } from '../project/new_card_dialog'\napp\\src\\components\\shell\\menu\\app_menu.tsx-51-import { ProjectOpenDialog } from '../project/project_open_dialog'\napp\\src\\components\\shell\\menu\\app_menu.tsx-52-import { useProjectToolbarMenuActions } from '../project/use_project_toolbar_menu_actions'\napp\\src\\components\\shell\\menu\\app_menu.tsx-53-import { Menu } from './menu'\napp\\src\\components\\shell\\menu\\app_menu.tsx-54-import { BranchMenuSelect } from './branch_menu_select'\napp\\src\\components\\shell\\menu\\app_menu.tsx-55-import { MenuIconButton } from './menu_icon_button'\napp\\src\\components\\shell\\menu\\app_menu.tsx-56-import { NewDiagramMenu } from './new_diagram_menu'\napp\\src\\components\\shell\\menu\\app_menu.tsx-57-import { Section } from './section'\napp\\src\\components\\shell\\menu\\app_menu.tsx-58-import { Tab } from './tab'\napp\\src\\components\\shell\\menu\\app_menu.tsx-59-import { DiagramMenuTab } from '../../diagram_view/commands/diagram_menu_tab'\napp\\src\\components\\shell\\menu\\app_menu.tsx-60-import { StatsMenuTab } from '../../stats_view/stats_menu_tab'\napp\\src\\components\\shell\\menu\\app_menu.tsx-61-import { ActiveSchedulesDialog } from '../../actions/run/sched\n[22747 characters omitted]\n.tsx:905:        const importButton = screen.getByRole('button', { name: 'Import Sentry issues' })\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-906-        expect(importButton).toBeDisabled()\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-907-        fireEvent.mouseOver(importButton.parentElement as HTMLElement)\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-908-        expect(await screen.findByRole('tooltip')).toHaveTextContent('Checking Sentry...')\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-909-    })\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-910-\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-911-    it('disables the Sentry import button for a read-only project', async () => {\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-912-        await activateLocalProject(createBridge())\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-913-        await connectSentry()\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-914-        renderMenu()\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-915-        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))\napp\\src\\components\\shell\\menu\\app_menu.test.tsx:916:        expect(screen.getByRole('button', { name: 'Import Sentry issues' })).toBeEnabled()\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-917-\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-918-        act(() => projectAccessService.setReadOnly(true))\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-919-\napp\\src\\components\\shell\\menu\\app_menu.test.tsx:920:        expect(screen.getByRole('button', { name: 'Import Sentry issues' })).toBeDisabled()\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-921-    })\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-922-\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-923-    it('runs one manual Sentry import per click from the Run menu', async () => {\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-924-        await activateLocalProject(createBridge())\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-925-        await connectSentry()\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-926-        const importNow = vi.spyOn(sentryImportService, 'importNow').mockResolvedValue(0)\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-927-\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-928-        renderMenu()\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-929-        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))\napp\\src\\components\\shell\\menu\\app_menu.test.tsx:930:        fireEvent.click(screen.getByRole('button', { name: 'Import Sentry issues' }))\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-931-\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-932-        expect(importNow).toHaveBeenCalledTimes(1)\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-933-    })\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-934-\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-935-    it('pulls only when the primary worktree monitor reports clean incoming commits', async () => {\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-936-        let onWorktreesChanged: ((state: {\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-937-            error: string | null\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-938-            primaryStatus: {\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-939-                ahead: number\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-940-                baseAhead: number\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-941-                baseBehind: number\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-942-                behind: number\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-943-                dirty: boolean\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-944-                hasUpstream: boolean\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-945-            }\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-946-            project: { branch: string, id: string, rootPath: string }\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-947-            records: []\napp\\src\\components\\shell\\menu\\app_menu.test.tsx-948-        }) => void) | null = null\n",
+          "durationMs": 291,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-18",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 18 \\\"ActionEntryPoints|View active schedules|Complete release|Import Sentry\\\" 'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.tsx' 'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.test.tsx'\"",
+          "providerItemId": "exec-a9b426de-a7ea-445e-86b4-7c98c916f71e",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:02:16.500Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\trigger\\\\action_entry_points.tsx'\"",
+          "content": "import { IconButton, ListItemIcon, MenuItem, Stack, Tooltip } from '@mui/material'\nimport { useEffect, useMemo, useState } from 'react'\nimport type { MouseEvent } from 'react'\nimport { contextWithCurrentWorktree, displayActionsForContext, type ActionContext } from '../../../../data/action_context'\nimport { useWorktrees } from '../../../hooks/use_worktrees';\nimport type { ActionDefinition } from '../../../../data/action_types'\nimport { dialogService } from '../../../../services/dialog_service'\nimport { useActions } from '../../../hooks/use_actions'\nimport { useRunningActionForContext } from '../../../hooks/use_action_runs'\nimport { ActionIcon } from './action_icon'\nimport { resolveActionIcon, type ActionIconSource } from './action_icon_resolver'\nimport { ActionPopup } from '../popup/action_popup'\nimport { useProjectReadOnly } from '../../../hooks/use_project_read_only'\n\n/** How action entry points are rendered in an existing toolbar or menu. */\nexport type ActionEntryVariant = 'icons' | 'menuItems'\nexport type ActionEntryVisibility = 'all-matching' | 'explicit-context'\n\ninterface ActionEntryPointsProps {\n    context: ActionContext\n    onActionSelected?: (actionId: string, anchorElement: HTMLElement) => void\n    onMenuItemSelected?: () => void\n    popupAnchorElement?: HTMLElement | null\n    variant: ActionEntryVariant\n    visibility?: ActionEntryVisibility\n}\n\nconst DEFAULT_ICON_SOURCE: ActionIconSource = { dataUri: null }\n\ninterface ActionPopupState {\n    actionId: string\n    anchorElement: HTMLElement\n}\n\n/**\n * Context-sensitive action entry points shown close to a card/file/folder. Filters\n * the loaded actions by `appliesTo`, and on activation opens a resizable popup bound\n * to the action and context. `before`/`after` shortcuts push a new popup for the\n * related action with the same context.\n */\nexport function ActionEntryPoints(props: ActionEntryPointsProps) {\n    const { context: suppliedContext, onActionSelected, onMenuItemSelected, popupAnchorElement, variant, visibility = 'all-matching' } = props\n    const worktrees = useWorktrees();\n    const context = useMemo(() => contextWithCurrentWorktree(suppliedContext, worktrees), [suppliedContext, worktrees]);\n    const { actions: loadedActions } = useActions()\n    const runningRun = useRunningActionForContext(context)\n    const readOnly = useProjectReadOnly()\n    const runDisabled = readOnly || !!runningRun\n    const [iconSources, setIconSources] = useState<Record<string, ActionIconSource>>({})\n    const [popupState, setPopupState] = useState<ActionPopupState | null>(null)\n\n    const matching = useMemo(() => {\n        const contextActions = displayActionsForContext(loadedActions, context)\n        if (visibility === 'explicit-context') {\n            return contextActions.filter((action) => action.appliesTo?.kind === context.kind)\n        }\n\n        return contextActions\n    }, [context, loadedActions, visibility])\n\n    useEffect(() => {\n        let isActive = true\n\n        const loadIcons = async () => {\n            const entries = await Promise.all(matching.map(async (action) => [action.id, await resolveActionIcon(action.icon)] as const))\n            if (!isActive) return\n\n            setIconSources(Object.fromEntries(entries))\n        }\n\n        void loadIcons()\n\n        return () => {\n            isActive = false\n        }\n    }, [matching])\n\n    if (matching.length === 0) return null\n\n    const open = (actionId: string, anchorElement: HTMLElement) => {\n        onMenuItemSelected?.()\n        if (onActionSelected) {\n            onActionSelected(actionId, anchorElement)\n            return\n        }\n        setPopupState({ actionId, anchorElement })\n    }\n\n    const handleOpen = (event: MouseEvent<HTMLElement>) => {\n        try {\n            const { actionId } = event.currentTarget.dataset\n            if (!actionId) throw new Error('Missing action id on action entry point')\n\n            open(actionId, popupAnchorElement ?? event.currentTarget)\n        } catch (error) {\n            dialogService.error(error, { fallbackMessage: 'Action popup could not be opened' })\n        }\n    }\n\n    const iconSourceFor = (action: ActionDefinition) => iconSources[action.id] ?? DEFAULT_ICON_SOURCE\n\n    const closePopup = () => {\n        setPopupState(null)\n    }\n\n    const popup = popupState ? (\n        <ActionPopup\n            anchorElement={popupState.anchorElement}\n            context={context}\n            draggable\n            initialActionId={popupState.actionId}\n            key={popupState.actionId}\n            onClose={closePopup}\n        />\n    ) : null\n\n    const menuItems = (\n        <>\n            {matching.map((action) => (\n                <MenuItem\n                    data-action-id={action.id}\n                    disabled={runDisabled}\n                    key={action.id}\n                    onClick={handleOpen}\n                >\n                    <ListItemIcon>\n                        <ActionIcon fontSize=\"small\" source={iconSourceFor(action)} />\n                    </ListItemIcon>\n                    {action.label}\n                </MenuItem>\n            ))}\n            {popup}\n        </>\n    )\n\n    if (variant === 'menuItems') return menuItems\n\n    return (\n        <Stack direction=\"row\" spacing={0.25} sx={{ flexShrink: 0 }}>\n            {matching.map((action) => (\n                <Tooltip key={action.id} title={action.label}>\n                    <IconButton\n                        aria-label={action.label}\n                        data-action-id={action.id}\n                        disabled={runDisabled}\n                        onClick={handleOpen}\n                        size=\"small\"\n                    >\n                        <ActionIcon fontSize=\"small\" source={iconSourceFor(action)} />\n                    </IconButton>\n                </Tooltip>\n            ))}\n            {popup}\n        </Stack>\n    )\n}\n\r\n",
+          "durationMs": 64,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-19",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\trigger\\\\action_entry_points.tsx'\"",
+          "providerItemId": "exec-600124e6-b2d9-4225-b0bb-de41ebf0ec39",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:02:17.217Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-20",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b044770481c87d28c65528c32049b62",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:02:23.066Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -i --glob '\"'!design/activity/**'\"' --glob '\"'!node_modules/**'\"' --glob '*.{md,ts,tsx,js}' \\\"global action|global actions|explicit-context|appliesTo.*project|kind: 'project'\\\" app desktop design\\\\feature_descriptions design\\\\releases | Select-Object -First 250\"",
+          "content": "desktop\\src\\shell\\local_bridge_dispatch.js:845:                activityOrigin: { kind: 'project' },\r\ndesign\\releases\\0_4_0\\B_116_merge_agent_missing_card_internal_id.md:25:- **activity origin**: the ownership key the desktop assigns to a conversation's persisted activity files — either `{ kind: 'card', cardInternalId }` or `{ kind: 'project' }`.\r\ndesign\\releases\\0_4_0\\B_116_merge_agent_missing_card_internal_id.md:35:The assumption behind the throw is wrong for merge conflicts. On the desktop, `activityOrigin()` (`desktop/src/actions/action/action_runner_service.js:16-26`) maps any non-`card`/`file` context — merge-conflict included — to `{ kind: 'project' }`. A merge-conflict run therefore persists its conversation with `cardInternalId: null` (`desktop/src/actions/agent/agent_conversation.js:115`), i.e. as a **project-level** conversation. Merge-conflict history belongs in the project conversation list, not under a card.\r\ndesign\\releases\\0_4_0\\B_116_merge_agent_missing_card_internal_id.md:43:3. **Scoping note (no bleed in practice):** the popup already filters by `actionId` (`conversationOptions` / `latestWaitingConversation`). Merge-conflict actions carry `appliesTo.kind === 'merge-conflict'` and have distinct ids from ordinary project agents, so project-agent history and merge-conflict history do not mix. Per-file and resolve-all invocations of the *same* merge-conflict action share one `actionId` and one project origin, so their past conversations appear together — accepted, because history is keyed by action, and `conflictFile` is not part of the stored conversation identity.\r\ndesktop\\src\\actions\\activity\\activity_files.js:573:    const origin = { kind: 'project' };\r\ndesktop\\src\\actions\\agent\\agent_runner_service.js:149:            activityOrigin: { kind: 'project' },\r\ndesktop\\src\\actions\\action\\action_files.js:31:    if (typeof context.cardInternalId !== 'string' || context.cardInternalId.length === 0) return { kind: 'project' };\r\ndesktop\\src\\actions\\action\\action_runner_service.js:55:    return { kind: 'project' };\r\napp\\src\\services\\agents\\agent_integration.ts:425:            if (!cardInternalId) return [activityPath ?? activityFilePath(projectFolder, { kind: 'project' })]\r\ndesktop\\src\\actions\\action\\action_scheduler_service.js:342:        const origin = cardInternalId ? { cardInternalId, kind: 'card' } : { kind: 'project' };\r\ndesktop\\src\\actions\\action\\action_scheduler_service.js:361:        const origin = expectedCardInternalId ? { cardInternalId: expectedCardInternalId, kind: 'card' } : { kind: 'project' };\r\napp\\src\\services\\agents\\agent_acknowledgement_service.node.test.ts:58:    return { ...runEvent(status), context: { kind: 'project' }, runId: 'project-run' }\r\napp\\src\\services\\agents\\agent_integration.test.ts:479:            { activityPath: projectActivityPath, contextKind: 'project' as const, conversationId: 'project-pinned' },\r\napp\\src\\services\\agents\\agent_integration.test.ts:514:            { contextKind: 'project' as const, conversationId: 'first' },\r\napp\\src\\services\\agents\\agent_integration.test.ts:515:            { contextKind: 'project' as const, conversationId: 'first-again' },\r\napp\\src\\services\\agents\\agent_integration.test.ts:516:            { contextKind: 'project' as const, conversationId: 'second' },\r\napp\\src\\services\\agents\\agent_integration.test.ts:539:            { activityPath: firstPath, contextKind: 'project', conversationId: 'first' },\r\napp\\src\\services\\agents\\agent_integration.test.ts:540:            { activityPath: firstPath, contextKind: 'project', conversationId: 'first-again' },\r\napp\\src\\services\\agents\\agent_integration.test.ts:541:            { activityPath: secondPath, contextKind: 'project', conversationId: 'second' },\r\napp\\src\\services\\agents\\agent_integration.test.ts:570:        const firstLocator = { activityPath: projectActivityPath, contextKind: 'project' as const, conversationId: firstConversation.id }\r\napp\\src\\services\\agents\\agent_integration.test.ts:571:        const secondLocator = { activityPath: projectActivityPath, contextKind: 'project' as const, conv\n[20218 characters omitted]\ntionContext, label: 'project' },\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:1788:        const streamingContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:1895:        const projectContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2299:            file(commandDefinition('assigned', { appliesTo: { kind: 'project', worktree: '1' }, label: 'Assigned action' })),\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2301:        renderPopup({ kind: 'project' })\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2313:        actionService.loadFromFiles([file(agentDefinition('review', { appliesTo: { kind: 'project' }, label: 'Review project' }))])\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2316:        renderPopup({ kind: 'project' })\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2320:            context: { kind: 'project', worktree: '1', worktreeBranch: 'feature' },\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2380:        const waitingContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2534:        const waitingContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2581:        const waitingContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2659:        const waitingContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2734:        const projectContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2807:        const waitingContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2851:        const waitingContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2896:        const waitingContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:3301:            : { kind: 'project' };\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:3384:            : { kind: 'project' };\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:3435:        const persistedContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:3468:        const persistedContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:3533:        const persistedContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:3661:        const projectContext: ActionContext = { kind: 'project' }\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:4161:            file(commandDefinition('assigned', { appliesTo: { kind: 'project' }, label: 'Assigned action', needsWorkTree: true })),\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:4164:        renderPopup({ kind: 'project' })\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:4184:            <AppThemeProvider><ActionPopup anchorElement={document.body} context={{ kind: 'project' }} onClose={vi.fn()} /></AppThemeProvider>,\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:4232:            file(agentDefinition('review', { appliesTo: { kind: 'project' }, label: 'Review project' })),\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:4235:        renderPopup({ kind: 'project' })\r\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:4493:            renderPopup({ kind: 'project' })\r\napp\\src\\components\\diagram_view\\surface\\diagram_agent_fab.test.tsx:97:        act(() => emit({ ...baseEvent, context: { kind: 'project' }, runId: 'project-run' }))\r\napp\\src\\components\\diagram_view\\diagram_view.test.tsx:986:        actions.splice(1, 1, { appliesTo: { kind: 'project' }, builtin: false, id: 'generic', label: 'Generic' } as ActionDefinition)\r\n",
+          "durationMs": 191,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-21",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -i --glob '\"'!design/activity/**'\"' --glob '\"'!node_modules/**'\"' --glob '*.{md,ts,tsx,js}' \\\"global action|global actions|explicit-context|appliesTo.*project|kind: 'project'\\\" app desktop design\\\\feature_descriptions design\\\\releases | Select-Object -First 250\"",
+          "providerItemId": "exec-f4832204-2466-4656-973c-1af87bb10fa4",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:02:26.785Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-22",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b04477abae887d2bb93939f2aaf6031",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:02:35.235Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"PROJECT_CONTEXT|projectContext|ActionEntryPoints\\\" 'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.tsx'\"",
+          "content": "33:import { projectContext } from '../../../data/action_context'\n44:import { ActionEntryPoints } from '../../actions/run/trigger/action_entry_points'\n98:const PROJECT_CONTEXT = projectContext()\n414:                        <ActionEntryPoints context={PROJECT_CONTEXT} variant=\"icons\" visibility=\"explicit-context\" />\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-23",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"PROJECT_CONTEXT|projectContext|ActionEntryPoints\\\" 'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.tsx'\"",
+          "providerItemId": "exec-3b297f3b-5f57-49f7-bee6-53aedce0ddfa",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:02:41.448Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\trigger\\\\action_entry_points.grouped.test.tsx'\"",
+          "content": "import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'\nimport { MenuList } from '@mui/material'\nimport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\nimport { ActionEntryPoints } from './action_entry_points'\nimport { FileTreeView } from '../../../text_view/file_tree_view'\nimport { actionService } from '../../../../services/actions/action_service'\nimport { dataService } from '../../../../services/data/data_service'\nimport type { ActionFile } from '../../../../data/action_types'\nimport { cardContext, folderContext } from '../../../../data/action_context'\nimport { DEFAULT_CARD_TYPES, type Card, type WorktreeRecord } from '../../../../data/data_types'\nimport { worktreeService } from '../../../../services/project/worktree_service';\nimport type { ActionRunEvent } from '../../../../data/action_run_types'\nimport { actionRunRegistry } from '../../../../services/actions/action_run_registry'\nimport { AppThemeProvider } from '../../../../theme/theme_provider'\nimport { dialogService } from '../../../../services/dialog_service'\nimport { projectAccessService } from '../../../../services/project/project_access_service'\n\nfunction file(definition: { id: string }): ActionFile {\n    return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }\n}\n\nfunction agentDefinition(id: string, overrides: Record<string, unknown> = {}) {\n    return { description: id, id, label: id, prompt: 't', type: 'agent', ...overrides }\n}\n\nfunction commandDefinition(id: string, overrides: Record<string, unknown> = {}) {\n    return { command: 't', description: id, id, label: id, type: 'command', ...overrides }\n}\n\nfunction card(id: string, status: string | null, title = id): Card {\n    return {\n        agentConversationErrors: [],\n        agentConversations: [],\n        content: '',\n        header: {\n            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id, internalId: id.toLowerCase(), owner: null,\n            policy: {}, references: [], status, title,\n        },\n        hasFrontmatter:true,\n        isActive: true,\n        path: `design/${id}.md`,\n    }\n}\n\nconst featureCard = card('F-010', 'design')\n\nafterEach(() => {\n    actionRunRegistry.stop()\n    delete window.md2Actions\n    cleanup()\n    actionService.clear()\n    projectAccessService.setReadOnly(false)\n    vi.restoreAllMocks()\n})\n\ndescribe('ActionEntryPoints filtering', () => {\n    beforeEach(() => {\n        actionService.loadFromFiles([\n            file(agentDefinition('implement', { appliesTo: { type: 'feature' }, label: 'Implement' })),\n            file(commandDefinition('fix', { appliesTo: { type: 'bug' }, label: 'Fix' })),\n        ])\n    })\n\n    it.each(['card', 'file'] as const)('refreshes %s action buttons when checkout numbers change', async (kind) => {\n        const assignedWorktree: WorktreeRecord = {\n            branch: 'feature', error: null, parkingBranch: null, path: 'C:/feature', valid: true,\n            status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },\n        };\n        const otherWorktree = { ...assignedWorktree, branch: 'other', path: 'C:/other' };\n        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([otherWorktree, assignedWorktree]);\n        actionService.loadFromFiles([\n            file(commandDefinition('one', { appliesTo: { worktree: '1' }, label: 'Worktree one' })),\n            file(commandDefinition('two', { appliesTo: { worktree: '2' }, label: 'Worktree two' })),\n        ]);\n        render(<ActionEntryPoints context={{ kind, worktree: '2', worktreeBranch: 'feature' }} variant=\"icons\" />);\n        expect(screen.getByRole('button', { name: 'Worktree two' })).toBeInTheDocument();\n        expect(screen.queryByRole('button', { name: 'Worktree one' })).not.toBeInTheDocument();\n\n        act(() => {\n            records.mockReturnValue([assignedWorktree, otherWorktree]);\n            worktreeService.dispatchEvent(new CustomEvent('changed'));\n        });\n\n        await waitFor(() => expec\n[7572 characters omitted]\n).toHaveAttribute('aria-pressed', 'true')\n    })\n\n    it('switches actions through the universal selector without related-action shortcuts', () => {\n        render(\n            <AppThemeProvider>\n                <ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant=\"icons\" />\n            </AppThemeProvider>,\n        )\n\n        fireEvent.click(screen.getByRole('button', { name: 'Implement' }))\n        const dialog = within(screen.getByRole('dialog'))\n        fireEvent.click(dialog.getByRole('button', { name: 'Run lint' }))\n\n        expect(dialog.getByRole('button', { name: 'Run lint' })).toHaveAttribute('aria-pressed', 'true')\n        expect(screen.queryByText('Before')).not.toBeInTheDocument()\n        expect(screen.queryByText('After')).not.toBeInTheDocument()\n    })\n})\n\ndescribe('entry-point placement in the file tree', () => {\n    beforeEach(() => {\n        actionService.loadFromFiles([])\n    })\n\n    it('places an Actions menu on status, folder, and file rows', () => {\n        const active = [{ ...card('F-1', 'todo', 'Alpha'), path: 'design/active/F-1.md' }]\n        const background = [card('F-9', null, 'Old')]\n        background[0] = { ...background[0], path: 'design/history/F-9.md' }\n        vi.spyOn(dataService, 'getState').mockReturnValue({\n            project: null,\n            runningAgents: [],\n            snapshot: {\n                activeCards: active,\n                backgroundCards: background,\n                repositoryFiles: [],\n                workingFolder: 'design/active',\n            },\n        })\n        const createFolder = vi.fn(async () => undefined)\n        const createMarkdownFile = vi.fn(async () => undefined)\n\n        render(\n            <FileTreeView\n                actionsFolder=\"design/actions\"\n                cardTypes={DEFAULT_CARD_TYPES}\n                onCreateFolder={createFolder}\n                onCreateMarkdownFile={createMarkdownFile}\n                onDeleteFile={async () => undefined}\n                onDeleteFolder={async () => undefined}\n                onLeftPanelInteraction={() => {}}\n                projectFolder=\"design\"\n                statusColors={new Map([['todo', '#9c4dcc']])}\n                workingFolder=\"design/active\"\n            />,\n        )\n        fireEvent.click(screen.getByRole('button', { name: 'active 1' }))\n\n        const actionMenus = screen.getAllByRole('button', { name: 'Actions' })\n        expect(actionMenus.length).toBeGreaterThanOrEqual(3)\n        const todoRow = screen.getByRole('button', { name: 'todo 1' }).parentElement\n        expect(todoRow && within(todoRow).getByRole('button', { name: 'Actions' })).toBeInTheDocument()\n    })\n\n    it('mounts row action entry points only while their menu is open', () => {\n        actionService.loadFromFiles([\n            file(commandDefinition('review', { label: 'Review' })),\n        ])\n        vi.spyOn(dataService, 'getState').mockReturnValue({\n            project: null,\n            runningAgents: [],\n            snapshot: {\n                activeCards: [card('F-1', 'todo', 'Alpha')],\n                backgroundCards: [],\n                repositoryFiles: [],\n                workingFolder: 'design',\n            },\n        })\n\n        render(\n            <FileTreeView\n                actionsFolder=\"design/actions\"\n                cardTypes={DEFAULT_CARD_TYPES}\n                onCreateFolder={async () => undefined}\n                onCreateMarkdownFile={async () => undefined}\n                onDeleteFile={async () => undefined}\n                onDeleteFolder={async () => undefined}\n                onLeftPanelInteraction={() => {}}\n                projectFolder=\"design\"\n                statusColors={new Map([['todo', '#9c4dcc']])}\n                workingFolder=\"design\"\n            />,\n        )\n\n        expect(screen.queryByRole('menuitem', { name: 'Review' })).not.toBeInTheDocument()\n\n        fireEvent.click(screen.getAllByRole('button', { name: 'Actions' }).at(-1) as HTMLElement)\n\n        expect(screen.getByRole('menuitem', { name: 'Review' })).toBeInTheDocument()\n    })\n})\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-24",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\trigger\\\\action_entry_points.grouped.test.tsx'\"",
+          "providerItemId": "exec-a225493a-464c-4936-a51d-d6c76389c761",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:02:41.448Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\data\\\\action_context.ts'\"",
+          "content": "import { ACTION_APPLIES_TO_FIELDS, CUSTOM_PROMPT_ACTION_ID } from './action_types'\nimport type { ActionAppliesToField, ActionDefinition } from './action_types'\nimport type { Card, CardHeader, CardTypeConfig, WorktreeRecord } from './data_types'\nimport { getCardIdPrefix } from './card_identifiers'\nimport { actionWorktreeContext } from '../../../shared/action_worktree_context.mjs';\nimport { worktreeService } from '../services/project/worktree_service';\n\n/** The kind of item an action entry point is attached to. */\nexport type ActionContextKind = 'card' | 'diagram' | 'file' | 'folder' | 'merge-conflict' | 'project'\n\nexport type ActionContextFilterValueSource =\n    'kind' | 'type' | 'state' | 'file' | 'folder' | 'worktree' | 'text'\n\nexport interface ActionContextFilterDescriptor {\n    key: ActionAppliesToField\n    label: string\n    supportedContextKinds: ActionContextKind[]\n    valueSource: ActionContextFilterValueSource\n    validate: (value: string) => string | null\n}\n\n/**\n * The selected item an action is evaluated against. `appliesTo` keys are matched\n * field-by-field against this object, so every matchable property is a string.\n */\nexport interface ActionContext {\n    /** Stable card identity used for activity ownership. */\n    cardInternalId?: string\n    /** Title of the selected card, used for placeholder resolution. */\n    title?: string\n    /** Card/file type derived from the id prefix, e.g. `feature`. */\n    type?: string\n    /** Card state / status, e.g. `design`. */\n    state?: string\n    /** Path to the markdown file, used for placeholder resolution. */\n    file?: string\n    /** Folder name for folder contexts. */\n    folder?: string\n    /** Selected conflicted repository-relative path. */\n    conflictFile?: string\n    /** Newline-separated conflicted repository-relative paths. */\n    conflictFiles?: string\n    /** Active desktop conflict session binding. */\n    conflictSessionId?: string\n    /** Stable diagram record identity. */\n    diagramId?: string\n    /** Reviewed diagram change instructions captured for one agent handoff. */\n    diagramChanges?: string\n    /** Stable identity of reviewed diagram changes captured for one agent handoff. */\n    diagramChangeSetId?: string\n    /** Stable identity of the selected interactive SVG item. */\n    diagramItemId?: string\n    /** Selected interactive SVG item's data-diagram-label value. */\n    parentNode?: string\n    kind: ActionContextKind\n    worktree?: string\n    /** Expected checkout branch; the number is only an assignment/display hint. */\n    worktreeBranch?: string;\n    worktreeError?: string\n    [key: string]: string | undefined\n}\n\n/**\n * Stable identity of the item an action runs against, used to match a popup to its\n * execution and conversation history. Mutable header fields (title, state, worktree)\n * are excluded on purpose: a run that edits its own card must keep the same identity.\n */\nexport function actionContextIdentity(context: ActionContext): string {\n    if (context.kind === 'project') return 'project'\n    if (context.kind === 'diagram') {\n        const reviewedContext = context.diagramChanges !== undefined || context.diagramChangeSetId !== undefined\n        if (reviewedContext && (!context.diagramId || !context.diagramChanges || !context.diagramChangeSetId)) {\n            throw new Error('Reviewed diagram identity requires diagram, change-set, and change values')\n        }\n\n        return `diagram\u0000${context.type ?? ''}\u0000${context.diagramId ?? ''}\u0000${context.diagramItemId ?? context.diagramChangeSetId ?? ''}`\n    }\n    if (context.kind === 'folder') return `folder\u0000${context.folder ?? ''}`\n    if (context.kind === 'merge-conflict') {\n        return `merge-conflict\u0000${context.conflictSessionId ?? ''}\u0000${context.conflictFile ?? ''}`\n    }\n\n    return `${context.kind}\u0000${context.cardInternalId ?? context.file ?? ''}`\n}\n\n/** Required-value validation shared by every applicability filter descriptor. */\nexport function validateActionContextFilterValue(value: string): string | null {\n    return value.length > 0 ? null : 'Required value'\n}\n\nconst AC\n[4733 characters omitted]\n diagramChangeSetId: string): ActionContext\nexport function diagramContext(type: 'child', diagramId: string, diagramItemId: string, parentNode: string): ActionContext\nexport function diagramContext(\n    type: 'child' | 'root',\n    diagramId?: string,\n    diagramItemIdOrChanges?: string,\n    parentNodeOrChangeSetId?: string,\n): ActionContext {\n    if (type === 'root') {\n        if (\n            diagramId === undefined\n            && diagramItemIdOrChanges === undefined\n            && parentNodeOrChangeSetId === undefined\n        ) return { kind: 'diagram', type }\n        if (!diagramId || !diagramItemIdOrChanges || !parentNodeOrChangeSetId) {\n            throw new Error('Reviewed diagram context requires diagram, change-set, and change values')\n        }\n\n        return {\n            diagramChanges: diagramItemIdOrChanges,\n            diagramChangeSetId: parentNodeOrChangeSetId,\n            diagramId,\n            kind: 'diagram',\n            type,\n        }\n    }\n    if (!diagramId || !diagramItemIdOrChanges || !parentNodeOrChangeSetId) {\n        throw new Error('Child diagram context requires diagram, item, and parent-node values')\n    }\n\n    return { diagramId, diagramItemId: diagramItemIdOrChanges, kind: 'diagram', parentNode: parentNodeOrChangeSetId, type }\n}\n\n/** Add or remove the session assignment used by project-wide popup actions. */\nexport function projectContextWithWorktree(context: ActionContext, worktree: number | null, worktreeBranch: string | null): ActionContext {\n    if (context.kind !== 'project') return context\n    if (worktree === null) {\n        const unassignedContext = { ...context }\n        delete unassignedContext.worktree\n        delete unassignedContext.worktreeBranch;\n\n        return unassignedContext\n    }\n\n    return { ...context, worktree: String(worktree), worktreeBranch: worktreeBranch === null ? undefined : worktreeBranch };\n}\n\n/**\n * True when the action is allowed in the given context. An action with no\n * `appliesTo` (like the built-in custom prompt) matches every context; otherwise\n * every `appliesTo` key must equal the same field on the context.\n */\nexport function actionMatchesContext(action: ActionDefinition, context: ActionContext): boolean {\n    if (!action.appliesTo) return true\n    const currentContext = action.appliesTo.worktree === undefined\n        ? context : contextWithCurrentWorktree(context, worktreeService.getRecords());\n    if (action.appliesTo.worktree !== undefined && currentContext.worktreeError) return false;\n    if (action.appliesTo.worktree !== undefined && (context.kind === 'card' || context.kind === 'file') && currentContext.worktree) {\n        const assignment = { branch: currentContext.worktreeBranch, worktree: Number(currentContext.worktree) };\n        if (worktreeService.getAssignmentState(assignment).error) return false;\n    }\n\n    return ACTION_APPLIES_TO_FIELDS.every((key) => action.appliesTo?.[key] === undefined || currentContext[key] === action.appliesTo[key]);\n}\n\n/** All actions that should be shown for a context, preserving load order. */\nexport function actionsForContext(actions: ActionDefinition[], context: ActionContext): ActionDefinition[] {\n    if (context.kind === 'diagram') {\n        return actions.filter((action) => (\n            !action.builtin\n            && action.appliesTo?.kind === 'diagram'\n            && actionMatchesContext(action, context)\n        ))\n    }\n\n    return actions.filter((action) => (!action.builtin || action.id === CUSTOM_PROMPT_ACTION_ID) && actionMatchesContext(action, context))\n}\n\n/** Context actions in selector order, with the built-in custom prompt last. */\nexport function displayActionsForContext(actions: ActionDefinition[], context: ActionContext): ActionDefinition[] {\n    const contextActions = actionsForContext(actions, context)\n    const customPrompt = contextActions.find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)\n    const configuredActions = contextActions.filter(({ id }) => id !== CUSTOM_PROMPT_ACTION_ID)\n\n    return customPrompt ? [...configuredActions, customPrompt] : configuredActions\n}\n\r\n",
+          "durationMs": 209,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-25",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\data\\\\action_context.ts'\"",
+          "providerItemId": "exec-9b08c20b-48e7-4ce9-aa02-c6a6ab9f817f",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:02:42.233Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.test.tsx'; \"'$lines[680..760] -join \"`n\"'",
+          "content": "        expect(workspaceViewService.getSnapshot().viewMode).toBe('stats')\n        expect(startEditing).not.toHaveBeenCalled()\n    })\n\n    it('disables new diagram for read-only projects and while creation is running', async () => {\n        await activateLocalProject(createBridge())\n        const record = {\n            actionId: 'user-created',\n            createdAt: '2026-09-21T12:00:00.000Z',\n            id: 'diagram-1',\n            label: 'New entity',\n            pendingImplementation: true,\n            path: 'design/diagrams/entity-diagram-1.json',\n        }\n        let finishCreation: (value: typeof record) => void = () => { throw new Error('Diagram creation did not start') }\n        vi.spyOn(diagramViewService, 'open').mockResolvedValue()\n        vi.spyOn(diagramViewService, 'createEmptyDiagram').mockImplementation(async () => (\n            await new Promise<typeof record>((resolve) => { finishCreation = resolve })\n        ))\n        vi.spyOn(diagramEditSessionService, 'start').mockImplementation(() => undefined)\n        renderMenu()\n        const newDiagramButton = screen.getByRole('button', { name: 'New diagram' })\n\n        expect(newDiagramButton).toBeEnabled()\n        act(() => projectAccessService.setReadOnly(true))\n        expect(newDiagramButton).toBeDisabled()\n        act(() => projectAccessService.setReadOnly(false))\n\n        fireEvent.click(newDiagramButton)\n        fireEvent.click(screen.getByRole('menuitem', { name: 'Entity' }))\n        await waitFor(() => expect(newDiagramButton).toBeDisabled())\n        finishCreation(record)\n        await waitFor(() => expect(newDiagramButton).toBeEnabled())\n    })\n\n    it('shows a Run button for every explicitly project-scoped action', async () => {\n        const bridge = createBridge()\n        bridge.loadActionFiles = vi.fn(async () => [\n            {\n                content: JSON.stringify({\n                    appliesTo: { kind: 'project' }, command: 'review', description: 'Review project',\n                    id: 'project-review', label: 'Review project', type: 'command',\n                }),\n                path: 'design/actions/project-review.json',\n            },\n            {\n                content: JSON.stringify({\n                    appliesTo: { kind: 'card' }, command: 'review', description: 'Review card',\n                    id: 'card-review', label: 'Review card', type: 'command',\n                }),\n                path: 'design/actions/card-review.json',\n            },\n        ])\n        await activateLocalProject(bridge)\n\n        renderMenu()\n        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))\n\n        expect(screen.getByRole('button', { name: 'Review project' })).toBeInTheDocument()\n        expect(screen.queryByRole('button', { name: 'Review card' })).not.toBeInTheDocument()\n        expect(screen.queryByRole('button', { name: 'Custom prompt' })).not.toBeInTheDocument()\n\n        fireEvent.click(screen.getByRole('button', { name: 'Review project' }))\n        const dialog = within(screen.getByRole('dialog', { name: 'Run actions for Project' }))\n        expect(dialog.getByRole('button', { name: 'Review project' })).toHaveAttribute('aria-pressed', 'true')\n    })\n\n    it('shows and refreshes the default agent settings', async () => {\n        configService.clear()\n        configService.init({\n            desktopConfig: {\n                agentAccounts: [\n                    { agent: 'codex', id: 'codex-initial', kind: 'initial', name: 'Default' },\n                    { agent: 'claude', id: 'claude-initial', kind: 'initial', name: 'Default' },\n                    { agent: 'codex', configDirectory: 'C:/accounts/work', id: '11111111-1111-4111-8111-111111111111', kind: 'directory', name: 'Work' },\n                ],\n                agentProfiles: [\n                    { command: ['codex'], defaultThinkingLevel: 'none', modelArgument: '--model', models: ['gpt-5'], name: 'codex' },\n                    { command: ['local-agent'], defaultThinkingLevel: 'none', modelArgument: '--model', models: ['local-model'], name: 'local' },\n                ],\n                agentSelection: {\r\n",
+          "durationMs": 285,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-26",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$lines = Get-Content '\"'app\\\\src\\\\components\\\\shell\\\\menu\\\\app_menu.test.tsx'; \"'$lines[680..760] -join \"`n\"'",
+          "providerItemId": "exec-d41cf7d5-e707-445a-bf45-7845437606dd",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:02:43.928Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-27",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b0447908c6c87d2a694c2dc19e48975",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:02:55.529Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Scope clear. “Global actions” means configured actions explicitly scoped with `appliesTo.kind === 'project'`; Run tab renders them through one `ActionEntryPoints`. Removing that call affects desktop and mobile Run tabs. Schedule, release, Sentry, agent settings stay.\n\n",
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 28,
+          "timestamp": "2026-11-23T14:02:56.631Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md'\"",
+          "content": "",
+          "durationMs": 253,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-29",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md'\"",
+          "providerItemId": "exec-81e93038-c773-4988-9750-de4318cd3570",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:03:01.393Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-30",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b04479d6cb087d289fe788233ba2e67",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:03:08.153Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\agents\\\\agent_chat_fab.tsx'\"",
+          "content": "import RobotOutline from 'mdi-material-ui/RobotOutline'\nimport { useMemo } from 'react'\nimport { displayActionsForContext, projectContext } from '../../data/action_context'\nimport { cardPopupService } from '../../services/card_popup_service'\nimport { useActionAssignmentContext } from '../hooks/use_action_assignment_context'\nimport { useActions } from '../hooks/use_actions'\nimport { useProjectActionsAgentState } from '../hooks/use_agent_acknowledgements'\nimport { useActiveActionRunsForContext } from '../hooks/use_action_runs'\nimport { AgentFabPresentation } from './agent_fab_presentation'\nimport { resolveAgentFabState } from './agent_fab_state'\n\nconst PROJECT_CONTEXT = projectContext()\n\n/** Project-wide free-form agent launcher, movable anywhere in application viewport. */\nexport function AgentChatFab() {\n    const { actions } = useActions()\n    const assignmentContext = useActionAssignmentContext(PROJECT_CONTEXT)\n    const projectActionIds = useMemo(\n        () => displayActionsForContext(actions, assignmentContext).map(({ id }) => id),\n        [actions, assignmentContext],\n    )\n    const agentState = useProjectActionsAgentState(projectActionIds)\n    const activeRuns = useActiveActionRunsForContext(PROJECT_CONTEXT)\n    const state = resolveAgentFabState(activeRuns, agentState)\n    const handleActivate = (nextAnchorElement: HTMLElement) => cardPopupService.toggleAction(PROJECT_CONTEXT, nextAnchorElement)\n    const handleDragStart = () => cardPopupService.closeAction(PROJECT_CONTEXT)\n\n    return (\n        <AgentFabPresentation\n            icon={<RobotOutline />}\n            labelPrefix=\"Project agent\"\n            onActivate={handleActivate}\n            onDragStart={handleDragStart}\n            runningDescription={agentState === 'running' ? 'Agent is running' : 'Action is running'}\n            state={state}\n        />\n    )\n}\n\r\n",
+          "durationMs": 90,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-31",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\agents\\\\agent_chat_fab.tsx'\"",
+          "providerItemId": "exec-3a5f2a7d-7185-4604-ae67-81b014fe8986",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:03:10.663Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-32",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b0447aafc0c87d298e8321d6a0c3463",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:03:21.714Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_479_no_action_buttons_on_run_menu_tab.md",
+          "deletions": 2,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-33",
+          "insertions": 23,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-48901ae4-033d-4e52-84cd-1362c89fcc03",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:03:32.440Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-34",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b0447bf90a087d2af0d8093c3de56e4",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:03:42.296Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md'; git diff -- 'design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md'\"",
+          "content": "diff --git a/design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md b/design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md\nindex 4816192d1..947b77e9f 100644\n--- a/design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md\n+++ b/design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md\n@@ -3,11 +3,32 @@ author:\n id: F_479\n internalId: f6820653-0398-4b52-a2ca-be1509597cda\n title: no action buttons on run menu tab\n-status: design\n+status: ready for implementation\n owner: \n affects:\n agents:\n   - design/activity/card__f6820653-0398-4b52-a2ca-be1509597cda.json\n policy:\n ---\n-we currently show all the 'global' actions on the 'run' menu-bar tab, in the list section, just before 'view active schedules'. these need to be removed.\n\\ No newline at end of file\n+we currently show all the 'global' actions on the 'run' menu-bar tab, in the list section, just before 'view active schedules'. these need to be removed.\n+\n+## Current state\n+\n+* `AppMenu` renders the shared desktop and mobile `Run` tab in `app/src/components/shell/menu/app_menu.tsx`.\n+* Its `Actions` section renders `ActionEntryPoints` with a project context and `visibility=\"explicit-context\"`. This creates one icon button for every global action: an action whose `appliesTo.kind` is `project`.\n+* Selecting one of these buttons opens the action popup for that project action. `View active schedules`, `Complete release`, and the conditional `Import Sentry issues` controls follow these buttons.\n+\n+## implementation details\n+\n+* Remove `ActionEntryPoints` from the `Run` tab's `Actions` section. Do not move or replace these project-action buttons.\n+* Remove the now-unused `ActionEntryPoints` and `projectContext` imports and the `PROJECT_CONTEXT` constant from `app_menu.tsx`.\n+* Keep `AgentMenuControls`, `View active schedules`, `Complete release`, and `Import Sentry issues` unchanged. Do not change action matching, action popups, other action entry points, services, or desktop APIs.\n+* Replace the `app_menu.test.tsx` coverage that opens a project action from the `Run` tab with a regression test proving explicitly project-scoped actions are absent there. Existing `ActionEntryPoints` tests remain unchanged because the component is still used by other UI surfaces.\n+\n+## acceptance criteria\n+\n+* Desktop and mobile `Run` tabs show no buttons for actions whose `appliesTo.kind` is `project`.\n+* Loading one or many project-scoped command or agent actions does not add action buttons to the `Run` tab.\n+* `View active schedules` is the first control in the `Actions` section and still opens the active-schedules dialog.\n+* `Complete release` and eligible `Import Sentry issues` controls retain their current visibility, disabled states, and behavior.\n+* Project actions and action popups outside the `Run` tab are unchanged.\n",
+          "durationMs": 128,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-35",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md'; git diff -- 'design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md'\"",
+          "providerItemId": "exec-c8666bb7-ccfb-4f65-bc97-9482d12d0b92",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:03:44.964Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-36",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b0447ca016c87d2889541614c20310f",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:03:52.764Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git status --short -- 'design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md'\"",
+          "content": "warning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n M design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md\n",
+          "durationMs": 100,
+          "exitCode": 0,
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-37",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git status --short -- 'design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md'\"",
+          "providerItemId": "exec-b4abe965-fa2e-4c30-a679-6669d063305d",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-11-23T14:03:57.130Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b533703153004c0016b0447d4c89487d282242b590e9c2631",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T14:04:03.513Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_479_no_action_buttons_on_run_menu_tab.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_479_no_action_buttons_on_run_menu_tab.md).\n\nAdded:\n\n- `Current state`\n- `implementation details`\n- `acceptance criteria`\n- `status: ready for implementation`\n\nDefined “global action” precisely. Verified diff; no whitespace errors. No tests needed for documentation-only change. Nothing staged or committed.\n\n",
+          "id": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-11-23T14:04:05.536Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -24,25 +544,101 @@
           "agent": "codex",
           "conversationId": "01a208b5-b0b9-71f0-b177-b6ce458900b2",
           "createdAt": "2026-11-23T14:00:57.177Z",
-          "lastUsedAt": "2026-11-23T14:00:57.177Z",
-          "synchronizedThroughMessageId": "submission-2ce9d5b9-c8fc-4090-9ad7-4f9ffc6e0559"
+          "lastUsedAt": "2026-11-23T14:04:05.536Z",
+          "synchronizedThroughMessageId": "agent-turn-e78680cf-63e5-4f00-9b47-5098b81cc611-turn-1-assistant-4"
         }
       ],
       "startedAt": "2026-11-23T14:00:54.478Z",
-      "status": "running",
+      "status": "completed",
+      "taskList": {
+        "tasks": [
+          {
+            "id": "0",
+            "subject": "Read caveman instructions, target feature file, and all non-agent referenced files",
+            "status": "completed"
+          },
+          {
+            "id": "1",
+            "subject": "Inspect relevant implementation, architecture, call sites, and tests",
+            "status": "completed"
+          },
+          {
+            "id": "2",
+            "subject": "Update requested sections and status in feature file",
+            "status": "completed"
+          },
+          {
+            "id": "3",
+            "subject": "Verify content and diff without staging or committing",
+            "status": "completed"
+          }
+        ],
+        "updatedAt": "2026-11-23T14:03:56.387Z"
+      },
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-11-23T14:00:54.478Z"
+        "breakdown": {
+          "reasoningMs": 117,
+          "toolMs": 3905
+        },
+        "elapsedMs": 191058,
+        "runningStartedAt": null
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 692736,
+        "inputTokens": 60144,
+        "outputTokens": 2784,
+        "reasoningTokens": 1295,
+        "totalTokens": 756959
+      },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "f6820653-0398-4b52-a2ca-be1509597cda",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "14ff3d7b3ce34bc44514b85899269b23a5a25cb0",
+          "committedAt": "2026-11-23T15:04:06+01:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_479_no_action_buttons_on_run_menu_tab.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 23
+        }
+      ],
+      "completedAt": "2026-11-23T14:04:06.984Z",
+      "conversationIds": [
+        "agent-090f0f9b-bf3b-44a4-834a-2bcce4144790"
+      ],
+      "details": {
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-46ae4197-3ba2-4dec-a550-1ae428928f42",
+      "origin": {
+        "cardInternalId": "f6820653-0398-4b52-a2ca-be1509597cda",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-090f0f9b-bf3b-44a4-834a-2bcce4144790",
+      "startedAt": "2026-11-23T14:00:54.475Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
