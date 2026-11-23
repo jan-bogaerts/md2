@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__9700b31c-8ed5-4ec1-bf04-012a1bef1eb5.json
 policy:
+branch: f_472_no_filters_on_actions_for_released_cards
+worktree: 3
 ---
 
 When opening the action-popup for a released card from list-view, (so action popup is opened from the card-editor), we only get the '+' action, so we can't see any historical conversation logs. this is not ok.
