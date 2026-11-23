@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__5221030b-ed7e-4860-bd8f-177274dc9a02.json
 policy:
+branch: f_476_integrate_into_project_dialog_feedback
+worktree: 1
 ---
 we recently did some improvements to other dialogs, see [J_74_uncommitted_project_changes_dialog_improvements.md](design/feature_descriptions/J_74_uncommitted_project_changes_dialog_improvements.md) .&#x20;
 
