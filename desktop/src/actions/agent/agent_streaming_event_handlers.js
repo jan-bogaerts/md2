@@ -77,6 +77,19 @@ function handleUsage(service, run, event) {
     });
 }
 
+/** Persists a context-only provider sample without changing cumulative conversation token usage. */
+async function handleContextUsage(service, run, event) {
+    if (run.activeCompact) return;
+    if (event.contextWindowUsage) run.conversation.contextWindowUsage = event.contextWindowUsage;
+    else delete run.conversation.contextWindowUsage;
+    await service.persistCheckpoint(run);
+    emitRunEvent(run, {
+        contextWindowUsage: event.contextWindowUsage,
+        type: 'usage',
+        usage: run.conversation.usage,
+    });
+}
+
 function handleAssistantStarted(service, run, event, timestamp) {
     const item = startAssistantItem(run, requireString(event.itemId, 'assistant item id'), timestamp);
     emitRunEvent(run, {content: '', entryIndex: item.entryIndex, messageId: item.messageId, sequence: item.sequence, type: 'output'});
@@ -202,21 +215,33 @@ async function handleApprovalResolved(service, run, event, timestamp) {
  * send the message queued while the turn was running, or park the run waiting for input.
  */
 async function handleTurnCompleted(service, run, event, timestamp) {
+    const interactionPending = hasPendingInteraction(run);
     completeAssistantOutput(run, timestamp);
-    run.turnActive = false;
-    run.waitingForQuestion = false;
-    run.pendingQuestionRequestId = null;
-    run.pendingQuestions = [];
-    run.pendingApprovals.clear();
+    run.turnActive = interactionPending;
+    if (!interactionPending) {
+        run.waitingForQuestion = false;
+        run.pendingQuestionRequestId = null;
+        run.pendingQuestions = [];
+        run.pendingApprovals.clear();
+    }
+    if (event.error && await service.handleClaudeAuthenticationFailure(run, event.error)) return;
     run.missingSession = run.missingSession || event.missingSession;
     if (event.missingSession) run.finishing = true;
-    if (event.contextWindowUsage !== undefined) {
-        if (event.contextWindowUsage) run.conversation.contextWindowUsage = event.contextWindowUsage;
+    const confirmedCompaction = !!run.activeCompact && event.compaction?.confirmed === true && !event.error;
+    const applyContextWindowUsage = !run.activeCompact || confirmedCompaction;
+    const previousCapacityTokens = run.conversation.contextWindowUsage?.capacityTokens;
+    const compactContextWindowUsage = confirmedCompaction && event.contextWindowUsage === undefined
+        ? Number.isSafeInteger(previousCapacityTokens) && previousCapacityTokens > 0
+            ? { capacityTokens: previousCapacityTokens, usedTokens: 0 }
+            : null
+        : event.contextWindowUsage;
+    if (applyContextWindowUsage && compactContextWindowUsage !== undefined) {
+        if (compactContextWindowUsage) run.conversation.contextWindowUsage = compactContextWindowUsage;
         else delete run.conversation.contextWindowUsage;
     }
-    if (!event.usage && event.contextWindowUsage !== undefined) {
+    if (!event.usage && applyContextWindowUsage && compactContextWindowUsage !== undefined) {
         emitRunEvent(run, {
-            contextWindowUsage: event.contextWindowUsage,
+            contextWindowUsage: compactContextWindowUsage,
             type: 'usage',
             usage: run.conversation.usage,
         });
@@ -235,11 +260,14 @@ async function handleTurnCompleted(service, run, event, timestamp) {
         await service.persistSuccessfulTurn(run);
         await service.recordTokenUsage(run, event.usage, timestamp);
         emitRunEvent(run, {
-            ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),
+            ...(applyContextWindowUsage && compactContextWindowUsage !== undefined
+                ? { contextWindowUsage: compactContextWindowUsage }
+                : {}),
             type: 'usage',
             usage: run.conversation.usage,
         });
     }
+    emitRunEvent(run, { error: event.error ?? null, type: 'turnCompleted' });
     if (run.finishing) {
         service.beginFinishShutdown(run);
         return;
@@ -249,7 +277,7 @@ async function handleTurnCompleted(service, run, event, timestamp) {
     await service.persistCheckpoint(run);
     emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
     if (run.activeCompact) {
-        const confirmed = event.compaction?.confirmed === true;
+        const confirmed = event.compaction?.confirmed === true && !event.error;
         const explanation = event.compaction?.explanation;
         service.settleCompact(run, confirmed ? null : explanation ?? 'Provider did not confirm compaction', explanation);
     }
@@ -271,6 +299,7 @@ const STREAMING_EVENT_HANDLERS = {
     sessionStarted: handleSessionStarted,
     sessionReady: handleSessionReady,
     compactRejected: handleCompactRejected,
+    contextUsage: handleContextUsage,
     transcript: handleTranscript,
     turnCompleted: handleTurnCompleted,
     turnStarted: handleTurnStarted,

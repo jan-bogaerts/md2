@@ -10,6 +10,8 @@ Placeholders let one action definition work for every card. They are written as 
 | `{{this-card}}` | Alias of `{{card-file}}`; the same path to the selected card's Markdown file. |
 | `{{card-title}}` | Title of the selected card. |
 | `{{card-prompt}}` | The extra text you typed in the action popup for this run. |
+| `{{data}}` | Complete current for-each record as pretty-printed JSON. |
+| `{{data path}}` | Value at a dot-separated path in the current for-each record. Numeric segments select array items. |
 | `{{active-cards-folder}}` | Absolute path to the configured working folder under the opened repository. Active cards are root-level Markdown files in this folder shown on the dashboard. |
 | `{{worktree-folder}}` | Absolute path to the action execution checkout. |
 | `{{repository-folder}}` | Absolute path to the opened repository. |
@@ -52,6 +54,7 @@ In the prompt editor, type `{{` for a typeahead list, or insert one from the too
 ## Notes
 
 - A card placeholder only resolves when the action runs with card context. Use `appliesTo` with `"kind": "card"` so an action that needs `{{card-file}}` or `{{this-card}}` is only offered where it makes sense.
+- Data placeholders require an active for-each record. `{{data}}` inserts the full record as JSON. `{{data owner.name}}` selects a field; strings are inserted unchanged and other values use compact JSON. A missing path fails that record according to the loop's failure policy. See [For-each actions](for-each.md).
 - Diagram placeholders need diagram context. `{{diagram-file}}` also needs an output path, `{{parent-node}}` needs a selected item in a child diagram context, and `{{diagram-changes}}` needs reviewed changes from the editor.
 - Conflict placeholders need merge-conflict context. `{{conflict-file}}` only resolves when the action was started for one file, not from **all remaining files**.
 - `{{card-prompt}}` is empty when you run without typing anything. Write prompts that read fine either way.
@@ -62,4 +65,4 @@ In the prompt editor, type `{{` for a typeahead list, or insert one from the too
 
 {% endraw %}
 
-See also: [Action definition](action-definition.md), [Diagrams](../guide/diagrams.md), [Cookbook](cookbook.md).
+See also: [For-each actions](for-each.md), [Action definition](action-definition.md), [Diagrams](../guide/diagrams.md), [Cookbook](cookbook.md).

@@ -1,10 +1,12 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ACTIVE_REBASE_LINKED_WORKTREE_ERROR, DIRTY_LINKED_WORKTREE_ERROR } from '../../../shared/worktree_errors.mjs'
 import type { WorktreeRecord } from '../data/data_types'
 import { dialogService } from '../services/dialog_service'
 import { configService } from '../services/config/config_service'
 import { projectPersistenceService } from '../services/project/project_persistence_service'
-import { worktreeService } from '../services/project/worktree_service'
+import { cardWorktreeOperationEventType, worktreeService } from '../services/project/worktree_service'
+import { createDeferred } from '../services/test_support/data_service_test_support'
 import { AppThemeProvider } from '../theme/theme_provider'
 import { WorktreeSelector } from './worktree_selector'
 import { cardPopupService } from '../services/card_popup_service'
@@ -51,6 +53,18 @@ function renderAssignedWorktree(record: WorktreeRecord) {
     )
 }
 
+function TrackedWorktreeSelector({ onRender }: { onRender: () => void }) {
+    onRender()
+
+    return (
+        <WorktreeSelector
+            assignment={{ branch: 'feature', worktree: 1 }}
+            assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+            primaryPath={null}
+        />
+    )
+}
+
 describe('WorktreeSelector', () => {
     beforeEach(() => configService.init())
 
@@ -71,7 +85,7 @@ describe('WorktreeSelector', () => {
         expect(screen.getByRole('button', { name: /Worktree 2: C:\\selected.*dirty yes/u })).toBeInTheDocument();
         act(() => {
             records.mockReturnValue([selected]);
-            worktreeService.dispatchEvent(new Event('changed'));
+            worktreeService.dispatchEvent(new Event('recordsChanged'));
         });
         expect(screen.getByRole('button', { name: /Worktree 1: C:\\selected.*dirty yes/u })).toBeInTheDocument();
         expect(assignment.worktree).toBe(2);
@@ -101,6 +115,118 @@ describe('WorktreeSelector', () => {
 
         expect(firstRender).toHaveBeenCalled()
         expect(secondRender).not.toHaveBeenCalled()
+    })
+
+    it('renders only selector whose card operation state changed', () => {
+        withRecords(worktrees)
+        const preparingCards = new Set<string>()
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => preparingCards.has(cardInternalId))
+        const firstRender = vi.fn()
+        const secondRender = vi.fn()
+        render(<AppThemeProvider>
+            <Profiler id="first" onRender={firstRender}>
+                <WorktreeSelector assignment={{ branch: 'feature', worktree: 1 }} assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }} primaryPath={null} />
+            </Profiler>
+            <Profiler id="second" onRender={secondRender}>
+                <WorktreeSelector assignment={{ branch: 'missing', worktree: 2 }} assignmentTarget={{ cardInternalId: 'card-2', kind: 'card', path: 'design/F-2.md' }} primaryPath={null} />
+            </Profiler>
+        </AppThemeProvider>)
+        firstRender.mockClear()
+        secondRender.mockClear()
+
+        act(() => {
+            preparingCards.add('card-1')
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+        })
+
+        expect(firstRender).toHaveBeenCalled()
+        expect(secondRender).not.toHaveBeenCalled()
+        expect(screen.getByRole('button', { name: 'Worktree operation in progress' })).toBeDisabled()
+    })
+
+    it('keeps the button background opaque while an operation is in progress so only the border spins', () => {
+        withRecords(worktrees)
+        let preparing = false
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => cardInternalId === 'card-1' && preparing)
+        render(<AppThemeProvider>
+            <WorktreeSelector assignment={{ branch: 'feature', worktree: 1 }} assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }} primaryPath={null} />
+        </AppThemeProvider>)
+        const idleBackground = window.getComputedStyle(screen.getByRole('button', { name: /Worktree 1/u })).backgroundColor
+
+        act(() => {
+            preparing = true
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+        })
+
+        const busyButton = screen.getByRole('button', { name: 'Worktree operation in progress' })
+        expect(busyButton).toBeDisabled()
+        expect(idleBackground).not.toBe('transparent')
+        expect(busyButton).toHaveStyle({ backgroundColor: idleBackground })
+    })
+
+    it('shows assignment progress until successful card publication', async () => {
+        const pendingAssignment = createDeferred<void>()
+        let preparing = false
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => cardInternalId === 'card-1' && preparing)
+        vi.spyOn(worktreeService, 'setCardWorktree').mockImplementation(async () => {
+            preparing = true
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            try {
+                await pendingAssignment.promise
+            } finally {
+                preparing = false
+                worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            }
+        })
+        withRecords(worktrees)
+        render(<AppThemeProvider>
+            <WorktreeSelector
+                assignment={{ worktree: null }}
+                assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                primaryPath={'C:\\primary'}
+            />
+        </AppThemeProvider>)
+
+        fireEvent.click(screen.getByRole('button', { name: /Primary worktree: C:\\primary/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /1 .* C:\\feature/u }))
+
+        expect(screen.getByRole('button', { name: 'Worktree operation in progress' })).toBeDisabled()
+        await act(async () => pendingAssignment.resolve())
+        expect(screen.getByRole('button', { name: /Primary worktree: C:\\primary/u })).toBeEnabled()
+    })
+
+    it('clears assignment progress after failure is reported', async () => {
+        const pendingAssignment = createDeferred<void>()
+        const failure = new Error('preparation failed')
+        let preparing = false
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => cardInternalId === 'card-1' && preparing)
+        vi.spyOn(worktreeService, 'setCardWorktree').mockImplementation(async () => {
+            preparing = true
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            try {
+                await pendingAssignment.promise
+            } finally {
+                preparing = false
+                worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            }
+        })
+        const reportError = vi.spyOn(dialogService, 'error')
+        withRecords(worktrees)
+        render(<AppThemeProvider>
+            <WorktreeSelector
+                assignment={{ worktree: null }}
+                assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                primaryPath={'C:\\primary'}
+            />
+        </AppThemeProvider>)
+
+        fireEvent.click(screen.getByRole('button', { name: /Primary worktree: C:\\primary/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /1 .* C:\\feature/u }))
+        expect(screen.getByRole('button', { name: 'Worktree operation in progress' })).toBeDisabled()
+        await act(async () => pendingAssignment.reject(failure))
+
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, { fallbackMessage: 'Could not update worktree assignment' }))
+        expect(screen.getByRole('button', { name: /Primary worktree: C:\\primary/u })).toBeEnabled()
     })
 
     it('updates open assignment menu when record validity changes', () => {
@@ -135,6 +261,46 @@ describe('WorktreeSelector', () => {
         expect(screen.getByRole('button', { name: /project changes pending yes/u })).toBeInTheDocument()
     })
 
+    it('updates only the status button while closed and opens with latest record state', () => {
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([worktrees[0]])
+        const ownerRender = vi.fn()
+        render(<AppThemeProvider><TrackedWorktreeSelector onRender={ownerRender} /></AppThemeProvider>)
+        ownerRender.mockClear()
+        const changedRecord = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+
+        act(() => {
+            records.mockReturnValue([changedRecord])
+            worktreeService.dispatchEvent(new CustomEvent('recordChanged', { detail: { branch: 'feature', record: changedRecord } }))
+        })
+
+        expect(ownerRender).not.toHaveBeenCalled()
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+        const button = screen.getByRole('button', { name: /dirty yes/u })
+        fireEvent.click(button)
+        expect(screen.getByRole('menuitem', { name: 'Commit' })).not.toHaveAttribute('aria-disabled')
+    })
+
+    it('updates action availability when assigned record changes while menu is open', () => {
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([worktrees[0]])
+        render(<AppThemeProvider>
+            <WorktreeSelector
+                assignment={{ branch: 'feature', worktree: 1 }}
+                assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                primaryPath={null}
+            />
+        </AppThemeProvider>)
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        expect(screen.getByRole('menuitem', { name: 'Commit' })).toHaveAttribute('aria-disabled', 'true')
+        const changedRecord = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+
+        act(() => {
+            records.mockReturnValue([changedRecord])
+            worktreeService.dispatchEvent(new CustomEvent('recordChanged', { detail: { branch: 'feature', record: changedRecord } }))
+        })
+
+        expect(screen.getByRole('menuitem', { name: 'Commit' })).not.toHaveAttribute('aria-disabled')
+    })
+
     it('blocks lifecycle controls for a missing branch while offering explicit reselection', () => {
         withRecords([worktrees[0]]);
         const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue();
@@ -145,6 +311,102 @@ describe('WorktreeSelector', () => {
         fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }));
         expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', 'feature');
     });
+
+    it('displays a dirty linked-worktree assignment error without reporting it', async () => {
+        const error = new Error('Linked worktree has uncommitted changes: C:\\feature') as Error & { code?: string }
+        error.code = DIRTY_LINKED_WORKTREE_ERROR
+        vi.spyOn(worktreeService, 'setCardWorktree').mockRejectedValue(error)
+        const displayError = vi.spyOn(dialogService, 'displayError')
+        const reportError = vi.spyOn(dialogService, 'error')
+        withRecords(worktrees)
+        render(
+            <AppThemeProvider>
+                <WorktreeSelector
+                    assignment={{ worktree: null }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                    primaryPath={'C:\\primary'}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Primary worktree: C:\\primary' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /1 .* C:\\feature/u }))
+
+        await vi.waitFor(() => expect(displayError).toHaveBeenCalledWith(error.message))
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
+    it('displays an active-rebase assignment error without reporting it', async () => {
+        const error = new Error('Linked worktree is currently being rebased: C:\\feature. Finish or abort the rebase, then retry.') as Error & { code?: string }
+        error.code = ACTIVE_REBASE_LINKED_WORKTREE_ERROR
+        vi.spyOn(worktreeService, 'setCardWorktree').mockRejectedValue(error)
+        const displayError = vi.spyOn(dialogService, 'displayError')
+        const reportError = vi.spyOn(dialogService, 'error')
+        withRecords(worktrees)
+        render(
+            <AppThemeProvider>
+                <WorktreeSelector
+                    assignment={{ worktree: null }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                    primaryPath={'C:\\primary'}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Primary worktree: C:\\primary' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /1 .* C:\\feature/u }))
+
+        await vi.waitFor(() => expect(displayError).toHaveBeenCalledWith(error.message))
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
+    it('reports a genuinely detached worktree assignment error', async () => {
+        const error = new Error('Linked worktree has detached HEAD: C:\\feature')
+        vi.spyOn(worktreeService, 'setCardWorktree').mockRejectedValue(error)
+        const displayError = vi.spyOn(dialogService, 'displayError')
+        const reportError = vi.spyOn(dialogService, 'error')
+        withRecords(worktrees)
+        render(
+            <AppThemeProvider>
+                <WorktreeSelector
+                    assignment={{ worktree: null }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                    primaryPath={'C:\\primary'}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Primary worktree: C:\\primary' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /1 .* C:\\feature/u }))
+
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(error,
+            { fallbackMessage: 'Could not update worktree assignment' }))
+        expect(displayError).not.toHaveBeenCalled()
+    })
+
+    it('reports an unexpected worktree assignment error', async () => {
+        const error = new Error('preparation failed')
+        vi.spyOn(worktreeService, 'setCardWorktree').mockRejectedValue(error)
+        const displayError = vi.spyOn(dialogService, 'displayError')
+        const reportError = vi.spyOn(dialogService, 'error')
+        withRecords(worktrees)
+        render(
+            <AppThemeProvider>
+                <WorktreeSelector
+                    assignment={{ worktree: null }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                    primaryPath={'C:\\primary'}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Primary worktree: C:\\primary' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /1 .* C:\\feature/u }))
+
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(error,
+            { fallbackMessage: 'Could not update worktree assignment' }))
+        expect(displayError).not.toHaveBeenCalled()
+    })
 
     it('lists Primary and valid linked worktrees while retaining the current invalid assignment', () => {
         withRecords(worktrees)
@@ -290,6 +552,36 @@ describe('WorktreeSelector', () => {
         })
     })
 
+    it('shows immediate integration feedback and keeps the dialog open until a clean integration succeeds', async () => {
+        const pendingIntegration = createDeferred<{ status: 'completed' }>()
+        let phase: 'integrating' | null = null
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => cardInternalId === 'card-1' && phase !== null)
+        vi.spyOn(worktreeService, 'getCardOperationPhase').mockImplementation((cardInternalId) => cardInternalId === 'card-1' ? phase : null)
+        vi.spyOn(worktreeService, 'integrateCardWorktree').mockImplementation(async () => {
+            phase = 'integrating'
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            try {
+                return await pendingIntegration.promise
+            } finally {
+                phase = null
+                worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            }
+        })
+        const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
+        renderAssignedWorktree(aheadWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Integrate into project' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Integrate' }))
+
+        expect(screen.getByLabelText('Integrating worktree into project')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Integrating...' })).toBeDisabled()
+        expect(screen.getByRole('dialog', { name: 'Integrate into project' })).toBeInTheDocument()
+
+        await act(async () => pendingIntegration.resolve({ status: 'completed' }))
+        expect(screen.queryByRole('dialog', { name: 'Integrate into project' })).not.toBeInTheDocument()
+    })
+
     it('opens current diff from same availability condition as integration', () => {
         const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
         const openWorktreeDiff = vi.spyOn(cardPopupService, 'openWorktreeDiff')
@@ -326,6 +618,55 @@ describe('WorktreeSelector', () => {
         await vi.waitFor(() => {
             expect(screen.queryByRole('dialog', { name: 'Integrate into project' })).not.toBeInTheDocument()
         })
+    })
+
+    it('changes dirty integration feedback from commit through save and integration', async () => {
+        const pendingCommit = createDeferred<void>()
+        const pendingSave = createDeferred<void>()
+        const pendingIntegration = createDeferred<{ status: 'completed' }>()
+        let phase: 'committing' | 'savingProjectChanges' | 'integrating' | null = null
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => cardInternalId === 'card-1' && phase !== null)
+        vi.spyOn(worktreeService, 'getCardOperationPhase').mockImplementation((cardInternalId) => cardInternalId === 'card-1' ? phase : null)
+        vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
+        vi.spyOn(worktreeService, 'commitCardWorktree').mockImplementation(async () => {
+            phase = 'committing'
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            try {
+                await pendingCommit.promise
+            } finally {
+                phase = null
+                worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            }
+        })
+        vi.spyOn(worktreeService, 'integrateCardWorktree').mockImplementation(async () => {
+            phase = 'savingProjectChanges'
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            await pendingSave.promise
+            phase = 'integrating'
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            try {
+                return await pendingIntegration.promise
+            } finally {
+                phase = null
+                worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            }
+        })
+        const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+        renderAssignedWorktree(dirtyWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Integrate into project' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Integrate' }))
+        expect(screen.getByLabelText('Committing worktree changes')).toBeInTheDocument()
+
+        await act(async () => pendingCommit.resolve())
+        expect(screen.getByLabelText('Saving pending project edits')).toBeInTheDocument()
+
+        await act(async () => pendingSave.resolve())
+        expect(screen.getByLabelText('Integrating worktree into project')).toBeInTheDocument()
+
+        await act(async () => pendingIntegration.resolve({ status: 'completed' }))
+        expect(screen.queryByRole('dialog', { name: 'Integrate into project' })).not.toBeInTheDocument()
     })
 
     it('disables dirty integration for a blank commit message', () => {
@@ -376,6 +717,31 @@ describe('WorktreeSelector', () => {
         fireEvent.click(screen.getByRole('menuitem', { name: 'Update worktree' }))
 
         await vi.waitFor(() => expect(updateCardWorktree).toHaveBeenCalledWith('design/F-1.md'))
+    })
+
+    it('shows update progress through backend completion', async () => {
+        const pendingUpdate = createDeferred<{ status: 'completed' }>()
+        let preparing = false
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => cardInternalId === 'card-1' && preparing)
+        vi.spyOn(worktreeService, 'updateCardWorktree').mockImplementation(async () => {
+            preparing = true
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            try {
+                return await pendingUpdate.promise
+            } finally {
+                preparing = false
+                worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            }
+        })
+        const behindWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseBehind: 1 } }
+        renderAssignedWorktree(behindWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Update worktree' }))
+
+        expect(screen.getByRole('button', { name: 'Worktree operation in progress' })).toBeDisabled()
+        await act(async () => pendingUpdate.resolve({ status: 'completed' }))
+        expect(screen.getByRole('button', { name: /Worktree 1/u })).toBeEnabled()
     })
 
     it('uses pending project saves for both incoming indicator and update availability', () => {
@@ -675,6 +1041,63 @@ describe('WorktreeSelector', () => {
         expect(screen.queryByRole('dialog', { name: 'Commit and integrate worktree' })).not.toBeInTheDocument()
     })
 
+    it('restores controls after integration failure and retries without recommitting the clean worktree', async () => {
+        const firstIntegration = createDeferred<{ status: 'completed' }>()
+        const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+        let currentRecord = dirtyWorktree
+        let phase: 'committing' | 'integrating' | null = null
+        vi.spyOn(worktreeService, 'getRecords').mockImplementation(() => [currentRecord])
+        vi.spyOn(worktreeService, 'isPreparingCard').mockImplementation((cardInternalId) => cardInternalId === 'card-1' && phase !== null)
+        vi.spyOn(worktreeService, 'getCardOperationPhase').mockImplementation((cardInternalId) => cardInternalId === 'card-1' ? phase : null)
+        vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
+        const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockImplementation(async () => {
+            phase = 'committing'
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            currentRecord = { ...currentRecord, status: { ...currentRecord.status, dirty: false } }
+            worktreeService.dispatchEvent(new CustomEvent('recordChanged', { detail: { branch: 'feature', record: currentRecord } }))
+            phase = null
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+        })
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockImplementation(async () => {
+            phase = 'integrating'
+            worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            try {
+                if (integrateCardWorktree.mock.calls.length === 1) return await firstIntegration.promise
+
+                return { status: 'completed' }
+            } finally {
+                phase = null
+                worktreeService.dispatchEvent(new Event(cardWorktreeOperationEventType('card-1')))
+            }
+        })
+        const reportError = vi.spyOn(dialogService, 'error')
+        render(
+            <AppThemeProvider>
+                <WorktreeSelector
+                    assignment={{ branch: currentRecord.branch, worktree: 1 }}
+                    assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                    primaryPath="C:\\primary"
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Integrate into project' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Integrate' }))
+        await vi.waitFor(() => expect(integrateCardWorktree).toHaveBeenCalledOnce())
+
+        const failure = new Error('integration failed')
+        firstIntegration.reject(failure)
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, {fallbackMessage: 'Changes were committed, but the worktree could not be integrated into the project'}))
+        expect(screen.getByRole('dialog', { name: 'Integrate into project' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Integrate' })).toBeEnabled()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Integrate' }))
+        await vi.waitFor(() => expect(integrateCardWorktree).toHaveBeenCalledTimes(2))
+        expect(commitCardWorktree).toHaveBeenCalledOnce()
+        await vi.waitFor(() => expect(screen.queryByRole('dialog', { name: 'Integrate into project' })).not.toBeInTheDocument())
+    })
+
     it('reports update errors through dialogService', async () => {
         const behindWorktree = {
             ...worktrees[0],
@@ -711,7 +1134,10 @@ describe('WorktreeSelector', () => {
     })
 
     it('restores and applies the persisted delete-branch integration choice', async () => {
-        configService.connectProjectConfigPersistence({ saveProjectConfig: vi.fn(async () => undefined) })
+        configService.connectProjectConfigPersistence({
+            saveProjectConfig: vi.fn(async () => undefined),
+            saveProjectFolderGitInclusion: vi.fn(),
+        })
         configService.loadProjectConfig({ deleteBranchAfterIntegration: true })
         const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
         const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })

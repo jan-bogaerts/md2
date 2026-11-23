@@ -48,6 +48,7 @@ import {
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
 const MERGE_CONFLICT_VERIFY_DEBOUNCE_MS = 150
+const MISSING_FILE_ERROR_CODE = 'ENOENT'
 const MARKDOWN_EXTENSION = '.md'
 const PROJECT_CONFIG_PATH = 'md2.config.json'
 // The watcher already settles each path before reporting, so this only has to group
@@ -55,6 +56,7 @@ const PROJECT_CONFIG_PATH = 'md2.config.json'
 const MARKDOWN_RELOAD_DEBOUNCE_MS = 50
 const MARKDOWN_REMOVAL_GRACE_MS = 750
 const PROJECT_LOAD_ERROR_REPORTED = Symbol('project-load-error-reported')
+const REPOSITORY_LIST_REFRESH_DEBOUNCE_MS = 250
 
 type ReportedProjectLoadError = object & { [PROJECT_LOAD_ERROR_REPORTED]?: boolean }
 
@@ -119,6 +121,11 @@ function reportOptionalProjectLoadFailure(area: string, error: unknown) {
     telemetryService.captureError(error)
 }
 
+/** True when a storage read failed because the file no longer exists. */
+function isMissingFileError(error: unknown) {
+    return !!error && typeof error === 'object' && 'code' in error && error.code === MISSING_FILE_ERROR_CODE
+}
+
 function reportAgentTokenUsageFailure(error: unknown) {
     reportOptionalProjectLoadFailure('Agent token usage', error)
 }
@@ -144,6 +151,7 @@ export interface ProjectLoadingDeps {
     hydrateProjectConversations(): Promise<AgentConversation[]>
     matchesCurrentContent(path: string, content: string): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
+    isFullProjectLoaded(): boolean
     mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
     migrateAgentLogReferences(): Promise<void>
     markFullProjectLoaded(): void
@@ -152,6 +160,7 @@ export interface ProjectLoadingDeps {
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
     replaceProject(project: ProjectReference | null): void
     replaceProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
+    replaceRepositoryFiles(repositoryFiles: string[]): boolean
     updateFiles(updatedFiles: MarkdownFile[], removedPaths: string[], workingFolder: string): void
     updateRepositoryFile(event: ProjectWatchEvent): void
     requireDependencies(): RequiredDataServiceDependencies
@@ -171,6 +180,8 @@ export class ProjectLoading {
     private markdownReloadTimeout: number | null = null
     private mergeConflictVerifyTimeout: number | null = null
     private pendingDetectedCardImportsBySourcePath: Map<string, PendingDetectedCardImport> = new Map()
+    private repositoryListRefreshRevision = 0
+    private repositoryListRefreshTimeout: number | null = null
     private watchCleanup: (() => void) | null = null
 
     constructor(
@@ -207,7 +218,7 @@ export class ProjectLoading {
         projectAccessService.requireWritable()
         const { config, storage } = this.dependencies.requireDependencies()
         const rawConfig = { ...configService.getProjectConfig(), backgroundShade: createRandomProjectBackgroundShade() }
-        this.dependencies.replaceProject(await storage.createProject(project, [config.workingFolder]))
+        this.dependencies.replaceProject(project)
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot create a project without a project reference')
 
@@ -227,6 +238,7 @@ export class ProjectLoading {
 
     async openProject(project: ProjectReference) {
         const { storage } = this.dependencies.requireDependencies()
+        this.clearRepositoryListRefresh()
         await this.dependencies.flushPendingChanges()
         this.clearMarkdownReloadTimeout()
         this.clearMarkdownRemovalTimeouts()
@@ -300,6 +312,33 @@ export class ProjectLoading {
         if (!currentProject) throw new Error('Cannot save project config before a project is open')
 
         await storage.saveProjectConfig(currentProject, config)
+        this.dependencies.dispatchPersistenceChanged()
+    }
+
+    /** Whether the active storage can keep the project folder local, which only desktop local Git storage can. */
+    supportsLocalOnlyProjectFolder() {
+        const storage = this.dependencies.storage()
+
+        return !!storage?.saveProjectFolderGitInclusion && !!storage.hasTrackedProjectFolderFiles
+    }
+
+    async hasTrackedProjectFolderFiles(projectFolder: string) {
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot inspect the project folder before a project is open')
+        if (!storage.hasTrackedProjectFolderFiles) throw new Error('Current storage cannot keep the project folder out of Git')
+
+        return storage.hasTrackedProjectFolderFiles(currentProject, projectFolder)
+    }
+
+    async saveProjectFolderGitInclusion(config: ProjectConfig, removeTrackedFiles: boolean) {
+        projectAccessService.requireWritable()
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot save project config before a project is open')
+        if (!storage.saveProjectFolderGitInclusion) throw new Error('Current storage cannot keep the project folder out of Git')
+
+        await storage.saveProjectFolderGitInclusion(currentProject, config, removeTrackedFiles)
         this.dependencies.dispatchPersistenceChanged()
     }
 
@@ -398,6 +437,7 @@ export class ProjectLoading {
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot reload project snapshot before a project is open')
 
+        this.clearRepositoryListRefresh()
         const projectLoadToken = this.dependencies.beginProjectLoad()
         this.prepareAgentConversationLoading(projectLoadToken)
         void this.hydrateProjectConversations()
@@ -417,6 +457,7 @@ export class ProjectLoading {
     }
 
     stopProjectWatch() {
+        this.clearRepositoryListRefresh()
         if (!this.watchCleanup) return
 
         this.watchCleanup()
@@ -431,7 +472,7 @@ export class ProjectLoading {
         }
         if (this.markdownReloadEventsByPath.size === 0) return
 
-        await this.reloadMarkdownFilesFromWatchEvents()
+        await this.reloadMarkdownFilesFromWatchEvents(true)
     }
 
     private clearFailedProjectLoad() {
@@ -514,7 +555,11 @@ export class ProjectLoading {
         }
     }
 
-    private planDetectedCardImports(files: MarkdownFile[], workingFolder: string): DetectedCardImportPlan {
+    private planDetectedCardImports(
+        files: MarkdownFile[],
+        workingFolder: string,
+        repositoryFiles: ReadonlySet<string> | null,
+    ): DetectedCardImportPlan {
         if (projectAccessService.getSnapshot()) return { files, imports: [] }
 
         let nextFiles = files
@@ -539,6 +584,7 @@ export class ProjectLoading {
             config.cardTypes,
             config.states[0].state,
             internalIdsByPath,
+            repositoryFiles,
         )
         const imports = plan.moves.map((move, index) => {
             const importedFile = plan.importedFiles[index]
@@ -631,7 +677,10 @@ export class ProjectLoading {
         let imports: PendingDetectedCardImport[] = []
         if (loadedFiles) {
             try {
-                const importPlan = this.planDetectedCardImports(loadedFiles, workingFolder)
+                const listedRepositoryFiles = repositoryFilesResult.status === 'fulfilled'
+                    ? new Set(repositoryFilesResult.value.map(normalizePath))
+                    : null
+                const importPlan = this.planDetectedCardImports(loadedFiles, workingFolder, listedRepositoryFiles)
                 const importedPaths = new Set(importPlan.files.map((file) => file.path))
                 const removedImportedPaths = loadedFiles
                     .filter((file) => !importedPaths.has(file.path))
@@ -759,6 +808,7 @@ export class ProjectLoading {
     }
 
     private handleProjectWatchEvent(event: ProjectWatchEvent) {
+        this.scheduleRepositoryListRefreshIfStructural(event)
         if (mergeConflictService.isConflictedPath(event.path)) {
             this.scheduleMergeConflictVerification()
             return
@@ -774,14 +824,15 @@ export class ProjectLoading {
     }
 
     private handleExternalProjectWatchEvent(event: ProjectWatchEvent) {
+        const isStructural = this.isStructuralRepositoryEvent(event)
         if (agentInstructionsService.hasFile(event.path)) {
-            this.dependencies.updateRepositoryFile(event)
+            if (!isStructural) this.dependencies.updateRepositoryFile(event)
             this.dependencies.dispatchRepositoryChanged(event)
             void this.reloadAgentInstructionFromWatch(event)
             return
         }
 
-        this.dependencies.updateRepositoryFile(event)
+        if (!isStructural) this.dependencies.updateRepositoryFile(event)
         this.dependencies.dispatchRepositoryChanged(event)
         if (event.path === PROJECT_CONFIG_PATH) {
             void this.reloadProjectConfigFromWatch()
@@ -802,6 +853,69 @@ export class ProjectLoading {
         if (!isProjectMarkdownPath(event.path, config.projectFolder)) return
 
         this.scheduleMarkdownReload(event)
+    }
+
+    private scheduleRepositoryListRefreshIfStructural(event: ProjectWatchEvent) {
+        if (!this.isStructuralRepositoryEvent(event)) return
+
+        const project = this.dependencies.project()
+        const storage = this.dependencies.storage()
+        if (!project || !storage) return
+
+        this.clearRepositoryListRefresh()
+        const projectLoadToken = this.dependencies.projectToken()
+        const refreshRevision = this.repositoryListRefreshRevision
+        this.repositoryListRefreshTimeout = window.setTimeout(() => {
+            this.repositoryListRefreshTimeout = null
+            void this.refreshRepositoryList(project, projectLoadToken, refreshRevision)
+        }, REPOSITORY_LIST_REFRESH_DEBOUNCE_MS)
+    }
+
+    private isStructuralRepositoryEvent(event: ProjectWatchEvent) {
+        if (event.changeKind === 'removed') return true
+
+        const repositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []
+        const normalizedPath = normalizePath(event.path)
+
+        return !repositoryFiles.some((path) => normalizePath(path) === normalizedPath)
+    }
+
+    private async refreshRepositoryList(
+        project: ProjectReference,
+        projectLoadToken: number,
+        refreshRevision: number,
+    ) {
+        const storage = this.dependencies.storage()
+        if (!storage || !this.isCurrentRepositoryListRefresh(project, projectLoadToken, refreshRevision)) return
+
+        try {
+            const listedPaths = await storage.listRepositoryFiles(project)
+            if (!this.isCurrentRepositoryListRefresh(project, projectLoadToken, refreshRevision)) return
+
+            const repositoryFiles = excludeAgentInstructionPaths(listedPaths)
+                .sort((left, right) => left.localeCompare(right))
+            if (this.dependencies.replaceRepositoryFiles(repositoryFiles)) this.dependencies.dispatchChanged()
+        } catch (error) {
+            if (!this.isCurrentRepositoryListRefresh(project, projectLoadToken, refreshRevision)) return
+            reportOptionalProjectLoadFailure('Repository file index', error)
+        }
+    }
+
+    private isCurrentRepositoryListRefresh(
+        project: ProjectReference,
+        projectLoadToken: number,
+        refreshRevision: number,
+    ) {
+        return refreshRevision === this.repositoryListRefreshRevision
+            && this.dependencies.isCurrentLoad(project, projectLoadToken)
+    }
+
+    private clearRepositoryListRefresh() {
+        this.repositoryListRefreshRevision += 1
+        if (this.repositoryListRefreshTimeout === null) return
+
+        window.clearTimeout(this.repositoryListRefreshTimeout)
+        this.repositoryListRefreshTimeout = null
     }
 
     private async reloadAgentInstructionFromWatch(event: ProjectWatchEvent) {
@@ -889,10 +1003,12 @@ export class ProjectLoading {
         const normalizedPath = normalizePath(expectedOutcome.path)
 
         try {
-            const repositoryFiles = await storage.listRepositoryFiles(currentProject)
-            const persistedPath = repositoryFiles.map(normalizePath).find((path) => path === normalizedPath)
-            if (!persistedPath) return { kind: 'absent', path: normalizedPath }
-            if (expectedOutcome.kind === 'absent') return { content: '', kind: 'present', path: normalizedPath }
+            if (expectedOutcome.kind === 'absent') {
+                if (!storage.loadTextFile) return null
+                await storage.loadTextFile(currentProject, normalizedPath)
+
+                return { content: '', kind: 'present', path: normalizedPath }
+            }
 
             if (isActionDefinitionPath(normalizedPath, config.actionsFolder)) {
                 const actionFiles = await storage.loadActionFiles(currentProject, config.actionsFolder)
@@ -920,6 +1036,7 @@ export class ProjectLoading {
 
             return null
         } catch (error) {
+            if (isMissingFileError(error)) return { kind: 'absent', path: normalizedPath }
             reportOptionalProjectLoadFailure(`Persistence outcome verification for ${normalizedPath}`, error)
 
             return null
@@ -1031,7 +1148,7 @@ export class ProjectLoading {
         this.markdownRemovalTimeoutsByPath.clear()
     }
 
-    private async reloadMarkdownFilesFromWatchEvents() {
+    private async reloadMarkdownFilesFromWatchEvents(throwOnLoadFailure = false) {
         const { commitBatcher, storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject || !storage.loadFile) return
@@ -1045,7 +1162,7 @@ export class ProjectLoading {
         const removedPaths: string[] = []
 
         for (const event of events) {
-            const loadedFile = event.changeKind === 'removed' ? null : await this.loadWatchedMarkdownFile(event)
+            const loadedFile = event.changeKind === 'removed' ? null : await this.loadWatchedMarkdownFile(event, throwOnLoadFailure)
             if (loadedFile && this.dependencies.matchesCurrentContent(loadedFile.path, loadedFile.content)) continue
             const dirtyOpenDocument = openFilesService.getRegisteredDocuments().some((document) => (
                 document.kind === 'card' && document.path === event.path && document.dirty
@@ -1088,7 +1205,13 @@ export class ProjectLoading {
             this.dependencies.files().filter((file) => !removedPathSet.has(file.path)),
             updatedFiles,
         )
-        const importPlan = this.planDetectedCardImports(watchedFiles, config.workingFolder)
+        const watchedRepositoryFiles = this.dependencies.isFullProjectLoaded()
+            ? new Set([
+                ...(this.dependencies.snapshot()?.repositoryFiles ?? []),
+                ...events.filter(({ changeKind }) => changeKind !== 'removed').map(({ path }) => path),
+            ].map(normalizePath))
+            : null
+        const importPlan = this.planDetectedCardImports(watchedFiles, config.workingFolder, watchedRepositoryFiles)
         const importedFiles = importPlan.files
         if (updatedFiles.length === 0 && removedPaths.length === 0 && importPlan.imports.length === 0) return
 
@@ -1113,7 +1236,7 @@ export class ProjectLoading {
         await this.dependencies.ensureCardInternalIds(deferredPersistencePaths)
     }
 
-    private async loadWatchedMarkdownFile(event: ProjectWatchEvent) {
+    private async loadWatchedMarkdownFile(event: ProjectWatchEvent, throwOnLoadFailure = false) {
         const { storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject || !storage.loadFile) return null
@@ -1121,6 +1244,7 @@ export class ProjectLoading {
         try {
             return await storage.loadFile(currentProject, event.path)
         } catch (error) {
+            if (throwOnLoadFailure && !isMissingFileError(error)) throw error
             if (event.changeKind === 'unknown' || event.changeKind === 'removed') return null
 
             console.error('Failed to load watched markdown file', error)

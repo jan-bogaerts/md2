@@ -14,6 +14,11 @@ import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'
 import { dataService } from '../../../services/data/data_service'
 import { dialogService } from '../../../services/dialog_service'
+import {
+    INVALID_LOCAL_FILE_LINK_ERROR,
+    LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR,
+    localFileLinkError,
+} from '../../../../../shared/local_file_link_errors.mjs'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { AppThemeContext } from '../../../theme/theme_context'
 import { useAppTheme } from '../../../theme/use_app_theme'
@@ -821,7 +826,7 @@ describe('ActionConversationChat', () => {
         }))
     })
 
-    it('reports invalid local file links without browser navigation', async () => {
+    it('shows invalid local file links without telemetry or browser navigation', async () => {
         vi.spyOn(dataService, 'getState').mockReturnValue({
             project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
             runningAgents: [],
@@ -833,10 +838,11 @@ describe('ActionConversationChat', () => {
             },
         })
         const reportError = vi.spyOn(dialogService, 'error')
+        const displayError = vi.spyOn(dialogService, 'displayError')
         setActionBridgeOverride({
             onActionRun: vi.fn(() => vi.fn()),
             openInEditor: vi.fn(async () => {
-                throw new Error('Local file link target does not exist: C:/repo/design/missing.md')
+                throw localFileLinkError(INVALID_LOCAL_FILE_LINK_ERROR, 'Local file link target does not exist: C:/repo/design/missing.md')
             }),
         } as unknown as ElectronActionBridge)
         const bubbledClick = vi.fn()
@@ -846,9 +852,33 @@ describe('ActionConversationChat', () => {
         expect(fireEvent.click(screen.getByRole('link', { name: 'Missing' }))).toBe(false)
         document.removeEventListener('click', bubbledClick)
         expect(bubbledClick).not.toHaveBeenCalled()
+        await waitFor(() => expect(displayError).toHaveBeenCalledWith('Local file link target does not exist: C:/repo/design/missing.md'))
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
+    it('reports unexpected local file link launch failures', async () => {
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            runningAgents: [],
+            snapshot: { activeCards: [], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        })
+        const reportError = vi.spyOn(dialogService, 'error')
+        setActionBridgeOverride({
+            onActionRun: vi.fn(() => vi.fn()),
+            openInEditor: vi.fn(async () => {
+                throw localFileLinkError(LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR, 'Local file link points outside active repository and registered worktrees')
+            }),
+            openLocalFileWithSystem: vi.fn(async () => {
+                throw new Error('Opening local file failed: Access denied')
+            }),
+        } as unknown as ElectronActionBridge)
+        renderChat(conversation('links.json', [message('message-1', '[Notes](C:/outside/notes.txt)')]))
+
+        fireEvent.click(screen.getByRole('link', { name: 'Notes' }))
+
         await waitFor(() => expect(reportError).toHaveBeenCalledWith(
-            expect.objectContaining({ message: expect.stringContaining('target does not exist') }),
-            { fallbackMessage: 'Local file link could not be opened: design/missing.md' },
+            expect.objectContaining({ message: 'Opening local file failed: Access denied' }),
+            { fallbackMessage: 'Local file link could not be opened: C:/outside/notes.txt' },
         ))
     })
 
@@ -1393,6 +1423,7 @@ describe('ActionConversationChat', () => {
         fireEvent.click(errorButton)
         expect(screen.getByText('message_start missing message id')).toBeInTheDocument()
     })
+
 
     it('omits legacy null command metadata', () => {
         const activity: AgentConversationEvent = {

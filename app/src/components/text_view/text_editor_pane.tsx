@@ -5,6 +5,7 @@ import { useOpenFiles } from '../hooks/use_open_files'
 import { CardEditor } from './card_editor'
 import { TabBar } from './tab_bar'
 import { InstructionEditor } from './instruction_editor'
+import { JsonEditorPane } from './json_editor_pane'
 
 interface TextEditorPaneProps {
     actionsFolder: string
@@ -24,8 +25,10 @@ export function TextEditorPane(props: TextEditorPaneProps) {
     const hasActiveAction = activeDocument?.kind === 'action'
     const hasActiveCard = activeDocument?.kind === 'card'
     const hasActiveInstruction = activeDocument?.kind === 'instruction'
+    const activeJsonDocument = activeDocument?.kind === 'json' ? activeDocument : null
+    const hasActiveJson = !!activeJsonDocument
     const hasOpenInstruction = documents.some(({ kind }) => kind === 'instruction')
-    const hasActiveDocument = hasActiveAction || hasActiveCard || hasActiveInstruction
+    const hasActiveDocument = hasActiveAction || hasActiveCard || hasActiveInstruction || hasActiveJson
 
     return (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
@@ -40,7 +43,7 @@ export function TextEditorPane(props: TextEditorPaneProps) {
                         flexDirection: 'column',
                         justifyContent: hasActiveCard ? undefined : 'center',
                         minHeight: 0,
-                        overflow: hasActiveAction || hasActiveInstruction ? 'hidden' : 'auto',
+                        overflow: hasActiveAction || hasActiveInstruction || hasActiveJson ? 'hidden' : 'auto',
                         p: hasActiveDocument ? 0 : 2,
                     }}
                 >
@@ -68,6 +71,7 @@ export function TextEditorPane(props: TextEditorPaneProps) {
                             <InstructionEditor />
                         </Box>
                     ) : null}
+                    {activeJsonDocument ? <JsonEditorPane document={activeJsonDocument} /> : null}
                 </Box>
             </Box>
         </Box>

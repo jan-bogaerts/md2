@@ -49,18 +49,49 @@ const {
 const { redactSecrets } = require('./agent_secret_redaction');
 const { filterCompleteStderrLines, isHiddenStderrLine, stripAnsi } = require('./agent_stderr_filter');
 const { STREAMING_EVENT_HANDLERS } = require('./agent_streaming_event_handlers');
-const { codexOneShotPrompt } = require('./agent_task_tracking');
 const { terminateProcessTree } = require('../process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/git_commands');
 
 const AGENT_FINISH_GRACE_MS = 5_000;
+const CLAUDE_AUTHENTICATION_FAILURE = 'Failed to authenticate: OAuth session expired and could not be refreshed';
+const CLAUDE_AUTHENTICATION_REQUIRED_MESSAGE = 'Claude sign-in expired. Log in again, then rerun the action.';
 const TERMINAL_PERSIST_ATTEMPTS = 3;
+
+function logDeferredStreamingEventError(run, error) {
+    console.error('[agent:streaming-event]', run.id, redactSecrets(String(error), run.secretValues));
+}
 
 /** The account whose usage a run consumes; a run without an explicit account uses the agent's initial account. */
 function usageAccountId(agent, accountId) {
     if (!supportsAgentAccounts(agent)) return null;
 
     return accountId ?? initialAgentAccountId(agent);
+}
+
+function isClaudeAuthenticationFailure(run, errorText) {
+    return run.agent === 'claude' && errorText.trim() === CLAUDE_AUTHENTICATION_FAILURE;
+}
+
+function rememberClaudeAuthenticationFailure(run, errorText, entryIndex) {
+    if (isClaudeAuthenticationFailure(run, errorText)) run.claudeAuthenticationFailureEntryIndex = entryIndex;
+}
+
+function authenticationRequiredEntry(entry, accountId) {
+    return {
+        accountId,
+        agent: 'claude',
+        content: CLAUDE_AUTHENTICATION_REQUIRED_MESSAGE,
+        errorKind: 'authenticationRequired',
+        id: entry.id,
+        kind: 'event',
+        label: 'Claude sign-in required',
+        output: entry.content,
+        providerItemId: `authentication-required:${entry.id}`,
+        ...(Number.isSafeInteger(entry.sequence) ? { sequence: entry.sequence } : {}),
+        status: 'failed',
+        timestamp: entry.timestamp,
+        type: 'error',
+    };
 }
 
 function recordTaskList(run, taskList) {
@@ -72,6 +103,7 @@ class AgentRunnerService {
     constructor(dependencies = {}) {
         this.claudeRuntimeService = dependencies.claudeRuntimeService ?? null;
         this.codexRuntimeService = dependencies.codexRuntimeService ?? null;
+        this.agentAccountService = dependencies.agentAccountService ?? null;
         this.usageMetricsService = dependencies.usageMetricsService ?? null;
         this.persistConversation = dependencies.persistConversation
             ?? dependencies.persistTerminalConversation
@@ -158,8 +190,7 @@ class AgentRunnerService {
         const environment = createAgentEnvironment(this.environment, agent, request.agentTaskTrackingEnabled === true, account);
         const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
         if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);
-        const providerPrompt = codexOneShotPrompt(prompt, agent, request.agentTaskTrackingEnabled === true);
-        const argumentsList = streaming ? configuredArguments : [...configuredArguments, providerPrompt];
+        const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
         this.requestUsagePoll({ accountId: account?.id ?? null, agent, environment, executable, rootPath });
         const child = this.spawn(executable, argumentsList, {
             cwd: rootPath,
@@ -200,6 +231,7 @@ class AgentRunnerService {
             onMalformedOutput: (line) => this.handleMalformedOutput(id, line),
             onProviderEvent: (event) => this.handleProviderEvent(id, event),
             onStreamingEvent: (event) => this.handleStreamingEvent(id, event),
+            onStreamingEventError: (error) => logDeferredStreamingEventError(run, error),
             onStreamingLine: (line) => this.handleStreamingLine(id, line),
             providerConversationId: request.providerConversationId,
             rootPath,
@@ -268,6 +300,7 @@ class AgentRunnerService {
     stop(runId) {
         const run = this.requireRun(runId);
         run.cancelled = true;
+        run.streamingEventPublisher?.dispose();
         transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString(), run.phases);
         this.clearFinishTimeout(run);
 
@@ -277,6 +310,7 @@ class AgentRunnerService {
     suspend(runId) {
         const run = this.requireRun(runId);
         run.suspended = true;
+        run.streamingEventPublisher?.dispose();
         this.clearFinishTimeout(run);
 
         return this.ensureTermination(run);
@@ -290,6 +324,12 @@ class AgentRunnerService {
         const run = this.processes.get(runId);
 
         return !!run && hasPendingInteraction(run);
+    }
+
+    isWaitingForInput(runId) {
+        const run = this.processes.get(runId);
+
+        return run?.conversation.status === 'waitingForInput';
     }
 
     sendMessage(runId, content, submissionId) {
@@ -386,6 +426,7 @@ class AgentRunnerService {
         const completions = [];
         for (const run of this.processes.values()) {
             run.cancelled = true;
+            run.streamingEventPublisher?.dispose();
             transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString(), run.phases);
             this.clearFinishTimeout(run);
             completions.push(Promise.all([this.ensureTermination(run), run.closed]));
@@ -579,6 +620,7 @@ class AgentRunnerService {
             const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
             run.reportedProviderErrors.add(providerEvent.errorText);
             run.stderr += `${separator}${providerEvent.errorText}`;
+            const entryIndex = run.conversation.entries.length;
             run.conversation.entries.push(createEventEntry(
                 `${runId}-error-${run.conversation.entries.length}`,
                 'error',
@@ -586,8 +628,35 @@ class AgentRunnerService {
                 timestamp,
                 nextRunSequence(run),
             ));
+            rememberClaudeAuthenticationFailure(run, providerEvent.errorText, entryIndex);
             emitRunEvent(run, { content: providerEvent.errorText, type: 'error' });
         }
+    }
+
+    async handleClaudeAuthenticationFailure(run, errorText) {
+        if (!isClaudeAuthenticationFailure(run, errorText)) return false;
+        this.failStreamingRun(run, new Error(errorText));
+        await this.confirmClaudeAuthenticationFailure(run);
+
+        return true;
+    }
+
+    async confirmClaudeAuthenticationFailure(run) {
+        const entryIndex = run.claudeAuthenticationFailureEntryIndex;
+        if (!Number.isSafeInteger(entryIndex) || !this.agentAccountService) return;
+        const accountId = usageAccountId(run.agent, run.accountId);
+        try {
+            const status = await this.agentAccountService.loadStatus(accountId);
+            if (status !== 'loginRequired') return;
+        } catch (error) {
+            console.error('[agent:claude-auth-status]', run.id, error);
+            return;
+        }
+        const entry = run.conversation.entries[entryIndex];
+        if (!entry || entry.kind !== 'event' || entry.type !== 'error') return;
+        const authenticationEntry = authenticationRequiredEntry(entry, accountId);
+        run.conversation.entries[entryIndex] = authenticationEntry;
+        emitRunEvent(run, { entryIndex, event: authenticationEntry, type: 'agentEvent' });
     }
 
     async handleStreamingEvent(runId, event) {
@@ -651,6 +720,7 @@ class AgentRunnerService {
         const message = redactSecrets(error.message, run.secretValues);
         const timestamp = new Date().toISOString();
         run.streamingFailure = new Error(message);
+        run.streamingEventPublisher?.dispose();
         this.settleCompact(run, message);
         transitionConversationStatus(run.conversation, 'failed', timestamp, run.phases);
         run.waitingForQuestion = false;
@@ -658,6 +728,7 @@ class AgentRunnerService {
         run.pendingQuestions = [];
         const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
         run.stderr += `${separator}${message}`;
+        const entryIndex = run.conversation.entries.length;
         run.conversation.entries.push(createEventEntry(
             `${run.id}-error-${run.conversation.entries.length}`,
             'error',
@@ -665,6 +736,7 @@ class AgentRunnerService {
             timestamp,
             nextRunSequence(run),
         ));
+        rememberClaudeAuthenticationFailure(run, message, entryIndex);
         emitRunEvent(run, { content: message, type: 'error' });
         emitRunEvent(run, { state: 'failed', type: 'state' });
         try {
@@ -686,6 +758,12 @@ class AgentRunnerService {
             run.parser?.finish();
             run.protocolLines?.finish();
             await run.protocolHandling;
+            if (run.streaming) {
+                if (run.finishing && !run.cancelled && !run.streamingFailure && !run.suspended) {
+                    await run.streamingEventPublisher?.flush();
+                }
+                run.streamingEventPublisher?.dispose();
+            }
             this.flushStderr(runId);
             await run.stderrHandling;
             const completedAt = new Date().toISOString();
@@ -700,6 +778,7 @@ class AgentRunnerService {
                 && !run.cancelled
                 && !run.streamingFailure
                 && (!run.streaming || run.finishing);
+            if (!succeeded) await this.confirmClaudeAuthenticationFailure(run);
             completeAssistantOutput(run, completedAt);
             if (succeeded) {
                 const synchronizedMessage = lastMessageEntry(run.conversation);

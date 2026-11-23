@@ -104,7 +104,7 @@ export function CardColumn(props: CardColumnProps) {
                 />
                 <Box sx={{ flex: 1 }} />
                 <Tooltip title="New card">
-                    <IconButton aria-label={`Add card from ${columnLabel} column`} disabled={readOnly} onClick={handleAddCard} size="small" sx={{ height: 26, width: 26 }}>
+                    <IconButton aria-label={`Add card from ${columnLabel} column`} data-add-card-status={column.status} disabled={readOnly} onClick={handleAddCard} size="small" sx={{ height: 26, width: 26 }}>
                         <Plus sx={{ fontSize: 16 }} />
                     </IconButton>
                 </Tooltip>

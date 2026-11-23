@@ -11,7 +11,7 @@ describe('external card imports', () => {
             { content: '# First note\n\nBody', path: 'design/notes.md', sha: 'sha-notes' },
             { content: '---\nowner: JB\n---\n\n# Second note', path: 'design/second.md', sha: 'sha-second' },
         ]
-        const plan = planExternalCardImports(importFiles, 'design', '_', DEFAULT_CARD_TYPES, 'new', new Map())
+        const plan = planExternalCardImports(importFiles, 'design', '_', DEFAULT_CARD_TYPES, 'new', new Map(), null)
 
         expect(plan.moves.map((move) => move.toPath)).toEqual(['design/F_4_first_note.md', 'design/F_5_second_note.md'])
         expect(plan.moves[0]).toMatchObject({ fromPath: 'design/notes.md', sha: 'sha-notes' })
@@ -29,7 +29,7 @@ describe('external card imports', () => {
                 content: '---\nid: F-4\ninternalId: uuid-4\ntitle: Done\nstatus: ready\n---\n\n# Done',
                 path: 'design/F-4-done.md',
             },
-        ], 'design', '_', DEFAULT_CARD_TYPES, 'new', new Map())
+        ], 'design', '_', DEFAULT_CARD_TYPES, 'new', new Map(), null)
 
         expect(plan.moves).toEqual([])
     })
@@ -45,8 +45,34 @@ describe('external card imports', () => {
             DEFAULT_CARD_TYPES,
             'new',
             internalIdsByPath,
+            null,
         )
 
         expect(plan.importedFiles[0].content).toContain('internalId: assigned-in-state')
+    })
+
+    describe('agent references', () => {
+        const existingReference = 'design/activity/card__existing.json'
+        const missingReference = 'design/activity/card__missing.json'
+        const sourceFile = {
+            content: `---\ntitle: Linked\nagents:\n  - ${existingReference}\n  - ${missingReference}\n---\n\n# Linked`,
+            path: 'design/linked.md',
+        }
+
+        it('drops references to activity files missing from the repository index', () => {
+            const repositoryFiles = new Set([existingReference])
+
+            const plan = planExternalCardImports([sourceFile], 'design', '_', DEFAULT_CARD_TYPES, 'new', new Map(), repositoryFiles)
+
+            expect(plan.importedFiles[0].content).toContain(`  - ${existingReference}`)
+            expect(plan.importedFiles[0].content).not.toContain(missingReference)
+        })
+
+        it('keeps references unchanged when the repository index is unknown', () => {
+            const plan = planExternalCardImports([sourceFile], 'design', '_', DEFAULT_CARD_TYPES, 'new', new Map(), null)
+
+            expect(plan.importedFiles[0].content).toContain(`  - ${existingReference}`)
+            expect(plan.importedFiles[0].content).toContain(`  - ${missingReference}`)
+        })
     })
 })

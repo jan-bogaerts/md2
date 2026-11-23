@@ -8,7 +8,7 @@ import {
 } from './github_storage_context'
 import type { GithubStorageGitData } from './github_storage_git_data'
 import type { GithubBranchHead, GithubTreeChange, GithubTreeFile } from './github_storage_types'
-import { createPendingHeadKey, encodeGithubPath, GITHUB_STORAGE_CONCURRENCY, PROJECT_README_TEMPLATE } from './github_storage_types'
+import { createPendingHeadKey, encodeGithubPath, GITHUB_STORAGE_CONCURRENCY } from './github_storage_types'
 import { normalizeGitRef } from './github_storage_normalizers'
 
 export class GithubStorageWriter {
@@ -18,27 +18,6 @@ export class GithubStorageWriter {
     constructor(context: GithubStorageContext, gitData: GithubStorageGitData) {
         this.context = context
         this.gitData = gitData
-    }
-
-    /** Creates every requested folder in one commit; Git needs a placeholder file per folder. */
-    async createProject(project: ProjectReference, folders: string[]) {
-        this.context.requireGithubProject(project)
-        if (!Array.isArray(folders)) throw new Error('Project folders must be an array')
-        if (folders.length === 0) return project
-        if (folders.some((folder) => folder.length === 0)) throw new Error('Project folder path is required')
-
-        const uniqueFolders = [...new Set(folders)]
-
-        await this.commit({
-            branch: project.branch,
-            files: uniqueFolders.map((folder) => ({
-                content: PROJECT_README_TEMPLATE,
-                path: `${folder}/README.md`,
-            })),
-            message: `Create ${uniqueFolders.join(', ')} workspace`,
-        })
-
-        return project
     }
 
     async checkoutBranch(project: ProjectReference, branch: string) {

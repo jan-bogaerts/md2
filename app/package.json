@@ -1,7 +1,7 @@
 {
   "name": "app",
   "private": true,
-  "version": "0.11.0",
+  "version": "0.12.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@sentry/vite-plugin": "^11.12.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.4",
@@ -42,6 +43,7 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
+    "@aptabase/electron": "^0.3.1",
     "@aptabase/web": "^0.5.0",
     "@codemirror/commands": "^6.10.4",
     "@codemirror/state": "^6.7.0",
@@ -57,7 +59,8 @@
     "@mdxeditor/editor": "^4.3.3",
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
-    "@sentry/react": "^10.63.0",
+    "@sentry/electron": "7.15.0",
+    "@sentry/react": "10.62.0",
     "lexical": "^0.48.0",
     "mdast-util-from-markdown": "^2.1.0",
     "mdi-material-ui": "^8.0.0",
@@ -65,7 +68,7 @@
     "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-arborist": "^3.13.2",
-    "react-diff-viewer-continued": "^4.4.0",
+    "react-diff-view": "^3.3.3",
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
     "react-virtuoso": "^4.18.19",

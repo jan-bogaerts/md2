@@ -50,7 +50,6 @@ export interface ElectronDataBridge {
     commit(request: CommitRequest): Promise<CommitResult>
     commitWorktree?(request: CommitWorktreeRequest): Promise<void>
     commitPrimaryChanges?(request: CommitPrimaryChangesRequest): Promise<void>
-    createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
     discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<void>
@@ -60,6 +59,7 @@ export interface ElectronDataBridge {
     getMergeConflictSession?(): Promise<MergeConflictSession | null>
     getStartupProjectPath?(): string | null
     integrateWorktree?(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome | DirtyPrimaryOutcome>
+    initializeLocalProject?(rootPath: string): Promise<ProjectReference>
     launchMergeConflictResolver?(request: MergeConflictPathRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     loadAgentModelCatalog?(request: AgentModelCatalogRequest): Promise<AgentModelCatalog>;
@@ -73,6 +73,7 @@ export interface ElectronDataBridge {
     cancelActivityStatsCalculation?(calculationId: string): Promise<void>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     loadImageFile?(filePath: string): Promise<ProjectAsset>
+    loadLocalJsonFile?(filePath: string): Promise<MarkdownFile>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string): Promise<StorageProjectFiles>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
@@ -81,6 +82,7 @@ export interface ElectronDataBridge {
     markMergeConflictResolved?(request: MergeConflictPathRequest): Promise<MergeConflictSession>
     onMergeConflictSessionChanged?(callback: (session: MergeConflictSession | null) => void): () => void
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
+    hasTrackedProjectFolderFiles?(project: ProjectReference, projectFolder: string): Promise<boolean>
     listAgentConversationReferences?(project: ProjectReference, projectFolder: string): Promise<string[]>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
@@ -98,6 +100,7 @@ export interface ElectronDataBridge {
     resolveProject(project: ProjectReference): Promise<ProjectReference>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: AnySchedule[]): Promise<AnySchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    saveProjectFolderGitInclusion?(project: ProjectReference, config: ProjectConfig, removeTrackedFiles: boolean): Promise<void>
     selectProjectSubFolder?(rootPath: string): Promise<string | null>
     selectWorktreeFolder?(): Promise<string | null>
     showInFileExplorer?(request: ShowInFileExplorerRequest): Promise<void>
@@ -107,6 +110,7 @@ export interface ElectronDataBridge {
     watchProject(project: ProjectReference, callback: (notification: ProjectWatchNotification) => void): () => void
     loadFile(project: ProjectReference, path: string): Promise<MarkdownFile>
     writeFiles(request: WriteFilesRequest): Promise<void>
+    saveLocalJsonFile?(file: MarkdownFile): Promise<void>
 }
 
 declare global {

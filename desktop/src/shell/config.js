@@ -1,5 +1,6 @@
 const DEFAULT_AGENT_TASK_TRACKING_ENABLED = false;
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
+const DEFAULT_DIFF_VIEW_TYPE = 'split';
 const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"';
 const DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND = '';
 const DEFAULT_REMOTE_CONTROL_PORT = 20877;
@@ -51,6 +52,9 @@ function validateDesktopConfig(values) {
         throw new Error('Config field desktop.mergeConflictResolverCommand requires {{file}} placeholder when configured');
     }
     if (typeof values.codexSearchEnabled !== 'boolean') throw new Error('Missing config field: desktop.codexSearchEnabled');
+    if (values.diffViewType !== 'split' && values.diffViewType !== 'unified') {
+        throw new Error('Config field desktop.diffViewType must be split or unified');
+    }
     if (typeof values.agentTaskTrackingEnabled !== 'boolean') throw new Error('Missing config field: desktop.agentTaskTrackingEnabled');
     if (!Number.isInteger(values.remoteControlPort) || values.remoteControlPort < 1 || values.remoteControlPort > 65535) {
         throw new Error('Config field desktop.remoteControlPort must be an integer from 1 through 65535');
@@ -66,6 +70,7 @@ function validateDesktopConfig(values) {
         agentProfiles: validateAgentProfiles(migrateAgentProfiles(values.agentProfiles)),
         agentTaskTrackingEnabled: values.agentTaskTrackingEnabled,
         codexSearchEnabled: values.codexSearchEnabled,
+        diffViewType: values.diffViewType,
         editorCommand,
         mergeConflictResolverCommand,
         remoteControlPort: values.remoteControlPort,
@@ -111,6 +116,7 @@ function resolveDesktopConfig(env = process.env) {
         agentProfiles,
         agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
         codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+        diffViewType: DEFAULT_DIFF_VIEW_TYPE,
         editorCommand: DEFAULT_EDITOR_COMMAND,
         mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
         ...(bridgeAllowedOrigins ? { bridgeAllowedOrigins } : {}),
@@ -210,6 +216,7 @@ module.exports = {
     DEFAULT_DESKTOP_AGENT_SELECTION,
     DEFAULT_AGENT_TASK_TRACKING_ENABLED,
     DEFAULT_CODEX_SEARCH_ENABLED,
+    DEFAULT_DIFF_VIEW_TYPE,
     DEFAULT_EDITOR_COMMAND,
     DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
     DEFAULT_REMOTE_CONTROL_PORT,

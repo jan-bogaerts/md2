@@ -10,6 +10,7 @@ import { mobileBackDismissService, type MobileBackDismissService } from './mobil
 import { dialogService } from './dialog_service'
 import { cardSequenceDraftService } from '../components/actions/run/sequence/card_sequence_draft_service';
 import { register } from './service_injector'
+import type { JsonDataDocument } from './json/json_data_document'
 
 const CARD_POPUPS_CHANGED_EVENT = 'changed'
 const CARD_POPUP_FOCUS_REQUESTED_EVENT_PREFIX = 'focusRequested:'
@@ -43,7 +44,12 @@ export interface CardSequencePopupEntry extends CardPopupEntryBase {
     kind: 'sequence';
 }
 
-export type CardPopupEntry = CardActionPopupEntry | CardDetailsPopupEntry | CardSequencePopupEntry;
+export interface JsonDataPopupEntry extends CardPopupEntryBase {
+    document: JsonDataDocument
+    kind: 'json-data'
+}
+
+export type CardPopupEntry = CardActionPopupEntry | CardDetailsPopupEntry | CardSequencePopupEntry | JsonDataPopupEntry;
 
 function projectKey(service: DataService) {
     const project = service.getState().project
@@ -294,6 +300,26 @@ export class CardPopupService extends EventTarget {
         this.setEntries([...this.entries, entry]);
     }
 
+    openJsonData(document: JsonDataDocument, anchorElement: HTMLElement) {
+        const existing = this.entries.find((entry) => entry.kind === 'json-data' && entry.document.path === document.path)
+        if (existing) {
+            this.activate(existing.id)
+            return existing
+        }
+
+        const entry: JsonDataPopupEntry = {
+            anchorElement,
+            document,
+            fallbackAnchorElement: createFallbackAnchor(anchorElement),
+            id: `json-data-popup-${this.nextId}`,
+            kind: 'json-data',
+        }
+        this.nextId += 1
+        this.setEntries([...this.entries, entry])
+
+        return entry
+    }
+
     close(id: string) {
         const entry = this.entries.find((candidate) => candidate.id === id)
         if (!entry) return
@@ -309,6 +335,10 @@ export class CardPopupService extends EventTarget {
 
     closeCardDetails() {
         this.removeEntries((entry) => entry.kind === 'card-details')
+    }
+
+    closeJsonDataDocument(document: JsonDataDocument) {
+        this.removeEntries((entry) => entry.kind === 'json-data' && entry.document === document)
     }
 
     activate(id: string) {

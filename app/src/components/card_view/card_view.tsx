@@ -11,6 +11,7 @@ import { AffectsEditorDialog } from './affects_editor_dialog'
 import { CardBodyPopover } from './card_body_popover'
 import { cardPopupService } from '../../services/card_popup_service'
 import { CardColumn } from './card_column'
+import { focusCardDeletionTarget, resolveCardDeletionFocusTarget } from './card_deletion_focus'
 import { CardDragOverlay } from './card_drag_overlay'
 import { cardDragDropService } from './card_drag_drop_service'
 import { resolveCardDragEvent } from './card_drag'
@@ -201,10 +202,12 @@ export function CardView(props: CardViewProps) {
         try {
             const card = dataService.getState().snapshot?.activeCards.find((candidate) => candidate.path === path)
             if (!card?.header.internalId) throw new Error(`Cannot delete card without an internal ID: ${path}`)
+            const focusTarget = resolveCardDeletionFocusTarget(currentCardColumns(states), path)
             await dataService.cards.deleteCard(path)
             workspaceViewService.clearSelectedPath(path)
             cardPopupService.closeCardDetailsByInternalId(card.header.internalId)
             if (openAffectsPath === path) handleCloseAffects()
+            if (focusTarget && rootElementRef.current) focusCardDeletionTarget(rootElementRef.current, focusTarget)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Card delete failed: ${path}` })
             throw error
@@ -247,6 +250,7 @@ export function CardView(props: CardViewProps) {
                         flexDirection: 'row',
                         gap: 2,
                         height: '100%',
+                        overflowAnchor: 'none',
                         overflowX: 'auto',
                         overflowY: 'auto',
                         p: 2.5,

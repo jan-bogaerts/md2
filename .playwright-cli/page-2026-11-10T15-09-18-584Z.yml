@@ -1,0 +1,109 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e3]:
+    - banner [ref=f1e4]:
+      - generic [ref=f1e6]:
+        - tablist [ref=f1e116]:
+          - tab [selected] [ref=f1e117] [cursor=pointer]: Home
+          - tab [ref=f1e118] [cursor=pointer]: Run
+        - generic [ref=f1e16]:
+          - button [ref=f1e119] [cursor=pointer]
+          - generic [ref=f1e24]:
+            - textbox [ref=f1e120]:
+              - /placeholder: Search cards…
+            - generic [ref=f1e29]: Ctrl+Shift+F
+            - group
+      - tabpanel [ref=f1e33]:
+        - generic [ref=f1e121]:
+          - generic [ref=f1e37]:
+            - group [ref=f1e122]:
+              - button [ref=f1e124] [cursor=pointer]
+              - generic [ref=f1e44]:
+                - combobox [disabled] [ref=f1e126]
+                - textbox [disabled]
+                - group
+              - generic [ref=f1e127]:
+                - button [disabled]
+              - generic [ref=f1e128]:
+                - button [disabled]
+              - generic [ref=f1e129]:
+                - button [disabled]
+            - separator [ref=f1e49]
+            - group [ref=f1e130]:
+              - button [ref=f1e132] [cursor=pointer]
+              - generic [ref=f1e133]:
+                - button [disabled]: Connecting
+            - separator [ref=f1e56]
+            - group [ref=f1e134]:
+              - group [ref=f1e58]:
+                - button [pressed] [ref=f1e135] [cursor=pointer]:
+                  - generic [ref=f1e62]: Board
+                - button [ref=f1e136] [cursor=pointer]:
+                  - generic [ref=f1e66]: List
+                - button [ref=f1e137] [cursor=pointer]:
+                  - generic [ref=f1e70]: Diagrams
+                - button [ref=f1e138] [cursor=pointer]:
+                  - generic [ref=f1e74]: Stats
+            - separator [ref=f1e75]
+            - button [disabled]: New diagram
+            - button [disabled]: New card
+            - button [disabled]: New action
+            - button [disabled]: New sequence
+            - group [ref=f1e139]:
+              - button [ref=f1e140] [cursor=pointer]
+          - button [ref=f1e141] [cursor=pointer]
+    - region [ref=f1e142]:
+      - generic [ref=f1e85]:
+        - heading [level=2] [ref=f1e143]: No project open
+        - paragraph [ref=f1e87]: Open a GitHub repository or local folder to work with project cards.
+        - button [ref=f1e144] [cursor=pointer]: Open project...
+    - contentinfo [ref=f1e89]:
+      - generic [ref=f1e90]:
+        - generic [ref=f1e93]: "0"
+        - generic [ref=f1e94]: cards
+      - generic [ref=f1e95]:
+        - generic [ref=f1e97]: "0"
+        - generic [ref=f1e98]: active
+      - generic [ref=f1e99]: Saved locally
+      - generic [ref=f1e103]: Synced
+      - button [ref=f1e145] [cursor=pointer]: Usage unavailable
+      - button [ref=f1e146] [cursor=pointer]: 0 agents
+  - dialog [active] [ref=f1e149]:
+    - heading "Open project" [level=2] [ref=f1e150]
+    - generic [ref=f1e152]:
+      - alert [ref=f1e153]:
+        - generic [ref=f1e157]: Local folders can't be opened from the browser. Use the md2 desktop app to open a local folder.
+      - alert [ref=f1e158]:
+        - generic [ref=f1e162]: Repositories can't be loaded without a GitHub access token. Sign in with a personal access token first.
+      - generic [ref=f1e163]:
+        - generic [ref=f1e164]: Repository access
+        - generic [ref=f1e165]:
+          - combobox "Repository access" [ref=f1e166] [cursor=pointer]: Personal
+          - textbox: personal
+          - group:
+            - generic: Repository access
+      - generic [ref=f1e167]:
+        - generic [ref=f1e168]: Filter repositories
+        - textbox "Filter repositories" [disabled] [ref=f1e170]
+      - generic [ref=f1e171]:
+        - generic: Repository
+        - generic [ref=f1e172]:
+          - combobox "Repository" [disabled] [ref=f1e173]
+          - textbox [disabled]
+          - group:
+            - generic: Repository
+      - separator [ref=f1e174]
+      - heading "Personal repository lookup" [level=6] [ref=f1e175]
+      - generic [ref=f1e176]:
+        - generic [ref=f1e177]:
+          - generic [ref=f1e178]: Owner
+          - textbox "Owner" [disabled] [ref=f1e180]
+        - generic [ref=f1e181]:
+          - generic [ref=f1e182]: Repository
+          - textbox "Repository" [disabled] [ref=f1e184]
+      - button "Load branches" [disabled]
+      - generic [ref=f1e185]:
+        - generic [ref=f1e186]: Branch
+        - textbox "Branch" [ref=f1e188]
+    - generic [ref=f1e189]:
+      - button "Cancel" [ref=f1e190] [cursor=pointer]
+      - button "Open" [disabled]

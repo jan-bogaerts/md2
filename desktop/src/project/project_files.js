@@ -6,6 +6,7 @@ const {
     assertGitRoot,
     commitStagedChanges,
     ensureInsideRoot,
+    hasTrackedFiles,
     listWorkingTreeFiles,
     pathExists,
     requireRootPath,
@@ -14,7 +15,6 @@ const {
 const { withGitIndexMutation } = require('../git/git_index_coordinator');
 const { projectOperationCoordinator } = require('./project_operation_coordinator');
 const { normalizePath } = require('../../../shared/path_utils.mjs');
-const { createMissingProjectFolders, PROJECT_README_TEMPLATE } = require('./project_folder_creation');
 
 const MARKDOWN_EXTENSION = '.md';
 const TEXT_EXTENSION = '.txt';
@@ -104,42 +104,6 @@ async function isTrackedFile(rootPath, repositoryPath) {
     }
 }
 
-function createMissingWorkingFolderError(workingFolder) {
-    const error = new Error(`Working folder is missing: ${workingFolder}`);
-    error.code = 'missing-working-folder';
-    error.workingFolder = workingFolder;
-
-    return error;
-}
-
-/**
- * Creates every requested folder that is still missing, in one commit.
- *
- * Git cannot represent an empty directory, so each created folder gets a placeholder README.
- * Folders that already exist are left untouched.
- */
-async function createProjectNow(project, folders) {
-    const rootPath = requireRootPath(project);
-    await assertGitRoot(rootPath);
-    const createdFolders = await createMissingProjectFolders(rootPath, folders);
-
-    if (createdFolders.length > 0) {
-        await runGit(rootPath, ['add', '--', ...createdFolders]);
-        await commitStagedChanges(rootPath, `Create ${createdFolders.join(', ')} workspace`);
-    }
-
-    return project;
-}
-
-function createProject(project, folders) {
-    if (!Array.isArray(folders)) throw new Error('Project folders must be an array');
-    if (folders.length === 0) return Promise.resolve(project);
-
-    const rootPath = requireRootPath(project);
-
-    return holdProjectMutation(rootPath, () => createProjectNow(project, folders));
-}
-
 async function loadProject(project, workingFolder, excludedRootFolder) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -148,9 +112,7 @@ async function loadProject(project, workingFolder, excludedRootFolder) {
         ? null
         : ensureInsideRoot(rootPath, path.join(rootPath, excludedRootFolder));
 
-    if (!await pathExists(workingFolderPath)) {
-        throw createMissingWorkingFolderError(workingFolder);
-    }
+    if (!await pathExists(workingFolderPath)) return { files: [], workingFolder };
 
     return {
         files: await readMarkdownFiles(rootPath, workingFolderPath, excludedRootFolderPath),
@@ -163,9 +125,7 @@ async function loadProjectRoot(project, workingFolder) {
     await assertGitRoot(rootPath);
     const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder));
 
-    if (!await pathExists(workingFolderPath)) {
-        throw createMissingWorkingFolderError(workingFolder);
-    }
+    if (!await pathExists(workingFolderPath)) return { files: [], workingFolder };
 
     return {
         files: await readRootMarkdownFiles(rootPath, workingFolderPath),
@@ -255,6 +215,32 @@ async function loadImageFile(filePath) {
     };
 }
 
+function requireLocalJsonPath(filePath) {
+    if (typeof filePath !== 'string' || filePath.length === 0) throw new Error('Missing local JSON file path');
+    if (!path.isAbsolute(filePath)) throw new Error(`Local JSON file path must be absolute: ${filePath}`);
+    if (path.extname(filePath).toLowerCase() !== JSON_EXTENSION) {
+        throw new Error(`Unsupported local JSON file type: ${path.extname(filePath).toLowerCase()}`);
+    }
+
+    return filePath;
+}
+
+/** Loads JSON from an absolute host path, including paths outside the active repository. */
+async function loadLocalJsonFile(filePath) {
+    const fullPath = requireLocalJsonPath(filePath);
+    const content = await fs.promises.readFile(fullPath, 'utf8');
+
+    return { content, path: normalizePath(fullPath) };
+}
+
+/** Saves JSON to an absolute host path, including paths outside the active repository. */
+async function saveLocalJsonFile(file) {
+    if (!file || typeof file.content !== 'string') throw new Error('Missing local JSON file content');
+
+    const fullPath = requireLocalJsonPath(file.path);
+    await fs.promises.writeFile(fullPath, file.content, 'utf8');
+}
+
 async function loadProjectConfig(project) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -320,9 +306,10 @@ async function commitNow(request, project) {
         if (typeof repositoryPath !== 'string' || repositoryPath.length === 0) throw new Error('Missing commit path');
 
         const fullPath = ensureInsideRoot(rootPath, path.join(rootPath, repositoryPath));
-        if (!(await pathExists(fullPath))) continue;
+        const normalizedRepositoryPath = normalizePath(path.relative(rootPath, fullPath));
+        if (!await pathExists(fullPath)) continue;
 
-        await runGit(rootPath, ['add', '--', normalizePath(path.relative(rootPath, fullPath))]);
+        await runGit(rootPath, ['add', '--', normalizedRepositoryPath]);
     }
 
     await commitStagedChanges(rootPath, request.message);
@@ -373,8 +360,9 @@ async function deleteFileNow(request, project) {
 
     const filePath = ensureInsideRoot(rootPath, path.join(rootPath, request.path));
     const repositoryPath = normalizePath(path.relative(rootPath, filePath));
-    await runGit(rootPath, ['rm', repositoryPath]);
-    await runGit(rootPath, ['commit', '-m', request.message]);
+    if (await isTrackedFile(rootPath, repositoryPath)) await runGit(rootPath, ['rm', repositoryPath]);
+    else await fs.promises.rm(filePath);
+    await commitStagedChanges(rootPath, request.message);
 }
 
 function deleteFile(request, project) {
@@ -391,8 +379,9 @@ async function deleteFolderNow(request, project) {
 
     const folderPath = ensureInsideRoot(rootPath, path.join(rootPath, request.path));
     const repositoryPath = normalizePath(path.relative(rootPath, folderPath));
-    await runGit(rootPath, ['rm', '-r', repositoryPath]);
-    await runGit(rootPath, ['commit', '-m', request.message]);
+    if (await hasTrackedFiles(rootPath, repositoryPath)) await runGit(rootPath, ['rm', '-r', repositoryPath]);
+    else await fs.promises.rm(folderPath, { recursive: true });
+    await commitStagedChanges(rootPath, request.message);
 }
 
 function deleteFolder(request, project) {
@@ -431,7 +420,7 @@ async function moveFilesNow(request, project) {
         await runGit(rootPath, ['add', targetRepositoryPath]);
     }
 
-    await runGit(rootPath, ['commit', '-m', request.message]);
+    await commitStagedChanges(rootPath, request.message);
 }
 
 function moveFiles(request, project) {
@@ -440,12 +429,17 @@ function moveFiles(request, project) {
     return holdProjectMutation(rootPath, () => moveFilesNow(request, project));
 }
 
-async function saveProjectConfigNow(project, config) {
-    const rootPath = requireRootPath(project);
-    await assertGitRoot(rootPath);
+/** Writes `md2.config.json` and stages it without committing. */
+async function writeProjectConfigFile(rootPath, config) {
     const configPath = ensureInsideRoot(rootPath, path.join(rootPath, PROJECT_CONFIG_PATH));
     await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
     await runGit(rootPath, ['add', PROJECT_CONFIG_PATH]);
+}
+
+async function saveProjectConfigNow(project, config) {
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    await writeProjectConfigFile(rootPath, config);
     await commitStagedChanges(rootPath, 'Update MD² project config');
 }
 
@@ -512,8 +506,7 @@ function watchProject(project, onChange, onError) {
         for (const event of events) {
             const fullPath = ensureInsideRoot(rootPath, event.path);
             const normalizedPath = normalizePath(path.relative(rootPath, fullPath));
-            const lowerPath = normalizedPath.toLowerCase();
-            if (!isWatchedProjectPath(lowerPath)) continue;
+            if (!isWatchedProjectEvent(event.type, normalizedPath)) continue;
 
             const pendingTimer = settleTimersByPath.get(normalizedPath);
             if (pendingTimer) clearTimeout(pendingTimer);
@@ -544,27 +537,35 @@ function isWatchedProjectPath(filePath) {
         || lowerPath.endsWith(TEXT_EXTENSION);
 }
 
+function isWatchedProjectEvent(eventType, filePath) {
+    return eventType === 'create' || eventType === 'delete' || isWatchedProjectPath(filePath);
+}
+
 module.exports = {
     commit,
     commitNow,
-    createProject,
     deleteFile,
+    deleteFileNow,
     deleteFolder,
+    holdProjectMutation,
     listRepositoryFiles,
     listTopLevelFolders,
     loadFile,
     loadImageFile,
+    loadLocalJsonFile,
     loadProject,
     loadProjectAsset,
     loadProjectConfig,
     loadProjectRoot,
     loadTextFile,
+    isWatchedProjectEvent,
     isWatchedProjectPath,
     moveFiles,
-    PROJECT_README_TEMPLATE,
     resolveExistingProjectEntry,
     saveProjectConfig,
+    saveLocalJsonFile,
     watchProject,
     writeFiles,
     writeFilesNow,
+    writeProjectConfigFile,
 };

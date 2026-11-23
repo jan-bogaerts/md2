@@ -208,7 +208,12 @@ export class DataService extends EventTarget {
         this.fullProjectLoaded = false
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = this.trackStorage(dependencies.storage)
-        configService.connectProjectConfigPersistence({ saveProjectConfig: (config) => this.projectLoading.saveProjectConfig(config) })
+        configService.connectProjectConfigPersistence({
+            saveProjectConfig: (config) => this.projectLoading.saveProjectConfig(config),
+            saveProjectFolderGitInclusion: (config, removeTrackedFiles) => (
+                this.projectLoading.saveProjectFolderGitInclusion(config, removeTrackedFiles)
+            ),
+        })
         this.initializeStorageServices()
         worktreeService.init({
             assignCardWorktree: (path, worktree, branch) => this.cards.assignCardWorktree(path, worktree, branch),
@@ -273,6 +278,21 @@ export class DataService extends EventTarget {
         await this.saveStateService.drain()
     }
 
+    async loadLocalJsonFile(path: string) {
+        const { storage } = this.requireDependencies()
+        if (!storage.loadLocalJsonFile) throw new Error('Current storage cannot load local JSON files')
+
+        return storage.loadLocalJsonFile(path)
+    }
+
+    async saveLocalJsonFile(file: MarkdownFile, saveReference: OpenDocumentSaveReference) {
+        const { storage } = this.requireDependencies()
+        if (!storage.saveLocalJsonFile) throw new Error('Current storage cannot save local JSON files')
+
+        await storage.saveLocalJsonFile(file)
+        saveReference.acknowledge()
+    }
+
     /** Writes queued batch changes to disk so the desktop reads current files; the timed commit still persists them. */
     async writePendingFiles() {
         const { commitBatcher } = this.requireDependencies()
@@ -313,6 +333,16 @@ export class DataService extends EventTarget {
         if (!currentProject) throw new Error('Cannot load an agent conversation before a project is open')
 
         return loadAgentConversation(storage, currentProject, path)
+    }
+
+    /** Loads one repository text file through active storage and project identity. */
+    async loadRepositoryTextFile(path: string) {
+        const { storage } = this.requireDependencies()
+        const currentProject = this.projectState.project
+        if (!currentProject) throw new Error('Cannot load repository text without an active project')
+        if (!storage.loadTextFile) throw new Error('Current storage cannot load repository text files')
+
+        return storage.loadTextFile(currentProject, path)
     }
     async persistActionFile(
         file: MarkdownFile,
@@ -495,6 +525,7 @@ export class DataService extends EventTarget {
             hydrateProjectConversations: () => this.agents.listProjectAgentConversations(),
             matchesCurrentContent: (path, content) => this.projectState.matchesCurrentContent(path, content),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
+            isFullProjectLoaded: () => this.fullProjectLoaded,
             mergeBackgroundProjectFiles: (files, workingFolder, repositoryFiles) => (
                 this.projectState.mergeBackgroundProjectFiles(files, workingFolder, repositoryFiles)
             ),
@@ -517,6 +548,7 @@ export class DataService extends EventTarget {
             replaceProjectFiles: (files, workingFolder, repositoryFiles) => (
                 this.projectState.replaceProjectFiles(files, workingFolder, repositoryFiles)
             ),
+            replaceRepositoryFiles: (repositoryFiles) => this.projectState.replaceRepositoryFiles(repositoryFiles),
             updateFiles: (updatedFiles, removedPaths, workingFolder) => (
                 this.projectState.updateFiles(updatedFiles, removedPaths, workingFolder)
             ),

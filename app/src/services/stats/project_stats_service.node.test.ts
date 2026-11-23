@@ -104,7 +104,6 @@ function storage(files: Record<string, string>): StorageService {
 
             return request.files
         }),
-        createProject: vi.fn(),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         listBranches: vi.fn(),

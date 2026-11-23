@@ -18,7 +18,7 @@ const {
     upsertConversation,
     writeActivityFile,
 } = require('../activity/activity_files');
-const { commitTrackedPaths, ensureInsideRoot, pathExists, requireRootPath } = require('../../git/git_commands');
+const { ensureInsideRoot, pathExists, requireRootPath } = require('../../git/git_commands');
 const { captureError } = require('../../integrations/telemetry');
 const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 
@@ -150,6 +150,8 @@ async function persistConversationAndProjectUsage(run, dependencies = {}) {
     if (typeof projectFolder !== 'string') throw new Error('Missing agent projectFolder');
     if (typeof releasesFolder !== 'string') throw new Error('Missing agent releasesFolder');
     const rootPath = requireRootPath(activityProject);
+    const deferProjectWriteQueue = run.request.deferProjectWriteQueue === true;
+    const projectWrites = dependencies.uncommittedProjectWrites ?? uncommittedProjectWrites;
     const summaryRelativePath = agentTokenUsageFilePath(projectFolder);
     const summaryPath = ensureInsideRoot(rootPath, path.join(rootPath, summaryRelativePath));
     const { absolutePath: activityPath, relativePath: activityRelativePath } = resolveActivityPath(
@@ -177,26 +179,21 @@ async function persistConversationAndProjectUsage(run, dependencies = {}) {
             tokenUsageError = error;
         }
         await writeActivityFile(activityPath, nextActivity);
-        const commitPaths = dependencies.commitTrackedPaths ?? commitTrackedPaths;
         if (tokenUsageError) {
-            await commitPaths(rootPath, [activityRelativePath], `Update ${activityOrigin.kind} activity`);
             await reportTokenUsageFailure(tokenUsageError, dependencies);
 
             return { activity: nextActivity, relativePath: activityRelativePath, summary: null };
         }
         try {
             await writeActivityFile(summaryPath, nextSummary);
-            uncommittedProjectWrites.mark(rootPath, [summaryRelativePath]);
+            if (!deferProjectWriteQueue) projectWrites.mark(rootPath, [summaryRelativePath]);
         } catch (error) {
-            await commitPaths(rootPath, [activityRelativePath], `Update ${activityOrigin.kind} activity`);
             await reportTokenUsageFailure(error, dependencies);
 
             return { activity: nextActivity, relativePath: activityRelativePath, summary: null };
         }
-        await commitPaths(rootPath, [activityRelativePath, summaryRelativePath], `Update ${activityOrigin.kind} activity`);
-
         return { activity: nextActivity, relativePath: activityRelativePath, summary: nextSummary };
-    }));
+    }, { markProjectWrite: !deferProjectWriteQueue }));
 }
 
 module.exports = { conversationSummaryUsage, migrateSummary, persistConversationAndProjectUsage, usageDelta };

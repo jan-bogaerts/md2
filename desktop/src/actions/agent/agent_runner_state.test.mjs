@@ -12,9 +12,11 @@ const { attachRunProtocol, createRun, createRunResult } = require('./agent_run_s
 const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
-const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');
+const { AgentStreamingEventPublisher } = require('./agent_streaming_event_publisher');
 
 const WORK_ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
+const CLAUDE_ACCOUNT_ID = '22222222-2222-4222-8222-222222222222';
+const CLAUDE_AUTHENTICATION_FAILURE = 'Failed to authenticate: OAuth session expired and could not be refreshed';
 
 function diagnosticStreamingEvent(content, providerItemId) {
     return {
@@ -93,6 +95,51 @@ function emittedStatuses(onEvent, type) {
     return onEvent.mock.calls.filter(([event]) => event.type === type).map(([event]) => event.status);
 }
 
+function closingRun(service, agent, accountId = undefined) {
+    const conversation = {
+        completedAt: null,
+        entries: [{ content: 'Keep this request', id: 'user-1', kind: 'message', role: 'user', timestamp: 'now' }],
+        id: 'conversation-1',
+        providerSessions: [],
+        status: 'running',
+    };
+    const run = createRun({
+        accountId,
+        agent,
+        child: { pid: 10 },
+        conversation,
+        environment: {},
+        executable: `/tools/${agent}`,
+        id: 'run-1',
+        nextSequence: 2,
+        onComplete: vi.fn(),
+        onCompletionError: vi.fn(),
+        onEvent: vi.fn(),
+        reference: 'activity.json#conversation=conversation-1',
+        request: { agent, command: [agent], prompt: 'Keep this request' },
+        rootPath: 'C:/repo',
+        startedAt: '2026-11-09T10:00:00.000Z',
+        streaming: false,
+    });
+    service.processes.set(run.id, run);
+    service.runningConversationIds.add(run.conversation.id);
+
+    return run;
+}
+
+function providerFailure(errorText) {
+    return {
+        assistantText: '',
+        conversationId: null,
+        errorText,
+        missingSession: false,
+        providerEvents: [],
+        transcriptEvents: [],
+        turnStarted: false,
+        usage: null,
+    };
+}
+
 describe('agent run result', () => {
     it('returns the account captured by live run state', () => {
         const request = { command: ['codex'], prompt: 'Run' };
@@ -102,6 +149,137 @@ describe('agent run result', () => {
         };
 
         expect(createRunResult(request, 0, run)).toMatchObject({ accountId: 'codex-initial', runId: 'run-1' });
+    });
+});
+
+describe('Claude authentication failure', () => {
+    it('fails a streaming Claude turn and confirms the account immediately', async () => {
+        const { run, service } = streamingRunService();
+        const agentAccountService = { loadStatus: vi.fn(async () => 'loginRequired') };
+        service.agentAccountService = agentAccountService;
+        service.terminateProcessTree = vi.fn(async () => true);
+        run.accountId = CLAUDE_ACCOUNT_ID;
+        run.agent = 'claude';
+        run.child = { stdin: { end: vi.fn() } };
+
+        await service.handleStreamingEvent(run.id, {
+            error: CLAUDE_AUTHENTICATION_FAILURE,
+            missingSession: false,
+            type: 'turnCompleted',
+            usage: null,
+        });
+
+        expect(run.conversation.status).toBe('failed');
+        expect(agentAccountService.loadStatus).toHaveBeenCalledWith(CLAUDE_ACCOUNT_ID);
+        expect(run.conversation.entries[0]).toMatchObject({
+            accountId: CLAUDE_ACCOUNT_ID,
+            agent: 'claude',
+            content: 'Claude sign-in expired. Log in again, then rerun the action.',
+            errorKind: 'authenticationRequired',
+            output: CLAUDE_AUTHENTICATION_FAILURE,
+            type: 'error',
+        });
+        expect(run.onEvent).not.toHaveBeenCalledWith(expect.objectContaining({ state: 'waitingForInput' }));
+    });
+
+    it('confirms account status after failed close and persists a structured login error', async () => {
+        const agentAccountService = { loadStatus: vi.fn(async () => 'loginRequired') };
+        const persistConversation = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ agentAccountService, persistConversation });
+        const run = closingRun(service, 'claude', CLAUDE_ACCOUNT_ID);
+
+        service.handleProviderEvent(run.id, providerFailure(CLAUDE_AUTHENTICATION_FAILURE));
+        await service.handleClose(run.id, 1);
+
+        expect(agentAccountService.loadStatus).toHaveBeenCalledOnce();
+        expect(agentAccountService.loadStatus).toHaveBeenCalledWith(CLAUDE_ACCOUNT_ID);
+        expect(run.conversation.entries).toEqual([
+            expect.objectContaining({ content: 'Keep this request', id: 'user-1', role: 'user' }),
+            expect.objectContaining({
+                accountId: CLAUDE_ACCOUNT_ID,
+                agent: 'claude',
+                content: 'Claude sign-in expired. Log in again, then rerun the action.',
+                errorKind: 'authenticationRequired',
+                output: CLAUDE_AUTHENTICATION_FAILURE,
+                status: 'failed',
+                type: 'error',
+            }),
+        ]);
+        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({
+                entries: run.conversation.entries,
+                status: 'failed',
+            }),
+        }));
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            entryIndex: 1,
+            event: expect.objectContaining({ errorKind: 'authenticationRequired' }),
+            type: 'agentEvent',
+        }));
+    });
+
+    it('uses the initial Claude account when the run has no explicit account id', async () => {
+        const agentAccountService = { loadStatus: vi.fn(async () => 'loginRequired') };
+        const service = new AgentRunnerService({ agentAccountService, persistConversation: vi.fn(async () => undefined) });
+        const run = closingRun(service, 'claude');
+
+        service.handleProviderEvent(run.id, providerFailure(CLAUDE_AUTHENTICATION_FAILURE));
+        await service.handleClose(run.id, 1);
+
+        expect(agentAccountService.loadStatus).toHaveBeenCalledWith('claude-initial');
+        expect(run.conversation.entries[1]).toMatchObject({ accountId: 'claude-initial' });
+    });
+
+    it.each(['codex', 'generic'])('does not check %s failures for Claude authentication', async (agent) => {
+        const agentAccountService = { loadStatus: vi.fn(async () => 'loginRequired') };
+        const service = new AgentRunnerService({ agentAccountService, persistConversation: vi.fn(async () => undefined) });
+        const run = closingRun(service, agent);
+
+        service.handleProviderEvent(run.id, providerFailure(CLAUDE_AUTHENTICATION_FAILURE));
+        await service.handleClose(run.id, 1);
+
+        expect(agentAccountService.loadStatus).not.toHaveBeenCalled();
+        expect(run.conversation.entries[1]).toMatchObject({ content: CLAUDE_AUTHENTICATION_FAILURE, type: 'error' });
+        expect(run.conversation.entries[1]).not.toHaveProperty('errorKind');
+    });
+
+    it('retains non-authentication Claude failures without checking account status', async () => {
+        const agentAccountService = { loadStatus: vi.fn(async () => 'loginRequired') };
+        const service = new AgentRunnerService({ agentAccountService, persistConversation: vi.fn(async () => undefined) });
+        const run = closingRun(service, 'claude', CLAUDE_ACCOUNT_ID);
+
+        service.handleProviderEvent(run.id, providerFailure('Claude provider failed: quota exhausted'));
+        await service.handleClose(run.id, 1);
+
+        expect(agentAccountService.loadStatus).not.toHaveBeenCalled();
+        expect(run.conversation.entries[1]).toMatchObject({ content: 'Claude provider failed: quota exhausted', type: 'error' });
+    });
+
+    it('retains provider failure when account status does not confirm expired authentication', async () => {
+        const agentAccountService = { loadStatus: vi.fn(async () => 'available') };
+        const service = new AgentRunnerService({ agentAccountService, persistConversation: vi.fn(async () => undefined) });
+        const run = closingRun(service, 'claude', CLAUDE_ACCOUNT_ID);
+
+        service.handleProviderEvent(run.id, providerFailure(CLAUDE_AUTHENTICATION_FAILURE));
+        await service.handleClose(run.id, 1);
+
+        expect(run.conversation.entries[1]).toMatchObject({ content: CLAUDE_AUTHENTICATION_FAILURE, type: 'error' });
+        expect(run.conversation.entries[1]).not.toHaveProperty('errorKind');
+    });
+
+    it('logs status-check failure and retains provider failure', async () => {
+        const statusError = new Error('Status unavailable');
+        const agentAccountService = { loadStatus: vi.fn(async () => { throw statusError; }) };
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        const service = new AgentRunnerService({ agentAccountService, persistConversation: vi.fn(async () => undefined) });
+        const run = closingRun(service, 'claude', CLAUDE_ACCOUNT_ID);
+
+        service.handleProviderEvent(run.id, providerFailure(CLAUDE_AUTHENTICATION_FAILURE));
+        await service.handleClose(run.id, 1);
+
+        expect(consoleError).toHaveBeenCalledWith('[agent:claude-auth-status]', run.id, statusError);
+        expect(run.conversation.entries[1]).toMatchObject({ content: CLAUDE_AUTHENTICATION_FAILURE, type: 'error' });
+        consoleError.mockRestore();
     });
 });
 
@@ -143,6 +321,55 @@ describe('attachRunProtocol', () => {
 });
 
 describe('AgentRunnerService published run status', () => {
+    it.each(['cancelled', 'failed'])('discards buffered provider events when a run is %s', async (outcome) => {
+        vi.useFakeTimers();
+        try {
+            const { onEvent, run, service } = streamingRunService();
+            service.terminateProcessTree = vi.fn(async () => true);
+            run.streamingEventPublisher = new AgentStreamingEventPublisher(
+                (event) => service.handleStreamingEvent(run.id, event),
+            );
+            await run.streamingEventPublisher.publish(toolEvent('buffered-tool'));
+
+            if (outcome === 'cancelled') await service.stop(run.id);
+            else await service.failStreamingRun(run, new Error('Provider failed'));
+            await vi.runAllTimersAsync();
+
+            expect(run.conversation.entries.some(({ providerItemId }) => providerItemId === 'buffered-tool')).toBe(false);
+            expect(onEvent.mock.calls.some(([event]) => event.event?.providerItemId === 'buffered-tool')).toBe(false);
+            expect(vi.getTimerCount()).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('flushes pending provider content before closing a successful streaming run', async () => {
+        vi.useFakeTimers();
+        try {
+            const service = new AgentRunnerService({
+                persistConversation: vi.fn(async () => undefined),
+                persistConversationCheckpoint: vi.fn(async () => undefined),
+            });
+            const run = acknowledgedTurnRun(service, 'codex');
+            run.finishing = true;
+            run.streamingEventPublisher = new AgentStreamingEventPublisher(
+                (event) => service.handleStreamingEvent(run.id, event),
+            );
+            await run.streamingEventPublisher.publish(toolEvent('final-tool'));
+
+            await service.handleClose(run.id, 0);
+
+            const emitted = run.onEvent.mock.calls.map(([event]) => event);
+            expect(emitted.findIndex(({ event }) => event?.providerItemId === 'final-tool')).toBeLessThan(
+                emitted.findIndex(({ type }) => type === 'closed'),
+            );
+            expect(run.conversation.entries).toContainEqual(expect.objectContaining({ providerItemId: 'final-tool' }));
+            expect(vi.getTimerCount()).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it.each([
         ['sendMessage', 'userMessage'],
         ['answerQuestion', 'questionAnswered'],
@@ -217,6 +444,41 @@ describe('AgentRunnerService published run status', () => {
         expect(run.conversation.status).toBe('waitingForInput');
         expect(run.streamingFailure).toBeNull();
         expect(service.terminateProcessTree).not.toHaveBeenCalled();
+    });
+
+    it('publishes the explicit provider turn completion after processing it', async () => {
+        const { onEvent, run, service } = streamingRunService();
+
+        await service.handleStreamingEvent(run.id, { type: 'turnCompleted' });
+
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            error: null,
+            type: 'turnCompleted',
+        }));
+    });
+
+    it('preserves a pending question when a provider turn completion arrives', async () => {
+        const { run, service } = streamingRunService();
+        const questions = [{ id: 'confirm', question: 'Proceed?' }];
+        await service.handleStreamingEvent(run.id, { questions, requestId: 7, type: 'question' });
+
+        await service.handleStreamingEvent(run.id, { type: 'turnCompleted' });
+
+        expect(run.turnActive).toBe(true);
+        expect(run.waitingForQuestion).toBe(true);
+        expect(run.pendingQuestionRequestId).toBe(7);
+        expect(run.pendingQuestions).toEqual(questions);
+        expect(service.hasPendingInteraction(run.id)).toBe(true);
+        expect(run.conversation.status).toBe('waitingForInput');
+    });
+
+    it('reports whether a live agent conversation is waiting for input', () => {
+        const { run, service } = streamingRunService();
+
+        expect(service.isWaitingForInput(run.id)).toBe(false);
+        run.conversation.status = 'waitingForInput';
+        expect(service.isWaitingForInput(run.id)).toBe(true);
+        expect(service.isWaitingForInput('missing')).toBe(false);
     });
 
     it('terminates a session whose process I/O has failed', () => {
@@ -680,7 +942,7 @@ describe('AgentRunnerService state handling', () => {
         expect(onEvent).not.toHaveBeenCalled();
     });
 
-    it('injects Codex task instructions only into one-shot provider input', async () => {
+    it('passes the original prompt to one-shot Codex input without task instructions', async () => {
         const child = new EventEmitter();
         child.pid = 43;
         child.stdin = new PassThrough();
@@ -710,7 +972,7 @@ describe('AgentRunnerService state handling', () => {
         expect(spawn).toHaveBeenCalledWith('/tools/codex', [
             'exec',
             '--json',
-            `${CODEX_TASK_TRACKING_INSTRUCTIONS}\n\nStart work`,
+            'Start work',
         ], expect.any(Object));
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({ conversation: expect.objectContaining({ entries: [expect.objectContaining({ content: 'Start work', role: 'user' })] }) }));
         expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({

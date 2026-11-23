@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../shared/action_errors.mjs'
 import { serializeBridgeError } from '../../../shared/bridge_errors.mjs'
 import type { PreparedActionPrompt } from './action_run_types'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from './electron_action_bridge'
@@ -8,11 +9,12 @@ const ACTION_CONTEXT = { kind: 'project' as const }
 function createBridge(): ElectronActionBridge {
     return {
         cancelActionRun: vi.fn(async () => {}),
-        generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [] })),
-        generateWorktreeDiff: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree' })),
-        openInEditor: vi.fn(),
+        generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [], patch: '' })),
+        generateWorktreeFileDiff: vi.fn(async () => ({ file: { newValue: '', oldValue: '', path: '' }, patch: '', repositoryRoot: 'C:/worktree' })),
+        listWorktreeChanges: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree', revision: 'worktree-1' })),
         loadActionRunHistory: vi.fn(async () => []),
         onActionRun: vi.fn(() => () => {}),
+        openInEditor: vi.fn(),
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent: vi.fn(async () => ''),
         startAction: vi.fn(async () => 'action-1'),
@@ -52,6 +54,23 @@ describe('getElectronActionBridge', () => {
 
         await expect(getElectronActionBridge()?.prepareActionPrompt({ actionId: 'main', context: ACTION_CONTEXT }))
             .rejects.toThrow('Action runner is not available')
+    })
+
+    it('preserves the missing this-card context code from the main process', async () => {
+        const preloadBridge = createBridge()
+        const mainError = new Error('Missing card context') as Error & { code: string }
+        mainError.code = MISSING_THIS_CARD_CONTEXT_ERROR
+        preloadBridge.prepareActionPrompt = vi.fn(async () => (
+            serializeBridgeError(mainError) as unknown as PreparedActionPrompt
+        ))
+        window.md2Actions = preloadBridge
+
+        const error = await getElectronActionBridge()
+            ?.prepareActionPrompt({ actionId: 'main', context: ACTION_CONTEXT })
+            .catch((failure: unknown) => failure) as Error & { code?: string }
+
+        expect(error.message).toBe('Missing card context')
+        expect(error.code).toBe(MISSING_THIS_CARD_CONTEXT_ERROR)
     })
 
     it('returns the override before the preload bridge', () => {

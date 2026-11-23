@@ -95,11 +95,14 @@ describe('preload desktop agent bridge', () => {
         ]);
         expect(window.require).toBeUndefined();
         expect(exposed.md2Data.openProjectFolder).toEqual(expect.any(Function));
+        expect(exposed.md2Data.initializeLocalProject).toEqual(expect.any(Function));
         expect(exposed.md2ApplicationState.read).toEqual(expect.any(Function));
         expect(exposed.md2Files.getPathForFile).toEqual(expect.any(Function));
         expect(exposed.md2Data.selectWorktreeFolder).toEqual(expect.any(Function));
         expect(exposed.md2Data.showInFileExplorer).toEqual(expect.any(Function));
         expect(exposed.md2Data.loadAgentAvailability).toEqual(expect.any(Function));
+        expect(exposed.md2Data.loadLocalJsonFile).toEqual(expect.any(Function));
+        expect(exposed.md2Data.saveLocalJsonFile).toEqual(expect.any(Function));
         expect(exposed.md2Data.prepareWorktree).toEqual(expect.any(Function));
         expect(exposed.md2Data.commitWorktree).toEqual(expect.any(Function));
         expect(exposed.md2Data.commitPrimaryChanges).toEqual(expect.any(Function));
@@ -126,6 +129,7 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Actions.registerSequenceSchedule).toEqual(expect.any(Function));
         expect(exposed.md2Actions.startAction).toEqual(expect.any(Function));
         expect(exposed.md2Actions.answerActionInput).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.advanceActionForEachRecord).toEqual(expect.any(Function));
         expect(exposed.md2Actions.sendActionMessage).toEqual(expect.any(Function));
         expect(exposed.md2Actions.compactActionConversation).toEqual(expect.any(Function));
         expect(exposed.md2Actions.splitActionConversation).toEqual(expect.any(Function));
@@ -137,7 +141,9 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Actions.updateActionConversationViewed).toEqual(expect.any(Function));
         expect(exposed.md2Actions.updateCardActionSettings).toEqual(expect.any(Function));
         expect(exposed.md2Actions.finishActionRun).toEqual(expect.any(Function));
-        expect(exposed.md2Actions.generateWorktreeDiff).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.generateWorktreeFileDiff).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.listWorktreeChanges).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.generateWorktreeDiff).toBeUndefined();
         expect(exposed.md2Actions.restartActionRun).toEqual(expect.any(Function));
         expect(exposed.md2Actions.loadActionRunRecoverySnapshot).toEqual(expect.any(Function));
         expect(exposed.md2Actions.notifyActionCardStateChange).toBeUndefined();

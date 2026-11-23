@@ -5,6 +5,8 @@ import { runElectronAction } from '../actions/electron_action_runner'
 import { actionRunRegistry } from '../actions/action_run_registry'
 import { configService } from '../config/config_service'
 import { dialogService } from '../dialog_service'
+import { telemetryService } from '../telemetry/telemetry_service'
+import { MISSING_ACTIVITY_FILE_ERROR } from '../../../../shared/card_activity.mjs'
 import { worktreeService } from '../project/worktree_service'
 import {
     actionAcknowledgementEvent,
@@ -1294,6 +1296,53 @@ describe('AgentIntegration', () => {
                 { message: 'Agent log not found', path: 'design/activity/card__root-card.json' },
             ])
         })
+    })
+
+    it.each([
+        { captured: false, error: Object.assign(new Error('Missing referenced activity file'), { code: MISSING_ACTIVITY_FILE_ERROR }), name: 'a missing activity file' },
+        { captured: true, error: new Error('Malformed activity file'), name: 'another load error' },
+    ])('reports $name as a card load error and captures it only when it is not a missing file', async ({ captured, error }) => {
+        configService.init()
+        const failingPath = 'design/activity/card__failing.json'
+        const loadedPath = 'design/activity/card__root-card.json'
+        const agentFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${failingPath}\n  - ${loadedPath}\n---\n\n# Root`,
+            path: 'design/F-1-root.md',
+        }
+        const loadActivityConversations = vi.fn(async (_project, activityPath: string) => {
+            if (activityPath === failingPath) throw error
+
+            return [{ ...conversation(`${loadedPath}#conversation=loaded`), id: 'loaded' }]
+        })
+        const storage = createStorage({
+            loadActivityConversations,
+            loadProject: vi.fn(async () => ({ files: [agentFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [agentFile], workingFolder: 'design' })),
+        })
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+        const warning = vi.spyOn(dialogService, 'warning')
+        const service = createDataService()
+        service.init({ storage })
+
+        try {
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+            await vi.waitFor(() => {
+                expect(service.getState().snapshot?.activeCards[0].agentConversationErrors).toEqual([
+                    { message: error.message, path: failingPath },
+                ])
+            })
+            expect(service.getState().snapshot?.activeCards[0].agentConversations.map(({ id }) => id)).toEqual(['loaded'])
+            expect(warning).toHaveBeenCalledWith(
+                expect.stringContaining(failingPath),
+                { title: 'Some agent conversations were not loaded' },
+            )
+            if (captured) expect(captureError).toHaveBeenCalledWith(error)
+            else expect(captureError).not.toHaveBeenCalledWith(error)
+        } finally {
+            captureError.mockRestore()
+            warning.mockRestore()
+        }
     })
 
     it('tracks desktop-owned scheduled runs only in the shared run registry', async () => {

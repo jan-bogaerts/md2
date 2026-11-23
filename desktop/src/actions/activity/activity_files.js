@@ -7,6 +7,7 @@ const {
     compactActivityFileContent,
     createActivityFile,
     findActivityConversation,
+    MISSING_ACTIVITY_FILE_ERROR,
     parseActivityValue,
     parseActivityValueForMigration,
 } = require('../../../../shared/card_activity.mjs');
@@ -82,7 +83,9 @@ async function loadActivityValue(filePath, origin) {
 async function readActivityFile(filePath, origin) {
     const stored = await readStoredActivity(filePath);
     if (stored.missing) {
-        if (origin === undefined) throw new Error(`Missing referenced activity file: ${filePath}`);
+        if (origin === undefined) {
+            throw Object.assign(new Error(`Missing referenced activity file: ${filePath}`), { code: MISSING_ACTIVITY_FILE_ERROR });
+        }
 
         return createActivityFile(origin);
     }
@@ -127,17 +130,18 @@ async function writeActivityFile(filePath, activity) {
     }
 }
 
-async function runMarkedUpdate(rootPath, filePath, update) {
+async function runMarkedUpdate(rootPath, filePath, update, markProjectWrite) {
     const result = await update();
-    uncommittedProjectWrites.mark(rootPath, [filePath]);
+    if (markProjectWrite) uncommittedProjectWrites.mark(rootPath, [filePath]);
 
     return result;
 }
 
-/** Orders writes per activity file and marks the file as uncommitted after each successful update. */
-function queueActivityFileUpdate(rootPath, filePath, update) {
+/** Orders writes per activity file and optionally marks the file for normal project persistence. */
+function queueActivityFileUpdate(rootPath, filePath, update, options = {}) {
+    const markProjectWrite = options.markProjectWrite !== false;
     const previousWrite = activityWriteQueues.get(filePath) ?? Promise.resolve();
-    const write = previousWrite.then(() => runMarkedUpdate(rootPath, filePath, update));
+    const write = previousWrite.then(() => runMarkedUpdate(rootPath, filePath, update, markProjectWrite));
     const queueTail = write.catch(() => undefined);
     activityWriteQueues.set(filePath, queueTail);
     void queueTail.finally(() => {
@@ -148,8 +152,8 @@ function queueActivityFileUpdate(rootPath, filePath, update) {
 }
 
 /** Holds an activity write until no project-wide operation (such as integration) runs on the repository root. */
-function queueActivityUpdate(rootPath, filePath, update) {
-    return projectOperationCoordinator.run(rootPath, () => queueActivityFileUpdate(rootPath, filePath, update));
+function queueActivityUpdate(rootPath, filePath, update, options = {}) {
+    return projectOperationCoordinator.run(rootPath, () => queueActivityFileUpdate(rootPath, filePath, update, options));
 }
 
 async function applyActivityUpdate(absolutePath, origin, update) {
@@ -160,11 +164,16 @@ async function applyActivityUpdate(absolutePath, origin, update) {
     return next;
 }
 
-async function updateActivity(project, projectFolder, origin, update) {
+async function updateActivity(project, projectFolder, origin, update, options = {}) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
-    const activity = await queueActivityUpdate(rootPath, absolutePath, () => applyActivityUpdate(absolutePath, origin, update));
+    const activity = await queueActivityUpdate(
+        rootPath,
+        absolutePath,
+        () => applyActivityUpdate(absolutePath, origin, update),
+        options,
+    );
 
     return { activity, relativePath };
 }
@@ -191,7 +200,8 @@ async function updateAndCommitActivity(project, projectFolder, origin, update, m
         const current = await loadActivityValue(absolutePath, origin);
         const next = update(current);
         await writeActivityFile(absolutePath, next);
-        const commit = await commitTrackedPaths(rootPath, [relativePath], message);
+        const gitPaths = uncommittedProjectWrites.gitPaths(rootPath, [relativePath]);
+        const commit = gitPaths.length > 0 ? await commitTrackedPaths(rootPath, gitPaths, message) : null;
 
         return { activity: next, commit, relativePath };
     });
@@ -225,13 +235,6 @@ async function appendActionActivity(project, projectFolder, origin, record) {
         ...activity,
         records: [...activity.records, record],
     }));
-}
-
-async function appendAndCommitActionActivity(project, projectFolder, origin, record, message) {
-    return updateAndCommitActivity(project, projectFolder, origin, (activity) => ({
-        ...activity,
-        records: [...activity.records, record],
-    }), message);
 }
 
 async function appendAndCommitSystemActivity(project, projectFolder, origin, record, message) {
@@ -270,8 +273,8 @@ function upsertConversation(activity, conversation) {
     };
 }
 
-async function upsertActivityConversation(project, projectFolder, origin, conversation) {
-    return updateActivity(project, projectFolder, origin, (activity) => upsertConversation(activity, conversation));
+async function upsertActivityConversation(project, projectFolder, origin, conversation, options = {}) {
+    return updateActivity(project, projectFolder, origin, (activity) => upsertConversation(activity, conversation), options);
 }
 
 async function upsertAndCommitActivityConversation(project, projectFolder, origin, conversation, message) {
@@ -336,6 +339,29 @@ async function updateActivityConversationForEach(project, reference, forEach) {
     });
 }
 
+async function updateActivityConversationForEachProgress(project, reference, forEachProgress) {
+    if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { activityPath, conversationId } = parseConversationActivityReference(reference);
+    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
+
+    return queueActivityUpdate(rootPath, absolutePath, async () => {
+        const stored = await readStoredActivity(absolutePath);
+        const activity = activityValue(stored);
+        const conversation = findActivityConversation(activity, conversationId);
+        const updatedConversation = parseAgentConversationValue({ ...conversation, forEachProgress }, reference);
+        const storedConversation = Object.fromEntries(Object.entries(updatedConversation).filter(([fieldName]) => fieldName !== 'path'));
+        const updatedActivity = {
+            ...activity,
+            conversations: activity.conversations.map((current) => current.id === conversationId ? storedConversation : current),
+        };
+        await writeActivityFile(absolutePath, updatedActivity);
+
+        return updatedConversation;
+    }, { markProjectWrite: false });
+}
+
 async function appendActivityConversationEvent(project, reference, event) {
     if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');
     const rootPath = requireRootPath(project);
@@ -358,7 +384,7 @@ async function appendActivityConversationEvent(project, reference, event) {
         await writeActivityFile(absolutePath, updatedActivity);
 
         return updatedConversation;
-    });
+    }, { markProjectWrite: false });
 }
 
 function createSplitConversationId(activity) {
@@ -611,7 +637,6 @@ function activityConversationReference(projectFolder, origin, conversationId) {
 module.exports = {
     appendActivityConversationEvent,
     activityConversationReference,
-    appendAndCommitActionActivity,
     appendAndCommitSystemActivity,
     appendSystemActivityNow,
     appendActionActivity,
@@ -633,6 +658,7 @@ module.exports = {
     upsertActivityConversation,
     updateCardActionSettings,
     updateActivityConversationForEach,
+    updateActivityConversationForEachProgress,
     updateActivityConversationViewed,
     writeActivityFile,
 };

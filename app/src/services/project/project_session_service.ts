@@ -29,6 +29,7 @@ import { projectPersistenceService } from './project_persistence_service'
 import { projectAccessService } from './project_access_service'
 import { ReleaseBlockedByRunningActionsError } from '../release_blocked_by_running_actions_error'
 import { createDefaultActionFiles } from '../../project_template/project_template'
+import { projectFolderGitInclusionService } from './project_folder_git_inclusion_service'
 
 /** Configurable folders edited by setup; sub-folders are relative to `projectFolder`. */
 export interface ProjectFolderValues {
@@ -49,6 +50,7 @@ export interface ProjectFolderSetupResolution {
     existingFolderPaths: string[]
     folders: TopLevelFolderReference[]
     hasProjectConfig: boolean
+    includeProjectFolderInGit: boolean
     kind: 'project-folder-setup'
     project: ProjectReference
     storageType: StorageType
@@ -56,6 +58,17 @@ export interface ProjectFolderSetupResolution {
 }
 
 export type ProjectOpenResolution = ProjectFolderSetupResolution
+
+/** Values the folder-setup dialog submits. */
+export interface ProjectFolderSetupValues {
+    folderValues: ProjectFolderValues
+    includeProjectFolderInGit: boolean
+}
+
+/** Only a new local project chooses whether its project folder is committed; others keep their stored value. */
+export function offersProjectFolderGitInclusion(resolution: ProjectFolderSetupResolution) {
+    return resolution.storageType === 'local' && !resolution.hasProjectConfig
+}
 
 export interface ProjectSessionState {
     errorMessage: string | null
@@ -72,6 +85,17 @@ export interface CardCreationState {
 }
 
 const EMPTY_TOP_LEVEL_FOLDERS: TopLevelFolderReference[] = []
+
+type LocalOnlyProjectFolderStorage = StorageService
+    & Required<Pick<StorageService, 'hasTrackedProjectFolderFiles' | 'saveProjectFolderGitInclusion' | 'writeFiles'>>
+
+function requireLocalOnlyProjectFolderStorage(storage: StorageService): LocalOnlyProjectFolderStorage {
+    if (!storage.hasTrackedProjectFolderFiles || !storage.saveProjectFolderGitInclusion || !storage.writeFiles) {
+        throw new Error('Current storage cannot keep the project folder out of Git')
+    }
+
+    return storage as LocalOnlyProjectFolderStorage
+}
 
 function createGithubStorage(accessToken: string | null, isReadOnly = false) {
     const storage = new GithubStorageService(isReadOnly)
@@ -204,11 +228,15 @@ async function createFolderSetupResolution(
         listTopLevelFolders(storage, project),
         listExistingFolderPaths(storage, project),
     ])
+    const includeProjectFolderInGit = hasProjectConfig
+        ? configService.getProjectConfig().includeProjectFolderInGit
+        : storageType !== 'local'
 
     return {
         existingFolderPaths,
         folders,
         hasProjectConfig,
+        includeProjectFolderInGit,
         kind: 'project-folder-setup',
         project,
         storageType,
@@ -455,38 +483,60 @@ export class ProjectSessionService extends EventTarget {
     }
 
     /**
-     * Single confirm path for the folder-setup dialog: creates every folder that is still missing,
-     * seeds the default action files, writes the five values to the project config and opens the
-     * project. Folders that already exist are left untouched.
+     * Single confirm path for the folder-setup dialog: seeds missing default action files, writes the
+     * configured folder values and opens the project. A new local project may keep its project folder
+     * out of Git; tracked files there are only removed from the index after confirmation. Resolves
+     * false when that confirmation is cancelled, before anything was written.
      */
     async confirmProjectFolderSetup(
         resolution: ProjectFolderSetupResolution,
-        values: ProjectFolderValues,
+        setupValues: ProjectFolderSetupValues,
         accessToken: string | null,
     ) {
         projectAccessService.requireWritable()
-        await this.withProjectLoading('Project folder setup failed', async () => {
+
+        return this.withProjectLoading('Project folder setup failed', async () => {
             const storage = createStorageService(resolution.storageType, accessToken)
-            const folderValues = requireProjectFolderValues(values)
+            const folderValues = requireProjectFolderValues(setupValues.folderValues)
+            const offersGitInclusion = offersProjectFolderGitInclusion(resolution)
+            const keepsProjectFolderLocal = offersGitInclusion && !setupValues.includeProjectFolderInGit
+            const localOnlyStorage = keepsProjectFolderLocal ? requireLocalOnlyProjectFolderStorage(storage) : null
+            const removeTrackedFiles = !!localOnlyStorage
+                && await localOnlyStorage.hasTrackedProjectFolderFiles(resolution.project, folderValues.projectFolder)
+            if (removeTrackedFiles && !await projectFolderGitInclusionService.requestRemovalConfirmation(folderValues.projectFolder)) {
+                return false
+            }
+
             const storedConfig = resolution.hasProjectConfig ? await storage.loadProjectConfig(resolution.project) : null
             const baseConfig = {
                 ...DEFAULT_PROJECT_CONFIG,
                 ...(storedConfig ?? { backgroundShade: createRandomProjectBackgroundShade() }),
             }
-            const projectConfig: ProjectConfig = { ...baseConfig, ...folderValues }
+            const projectConfig: ProjectConfig = {
+                ...baseConfig,
+                ...folderValues,
+                ...(offersGitInclusion ? { includeProjectFolderInGit: setupValues.includeProjectFolderInGit } : {}),
+            }
             const resolvedConfig = resolveProjectConfigPaths(projectConfig)
             const existingFilePaths = new Set(await storage.listRepositoryFiles(resolution.project))
-            const existingFolders = new Set(folderPathsOf([...existingFilePaths]))
-            const missingFolders = resolvedSetupFolders(projectConfig).filter((folder) => !existingFolders.has(folder))
-            // Folder creation activates local services, which require a complete project configuration.
-            // Flush the previous project while its backend is still active.
+            // Flush the previous project while its backend is still active. Loading configured project
+            // files after saving config activates local services before default files are written.
             await projectPersistenceService.flushPendingChanges()
-            await storage.saveProjectConfig(resolution.project, projectConfig)
-            const project = await storage.createProject(resolution.project, missingFolders)
+            if (localOnlyStorage) {
+                await localOnlyStorage.saveProjectFolderGitInclusion(resolution.project, projectConfig, removeTrackedFiles)
+            } else {
+                await storage.saveProjectConfig(resolution.project, projectConfig)
+            }
+            const project = resolution.project
+            const nextConfig = await withDerivedStates(storage, project, projectConfig, storedConfig?.states !== undefined)
+            configService.loadProjectConfig(nextConfig)
+            await storage.saveProjectConfig(project, nextConfig)
             const defaultActionFiles = createDefaultActionFiles(resolvedConfig.actionsFolder)
                 .filter(({ path }) => !existingFilePaths.has(path))
 
-            if (defaultActionFiles.length > 0) {
+            if (defaultActionFiles.length > 0 && localOnlyStorage) {
+                await localOnlyStorage.writeFiles({ branch: project.branch, files: defaultActionFiles })
+            } else if (defaultActionFiles.length > 0) {
                 await storage.commit({
                     branch: project.branch,
                     files: defaultActionFiles,
@@ -494,11 +544,10 @@ export class ProjectSessionService extends EventTarget {
                 })
             }
 
-            const nextConfig = await withDerivedStates(storage, project, projectConfig, storedConfig?.states !== undefined)
-            configService.loadProjectConfig(nextConfig)
-            await storage.saveProjectConfig(project, nextConfig)
             await activateProjectSession(storage, resolution.storageType, project)
             this.setReadOnly(false)
+
+            return true
         })
     }
 

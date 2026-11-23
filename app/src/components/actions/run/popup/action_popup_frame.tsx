@@ -4,6 +4,7 @@ import ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'
 import Close from 'mdi-material-ui/Close'
 import { useCallback, useSyncExternalStore, type KeyboardEvent, type ReactNode } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
+import type { ActionRun } from '../../../../services/actions/action_run_registry'
 import { ResizablePopper } from '../../../resizable_popper'
 import type { WorktreeAssignmentTarget } from '../../../worktree_selector'
 import { MarkdownTypeaheadLayerProvider } from '../../../editor/typeahead/markdown_typeahead_layer_provider'
@@ -35,6 +36,14 @@ interface ActionPopupFrameProps {
     inputStore: ActionRunInputStore
 }
 
+function liveConversationId(run: ActionRun | null) {
+    return run?.conversation?.id ?? null
+}
+
+function liveConversationHasForEach(run: ActionRun | null) {
+    return !!run?.conversation?.forEach
+}
+
 function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget | null {
     if (context.kind === 'project') return { kind: 'project' }
     if ((context.kind === 'card' || context.kind === 'file') && context.file && context.cardInternalId) {
@@ -49,21 +58,26 @@ export function ActionPopupFrame(
     { bindingStore, children, contentProps, conversationSearchService, conversationStore, inputStore }: ActionPopupFrameProps,
 ) {
     const {
-        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,
+        action, actions, actionVisibilityMode, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,
         onClose, onSelectAction, onToggleFullHeight, open, primaryPath, readOnlyMessage, stackPosition,
-        subscribeFocusRequest, titleId,
+        subscribeFocusRequest, titleId, onVisibilityModeChange,
     } = contentProps
     const theme = useTheme()
     const boundRunId = useBoundRunId(bindingStore)
-    const liveConversation = useRunSelector(boundRunId, (run) => run?.conversation ?? null)
+    const liveId = useRunSelector(boundRunId, liveConversationId)
+    const liveHasForEach = useRunSelector(boundRunId, liveConversationHasForEach)
     const getSelectedConversation = useCallback(
         () => conversationStore.getSnapshot().selectedConversation,
         [conversationStore],
     )
     const selectedConversation = useSyncExternalStore(conversationStore.subscribe, getSelectedConversation, getSelectedConversation)
     const input = useSyncExternalStore(inputStore.subscribe, inputStore.getSnapshot, inputStore.getSnapshot)
-    const displayedConversation = resolveDisplayedConversation(liveConversation, selectedConversation)
-    const selectedHasForEach = !!(displayedConversation?.forEach ?? input.forEachByAction[action.id])
+    const liveForEachState = liveId ? { hasForEach: liveHasForEach, id: liveId } : null
+    const selectedForEachState = selectedConversation
+        ? { hasForEach: !!selectedConversation.forEach, id: selectedConversation.id }
+        : null
+    const displayedForEachState = resolveDisplayedConversation(liveForEachState, selectedForEachState)
+    const selectedHasForEach = !!displayedForEachState?.hasForEach || !!input.forEachByAction[action.id]
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const sizeStorageKey = baseContext.kind === 'project'
         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY
@@ -176,8 +190,10 @@ export function ActionPopupFrame(
                             actions={actions}
                             context={assignmentContext}
                             onSelect={onSelectAction}
+                            onVisibilityModeChange={onVisibilityModeChange}
                             selectedAction={action}
                             selectedHasForEach={selectedHasForEach}
+                            visibilityMode={actionVisibilityMode}
                         />
                         <ActionConversationSearchRow service={conversationSearchService} />
                     </Box>

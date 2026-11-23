@@ -177,6 +177,57 @@ describe('ActionSelector', () => {
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Send a custom prompt to the agent.')
     })
 
+    it('opens the visibility menu on right-click and changes the selected mode', () => {
+        const onVisibilityModeChange = vi.fn()
+        render(
+            <ThemeProvider theme={createAppTheme('light')}>
+                <ActionSelector
+                    actions={actions}
+                    context={context}
+                    onSelect={vi.fn()}
+                    onVisibilityModeChange={onVisibilityModeChange}
+                    selectedAction={actions[0]}
+                    visibilityMode="specific-for-context"
+                />
+            </ThemeProvider>,
+        )
+        const actionGroup = screen.getByRole('group', { name: 'Actions' })
+
+        fireEvent.contextMenu(actionGroup, { clientX: 20, clientY: 30 })
+
+        const menu = screen.getByRole('menu', { name: 'Action visibility' })
+        expect(within(menu).getByRole('menuitem', { name: 'All' })).toBeInTheDocument()
+        expect(within(menu).getByRole('menuitem', { name: 'Specific for context' })).toHaveClass('Mui-selected')
+        expect(within(menu).getByRole('menuitem', { name: 'Has conversation log' })).toBeInTheDocument()
+        fireEvent.click(within(menu).getByRole('menuitem', { name: 'All' }))
+
+        expect(onVisibilityModeChange).toHaveBeenCalledWith('all')
+        expect(screen.queryByRole('menu', { name: 'Action visibility' })).not.toBeInTheDocument()
+    })
+
+    it('keeps an empty selector row available for visibility changes', () => {
+        const onVisibilityModeChange = vi.fn()
+        render(
+            <ThemeProvider theme={createAppTheme('light')}>
+                <ActionSelector
+                    actions={[]}
+                    context={context}
+                    onSelect={vi.fn()}
+                    onVisibilityModeChange={onVisibilityModeChange}
+                    selectedAction={null}
+                    visibilityMode="has-conversation-log"
+                />
+            </ThemeProvider>,
+        )
+
+        fireEvent.contextMenu(screen.getByRole('group', { name: 'Actions' }))
+        const menu = screen.getByRole('menu', { name: 'Action visibility' })
+        expect(within(menu).getByRole('menuitem', { name: 'Has conversation log' })).toHaveClass('Mui-selected')
+        fireEvent.click(within(menu).getByRole('menuitem', { name: 'Specific for context' }))
+
+        expect(onVisibilityModeChange).toHaveBeenCalledWith('specific-for-context')
+    })
+
     it.each([
         ['waiting for input', 'Agent is waiting for input'],
         ['unseen result', 'New agent result available'],

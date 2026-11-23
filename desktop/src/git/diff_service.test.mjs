@@ -8,16 +8,18 @@ const require = createRequire(import.meta.url);
 const {
     buildEditorLaunch,
     generateDiff,
-    generateWorktreeDiff,
+    generateWorktreeFileDiff,
+    listWorktreeChanges,
     openInEditor,
+    openWithSystemApplication,
     parseNameStatus,
     parseEditorTarget,
     parseUnifiedDiff,
-    resolveDiffCommand,
     resolveEditorTarget,
 } = require('./diff_service');
 const { runGit } = require('./git_commands');
 const { WorktreeService } = require('./worktree_service');
+const { INVALID_LOCAL_FILE_LINK_ERROR, LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR } = require('../../../shared/local_file_link_errors.mjs');
 
 const SAMPLE_DIFF = [
     'diff --git a/design/F-010.md b/design/F-010.md',
@@ -42,7 +44,7 @@ describe('diff-service', () => {
         ]);
     });
 
-    it('parses unified diff into per-file sides with real line numbers', () => {
+    it('parses unified diff into normalized per-file sides', () => {
         const files = parseUnifiedDiff(SAMPLE_DIFF);
 
         expect(files).toHaveLength(1);
@@ -50,8 +52,7 @@ describe('diff-service', () => {
         expect(file.path).toBe('design/F-010.md');
         expect(file.oldValue).toBe('unchanged line\nold line\ntrailing line');
         expect(file.newValue).toBe('unchanged line\nnew line one\nnew line two\ntrailing line');
-        expect(file.oldLineNumbers).toEqual([10, 11, 12]);
-        expect(file.newLineNumbers).toEqual([10, 11, 12, 13]);
+        expect(file.oldPath).toBe('design/F-010.md');
     });
 
     it('rejects empty diff output', () => {
@@ -62,155 +63,179 @@ describe('diff-service', () => {
         expect(() => parseUnifiedDiff('not a diff at all')).toThrow('could not be parsed');
     });
 
-    it('resolves diff command and folder placeholders', () => {
-        const values = {
-            'active-cards-folder': 'C:/repo/design/feature_descriptions',
-            commit: 'abc1234',
-            file: 'design/F-010.md',
-            'project-folder': 'C:/repo/design',
-            'repository-folder': 'C:/repo',
-            'releases-folder': 'C:/repo/delivery/releases',
-            'worktree-folder': 'C:/repo',
-        };
-        const command = resolveDiffCommand(
-            'git -C {{worktree-folder}} show {{commit}} -- {{file}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{ active-cards-folder }}',
-            values,
-        );
-
-        expect(command).toBe('git -C C:/repo show abc1234 -- design/F-010.md C:/repo C:/repo/design C:/repo/delivery/releases C:/repo/design/feature_descriptions');
-    });
-
-    it('fails fast when a diff placeholder value is missing', () => {
-        expect(() => resolveDiffCommand('git show {{commit}}', { commit: '' })).toThrow('Missing diff command value: commit');
-    });
-
-    it('does not resolve removed rootProjectFolder placeholder', () => {
-        expect(resolveDiffCommand('git -C {{rootProjectFolder}} show {{commit}}', { commit: 'abc1234' }))
-            .toBe('git -C {{rootProjectFolder}} show abc1234');
-    });
-
-    it('generates normalized diff data through the runner', async () => {
+    it('runs a fixed full-commit git show without a shell when no file is requested', async () => {
         const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
-        const result = await generateDiff(
-            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: '', template: 'git show {{commit}}' },
-            runner,
-        );
+        const result = await generateDiff({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, { commit: 'abc1234' }, runner);
 
-        expect(runner).toHaveBeenCalledWith('git show abc1234', expect.objectContaining({ cwd: 'C:/repo' }));
+        expect(runner).toHaveBeenCalledWith(
+            'git',
+            ['--literal-pathspecs', 'show', '--format=', '--find-renames', 'abc1234'],
+            expect.objectContaining({ cwd: 'C:/repo', windowsHide: true }),
+        );
         expect(result.commit).toBe('abc1234');
         expect(result.files).toHaveLength(1);
+        expect(result.patch).toBe(SAMPLE_DIFF);
     });
 
-    it('resolves custom releases folder from the opened repository for diff commands', async () => {
+    it('limits git show to the selected path passed as one unquoted argument', async () => {
         const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
-        const template = 'git -C {{repository-folder}} show {{commit}} -- {{project-folder}} {{releases-folder}}';
-        await generateDiff(
-            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: 'design', releasesFolder: 'design/delivery/releases', template },
-            runner,
-        );
+        await generateDiff({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, { commit: 'abc1234', filePath: 'design/my file.md' }, runner);
 
         expect(runner).toHaveBeenCalledWith(
-            `git -C C:/repo show abc1234 -- ${path.resolve('C:/repo', 'design')} ${path.resolve('C:/repo', 'design/delivery/releases')}`,
+            'git',
+            ['--literal-pathspecs', 'show', '--format=', '--find-renames', 'abc1234', '--', 'design/my file.md'],
             expect.objectContaining({ cwd: 'C:/repo' }),
         );
     });
 
-    it('resolves the actions folder from the opened repository for diff commands', async () => {
-        const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
-        await generateDiff(
-            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { actionsFolder: 'design/actions', branch: 'main', commit: 'abc1234', filePath: '', projectFolder: 'design', template: 'echo {{ actions-folder }}' },
-            runner,
-        );
-
-        expect(runner).toHaveBeenCalledWith(`echo ${path.resolve('C:/repo', 'design/actions')}`, expect.objectContaining({ cwd: 'C:/repo' }));
-    });
-
-    it('fails before diff process start when the actions folder is missing', async () => {
+    it('rejects an empty selected path before Git starts', async () => {
         const runner = vi.fn();
 
-        await expect(generateDiff(
-            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: '', template: 'echo {{actions-folder}}' },
-            runner,
-        )).rejects.toThrow('Missing diff command value: actions-folder');
+        await expect(generateDiff({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, { commit: 'abc1234', filePath: '' }, runner))
+            .rejects.toThrow('Invalid diff file path');
         expect(runner).not.toHaveBeenCalled();
     });
 
-    it('makes repository and project folders equal for an empty configured project folder', async () => {
-        const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
-        await generateDiff(
+    it('preserves unchanged gaps by returning the exact multi-hunk Git patch', async () => {
+        const multiHunkPatch = `${SAMPLE_DIFF}\n@@ -40,1 +41,1 @@ later\n-old later\n+new later`;
+        const result = await generateDiff(
             { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: '', template: 'echo {{repository-folder}} {{project-folder}}' },
-            runner,
+            { commit: 'abc1234' },
+            vi.fn(async () => ({ stdout: multiHunkPatch })),
         );
 
-        expect(runner).toHaveBeenCalledWith('echo C:/repo C:/repo', expect.objectContaining({ cwd: 'C:/repo' }));
+        expect(result.patch).toBe(multiHunkPatch);
+        expect(result.files[0].oldValue).toBe('unchanged line\nold line\ntrailing line\nold later');
     });
 
-    it('resolves active cards from opened repository for configured and default project layouts', async () => {
-        const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
-        await generateDiff(
-            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            {
-                branch: 'main',
-                commit: 'abc1234',
-                filePath: '',
-                projectFolder: 'design',
-                template: 'echo {{active-cards-folder}}',
-                workingFolder: 'design/feature_descriptions',
-            },
-            runner,
-        );
-
-        expect(runner).toHaveBeenCalledWith(
-            `echo ${path.resolve('C:/repo', 'design/feature_descriptions')}`,
-            expect.objectContaining({ cwd: 'C:/repo' }),
-        );
-    });
-
-    it('fails before diff process start when active cards working-folder data is missing', async () => {
-        const runner = vi.fn();
-
-        await expect(generateDiff(
-            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: '', template: 'echo {{active-cards-folder}}' },
-            runner,
-        )).rejects.toThrow('Missing diff command value: active-cards-folder');
-        expect(runner).not.toHaveBeenCalled();
-    });
-
-    it('fails before running when configured project folder is missing', async () => {
-        const runner = vi.fn();
-
-        await expect(generateDiff(
-            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: 'abc1234', filePath: '', template: 'echo {{project-folder}}' },
-            runner,
-        )).rejects.toThrow('Missing diff command value: project-folder');
-        expect(runner).not.toHaveBeenCalled();
-    });
-
-    it('reports diff command failures clearly', async () => {
+    it('reports Git diff failures clearly', async () => {
         const runner = vi.fn(async () => {
             throw Object.assign(new Error('exit 1'), { stderr: 'fatal: bad object' });
         });
 
-        await expect(generateDiff(
-            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: '', template: 'git show {{commit}}' },
-            runner,
-        )).rejects.toThrow('Diff command failed: fatal: bad object');
+        await expect(generateDiff({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, { commit: 'abc1234' }, runner))
+            .rejects.toThrow('Git diff failed: fatal: bad object');
     });
 
     it('fails fast when the commit hash is missing', async () => {
-        await expect(generateDiff(
+        await expect(generateDiff({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, { commit: '' }, vi.fn()))
+            .rejects.toThrow('Missing diff commit hash');
+    });
+
+    it('lists worktree changes from metadata without reading file contents', async () => {
+        const service = {
+            readDiffContext: vi.fn(async () => ({
+                baseCommit: 'base-1',
+                changes: 'M\0modified.txt\0R100\0old.txt\0new.txt\0',
+                path: 'C:/worktree',
+                untracked: 'untracked.txt\0modified.txt\0',
+            })),
+        };
+        const result = await listWorktreeChanges({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, { worktree: 1, worktreeBranch: 'feature' }, service);
+
+        expect(result).toEqual({
+            files: [
+                { changeType: 'modified', path: 'modified.txt' },
+                { changeType: 'renamed', oldPath: 'old.txt', path: 'new.txt' },
+                { changeType: 'added', path: 'untracked.txt' },
+            ],
+            repositoryRoot: 'C:/worktree',
+            revision: expect.any(String),
+        });
+    });
+
+    it('returns an empty worktree manifest instead of failing', async () => {
+        const service = { readDiffContext: vi.fn(async () => ({ baseCommit: 'base-1', changes: '', path: 'C:/worktree', untracked: '' })) };
+
+        await expect(listWorktreeChanges({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, { worktree: 1, worktreeBranch: 'feature' }, service))
+            .resolves.toMatchObject({ files: [] });
+    });
+
+    it('reads and builds only the selected added, deleted, or renamed worktree file', async () => {
+        const service = {
+            readDiffContext: vi.fn(async () => ({
+                baseCommit: 'base-1',
+                changes: 'A\0added.txt\0D\0deleted.txt\0R100\0old.txt\0new.txt\0',
+                path: 'C:/worktree',
+                untracked: '',
+            })),
+        };
+        const oldValues = new Map([
+            ['deleted.txt', 'deleted without newline'],
+            ['old.txt', 'renamed content\n'],
+        ]);
+        const newValues = new Map([
+            ['added.txt', 'added without newline'],
+            ['new.txt', 'renamed content\n'],
+        ]);
+        const readFileValue = vi.fn(async (filePath) => newValues.get(path.basename(filePath)));
+        const readRevisionFile = vi.fn(async (_root, _revision, filePath) => oldValues.get(filePath));
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const dependencies = { readFile: readFileValue, readRevisionFile };
+
+        const added = await generateWorktreeFileDiff(project, { path: 'added.txt', worktree: 1, worktreeBranch: 'feature' }, service, dependencies);
+        expect(added.patch).toContain('diff --git a/added.txt b/added.txt');
+        expect(added.patch).toContain('--- /dev/null');
+        expect(added.patch).toContain('\\ No newline at end of file');
+        expect(added.patch).not.toContain('deleted.txt');
+        expect(readFileValue).toHaveBeenCalledTimes(1);
+        expect(readRevisionFile).not.toHaveBeenCalled();
+
+        const deleted = await generateWorktreeFileDiff(project, { path: 'deleted.txt', worktree: 1, worktreeBranch: 'feature' }, service, dependencies);
+        expect(deleted.patch).toContain('+++ /dev/null');
+        expect(deleted.file).toMatchObject({ changeType: 'deleted', newValue: '', oldValue: 'deleted without newline' });
+        expect(readFileValue).toHaveBeenCalledTimes(1);
+
+        const renamed = await generateWorktreeFileDiff(project, { path: 'new.txt', worktree: 1, worktreeBranch: 'feature' }, service, dependencies);
+        expect(renamed.patch).toContain('diff --git a/old.txt b/new.txt');
+        expect(renamed.patch).toContain('rename from old.txt\nrename to new.txt');
+        expect(readRevisionFile).toHaveBeenLastCalledWith('C:/worktree', 'base-1', 'old.txt');
+        expect(renamed.repositoryRoot).toBe('C:/worktree');
+    });
+
+    it('fails file-scoped when the selected path is no longer changed', async () => {
+        const readFileValue = vi.fn();
+        const service = { readDiffContext: vi.fn(async () => ({ baseCommit: 'base-1', changes: 'M\0other.txt\0', path: 'C:/worktree', untracked: '' })) };
+
+        await expect(generateWorktreeFileDiff(
             { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: '', filePath: '', projectFolder: '', template: 'git show {{commit}}' },
-            vi.fn(),
-        )).rejects.toThrow('Missing diff commit hash');
+            { path: 'gone.txt', worktree: 1, worktreeBranch: 'feature' },
+            service,
+            { readFile: readFileValue, readRevisionFile: vi.fn() },
+        )).rejects.toThrow('File is no longer changed in the linked worktree: gone.txt');
+        expect(readFileValue).not.toHaveBeenCalled();
+    });
+
+    it('fails clearly when worktree patch generation exceeds its bound', async () => {
+        const createPatch = vi.fn(() => undefined);
+        const service = {
+            readDiffContext: vi.fn(async () => ({
+                baseCommit: 'base-1',
+                changes: 'M\0large.txt\0',
+                path: 'C:/worktree',
+                untracked: '',
+            })),
+        };
+
+        await expect(generateWorktreeFileDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            { path: 'large.txt', worktree: 1, worktreeBranch: 'feature' },
+            service,
+            {
+                createPatch,
+                readFile: vi.fn(async () => 'new'),
+                readRevisionFile: vi.fn(async () => 'old'),
+            },
+        )).rejects.toThrow('Worktree patch generation exceeded complexity bound: large.txt');
+        expect(createPatch).toHaveBeenCalledWith(
+            'a/large.txt',
+            'b/large.txt',
+            'old',
+            'new',
+            undefined,
+            undefined,
+            expect.objectContaining({ maxEditLength: expect.any(Number), timeout: expect.any(Number) }),
+        );
     });
 
     it('reads complete worktree contribution without changing HEAD, index, or files', async () => {
@@ -247,20 +272,17 @@ describe('diff-service', () => {
                 status: await runGit(linkedPath, ['status', '--porcelain=v1']),
             };
 
-            const result = await generateWorktreeDiff(project, { worktree: 1, worktreeBranch: 'feature' }, service);
+            const manifest = await listWorktreeChanges(project, { worktree: 1, worktreeBranch: 'feature' }, service);
+            const modified = await generateWorktreeFileDiff(project, { path: 'modified.txt', worktree: 1, worktreeBranch: 'feature' }, service);
 
-            expect(result.repositoryRoot).toBe(path.resolve(linkedPath));
-            expect(result.files.some(({ path: filePath }) => filePath === 'primary-only.txt')).toBe(false);
-            expect(result.files.map(({ changeType, oldPath, path: filePath }) => ({ changeType, oldPath, path: filePath }))).toEqual([
-                { changeType: 'deleted', oldPath: undefined, path: 'deleted.txt' },
-                { changeType: 'modified', oldPath: undefined, path: 'modified.txt' },
+            expect(manifest.repositoryRoot).toBe(path.resolve(linkedPath));
+            expect(manifest.files).toEqual([
+                { changeType: 'deleted', path: 'deleted.txt' },
+                { changeType: 'modified', path: 'modified.txt' },
                 { changeType: 'renamed', oldPath: 'rename-old.txt', path: 'rename-new.txt' },
-                { changeType: 'added', oldPath: undefined, path: 'added.txt' },
+                { changeType: 'added', path: 'added.txt' },
             ]);
-            expect(result.files.find(({ path: filePath }) => filePath === 'modified.txt')).toMatchObject({
-                newValue: 'new modified\n',
-                oldValue: 'old modified\n',
-            });
+            expect(modified.file).toMatchObject({ newValue: 'new modified\n', oldValue: 'old modified\n' });
             expect(await readFile(join(linkedPath, 'added.txt'), 'utf8')).toBe('new file\n');
             await expect(Promise.resolve({
                 cached: await runGit(linkedPath, ['diff', '--cached']),
@@ -277,9 +299,9 @@ describe('diff-service', () => {
         const readFileValue = vi.fn();
         const invalidService = {readDiffContext: vi.fn(async () => { throw new Error('Configured worktree 3 does not exist'); })};
 
-        await expect(generateWorktreeDiff(
+        await expect(generateWorktreeFileDiff(
             { branch: 'main', id: 'local', rootPath: 'C:/primary' },
-            { worktree: 3, worktreeBranch: 'missing' },
+            { path: 'file.txt', worktree: 3, worktreeBranch: 'missing' },
             invalidService,
             { readFile: readFileValue },
         )).rejects.toThrow('Configured worktree 3 does not exist');
@@ -293,9 +315,9 @@ describe('diff-service', () => {
                 untracked: '',
             })),
         };
-        await expect(generateWorktreeDiff(
+        await expect(generateWorktreeFileDiff(
             { branch: 'main', id: 'local', rootPath: 'C:/primary' },
-            { worktree: 1, worktreeBranch: 'feature' },
+            { path: 'file.txt', worktree: 1, worktreeBranch: 'feature' },
             removedService,
             { readFile: readFileValue, readRevisionFile: vi.fn(async () => { throw new Error('fatal: not a git repository'); }) },
         )).rejects.toThrow('fatal: not a git repository');
@@ -346,11 +368,23 @@ describe('diff-service', () => {
         await expect(resolveEditorTarget(project, { path: 'file.js', repositoryRoot: 'C:/other' }, [], vi.fn()))
             .rejects.toThrow('not active or registered');
         await expect(resolveEditorTarget(project, { path: '../outside.js', repositoryRoot: 'C:/repo' }, [], vi.fn()))
-            .rejects.toThrow('outside active repository');
+            .rejects.toMatchObject({ code: LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR, message: expect.stringContaining('outside active repository') });
         await expect(resolveEditorTarget(project, { path: 'missing.js', repositoryRoot: 'C:/repo' }, [], vi.fn(async () => { throw new Error('ENOENT'); })))
-            .rejects.toThrow('target does not exist');
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR, message: expect.stringContaining('target does not exist') });
         await expect(resolveEditorTarget(project, { path: 'folder', repositoryRoot: 'C:/repo' }, [], vi.fn(async () => ({ isFile: () => false }))))
-            .rejects.toThrow('not a regular file');
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR, message: expect.stringContaining('not a regular file') });
+        await expect(resolveEditorTarget(project, { path: 'file.js:abc', repositoryRoot: 'C:/repo' }, [], vi.fn()))
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR });
+        await expect(resolveEditorTarget(project, { path: '%E0%A4%A', repositoryRoot: 'C:/repo' }, [], vi.fn()))
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR });
+    });
+
+    it('keeps unregistered repository roots as unexpected errors', async () => {
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        const error = await resolveEditorTarget(project, { path: 'file.js', repositoryRoot: 'C:/other' }, [], vi.fn()).catch((rejection) => rejection);
+
+        expect(error.code).toBeUndefined();
     });
 
     it('spawns configured editor with selected worktree cwd', async () => {
@@ -388,5 +422,59 @@ describe('diff-service', () => {
         handlers.get('error')(new Error('spawn code ENOENT'));
 
         await expect(openPromise).rejects.toThrow('Editor launch failed: spawn code ENOENT');
+    });
+});
+
+describe('openWithSystemApplication', () => {
+    const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+    const fileStat = vi.fn(async () => ({ isFile: () => true }));
+
+    it('opens a relative link outside the repository relative to the conversation repository root', async () => {
+        const openPath = vi.fn(async () => '');
+
+        await openWithSystemApplication(project, { path: '../notes/todo.txt', repositoryRoot: 'C:/worktree' }, { openPath, statFile: fileStat, worktreeRoots: ['C:/worktree'] });
+
+        expect(openPath).toHaveBeenCalledWith(path.resolve('C:/notes/todo.txt'));
+    });
+
+    it('opens an absolute link outside the repository without its numeric line suffix', async () => {
+        const openPath = vi.fn(async () => '');
+
+        await openWithSystemApplication(project, { path: 'C:/Users/me/report.pdf:12', repositoryRoot: 'C:/repo' }, { openPath, statFile: fileStat });
+
+        expect(openPath).toHaveBeenCalledWith(path.resolve('C:/Users/me/report.pdf'));
+    });
+
+    it('rejects missing, directory, and malformed targets as expected link errors without opening them', async () => {
+        const openPath = vi.fn(async () => '');
+        const request = { path: 'C:/outside/target', repositoryRoot: 'C:/repo' };
+        const missingStat = vi.fn(async () => { throw new Error('ENOENT'); });
+        const directoryStat = vi.fn(async () => ({ isFile: () => false }));
+
+        await expect(openWithSystemApplication(project, request, { openPath, statFile: missingStat }))
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR, message: expect.stringContaining('does not exist') });
+        await expect(openWithSystemApplication(project, request, { openPath, statFile: directoryStat }))
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR, message: expect.stringContaining('not a regular file') });
+        await expect(openWithSystemApplication(project, { path: '%E0%A4%A', repositoryRoot: 'C:/repo' }, { openPath, statFile: fileStat }))
+            .rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR });
+        expect(openPath).not.toHaveBeenCalled();
+    });
+
+    it('refuses targets inside the repository or a registered worktree', async () => {
+        const openPath = vi.fn(async () => '');
+
+        await expect(openWithSystemApplication(project, { path: 'C:/worktree/src/file.js', repositoryRoot: 'C:/repo' }, { openPath, statFile: fileStat, worktreeRoots: ['C:/worktree'] }))
+            .rejects.toThrow('configured editor');
+        expect(openPath).not.toHaveBeenCalled();
+    });
+
+    it('reports operating system launch failures as unexpected errors', async () => {
+        const openPath = vi.fn(async () => 'No application is associated');
+
+        const error = await openWithSystemApplication(project, { path: 'C:/outside/file.xyz', repositoryRoot: 'C:/repo' }, { openPath, statFile: fileStat })
+            .catch((rejection) => rejection);
+
+        expect(error.message).toBe('Opening local file failed: No application is associated');
+        expect(error.code).toBeUndefined();
     });
 });

@@ -4,6 +4,7 @@ import { useAppBootstrap } from './app/use_app_bootstrap'
 import { DialogDisplay } from './components/dialog_display'
 import { MergeConflictDialog } from './components/merge_conflict_dialog'
 import { PrimaryChangesDialog } from './components/primary_changes_dialog'
+import { ProjectFolderGitRemovalDialog } from './components/project_folder_git_removal_dialog'
 import { ProjectWindowTitle } from './components/project_window_title'
 import { MainWindow } from './components/shell/main_window'
 import { StartupSplash } from './components/shell/startup_splash'
@@ -15,6 +16,8 @@ import type { ApplicationStartupService } from './services/application_startup_s
 import { SentryImportConfirmationDialog } from './components/sentry_import_confirmation_dialog'
 import { ActionVersionDialog } from './components/actions/run/action_version_dialog'
 import { updateService } from './services/update_service'
+import { dataService } from './services/data/data_service'
+import { diffCommentService } from './components/actions/conversation/events/diff_comment_service'
 
 interface AppProps {
     startupService?: ApplicationStartupService
@@ -29,6 +32,12 @@ export function App({ startupService }: AppProps = {}) {
         void updateService.start()
 
         return () => updateService.stop()
+    }, [])
+
+    useEffect(() => {
+        diffCommentService.init(dataService)
+
+        return () => diffCommentService.dispose()
     }, [])
 
     useEffect(() => {
@@ -52,6 +61,7 @@ export function App({ startupService }: AppProps = {}) {
             <UpdateNotification />
             <MergeConflictDialog />
             <PrimaryChangesDialog />
+            <ProjectFolderGitRemovalDialog />
             <SentryImportConfirmationDialog />
             {bootstrap.phase === 'starting' ? (
                 <StartupSplash />

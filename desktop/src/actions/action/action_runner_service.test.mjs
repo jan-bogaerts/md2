@@ -38,7 +38,7 @@ function missingFileError(actionPath) {
 function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
     const appendActionRunHistory = vi.fn(async () => []);
     const localGitService = {
-        appendAndCommitActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
+        appendActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
             const entry = {
                 ...record.details,
                 completedAt: record.completedAt,
@@ -209,6 +209,56 @@ describe('ActionRunnerService', () => {
 
         await expect(runner.start({ actionId: 'main', context, runInput: { conversationId: 'conversation-1' } }))
             .rejects.toThrow('Conversation save failed');
+    });
+
+    it('starts an empty for-each run without waiting for a conversation save', async () => {
+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
+        const { runner } = createRunner(files);
+        const execute = vi.fn();
+        runner.agentExecutor = { execute };
+        const forEach = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [] };
+
+        const runId = await runner.start({ actionId: 'main', context, runInput: { forEach } });
+
+        await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });
+        expect(execute).not.toHaveBeenCalled();
+    });
+
+    it('keeps trying for-each records until one saves the initial conversation', async () => {
+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
+        const { runner } = createRunner(files);
+        const execute = vi.fn()
+            .mockRejectedValueOnce(new Error('First record failed before startup'))
+            .mockImplementationOnce(async (input) => {
+                input.onConversationSaved();
+
+                return {
+                    agent: 'codex', changedPaths: [], command: ['codex'], conversationId: 'conversation-2',
+                    conversationIds: ['conversation-2'], exitCode: 0, model: 'gpt-5.5', permissionMode: 'ask-for-approval',
+                    prompt: 'Run', reference: 'conversation.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            });
+        runner.agentExecutor = { execute };
+        const forEach = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [1, 2] };
+
+        const runId = await runner.start({ actionId: 'main', context, runInput: { forEach } });
+
+        await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });
+        expect(execute).toHaveBeenCalledTimes(2);
+    });
+
+    it('reports the first real error when every for-each record fails before startup', async () => {
+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
+        const { runner } = createRunner(files);
+        const execute = vi.fn()
+            .mockRejectedValueOnce(new Error('First record failed before startup'))
+            .mockRejectedValueOnce(new Error('Second record failed before startup'));
+        runner.agentExecutor = { execute };
+        const forEach = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [1, 2] };
+
+        await expect(runner.start({ actionId: 'main', context, runInput: { forEach } }))
+            .rejects.toThrow('First record failed before startup');
+        expect(execute).toHaveBeenCalledTimes(2);
     });
 
     it('reserves a root agent conversation without creating its activity file', async () => {
@@ -419,6 +469,12 @@ describe('ActionRunnerService', () => {
         expect(agentRunnerService.finish).toHaveBeenCalledWith('agent-1');
     });
 
+    it('rejects advancing a stale action run', () => {
+        const { runner } = createRunner();
+
+        expect(() => runner.advanceForEachRecord('missing-run')).toThrow();
+    });
+
     it('returns current actions folder and clears readiness on stop', async () => {
         const { runner } = createRunner();
 
@@ -456,7 +512,7 @@ describe('ActionRunnerService', () => {
         expect(actionWorktreeRunService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
         expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();
-        expect(localGitService.appendAndCommitActionActivity).not.toHaveBeenCalled();
+        expect(localGitService.appendActionActivity).not.toHaveBeenCalled();
     });
 
     it('prepares one diagram path, reuses it at start, and allocates a unique next path', async () => {
@@ -684,7 +740,7 @@ describe('ActionRunnerService', () => {
             'matched',
             'after',
         ]);
-        expect(localGitService.appendAndCommitActionActivity).toHaveBeenCalledOnce();
+        expect(localGitService.appendActionActivity).toHaveBeenCalledOnce();
         expect(events.filter(({ status, type }) => status === 'completed' && type === 'action').map(({ actionId, phase }) => ({actionId, phase}))).toEqual([
             { actionId: 'before', phase: 'before' },
             { actionId: 'main', phase: 'main' },
@@ -767,7 +823,7 @@ describe('ActionRunnerService', () => {
 
         expect(result.status).toBe('cancelled');
         expect(commandRunner.mock.calls.map((call) => call[0])).toEqual([project]);
-        expect(localGitService.appendAndCommitActionActivity.mock.calls[0][1]).toBe('design');
+        expect(localGitService.appendActionActivity.mock.calls[0][1]).toBe('design');
     });
 
     it('delegates cancel and rejects unknown run id', async () => {

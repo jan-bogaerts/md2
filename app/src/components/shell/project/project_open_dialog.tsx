@@ -76,6 +76,7 @@ export function ProjectOpenDialog() {
     const projectOpenResolution = useProjectOpenValue('resolution')
     const selectedSource = useProjectOpenValue('source')
     const folderValuesState = useProjectOpenValue('folderValues')
+    const gitInitializationRootPath = useProjectOpenValue('gitInitializationRootPath')
     const isGithubAuthenticated = useProjectOpenValue('isGithubAuthenticated')
     const { isLoading, pendingGithubConflictProject } = useProjectSession()
     const isDesktopMode = isDesktopProjectMode()
@@ -217,11 +218,41 @@ export function ProjectOpenDialog() {
         projectOpenFlowService.close()
     }
 
+    const handleConfirmGitInitialization = () => {
+        void projectOpenFlowService.confirmGitInitialization()
+    }
+
+    const handleDeclineGitInitialization = () => {
+        projectOpenFlowService.declineGitInitialization()
+    }
+
     /** The folder-setup step holds unsaved multi-field input, so only Esc and Cancel may dismiss it. */
     const handleDialogClose = (_event: object, reason: string) => {
         if (projectFolderSetup && reason === 'backdropClick') return
 
         handleClose()
+    }
+
+    if (gitInitializationRootPath !== null) {
+        return (
+            <Dialog fullWidth maxWidth="sm" onClose={handleDeclineGitInitialization} open>
+                <DialogTitle>Create Git repository?</DialogTitle>
+                <DialogContent>
+                    <Stack spacing={2} sx={{ pt: 1 }}>
+                        <Typography>
+                            Selected folder is not a Git repository. Create a local Git repository in this folder?
+                        </Typography>
+                        <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="body2">
+                            {gitInitializationRootPath}
+                        </Typography>
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleDeclineGitInitialization} variant="outlined">No</Button>
+                    <Button onClick={handleConfirmGitInitialization} variant="contained">Yes</Button>
+                </DialogActions>
+            </Dialog>
+        )
     }
 
     return (

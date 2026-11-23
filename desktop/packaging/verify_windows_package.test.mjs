@@ -59,6 +59,19 @@ describe('Windows package verification', () => {
             .toThrow('Forbidden release content in desktop/main.js: http://localhost:5173');
     });
 
+    it('rejects the Sentry upload secret name in app content', () => {
+        const rendererEntry = path.join('desktop', 'renderer', 'assets', 'index.js');
+        const extractFile = (_asarPath, entry) => Buffer.from(entry === rendererEntry ? 'SENTRY_AUTH_TOKEN=secret' : 'release');
+
+        expect(() => assertAppContentIsReleaseSafe('app.asar', validEntries, extractFile))
+            .toThrow('Forbidden release content in desktop/renderer/assets/index.js: SENTRY_AUTH_TOKEN');
+    });
+
+    it('rejects renderer source maps inside the ASAR', () => {
+        expect(() => assertPackageEntries([...validEntries, 'desktop/renderer/assets/index.js.map']))
+            .toThrow('Forbidden packaged files: desktop/renderer/assets/index.js.map');
+    });
+
     it('recursively discovers Windows executable code and excludes irrelevant files', async () => {
         const directoryEntries = new Map([
             ['C:\\unpacked', [directoryEntry('md2.exe'), directoryEntry('resources', true), directoryEntry('LICENSE.txt')]],

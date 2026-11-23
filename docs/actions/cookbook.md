@@ -45,6 +45,23 @@ No agent, no tokens.
 }
 ```
 
+## Process every record in a JSON dataset
+
+This action describes how to handle one record. Open it, choose **For each** from the prompt menu, and attach the JSON file when you run it.
+
+```json
+{
+  "id": "review-endpoint",
+  "label": "Review endpoint",
+  "description": "Review every endpoint in an attached JSON dataset",
+  "type": "agent",
+  "prompt": "Review this API endpoint for missing validation and authorization checks:\n\n{{data}}\n\nMethod: {{data method}}\nPath: {{data path}}",
+  "appliesTo": { "kind": "project" }
+}
+```
+
+The attachment and loop settings belong to the run or conversation, not to this action definition. See [For-each actions](for-each.md) for supported JSON shapes, conversation modes, failure handling, and resuming.
+
 ## Retry the agent when the tests fail
 
 Chain the test run behind the agent, and route failures back to a fix action with an `on` rule.
@@ -131,4 +148,4 @@ Streaming keeps one session alive so you can steer, and auto-finish closes it on
 
 {% endraw %}
 
-See also: [Action definition](action-definition.md), [Placeholders](placeholders.md), [Running actions](running-actions.md).
+See also: [For-each actions](for-each.md), [Action definition](action-definition.md), [Placeholders](placeholders.md), [Running actions](running-actions.md).

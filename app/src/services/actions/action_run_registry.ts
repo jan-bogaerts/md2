@@ -4,6 +4,7 @@ import type { ActionDefinition } from '../../data/action_types'
 import type { AgentConversation, AgentConversationEntry, AgentConversationEventEntry } from '../../data/data_types'
 import type {
     ActionQueuedPrompt,
+    ActionForEachProgress,
     AgentApproval,
     AgentApprovalDecision,
     AgentApprovalRequestId,
@@ -50,6 +51,8 @@ export interface PendingActionSubmission {
 interface SubmissionOwner {
     actionId: string;
     context: ActionContext;
+    /** True after a deferred prompt moved from its finalizing run to the successor run of the same conversation. */
+    continuation: boolean;
     conversationId: string | null;
     runId: string | null;
 }
@@ -70,6 +73,7 @@ export interface ActionRun {
     /** Null before the agent closes; false means the terminal conversation differs from its activity file. */
     conversationPersisted: boolean | null
     diagramPath: string | null
+    forEachProgress: ActionForEachProgress | null
     conversation: AgentConversation | null
     conversationChange: ActionConversationChange | null
     context: ActionContext
@@ -132,6 +136,16 @@ function applyTerminalCardChangedFiles(context: ActionContext, changedPaths: str
         getService<DataService>('dataService').cards.addCardChangedFiles(context.cardInternalId, context.file, changedPaths)
     } catch (error) {
         dialogService.error(error, { fallbackMessage: `Changed files update failed: ${context.file}` })
+    }
+}
+
+function queueTerminalActivity(activityPath: string | undefined) {
+    if (!activityPath) return
+
+    try {
+        getService<DataService>('dataService').scheduleRepositoryPathCommit(activityPath, 'Record action activity')
+    } catch (error) {
+        dialogService.error(error, { fallbackMessage: `Action activity could not be queued: ${activityPath}` })
     }
 }
 
@@ -340,6 +354,13 @@ export async function cancelActionRun(runId: string) {
     await bridge.cancelActionRun(runId)
 }
 
+export async function advanceActionForEachRecord(runId: string) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.advanceActionForEachRecord) throw new Error('Advancing step-by-step for-each requires Electron')
+
+    await bridge.advanceActionForEachRecord(runId)
+}
+
 export async function sendActionMessage(runId: string, content: string) {
     const bridge = getElectronActionBridge()
     if (!bridge?.sendActionMessage) throw new Error('Streaming agent messaging requires Electron')
@@ -529,7 +550,7 @@ export class ActionRunRegistry extends EventTarget {
         this.start();
         const id = `submission-${generateUuid()}`;
         const submission: PendingActionSubmission = { content, id, prompt: null, state: 'transmitting' };
-        this.submissionOwners.set(id, { actionId, context, conversationId, runId });
+        this.submissionOwners.set(id, { actionId, context, continuation: false, conversationId, runId });
         this.publishSubmissions(actionId, context, [...this.getSubmissions(actionId, context), submission]);
         return id;
     }
@@ -567,7 +588,7 @@ export class ActionRunRegistry extends EventTarget {
         }
     }
 
-    failSubmission(id: string, error: string) {
+    failSubmission(id: string, error: string, notify = true) {
         const owner = this.submissionOwners.get(id);
         if (!owner) return;
         const submissions = this.getSubmissions(owner.actionId, owner.context);
@@ -575,10 +596,10 @@ export class ActionRunRegistry extends EventTarget {
         if (!current || current.state === 'failed') return;
         this.publishSubmissions(owner.actionId, owner.context, submissions.map((submission) => (
             submission.id === id ? { ...submission, error, state: 'failed' } : submission
-        )));
+        )), notify);
     }
 
-    private acceptSubmission(id: string, prompt: ActionQueuedPrompt) {
+    private acceptSubmission(id: string, prompt: ActionQueuedPrompt, notify = true) {
         const owner = this.submissionOwners.get(id);
         // The user-message event can acknowledge sending before the queue request returns.
         if (!owner) return;
@@ -588,7 +609,27 @@ export class ActionRunRegistry extends EventTarget {
         if (prompt.id !== id) throw new Error(`Queued prompt ID does not match submitted message ID: ${id}`);
         this.publishSubmissions(owner.actionId, owner.context, submissions.map((submission) => (
             submission.id === id ? { ...submission, prompt, state: 'queued' } : submission
-        )));
+        )), notify);
+    }
+
+    private markSubmissionDispatched(id: string, notify: boolean) {
+        const owner = this.submissionOwners.get(id);
+        if (!owner) return;
+        const submissions = this.getSubmissions(owner.actionId, owner.context);
+        const current = submissions.find((submission) => submission.id === id);
+        if (!current?.prompt || current.state !== 'queued') return;
+        const prompt: ActionQueuedPrompt = { ...current.prompt, dispatchState: 'dispatching' };
+        this.publishSubmissions(owner.actionId, owner.context, submissions.map((submission) => (
+            submission.id === id ? { ...submission, prompt } : submission
+        )), notify);
+    }
+
+    /** A deferred prompt outlives its finalizing run; the backend continues its conversation in a successor run. */
+    private isDeferredContinuation(id: string) {
+        const owner = this.submissionOwners.get(id);
+        if (!owner) return false;
+        const submission = this.getSubmissions(owner.actionId, owner.context).find((current) => current.id === id);
+        return submission?.state === 'queued' && submission.prompt?.dispatchState === 'deferred';
     }
 
     private bindSubmission(id: string, runId: string) {
@@ -604,55 +645,72 @@ export class ActionRunRegistry extends EventTarget {
         }
     }
 
-    private removeSubmission(id: string) {
+    private removeSubmission(id: string, notify = true) {
         const owner = this.submissionOwners.get(id);
         if (!owner) return;
         this.submissionOwners.delete(id);
         const submissions = this.getSubmissions(owner.actionId, owner.context).filter((submission) => submission.id !== id);
-        this.publishSubmissions(owner.actionId, owner.context, submissions);
+        this.publishSubmissions(owner.actionId, owner.context, submissions, notify);
     }
 
-    private publishSubmissions(actionId: string, context: ActionContext, submissions: PendingActionSubmission[]) {
+    private publishSubmissions(
+        actionId: string,
+        context: ActionContext,
+        submissions: PendingActionSubmission[],
+        notify = true,
+    ) {
         const key = actionContextKey(actionId, context);
         if (submissions.length > 0) this.submissions.set(key, submissions);
         else this.submissions.delete(key);
-        this.dispatchEvent(new Event(submissionsEventType(actionId, context)));
+        if (notify) this.dispatchEvent(new Event(submissionsEventType(actionId, context)));
     }
 
-    private reconcileSubmissions(event: ActionRunEvent) {
+    private reconcileSubmissions(event: ActionRunEvent, notify = true) {
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
             const { conversation, continued } = event.update;
             let matched = false;
             for (const [id, owner] of [...this.submissionOwners]) {
                 if (owner.actionId !== event.actionId || contextKey(owner.context) !== contextKey(event.context)) continue;
                 if (owner.runId !== event.runId && !(owner.runId === null && owner.conversationId === conversation.id)) continue;
+                if (owner.continuation && owner.conversationId !== conversation.id) {
+                    this.failSubmission(id, 'Conversation changed before the queued prompt was sent');
+                    continue;
+                }
                 this.submissionOwners.set(id, { ...owner, conversationId: conversation.id, runId: event.runId });
                 matched = true;
             }
             if (matched && !continued) actionPromptDraftService.attachNewConversation(event.actionId, event.context, conversation.id);
-            if (matched) this.dispatchEvent(new Event(submissionsEventType(event.actionId, event.context)));
+            if (matched && notify) this.dispatchEvent(new Event(submissionsEventType(event.actionId, event.context)));
         }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
             for (const [id, owner] of [...this.submissionOwners]) {
-                if (owner.runId === event.runId) this.failSubmission(id, 'Run ended before the prompt was sent');
+                if (owner.runId !== event.runId || this.isDeferredContinuation(id)) continue;
+                this.failSubmission(id, 'Run ended before the prompt was sent', notify);
             }
         }
         if (event.type !== 'update') return;
         const update = event.update;
         const id = update.kind === 'agentUserMessage' ? update.userMessage.id
             : update.kind === 'agentPromptQueued' ? update.entry.id
-                : update.kind === 'agentPromptDeleted' || update.kind === 'agentPromptDiscarded' ? update.promptId : null;
+                : update.kind === 'agentPromptDeleted' || update.kind === 'agentPromptDiscarded'
+                    || update.kind === 'agentPromptDispatched' ? update.promptId : null;
         if (!id) return;
         const owner = this.submissionOwners.get(id);
         if (!owner || owner.actionId !== event.actionId || contextKey(owner.context) !== contextKey(event.context)) return;
-        if (owner.runId !== null && owner.runId !== event.runId) return;
+        const successorRun = owner.runId !== null && owner.runId !== event.runId;
+        if (successorRun && (update.kind !== 'agentPromptQueued' || !this.isDeferredContinuation(id))) return;
         const submission = this.getSubmissions(owner.actionId, owner.context).find((current) => current.id === id);
         if (!submission || submission.state === 'failed') return;
+        const continuation = owner.continuation || successorRun;
+        // Observers of a continued submission may still be bound to its predecessor run, so they are notified directly.
+        const notifyOwner = notify || continuation;
         if (update.kind === 'agentPromptQueued') {
-            this.submissionOwners.set(id, { ...owner, runId: event.runId });
-            this.acceptSubmission(id, update.entry);
+            this.submissionOwners.set(id, { ...owner, continuation, runId: event.runId });
+            this.acceptSubmission(id, update.entry, notifyOwner);
+        } else if (update.kind === 'agentPromptDispatched') {
+            this.markSubmissionDispatched(id, notifyOwner);
         } else {
-            this.removeSubmission(id);
+            this.removeSubmission(id, notifyOwner);
         }
     }
 
@@ -895,6 +953,7 @@ export class ActionRunRegistry extends EventTarget {
     }
 
     private completeRecoveredRun(result: ActionRunRecoveryTerminalResult) {
+        queueTerminalActivity(result.activityPath)
         actionVersionRequestService.remove(result.runId)
         const store = this.runs.get(result.runId)
         const context = store?.getSnapshot().context ?? this.runContexts.get(result.runId) ?? null
@@ -935,6 +994,7 @@ export class ActionRunRegistry extends EventTarget {
                 approvals: [],
                 changedPaths: result.changedPaths,
                 diagramPath: result.diagramPath ?? null,
+                forEachProgress: result.status === 'cancelled' ? current.forEachProgress : null,
                 conversation,
                 interactionReady: false,
                 logs,
@@ -948,7 +1008,8 @@ export class ActionRunRegistry extends EventTarget {
         }
 
         for (const [id, owner] of [...this.submissionOwners]) {
-            if (owner.runId === result.runId) this.failSubmission(id, result.failure ?? 'Run ended before the prompt was sent');
+            if (owner.runId !== result.runId || this.isDeferredContinuation(id)) continue;
+            this.failSubmission(id, result.failure ?? 'Run ended before the prompt was sent');
         }
         const waiters = this.waiters.get(result.runId)
         this.waiters.delete(result.runId)
@@ -977,6 +1038,11 @@ export class ActionRunRegistry extends EventTarget {
             this.dispatchEvent(new CustomEvent('compactRequest', { detail: event }));
             return;
         }
+        // Published after the predecessor run ended, so it changes only the submission, never a run store.
+        if (event.type === 'update' && event.update.kind === 'agentContinuationFailed') {
+            this.failSubmission(event.update.promptId, event.update.message);
+            return;
+        }
         const currentStatus = this.runs.get(event.runId)?.getSnapshot().status
         if (
             currentStatus
@@ -999,6 +1065,7 @@ export class ActionRunRegistry extends EventTarget {
             changedPaths: [],
             conversationPersisted: null,
             diagramPath: null,
+            forEachProgress: null,
             conversation: null,
             conversationChange: null,
             approvals: [],
@@ -1013,7 +1080,9 @@ export class ActionRunRegistry extends EventTarget {
             status: 'running' as const,
         }
         let next = { ...current, context: event.context, rootActionId: event.rootActionId }
-        if (event.type === 'update') next = { ...next, status: event.status }
+        if (event.type === 'update' && !TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
+            next = { ...next, status: event.status }
+        }
         if (event.type === 'inputRequest') next = { ...next, status: 'waitingForInput' }
         if (event.type === 'run') {
             next = {
@@ -1024,7 +1093,14 @@ export class ActionRunRegistry extends EventTarget {
             }
         }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
-            next = { ...next, approvals: [], question: null, queuedPrompts: [] }
+            queueTerminalActivity(event.activityPath)
+            next = {
+                ...next,
+                approvals: [],
+                forEachProgress: event.status === 'cancelled' ? next.forEachProgress : null,
+                question: null,
+                queuedPrompts: [],
+            }
             actionPromptDraftService.flushContextDrafts(next.rootActionId, next.context)
         }
         if (event.type === 'agentState') next = { ...next, status: event.status }
@@ -1113,6 +1189,15 @@ export class ActionRunRegistry extends EventTarget {
                 ...next,
                 conversation: { ...next.conversation, taskList: event.update.taskList },
                 conversationChange: { kind: 'taskList' },
+            }
+        }
+        if (event.type === 'update' && event.update.kind === 'forEachProgress') {
+            next = {
+                ...next,
+                forEachProgress: {
+                    processedCount: event.update.processedCount,
+                    totalCount: event.update.totalCount,
+                },
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentPromptQueued') {
@@ -1250,6 +1335,8 @@ export class ActionRunRegistry extends EventTarget {
                 logs: updateOutputLogs(next.logs, event, event.update),
             }
         }
+        // Run observers read submissions while handling this store update. Reconcile first, then publish once.
+        this.reconcileSubmissions(event, false);
         const nextStore = store ?? new ActionRunStore(next, (releasedStore) => this.handleStoreReleased(releasedStore))
         if (!store) {
             this.runs.set(event.runId, nextStore)
@@ -1268,7 +1355,6 @@ export class ActionRunRegistry extends EventTarget {
             }
         }
 
-        this.reconcileSubmissions(event);
         this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
         this.publishScopedEvents(event)
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {

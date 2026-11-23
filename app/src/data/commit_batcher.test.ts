@@ -17,13 +17,115 @@ function createBatcher(
     delayMs = 30000,
     requireCardByInternalId: (internalId: string) => Card = () => { throw new Error('Unexpected card lookup') },
     writeFiles: WriteCallback = vi.fn(async () => undefined),
+    isLocalOnlyPath: (path: string) => boolean = () => false,
 ) {
-    const cardOperations = { commitFiles: commit, pushCommittedFiles: push, requireCardByInternalId, writeFiles }
+    const cardOperations = { commitFiles: commit, isLocalOnlyPath, pushCommittedFiles: push, requireCardByInternalId, writeFiles }
 
     return new CommitBatcher(cardOperations, () => delayMs)
 }
 
+function isDesignPath(path: string) {
+    return path.startsWith('design/')
+}
+
 describe('CommitBatcher', () => {
+    it('rejects one write and move with the same normalized target before committing', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const writeFiles = vi.fn<WriteCallback>(async () => undefined)
+        const batcher = createBatcher(commit, undefined, undefined, undefined, writeFiles)
+        batcher.schedule('main', [
+            { content: 'file', kind: 'file', path: 'design\\shared.md' },
+            { actionId: 'review', content: 'action', kind: 'action', path: 'design/shared.md', sourcePath: 'design/source.md' },
+        ], 'Conflicting targets')
+
+        await expect(batcher.flush()).rejects.toThrow('Duplicate persistence target path: design/shared.md')
+
+        expect(commit).not.toHaveBeenCalled()
+        expect(writeFiles).not.toHaveBeenCalled()
+        expect(batcher.describePendingChanges()).toHaveLength(2)
+    })
+
+    it('rejects two moves with the same target before writing pending files', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const writeFiles = vi.fn<WriteCallback>(async () => undefined)
+        const batcher = createBatcher(commit, undefined, undefined, undefined, writeFiles)
+        batcher.schedule('main', [
+            { actionId: 'review', content: 'action', kind: 'action', path: 'actions/shared.json', sourcePath: 'actions/review.json' },
+            { content: 'diagram', diagramId: 'diagram', kind: 'diagram', path: 'actions/shared.json', sourcePath: 'diagrams/source.json' },
+        ], 'Conflicting moves')
+
+        await expect(batcher.writePending()).rejects.toThrow('Duplicate persistence target path: actions/shared.json')
+
+        expect(commit).not.toHaveBeenCalled()
+        expect(writeFiles).not.toHaveBeenCalled()
+        expect(batcher.describePendingChanges()).toHaveLength(2)
+    })
+
+    it('writes a batch kept entirely in a local-only project folder without committing or pushing it', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const push = vi.fn<PushCallback>(async () => undefined)
+        const writeFiles = vi.fn<WriteCallback>(async () => undefined)
+        const persisted = vi.fn()
+        const throwOnCardLookup = () => { throw new Error('Unexpected card lookup') }
+        const batcher = createBatcher(commit, push, 30000, throwOnCardLookup, writeFiles, isDesignPath)
+        batcher.schedule('main', [
+            { content: 'card', kind: 'file', onPersisted: persisted, path: 'design/active/card.md' },
+            { content: 'action', actionId: 'review', kind: 'action', path: 'design/actions/review.json', sourcePath: 'design/actions/new.json' },
+        ], 'Update design')
+
+        await batcher.flush()
+
+        expect(commit).not.toHaveBeenCalled()
+        expect(push).not.toHaveBeenCalled()
+        expect(writeFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content: 'card', path: 'design/active/card.md' }],
+            moves: [{ content: 'action', fromPath: 'design/actions/new.json', toPath: 'design/actions/review.json' }],
+        })
+        expect(persisted).toHaveBeenCalledOnce()
+        expect(batcher.hasPending()).toBe(false)
+    })
+
+    it('writes local-only changes and commits only changes outside the local-only project folder', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const push = vi.fn<PushCallback>(async () => undefined)
+        const writeFiles = vi.fn<WriteCallback>(async () => undefined)
+        const throwOnCardLookup = () => { throw new Error('Unexpected card lookup') }
+        const batcher = createBatcher(commit, push, 30000, throwOnCardLookup, writeFiles, isDesignPath)
+        batcher.schedule('main', [
+            { content: 'card', kind: 'file', path: 'design/active/card.md' },
+            { content: 'readme', kind: 'file', path: 'README.md' },
+        ], 'Update files')
+
+        await batcher.flush()
+
+        expect(writeFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content: 'card', path: 'design/active/card.md' }],
+        })
+        expect(commit).toHaveBeenCalledOnce()
+        expect(commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content: 'readme', path: 'README.md' }],
+            message: 'Update files',
+        })
+        expect(push).toHaveBeenCalledOnce()
+        expect(push).toHaveBeenCalledWith(commit.mock.calls[0][0])
+    })
+
+    it('keeps a failed local-only write pending', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const writeFiles = vi.fn<WriteCallback>(async () => { throw new Error('disk full') })
+        const throwOnCardLookup = () => { throw new Error('Unexpected card lookup') }
+        const batcher = createBatcher(commit, vi.fn(async () => undefined), 30000, throwOnCardLookup, writeFiles, isDesignPath)
+        batcher.schedule('main', [{ content: 'card', kind: 'file', path: 'design/active/card.md' }], 'Update card')
+
+        await expect(batcher.flush()).rejects.toThrow('disk full')
+
+        expect(commit).not.toHaveBeenCalled()
+        expect(batcher.hasPendingFile('design/active/card.md')).toBe(true)
+    })
+
     it('batches renamed diagram JSON and index under stable diagram identity', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const persisted = vi.fn()
@@ -497,24 +599,24 @@ describe('CommitBatcher', () => {
         expect(commit.mock.calls[1][0].files).toEqual([{ content: 'new', path: 'actions/review.json' }])
     })
 
-    it('separates card, action, and generic file keys even when identity text and paths collide', async () => {
-        const card = { header: { status: 'ready' }, path: 'shared' } as Card
-        const serializeCard = vi.spyOn(markdownParsingService, 'serializeCard').mockReturnValue({ content: 'card', path: 'shared' })
+    it('separates card, action, and generic file keys when identity text collides', async () => {
+        const card = { header: { status: 'ready' }, path: 'cards/shared.md' } as Card
+        const serializeCard = vi.spyOn(markdownParsingService, 'serializeCard').mockReturnValue({ content: 'card', path: 'cards/shared.md' })
         const acknowledgeCard = vi.spyOn(markdownParsingService, 'acknowledgeSerializedCard').mockImplementation(() => undefined)
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = createBatcher(commit, undefined, undefined, () => card)
 
         batcher.schedule('main', [
-            { cardInternalId: 'shared', kind: 'card', path: 'shared' },
-            { actionId: 'shared', content: 'action', kind: 'action', path: 'shared', sourcePath: 'shared' },
-            { content: 'file', kind: 'file', path: 'shared' },
+            { cardInternalId: 'shared', kind: 'card', path: 'cards/shared.md' },
+            { actionId: 'shared', content: 'action', kind: 'action', path: 'actions/shared.json', sourcePath: 'actions/shared.json' },
+            { content: 'file', kind: 'file', path: 'notes/shared.md' },
         ], 'Update shared identities')
         await batcher.flush()
 
         expect(commit.mock.calls[0][0].files).toEqual([
-            { content: 'card', path: 'shared' },
-            { content: 'action', path: 'shared' },
-            { content: 'file', path: 'shared' },
+            { content: 'card', path: 'cards/shared.md' },
+            { content: 'action', path: 'actions/shared.json' },
+            { content: 'file', path: 'notes/shared.md' },
         ])
         serializeCard.mockRestore()
         acknowledgeCard.mockRestore()

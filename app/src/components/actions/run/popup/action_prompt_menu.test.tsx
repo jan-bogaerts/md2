@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentConversation } from '../../../../data/data_types';
 import type { ActionContext } from '../../../../data/action_context';
-import type { ActionCompactRequest, ActionCompactState, ActionRunEvent } from '../../../../data/action_run_types';
+import type { ActionCompactRequest, ActionCompactState, ActionForEachConfig, ActionRunEvent } from '../../../../data/action_run_types';
 import { generateUuid } from '../../../../data/uuid';
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge';
 import { ActionPromptDraft } from '../../../../services/actions/action_prompt_draft_service';
@@ -80,7 +80,10 @@ describe('ActionPromptMenu', () => {
         await user.upload(screen.getByLabelText('For-each JSON'), new File(['[{"name":"first"}]'], 'records.json', { type: 'application/json' }));
 
         expect(inputStore.getSnapshot().forEachByAction.review)
-            .toEqual({failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [{ name: 'first' }]});
+            .toEqual({
+                failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', recordsPerBatch: 1,
+                startIndex: 0, stepByStep: false, value: [{ name: 'first' }],
+            });
 
         await user.upload(screen.getByLabelText('For-each JSON'), new File(['{broken'], 'broken.json', { type: 'application/json' }));
         expect(inputStore.getSnapshot().forEachByAction.review?.fileName).toBe('records.json');
@@ -91,11 +94,55 @@ describe('ActionPromptMenu', () => {
         const { conversationStore } = renderMenu();
         conversationStore.updateConversation({
             ...conversation(),
-            forEach: { failurePolicy: 'stopOnFirstFailure', fileName: 'saved.json', mode: 'compact', value: { id: 1 } },
+            forEach: {
+                failurePolicy: 'stopOnFirstFailure', fileName: 'saved.json', mode: 'compact', recordsPerBatch: 3,
+                startIndex: 2, stepByStep: false, value: { id: 1 },
+            },
         });
 
         expect(await screen.findByRole('button', { name: 'For each: saved.json' })).toBeInTheDocument();
     });
+
+    it('saves for-each setup to a new-conversation draft', async () => {
+        const user = userEvent.setup();
+        const { inputStore } = renderMenu(false);
+        await user.upload(screen.getByLabelText('For-each JSON'), new File(['{"items":[1,2]}'], 'records.json', { type: 'application/json' }));
+        await user.click(await screen.findByRole('button', { name: 'For each: records.json' }));
+        await user.click(await screen.findByRole('menuitem', { name: 'Setup' }));
+        await user.type(await screen.findByRole('textbox', { name: 'Path to list data' }), 'items');
+        await user.clear(screen.getByRole('spinbutton', { name: 'Start index' }));
+        await user.type(screen.getByRole('spinbutton', { name: 'Start index' }), '2');
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(inputStore.getSnapshot().forEachByAction.review?.dataPath).toBe('items'));
+        expect(inputStore.getSnapshot().forEachByAction.review?.startIndex).toBe(2);
+    });
+
+    it('persists for-each setup through the displayed conversation', async () => {
+        const forEach: ActionForEachConfig = {
+            failurePolicy: 'logAndContinue', fileName: 'saved.json', mode: 'addPrompt', recordsPerBatch: 1,
+            startIndex: 0, stepByStep: false, value: { items: [1] },
+        };
+        const updateActionConversationForEach = vi.fn(async (_reference: string, saved: ActionForEachConfig | null) => (
+            { ...conversation(), ...(saved ? { forEach: saved } : {}) }
+        ));
+        const bridge = { onActionRun: vi.fn(() => vi.fn()), updateActionConversationForEach } as unknown as ElectronActionBridge;
+        setActionBridgeOverride(bridge);
+        const user = userEvent.setup();
+        const { conversationStore } = renderMenu();
+        act(() => conversationStore.updateConversation({ ...conversation(), forEach }));
+        await user.click(await screen.findByRole('button', { name: 'For each: saved.json' }));
+        await user.click(await screen.findByRole('menuitem', { name: 'Setup' }));
+        await user.type(await screen.findByRole('textbox', { name: 'Path to list data' }), 'items');
+        await user.clear(screen.getByRole('spinbutton', { name: 'Start index' }));
+        await user.type(screen.getByRole('spinbutton', { name: 'Start index' }), '3');
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        const saved = { ...forEach, dataPath: 'items', startIndex: 3 };
+        await waitFor(() => expect(updateActionConversationForEach).toHaveBeenCalledWith('activity.json#conversation=conversation-1', saved));
+        await waitFor(() => expect(conversationStore.getSnapshot().selectedConversation?.forEach).toEqual(saved));
+    });
+
     it.each(['completed', 'failed'] as const)('disables Compact while running, then enables it after %s without a subline', async (state) => {
         const conversationId = generateUuid();
         const { conversationStore } = renderMenu(true, undefined, conversationId);
@@ -155,14 +202,9 @@ describe('ActionPromptMenu', () => {
 
     it('binds resumed saved conversation for later input without clearing its draft', async () => {
         let emit!: (event: ActionRunEvent) => void;
-        const compact = vi.fn(async (request: ActionCompactRequest): Promise<ActionCompactState> => {
-            emit({
-                actionId: 'review', actionType: 'agent', context, phase: 'main', rootActionId: 'review', runId: 'resumed-run',
-                status: 'waitingForInput', type: 'update',
-                update: { conversation: conversation('resumed-conversation'), kind: 'agentStarted', provider: 'codex' },
-            });
-            return { ...request, runId: 'resumed-run', state: 'running' };
-        });
+        const compact = vi.fn(async (request: ActionCompactRequest): Promise<ActionCompactState> => (
+            { ...request, runId: 'resumed-run', state: 'queued' }
+        ));
         const bridge = {
             compactActionConversation: compact,
             onActionRun: vi.fn((listener: (event: ActionRunEvent) => void) => { emit = listener; return vi.fn(); }),
@@ -173,7 +215,14 @@ describe('ActionPromptMenu', () => {
         await user.click(screen.getByRole('button', { name: 'Prompt menu' }));
         await user.click(screen.getByRole('menuitem', { name: 'Compact' }));
         await waitFor(() => expect(conversationStore.bindingStore.getSnapshot()).toBe('resumed-run'));
+        expect(conversationStore.getSnapshot().selectedConversation).toBeNull();
         expect(promptDraft.getSnapshot()).toBe('Keep draft and ![attachment](asset.png)');
+        act(() => emit({
+            actionId: 'review', actionType: 'agent', context, phase: 'main', rootActionId: 'review', runId: 'resumed-run',
+            status: 'waitingForInput', type: 'update',
+            update: { conversation: conversation('resumed-conversation'), kind: 'agentStarted', provider: 'codex' },
+        }));
+        expect(actionRunRegistry.getRunStore('resumed-run')?.getSnapshot().conversation?.id).toBe('resumed-conversation');
     });
 
     it('offers Compact before Add file and supports keyboard navigation and Escape dismissal', async () => {
@@ -237,9 +286,7 @@ describe('ActionPromptMenu', () => {
     });
 
     it('displays missing historical provider session without reporting an application error', async () => {
-        const displayError = vi.spyOn(dialogService, 'displayError').mockReturnValue({
-            critical: false, id: 2, message: 'Missing provider session for compact', severity: 'error', title: 'Error',
-        });
+        const displayError = vi.spyOn(dialogService, 'displayError').mockReturnValue({critical: false, id: 2, message: 'Missing provider session for compact', severity: 'error', title: 'Error'});
         const user = userEvent.setup();
         const { conversationStore } = renderMenu();
         conversationStore.updateConversation({ ...conversation(), providerSessions: [] });

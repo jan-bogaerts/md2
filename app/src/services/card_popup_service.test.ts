@@ -7,6 +7,7 @@ import { cardSequenceDraftService } from '../components/actions/run/sequence/car
 import { CardPopupService } from './card_popup_service'
 import { dialogService } from './dialog_service'
 import { MobileBackDismissService } from './mobile_back_dismiss_service'
+import { JsonDataDocument } from './json/json_data_document'
 
 class PopupDataService extends EventTarget {
     cards: Card[] = []
@@ -114,6 +115,32 @@ afterEach(async () => {
 })
 
 describe('CardPopupService', () => {
+    it('reuses and activates one JSON popup per project path', () => {
+        const { service } = createService()
+        const document = new JsonDataDocument('design/data.json', { value: 1 }, false)
+        service.openJsonData(document, anchor())
+        service.toggleCardDetails('card-1', anchor())
+        const jsonEntry = service.getSnapshot()[0]
+
+        const reopened = service.openJsonData(document, anchor())
+
+        expect(reopened).toBe(jsonEntry)
+        expect(service.getSnapshot()).toHaveLength(2)
+        expect(service.getSnapshot().at(-1)).toBe(jsonEntry)
+    })
+
+    it('closes JSON popups for an invalidated document', () => {
+        const { service } = createService()
+        const document = new JsonDataDocument('design/data.json', { value: 1 }, false)
+        service.openJsonData(document, anchor())
+        service.toggleCardDetails('card-1', anchor())
+
+        service.closeJsonDataDocument(document)
+
+        expect(service.getSnapshot()).toHaveLength(1)
+        expect(service.getSnapshot()[0].kind).toBe('card-details')
+    })
+
     it('keeps mixed popup kinds in one activation order without replacing entries', () => {
         const { service } = createService()
         service.toggleAction(actionContext('card-1'), anchor())

@@ -4,11 +4,13 @@ import { FolderOpen } from 'mdi-material-ui'
 import type { MouseEvent, SyntheticEvent } from 'react'
 import { DEFAULT_PROJECT_CONFIG } from '../../../data/data_types'
 import {
+    offersProjectFolderGitInclusion,
     resolvedSetupFolders,
     type ProjectFolderSetupResolution,
     type ProjectFolderValues,
 } from '../../../services/project/project_session_service'
 import { ConfigSubsection } from '../../config/config_subsection'
+import { ProjectFolderGitInclusionCheckbox } from './project_folder_git_inclusion_checkbox'
 
 type FolderField = keyof ProjectFolderValues
 type FolderGroup = 'current' | 'history' | 'root'
@@ -238,6 +240,9 @@ export function ProjectFolderSetupFields(props: ProjectFolderSetupFieldsProps) {
             {FOLDER_GROUPS.map(({ description, group, id, title }) => (
                 <ConfigSubsection description={description} id={id} key={group} label={title}>
                     {FOLDER_FIELDS.filter((descriptor) => descriptor.group === group).map(renderFolderRow)}
+                    {group === 'root' && offersProjectFolderGitInclusion(resolution) ? (
+                        <ProjectFolderGitInclusionCheckbox disabled={isLoading} />
+                    ) : null}
                 </ConfigSubsection>
             ))}
         </Stack>

@@ -6,6 +6,7 @@ import { ProjectPersistenceService } from './project_persistence_service'
 import { ACTION_PERSISTENCE_CHANGED_EVENT } from '../actions/action_service_events'
 import { registerMarkdownEditorStage } from './markdown_editor_staging'
 import type { MarkdownFile } from '../../data/data_types'
+import { JsonDataDocument } from '../json/json_data_document'
 
 class TestActionService extends EventTarget {
     pendingDrafts = false
@@ -37,6 +38,11 @@ class TestDataService extends EventTarget {
     readonly scheduleFileCommit = vi.fn((_file: MarkdownFile, _message: string, saveReference?: OpenDocumentSaveReference) => {
         if (saveReference) this.saveReferences.push(saveReference)
         this.snapshot = { ...this.snapshot, hasPendingFileCommit: true }
+    })
+    readonly saveLocalJsonFile = vi.fn(async (_file: MarkdownFile, saveReference: OpenDocumentSaveReference) => {
+        this.snapshot = { ...this.snapshot, isSaving: true }
+        saveReference.acknowledge()
+        this.snapshot = { ...this.snapshot, isSaving: false }
     })
     readonly scheduleDiagramCommit = vi.fn((
         _diagramId: string,
@@ -189,6 +195,51 @@ describe('ProjectPersistenceService', () => {
             'Update AGENTS.md',
             expect.objectContaining({ document }),
         )
+        expect(document.dirty).toBe(false)
+    })
+
+    it('stages stable pretty-printed JSON and acknowledges it after persistence', async () => {
+        const { dataService, openFilesService, service } = initService()
+        const document = new JsonDataDocument('design/data.json', { value: 1 }, false)
+        document.setCurrentChild('value', 2)
+        openFilesService.documents = [document]
+
+        await service.flushPendingChanges()
+
+        expect(dataService.scheduleFileCommit).toHaveBeenCalledWith(
+            { content: '{\n  "value": 2\n}\n', path: 'design/data.json' },
+            'Update design/data.json',
+            expect.objectContaining({ document }),
+        )
+        expect(document.dirty).toBe(false)
+    })
+
+    it('keeps JSON dirty when its persistence batch fails', async () => {
+        const { dataService, openFilesService, service } = initService()
+        const document = new JsonDataDocument('design/data.json', { value: 1 }, false)
+        document.setCurrentChild('value', 2)
+        openFilesService.documents = [document]
+        dataService.cards.flushPendingCommits.mockRejectedValueOnce(new Error('disk full'))
+
+        await expect(service.flushPendingChanges()).rejects.toThrow('disk full')
+
+        expect(document.dirty).toBe(true)
+    })
+
+    it('saves an outside-repository JSON through tracked local persistence', async () => {
+        const { dataService, openFilesService, service } = initService()
+        const document = new JsonDataDocument('C:/shared/data.json', { value: 1 }, false, 'local')
+        document.setCurrentChild('value', 2)
+        openFilesService.documents = [document]
+
+        await service.flushPendingChanges()
+
+        expect(dataService.saveLocalJsonFile).toHaveBeenCalledWith(
+            { content: '{\n  "value": 2\n}\n', path: 'C:/shared/data.json' },
+            expect.objectContaining({ document }),
+        )
+        expect(dataService.scheduleFileCommit).not.toHaveBeenCalled()
+        expect(dataService.drainPendingStorageWrites).toHaveBeenCalledOnce()
         expect(document.dirty).toBe(false)
     })
 

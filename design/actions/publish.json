@@ -1,0 +1,11 @@
+{
+  "description": "create new release on github and upload exe",
+  "id": "8defd290-97ce-4caf-ad94-a25efbb61798",
+  "label": "publish",
+  "phrases": [],
+  "type": "command",
+  "command": "powershell.exe -NoProfile -File \"C:\\Users\\janbo\\Documents\\dev\\md2\\scripts\\publish_release.ps1\"",
+  "appliesTo": {
+    "kind": "project"
+  }
+}

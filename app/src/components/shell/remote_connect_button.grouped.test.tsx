@@ -177,6 +177,7 @@ describe('RemoteConnectButton', () => {
             existingFolderPaths: [],
             folders: [],
             hasProjectConfig: true,
+            includeProjectFolderInGit: true,
             kind: 'project-folder-setup' as const,
             project: activeProject,
             storageType: 'remote' as const,

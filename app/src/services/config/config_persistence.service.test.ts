@@ -18,6 +18,7 @@ describe('config persistence', () => {
             agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: '', thinkingLevel: 'none' } } },
             agentAccounts: DEFAULT_AGENT_ACCOUNTS,
             agentProfiles: BUILTIN_AGENT_PROFILES,
+            diffViewType: 'split',
             editorCommand: 'code -g "{{file}}:{{line}}"',
             mergeConflictResolverCommand: '',
             remoteControlPort: 20877,

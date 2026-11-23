@@ -18,9 +18,13 @@ export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 export interface ActionForEachConfig {
-    failurePolicy: 'logAndContinue' | 'stopOnFirstFailure'
+    dataPath?: string
+    failurePolicy:'logAndContinue' | 'stopOnFirstFailure'
     fileName: string
     mode: 'addPrompt' | 'compact' | 'newConversation'
+    recordsPerBatch: number
+    startIndex: number
+    stepByStep: boolean
     value: JsonValue
 }
 
@@ -56,7 +60,8 @@ export interface PreparedActionPrompt {
 
 export interface ActionQueuedPrompt {
     content: string
-    dispatchState: 'dispatching' | 'queued'
+    /** `deferred` prompts arrived while their run was finalizing; a successor run of the same conversation sends them. */
+    dispatchState: 'deferred' | 'dispatching' | 'queued'
     id: string
     revision: number
 }
@@ -152,6 +157,7 @@ export interface AgentApproval {
 interface ActionRunEventBase {
     actionId: string
     actionType?: ActionType
+    activityPath?: string
     autoFinish?: ActionAutoFinish | null
     changedPaths?: string[]
     context: ActionContext
@@ -163,6 +169,11 @@ interface ActionRunEventBase {
     rootActionId: string
     sequence?: number
     streaming?: boolean
+}
+
+export interface ActionForEachProgress {
+    processedCount: number
+    totalCount: number
 }
 
 export type ActionRunUpdate =
@@ -219,6 +230,9 @@ export type ActionRunUpdate =
         kind: 'agentTaskList'
         taskList: AgentTaskList
     }
+    | ActionForEachProgress & {
+        kind: 'forEachProgress'
+    }
     | {
         entry: ActionQueuedPrompt
         kind: 'agentPromptQueued' | 'agentPromptEdited'
@@ -227,6 +241,11 @@ export type ActionRunUpdate =
         kind: 'agentPromptDeleted' | 'agentPromptDiscarded' | 'agentPromptDispatched'
         promptId: string
         revision: number
+    }
+    | {
+        kind: 'agentContinuationFailed'
+        message: string
+        promptId: string
     }
     | {
         command?: string

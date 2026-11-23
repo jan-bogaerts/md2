@@ -5,8 +5,12 @@ import { MarkdownDataSourceBase, type MarkdownBindingKind, type MarkdownDocument
 export class MarkdownReliabilityDataSourceFixture extends MarkdownDataSourceBase {
     private readonly values = new Map<CardOpenDocument, string>();
 
-    addDocument(markdown: string): MarkdownDocumentTarget {
-        const document = Object.assign(new EventTarget(), { kind: 'card' as const }) as CardOpenDocument;
+    addDocument(markdown: string, path = 'design/card.md', internalId: string | null = 'card-id'): MarkdownDocumentTarget {
+        const document = Object.assign(new EventTarget(), {
+            kind: 'card' as const,
+            path,
+            getObject: () => ({ header: { internalId }, path }),
+        }) as CardOpenDocument;
         this.values.set(document, markdown);
         return { document };
     }
@@ -18,7 +22,7 @@ export class MarkdownReliabilityDataSourceFixture extends MarkdownDataSourceBase
     }
 
     edit(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string) {
-        if (!this.getActiveTarget(binding)) throw new Error('Test binding is inactive');
+        if (binding !== 'list-card') throw new Error(`Unsupported test binding: ${binding}`);
         this.values.set(target.document as CardOpenDocument, markdown);
     }
 

@@ -4,6 +4,7 @@ import {
     Alert,
     Box,
     Button,
+    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
@@ -58,7 +59,7 @@ function isMatchingPopupAction(
 /** Global resolver for one desktop-owned paused Git conflict session. */
 export function MergeConflictDialog(props: MergeConflictDialogProps) {
     const service = props.service ?? mergeConflictService
-    const { busy, session } = useMergeConflict(service)
+    const { busy, continuing, session } = useMergeConflict(service)
     const [popupState, setPopupState] = useState<MergeConflictPopupState | null>(null)
     const actionState = useActions()
     const actions = (props.actions ?? actionState.actions).filter((action) => (
@@ -266,12 +267,27 @@ export function MergeConflictDialog(props: MergeConflictDialogProps) {
                             </Stack>
                         </>
                     ) : null}
-                    {paths.length === 0 ? <Alert severity="success">All conflict entries are staged. Continue when ready.</Alert> : null}
+                    {continuing ? (
+                        <Alert
+                            icon={<CircularProgress aria-label="Finishing integration" size={20} />}
+                            severity="info"
+                        >
+                            Finishing integration and updating project...
+                        </Alert>
+                    ) : null}
+                    {!continuing && paths.length === 0 ? <Alert severity="success">All conflict entries are staged. Continue when ready.</Alert> : null}
                 </Stack>
             </DialogContent>
             <DialogActions sx={{ borderTop: '1px solid', borderColor: 'divider', justifyContent: 'flex-end' }}>
                 <Button disabled={controlsDisabled} onClick={handleCancel} variant="outlined">Cancel</Button>
-                <Button disabled={controlsDisabled || paths.length > 0} onClick={handleContinue} variant="contained">Continue</Button>
+                <Button
+                    disabled={controlsDisabled || paths.length > 0}
+                    onClick={handleContinue}
+                    startIcon={continuing ? <CircularProgress aria-hidden="true" color="inherit" size={16} /> : undefined}
+                    variant="contained"
+                >
+                    {continuing ? 'Finishing...' : 'Continue'}
+                </Button>
             </DialogActions>
             {popup}
         </Dialog>

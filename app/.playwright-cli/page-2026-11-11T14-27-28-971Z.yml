@@ -1,0 +1,67 @@
+- region "JSON data editor" [ref=f5e3]:
+  - navigation "JSON path" [ref=f5e4]:
+    - list [ref=f5e5]:
+      - listitem [ref=f5e6]:
+        - button "performance.json" [ref=f5e7] [cursor=pointer]
+  - generic [ref=f5e9]:
+    - table "JSON array" [ref=f5e12]:
+      - rowgroup [ref=f5e13]:
+        - row [ref=f5e14]:
+          - columnheader "Select" [ref=f5e15]
+          - columnheader [ref=f5e16]:
+            - text: column1
+            - separator "Resize column1 column" [ref=f5e17]
+          - columnheader [ref=f5e18]:
+            - text: column2
+            - separator "Resize column2 column" [ref=f5e19]
+          - columnheader [ref=f5e20]:
+            - text: column3
+            - separator "Resize column3 column" [ref=f5e21]
+          - columnheader [ref=f5e22]:
+            - text: column4
+            - separator "Resize column4 column" [ref=f5e23]
+          - columnheader [ref=f5e24]:
+            - text: column5
+            - separator "Resize column5 column" [ref=f5e25]
+          - columnheader [ref=f5e26]:
+            - text: column6
+            - separator "Resize column6 column" [ref=f5e27]
+          - columnheader [ref=f5e28]:
+            - text: column7
+            - separator "Resize column7 column" [ref=f5e29]
+          - columnheader [ref=f5e30]:
+            - text: column8
+            - separator "Resize column8 column" [ref=f5e31]
+          - columnheader [ref=f5e32]:
+            - text: column9
+            - separator "Resize column9 column" [ref=f5e33]
+          - columnheader [ref=f5e34]:
+            - text: column10
+            - separator "Resize column10 column" [ref=f5e35]
+          - columnheader [ref=f5e36]:
+            - text: column11
+            - separator "Resize column11 column" [ref=f5e37]
+          - columnheader [ref=f5e38]:
+            - text: column12
+            - separator "Resize column12 column" [ref=f5e39]
+          - columnheader [ref=f5e40]:
+            - text: column13
+            - separator "Resize column13 column" [ref=f5e41]
+          - columnheader [ref=f5e42]:
+            - text: column14
+            - separator "Resize column14 column" [ref=f5e43]
+          - columnheader [ref=f5e44]:
+            - text: column15
+            - separator "Resize column15 column" [ref=f5e45]
+      - rowgroup
+    - toolbar "List actions" [ref=f5e46]:
+      - generic "Add" [ref=f5e47]:
+        - button "Add" [ref=f5e48] [cursor=pointer]
+      - generic "Delete" [ref=f5e51]:
+        - button "Delete" [disabled]
+      - generic "Copy" [ref=f5e52]:
+        - button "Copy" [disabled]
+      - generic "Cut" [ref=f5e53]:
+        - button "Cut" [disabled]
+      - generic "Paste" [ref=f5e54]:
+        - button "Paste" [ref=f5e55] [cursor=pointer]

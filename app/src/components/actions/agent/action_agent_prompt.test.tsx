@@ -1,4 +1,5 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../../../shared/action_errors.mjs'
 import { ActionInputSplitter } from '../run/popup/action_input_splitter';
 import { ActionLayoutSurface } from '../run/popup/action_layout_surface';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -7,15 +8,19 @@ import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { AgentConversation, AgentQuestion } from '../../../data/data_types'
+import type { ActionRun } from '../../../services/actions/action_run_registry'
 import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
+import { dialogService } from '../../../services/dialog_service'
 import type { MarkdownDraftBinding } from '../../../services/markdown/markdown_draft'
 import { createTestPopupRuntime } from '../../../test/action_popup_runtime_fixture'
 import type { ActionConversationStore } from '../conversation/state/action_conversation_store'
-import { dismissRestoredConversationQuestions, runPopupAction } from '../run/popup/action_popup_operations'
+import { currentActionRun, dismissRestoredConversationQuestions, runPopupAction } from '../run/popup/action_popup_operations'
 import type { ActionPopupRuntime } from '../run/popup/action_popup_types'
 
 const editorRender = vi.hoisted(() => vi.fn());
+const preparePrompt = vi.hoisted(() => vi.fn());
 const promptDraftState = vi.hoisted(() => ({ current: null as ActionPromptDraft | null }));
+const currentRunState = vi.hoisted(() => ({ current: undefined as ActionRun | null | undefined }));
 /** Called once per ActionAgentPrompt render through its run-settings hook. */
 const promptRender = vi.hoisted(() => vi.fn());
 
@@ -25,6 +30,9 @@ vi.mock('../run/popup/action_popup_operations', async (importOriginal) => {
     return {
         ...actual,
         answerRestoredConversationQuestions: vi.fn(async () => undefined),
+        currentActionRun: vi.fn((bindingStore) => currentRunState.current === undefined
+            ? actual.currentActionRun(bindingStore)
+            : currentRunState.current),
         currentActionPromptDraft: () => {
             if (!promptDraftState.current) throw new Error('Test prompt draft is not configured')
 
@@ -33,6 +41,12 @@ vi.mock('../run/popup/action_popup_operations', async (importOriginal) => {
         dismissRestoredConversationQuestions: vi.fn(async () => undefined),
         runPopupAction: vi.fn(async () => undefined),
     }
+})
+
+vi.mock('../run/popup/action_popup_defaults', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../run/popup/action_popup_defaults')>()
+
+    return { ...actual, defaultPreparePrompt: preparePrompt }
 })
 
 vi.mock('../shared/use_action_run_settings', () => ({
@@ -169,11 +183,12 @@ interface RenderPromptOptions {
     action?: ActionDefinition
     conversationStore?: TestConversationStore
     questionsEnabled?: boolean
+    runValidationError?: string | null
     withSurface?: boolean
 }
 
-function createRuntime(action: ActionDefinition, conversationStore: TestConversationStore) {
-    const overrides = { conversationStore: conversationStore as unknown as ActionConversationStore }
+function createRuntime(action: ActionDefinition, conversationStore: TestConversationStore, runValidationError: string | null) {
+    const overrides = { conversationStore: conversationStore as unknown as ActionConversationStore, runValidationError }
 
     return createTestPopupRuntime(action, context, overrides)
 }
@@ -195,20 +210,21 @@ function renderPrompt(promptDraft: ActionPromptDraft, options: RenderPromptOptio
         action = agentAction,
         conversationStore = new TestConversationStore({ loading: true, selectedConversation: null }),
         questionsEnabled = true,
+        runValidationError = null,
         withSurface = true,
     } = options
     promptDraftState.current = promptDraft
-    const runtime = createRuntime(action, conversationStore)
+    const runtime = createRuntime(action, conversationStore, runValidationError)
     const layoutStore = questionsEnabled ? runtime.agentLayoutStore : runtime.commandLayoutStore
     const prompt = promptElement(action, runtime, questionsEnabled)
-    render(withSurface ? (
+    const { rerender } = render(withSurface ? (
         <ActionLayoutSurface store={layoutStore}>
             <ActionInputSplitter store={layoutStore} />
             {prompt}
         </ActionLayoutSurface>
     ) : prompt)
 
-    return { conversationStore, runtime }
+    return { conversationStore, rerender, runtime }
 }
 
 function mockAvailablePromptHeight(height: number, questionsHeight = 96) {
@@ -230,12 +246,18 @@ function mockAvailablePromptHeight(height: number, questionsHeight = 96) {
     })
 }
 
-beforeEach(() => window.localStorage.clear())
+beforeEach(() => {
+    window.localStorage.clear()
+    preparePrompt.mockReset()
+    preparePrompt.mockResolvedValue({ prompt: 'Prepared prompt' })
+})
 
 afterEach(() => {
     cleanup()
     promptDraftState.current = null
+    currentRunState.current = undefined
     vi.restoreAllMocks()
+    vi.mocked(currentActionRun).mockClear()
     vi.mocked(runPopupAction).mockClear()
     vi.mocked(dismissRestoredConversationQuestions).mockClear()
 })
@@ -276,6 +298,67 @@ describe('ActionAgentPrompt', () => {
 
         expect(prompt).not.toHaveAttribute('readonly')
         expect(prompt).toHaveValue('Prepared prompt')
+    })
+
+    it('displays missing this-card preparation context without reporting it', async () => {
+        const error = new Error('Missing card context') as Error & { code: string }
+        error.code = MISSING_THIS_CARD_CONTEXT_ERROR
+        preparePrompt.mockRejectedValue(error)
+        const displayError = vi.spyOn(dialogService, 'displayError').mockImplementation(() => ({}) as never)
+        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as never)
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: null })
+
+        renderPrompt(new ActionPromptDraft('', true), { conversationStore })
+
+        await waitFor(() => expect(displayError).toHaveBeenCalledWith(
+            'Missing card context',
+            { fallbackMessage: 'Could not prepare action prompt' },
+        ))
+        expect(reportError).not.toHaveBeenCalled()
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('readonly')
+    })
+
+    it('reports unrelated prompt preparation failures', async () => {
+        const error = new Error('Preparation failed')
+        preparePrompt.mockRejectedValue(error)
+        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as never)
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: null })
+
+        renderPrompt(new ActionPromptDraft('', true), { conversationStore })
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(
+            error,
+            { fallbackMessage: 'Could not prepare action prompt' },
+        ))
+    })
+
+    it('does not prepare or report the prompt while the worktree assignment is invalid', async () => {
+        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as never)
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: null })
+        const runValidationError = 'Assigned worktree branch "feature" is unavailable. Select a worktree again.'
+
+        renderPrompt(new ActionPromptDraft('', true), { conversationStore, runValidationError, withSurface: false })
+        await act(async () => undefined)
+
+        expect(preparePrompt).not.toHaveBeenCalled()
+        expect(reportError).not.toHaveBeenCalled()
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('readonly')
+    })
+
+    it('prepares the prompt once the worktree assignment becomes valid', async () => {
+        const conversationStore = new TestConversationStore({ loading: false, selectedConversation: null })
+        const runValidationError = 'Assigned worktree branch "feature" is unavailable. Select a worktree again.'
+        const { rerender, runtime } = renderPrompt(
+            new ActionPromptDraft('', true),
+            { conversationStore, runValidationError, withSurface: false },
+        )
+        const validRuntime = { ...runtime, runValidationError: null }
+
+        rerender(promptElement(agentAction, validRuntime, true))
+
+        await waitFor(() => expect(screen.getByLabelText('Markdown prompt')).toHaveValue('Prepared prompt'))
+        expect(preparePrompt).toHaveBeenCalledOnce()
+        expect(screen.getByLabelText('Markdown prompt')).not.toHaveAttribute('readonly')
     })
 
     it('passes a card attachment handler to the hidden-toolbar agent prompt editor', () => {
@@ -339,6 +422,20 @@ describe('ActionAgentPrompt', () => {
         expect(runPopupAction).toHaveBeenCalledOnce()
         expect(promptDraft.getSnapshot()).toBe('Run this')
         expect(prompt).toHaveValue('Run this')
+    })
+
+    it('does not run an empty stale shortcut after an agent run becomes active before rerender', () => {
+        renderPrompt(new ActionPromptDraft('', false))
+        currentRunState.current = {
+            activeActionType: 'agent',
+            interactionReady: true,
+            status: 'running',
+        } as ActionRun
+
+        fireEvent.keyDown(screen.getByLabelText('Markdown prompt'), { ctrlKey: true, key: 'Enter' })
+
+        expect(currentActionRun).toHaveBeenCalledOnce()
+        expect(runPopupAction).not.toHaveBeenCalled()
     })
 
     it('does not run a command through Ctrl+Enter while its input is empty', () => {

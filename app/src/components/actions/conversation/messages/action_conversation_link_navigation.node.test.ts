@@ -12,6 +12,11 @@ import {
     resolveActionConversationLinkPath,
     resolveConversationRepositoryRoot,
 } from './action_conversation_link_navigation'
+import {
+    INVALID_LOCAL_FILE_LINK_ERROR,
+    LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR,
+    localFileLinkError,
+} from '../../../../../../shared/local_file_link_errors.mjs'
 
 const REPOSITORY_FILES = [
     'app/src/app.tsx',
@@ -41,7 +46,7 @@ function mockLoadedProject() {
         deleteBranchesAfterRelease: false,
         diagramFooter: 'Save to {{diagram-file}}.',
         diagramsFolder: 'design/diagrams',
-        diffCommand: '',
+        includeProjectFolderInGit: true,
         pinnedConversations: [],
         projectFolder: 'design',
         pushMode: 'manual',
@@ -146,6 +151,41 @@ describe('action conversation link navigation', () => {
         await openActionConversationLink('/C:/repo/app/src/app.tsx:33', null)
 
         expect(openInEditor).toHaveBeenCalledWith({ path: 'C:/repo/app/src/app.tsx:33', repositoryRoot: 'C:/repo' })
+    })
+
+    it('opens outside-repository files with the operating system when the editor path rejects them', async () => {
+        mockLoadedProject()
+        const openInEditor = vi.fn(async () => {
+            throw localFileLinkError(LOCAL_FILE_LINK_OUTSIDE_REPOSITORY_ERROR, 'Local file link points outside active repository and registered worktrees')
+        })
+        const openLocalFileWithSystem = vi.fn(async () => undefined)
+        setActionBridgeOverride({ openInEditor, openLocalFileWithSystem } as unknown as ElectronActionBridge)
+
+        await openActionConversationLink('../notes/todo.txt:4', null)
+
+        expect(openLocalFileWithSystem).toHaveBeenCalledWith({ path: '../notes/todo.txt:4', repositoryRoot: 'C:/repo' })
+    })
+
+    it('keeps other editor failures without operating system fallback', async () => {
+        mockLoadedProject()
+        const failure = localFileLinkError(INVALID_LOCAL_FILE_LINK_ERROR, 'Local file link target does not exist: C:/repo/missing.md')
+        const openInEditor = vi.fn(async () => {
+            throw failure
+        })
+        const openLocalFileWithSystem = vi.fn(async () => undefined)
+        setActionBridgeOverride({ openInEditor, openLocalFileWithSystem } as unknown as ElectronActionBridge)
+
+        await expect(openActionConversationLink('missing.md', null)).rejects.toBe(failure)
+        expect(openLocalFileWithSystem).not.toHaveBeenCalled()
+    })
+
+    it('reports malformed links as expected link validation errors', async () => {
+        mockLoadedProject()
+        const openInEditor = vi.fn(async () => undefined)
+        setActionBridgeOverride({ openInEditor } as unknown as ElectronActionBridge)
+
+        await expect(openActionConversationLink('design/%E0%A4%A.md', null)).rejects.toMatchObject({ code: INVALID_LOCAL_FILE_LINK_ERROR })
+        expect(openInEditor).not.toHaveBeenCalled()
     })
 
     it('uses current card worktree assignment on every click', async () => {

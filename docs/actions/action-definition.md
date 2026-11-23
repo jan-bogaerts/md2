@@ -41,6 +41,7 @@ One JSON file per action, stored in the project's actions folder. Edit them thro
 | `streaming` | no | Agent actions only. `true` keeps one live provider session across turns. |
 | `autoFinish` | no | Agent actions only, requires `streaming`. `{ "state": "<card state>" }` finishes when a card reaches that state. Diagram-output actions can use `{ "when": "diagram-created" }` to finish when the diagram is created. |
 | `agent` | no | Agent profile override. Required when `model` is set. |
+| `accountId` | no | Codex or Claude account override. Requires an explicit built-in `agent`; omitted means that agent's configured default, then its Initial account. |
 | `model` | no | Model override. Requires `agent`. |
 | `thinkingLevel` | no | `none`, `low`, `medium`, `high`, or `max`. Requires `agent` and `model`. |
 | `phrases` | no | Named snippets (`title` + `text`) offered as quick buttons while running the action. |
@@ -99,7 +100,8 @@ Definitions are validated when they load and again before they are saved. md² r
 - `streaming`, `autoFinish`, or `trackFileChanges` on a command action;
 - `autoFinish` without `streaming`, or an `autoFinish.state` that is not a configured column;
 - diagram output without diagram applicability, or a `diagram-created` auto-finish trigger without diagram output;
-- `model` without `agent`, `thinkingLevel` without both;
+- `accountId` or `model` without `agent`, `thinkingLevel` without both;
+- an account that does not belong to the selected built-in agent;
 - an unknown agent profile or a model the profile does not list;
 - an invalid regular expression in an `on` condition;
 - an unknown action id in `onBefore`, `on`, or `onAfter`;

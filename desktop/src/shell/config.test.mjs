@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url);
 const {
     DEFAULT_AGENT_TASK_TRACKING_ENABLED,
     DEFAULT_CODEX_SEARCH_ENABLED,
+    DEFAULT_DIFF_VIEW_TYPE,
     DEFAULT_DESKTOP_AGENT_SELECTION,
     DEFAULT_EDITOR_COMMAND,
     DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
@@ -51,6 +52,7 @@ describe('resolveDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['codex'], name: 'codex' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            diffViewType: DEFAULT_DIFF_VIEW_TYPE,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
@@ -64,6 +66,7 @@ describe('resolveDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['custom-codex'], name: 'codex' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            diffViewType: DEFAULT_DIFF_VIEW_TYPE,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
@@ -81,6 +84,7 @@ describe('readDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            diffViewType: DEFAULT_DIFF_VIEW_TYPE,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
@@ -96,6 +100,7 @@ describe('readDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            diffViewType: DEFAULT_DIFF_VIEW_TYPE,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
@@ -144,6 +149,7 @@ describe('readDesktopConfig', () => {
             ]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            diffViewType: DEFAULT_DIFF_VIEW_TYPE,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
@@ -203,6 +209,7 @@ describe('writeDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            diffViewType: DEFAULT_DIFF_VIEW_TYPE,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
@@ -221,6 +228,7 @@ describe('writeDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             agentTaskTrackingEnabled: DEFAULT_AGENT_TASK_TRACKING_ENABLED,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
+            diffViewType: DEFAULT_DIFF_VIEW_TYPE,
             editorCommand: DEFAULT_EDITOR_COMMAND,
             mergeConflictResolverCommand: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,
             remoteControlPort: DEFAULT_REMOTE_CONTROL_PORT,
@@ -233,6 +241,14 @@ describe('writeDesktopConfig', () => {
         writeDesktopConfig(store, { codexSearchEnabled: false });
 
         expect(readDesktopConfig(store, {})).toMatchObject({ codexSearchEnabled: false });
+    });
+
+    it('persists the application-wide diff view', () => {
+        const store = createFakeStore();
+
+        writeDesktopConfig(store, { diffViewType: 'unified' });
+
+        expect(readDesktopConfig(store, {})).toMatchObject({ diffViewType: 'unified' });
     });
 
     it('persists enabled agent task tracking', () => {
@@ -291,6 +307,7 @@ describe('saveDesktopConfig', () => {
         agentProfiles: [{ command: ['custom-agent'], defaultThinkingLevel: 'none', monthlySubscriptionCostUsd: 100, models: ['custom-model'], name: 'custom' }],
         agentTaskTrackingEnabled: false,
         codexSearchEnabled: false,
+        diffViewType: 'unified',
         editorCommand: 'code "{{file}}"',
         mergeConflictResolverCommand: '',
         remoteControlPort: 20877,
@@ -349,6 +366,7 @@ describe('saveDesktopConfig', () => {
         ['missing task tracking', { ...validConfig, agentTaskTrackingEnabled: undefined }, 'Missing config field: desktop.agentTaskTrackingEnabled'],
         ['invalid task tracking', { ...validConfig, agentTaskTrackingEnabled: 'yes' }, 'Missing config field: desktop.agentTaskTrackingEnabled'],
         ['web search', { ...validConfig, codexSearchEnabled: 'yes' }, 'Missing config field: desktop.codexSearchEnabled'],
+        ['diff view', { ...validConfig, diffViewType: 'columns' }, 'must be split or unified'],
         ['editor command', { ...validConfig, editorCommand: 'code file.txt' }, 'requires {{file}} placeholder'],
         ['merge command', { ...validConfig, mergeConflictResolverCommand: 'merge file.txt' }, 'requires {{file}} placeholder'],
         ['model', { ...validConfig, agentSelection: selection('custom', null, 'high', 'full-access') }, 'model'],

@@ -171,17 +171,34 @@ describe('compact scheduling', () => {
             resolve: vi.fn(async () => ({ runProject: project })),
             runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
         };
-        run.localGitService = { appendAndCommitActionActivity: vi.fn() };
+        run.localGitService = { appendActionActivity: vi.fn() };
         run.rootAction = { ...action, onBefore: [{ type: 'command' }], onAfter: [{ type: 'command' }] };
         await expect(run.run()).resolves.toMatchObject({ status: 'completed' });
         expect(run.agentExecutor.execute).toHaveBeenCalledTimes(1);
         expect(run.agentExecutor.execute.mock.calls[0][0].compactOnly).toBe(true);
-        expect(run.localGitService.appendAndCommitActionActivity).not.toHaveBeenCalled();
+        expect(run.localGitService.appendActionActivity).not.toHaveBeenCalled();
         expect(service.compact).toHaveBeenCalledTimes(1);
     });
 });
 
 describe('compact captured targets', () => {
+    it('returns saved-session run identity before compact queue state is published', async () => {
+        const { runner } = runnerHarness();
+        runner.runs.clear();
+        const start = vi.spyOn(runner, 'start').mockImplementation(async (_request, options) => options.runId);
+
+        const accepted = await runner.compactConversation(request);
+
+        expect(accepted).toMatchObject({ ...request, runId: expect.any(String), state: 'queued' });
+        expect(start).toHaveBeenCalledWith(
+            expect.objectContaining({ runInput: expect.objectContaining({ conversationId: request.conversationId }) }),
+            expect.objectContaining({
+                compactTarget: expect.objectContaining({ runId: accepted.runId }),
+                runId: accepted.runId,
+            }),
+        );
+    });
+
     it.each(['delete', 'finish'])('cancels saved-session startup during action loading after target %s', async (operation) => {
         const { runner } = runnerHarness();
         runner.runs.clear();

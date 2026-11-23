@@ -24,7 +24,12 @@ import {
     type CardField,
 } from '../../../../services/data/data_service'
 import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
-import { RemoteControlConnectionError, RemoteControlStorageService } from '../../../../services/data/remote_control_storage_service'
+import { RemoteControlConnectionError } from '../../../../services/data/remote_control_connection_error'
+import { RemoteControlActionBridge } from '../../../../services/data/remote_control_action_bridge'
+import { RemoteControlClient } from '../../../../services/data/remote_control_client'
+import { RemoteControlCodexRuntimeBridge } from '../../../../services/data/remote_control_codex_runtime_bridge'
+import { RemoteControlDesktopConfigTransport } from '../../../../services/data/remote_control_desktop_config_transport'
+import { RemoteControlStorageService } from '../../../../services/data/remote_control_storage_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
 import { openFilesService } from '../../../../services/open_files_service'
@@ -841,10 +846,15 @@ describe('ActionPopup', () => {
     it('keeps released-card conversation history available without run controls', () => {
         actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
         vi.spyOn(dataService, 'getConfig').mockReturnValue({ releasesFolder: 'design/releases' } as never)
+        vi.spyOn(dataService.agents, 'getAgentConversations').mockReturnValue([
+            agentConversation({ actionId: 'review', cardInternalId: 'card-10' }),
+        ])
 
         renderPopup({ cardInternalId: 'card-10', file: 'design/releases/v1/F-010.md', kind: 'card' })
 
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        expect(within(dialog.getByRole('group', { name: 'Actions' })).getByRole('button', { name: /^Review/u })).toBeInTheDocument()
+        expect(within(dialog.getByRole('group', { name: 'Actions' })).queryByRole('button', { name: 'Custom prompt' })).not.toBeInTheDocument()
         expect(dialog.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
         expect(dialog.getByRole('note')).toHaveTextContent('Released cards are read-only. Create a new card for more work.')
         expect(dialog.queryByRole('textbox', { name: 'Prompt' })).not.toBeInTheDocument()
@@ -1493,6 +1503,70 @@ describe('ActionPopup', () => {
         expect(actionGroup.queryByRole('button', { name: 'Project action' })).not.toBeInTheDocument()
     })
 
+    it('shows every loaded user action in All mode and persists the global choice', () => {
+        actionService.loadFromFiles([
+            file(commandDefinition('card', { appliesTo: { kind: 'card' }, label: 'Card action' })),
+            file(commandDefinition('project', { appliesTo: { kind: 'project' }, label: 'Project action' })),
+        ])
+        renderPopup()
+        const actionGroup = screen.getByRole('group', { name: 'Actions' })
+
+        fireEvent.contextMenu(actionGroup)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'All' }))
+
+        expect(within(actionGroup).getByRole('button', { name: 'Card action' })).toBeInTheDocument()
+        expect(within(actionGroup).getByRole('button', { name: 'Project action' })).toBeInTheDocument()
+        expect(within(actionGroup).getByRole('button', { name: 'Custom prompt' })).toBeInTheDocument()
+        expect(window.localStorage.getItem('md2.actionVisibilityMode')).toBe('all')
+
+        cleanup()
+        renderPopup({ kind: 'project' })
+        const reopenedGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        expect(reopenedGroup.getByRole('button', { name: 'Card action' })).toBeInTheDocument()
+        expect(reopenedGroup.getByRole('button', { name: 'Project action' })).toBeInTheDocument()
+    })
+
+    it('selects the first visible action when a mode change hides the selection', () => {
+        actionService.loadFromFiles([
+            file(commandDefinition('card', { appliesTo: { kind: 'card' }, label: 'Card action' })),
+            file(commandDefinition('project', { appliesTo: { kind: 'project' }, label: 'Project action' })),
+        ])
+        renderPopup()
+        const actionGroup = screen.getByRole('group', { name: 'Actions' })
+        fireEvent.contextMenu(actionGroup)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'All' }))
+        fireEvent.click(within(actionGroup).getByRole('button', { name: 'Project action' }))
+        expect(within(actionGroup).getByRole('button', { name: 'Project action' })).toHaveAttribute('aria-pressed', 'true')
+
+        fireEvent.contextMenu(actionGroup)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Specific for context' }))
+
+        expect(within(actionGroup).queryByRole('button', { name: 'Project action' })).not.toBeInTheDocument()
+        expect(within(actionGroup).getByRole('button', { name: 'Card action' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('updates conversation-log actions from live card conversation events', () => {
+        const cardContext = { ...context, cardInternalId: 'card-1' }
+        actionService.loadFromFiles([
+            file(agentDefinition('first', { label: 'First action' })),
+            file(agentDefinition('second', { label: 'Second action' })),
+        ])
+        let conversations = [agentConversation({ actionId: 'second' })]
+        vi.spyOn(dataService.agents, 'getAgentConversations').mockImplementation(() => conversations)
+        renderPopup(cardContext)
+        const actionGroup = screen.getByRole('group', { name: 'Actions' })
+        fireEvent.contextMenu(actionGroup)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Has conversation log' }))
+        expect(within(actionGroup).getByRole('button', { name: /^Second action/u })).toBeInTheDocument()
+        expect(within(actionGroup).queryByRole('button', { name: 'First action' })).not.toBeInTheDocument()
+
+        conversations = [agentConversation({ actionId: 'first', id: 'conversation-2' })]
+        act(() => agentAcknowledgementService.announceConversationsChanged('card-1', ['first', 'second']))
+
+        expect(within(actionGroup).getByRole('button', { name: /^First action/u })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(actionGroup).queryByRole('button', { name: 'Second action' })).not.toBeInTheDocument()
+    })
+
     it('keeps the selected running action when its run changes the card context', () => {
         actionService.loadFromFiles([
             file(commandDefinition('design', { appliesTo: { state: 'design' }, label: 'Design action' })),
@@ -1874,16 +1948,16 @@ describe('ActionPopup', () => {
     it('keeps prompt preparation loading until remote backend becomes ready', async () => {
         const connectionReady = deferredValue<void>()
         const storage = new RemoteControlStorageService()
-        storage.init({ endpoint: 'ws://desktop:1234' })
-        vi.spyOn(storage, 'connect').mockReturnValue(connectionReady.promise)
-        vi.spyOn(storage, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
-        vi.spyOn(storage, 'loadAgentAvailability').mockResolvedValue({})
-        vi.spyOn(storage, 'getCodexRateLimits').mockResolvedValue(null)
-        vi.spyOn(storage, 'loadActionRunRecoverySnapshot')
+        storage.client.init({ endpoint: 'ws://desktop:1234' })
+        vi.spyOn(storage.client, 'connect').mockReturnValue(connectionReady.promise)
+        vi.spyOn(storage.desktopConfigTransport, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
+        vi.spyOn(storage.actionBridge, 'loadAgentAvailability').mockResolvedValue({})
+        vi.spyOn(storage.codexRuntimeBridge, 'getCodexRateLimits').mockResolvedValue(null)
+        vi.spyOn(storage.actionBridge, 'loadActionRunRecoverySnapshot')
             .mockResolvedValue({ activeRunEvents: [], terminalResults: [] })
-        vi.spyOn(storage, 'onActionRun').mockReturnValue(() => undefined)
-        vi.spyOn(storage, 'onCodexRateLimits').mockReturnValue(() => undefined)
-        const prepareActionPrompt = vi.spyOn(storage, 'prepareActionPrompt').mockResolvedValue({ prompt: 'Remote prompt' })
+        vi.spyOn(storage.actionBridge, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(storage.codexRuntimeBridge, 'onCodexRateLimits').mockReturnValue(() => undefined)
+        const prepareActionPrompt = vi.spyOn(storage.actionBridge, 'prepareActionPrompt').mockResolvedValue({ prompt: 'Remote prompt' })
         delete window.md2Actions
         const connection = remoteConnectionService.connectExisting(storage)
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
@@ -1910,20 +1984,20 @@ describe('ActionPopup', () => {
     it('retries prompt preparation through replacement bridge after remote close', async () => {
         const firstPreparation = rejectableDeferred<never>()
         const connectionListeners: Array<(connected: boolean) => void> = []
-        vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()
-        vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
-        vi.spyOn(RemoteControlStorageService.prototype, 'loadAgentAvailability').mockResolvedValue({})
-        vi.spyOn(RemoteControlStorageService.prototype, 'getCodexRateLimits').mockResolvedValue(null)
-        vi.spyOn(RemoteControlStorageService.prototype, 'loadActionRunRecoverySnapshot')
+        vi.spyOn(RemoteControlClient.prototype, 'connect').mockResolvedValue()
+        vi.spyOn(RemoteControlDesktopConfigTransport.prototype, 'loadDesktopConfig').mockResolvedValue(configService.getDesktopValues())
+        vi.spyOn(RemoteControlActionBridge.prototype, 'loadAgentAvailability').mockResolvedValue({})
+        vi.spyOn(RemoteControlCodexRuntimeBridge.prototype, 'getCodexRateLimits').mockResolvedValue(null)
+        vi.spyOn(RemoteControlActionBridge.prototype, 'loadActionRunRecoverySnapshot')
             .mockResolvedValue({ activeRunEvents: [], terminalResults: [] })
-        vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)
-        vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
-        const prepareActionPrompt = vi.spyOn(RemoteControlStorageService.prototype, 'prepareActionPrompt')
+        vi.spyOn(RemoteControlActionBridge.prototype, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(RemoteControlCodexRuntimeBridge.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
+        const prepareActionPrompt = vi.spyOn(RemoteControlActionBridge.prototype, 'prepareActionPrompt')
             .mockReturnValueOnce(firstPreparation.promise)
             .mockResolvedValueOnce({ prompt: 'Reconnected prompt' })
         const firstStorage = new RemoteControlStorageService()
-        firstStorage.init({ endpoint: 'ws://desktop:1234' })
-        vi.spyOn(firstStorage, 'onConnectionChanged').mockImplementation((listener) => {
+        firstStorage.client.init({ endpoint: 'ws://desktop:1234' })
+        vi.spyOn(firstStorage.client, 'onConnectionChanged').mockImplementation((listener) => {
             connectionListeners.push(listener)
 
             return () => true
@@ -2301,6 +2375,113 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(finishActionRun).toHaveBeenCalledWith('run-1'))
     })
 
+    it('shows enabled Next before finish and send only for an eligible step-by-step pause', async () => {
+        actionRunRegistry.stop()
+        const waitingContext: ActionContext = { kind: 'project' }
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const advanceActionForEachRecord = vi.fn(async () => undefined)
+        const conversation = agentConversation({
+            actionId: 'stream', cardInternalId: null, cardPath: null,
+            forEach: {
+                failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', recordsPerBatch: 1,
+                startIndex: 0, stepByStep: true, value: [1, 2],
+            },
+            path: 'design/activity/project.json#conversation=conversation-1',
+            viewed: false,
+        })
+        const historicalConversation = agentConversation({
+            actionId: 'stream', cardInternalId: null, cardPath: null, completedAt: '2026-08-01T12:05:00.000Z',
+            id: 'historical-conversation', path: 'design/activity/project.json#conversation=historical-conversation', status: 'completed',
+            title: 'Historical step-by-step run',
+        })
+        window.md2Actions = {
+            advanceActionForEachRecord,
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            updateActionConversationViewed: vi.fn(async () => conversation),
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        actionRunRegistry.start()
+        vi.spyOn(dataService, 'scheduleRepositoryPathCommit').mockImplementation(() => undefined)
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([historicalConversation])
+        vi.spyOn(dataService, 'loadAgentConversation').mockImplementation(async (path) => (
+            path === historicalConversation.path ? historicalConversation : conversation
+        ))
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup(waitingContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: waitingContext, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        act(() => {
+            runListener?.({ ...eventBase, status: 'running', type: 'run' })
+            runListener?.({
+                ...eventBase, status: 'running', type: 'update',
+                update: { continued: false, conversation, kind: 'agentStarted' },
+            })
+        })
+        expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
+
+        act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
+        const activeRun = actionRunRegistry.getActionRunStore('stream', waitingContext)?.getSnapshot()
+        if (!activeRun) throw new Error('Expected active stream run')
+        act(() => actionPromptDraftService.getDraft(
+            'stream', waitingContext, activeRun.conversation?.id ?? null, { prepare: false },
+        ).edit('Continue'))
+        const nextButton = screen.getByRole('button', { name: 'Next' })
+        const finishButton = screen.getByRole('button', { name: 'Finish' })
+        const sendButton = screen.getByRole('button', { name: 'Send' })
+        expect(nextButton.compareDocumentPosition(finishButton) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+        expect(nextButton.compareDocumentPosition(sendButton) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+        expect(nextButton).toBeEnabled()
+        fireEvent.click(nextButton)
+        await waitFor(() => expect(advanceActionForEachRecord).toHaveBeenCalledWith('run-1'))
+
+        act(() => runListener?.({
+            ...eventBase, status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions: [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }], requestId: 7 },
+        }))
+        expect(nextButton).toBeDisabled()
+        act(() => runListener?.({
+            ...eventBase, status: 'waitingForInput', type: 'update',
+            update: {
+                kind: 'agentQuestionAnswer', requestId: 7,
+                userMessage: { content: 'Yes', id: 'answer-1', kind: 'message', role: 'user', timestamp: 'now' },
+            },
+        }))
+        expect(nextButton).toBeEnabled()
+        act(() => runListener?.({ ...eventBase, interactionReady: false, status: 'waitingForInput', type: 'agentState' }))
+        expect(nextButton).toBeDisabled()
+        act(() => runListener?.({ ...eventBase, interactionReady: true, status: 'waitingForInput', type: 'agentState' }))
+        expect(nextButton).toBeEnabled()
+
+        const conversationPicker = screen.getByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(conversationPicker).toBeEnabled())
+        fireEvent.mouseDown(conversationPicker)
+        fireEvent.click(await screen.findByRole('option', { name: /Historical step-by-step run/u }))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled())
+        fireEvent.mouseDown(conversationPicker)
+        fireEvent.click(await screen.findByRole('option', { name: /Waiting response/u }))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled())
+
+        delete window.md2Actions
+        act(() => {
+            const availability = { error: null, loading: false, values: { codex: { available: true, error: null } } }
+            vi.mocked(agentCapabilitiesService.getSnapshot).mockReturnValue({ availability })
+            agentCapabilitiesService.dispatchEvent(new Event('changed'))
+        })
+        fireEvent.change(within(screen.getByLabelText('Prompt')).getByRole('textbox'), { target: { value: 'No backend' } })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled())
+        act(() => runListener?.({ ...eventBase, status: 'completed', type: 'run' }))
+        expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
+    })
+
     it('keeps typed prompt text through every status the finishing agent passes', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null
@@ -2469,6 +2650,81 @@ describe('ActionPopup', () => {
         expect(screen.queryByLabelText('Pending prompt')).not.toBeInTheDocument()
         expect(screen.queryByLabelText('Queued prompt')).not.toBeInTheDocument()
         expect(screen.getAllByText('Send this')).toHaveLength(1)
+    })
+
+    it('keeps a prompt sent while the run finalizes queued and moves it to the successor run without failing', async () => {
+        actionRunRegistry.stop()
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
+        const reportError = vi.spyOn(dialogService, 'error')
+        const waitingContext: ActionContext = { kind: 'project' }
+        const enqueueActionPrompt = vi.fn(async (_runId: string, content: string, id: string) => (
+            { content, dispatchState: 'deferred' as const, id, revision: 0 }
+        ))
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            enqueueActionPrompt,
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup(waitingContext)
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const predecessorBase = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: waitingContext,
+            interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        const successorBase = { ...predecessorBase, runId: 'run-2' }
+        const liveConversation = agentConversation({ actionId: 'stream', cardInternalId: null, cardPath: null })
+        act(() => {
+            runListener?.({ ...predecessorBase, status: 'running', type: 'run' })
+            runListener?.({ ...predecessorBase, status: 'running', type: 'action' })
+            runListener?.({
+                ...predecessorBase, status: 'running', type: 'update',
+                update: { continued: false, conversation: liveConversation, kind: 'agentStarted' },
+            })
+        })
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Next task' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+        await waitFor(() => expect(enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Next task', expect.any(String)))
+        const submissionId = enqueueActionPrompt.mock.calls[0]?.[2]
+        if (!submissionId) throw new Error('Missing local submission ID')
+        expect(await screen.findByLabelText('Queued prompt')).toHaveTextContent('Next task')
+
+        act(() => runListener?.({ ...predecessorBase, status: 'completed', type: 'run' }))
+        expect(screen.getByLabelText('Queued prompt')).toHaveTextContent('Queued')
+        expect(screen.getByRole('button', { name: 'Edit queued prompt' })).toBeDisabled()
+        expect(screen.queryByText(/Run ended before the prompt was sent/u)).not.toBeInTheDocument()
+
+        const queuedPrompt = { content: 'Next task', dispatchState: 'queued' as const, id: submissionId, revision: 0 }
+        act(() => {
+            runListener?.({ ...successorBase, status: 'running', type: 'run' })
+            runListener?.({ ...successorBase, status: 'running', type: 'update', update: { entry: queuedPrompt, kind: 'agentPromptQueued' } })
+            runListener?.({ ...successorBase, status: 'running', type: 'action' })
+            runListener?.({ ...successorBase, status: 'running', type: 'update', update: { kind: 'agentPromptDispatched', promptId: submissionId, revision: 0 } })
+            runListener?.({
+                ...successorBase, status: 'running', type: 'update',
+                update: { continued: true, conversation: liveConversation, kind: 'agentStarted' },
+            })
+        })
+        expect(screen.getAllByLabelText('Queued prompt')).toHaveLength(1)
+        expect(screen.getByLabelText('Queued prompt')).toHaveTextContent('Sending')
+
+        act(() => runListener?.({
+            ...successorBase, status: 'running', type: 'update',
+            update: { kind: 'agentUserMessage', userMessage: { agent: 'codex', content: 'Next task', id: submissionId, kind: 'message', role: 'user', timestamp: 'now' } },
+        }))
+        expect(screen.queryByLabelText('Queued prompt')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('Pending prompt')).not.toBeInTheDocument()
+        expect(screen.getAllByText('Next task')).toHaveLength(1)
+        expect(reportError).not.toHaveBeenCalledWith(expect.anything(), { fallbackMessage: 'Could not send agent message' })
     })
 
     it.each(['keep', 'replace context', 'replace action', 'reopen'])('preserves a new-run submission through %s before startup returns', async (operation) => {
@@ -4044,26 +4300,38 @@ describe('ActionPopup', () => {
             })
         }
 
-        it.each([
-            { path: 'design/releases/0_7_0/F-010.md', released: true },
-            { path: 'design/archive/F-010.md', released: false },
-        ])('shows stored command history for $path', async ({ path, released }) => {
+        it('keeps a released popup open while activity loads and excludes command-only history', async () => {
+            const path = 'design/releases/0_7_0/F-010.md'
             const card = backgroundCard('card-1', path)
             mockBackgroundCard(card)
             vi.spyOn(dataService, 'getConfig').mockReturnValue({ ...configService.getProjectConfig(), releasesFolder: 'design/releases' })
+            const pendingActivity = deferredValue<CardActivityFile[]>()
+            vi.spyOn(dataService, 'loadReferencedCardActivities').mockReturnValue(pendingActivity.promise)
+            actionService.loadFromFiles([file(commandDefinition('current', { label: 'Current command' }))])
+
+            renderPopup({ cardInternalId: 'card-1', file: path, kind: 'file', state: 'archived' })
+
+            expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
+            expect(within(screen.getByRole('group', { name: 'Actions' })).queryAllByRole('button')).toEqual([])
+            pendingActivity.resolve([activity('card-1')])
+
+            await waitFor(() => expect(dataService.loadReferencedCardActivities).toHaveBeenCalledWith('card-1'))
+            expect(within(screen.getByRole('group', { name: 'Actions' })).queryByRole('button', { name: 'Removed command' }))
+                .not.toBeInTheDocument()
+            expect(screen.getByRole('note')).toHaveTextContent('Released cards are read-only. Create a new card for more work.')
+        })
+
+        it('keeps context-specific actions on a non-released background card', () => {
+            const path = 'design/archive/F-010.md'
+            mockBackgroundCard(backgroundCard('card-1', path))
             vi.spyOn(dataService, 'loadReferencedCardActivities').mockResolvedValue([activity('card-1')])
             actionService.loadFromFiles([file(commandDefinition('current', { label: 'Current command' }))])
 
             renderPopup({ cardInternalId: 'card-1', file: path, kind: 'file', state: 'archived' })
 
-            
-            const historicalButton = await within(screen.getByRole('group', { name: 'Actions' })).findByRole('button', { name: 'Removed command' })
-            fireEvent.click(historicalButton)
-            expect(await screen.findByText(/card-1 output/u)).toBeInTheDocument()
-            expect(screen.getByText(released
-                ? 'Released cards are read-only. Create a new card for more work.'
-                : 'Historical action cannot be run in this card context.')).toBeInTheDocument()
-            expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: 'Custom prompt' })).toBeInTheDocument()
+            const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+            expect(actionGroup.getByRole('button', { name: 'Current command' })).toBeInTheDocument()
+            expect(actionGroup.queryByRole('button', { name: 'Removed command' })).not.toBeInTheDocument()
         })
 
         it('reports referenced activity load failure', async () => {

@@ -5,16 +5,20 @@ import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.
 const require = createRequire(import.meta.url);
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
+const { AgentStreamingEventPublisher } = require('./agent_streaming_event_publisher');
 const { CODEX_TASK_TRACKING_INSTRUCTIONS } = require('./agent_task_tracking');
 
-function harness(agent, providerConversationId = null, executionSettings = {}, taskTrackingEnabled = false) {
+function harness(agent, providerConversationId = null, executionSettings = {}, taskTrackingEnabled = false, coalesceEvents = false) {
     const events = [];
     const runtimeEvents = [];
     const writes = [];
+    const eventPublisher = coalesceEvents
+        ? new AgentStreamingEventPublisher(async (event) => events.push(event))
+        : null;
     const adapter = createAgentStreamingAdapter(
         agent,
         (message) => writes.push(message),
-        (event) => events.push(event),
+        eventPublisher ? (event) => eventPublisher.publish(event) : (event) => events.push(event),
         'C:\\repo',
         providerConversationId,
         (event) => runtimeEvents.push(event),
@@ -23,7 +27,7 @@ function harness(agent, providerConversationId = null, executionSettings = {}, t
         taskTrackingEnabled,
     );
 
-    return { adapter, events, runtimeEvents, writes };
+    return { adapter, eventPublisher, events, runtimeEvents, writes };
 }
 
 function codexBreakdown(cachedInputTokens, inputTokens, outputTokens, reasoningOutputTokens) {
@@ -58,8 +62,8 @@ function subAgentActivity(id, agentThreadId, agentPath) {
 }
 
 /** Brings a Codex adapter to a running root turn whose collaboration call has started one child thread. */
-async function startCodexCollaboration() {
-    const started = harness('codex');
+async function startCodexCollaboration(coalesceEvents = false) {
+    const started = harness('codex', null, {}, false, coalesceEvents);
     const { adapter } = started;
 
     await adapter.start('plan');
@@ -1728,6 +1732,81 @@ describe('CodexStreamingAdapter', () => {
 
         expect(events.filter(({ type }) => type === 'assistantStarted')).toEqual([{ itemId: 'root-message', type: 'assistantStarted' }]);
         expect(events.filter(({ type }) => type === 'assistant')).toEqual([{ content: 'root text', itemId: 'root-message', type: 'assistant' }]);
+    });
+
+    it('coalesces more than 100 interleaved root and child deltas before ordered completion', async () => {
+        vi.useFakeTimers();
+        try {
+            const { adapter, eventPublisher, events } = await startCodexCollaboration(true);
+            await eventPublisher.flush();
+            events.length = 0;
+            await adapter.handleMessage({
+                method: 'item/started',
+                params: {
+                    item: { content: [], id: 'root-reasoning', summary: [], type: 'reasoning' },
+                    threadId: 'thread-root',
+                    turnId: 'turn-root',
+                },
+            });
+            await adapter.handleMessage({
+                method: 'item/started',
+                params: {
+                    item: { id: 'child-message', phase: null, text: '', type: 'agentMessage' },
+                    threadId: 'thread-child',
+                    turnId: 'turn-child',
+                },
+            });
+            for (let index = 0; index < 120; index += 1) {
+                await adapter.handleMessage({
+                    method: 'item/reasoning/summaryTextDelta',
+                    params: {
+                        delta: 'r', itemId: 'root-reasoning', summaryIndex: 0,
+                        threadId: 'thread-root', turnId: 'turn-root',
+                    },
+                });
+                await adapter.handleMessage({
+                    method: 'item/agentMessage/delta',
+                    params: { delta: 'c', itemId: 'child-message', threadId: 'thread-child', turnId: 'turn-child' },
+                });
+            }
+            await adapter.handleMessage({
+                method: 'item/completed',
+                params: {
+                    item: { content: [], id: 'root-reasoning', summary: ['r'.repeat(120)], type: 'reasoning' },
+                    threadId: 'thread-root', turnId: 'turn-root',
+                },
+            });
+            await adapter.handleMessage({
+                method: 'item/completed',
+                params: {
+                    item: { id: 'child-message', phase: null, text: 'c'.repeat(120), type: 'agentMessage' },
+                    threadId: 'thread-child', turnId: 'turn-child',
+                },
+            });
+            await adapter.handleMessage({
+                method: 'turn/completed',
+                params: { threadId: 'thread-child', turn: { id: 'turn-child', status: 'completed' }, turnId: 'turn-child' },
+            });
+            await adapter.handleMessage({
+                method: 'turn/completed',
+                params: { threadId: 'thread-root', turn: { id: 'turn-root', status: 'completed' }, turnId: 'turn-root' },
+            });
+
+            const providerEvents = events.filter(({ type }) => type === 'event').map(({ event }) => event);
+            expect(providerEvents).toHaveLength(4);
+            expect(providerEvents.map(({ providerItemId, status }) => `${providerItemId}:${status}`)).toEqual([
+                'root-reasoning:inProgress',
+                'thread-child:child-message:inProgress',
+                'root-reasoning:completed',
+                'thread-child:child-message:completed',
+            ]);
+            expect(providerEvents[0].content).toBe('r'.repeat(120));
+            expect(providerEvents[1].content).toBe('c'.repeat(120));
+            expect(events.at(-1).type).toBe('turnCompleted');
+            expect(vi.getTimerCount()).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('ends the root turn only on the root thread completion and keeps steering it', async () => {

@@ -101,7 +101,7 @@ function createLocalGitService(
     const histories = [];
 
     return {
-        appendAndCommitActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
+        appendActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
             const request = { actionId: record.rootActionId, context, projectFolder };
             const entry = {
                 ...record.details,

@@ -32,7 +32,6 @@ export {
     DEFAULT_RELEASES_FOLDER,
     DEFAULT_WORKING_FOLDER,
 }
-export const DEFAULT_DIFF_COMMAND = 'git show {{commit}}'
 export const AUTO_COMMIT_DELAY_MS = 30000
 
 /** Card type id; projects can configure custom types beyond the default feature/job/bug. */
@@ -63,9 +62,10 @@ export interface ProjectConfig {
     cardTypes: CardTypeConfig[]
     deleteBranchAfterIntegration: boolean
     deleteBranchesAfterRelease: boolean
-    diffCommand: string
     diagramFooter: string
     diagramsFolder: string
+    /** False keeps `projectFolder` local: ignored by Git and never staged or committed. */
+    includeProjectFolderInGit: boolean
     pinnedConversations: PinnedConversationLocator[]
     projectFolder: string
     pushMode: PushMode
@@ -333,6 +333,7 @@ export interface RunningAgent {
 
 export type AgentConversationStatus = 'cancelled' | 'completed' | 'failed' | 'running' | 'waitingForInput'
 export type AgentMessageRole = 'assistant' | 'user'
+export type AgentConversationErrorKind = 'authenticationRequired'
 
 export interface AgentConversationMessage {
     agent?: string
@@ -374,11 +375,14 @@ export interface AgentQuestion {
 }
 
 export interface AgentConversationEvent {
+    accountId?: string
+    agent?: string
     command?: string
     content: string
     deletions?: number
     details?: string[]
     durationMs?: number
+    errorKind?: AgentConversationErrorKind
     exitCode?: number
     id: string
     insertions?: number
@@ -457,6 +461,7 @@ export interface AgentConversation {
     contextWindowUsage?: AgentContextWindowUsage
     entries: AgentConversationEntry[]
     forEach?: import('./action_run_types').ActionForEachConfig
+    forEachProgress?: import('./action_run_types').ActionForEachProgress
     hasExplicitTitle: boolean
     id: string
     path: string
@@ -514,13 +519,14 @@ export interface StorageService {
     commit(request: CommitRequest): Promise<CommitResult>
     commitWorktree?(request: CommitWorktreeRequest): Promise<void>
     commitPrimaryChanges?(request: CommitPrimaryChangesRequest): Promise<void>
-    createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
     deleteLocalBranch?(project: ProjectReference, branchName: string): Promise<void>
     discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<void>
     discardPendingCommits?(project: ProjectReference): void
     hasPendingPush?(project: ProjectReference): boolean
+    /** Present only where the project folder can be kept local (desktop local Git storage). */
+    hasTrackedProjectFolderFiles?(project: ProjectReference, projectFolder: string): Promise<boolean>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     listAgentConversationReferences?(project: ProjectReference, projectFolder: string): Promise<string[]>
     listRepositories(): Promise<RepositoryReference[]>
@@ -534,6 +540,8 @@ export interface StorageService {
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     /** Loads a supported image from an absolute path on the storage host. */
     loadImageFile?(filePath: string): Promise<ProjectAsset>
+    /** Loads JSON from an absolute path on the storage host. */
+    loadLocalJsonFile?(filePath: string): Promise<MarkdownFile>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string): Promise<StorageProjectFiles>
     loadFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
@@ -565,6 +573,10 @@ export interface StorageService {
     refreshWorktrees?(project: ProjectReference): Promise<void>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: AnySchedule[]): Promise<AnySchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    /** Saves the config with the matching `.gitignore` rule; `removeTrackedFiles` untracks the project folder. */
+    saveProjectFolderGitInclusion?(project: ProjectReference, config: ProjectConfig, removeTrackedFiles: boolean): Promise<void>
+    /** Saves JSON to an absolute path on the storage host. */
+    saveLocalJsonFile?(file: MarkdownFile): Promise<void>
     selectWorktreeFolder?(): Promise<string | null>
     removeWorktree?(project: ProjectReference, folderPath: string, mode: WorktreeRemovalMode): Promise<void>
     stopAgent?(project: ProjectReference, runId: string): Promise<void>
@@ -623,9 +635,9 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     cardTypes: DEFAULT_CARD_TYPES,
     deleteBranchAfterIntegration: false,
     deleteBranchesAfterRelease: false,
-    diffCommand: DEFAULT_DIFF_COMMAND,
     diagramFooter: DEFAULT_DIAGRAM_FOOTER,
     diagramsFolder: DEFAULT_DIAGRAMS_FOLDER,
+    includeProjectFolderInGit: true,
     pinnedConversations: [],
     projectFolder: DEFAULT_PROJECT_FOLDER,
     pushMode: 'manual',

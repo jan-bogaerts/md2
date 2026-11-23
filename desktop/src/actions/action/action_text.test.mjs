@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../../shared/action_errors.mjs';
 
 const require = createRequire(import.meta.url);
 const { resolveAgentPrompt, resolvePlaceholders, resolvePopupPrompt } = require('./action_text');
@@ -66,9 +67,25 @@ describe('resolvePlaceholders', () => {
         expect(() => resolvePlaceholders('{{active-cards-folder}}', {}, project, {}, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, '')).toThrow('Missing local Git project rootPath');
     });
 
-    it.each(['card-file', 'this-card'])('rejects %s placeholder without file context', (placeholderName) => {
-        expect(() => resolvePlaceholders(`{{${placeholderName}}}`, { kind: 'project' }, project, project, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, ''))
-            .toThrow(`Cannot resolve ${placeholderName} placeholder without a file context`);
+    it('marks this-card without file context as an expected action configuration error', () => {
+        const resolve = () => resolvePlaceholders(
+            '{{this-card}}', { kind: 'project' }, project, project,
+            projectFolder, releasesFolder, actionsFolder, activeCardsFolder, '',
+        );
+
+        expect(resolve).toThrow(
+            'Cannot prepare action prompt: {{this-card}} requires a card or file context, but this action was opened from the project. Open the action from a card or remove {{this-card}} from the action prompt.',
+        );
+        try {
+            resolve();
+        } catch (error) {
+            expect(error).toMatchObject({ code: MISSING_THIS_CARD_CONTEXT_ERROR });
+        }
+    });
+
+    it('keeps card-file validation unchanged without file context', () => {
+        expect(() => resolvePlaceholders('{{card-file}}', { kind: 'project' }, project, project, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, ''))
+            .toThrow('Cannot resolve card-file placeholder without a file context');
     });
 
     it('rejects card-title placeholder without card title', () => {
@@ -164,6 +181,18 @@ describe('resolvePlaceholders', () => {
         expect(resolvePlaceholders('{{rootProjectFolder}} {{file}} {{prompt}}', { file: 'design/card.md' }, project, project, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, 'focus'))
             .toBe('{{rootProjectFolder}} {{file}} {{prompt}}');
     });
+
+    it('rejects a full-record placeholder without a for-each record', () => {
+        expect(() => resolvePlaceholders(
+            '{{ data }}', {}, project, project, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, '',
+        )).toThrow('Cannot resolve data placeholder without a for-each record');
+    });
+
+    it('does not treat names beginning with data as data placeholders', () => {
+        expect(resolvePlaceholders(
+            '{{database}} {{data-x}}', {}, project, project, projectFolder, releasesFolder, actionsFolder, activeCardsFolder, '',
+        )).toBe('{{database}} {{data-x}}');
+    });
 });
 
 describe('resolveAgentPrompt', () => {
@@ -205,8 +234,10 @@ describe('resolveAgentPrompt', () => {
 
 describe('resolvePopupPrompt', () => {
     it('resolves data placeholders from one for-each record', () => {
+        const record = { countries: [{ city: 'Brussels' }] };
+
         expect(resolvePopupPrompt(
-            'City: {{data countries.0.city}}',
+            'Record: {{data}}\nCity: {{data countries.0.city}}',
             { kind: 'project' },
             project,
             project,
@@ -216,13 +247,17 @@ describe('resolvePopupPrompt', () => {
             activeCardsFolder,
             null,
             null,
-            { countries: [{ city: 'Brussels' }] },
-        )).toBe('City: Brussels');
+            record,
+        )).toBe(`Record: ${JSON.stringify(record, null, 2)}\nCity: Brussels`);
     });
 
     it('rejects a data placeholder outside a for-each record', () => {
         expect(() => resolvePopupPrompt(
             '{{data city}}', { kind: 'project' }, project, project, projectFolder,
+            releasesFolder, actionsFolder, activeCardsFolder,
+        )).toThrow('Cannot resolve data placeholder without a for-each record');
+        expect(() => resolvePopupPrompt(
+            '{{data}}', { kind: 'project' }, project, project, projectFolder,
             releasesFolder, actionsFolder, activeCardsFolder,
         )).toThrow('Cannot resolve data placeholder without a for-each record');
     });

@@ -4,7 +4,6 @@ import {
     DEFAULT_CARD_TYPES,
     DEFAULT_DIAGRAM_FOOTER,
     DEFAULT_DIAGRAMS_FOLDER,
-    DEFAULT_DIFF_COMMAND,
     DEFAULT_PROJECT_FOLDER,
     DEFAULT_RELEASES_FOLDER,
     DEFAULT_STATES,
@@ -25,6 +24,7 @@ import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from '../../data/card_iden
 
 export type ConfigSource = 'desktop' | 'project'
 export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json'
+export type DiffViewType = 'split' | 'unified'
 
 export interface ConfigValueTypes {
     'desktop.agentSelection': AgentSelectionState
@@ -32,6 +32,7 @@ export interface ConfigValueTypes {
     'desktop.agentProfiles': AgentProfile[]
     'desktop.agentTaskTrackingEnabled': boolean
     'desktop.codexSearchEnabled': boolean
+    'desktop.diffViewType': DiffViewType
     'desktop.editorCommand': string
     'desktop.mergeConflictResolverCommand': string
     'desktop.remoteControlPort': number
@@ -43,10 +44,10 @@ export interface ConfigValueTypes {
     'project.cardTypes': CardTypeConfig[]
     'project.deleteBranchAfterIntegration': boolean
     'project.deleteBranchesAfterRelease': boolean
-    'project.diffCommand': string
     'project.diagramFooter': string
     'project.lastVersion': string
     'project.diagramsFolder': string
+    'project.includeProjectFolderInGit': boolean
     'project.pinnedConversations': PinnedConversationLocator[]
     'project.projectFolder': string
     'project.pushMode': PushMode
@@ -100,6 +101,7 @@ export interface DesktopConfigValues {
     agentProfiles: AgentProfile[]
     agentTaskTrackingEnabled?: boolean
     codexSearchEnabled?: boolean
+    diffViewType: DiffViewType
     editorCommand: string
     mergeConflictResolverCommand: string
     remoteControlPort: number
@@ -198,16 +200,6 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'select',
     },
     {
-        defaultValue: DEFAULT_DIFF_COMMAND,
-        description: 'Command template used to render a commit diff. Placeholders: {{worktree-folder}}, {{repository-folder}}, {{project-folder}}, {{releases-folder}}, {{actions-folder}}, {{commit}}, {{branch}}, {{file}}.',
-        editable: true,
-        key: 'project.diffCommand',
-        label: 'Diff command',
-        section: 'project',
-        source: 'project',
-        type: 'string',
-    },
-    {
         defaultValue: DEFAULT_DIAGRAM_FOOTER,
         description: 'Markdown appended to every diagram action prompt. Required placeholder: {{diagram-file}}.',
         editable: true,
@@ -231,6 +223,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'project',
         source: 'project',
         type: 'select',
+    },
+    {
+        defaultValue: true,
+        description: 'Commit the project folder to Git. When off, the folder is added to .gitignore and its files stay local.',
+        editable: true,
+        key: 'project.includeProjectFolderInGit',
+        label: 'Include project folder in Git',
+        section: 'project',
+        source: 'project',
+        type: 'boolean',
     },
     {
         defaultValue: false,
@@ -343,7 +345,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: false,
-        description: 'Lets Claude and Codex keep a task list shown in the conversation; costs extra context.',
+        description: 'Lets Claude and Codex keep a task list shown in streaming conversations; costs extra context.',
         editable: true,
         key: 'desktop.agentTaskTrackingEnabled',
         label: 'Agent task tracking',
@@ -360,6 +362,20 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'desktop',
         source: 'desktop',
         type: 'boolean',
+    },
+    {
+        defaultValue: 'split',
+        description: 'Layout used for commit and worktree diffs throughout the application.',
+        editable: true,
+        key: 'desktop.diffViewType',
+        label: 'Diff view',
+        options: [
+            { label: 'Split', value: 'split' },
+            { label: 'Unified', value: 'unified' },
+        ],
+        section: 'desktop',
+        source: 'desktop',
+        type: 'select',
     },
     {
         defaultValue: DEFAULT_EDITOR_COMMAND,
@@ -417,7 +433,6 @@ export const PROJECT_KEYS: ConfigKey[] = [
     'project.diagramsFolder',
     'project.archivedFolder',
     'project.backgroundShade',
-    'project.diffCommand',
     'project.diagramFooter',
     'project.pushMode',
     'project.deleteBranchAfterIntegration',

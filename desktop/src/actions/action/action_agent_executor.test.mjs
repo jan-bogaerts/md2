@@ -86,6 +86,15 @@ function executionInput(overrides = {}) {
 }
 
 describe('ActionAgentExecutor', () => {
+    it('defers project-write queueing for for-each agent turns', async () => {
+        const { agentRunnerService, executor } = createExecutor();
+        const forEach = { failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', value: [{ id: 1 }] };
+
+        await executor.execute(executionInput({ runInput: { extraPrompt: '', forEach } }));
+
+        expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({ deferProjectWriteQueue: true, forEach });
+    });
+
     it.each(['codex', 'claude'])('reloads stopped acknowledged %s session solely to compact', async (provider) => {
         const { agentRunnerService, executor, localGitService } = createExecutor();
         localGitService.loadAgentConversation.mockResolvedValue(conversation({
@@ -293,7 +302,7 @@ describe('ActionAgentExecutor', () => {
         expect(result).toMatchObject({ permissionMode: 'full-access' });
         expect(agentRunnerService.start.mock.calls[0][1].command).toEqual([
             'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-access', '--ask-for-approval', 'never',
-            '-c', 'tools.update_plan.enabled=true', '--search', 'exec', '--json',
+            '-c', 'tools.update_plan.enabled=false', '--search', 'exec', '--json',
         ]);
     });
 
@@ -407,14 +416,17 @@ describe('ActionAgentExecutor', () => {
         expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(preparedPrompt);
     });
 
-    it.each(['card-file', 'this-card'])('rejects a root prompt with missing %s context before process start', async (placeholderName) => {
+    it.each([
+        ['card-file', 'Cannot resolve card-file placeholder without a file context'],
+        ['this-card', '{{this-card}} requires a card or file context'],
+    ])('rejects a root prompt with missing %s context before process start', async (placeholderName, expectedMessage) => {
         const { agentRunnerService, executor } = createExecutor();
 
         await expect(executor.execute(executionInput({
             activityOrigin: { kind: 'project' },
             context: { kind: 'project' },
             runInput: { extraPrompt: '', prompt: `Review {{${placeholderName}}}` },
-        }))).rejects.toThrow(`Cannot resolve ${placeholderName} placeholder without a file context`);
+        }))).rejects.toThrow(expectedMessage);
         expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 

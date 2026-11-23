@@ -8,7 +8,8 @@ const {
     writeActivityFile,
 } = require('../activity/activity_files');
 const { appendCardActivityReference } = require('../activity/card_activity_reference');
-const { assertGitRoot, commitTrackedPaths, requireRootPath } = require('../../git/git_commands');
+const { assertGitRoot, requireRootPath } = require('../../git/git_commands');
+const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 const { persistConversationAndProjectUsage } = require('./project_agent_token_usage');
 
 function requireActivityRequest(request) {
@@ -39,7 +40,8 @@ async function persistInitialCardConversation(run, dependencyOverrides = {}) {
     await assertRepositoryRoot(rootPath);
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, request.projectFolder, request.activityOrigin);
     const appendReference = dependencyOverrides.appendCardActivityReference ?? appendCardActivityReference;
-    const commitPaths = dependencyOverrides.commitTrackedPaths ?? commitTrackedPaths;
+    const deferProjectWriteQueue = request.deferProjectWriteQueue === true;
+    const projectWrites = dependencyOverrides.uncommittedProjectWrites ?? uncommittedProjectWrites;
 
     return queueActivityUpdate(rootPath, absolutePath, async () => {
         const activity = upsertConversation(
@@ -53,10 +55,10 @@ async function persistInitialCardConversation(run, dependencyOverrides = {}) {
             request.activityOrigin.cardInternalId,
             relativePath,
         );
-        await commitPaths(rootPath, [relativePath, request.cardPath], 'Start card agent activity');
+        if (!deferProjectWriteQueue) projectWrites.mark(rootPath, [request.cardPath]);
 
         return { activity, relativePath };
-    });
+    }, { markProjectWrite: !deferProjectWriteQueue });
 }
 
 async function persistConversationCheckpoint(run, dependencyOverrides = {}) {
@@ -72,6 +74,7 @@ async function persistConversationCheckpoint(run, dependencyOverrides = {}) {
         request.projectFolder,
         request.activityOrigin,
         run.conversation,
+        { markProjectWrite: request.deferProjectWriteQueue !== true },
     );
 }
 

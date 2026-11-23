@@ -124,6 +124,57 @@ describe('parseAgentConversationLog', () => {
         } as const
         const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
 
+        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach)
+            .toEqual({ ...forEach, recordsPerBatch: 1, startIndex: 0, stepByStep: false })
+    })
+
+    it('keeps the for-each data path across reloads', () => {
+        const forEach = {
+            dataPath: 'countries.0.cities', failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt',
+            value: { countries: [{ cities: ['Ghent'] }] },
+        } as const
+        const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
+
+        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach)
+            .toEqual({ ...forEach, recordsPerBatch: 1, startIndex: 0, stepByStep: false })
+    })
+
+    it('keeps the for-each start index across reloads', () => {
+        const forEach = {
+            failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'addPrompt', startIndex: 2,
+            value: ['first', 'second', 'third'],
+        } as const
+        const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
+
+        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach)
+            .toEqual({ ...forEach, recordsPerBatch: 1, stepByStep: false })
+    })
+
+    it('keeps valid for-each progress across reloads', () => {
+        const forEachProgress = { processedCount: 2, totalCount: 5 }
+        const source = {entries: [], forEachProgress, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'cancelled'}
+
+        expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEachProgress).toEqual(forEachProgress)
+    })
+
+    it.each([
+        [{ processedCount: -1, totalCount: 5 }, 'processedCount'],
+        [{ processedCount: 1, totalCount: -1 }, 'totalCount'],
+        [{ processedCount: 6, totalCount: 5 }, 'exceeds totalCount'],
+        [{ processedCount: Number.MAX_SAFE_INTEGER + 1, totalCount: Number.MAX_SAFE_INTEGER + 1 }, 'processedCount'],
+    ])('rejects invalid for-each progress %o', (forEachProgress, expectedMessage) => {
+        const source = {entries: [], forEachProgress, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'cancelled'}
+
+        expect(() => parseAgentConversationValue(source, 'activity.json')).toThrow(expectedMessage)
+    })
+
+    it('keeps records per batch across reloads', () => {
+        const forEach = {
+            failurePolicy: 'logAndContinue', fileName: 'records.json', mode: 'newConversation', recordsPerBatch: 3,
+            startIndex: 0, stepByStep: true, value: ['first', 'second', 'third'],
+        } as const
+        const source = {entries: [], forEach, id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed'}
+
         expect(parseAgentConversation(JSON.stringify(source), 'activity.json').forEach).toEqual(forEach)
     })
 
@@ -444,6 +495,37 @@ describe('parseAgentConversationLog', () => {
             workingDirectory: 'C:\\repo',
         })
         expect(conversation.entries[0]).not.toHaveProperty('output')
+    })
+
+    it('preserves a structured authentication-required error and its provider diagnostic', () => {
+        const conversation = parseAgentConversationLog(JSON.stringify({
+            entries: [{
+                accountId: 'claude-work',
+                agent: 'claude',
+                content: 'Claude sign-in expired. Log in again, then rerun the action.',
+                errorKind: 'authenticationRequired',
+                id: 'error-1',
+                kind: 'event',
+                label: 'Claude sign-in required',
+                output: 'Failed to authenticate: OAuth session expired and could not be refreshed',
+                providerItemId: 'authentication-required:error-1',
+                status: 'failed',
+                timestamp: '2026-11-09T10:00:00.000Z',
+                type: 'error',
+            }],
+            id: 'agent-1',
+            startedAt: '2026-11-09T10:00:00.000Z',
+            status: 'failed',
+        }), 'design/logs/one.json')
+
+        expect(conversation.entries[0]).toMatchObject({
+            accountId: 'claude-work',
+            agent: 'claude',
+            content: 'Claude sign-in expired. Log in again, then rerun the action.',
+            errorKind: 'authenticationRequired',
+            output: 'Failed to authenticate: OAuth session expired and could not be refreshed',
+            type: 'error',
+        })
     })
 
     it('canonicalizes oversized command and tool results without changing tool input', () => {

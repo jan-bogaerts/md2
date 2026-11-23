@@ -208,6 +208,7 @@ class CodexStreamingAdapter {
         this.threadStates = new Map();
         this.threadId = null;
         this.compaction = null;
+        this.ignoreIdleContextUsage = false;
     }
 
     threadState(threadId) {
@@ -249,6 +250,7 @@ class CodexStreamingAdapter {
     async compact() {
         if (!this.threadId || this.rootState().activeTurnId || this.compaction) throw new Error('Codex session is not ready to compact');
         this.compaction = { confirmed: false };
+        this.ignoreIdleContextUsage = false;
         await this.sendRequest('thread/compact/start', { threadId: this.threadId }, 'compact');
     }
 
@@ -415,6 +417,7 @@ class CodexStreamingAdapter {
             const content = message.error.message ?? `Codex ${purpose} failed`;
             if (purpose === 'compact') {
                 this.compaction = null;
+                this.ignoreIdleContextUsage = true;
                 await this.onEvent({ error: content, type: 'compactRejected' });
                 return;
             }
@@ -533,7 +536,10 @@ class CodexStreamingAdapter {
 
         if (method === 'turn/started') {
             const turnId = params.turn?.id ?? params.turnId;
-            if (!isChild) this.resetRootTurnState();
+            if (!isChild) {
+                this.resetRootTurnState();
+                if (!this.compaction) this.ignoreIdleContextUsage = false;
+            }
             state.activeItems.clear();
             state.assistantItemOrder = [];
             state.assistantStreams.clear();
@@ -663,7 +669,10 @@ class CodexStreamingAdapter {
     async handleTokenUsage(context, params) {
         const { isChild, state } = context;
         if (isCodexContextOnlyTokenUsage(params)) {
-            if (!isChild) state.turnContextWindowUsage = codexContextWindowUsage(params);
+            if (isChild) return;
+            if (!state.activeTurnId && this.ignoreIdleContextUsage) return;
+            state.turnContextWindowUsage = codexContextWindowUsage(params);
+            await this.onEvent({ contextWindowUsage: state.turnContextWindowUsage, type: 'contextUsage' });
             return;
         }
         const counters = codexTurnCounters(params);
@@ -723,6 +732,7 @@ class CodexStreamingAdapter {
         const usage = this.turnUsageTotal();
         const compaction = this.compaction;
         this.compaction = null;
+        if (compaction) this.ignoreIdleContextUsage = compaction.confirmed !== true || params.turn?.status !== 'completed';
         await this.onEvent({
             ...(compaction ? { compaction } : {}),
             ...(contextWindowUsage !== undefined ? { contextWindowUsage } : {}),

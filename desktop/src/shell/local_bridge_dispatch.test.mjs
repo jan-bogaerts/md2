@@ -13,6 +13,7 @@ const INITIAL_ACCOUNTS = [
 function createDispatch(options = {}) {
     const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }));
     const actionRunnerService = {
+        advanceForEachRecord: vi.fn(),
         compactConversation: vi.fn(async (request) => ({ ...request, state: 'queued' })),
         cancelCompactsForPath: vi.fn(async () => undefined),
         cancelCompactsForConversation: vi.fn(async () => undefined),
@@ -81,7 +82,6 @@ function createDispatch(options = {}) {
         })),
         updateCardActionSettings: vi.fn(async () => undefined),
         commit: vi.fn(async () => []),
-        createProject: vi.fn(async (project) => project),
         hasPendingPush: vi.fn(async () => false),
         listAgentConversationReferences: vi.fn(async () => ['design/activity/project.json#conversation=conversation-1']),
         loadActivityConversations: vi.fn(async () => []),
@@ -100,12 +100,15 @@ function createDispatch(options = {}) {
         loadCardActivity: vi.fn(async () => ({ actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4 })),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
         loadImageFile: vi.fn(async (filePath) => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: filePath })),
+        loadLocalJsonFile: vi.fn(async (filePath) => ({ content: '{"value":1}', path: filePath })),
+        initializeLocalProject: vi.fn(async (rootPath) => ({ branch: 'main', id: rootPath, rootPath })),
         loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', states: [{ state: 'ready' }] })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadTextFile: vi.fn(async (_project, path) => ({ content: '{"version":2}', path })),
         resolveExistingProjectEntry: vi.fn(async (_project, entryPath) => `C:/repo/${entryPath}`),
         saveProjectConfig: vi.fn(async () => undefined),
+        saveLocalJsonFile: vi.fn(async () => undefined),
         resolveLocalProject: vi.fn(async () => ({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })),
         readFileAtCommit: vi.fn(async () => ({ content: '# Card', exists: true })),
         resolveCommitMetadata: vi.fn(async (_rootPath, commit) => ({
@@ -120,6 +123,7 @@ function createDispatch(options = {}) {
         splitActivityConversation: vi.fn(async (_project, reference, messageId) => ({ id: 'split-1', messageId, path: `${reference}-split` })),
         push: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
+        writeFiles: vi.fn(async () => undefined),
     };
     const actionWorktreeRunService = {
         execute: vi.fn(async (primaryProject, _action, _context, runner) => ({
@@ -180,7 +184,13 @@ function createDispatch(options = {}) {
     };
     const saveDesktopConfig = vi.fn((_store, values) => values);
     const agentModelCatalogService = createAgentModelCatalogStub();
-    const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn() };
+    const diffService = {
+        generateDiff: vi.fn(),
+        generateWorktreeFileDiff: vi.fn(),
+        listWorktreeChanges: vi.fn(),
+        openInEditor: vi.fn(),
+        openWithSystemApplication: vi.fn(),
+    };
     const projectStatsWorkerService = {
         calculate: vi.fn(async () => ({ stats: { actions: [], conversations: [] }, warnings: [] })),
         cancel: vi.fn(async () => undefined),
@@ -188,7 +198,13 @@ function createDispatch(options = {}) {
     const projectOperationCoordinator = options.projectOperationCoordinator
         ?? { run: vi.fn(async (_rootPath, operation) => operation()) };
     const uncommittedProjectWrites = options.uncommittedProjectWrites
-        ?? { commit: vi.fn(async () => null) };
+        ?? {
+            acknowledge: vi.fn(),
+            commit: vi.fn(async () => null),
+            configure: vi.fn(),
+            gitPaths: vi.fn((_rootPath, paths) => paths),
+            pendingPaths: vi.fn(() => []),
+        };
     const usageMetricsService = options.usageMetricsService ?? { repositoryPath: vi.fn(() => null) };
     const agentAccountService = {
         addAccount: vi.fn(async (agent) => ({ id: 'account-1', agent, kind: 'directory', name: 'work', configDirectory: 'C:/accounts/work' })),
@@ -215,6 +231,7 @@ function createDispatch(options = {}) {
         diffService,
         localGitService,
         mergeConflictService,
+        openPath: options.openPath,
         openProjectFolder: options.openProjectFolder,
         openProjectSubFolder: options.openProjectSubFolder,
         openWorktreeFolder: options.openWorktreeFolder,
@@ -406,17 +423,49 @@ describe('createLocalBridgeDispatch', () => {
         });
     });
 
-    it('generates worktree diff only through current project and WorktreeService', async () => {
+    it('opens outside-repository chat files through the operating system open handler', async () => {
+        const openPath = vi.fn();
+        const { diffService, dispatch, worktreeService } = createDispatch({ openPath });
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        worktreeService.getRecords.mockReturnValue([
+            { path: 'C:/worktree', valid: true },
+            { path: 'C:/broken', valid: false },
+        ]);
+        await dispatch.dataBridge.loadProject(project, 'design');
+        const request = { path: 'C:/outside/notes.txt', repositoryRoot: 'C:/repo' };
+
+        await dispatch.actionBridge.openLocalFileWithSystem(request);
+
+        expect(diffService.openWithSystemApplication).toHaveBeenCalledWith(project, request, {
+            openPath,
+            worktreeRoots: ['C:/worktree'],
+        });
+    });
+
+    it('lists worktree changes only through current project and WorktreeService', async () => {
         const { diffService, dispatch, localGitService, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
-        const result = { files: [], repositoryRoot: 'C:/worktree' };
-        diffService.generateWorktreeDiff.mockResolvedValue(result);
+        const result = { files: [], repositoryRoot: 'C:/worktree', revision: 'worktree-1' };
+        diffService.listWorktreeChanges.mockResolvedValue(result);
         await dispatch.dataBridge.loadProject(project, 'design');
 
-        await expect(dispatch.actionBridge.generateWorktreeDiff({ worktree: 1, worktreeBranch: 'feature' })).resolves.toBe(result);
+        await expect(dispatch.actionBridge.listWorktreeChanges({ worktree: 1, worktreeBranch: 'feature' })).resolves.toBe(result);
 
-        expect(diffService.generateWorktreeDiff).toHaveBeenCalledWith(project, { worktree: 1, worktreeBranch: 'feature' }, worktreeService);
+        expect(diffService.listWorktreeChanges).toHaveBeenCalledWith(project, { worktree: 1, worktreeBranch: 'feature' }, worktreeService);
         expect(localGitService.appendSystemActivityNow).not.toHaveBeenCalled();
+    });
+
+    it('generates one worktree file diff only through current project and WorktreeService', async () => {
+        const { diffService, dispatch, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const request = { path: 'app/a.ts', worktree: 1, worktreeBranch: 'feature' };
+        const result = { file: { newValue: 'b', oldValue: 'a', path: 'app/a.ts' }, patch: '', repositoryRoot: 'C:/worktree' };
+        diffService.generateWorktreeFileDiff.mockResolvedValue(result);
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await expect(dispatch.actionBridge.generateWorktreeFileDiff(request)).resolves.toBe(result);
+
+        expect(diffService.generateWorktreeFileDiff).toHaveBeenCalledWith(project, request, worktreeService);
     });
 
     it('exposes the Codex runtime state of the requested account without execution context', async () => {
@@ -465,31 +514,60 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.hasPendingPush).toHaveBeenCalledWith(project);
     });
 
-    it('establishes a created project for following commits', async () => {
-        const { dispatch, localGitService } = createDispatch();
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
-
-        await dispatch.dataBridge.createProject(project, ['design/active', 'design/history']);
-        localGitService.commit.mockResolvedValueOnce(undefined);
-        const result = await dispatch.dataBridge.commit({ branch: 'main', files: [], message: 'Add defaults' });
-
-        expect(localGitService.createProject).toHaveBeenCalledWith(project, ['design/active', 'design/history']);
-        expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), project);
-        expect(result).toEqual([]);
-    });
-
-    it('adds pending usage metrics to a batch commit of the active project', async () => {
+    it('adds pending activity and usage metrics to a batch commit before switching projects', async () => {
         const usageMetricsService = { repositoryPath: vi.fn(() => 'design/usage_metrics.csv') };
-        const { dispatch, localGitService } = createDispatch({ usageMetricsService });
+        const { dispatch, localGitService, uncommittedProjectWrites } = createDispatch({ usageMetricsService });
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         await dispatch.dataBridge.loadProject(project, 'design');
+        uncommittedProjectWrites.pendingPaths.mockReturnValue(['design/activity/card__card-1.json']);
         const request = { branch: 'main', files: [], message: 'Update', paths: ['design/view.json'] };
 
         await dispatch.dataBridge.commit(request);
 
         expect(usageMetricsService.repositoryPath).toHaveBeenCalledWith('C:/repo');
-        const expectedRequest = { ...request, paths: ['design/view.json', 'design/usage_metrics.csv'] };
+        const expectedRequest = {
+            ...request,
+            paths: ['design/view.json', 'design/activity/card__card-1.json', 'design/usage_metrics.csv'],
+        };
         expect(localGitService.commit).toHaveBeenCalledWith(expectedRequest, project);
+        expect(uncommittedProjectWrites.acknowledge).toHaveBeenCalledWith(
+            'C:/repo',
+            ['design/activity/card__card-1.json'],
+        );
+    });
+
+    it('writes local-only files and commits only paths permitted by project configuration', async () => {
+        const uncommittedProjectWrites = {
+            acknowledge: vi.fn(),
+            commit: vi.fn(async () => null),
+            configure: vi.fn(),
+            gitPaths: vi.fn((_rootPath, paths) => paths.filter((path) => !path.startsWith('design/'))),
+            pendingPaths: vi.fn(() => ['design/activity/card__card-1.json', 'README.generated.md']),
+        };
+        const usageMetricsService = { repositoryPath: vi.fn(() => 'design/usage_metrics.csv') };
+        const { dispatch, localGitService } = createDispatch({ uncommittedProjectWrites, usageMetricsService });
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await dispatch.dataBridge.commit({
+            branch: 'main',
+            files: [
+                { content: '# Card', path: 'design/active/F-1.md' },
+                { content: '# Readme', path: 'README.md' },
+            ],
+            message: 'Save mixed batch',
+        });
+
+        expect(localGitService.writeFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content: '# Card', path: 'design/active/F-1.md' }],
+        }, project);
+        expect(localGitService.commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content: '# Readme', path: 'README.md' }],
+            message: 'Save mixed batch',
+            paths: ['README.generated.md'],
+        }, project);
     });
 
     it('commits the batch unchanged when there is no usage metrics path', async () => {
@@ -519,6 +597,17 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadProjectConfig).toHaveBeenCalledOnce();
         expect(actionSchedulerService.startProject).toHaveBeenCalledOnce();
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), currentProject);
+    });
+
+    it('initializes a selected local project through the Git service', async () => {
+        const { dispatch, localGitService } = createDispatch();
+
+        await expect(dispatch.dataBridge.initializeLocalProject('C:/new project')).resolves.toEqual({
+            branch: 'main',
+            id: 'C:/new project',
+            rootPath: 'C:/new project',
+        });
+        expect(localGitService.initializeLocalProject).toHaveBeenCalledWith('C:/new project');
     });
 
     it('opens the project sub-folder picker at the repository root', async () => {
@@ -1099,6 +1188,7 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.actionBridge.answerActionApproval('action-1', 41, 'accept');
         await dispatch.actionBridge.answerActionQuestion('action-1', 7, { confirm: ['Yes'] });
         await dispatch.actionBridge.dismissActionQuestions('action-1', 7);
+        await dispatch.actionBridge.advanceActionForEachRecord('action-1');
         await dispatch.actionBridge.finishActionRun('action-1');
 
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
@@ -1110,6 +1200,7 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.answerAgentApproval).toHaveBeenCalledWith('action-1', 41, 'accept');
         expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
         expect(actionRunnerService.dismissAgentQuestions).toHaveBeenCalledWith('action-1', 7);
+        expect(actionRunnerService.advanceForEachRecord).toHaveBeenCalledWith('action-1');
         expect(actionRunnerService.finishAgentRun).toHaveBeenCalledWith('action-1');
     });
 
@@ -1433,6 +1524,17 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.dataBridge.loadImageFile('C:/images/photo.png');
 
         expect(localGitService.loadImageFile).toHaveBeenCalledWith('C:/images/photo.png');
+    });
+
+    it('forwards absolute JSON reads and writes through the data bridge', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const file = { content: '{"value":2}', path: 'C:/shared/data.json' };
+
+        await dispatch.dataBridge.loadLocalJsonFile(file.path);
+        await dispatch.dataBridge.saveLocalJsonFile(file);
+
+        expect(localGitService.loadLocalJsonFile).toHaveBeenCalledWith(file.path);
+        expect(localGitService.saveLocalJsonFile).toHaveBeenCalledWith(file);
     });
 
     it('exposes shared action run subscriptions through the action bridge', () => {

@@ -5,7 +5,7 @@ import { createDeferred } from '../test_support/data_service_test_support'
 import type { DirtyPrimaryOutcome } from '../../data/primary_change_types'
 import { primaryChangesService } from './primary_changes_service'
 import { PrimaryWorktreeSelectionError } from './worktree_errors'
-import { WorktreeService } from './worktree_service'
+import { cardWorktreeOperationEventType, WorktreeService } from './worktree_service'
 
 const project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\project' }
 const first: WorktreeRecord = {
@@ -75,13 +75,13 @@ function initService(
     service: WorktreeService,
     storage: StorageService,
     projectSnapshot = snapshot(),
-    flushPendingChanges = vi.fn(async () => undefined),
+    flushPendingChanges: () => Promise<void> = vi.fn(async () => undefined),
     projectFolder = 'design',
 ) {
     const assignCardWorktree = vi.fn()
     const clearCardBranch = vi.fn()
     const unassignCardWorktree = vi.fn()
-    const queueIntegratedActivity = vi.fn(async () => undefined)
+    const queueIntegratedActivity = vi.fn<() => Promise<void>>(async () => undefined)
     service.init({
         assignCardWorktree,
         cardSeparatorProvider: () => '-',
@@ -183,16 +183,30 @@ describe('WorktreeService', () => {
         expect(storage.rebaseWorktree).not.toHaveBeenCalled();
     });
 
-    it('replaces records from pushed state and preserves identity for equal records', () => {
+    it('preserves record identity and emits no events for equivalent pushed state', () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()
         initService(service, storage)
         emit(project, [first])
         const records = service.getRecords()
+        const record = records[0]
+        const changed = vi.fn()
+        const recordChanged = vi.fn()
+        const recordsChanged = vi.fn()
+        const primaryStatusChanged = vi.fn()
+        service.addEventListener('changed', changed)
+        service.addEventListener('recordChanged', recordChanged)
+        service.addEventListener('recordsChanged', recordsChanged)
+        service.addEventListener('primaryStatusChanged', primaryStatusChanged)
 
         emit(project, [{ ...first, status: { ...first.status } }])
 
         expect(service.getRecords()).toBe(records)
+        expect(service.getRecords()[0]).toBe(record)
+        expect(changed).not.toHaveBeenCalled()
+        expect(recordChanged).not.toHaveBeenCalled()
+        expect(recordsChanged).not.toHaveBeenCalled()
+        expect(primaryStatusChanged).not.toHaveBeenCalled()
     })
 
     it('replaces the old subscription when initialized again', () => {
@@ -287,14 +301,23 @@ describe('WorktreeService', () => {
         emit(project, [first]);
         const assignment = service.getAssignmentSnapshot();
         const assignmentChanged = vi.fn();
+        const changed = vi.fn();
+        const primaryStatusChanged = vi.fn();
+        const recordsChanged = vi.fn();
         const statusChanged = vi.fn();
         service.addEventListener('assignmentChanged', assignmentChanged);
+        service.addEventListener('changed', changed);
+        service.addEventListener('primaryStatusChanged', primaryStatusChanged);
+        service.addEventListener('recordsChanged', recordsChanged);
         service.addEventListener('recordChanged', statusChanged);
 
         emit(project, [{ ...first, status: { ...first.status, dirty: true, baseAhead: 2 } }]);
 
         expect(service.getAssignmentSnapshot()).toBe(assignment);
         expect(assignmentChanged).not.toHaveBeenCalled();
+        expect(changed).not.toHaveBeenCalled();
+        expect(primaryStatusChanged).not.toHaveBeenCalled();
+        expect(recordsChanged).not.toHaveBeenCalled();
         expect(statusChanged).toHaveBeenCalledOnce();
         expect((statusChanged.mock.calls[0][0] as CustomEvent).detail.branch).toBe(first.branch);
         expect(service.getRecords()[0].status).toMatchObject({ dirty: true, baseAhead: 2 });
@@ -325,7 +348,13 @@ describe('WorktreeService', () => {
         const service = new WorktreeService()
         initService(service, storage)
         const recordsChanged = vi.fn()
+        const changed = vi.fn()
+        const recordChanged = vi.fn()
+        const primaryStatusChanged = vi.fn()
+        service.addEventListener('changed', changed)
+        service.addEventListener('recordChanged', recordChanged)
         service.addEventListener('recordsChanged', recordsChanged)
+        service.addEventListener('primaryStatusChanged', primaryStatusChanged)
 
         emit(project, [first])
         emit(project, [first, second])
@@ -333,6 +362,9 @@ describe('WorktreeService', () => {
         emit(project, [second])
 
         expect(recordsChanged).toHaveBeenCalledTimes(4)
+        expect(changed).not.toHaveBeenCalled()
+        expect(recordChanged).not.toHaveBeenCalled()
+        expect(primaryStatusChanged).not.toHaveBeenCalled()
         expect(service.getAssignmentState({ branch: second.branch, worktree: 2 })).toMatchObject({ index: 1, record: second })
     })
 
@@ -342,12 +374,21 @@ describe('WorktreeService', () => {
         initService(service, storage)
         emit(project, [first])
         const records = service.getRecords()
+        const changed = vi.fn()
+        const recordChanged = vi.fn()
+        const recordsChanged = vi.fn()
         const primaryStatusChanged = vi.fn()
+        service.addEventListener('changed', changed)
+        service.addEventListener('recordChanged', recordChanged)
+        service.addEventListener('recordsChanged', recordsChanged)
         service.addEventListener('primaryStatusChanged', primaryStatusChanged)
 
         emit(project, [{ ...first }], null, { ...first.status, dirty: true })
 
         expect(service.getRecords()).toBe(records)
+        expect(changed).not.toHaveBeenCalled()
+        expect(recordChanged).not.toHaveBeenCalled()
+        expect(recordsChanged).not.toHaveBeenCalled()
         expect(primaryStatusChanged).toHaveBeenCalledOnce()
         expect(service.getPrimaryStatus()?.dirty).toBe(true)
     })
@@ -448,6 +489,121 @@ describe('WorktreeService', () => {
         expect(assignCardWorktree).toHaveBeenCalledWith(firstCard.path, 1, 'design-f-1-md-first')
     })
 
+    it('scopes pending assignment state and notifications by card internal ID', async () => {
+        const pendingPreparation = createDeferred<void>()
+        const { emit, storage } = createStorage()
+        storage.prepareWorktree = vi.fn(() => pendingPreparation.promise)
+        const service = new WorktreeService()
+        const firstCard = card('design/F-1.md', 'First', null)
+        const secondCard = card('design/F-2.md', 'Second', null)
+        firstCard.header.internalId = 'card-1'
+        secondCard.header.internalId = 'card-2'
+        initService(service, storage, snapshot([firstCard, secondCard]))
+        emit(project, [first])
+        const firstNotifications = vi.fn()
+        const secondNotifications = vi.fn()
+        service.addEventListener(cardWorktreeOperationEventType('card-1'), firstNotifications)
+        service.addEventListener(cardWorktreeOperationEventType('card-2'), secondNotifications)
+
+        const assignment = service.setCardWorktree(firstCard.path, first.branch)
+        expect(service.isPreparingCard('card-1')).toBe(true)
+        expect(service.isPreparingCard('card-2')).toBe(false)
+        expect(firstNotifications).toHaveBeenCalledOnce()
+        expect(secondNotifications).not.toHaveBeenCalled()
+        pendingPreparation.resolve()
+        await assignment
+
+        expect(service.isPreparingCard('card-1')).toBe(false)
+        expect(firstNotifications).toHaveBeenCalledTimes(2)
+        expect(secondNotifications).not.toHaveBeenCalled()
+    })
+
+    it('publishes a card-scoped committing phase and clears it after failure', async () => {
+        const pendingCommit = createDeferred<void>()
+        const { emit, storage } = createStorage()
+        storage.commitWorktree = vi.fn(() => pendingCommit.promise)
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        const cardInternalId = assignedCard.header.internalId!
+        initService(service, storage, snapshot([assignedCard]))
+        emit(project, [first])
+        const firstNotifications = vi.fn()
+        const secondNotifications = vi.fn()
+        service.addEventListener(cardWorktreeOperationEventType(cardInternalId), firstNotifications)
+        service.addEventListener(cardWorktreeOperationEventType('card-2'), secondNotifications)
+
+        const commit = service.commitCardWorktree(assignedCard.path, 'Commit card')
+        expect(service.getCardOperationPhase(cardInternalId)).toBe('committing')
+        expect(service.getCardOperationPhase('card-2')).toBeNull()
+        expect(firstNotifications).toHaveBeenCalledOnce()
+        expect(secondNotifications).not.toHaveBeenCalled()
+
+        const failure = new Error('commit failed')
+        pendingCommit.reject(failure)
+        await expect(commit).rejects.toBe(failure)
+        expect(service.getCardOperationPhase(cardInternalId)).toBeNull()
+        expect(firstNotifications).toHaveBeenCalledTimes(2)
+        expect(secondNotifications).not.toHaveBeenCalled()
+    })
+
+    it('publishes saving, integrating, and finalizing phases for card integration', async () => {
+        const pendingFlush = createDeferred<void>()
+        const pendingIntegration = createDeferred<{ activityPath: string; status: 'completed' }>()
+        const pendingActivity = createDeferred<void>()
+        const { emit, storage } = createStorage()
+        storage.integrateWorktree = vi.fn(() => pendingIntegration.promise)
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        const cardInternalId = assignedCard.header.internalId!
+        const flushPendingChanges = vi.fn(() => pendingFlush.promise)
+        const { queueIntegratedActivity } = initService(service, storage, snapshot([assignedCard]), flushPendingChanges)
+        queueIntegratedActivity.mockImplementation(() => pendingActivity.promise)
+        emit(project, [first])
+        const notifications = vi.fn()
+        service.addEventListener(cardWorktreeOperationEventType(cardInternalId), notifications)
+
+        const integration = service.integrateCardWorktree(assignedCard.path, false)
+        expect(service.getCardOperationPhase(cardInternalId)).toBe('savingProjectChanges')
+        expect(notifications).toHaveBeenCalledOnce()
+
+        pendingFlush.resolve()
+        await vi.waitFor(() => expect(service.getCardOperationPhase(cardInternalId)).toBe('integrating'))
+        expect(notifications).toHaveBeenCalledTimes(2)
+
+        pendingIntegration.resolve({ activityPath: 'design/activity/card__card-1.json', status: 'completed' })
+        await vi.waitFor(() => expect(service.getCardOperationPhase(cardInternalId)).toBe('finalizing'))
+        expect(notifications).toHaveBeenCalledTimes(3)
+
+        pendingActivity.resolve()
+        await integration
+        expect(service.getCardOperationPhase(cardInternalId)).toBeNull()
+        expect(notifications).toHaveBeenCalledTimes(4)
+    })
+
+    it('keeps update pending through save flush and clears scoped state after failure', async () => {
+        const pendingFlush = createDeferred<void>()
+        const { emit, storage } = createStorage()
+        const failure = new Error('save failed')
+        const flushPendingChanges = vi.fn(() => pendingFlush.promise)
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        assignedCard.header.internalId = 'card-1'
+        initService(service, storage, snapshot([assignedCard]), flushPendingChanges)
+        emit(project, [first])
+        const notifications = vi.fn()
+        service.addEventListener(cardWorktreeOperationEventType('card-1'), notifications)
+
+        const update = service.updateCardWorktree(assignedCard.path)
+        expect(service.isPreparingCard('card-1')).toBe(true)
+        expect(storage.rebaseWorktree).not.toHaveBeenCalled()
+        pendingFlush.reject(failure)
+        await expect(update).rejects.toBe(failure)
+
+        expect(service.isPreparingCard('card-1')).toBe(false)
+        expect(notifications).toHaveBeenCalledTimes(2)
+        expect(storage.rebaseWorktree).not.toHaveBeenCalled()
+    })
+
     it('keeps the card assigned when backend parking rejects newly dirty state', async () => {
         const { emit, storage } = createStorage()
         storage.parkWorktree = vi.fn(async () => {
@@ -485,17 +641,22 @@ describe('WorktreeService', () => {
         const service = new WorktreeService()
         const assignedCard = card('design/F-1.md', 'Assigned', 1)
         initService(service, storage, snapshot([assignedCard]))
-        const generateWorktreeDiff = vi.fn(async () => ({ files: [], repositoryRoot: first.path }))
-        setActionBridgeOverride({ generateWorktreeDiff } as unknown as ElectronActionBridge)
+        const manifest = { files: [], repositoryRoot: first.path, revision: 'worktree-1' }
+        const fileResult = { file: { newValue: 'b', oldValue: 'a', path: 'app/a.ts' }, patch: '', repositoryRoot: first.path }
+        const listWorktreeChanges = vi.fn(async () => manifest)
+        const generateWorktreeFileDiff = vi.fn(async () => fileResult)
+        setActionBridgeOverride({ generateWorktreeFileDiff, listWorktreeChanges } as unknown as ElectronActionBridge)
 
         emit(project, [first])
         expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(false)
-        await expect(service.generateCardWorktreeDiff(assignedCard.path)).rejects.toThrow('no changes to integrate')
+        await expect(service.listCardWorktreeChanges(assignedCard.path)).rejects.toThrow('no changes to integrate')
 
         emit(project, [{ ...first, status: { ...first.status, dirty: true } }])
         expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(true)
-        await expect(service.generateCardWorktreeDiff(assignedCard.path)).resolves.toEqual({ files: [], repositoryRoot: first.path })
-        expect(generateWorktreeDiff).toHaveBeenCalledWith({ worktree: 1, worktreeBranch: first.branch })
+        await expect(service.listCardWorktreeChanges(assignedCard.path)).resolves.toEqual(manifest)
+        await expect(service.loadCardWorktreeFileDiff(assignedCard.path, 'app/a.ts')).resolves.toEqual(fileResult)
+        expect(listWorktreeChanges).toHaveBeenCalledWith({ worktree: 1, worktreeBranch: first.branch })
+        expect(generateWorktreeFileDiff).toHaveBeenCalledWith({ path: 'app/a.ts', worktree: 1, worktreeBranch: first.branch })
 
         emit(project, [{ ...first, status: { ...first.status, baseAhead: 1, dirty: false } }])
         expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(true)

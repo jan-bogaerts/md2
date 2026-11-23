@@ -35,6 +35,10 @@ import { getElectronRemoteControlBridge } from '../../data/electron_remote_contr
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
 import { useWorktreeDraft } from '../hooks/use_worktrees'
 import { worktreeService } from '../../services/project/worktree_service'
+import {
+    hasProjectFolderGitInclusionDraftChange,
+    projectFolderGitInclusionService,
+} from '../../services/project/project_folder_git_inclusion_service'
 import { SentryConfigSection } from './sentry_config_section'
 
 const CONFIG_PAGE_PADDING = 3
@@ -203,6 +207,9 @@ export function ConfigPage(props: ConfigPageProps) {
         try {
             if (applyingWorktrees) await worktreeService.applyDraft()
             applyingWorktrees = false
+            if (configService.hasProjectConfig() && hasProjectFolderGitInclusionDraftChange(draft)) {
+                await projectFolderGitInclusionService.applyDraft(draft)
+            }
             const shouldSaveProjectConfig = configService.hasDraftChangesForSource('project')
             const shouldSaveDesktopConfig = configService.hasDraftChangesForSource('desktop')
             const previousCardSeparator = configService.get('project.cardSeparator')

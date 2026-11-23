@@ -14,7 +14,7 @@ import { AppThemeProvider } from '../../theme/theme_provider'
 import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
-import { cardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
+import { cardMarkdownDataSource, CardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 import { openFilesService } from '../../services/open_files_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { cardDragDropService } from './card_drag_drop_service'
@@ -65,6 +65,8 @@ function card(id: string, title: string, status: string, policy: Record<string, 
         path: `design/${id}.md`,
     }
 }
+
+const nextTodoCard = { ...card('F-3', 'Third', 'todo'), header: { ...card('F-3', 'Third', 'todo').header, after: 'f-1' } }
 
 const cards = [
     card('F-1', 'First', 'todo', { checkLinting: true, requireTests: false }),
@@ -137,7 +139,7 @@ describe('CardView', () => {
         vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((target) => target.document.kind === 'card'
             ? target.document.getDraft().content
             : '')
-        vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)
+        vi.spyOn(CardMarkdownDataSource.prototype, 'commit').mockReturnValue(true)
     })
 
     afterEach(() => {
@@ -800,6 +802,45 @@ describe('CardView', () => {
         fireEvent.click(within(confirmDialog).getByRole('button', { name: 'Delete' }))
 
         await waitFor(() => expect(dataService.cards.deleteCard).toHaveBeenCalledWith('design/F-1.md'))
+    })
+
+    it('focuses the next card without scrolling after deleting from the card actions menu', async () => {
+        renderCardView({}, [cards[0], nextTodoCard, cards[1]])
+        const nextCardButton = screen.getByRole('button', { name: 'Drag F-3' })
+        const focusSpy = vi.spyOn(nextCardButton, 'focus')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+        fireEvent.click(within(screen.getByRole('dialog', { name: 'Delete card' })).getByRole('button', { name: 'Delete' }))
+
+        await waitFor(() => expect(nextCardButton).toHaveFocus())
+        expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
+    })
+
+    it('focuses the next card without scrolling after deleting from the body popup', async () => {
+        renderCardView({}, [cards[0], nextTodoCard, cards[1]])
+        const nextCardButton = screen.getByRole('button', { name: 'Drag F-3' })
+        const focusSpy = vi.spyOn(nextCardButton, 'focus')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+        fireEvent.click(within(screen.getByRole('dialog', { name: 'Delete card' })).getByRole('button', { name: 'Delete' }))
+
+        await waitFor(() => expect(nextCardButton).toHaveFocus())
+        expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
+    })
+
+    it('focuses the column Add card button without scrolling after deleting its only card', async () => {
+        renderCardView({ states: [{ alwaysVisible: false, state: 'todo' }, { alwaysVisible: true, state: 'done' }] })
+        const addButton = screen.getByRole('button', { name: 'Add card from done column' })
+        const focusSpy = vi.spyOn(addButton, 'focus')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-2' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+        fireEvent.click(within(screen.getByRole('dialog', { name: 'Delete card' })).getByRole('button', { name: 'Delete' }))
+
+        await waitFor(() => expect(addButton).toHaveFocus())
+        expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
     })
 
     it('keeps desktop popup sizing, actions, resizing, and fullscreen control', () => {

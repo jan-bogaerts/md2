@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { NOT_A_GIT_REPOSITORY_ERROR, serializeBridgeError } from '../../../../../shared/bridge_errors.mjs'
 import type { ElectronDataBridge } from '../../../data/electron_data_bridge'
 import { RECENT_LOCAL_REPOSITORIES_STORAGE_KEY } from '../../../data/recent_local_repositories'
 import { REMOTE_CONTROL_ENDPOINT_KEY } from '../../../data/remote_control_connection'
@@ -25,7 +26,9 @@ interface DialogOptions {
 function ProjectOpenDialogHost() {
     const phase = useProjectOpenPhase()
 
-    return phase === 'selecting' || phase === 'folder-setup' ? <ProjectOpenDialog key={phase} /> : null
+    return phase === 'selecting' || phase === 'folder-setup' || phase === 'git-initialization'
+        ? <ProjectOpenDialog key={phase} />
+        : null
 }
 
 function renderDialog(options: DialogOptions = {}) {
@@ -46,11 +49,23 @@ function setDesktopBridge(bridge: Partial<ElectronDataBridge> = {}) {
     } as ElectronDataBridge
 }
 
+function notGitRepositoryFailure(rootPath: string) {
+    const error = new Error(`Selected folder is not a Git repository: ${rootPath}`) as Error & {
+        code?: string
+        rootPath?: string
+    }
+    error.code = NOT_A_GIT_REPOSITORY_ERROR
+    error.rootPath = rootPath
+
+    return serializeBridgeError(error)
+}
+
 function folderSetupResolution(): ProjectOpenResolution {
     return {
         existingFolderPaths: [],
         folders: [{ name: 'design', path: 'design' }],
         hasProjectConfig: false,
+        includeProjectFolderInGit: false,
         kind: 'project-folder-setup',
         project: LOCAL_PROJECT,
         storageType: 'local',
@@ -185,6 +200,44 @@ describe('ProjectOpenDialog', () => {
         expect(openProjectFolder).toHaveBeenCalledOnce()
     })
 
+    it('shows the selected path and initializes it when the user selects Yes', async () => {
+        const initializeLocalProject = vi.fn(async () => LOCAL_PROJECT)
+        const resolveProject = (
+            vi.fn(async () => notGitRepositoryFailure('C:/plain folder'))
+        ) as unknown as ElectronDataBridge['resolveProject']
+        setDesktopBridge({ initializeLocalProject, resolveProject })
+        const openProject = vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(null)
+        renderDialog()
+        await userEvent.type(screen.getByRole('textbox', { name: 'Local repository folder' }), 'C:/plain folder')
+        fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+
+        const confirmation = await screen.findByRole('dialog', { name: 'Create Git repository?' })
+        expect(within(confirmation).getByText('C:/plain folder')).toBeInTheDocument()
+        fireEvent.click(within(confirmation).getByRole('button', { name: 'Yes' }))
+
+        await waitFor(() => expect(initializeLocalProject).toHaveBeenCalledWith('C:/plain folder'))
+        expect(openProject).toHaveBeenCalledWith('local', LOCAL_PROJECT, 'token')
+    })
+
+    it('returns to local selection without initializing when the user selects No', async () => {
+        const initializeLocalProject = vi.fn(async () => LOCAL_PROJECT)
+        const resolveProject = (
+            vi.fn(async () => notGitRepositoryFailure('C:/plain folder'))
+        ) as unknown as ElectronDataBridge['resolveProject']
+        setDesktopBridge({ initializeLocalProject, resolveProject })
+        const openProject = vi.spyOn(projectSessionService, 'openProject')
+        renderDialog()
+        await userEvent.type(screen.getByRole('textbox', { name: 'Local repository folder' }), 'C:/plain folder')
+        fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+
+        const confirmation = await screen.findByRole('dialog', { name: 'Create Git repository?' })
+        fireEvent.click(within(confirmation).getByRole('button', { name: 'No' }))
+
+        expect(await screen.findByRole('dialog', { name: 'Open project' })).toBeInTheDocument()
+        expect(initializeLocalProject).not.toHaveBeenCalled()
+        expect(openProject).not.toHaveBeenCalled()
+    })
+
     it('stays hidden between project load completion and recent-folder recording', async () => {
         setDesktopBridge()
         vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(null)
@@ -225,7 +278,7 @@ describe('ProjectOpenDialog', () => {
             'Choose the top-level repository folder that contains this MD² project.',
         )).toBeInTheDocument()
         expect(within(currentFilesCard).getByText(
-            'These folders contain files MD² reads or writes while work on the project is active.',
+            'These folders contain currently active files that MD² shows in the kanban, diagram editor and action popups.',
         )).toBeInTheDocument()
         expect(within(historyCard).getByText(
             'These folders contain completed releases and cards archived outside a release.',
@@ -299,7 +352,7 @@ describe('ProjectOpenDialog', () => {
     it('stays hidden after folder setup while recording the opened local project', async () => {
         setDesktopBridge()
         vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(folderSetupResolution())
-        vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(undefined)
+        vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(true)
         const write = createDeferred<void>()
         const recordRecent = vi.spyOn(applicationStorage, 'writeCurrentItem').mockReturnValue(write.promise)
         renderDialog()
@@ -333,13 +386,36 @@ describe('ProjectOpenDialog', () => {
     })
 
     it('shows folder setup, validates the values, and confirms through the project session', async () => {
-        const confirm = vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(undefined)
+        const confirm = vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(true)
         renderDialog({ initialProjectOpenResolution: folderSetupResolution() })
         expect(screen.getByRole('dialog', { name: 'Project folders' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Open' }))
 
-        await waitFor(() => expect(confirm).toHaveBeenCalledWith(folderSetupResolution(), folderSetupResolution().values, 'token'))
+        await waitFor(() => expect(confirm).toHaveBeenCalledWith(folderSetupResolution(), { folderValues: folderSetupResolution().values, includeProjectFolderInGit: false }, 'token'))
         expect(projectOpenFlowService.getPhase()).toBe('closed')
+    })
+
+    it('offers keeping the project folder out of Git for a new local project, off by default', async () => {
+        const confirm = vi.spyOn(projectSessionService, 'confirmProjectFolderSetup').mockResolvedValue(true)
+        renderDialog({ initialProjectOpenResolution: folderSetupResolution() })
+        const checkbox = screen.getByRole('checkbox', { name: 'Include project folder in Git' })
+        expect(checkbox).not.toBeChecked()
+
+        await userEvent.click(checkbox)
+        fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+
+        await waitFor(() => expect(confirm).toHaveBeenCalledWith(
+            folderSetupResolution(),
+            { folderValues: folderSetupResolution().values, includeProjectFolderInGit: true },
+            'token',
+        ))
+    })
+
+    it('does not offer the project folder Git option when the project already has a config', () => {
+        const resolution = { ...folderSetupResolution(), hasProjectConfig: true, includeProjectFolderInGit: true }
+        renderDialog({ initialProjectOpenResolution: resolution })
+
+        expect(screen.queryByRole('checkbox', { name: 'Include project folder in Git' })).toBeNull()
     })
 
     it('disables confirmation for an empty folder value', async () => {

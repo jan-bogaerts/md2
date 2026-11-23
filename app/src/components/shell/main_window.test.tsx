@@ -51,8 +51,9 @@ function renderWindow(overrides?: Partial<Parameters<typeof MainWindow>[0]>) {
 function installAgentBridge(stdout: string) {
     const bridge: ElectronActionBridge = {
         cancelActionRun: vi.fn(async () => {}),
-        generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
-        generateWorktreeDiff: vi.fn(async () => ({ files: [], repositoryRoot: '' })),
+        generateDiff: vi.fn(async () => ({ commit: '', files: [], patch: '' })),
+        generateWorktreeFileDiff: vi.fn(async () => ({ file: { newValue: '', oldValue: '', path: '' }, patch: '', repositoryRoot: '' })),
+        listWorktreeChanges: vi.fn(async () => ({ files: [], repositoryRoot: '', revision: 'worktree-1' })),
         loadActionRunHistory: vi.fn(async () => []),
         onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),
@@ -69,7 +70,6 @@ function createStorage(files: MarkdownFile[] = []): StorageService {
     return {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
-        createProject: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         listBranches: vi.fn(async () => []),

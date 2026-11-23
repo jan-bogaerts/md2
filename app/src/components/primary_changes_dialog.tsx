@@ -1,9 +1,11 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
 import { dialogService } from '../services/dialog_service';
 import { primaryChangesService } from '../services/project/primary_changes_service';
 import { usePrimaryChangesOpen } from './hooks/use_primary_changes';
 import { PrimaryChangeList } from './primary_change_list';
 import { PrimaryChangeMessageField } from './primary_change_message_field';
+import { PrimaryChangesCancelButton } from './primary_changes_cancel_button';
+import { PrimaryChangesCommitProgress } from './primary_changes_commit_progress';
 import { PrimaryChangesConfirmButton } from './primary_changes_confirm_button';
 
 async function confirmPrimaryChanges() {
@@ -42,10 +44,11 @@ export function PrimaryChangesDialog() {
                     </Typography>
                     <PrimaryChangeList />
                     <PrimaryChangeMessageField onSubmit={handleConfirm} />
+                    <PrimaryChangesCommitProgress />
                 </Stack>
             </DialogContent>
             <DialogActions sx={{ borderTop: '1px solid', borderColor: 'divider', justifyContent: 'flex-end' }}>
-                <Button onClick={handleCancel} variant="outlined">Cancel</Button>
+                <PrimaryChangesCancelButton onCancel={handleCancel} />
                 <PrimaryChangesConfirmButton onConfirm={handleConfirm} />
             </DialogActions>
         </Dialog>

@@ -18,11 +18,13 @@ import type {
     OpenDocumentDraft,
     OpenDocumentObject,
 } from './open_document'
+import type { JsonDataDocument } from './json/json_data_document'
 
 export type {
     ActionOpenDocument,
     CardOpenDocument,
     InstructionOpenDocument,
+    JsonOpenDocument,
     OpenDocument,
     OpenDocumentChangedDetail,
     OpenDocumentDraft,
@@ -114,6 +116,8 @@ export class OpenFilesService extends EventTarget {
     private readonly boardDocuments = new Set<ManagedDocument>()
     private dataService: OpenFilesDependencies['dataService'] | null = null
     private readonly instructionEventPaths = new Set<string>()
+    private readonly jsonDocuments = new Map<string, JsonDataDocument>()
+    private readonly popupJsonDocuments = new Set<JsonDataDocument>()
     private readonly registeredDocuments = new Map<string, ManagedDocument>()
     private loadedProjectKey: string | null = null
     private registryScopeRevision = 0
@@ -156,7 +160,7 @@ export class OpenFilesService extends EventTarget {
     }
 
     getRegisteredDocuments(): readonly OpenDocument[] {
-        return [...this.registeredDocuments.values()]
+        return [...this.registeredDocuments.values(), ...this.jsonDocuments.values()]
     }
 
     findDocument(object: OpenDocumentObject): OpenDocument | null {
@@ -183,6 +187,29 @@ export class OpenFilesService extends EventTarget {
         this.boardDocuments.add(document)
 
         return document
+    }
+
+    openJsonDocument(document: JsonDataDocument): JsonDataDocument {
+        const registeredDocument = this.registerJsonDocument(document)
+        if (!this.snapshot.documents.includes(registeredDocument)) {
+            this.update({ activeDocument: registeredDocument, documents: [...this.snapshot.documents, registeredDocument] })
+        } else {
+            this.activateDocument(registeredDocument)
+        }
+
+        return registeredDocument
+    }
+
+    openJsonPopupDocument(document: JsonDataDocument) {
+        const registeredDocument = this.registerJsonDocument(document)
+        this.popupJsonDocuments.add(registeredDocument)
+
+        return registeredDocument
+    }
+
+    closeJsonPopupDocument(document: JsonDataDocument) {
+        this.popupJsonDocuments.delete(document)
+        this.releaseDocument(document)
     }
 
     openPath(path: string): OpenDocument {
@@ -222,7 +249,7 @@ export class OpenFilesService extends EventTarget {
             ? documents[index] ?? documents[index - 1] ?? null
             : this.snapshot.activeDocument
         this.update({ activeDocument, documents })
-        this.releaseDocument(document as ManagedDocument)
+        this.releaseDocument(document)
     }
 
     closeBoardDocument(document: CardOpenDocument) {
@@ -231,6 +258,13 @@ export class OpenFilesService extends EventTarget {
     }
 
     discardDocument(document: OpenDocument) {
+        if (document.kind === 'json') {
+            const documents = this.snapshot.documents.filter((candidate) => candidate !== document)
+            const activeDocument = this.snapshot.activeDocument === document ? documents[0] ?? null : this.snapshot.activeDocument
+            if (documents.length !== this.snapshot.documents.length) this.update({ activeDocument, documents })
+            this.removeJsonDocument(document)
+            return
+        }
         const managedDocument = document as ManagedDocument
         this.boardDocuments.delete(managedDocument)
         const documents = this.snapshot.documents.filter((candidate) => candidate !== document)
@@ -243,8 +277,11 @@ export class OpenFilesService extends EventTarget {
         const removableDocuments = [...this.registeredDocuments.values()]
             .filter((document) => document.kind === 'instruction' || !document.dirty)
         this.boardDocuments.clear()
+        this.popupJsonDocuments.clear()
         if (this.snapshot.documents.length > 0) this.update(EMPTY_SNAPSHOT)
         for (const document of removableDocuments) this.removeDocument(document)
+        const removableJsonDocuments = [...this.jsonDocuments.values()].filter((document) => !document.dirty)
+        for (const document of removableJsonDocuments) this.removeJsonDocument(document)
     }
 
     private readonly handleActionChanged = () => this.reconcile()
@@ -357,17 +394,24 @@ export class OpenFilesService extends EventTarget {
 
     private readonly handleDocumentChanged = (event: Event) => {
         const detail = (event as CustomEvent<OpenDocumentChangedDetail>).detail
-        this.releaseDocument(detail.document as ManagedDocument)
+        this.releaseDocument(detail.document)
         if (detail.type === 'renewed' && this.snapshot.documents.includes(detail.document)) {
             this.update({ ...this.snapshot, documents: [...this.snapshot.documents] })
         }
         this.dispatchEvent(new CustomEvent('documentChanged', { detail }))
     }
 
-    private releaseDocument(document: ManagedDocument) {
-        if (document.dirty || this.boardDocuments.has(document) || this.snapshot.documents.includes(document)) return
+    private releaseDocument(document: OpenDocument) {
+        if (document.dirty || this.snapshot.documents.includes(document)) return
+        if (document.kind === 'json') {
+            if (this.popupJsonDocuments.has(document)) return
+            this.removeJsonDocument(document)
+            return
+        }
+        const managedDocument = document as ManagedDocument
+        if (this.boardDocuments.has(managedDocument)) return
 
-        this.removeDocument(document)
+        this.removeDocument(managedDocument)
     }
 
     private removeDocument(document: ManagedDocument) {
@@ -385,6 +429,21 @@ export class OpenFilesService extends EventTarget {
         this.dispatchDocumentEvent('removed', document)
     }
 
+    private removeJsonDocument(document: JsonDataDocument) {
+        const entry = [...this.jsonDocuments.entries()].find(([, candidate]) => candidate === document)
+        if (!entry) return
+
+        document.removeEventListener('documentChanged', this.handleDocumentChanged)
+        this.jsonDocuments.delete(entry[0])
+        this.popupJsonDocuments.delete(document)
+        if (this.snapshot.documents.includes(document)) {
+            const documents = this.snapshot.documents.filter((candidate) => candidate !== document)
+            const activeDocument = this.snapshot.activeDocument === document ? documents[0] ?? null : this.snapshot.activeDocument
+            this.update({ activeDocument, documents })
+        }
+        this.dispatchDocumentEvent('removed', document)
+    }
+
     private static objectKey(object: OpenDocumentObject) {
         const kind = isCard(object) ? 'card' : isInstruction(object) ? 'instruction' : 'action'
 
@@ -393,6 +452,22 @@ export class OpenFilesService extends EventTarget {
 
     private scopedObjectKey(object: OpenDocumentObject) {
         return `${this.registryScopeRevision}:${OpenFilesService.objectKey(object)}`
+    }
+
+    private scopedJsonKey(path: string) {
+        return `${this.registryScopeRevision}:json:${path}`
+    }
+
+    private registerJsonDocument(document: JsonDataDocument) {
+        const key = this.scopedJsonKey(document.path)
+        const existing = this.jsonDocuments.get(key)
+        if (existing) return existing
+
+        this.jsonDocuments.set(key, document)
+        document.addEventListener('documentChanged', this.handleDocumentChanged)
+        this.dispatchDocumentEvent('added', document)
+
+        return document
     }
 
     private dispatchDocumentEvent(name: 'added' | 'removed', document: OpenDocument) {

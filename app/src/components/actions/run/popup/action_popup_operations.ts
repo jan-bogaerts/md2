@@ -3,6 +3,7 @@ import type { AgentQuestion } from '../../../../data/data_types'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { generateUuid } from '../../../../data/uuid'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
+import { isMissingThisCardContextError, reportActionError } from '../../../../services/actions/action_error_reporting'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import type {
     ActionRunSettingsStore,
@@ -12,6 +13,7 @@ import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import {
+    defaultAdvanceForEachRecord,
     defaultCancelAction,
     defaultCloseWaitingConversation,
     defaultConvertPromptToAction,
@@ -188,7 +190,9 @@ async function runWithPrompt(
             }],
             status: 'failed',
         })
-        if (!submissionId || started) dialogService.error(error, { fallbackMessage: 'Action run failed' })
+        if (!submissionId || started || isMissingThisCardContextError(error)) {
+            reportActionError(error, { fallbackMessage: 'Action run failed' })
+        }
     }
 }
 
@@ -202,6 +206,7 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
     const agentActive = sessionActive && run?.activeActionType === 'agent'
     const promptDraft = currentActionPromptDraft(action, context, bindingStore, conversationStore, false, agentActive ? '' : undefined)
     const prompt = promptDraft.getSnapshot()
+    if (agentActive && prompt.trim().length === 0) return
 
     if (agentActive && run) {
         if (
@@ -221,7 +226,6 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
         let submissionId: string | null = null
         try {
             if (!run.activeActionId) throw new Error('Action run has no active agent')
-            if (prompt.trim().length === 0) throw new Error('Queued agent prompt is empty')
 
             submissionId = actionRunRegistry.beginSubmission(action.id, executionContext, prompt, run.runId, run.conversation?.id ?? null);
             promptDraft.clearForSend()
@@ -371,5 +375,19 @@ export async function finishPopupAction(
         await defaultFinishAction(run.runId)
     } catch (error) {
         dialogService.error(error, { fallbackMessage: 'Could not finish agent session' })
+    }
+}
+
+export async function advancePopupForEachRecord(
+    bindingStore: ActionRunBindingStore,
+    conversationStore: ActionConversationStore,
+) {
+    const run = currentActionRun(bindingStore)
+    if (!run || activeRunHasHistoricalDisplay(run, conversationStore)) return
+
+    try {
+        await defaultAdvanceForEachRecord(run.runId)
+    } catch (error) {
+        dialogService.error(error, { fallbackMessage: 'Could not advance for-each record' })
     }
 }

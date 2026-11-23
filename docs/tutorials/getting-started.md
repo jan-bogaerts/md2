@@ -14,7 +14,7 @@ Reference: [Install](../getting-started/install.md).
 
 The desktop app opens on an empty workspace. At startup md² checks which agent CLIs it can find and disables what is missing. It never calls a model API itself, so there are no API keys to enter.
 
-Check the agent defaults on the **Run** tab of the application menu: default agent, model, and reasoning level. These are desktop settings; they stay on your machine and are not written to the repository.
+Check the agent defaults on the **Run** tab of the application menu: default agent, account, model, and reasoning level. These are desktop settings; they stay on your machine and are not written to the repository.
 
 Reference: [Configuration](../guide/configuration.md), [Agent setup](../actions/agent-setup.md).
 

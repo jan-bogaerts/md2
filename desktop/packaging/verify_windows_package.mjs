@@ -28,7 +28,7 @@ const REQUIRED_ASAR_ENTRIES = [
     'node_modules/ws/package.json',
 ];
 const FORBIDDEN_ENTRY_PATTERN = /(?:(?:^|\/).+\.(?:key|map|p12|pem|pfx)|(?:^|\/)signing_secrets\.json)$/iu;
-const FORBIDDEN_APP_CONTENT = ['http://localhost:5173', 'certificateSha1'];
+const FORBIDDEN_APP_CONTENT = ['http://localhost:5173', 'certificateSha1', 'SENTRY_AUTH_TOKEN'];
 const APP_OWNED_ENTRY_PATTERN = /^(?:desktop|shared)\/.+\.(?:css|html|js|json|mjs|svg|txt)$/u;
 const WINDOWS_EXECUTABLE_CODE_EXTENSIONS = new Set(['.dll', '.exe', '.node']);
 

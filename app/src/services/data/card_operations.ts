@@ -411,6 +411,10 @@ export class CardOperations {
         return this.context.writeTrackingPaths(request)
     }
 
+    isLocalOnlyPath(path: string) {
+        return this.context.isLocalOnlyPath(path)
+    }
+
     pushCommittedFiles(request: CommitRequest) {
         return this.context.pushCommittedFiles(request)
     }

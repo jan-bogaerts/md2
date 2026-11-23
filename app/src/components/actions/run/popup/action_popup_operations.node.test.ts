@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MISSING_THIS_CARD_CONTEXT_ERROR } from '../../../../../../shared/action_errors.mjs'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
 import type { ActionDefinition } from '../../../../data/action_types'
@@ -12,6 +13,7 @@ import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import {
+    advancePopupForEachRecord,
     answerRestoredConversationQuestions,
     cancelPopupAction,
     composeRestoredQuestionAnswers,
@@ -122,10 +124,61 @@ function emitWaitingRun(listener: (event: ActionRunEvent) => void) {
     listener({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
 }
 
+describe('runPopupAction startup errors', () => {
+    beforeEach(() => {
+        runAction.mockReset()
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([{
+            branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:/feature',
+            status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },
+            valid: true,
+        }])
+    })
+
+    afterEach(() => {
+        actionPromptDraftService.clearAll()
+        vi.restoreAllMocks()
+    })
+
+    it('displays missing this-card context without reporting or starting an agent', async () => {
+        const projectContext: ActionContext = { kind: 'project' }
+        const input = operationInput(new ActionRunInputStore())
+        input.bindingStore.setRunId(null)
+        input.context = projectContext
+        actionPromptDraftService.getDraft(action.id, projectContext, null, { prepare: false }).edit('{{this-card}}')
+        const error = new Error('Missing card context') as Error & { code: string }
+        error.code = MISSING_THIS_CARD_CONTEXT_ERROR
+        runAction.mockRejectedValue(error)
+        const displayError = vi.spyOn(dialogService, 'displayError').mockImplementation(() => ({}) as never)
+        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as never)
+
+        await runPopupAction(input)
+
+        expect(runAction).toHaveBeenCalledTimes(1)
+        expect(displayError).toHaveBeenCalledWith('Missing card context', { fallbackMessage: 'Action run failed' })
+        expect(reportError).not.toHaveBeenCalled()
+        expect(input.bindingStore.getSnapshot()).toBeNull()
+    })
+
+    it('continues reporting unrelated action-start failures', async () => {
+        const commandAction = { command: 'npm test', id: 'build', label: 'Build', type: 'command' } as ActionDefinition
+        const input = operationInput(new ActionRunInputStore())
+        input.action = commandAction
+        input.bindingStore.setRunId(null)
+        const error = new Error('Process start failed')
+        runAction.mockRejectedValue(error)
+        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as never)
+
+        await runPopupAction(input)
+
+        expect(reportError).toHaveBeenCalledWith(error, { fallbackMessage: 'Action run failed' })
+    })
+})
+
 describe('runPopupAction waiting follow-up', () => {
     let bridge: ElectronActionBridge
 
     beforeEach(() => {
+        runAction.mockReset()
         vi.spyOn(worktreeService, 'getRecords').mockReturnValue([{
             branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:/feature',
             status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },
@@ -133,6 +186,7 @@ describe('runPopupAction waiting follow-up', () => {
         }])
         let listener: ((event: ActionRunEvent) => void) | null = null
         bridge = {
+            advanceActionForEachRecord: vi.fn(async () => undefined),
             cancelActionRun: vi.fn(async () => undefined),
             enqueueActionPrompt: vi.fn(async (_runId, content, id) => ({content, dispatchState: 'queued', id, revision: 0})),
             finishActionRun: vi.fn(async () => undefined),
@@ -164,6 +218,16 @@ describe('runPopupAction waiting follow-up', () => {
         expect(bridge.enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Next request', expect.stringMatching(/^submission-/u))
         expect(actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot()?.context.worktree).toBe('3')
         expect(restartAction).not.toHaveBeenCalled()
+    })
+
+    it('ignores an empty prompt after an agent run becomes active', async () => {
+        const reportError = vi.spyOn(dialogService, 'error')
+
+        await runPopupAction(operationInput(new ActionRunInputStore()))
+
+        expect(actionRunRegistry.getSubmissions(action.id, context)).toEqual([])
+        expect(bridge.enqueueActionPrompt).not.toHaveBeenCalled()
+        expect(reportError).not.toHaveBeenCalled()
     })
 
     it('clears the editor when the prompt is sent', async () => {
@@ -242,6 +306,9 @@ describe('runPopupAction waiting follow-up', () => {
         const inputStore = new ActionRunInputStore()
         const forEach = {
             failurePolicy: 'logAndContinue' as const, fileName: 'records.json', mode: 'addPrompt' as const,
+            recordsPerBatch: 1,
+            startIndex: 2,
+            stepByStep: false,
             value: [{ name: 'first' }],
         }
         inputStore.setForEach(action.id, forEach)
@@ -312,7 +379,7 @@ describe('runPopupAction waiting follow-up', () => {
         expect(draft.getSnapshot()).toBe('Still typing')
     })
 
-    it('guards Send, Stop, and Finish while active run has historical display', async () => {
+    it('guards Send, Stop, Finish, and Next while active run has historical display', async () => {
         const historicalConversation = { ...storedConversation([]), id: 'historical-conversation', path: 'history.json' }
         const conversationStore = {
             continuationPath: () => historicalConversation.path,
@@ -324,10 +391,12 @@ describe('runPopupAction waiting follow-up', () => {
         await runPopupAction(input)
         await cancelPopupAction(input.bindingStore, conversationStore)
         await finishPopupAction(input.bindingStore, conversationStore)
+        await advancePopupForEachRecord(input.bindingStore, conversationStore)
 
         expect(bridge.enqueueActionPrompt).not.toHaveBeenCalled()
         expect(bridge.cancelActionRun).not.toHaveBeenCalled()
         expect(bridge.finishActionRun).not.toHaveBeenCalled()
+        expect(bridge.advanceActionForEachRecord).not.toHaveBeenCalled()
     })
 
     it('restarts from persisted conversation with changed settings', async () => {

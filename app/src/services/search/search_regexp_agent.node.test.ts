@@ -22,8 +22,9 @@ function conversation(): AgentConversation {
 function makeBridge(runSearchRegexpAgent: ElectronActionBridge['runSearchRegexpAgent']): ElectronActionBridge {
     return {
         cancelActionRun: vi.fn(async () => {}),
-        generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
-        generateWorktreeDiff: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree' })),
+        generateDiff: vi.fn(async () => ({ commit: '', files: [], patch: '' })),
+        generateWorktreeFileDiff: vi.fn(async () => ({ file: { newValue: '', oldValue: '', path: '' }, patch: '', repositoryRoot: 'C:/worktree' })),
+        listWorktreeChanges: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree', revision: 'worktree-1' })),
         loadActionRunHistory: vi.fn(async () => []),
         onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),

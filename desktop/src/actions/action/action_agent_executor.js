@@ -135,6 +135,7 @@ class ActionAgentExecutor {
         const reference = input.runInput.continueFrom
             ? continuationReferencePath(input.runInput.continueFrom)
             : input.conversationReservation?.reference;
+        const deferProjectWriteQueue = !!input.runInput.forEach || input.runInput.deferProjectWriteQueue === true;
         const request = {
             ...(resolvedAgent.account ? { account: resolvedAgent.account } : {}),
             actionId: input.action.id,
@@ -145,6 +146,7 @@ class ActionAgentExecutor {
             ...(input.context.file ? { cardPath: input.context.file } : {}),
             command,
             executionSettings: resolvedAgent.executionSettings,
+            ...(deferProjectWriteQueue ? { deferProjectWriteQueue: true } : {}),
             ...(input.runInput.forEach ? { forEach: input.runInput.forEach } : {}),
             ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),
             ...(!sourceConversation ? {
@@ -202,6 +204,7 @@ class ActionAgentExecutor {
             command: executionCommand({ ...resolvedAgent, command }, providerSession, true), compactOnly: true, conversation,
             projectFolder: input.projectFolder, providerConversationId: providerSession.conversationId,
             reference: input.runInput.continueFrom, releasesFolder: input.releasesFolder, streaming: true, title: conversation.title,
+            ...(input.runInput.deferProjectWriteQueue === true ? { deferProjectWriteQueue: true } : {}),
         };
         return this.runAgentProcess(input, request);
     }

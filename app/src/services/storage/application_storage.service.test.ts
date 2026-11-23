@@ -58,17 +58,21 @@ describe('application storage', () => {
     it('migrates each known raw value once and records marker last', async () => {
         const bridge = createBridge()
         window.md2ApplicationState = bridge
+        window.localStorage.setItem('md2.cardBodyPopover.diffSize', '{"height":600,"width":800}')
         window.localStorage.setItem('md2.lastProject', '{bad-json')
         window.localStorage.setItem('md2.themeMode', 'dark')
         const storage = new ApplicationStorage()
 
         await storage.initialize()
 
+        expect(storage.getItem('md2.cardBodyPopover.diffSize')).toBe('{"height":600,"width":800}')
         expect(storage.getItem('md2.lastProject')).toBe('{bad-json')
-        expect(bridge.write).toHaveBeenNthCalledWith(1, 'md2.lastProject', '{bad-json')
-        expect(bridge.write).toHaveBeenNthCalledWith(2, 'md2.themeMode', 'dark')
+        expect(bridge.write).toHaveBeenNthCalledWith(1, 'md2.cardBodyPopover.diffSize', '{"height":600,"width":800}')
+        expect(bridge.write).toHaveBeenNthCalledWith(2, 'md2.lastProject', '{bad-json')
+        expect(bridge.write).toHaveBeenNthCalledWith(3, 'md2.themeMode', 'dark')
         expect(bridge.write).toHaveBeenLastCalledWith(APPLICATION_STATE_MIGRATION_KEY, APPLICATION_STATE_MIGRATION_VALUE)
         expect(MIGRATED_APPLICATION_STORAGE_KEYS).toContain('search-panel-results-size')
+        expect(MIGRATED_APPLICATION_STORAGE_KEYS).toContain('md2.cardBodyPopover.diffSize')
     })
 
     it('keeps existing desktop values when legacy values also exist', async () => {

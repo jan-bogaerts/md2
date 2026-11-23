@@ -9,6 +9,48 @@ function createWrites(commitTrackedPaths, pathExists = vi.fn(async () => true)) 
 }
 
 describe('UncommittedProjectWrites', () => {
+    it('keeps configured local-only project-folder paths out of pending Git writes', async () => {
+        const commitTrackedPaths = vi.fn(async () => 'commit');
+        const writes = createWrites(commitTrackedPaths);
+        writes.configure('C:/repo', { includeProjectFolderInGit: false, projectFolder: 'design' });
+
+        writes.mark('C:/repo', ['design/activity/card__a.json', 'design/usage_metrics.csv', 'README.md']);
+
+        expect(writes.pendingPaths('C:/repo')).toEqual(['README.md']);
+        await expect(writes.commit('C:/repo')).resolves.toBe('commit');
+        expect(commitTrackedPaths).toHaveBeenCalledWith('C:/repo', ['README.md'], 'Save pending project activity');
+    });
+
+    it('keeps project-folder paths in pending Git writes when configured for inclusion', () => {
+        const writes = createWrites(vi.fn());
+        writes.configure('C:/repo', { includeProjectFolderInGit: true, projectFolder: 'design' });
+
+        writes.mark('C:/repo', ['design/activity/card__a.json', 'design/usage_metrics.csv']);
+
+        expect(writes.pendingPaths('C:/repo')).toEqual([
+            'design/activity/card__a.json',
+            'design/usage_metrics.csv',
+        ]);
+    });
+
+    it('drops already-pending project-folder paths when inclusion is disabled', () => {
+        const writes = createWrites(vi.fn());
+        writes.mark('C:/repo', ['design/activity/card__a.json', 'README.md']);
+
+        writes.configure('C:/repo', { includeProjectFolderInGit: false, projectFolder: 'design' });
+
+        expect(writes.pendingPaths('C:/repo')).toEqual(['README.md']);
+    });
+
+    it('clears only acknowledged pending paths', () => {
+        const writes = createWrites(vi.fn());
+        writes.mark('C:/repo', ['design/activity/card__a.json', 'design/usage_metrics.csv']);
+
+        writes.acknowledge('C:/repo', ['design/activity/card__a.json']);
+
+        expect(writes.pendingPaths('C:/repo')).toEqual(['design/usage_metrics.csv']);
+    });
+
     it('commits marked paths once and then clears them', async () => {
         const commitTrackedPaths = vi.fn(async () => 'commit');
         const writes = createWrites(commitTrackedPaths);

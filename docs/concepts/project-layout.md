@@ -47,6 +47,6 @@ Cards you want out of the way but not part of a release go to the archived folde
 
 ## Configuration file
 
-Project settings are stored as `md2.config.json` in the repository root, so every clone and every worktree of the project shares them. Desktop-only settings (default agent, model, reasoning level, agent profiles) live in the desktop app, not in the repo.
+Project settings are stored as `md2.config.json` in the repository root, so every clone and every worktree of the project shares them. Desktop-only settings (agent accounts, default agent/account/model/reasoning settings, and agent profiles) live in the desktop app, not in the repo.
 
 See also: [Configuration](../guide/configuration.md), [Diagrams](../guide/diagrams.md), [Cards and files](cards-and-files.md).

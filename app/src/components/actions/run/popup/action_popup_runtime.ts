@@ -34,6 +34,7 @@ export function createActionPopupBindings(
     const bindingStore = new ActionRunBindingStore(initialRunId)
     if (requestedConversationPath) bindingStore.setRunId(null)
     bindingStore.trackInitialRun(action.id, context)
+    bindingStore.followConversationSuccessor(action.id, context)
     const conversationStore = new ActionConversationStore(action.id, context, bindingStore)
     if (requestedConversationPath) conversationStore.configureInitialSelection(requestedConversationPath)
     const historyStore = new ActionHistoryStore(action, context, historicalEntries)

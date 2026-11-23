@@ -41,6 +41,7 @@ import { useWorktrees } from '../hooks/use_worktrees'
 const CARD_BODY_POPOVER_WIDTH = 760
 const CARD_BODY_POPOVER_HEIGHT = 620
 export const CARD_BODY_POPOVER_SIZE_KEY = 'md2.cardBodyPopover.size'
+export const CARD_BODY_POPOVER_DIFF_SIZE_KEY = 'md2.cardBodyPopover.diffSize'
 
 function useBoardDocument(dataSource: CardMarkdownDataSource) {
     const subscribe = useCallback((onStoreChange: () => void) => {
@@ -282,7 +283,9 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                 resizeFromAllSides={!isFullscreen}
                 resizeLabel="Resize card details popup"
                 stackPosition={stackPosition}
-                storageKey={isMobile ? undefined : CARD_BODY_POPOVER_SIZE_KEY}
+                storageKey={isMobile
+                    ? undefined
+                    : hasSelectedDiff ? CARD_BODY_POPOVER_DIFF_SIZE_KEY : CARD_BODY_POPOVER_SIZE_KEY}
                 subscribeFocusRequest={subscribeFocusRequest}
             >
                 <MarkdownTypeaheadLayerProvider stackPosition={stackPosition}>

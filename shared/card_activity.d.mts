@@ -1,6 +1,8 @@
 import type { AgentConversation } from '../app/src/data/data_types'
 import type { AgentSelectionState } from './agent_selection.mjs'
 
+export const MISSING_ACTIVITY_FILE_ERROR: 'missing-activity-file'
+
 export type ActivityOrigin = { kind: 'card'; cardInternalId: string } | { kind: 'project' }
 export type ActionActivityStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
 

@@ -1,0 +1,73 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img "MD² application icon" [ref=e8]
+        - tablist "Application menu" [ref=e12]:
+          - tab "Home" [selected] [ref=e13] [cursor=pointer]
+          - tab "Run" [ref=e14] [cursor=pointer]
+      - generic [ref=e16]:
+        - button "Switch to dark theme" [ref=e18] [cursor=pointer]
+        - generic [ref=e24]:
+          - textbox "Search project" [ref=e28]:
+            - /placeholder: Search cards…
+          - generic [ref=e29]: Ctrl+Shift+F
+          - group
+    - tabpanel [ref=e33]:
+      - generic "Horizontal scroll area" [ref=e34]:
+        - generic [ref=e37]:
+          - group "Project" [ref=e38]:
+            - generic "Open project" [ref=e39]:
+              - button "Open project" [ref=e40] [cursor=pointer]
+            - generic "Switch branch" [ref=e43]:
+              - generic [ref=e44]:
+                - combobox "Switch branch" [disabled] [ref=e45]
+                - textbox [disabled]
+                - group
+            - generic "Commit (Ctrl+S)" [ref=e46]:
+              - button "Commit" [disabled]
+            - generic "Push" [ref=e47]:
+              - button "Push" [disabled]
+            - generic "Pull" [ref=e48]:
+              - button "Pull" [disabled]
+          - separator [ref=e49]
+          - group "Settings" [ref=e50]:
+            - generic "Config" [ref=e51]:
+              - button "Config" [ref=e52] [cursor=pointer]
+            - generic "ws://localhost:5173" [ref=e55]:
+              - button "Connecting" [disabled]
+          - separator [ref=e56]
+          - group "View" [ref=e57]:
+            - group [ref=e58]:
+              - button "Cards view" [pressed] [ref=e59] [cursor=pointer]:
+                - generic [ref=e62]: Board
+              - button "Text view" [ref=e63] [cursor=pointer]:
+                - generic [ref=e66]: List
+              - button "Diagrams view" [ref=e67] [cursor=pointer]:
+                - generic [ref=e70]: Diagrams
+              - button "Stats view" [ref=e71] [cursor=pointer]:
+                - generic [ref=e74]: Stats
+          - separator [ref=e75]
+          - button "New diagram" [disabled]
+          - button "New card" [disabled]
+          - button "New action" [disabled]
+          - button "New sequence" [disabled]
+          - group "Account" [ref=e76]:
+            - button "GitHub account" [ref=e77] [cursor=pointer]
+        - button "Scroll right" [ref=e81] [cursor=pointer]
+  - region "Project workspace" [ref=e84]:
+    - generic [ref=e85]:
+      - heading "No project open" [level=2] [ref=e86]
+      - paragraph [ref=e87]: Open a GitHub repository or local folder to work with project cards.
+      - button "Open project..." [ref=e88] [cursor=pointer]
+  - contentinfo [ref=e89]:
+    - generic [ref=e90]:
+      - generic [ref=e93]: "0"
+      - generic [ref=e94]: cards
+    - generic [ref=e95]:
+      - generic [ref=e97]: "0"
+      - generic [ref=e98]: active
+    - generic [ref=e99]: Saved locally
+    - generic [ref=e103]: Synced
+    - button "Agent token usage summary" [ref=e107] [cursor=pointer]: Usage unavailable
+    - 'button "Running agents: 0" [ref=e111] [cursor=pointer]': 0 agents

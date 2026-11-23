@@ -60,6 +60,22 @@ function updateTaskList(runId: string, list: AgentTaskList) {
     }))
 }
 
+function updateForEachProgress(runId: string, processedCount: number, totalCount: number) {
+    const emit = listeners[0]
+    if (!emit) throw new Error('Missing action run listener')
+
+    act(() => emit({
+        actionId: 'implement',
+        context,
+        phase: 'main',
+        rootActionId: 'implement',
+        runId,
+        status: 'running',
+        type: 'update',
+        update: { kind: 'forEachProgress', processedCount, totalCount },
+    }))
+}
+
 function renderIndicator(runId: string) {
     return render(<TaskProgressIndicator runId={runId} />, { wrapper: AppThemeProvider })
 }
@@ -126,6 +142,24 @@ describe('TaskProgressIndicator', () => {
 
         const progress = screen.getByRole('progressbar', { name: 'Task progress: 2 of 3 completed' })
         expect(progress).toHaveAttribute('aria-valuenow', `${2 / 3 * 100}`)
+    })
+
+    it('prefers for-each progress over task-list progress and updates its record ratio', () => {
+        emitRun('run-1', taskList([
+            { id: 'task-1', status: 'completed', subject: 'Inspect state' },
+            { id: 'task-2', status: 'pending', subject: 'Implement component' },
+        ]))
+        updateForEachProgress('run-1', 1, 4)
+        renderIndicator('run-1')
+
+        expect(screen.queryByRole('progressbar', { name: /Task progress/ })).not.toBeInTheDocument()
+        expect(screen.getByRole('progressbar', { name: 'For-each progress: 1 of 4 processed' }))
+            .toHaveAttribute('aria-valuenow', '25')
+
+        updateForEachProgress('run-1', 2, 4)
+
+        expect(screen.getByRole('progressbar', { name: 'For-each progress: 2 of 4 processed' }))
+            .toHaveAttribute('aria-valuenow', '50')
     })
 
     it('keeps progress scoped to its runId', () => {

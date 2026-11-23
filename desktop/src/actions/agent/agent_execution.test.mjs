@@ -53,6 +53,32 @@ describe('agent execution settings', () => {
         expect(inherited.command.some((value) => value.startsWith('service_tier='))).toBe(false);
     });
 
+    it.each([false, undefined])('disables Codex task tracking when streaming is %s even when enabled in config', (streaming) => {
+        const resolved = resolveAgentExecution({ ...config('default'), agentTaskTrackingEnabled: true }, {}, streaming);
+
+        expect(resolved.agentTaskTrackingEnabled).toBe(false);
+        expect(resolved.command).toContain('tools.update_plan.enabled=false');
+    });
+
+    it('keeps Codex task tracking for streaming runs when enabled in config', () => {
+        const resolved = resolveAgentExecution({ ...config('default'), agentTaskTrackingEnabled: true }, {}, true);
+
+        expect(resolved.agentTaskTrackingEnabled).toBe(true);
+        expect(resolved.command).toContain('tools.update_plan.enabled=true');
+    });
+
+    it('does not enable Claude task tools for non-streaming runs', () => {
+        const claudeProfile = BUILTIN_AGENT_PROFILES.find(({ name }) => name === 'claude');
+        const claudeConfig = {
+            agentTaskTrackingEnabled: true,
+            agentProfiles: [claudeProfile],
+            agentSelection: { activeAgent: 'claude', permissionMode: 'ask-for-approval', settingsByAgent: {} },
+        };
+
+        expect(resolveAgentExecution(claudeConfig, {}, false).agentTaskTrackingEnabled).toBe(false);
+        expect(resolveAgentExecution(claudeConfig, {}, true).agentTaskTrackingEnabled).toBe(true);
+    });
+
     it('preserves a selected model without adding a reasoning override for none', () => {
         const resolved = resolveAgentExecution(config('default'), { model: 'new-model', thinkingLevel: 'none' }, true);
 

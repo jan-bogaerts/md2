@@ -20,11 +20,12 @@ import {
 import { actionService } from '../../../../services/actions/action_service'
 import { dataService } from '../../../../services/data/data_service'
 import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
-import { RemoteControlConnectionError } from '../../../../services/data/remote_control_storage_service'
+import { RemoteControlConnectionError } from '../../../../services/data/remote_control_connection_error'
 import { projectAccessService } from '../../../../services/project/project_access_service'
 import { activeScheduleService } from '../../../../services/actions/active_schedule_service'
 import { cancelElectronAction, restartElectronAction, runElectronAction } from '../../../../services/actions/electron_action_runner'
 import {
+    advanceActionForEachRecord,
     answerActionApproval,
     answerActionQuestion,
     finishActionRun,
@@ -39,6 +40,7 @@ export type CloseWaitingConversation = (
 ) => Promise<AgentConversation>
 export type SendMessage = (runId: string, content: string) => Promise<void>
 export type FinishAction = (runId: string) => Promise<void>
+export type AdvanceForEachRecord = (runId: string) => Promise<void>
 export type AnswerQuestion = (
     runId: string,
     requestId: number | string | null,
@@ -163,6 +165,10 @@ export function defaultSendMessage(runId: string, content: string) {
 
 export function defaultFinishAction(runId: string) {
     return finishActionRun(runId)
+}
+
+export function defaultAdvanceForEachRecord(runId: string) {
+    return advanceActionForEachRecord(runId)
 }
 
 export function defaultAnswerQuestion(

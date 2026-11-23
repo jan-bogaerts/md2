@@ -209,6 +209,14 @@ export class ActionConversationStore {
         return liveConversation?.path ?? this.snapshot.selectedConversation?.path ?? null
     }
 
+    /** Binds provider work accepted for selected history before its live conversation event arrives. */
+    bindRun(runId: string, conversationId: string) {
+        if (this.snapshot.selectedConversation?.id !== conversationId) return
+
+        this.bindingStore.setRunId(runId)
+        this.setSnapshot({ ...this.snapshot, selectedConversation: null })
+    }
+
     async togglePinned(conversation: ConversationPickerConversation) {
         if (this.snapshot.pinningConversationId) return
 

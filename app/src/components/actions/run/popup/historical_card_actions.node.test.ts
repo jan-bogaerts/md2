@@ -19,20 +19,20 @@ function commandRecord(actionId: string, label: string, output: string): ActionA
 }
 
 describe('historicalCardActions', () => {
-    it('keeps distinct command and conversation actions after definitions disappear or stop matching', () => {
+    it('shows only conversation-backed actions after definitions disappear or stop matching', () => {
         const activity = createActivityFile({ cardInternalId: 'card-1', kind: 'card' })
         activity.records.push(commandRecord('removed', 'Old command', 'done'))
-        activity.records.push(commandRecord('removed', 'Old command', 'again'))
+        activity.records.push(commandRecord('agent-only', 'Old agent', 'metadata'))
         activity.conversations.push({ actionId: 'agent-only', cardInternalId: 'card-1', id: 'conversation-1' } as typeof activity.conversations[number])
-        const current = { ...BUILTIN_CUSTOM_PROMPT, id: 'current', label: 'Current', type: 'command' } as ActionDefinition
-        const changed = { ...BUILTIN_CUSTOM_PROMPT, id: 'removed', label: 'New label', type: 'command' } as ActionDefinition
+        activity.conversations.push({ actionId: BUILTIN_CUSTOM_PROMPT.id, cardInternalId: 'card-1', id: 'conversation-2' } as typeof activity.conversations[number])
+        const current = { ...BUILTIN_CUSTOM_PROMPT, builtin: false, id: 'current', label: 'Current' } as ActionDefinition
+        const changed = { ...BUILTIN_CUSTOM_PROMPT, builtin: false, id: 'agent-only', label: 'New label' } as ActionDefinition
 
-        const actions = historicalCardActions([current, BUILTIN_CUSTOM_PROMPT], [current, changed], [activity])
+        const actions = historicalCardActions([current, changed, BUILTIN_CUSTOM_PROMPT], [activity])
 
-        expect(actions.map(({ id }) => id)).toEqual(['current', 'removed', 'agent-only', BUILTIN_CUSTOM_PROMPT.id])
-        expect(actions.find(({ id }) => id === 'removed')?.label).toBe('New label')
-        expect(actions.find(({ id }) => id === 'agent-only')?.type).toBe('agent')
-        expect(historicalCardActions([BUILTIN_CUSTOM_PROMPT], [], [activity])[0].label).toBe('Old command')
+        expect(actions.map(({ id }) => id)).toEqual(['agent-only', BUILTIN_CUSTOM_PROMPT.id])
+        expect(actions.find(({ id }) => id === 'agent-only')?.label).toBe('New label')
+        expect(historicalCardActions([BUILTIN_CUSTOM_PROMPT], [activity])[0].label).toBe('Old agent')
     })
 
     it('reads only selected action runs from supplied card activity', () => {

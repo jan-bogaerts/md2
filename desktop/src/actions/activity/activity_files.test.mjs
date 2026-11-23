@@ -5,10 +5,12 @@ import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { boundedAgentResult } from '../../../../shared/agent_conversations.mjs';
+import { MISSING_ACTIVITY_FILE_ERROR } from '../../../../shared/card_activity.mjs';
 
 const require = createRequire(import.meta.url);
 const {
     appendActionActivity,
+    appendActivityConversationEvent,
     appendSystemActivityNow,
     closeWaitingActivityConversation,
     compactActivityFiles,
@@ -22,9 +24,11 @@ const {
     splitActivityConversation,
     upsertActivityConversation,
     updateCardActionSettings,
+    updateActivityConversationForEachProgress,
     updateActivityConversationViewed,
 } = require('./activity_files');
 const { projectOperationCoordinator } = require('../../project/project_operation_coordinator');
+const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 
 const terminalTime = '2026-08-04T10:30:00.000Z';
 
@@ -65,6 +69,7 @@ describe('project activity conversations', () => {
         const read = vi.spyOn(fs.promises, 'access').mockRejectedValue(Object.assign(new Error('absent'), { code: 'ENOENT' }));
         try {
             await expect(readActivityFile(filePath)).rejects.toThrow(`Missing referenced activity file: ${filePath}`);
+            await expect(readActivityFile(filePath)).rejects.toMatchObject({ code: MISSING_ACTIVITY_FILE_ERROR });
             await expect(readActivityFile(filePath, { kind: 'project' })).resolves.toEqual({actionSettings: {}, conversations: [], origin: { kind: 'project' }, records: [], version: 5});
         } finally {
             read.mockRestore();
@@ -670,6 +675,29 @@ describe('project activity conversations', () => {
         }
     });
 
+    it('persists for-each progress only on the targeted conversation', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-progress-conversation-'));
+        const project = { branch: 'main', rootPath };
+        const reference = 'design/activity/project.json#conversation=conversation-1';
+        const source = waitingConversation();
+        const untouched = { ...waitingConversation(), id: 'conversation-2', title: 'Untouched' };
+        const forEachProgress = { processedCount: 2, totalCount: 5 };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, source);
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, untouched);
+
+            const updated = await updateActivityConversationForEachProgress(project, reference, forEachProgress);
+            const persisted = JSON.parse(await readFile(join(rootPath, 'design', 'activity', 'project.json'), 'utf8'));
+
+            expect(updated).toMatchObject({ forEachProgress, id: source.id, path: reference });
+            expect(persisted.conversations.find(({ id }) => id === source.id).forEachProgress).toEqual(forEachProgress);
+            expect(persisted.conversations.find(({ id }) => id === untouched.id)).not.toHaveProperty('forEachProgress');
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('preserves latest stored viewed state when stale checkpoint is queued afterward', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-view-checkpoint-race-'));
         const project = { branch: 'main', rootPath };
@@ -872,6 +900,46 @@ describe('project activity conversations', () => {
 });
 
 describe('activity writes and the project lock', () => {
+    it('can defer marking an ordered activity write for project persistence', async () => {
+        const mark = vi.spyOn(uncommittedProjectWrites, 'mark');
+        try {
+            await queueActivityUpdate(
+                'C:/repo', 'C:/repo/design/activity/project.json', async () => undefined, { markProjectWrite: false },
+            );
+
+            expect(mark).not.toHaveBeenCalled();
+        } finally {
+            mark.mockRestore();
+        }
+    });
+
+    it('leaves for-each failure events deferred until final run activity', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-loop-failure-'));
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        const project = { branch: 'main', rootPath };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const conversation = { ...waitingConversation(), cardInternalId: 'card-1', cardPath: 'design/card.md' };
+            await upsertActivityConversation(project, 'design', origin, conversation);
+            const mark = vi.spyOn(uncommittedProjectWrites, 'mark');
+
+            await appendActivityConversationEvent(
+                project,
+                'design/activity/card__card-1.json#conversation=conversation-1',
+                {
+                    content: 'For-each record 1 failed: failed', id: 'loop-failure-1', kind: 'event',
+                    timestamp: terminalTime, type: 'loopFailure',
+                },
+            );
+
+            expect(mark).not.toHaveBeenCalled();
+            mark.mockRestore();
+        } finally {
+            vi.restoreAllMocks();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('runs an activity write queued during a project-lock operation after that operation resolves', async () => {
         const calls = [];
         const releaseHeld = deferred();

@@ -357,6 +357,168 @@ describe('ResizablePopper', () => {
         expect(restoredDialog.style.height).toBe('360px')
     })
 
+    it('saves the outgoing profile and loads the incoming profile without remounting children', () => {
+        const normalStorageKey = 'test.resizablePopperProfile.normal'
+        const diffStorageKey = 'test.resizablePopperProfile.diff'
+        window.localStorage.setItem(diffStorageKey, JSON.stringify({ height: 520, width: 700 }))
+        const view = render(
+            <ResizablePopper
+                anchorElement={document.body}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="profile-popper-title"
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize profile popper"
+                storageKey={normalStorageKey}
+            >
+                <h2 id="profile-popper-title">Profile popper</h2>
+                <input aria-label="Persistent child" defaultValue="initial" />
+            </ResizablePopper>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'Profile popper' })
+        const input = screen.getByRole('textbox', { name: 'Persistent child' })
+        fireEvent.change(input, { target: { value: 'edited' } })
+        const handle = screen.getByRole('separator', { name: 'Resize profile popper' })
+        fireEvent.pointerDown(handle, { clientX: 0, clientY: 0, pointerId: 1 })
+        fireEvent.pointerMove(window, { clientX: 80, clientY: 60, pointerId: 1 })
+        fireEvent.pointerUp(window, { pointerId: 1 })
+
+        view.rerender(
+            <ResizablePopper
+                anchorElement={document.body}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="profile-popper-title"
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize profile popper"
+                storageKey={diffStorageKey}
+            >
+                <h2 id="profile-popper-title">Profile popper</h2>
+                <input aria-label="Persistent child" defaultValue="initial" />
+            </ResizablePopper>,
+        )
+
+        expect(dialog).toHaveStyle({ height: '520px', width: '700px' })
+        expect(input).toHaveValue('edited')
+        expect(JSON.parse(window.localStorage.getItem(normalStorageKey) ?? '{}')).toEqual({ height: 360, width: 480 })
+        expect(JSON.parse(window.localStorage.getItem(diffStorageKey) ?? '{}')).toEqual({ height: 520, width: 700 })
+    })
+
+    it.each([
+        ['missing', null],
+        ['invalid', '{'],
+    ])('inherits the outgoing size for a %s incoming profile', (_caseName, incomingValue) => {
+        const normalStorageKey = `test.resizablePopperProfileFallback.normal.${_caseName}`
+        const diffStorageKey = `test.resizablePopperProfileFallback.diff.${_caseName}`
+        if (incomingValue !== null) window.localStorage.setItem(diffStorageKey, incomingValue)
+        const view = render(
+            <ResizablePopper
+                anchorElement={document.body}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="fallback-popper-title"
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize fallback popper"
+                storageKey={normalStorageKey}
+            >
+                <h2 id="fallback-popper-title">Fallback popper</h2>
+            </ResizablePopper>,
+        )
+        const handle = screen.getByRole('separator', { name: 'Resize fallback popper' })
+        fireEvent.pointerDown(handle, { clientX: 0, clientY: 0, pointerId: 1 })
+        fireEvent.pointerMove(window, { clientX: 50, clientY: 40, pointerId: 1 })
+        fireEvent.pointerUp(window, { pointerId: 1 })
+
+        view.rerender(
+            <ResizablePopper
+                anchorElement={document.body}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="fallback-popper-title"
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize fallback popper"
+                storageKey={diffStorageKey}
+            >
+                <h2 id="fallback-popper-title">Fallback popper</h2>
+            </ResizablePopper>,
+        )
+
+        expect(screen.getByRole('dialog', { name: 'Fallback popper' })).toHaveStyle({ height: '340px', width: '450px' })
+        view.rerender(
+            <ResizablePopper
+                anchorElement={document.body}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="fallback-popper-title"
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize fallback popper"
+                storageKey={normalStorageKey}
+            >
+                <h2 id="fallback-popper-title">Fallback popper</h2>
+            </ResizablePopper>,
+        )
+        expect(JSON.parse(window.localStorage.getItem(diffStorageKey) ?? '{}')).toEqual({ height: 340, width: 450 })
+    })
+
+    it('aborts active resizing and clamps the dragged position for the incoming profile', () => {
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 600, writable: true })
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800, writable: true })
+        const normalStorageKey = 'test.resizablePopperActiveProfile.normal'
+        const diffStorageKey = 'test.resizablePopperActiveProfile.diff'
+        window.localStorage.setItem(diffStorageKey, JSON.stringify({ height: 900, width: 1200 }))
+        const view = render(
+            <ResizablePopper
+                anchorElement={document.body}
+                constrainSizeToViewport
+                draggable
+                initialSize={{ height: 300, width: 400 }}
+                labelId="active-profile-popper-title"
+                onClose={vi.fn()}
+                open
+                resizeFromAllSides
+                resizeLabel="Resize active profile popper"
+                storageKey={normalStorageKey}
+            >
+                <div data-drag-handle="true"><h2 id="active-profile-popper-title">Active profile popper</h2></div>
+            </ResizablePopper>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'Active profile popper' })
+        dialog.getBoundingClientRect = vi.fn(() => new DOMRect(
+            Number.parseFloat(dialog.style.left) || 100,
+            Number.parseFloat(dialog.style.top) || 100,
+            Number.parseFloat(dialog.style.width),
+            Number.parseFloat(dialog.style.height),
+        ))
+        fireEvent.pointerDown(screen.getByText('Active profile popper'), { clientX: 100, clientY: 100, pointerId: 1 })
+        fireEvent.pointerMove(window, { clientX: 400, clientY: 300, pointerId: 1 })
+        const resizeHandle = screen.getByRole('separator', { name: 'Resize active profile popper from bottom-right' })
+        fireEvent.pointerDown(resizeHandle, { clientX: 500, clientY: 400, pointerId: 2 })
+        fireEvent.pointerMove(window, { clientX: 550, clientY: 440, pointerId: 2 })
+
+        view.rerender(
+            <ResizablePopper
+                anchorElement={document.body}
+                constrainSizeToViewport
+                draggable
+                initialSize={{ height: 300, width: 400 }}
+                labelId="active-profile-popper-title"
+                onClose={vi.fn()}
+                open
+                resizeFromAllSides
+                resizeLabel="Resize active profile popper"
+                storageKey={diffStorageKey}
+            >
+                <div data-drag-handle="true"><h2 id="active-profile-popper-title">Active profile popper</h2></div>
+            </ResizablePopper>,
+        )
+        fireEvent.pointerMove(window, { clientX: 700, clientY: 600, pointerId: 2 })
+        fireEvent.pointerUp(window, { pointerId: 2 })
+
+        expect(dialog).toHaveStyle({ height: '568px', left: '32px', top: '32px', width: '768px' })
+        expect(JSON.parse(window.localStorage.getItem(normalStorageKey) ?? '{}')).toEqual({ height: 340, width: 450 })
+        expect(JSON.parse(window.localStorage.getItem(diffStorageKey) ?? '{}')).toEqual({ height: 568, width: 768 })
+    })
+
     it.each([
         ['malformed', '{'],
         ['incomplete', JSON.stringify({ width: 500 })],

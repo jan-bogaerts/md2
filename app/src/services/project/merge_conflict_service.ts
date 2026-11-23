@@ -5,6 +5,7 @@ import { register } from '../service_injector'
 
 export interface MergeConflictSnapshot {
     busy: boolean
+    continuing: boolean
     session: MergeConflictSession | null
 }
 
@@ -20,7 +21,7 @@ interface MergeConflictServiceDependencies {
 export class MergeConflictService extends EventTarget {
     private affectedPaths: Set<string> = new Set()
     private dependencies: MergeConflictServiceDependencies | null = null
-    private snapshot: MergeConflictSnapshot = { busy: false, session: null }
+    private snapshot: MergeConflictSnapshot = { busy: false, continuing: false, session: null }
     private unsubscribe: (() => void) | null = null
 
     constructor() {
@@ -33,7 +34,7 @@ export class MergeConflictService extends EventTarget {
         this.dependencies = dependencies
         this.affectedPaths = new Set()
         const { storage } = dependencies
-        this.publish({ busy: false, session: null })
+        this.publish({ busy: false, continuing: false, session: null })
         if (!storage.getMergeConflictSession || !storage.onMergeConflictSessionChanged) return
 
         this.unsubscribe = storage.onMergeConflictSessionChanged((session) => this.handleSessionChanged(session))
@@ -45,7 +46,7 @@ export class MergeConflictService extends EventTarget {
         this.unsubscribe = null
         this.dependencies = null
         this.affectedPaths.clear()
-        this.publish({ busy: false, session: null })
+        this.publish({ busy: false, continuing: false, session: null })
     }
 
     getSnapshot() {
@@ -93,12 +94,7 @@ export class MergeConflictService extends EventTarget {
             return
         }
 
-        const affectedPaths = [...this.affectedPaths]
-        await dependencies.reloadPaths(affectedPaths)
-        if (this.snapshot.session?.id !== session.id) return
-
-        this.affectedPaths.clear()
-        this.publish({ ...this.snapshot, session: null })
+        await this.closeSession(session.id)
     }
 
     async markResolved(path: string) {
@@ -108,7 +104,7 @@ export class MergeConflictService extends EventTarget {
         this.setBusy(true)
         try {
             const nextSession = await storage.markMergeConflictResolved({ path, sessionId: session.id })
-            this.publish({ busy: true, session: nextSession })
+            this.publish({ ...this.snapshot, session: nextSession })
         } finally {
             this.setBusy(false)
         }
@@ -145,21 +141,19 @@ export class MergeConflictService extends EventTarget {
         const session = this.requireSession()
         if (!dependencies.storage.continueMergeConflict) throw new Error('Continuing merge conflicts requires desktop')
         if (session.conflictedPaths.length > 0) throw new Error('Resolve every conflicted file before continuing')
-        const affectedPaths = [...this.affectedPaths]
-        this.setBusy(true)
+        this.publish({ ...this.snapshot, busy: true, continuing: true })
         try {
             const outcome = await dependencies.storage.continueMergeConflict({ sessionId: session.id })
             if (outcome.status === 'conflict') {
-                this.publish({ busy: true, session: outcome.session })
+                this.publish({ ...this.snapshot, session: outcome.session })
                 return
             }
+            const reload = this.closeSession(session.id)
             if (outcome.activityPath) await dependencies.queueIntegratedActivity(outcome.activityPath)
             if (outcome.branchDeleted && outcome.cardInternalId) dependencies.completeBranchCleanup(outcome.cardInternalId)
-            await dependencies.reloadPaths(affectedPaths)
-            this.affectedPaths.clear()
-            this.publish({ busy: true, session: null })
+            await reload
         } finally {
-            this.setBusy(false)
+            this.publish({ ...this.snapshot, busy: false, continuing: false })
         }
     }
 
@@ -167,22 +161,36 @@ export class MergeConflictService extends EventTarget {
         const dependencies = this.requireDependencies()
         const session = this.requireSession()
         if (!dependencies.storage.abortMergeConflict) throw new Error('Aborting merge conflicts requires desktop')
-        const affectedPaths = [...this.affectedPaths]
         this.setBusy(true)
         try {
             await dependencies.storage.abortMergeConflict({ sessionId: session.id })
-            await dependencies.reloadPaths(affectedPaths)
-            this.affectedPaths.clear()
-            this.publish({ busy: true, session: null })
+            await this.closeSession(session.id)
         } finally {
             this.setBusy(false)
         }
     }
 
     private handleSessionChanged(session: MergeConflictSession | null) {
-        if (!session && this.snapshot.session) return
+        if (!session && this.snapshot.session) {
+            void this.closeSession(this.snapshot.session.id)
+            return
+        }
 
         this.publish({ ...this.snapshot, session })
+    }
+
+    private async closeSession(sessionId: string) {
+        const dependencies = this.requireDependencies()
+        if (this.snapshot.session?.id !== sessionId) return
+
+        const affectedPaths = [...this.affectedPaths]
+        this.affectedPaths.clear()
+        this.publish({ ...this.snapshot, session: null })
+        try {
+            await dependencies.reloadPaths(affectedPaths)
+        } catch (error) {
+            dependencies.reportError(error)
+        }
     }
 
     private async loadSafely() {
@@ -198,7 +206,11 @@ export class MergeConflictService extends EventTarget {
     }
 
     private publish(snapshot: MergeConflictSnapshot) {
-        if (this.snapshot.busy === snapshot.busy && this.snapshot.session === snapshot.session) return
+        if (
+            this.snapshot.busy === snapshot.busy
+            && this.snapshot.continuing === snapshot.continuing
+            && this.snapshot.session === snapshot.session
+        ) return
         for (const path of snapshot.session?.conflictedPaths ?? []) this.affectedPaths.add(path)
         this.snapshot = snapshot
         this.dispatchEvent(new CustomEvent<MergeConflictSnapshot>('changed', { detail: snapshot }))

@@ -8,6 +8,7 @@ import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { AgentQuestion } from '../../../data/data_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
+import { reportActionError } from '../../../services/actions/action_error_reporting'
 import { dialogService } from '../../../services/dialog_service'
 import { remoteConnectionService } from '../../../services/data/remote_connection_service'
 import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
@@ -129,11 +130,13 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     useEffect(() => {
         if (!prepare || promptDraft.hasLocalEdits()) return
         if (remoteStatus === 'connecting' || remoteStatus === 'reconnecting') return
+        // An invalid worktree assignment is already displayed; the desktop would reject preparation.
+        if (runValidationError) return
 
         void promptDraft.prepare(() => defaultPreparePrompt(action, context)).catch((error: unknown) => {
-            dialogService.error(error, { fallbackMessage: 'Could not prepare action prompt' })
+            reportActionError(error, { fallbackMessage: 'Could not prepare action prompt' })
         })
-    }, [action, context, prepare, promptDraft, remoteStatus])
+    }, [action, context, prepare, promptDraft, remoteStatus, runValidationError])
 
     const handleAttachments = useCallback(async (files: File[], insertMarkdown: (markdown: string) => void) => {
         const attachmentWorkflow = await import('../../../services/attachments/attachment_workflow')
@@ -175,11 +178,15 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
 
     const handleRunShortcut = () => {
         const run = currentActionRun(bindingStore)
+        const currentRunStatus = run?.status ?? 'idle'
+        const currentSessionActive = currentRunStatus === 'queued'
+            || currentRunStatus === 'running'
+            || currentRunStatus === 'waitingForInput'
         const runState = {
-            agentActive: sessionActive && activeActionType === 'agent',
+            agentActive: currentSessionActive && run?.activeActionType === 'agent',
             interactionReady: !!run?.interactionReady,
             runDisabledMessage: settings.runDisabledMessage,
-            runStatus,
+            runStatus: currentRunStatus,
         }
         if (actionPopupRunDisabled(
             action,

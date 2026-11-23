@@ -68,6 +68,14 @@ export class ProjectPersistenceService extends EventTarget {
                     const file = { content: document.getDraft().content, path: document.path }
                     dataService.scheduleFileCommit(file, `Update ${file.path}`, document.createSaveReference())
                 }
+                if (document.kind === 'json' && document.dirty) {
+                    const file = { content: document.serialize(), path: document.path }
+                    if (document.persistence === 'local') {
+                        await dataService.saveLocalJsonFile(file, document.createSaveReference())
+                    } else {
+                        dataService.scheduleFileCommit(file, `Update ${file.path}`, document.createSaveReference())
+                    }
+                }
             }
             if (dataService.getPersistenceSnapshot().hasPendingFileCommit) await dataService.cards.flushPendingCommits()
             await dataService.drainPendingStorageWrites()

@@ -22,6 +22,7 @@ import { telemetryService } from '../telemetry/telemetry_service'
 import { dialogService } from '../dialog_service'
 import type { ConversationPinService } from './conversation_pin_service'
 import { activityFilePath } from '../../../../shared/activity_paths.mjs'
+import { MISSING_ACTIVITY_FILE_ERROR } from '../../../../shared/card_activity.mjs'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 /** Terminal run status as the conversation records it; a run that ended after its after-phase check still completed. */
@@ -66,6 +67,13 @@ function isOnStateActionError(error: AgentConversationError) {
     return error.kind === 'onStateAction'
 }
 
+/** True when a referenced activity file is absent: a user-data problem shown to the user but not sent to telemetry. */
+function isMissingActivityFileError(error: unknown) {
+    return typeof error === 'object'
+        && error !== null
+        && (error as { code?: unknown }).code === MISSING_ACTIVITY_FILE_ERROR
+}
+
 async function resolveCardConversations(
     card: Card,
     project: ProjectReference,
@@ -78,7 +86,7 @@ async function resolveCardConversations(
 
             return { conversations, error: null }
         } catch (error) {
-            telemetryService.captureError(error)
+            if (!isMissingActivityFileError(error)) telemetryService.captureError(error)
             const message = error instanceof Error ? error.message : 'Agent conversation failed to load'
 
             return { conversations: null, error: { message, path: activityPath } }

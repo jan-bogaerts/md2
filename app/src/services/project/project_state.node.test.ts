@@ -62,6 +62,22 @@ describe('ProjectState', () => {
         expect(state.snapshot?.repositoryFiles).toEqual(['design/F-1-first.md'])
     })
 
+    it('replaces only a changed repository file list', () => {
+        const state = createState()
+        const file = createFile('design/F-1-first.md', 'First')
+        state.replaceProjectFiles([file], WORKING_FOLDER, [file.path])
+        const initialSnapshot = state.snapshot
+        const initialCards = initialSnapshot?.activeCards
+
+        expect(state.replaceRepositoryFiles([file.path])).toBe(false)
+        expect(state.snapshot).toBe(initialSnapshot)
+
+        expect(state.replaceRepositoryFiles(['README.md', file.path])).toBe(true)
+        expect(state.snapshot).not.toBe(initialSnapshot)
+        expect(state.snapshot?.activeCards).toBe(initialCards)
+        expect(state.snapshot?.repositoryFiles).toEqual(['README.md', file.path])
+    })
+
     it('keeps files and snapshot together when committed files merge', () => {
         const state = createState()
         const originalFile = createFile('design/F-1-first.md', 'First')

@@ -22,13 +22,21 @@ The popup is resizable and shows the action label, its description, run controls
 For agent actions you also get:
 
 - a prompt box for run-specific input ({% raw %}`{{card-prompt}}`{% endraw %});
-- agent, model, and reasoning-level selectors, prefilled from the definition and the defaults. Changing them affects this run only, never the definition;
+- agent, account, model, and reasoning-level selectors, prefilled from the definition and the defaults. Changing them affects this run only, never the definition;
 - phrase buttons, if the action defines `phrases`;
 - **Convert to action**, which turns a custom prompt you just wrote into a reusable action definition.
 
 Buttons: **Run** starts the chain. **Cancel** stops the running process and the rest of the chain. **Schedule** runs it later (see below).
 
 While an action runs for a card, that card's entry points are disabled — one action at a time per card. This state is in memory only, so nothing is left disabled after a restart.
+
+When agent task tracking is enabled, a running card shows a progress bar below its **Run** button as soon as the agent publishes a non-empty task list. Hover the bar for the completed and total counts; assistive technology receives the same context from its accessible name. The task list also appears in the action popup and conversation panel. Incomplete lists open expanded; fully completed lists open collapsed, with their completed/total count still visible. You can expand or collapse them manually.
+
+### Run an action for each JSON record
+
+For agent actions, open the prompt menu and choose **For each** to attach a JSON dataset. md² runs the action sequentially for every selected record and can place the complete record or one of its fields in the prompt. The loop menu controls conversation boundaries, batch size, failure handling, starting position, and optional step-by-step review. Progress appears in the popup and on the card's action button.
+
+For setup instructions, examples, stopping, and resuming, see [Run an action for each JSON record](for-each.md).
 
 ## Conversations
 
@@ -71,7 +79,7 @@ Limitation: state changes are detected in the app. A card edited to a new status
 | Trigger | Fires |
 | --- | --- |
 | **Set date and time** | At the chosen moment. |
-| **When account usage resets** | When the chosen agent's usage limit window resets. Pick the agent, then the limit and window. |
+| **When account usage resets** | When the chosen agent account's usage limit window resets. Pick the agent, account, then the limit and window. |
 | **When another card enters state** | When the chosen card reaches the chosen column. |
 
 The schedule is stored as JSON in the repository, and the desktop app registers it when the project loads. When it fires, the same runner executes the same chain. Schedule state is tracked separately from execution state, and the desktop app watches the schedule file so external edits are picked up.
@@ -85,6 +93,7 @@ A sequence runs one action on several cards, one card at a time. Open it with **
 | Field | Meaning |
 | --- | --- |
 | Action | Only actions that apply to every card in the list are offered. Built-in actions are excluded. |
+| Agent settings | Agent, account, model, and reasoning settings used by every run in the sequence. |
 | Cards | Active cards, in run order. Add them with **Add cards** or by dragging from the board; drag to reorder; **Delete** removes the selected card. |
 | Ready state | The column a card must reach before the sequence moves to the next card. |
 | Schedule trigger | **Now**, or one of the schedule triggers above. A trigger card cannot also be in the sequence. |
@@ -99,4 +108,4 @@ A sequence runs one action on several cards, one card at a time. Open it with **
 
 Running requires a desktop execution backend. In web-only GitHub mode the run controls are disabled with an explanation; editing definitions still works. A browser connected through remote control does have a backend — the desktop machine's.
 
-See also: [Action definition](action-definition.md), [Diagrams](../guide/diagrams.md), [Agent setup](agent-setup.md), [Worktrees](../guide/worktrees.md).
+See also: [For-each actions](for-each.md), [Action definition](action-definition.md), [Diagrams](../guide/diagrams.md), [Agent setup](agent-setup.md), [Worktrees](../guide/worktrees.md).

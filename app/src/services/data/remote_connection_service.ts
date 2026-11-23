@@ -11,11 +11,8 @@ import { readDesktopConfigFromBridge } from '../config/config_persistence'
 import { configService } from '../config/config_service'
 import { setDesktopConfigTransportOverride } from '../config/desktop_config_transport'
 import { register } from '../service_injector'
-import {
-    isRemoteControlConnectionError,
-    RemoteControlConnectionError,
-    RemoteControlStorageService,
-} from './remote_control_storage_service'
+import { isRemoteControlConnectionError, RemoteControlConnectionError } from './remote_control_connection_error'
+import { RemoteControlStorageService } from './remote_control_storage_service'
 
 export type RemoteConnectionStatus = 'connecting' | 'disconnected' | 'ready' | 'reconnecting'
 
@@ -37,12 +34,12 @@ const INITIAL_SNAPSHOT: RemoteConnectionSnapshot = { endpoint: null, errorMessag
 
 async function activateRemoteStorage(storage: RemoteControlStorageService, reconnecting: boolean) {
     try {
-        const desktopConfig = await storage.loadDesktopConfig()
+        const desktopConfig = await storage.desktopConfigTransport.loadDesktopConfig()
         configService.replaceDesktopConfig(desktopConfig)
-        setActionBridgeOverride(storage)
-        setClaudeRuntimeBridgeOverride(storage)
-        setCodexRuntimeBridgeOverride(storage)
-        setDesktopConfigTransportOverride(storage)
+        setActionBridgeOverride(storage.actionBridge)
+        setClaudeRuntimeBridgeOverride(storage.claudeRuntimeBridge)
+        setCodexRuntimeBridgeOverride(storage.codexRuntimeBridge)
+        setDesktopConfigTransportOverride(storage.desktopConfigTransport)
         claudeRateLimitService.start()
         codexRateLimitService.start()
         actionRunRegistry.start()
@@ -119,7 +116,7 @@ export class RemoteConnectionService extends EventTarget {
     }
 
     connectExisting(storage: RemoteControlStorageService) {
-        return this.startConnection(storage.getConnectionSettings(), storage)
+        return this.startConnection(storage.client.getConnectionSettings(), storage)
     }
 
     connectStored() {
@@ -192,25 +189,25 @@ export class RemoteConnectionService extends EventTarget {
         initialStorage?: RemoteControlStorageService,
     ): Promise<RemoteControlStorageService | null> {
         const storage = initialStorage ?? this.dependencies.createStorage()
-        if (!initialStorage) storage.init(settings)
+        if (!initialStorage) storage.client.init(settings)
         this.connectingStorage = storage
         const connectionLossCount = this.connectionLossCount
         const unsubscribe = reconnecting
             ? null
-            : storage.onConnectionChanged((connected) => {
+            : storage.client.onConnectionChanged((connected) => {
                 if (connected) return
                 this.connectionLossCount += 1
                 if (this.activeStorage === storage && this.snapshot.status === 'ready') this.startReconnecting(lifecycleId)
             })
 
         try {
-            await storage.connect()
+            await storage.client.connect()
             if (connectionLossCount !== this.connectionLossCount) throw new RemoteControlConnectionError('Remote-control connection closed')
             await this.dependencies.activate(storage, reconnecting)
             if (connectionLossCount !== this.connectionLossCount) throw new RemoteControlConnectionError('Remote-control connection closed')
             if (lifecycleId !== this.lifecycleId) {
                 if (this.connectingStorage === storage) this.connectingStorage = null
-                storage.retire()
+                storage.client.retire()
 
                 return null
             }
@@ -230,7 +227,7 @@ export class RemoteConnectionService extends EventTarget {
             if (reconnecting) throw error
 
             unsubscribe?.()
-            storage.retire()
+            storage.client.retire()
             if (lifecycleId !== this.lifecycleId) return null
             this.dependencies.clearActivation()
             const errorMessage = error instanceof Error ? error.message : 'Remote-control connection failed'
@@ -294,9 +291,9 @@ export class RemoteConnectionService extends EventTarget {
         this.unsubscribeConnection = null
         const connectingStorage = this.connectingStorage
         const activeStorage = this.activeStorage
-        connectingStorage?.retire()
+        connectingStorage?.client.retire()
         this.connectingStorage = null
-        if (activeStorage !== connectingStorage) activeStorage?.retire()
+        if (activeStorage !== connectingStorage) activeStorage?.client.retire()
         this.activeStorage = null
         this.connectionPromise = null
     }

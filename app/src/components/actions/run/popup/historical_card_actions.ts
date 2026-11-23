@@ -1,52 +1,25 @@
 import type { CardActivityFile, ActionActivityRecord } from '../../../../../../shared/card_activity.mjs'
-import { BUILTIN_CUSTOM_PROMPT, CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
+import type { ActionDefinition } from '../../../../data/action_types'
 import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
 import type { PermissionMode, ThinkingLevel } from '../../../../data/agent_profiles'
+import { conversationLogActions } from './action_visibility'
 
-function historicalDefinition(actionId: string, label: string, type: ActionDefinition['type']): ActionDefinition {
-    return {
-        ...BUILTIN_CUSTOM_PROMPT,
-        builtin: false,
-        command: type === 'command' ? '' : null,
-        description: label,
-        id: actionId,
-        label,
-        prompt: type === 'agent' ? '' : null,
-        type,
-    }
-}
-
-/** Adds action identities found in stored runs or conversations to current applicable actions. */
+/** Derives conversation-backed actions from referenced historical activity. */
 export function historicalCardActions(
-    applicableActions: ActionDefinition[],
     loadedActions: ActionDefinition[],
     activities: CardActivityFile[],
 ) {
-    const historical = new Map<string, { label: string, type: ActionDefinition['type'] }>()
+    const conversations = activities.flatMap(({ conversations: activityConversations }) => activityConversations)
+    const conversationActionIds = new Set(conversations.flatMap(({ actionId }) => actionId ? [actionId] : []))
+    const historicalLabels = new Map<string, string>()
     for (const activity of activities) {
         for (const record of activity.records) {
-            if (record.type === 'system' || record.rootActionId === CUSTOM_PROMPT_ACTION_ID) continue
-            historical.set(record.rootActionId, {
-                label: record.rootActionLabel || record.rootActionId,
-                type: record.details.type,
-            })
-        }
-        for (const conversation of activity.conversations) {
-            if (!conversation.actionId || conversation.actionId === CUSTOM_PROMPT_ACTION_ID) continue
-            if (!historical.has(conversation.actionId)) {
-                historical.set(conversation.actionId, { label: conversation.actionId, type: 'agent' })
-            }
+            if (record.type === 'system' || !conversationActionIds.has(record.rootActionId)) continue
+            historicalLabels.set(record.rootActionId, record.rootActionLabel || record.rootActionId)
         }
     }
 
-    const actions = applicableActions.filter(({ id }) => id !== CUSTOM_PROMPT_ACTION_ID)
-    for (const [actionId, { label, type }] of historical) {
-        if (actions.some(({ id }) => id === actionId)) continue
-        actions.push(loadedActions.find(({ id }) => id === actionId) ?? historicalDefinition(actionId, label, type))
-    }
-
-    const customPrompt = applicableActions.find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID) ?? BUILTIN_CUSTOM_PROMPT
-    return [...actions, customPrompt]
+    return conversationLogActions(loadedActions, conversations, historicalLabels)
 }
 
 function historyEntry(record: ActionActivityRecord, repositoryRoot: string): ActionRunHistoryEntry {

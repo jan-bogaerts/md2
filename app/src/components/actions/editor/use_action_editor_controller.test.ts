@@ -4,7 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../../data/action_types'
 import { actionService } from '../../../services/actions/action_service'
 import { dataService } from '../../../services/data/data_service'
+import { dialogService } from '../../../services/dialog_service'
 import { openFilesService } from '../../../services/open_files_service'
+import { actionMarkdownDataSource } from '../../editor/data_sources/action_markdown_data_source'
 import { useActionEditorController } from './use_action_editor_controller'
 
 function loadAction(): ActionDefinition {
@@ -82,5 +84,35 @@ describe('useActionEditorController', () => {
         act(() => actionService.setActionEditorState('other-action', { phrases: [], selectedTab: 'prompt' }))
 
         expect(renderCount).toBe(initialRenderCount)
+    })
+
+    it('keeps the selected phrase target when a draft change arrives while typing', () => {
+        const action = loadAction()
+        actionMarkdownDataSource.init(actionService)
+        openFilesService.init({ actionService, dataService })
+        const document = openFilesService.openDocument(action)
+        if (document.kind !== 'action') throw new Error('Expected action document')
+        const errorSpy = vi.spyOn(dialogService, 'error')
+        const { result } = renderHook(() => useActionEditorController({
+            action,
+            actions: actionService.getActions(),
+            discardMarkdownTarget: vi.fn(),
+            openDocument: document,
+            sourcePath: 'actions/review.json',
+        }))
+        const phraseIdentity = action.editorState?.phrases[0].identity
+        if (!phraseIdentity) throw new Error('Missing phrase editor identity')
+        act(() => result.current.handleTabChange({} as SyntheticEvent, phraseIdentity))
+        const phraseTarget = result.current.markdownTarget
+
+        act(() => actionMarkdownDataSource.edit('list-action', phraseTarget, 'Run all tests'))
+        act(() => actionService.dispatchDraftChanged('review-action'))
+        act(() => actionMarkdownDataSource.edit('list-action', result.current.markdownTarget, 'Run all tests now'))
+
+        expect(result.current.editorState.selectedTab).toBe(phraseIdentity)
+        expect(result.current.markdownTarget).toEqual(phraseTarget)
+        expect(actionService.draftStore.getDraft('review-action').definition.phrases)
+            .toEqual([{ text: 'Run all tests now', title: 'Tests' }])
+        expect(errorSpy).not.toHaveBeenCalled()
     })
 })

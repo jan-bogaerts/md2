@@ -7,6 +7,7 @@ export const PRIMARY_CHANGES_OPEN_EVENT = 'open';
 export const PRIMARY_CHANGES_LIST_EVENT = 'changes';
 export const PRIMARY_CHANGES_MESSAGE_EVENT = 'message';
 export const PRIMARY_CHANGES_BUSY_EVENT = 'busy';
+export const PRIMARY_CHANGES_COMMITTING_EVENT = 'committing';
 
 const NO_CHANGES: PrimaryChange[] = [];
 
@@ -23,6 +24,7 @@ interface PrimaryChangesReview {
 export class PrimaryChangesService extends EventTarget {
     private busy = false;
     private changes: PrimaryChange[] = NO_CHANGES;
+    private committing = false;
     private dependencies: PrimaryChangesServiceDependencies | null = null;
     private message = '';
     private activeReview: PrimaryChangesReview | null = null;
@@ -48,6 +50,11 @@ export class PrimaryChangesService extends EventTarget {
 
     isBusy() {
         return this.busy;
+    }
+
+    /** Whether the listed changes are being committed; trash operations are busy but never committing. */
+    isCommitting() {
+        return this.committing;
     }
 
     getChanges() {
@@ -110,9 +117,11 @@ export class PrimaryChangesService extends EventTarget {
         try {
             if (this.changes.length > 0) {
                 const commitRequest = { message: this.message, paths: this.changes.map(({ path }) => path), project };
+                this.setCommitting(true);
                 await storage.commitPrimaryChanges(commitRequest);
             }
         } catch (error) {
+            this.setCommitting(false);
             this.setBusy(false);
             dialogService.error(error, { fallbackMessage: 'Could not commit project changes' });
             return;
@@ -131,6 +140,7 @@ export class PrimaryChangesService extends EventTarget {
         if (!activeReview) return;
 
         this.activeReview = null;
+        this.setCommitting(false);
         this.setBusy(false);
         this.setChanges(NO_CHANGES);
         this.setMessage('');
@@ -150,6 +160,13 @@ export class PrimaryChangesService extends EventTarget {
 
         this.busy = busy;
         this.dispatchEvent(new Event(PRIMARY_CHANGES_BUSY_EVENT));
+    }
+
+    private setCommitting(committing: boolean) {
+        if (this.committing === committing) return;
+
+        this.committing = committing;
+        this.dispatchEvent(new Event(PRIMARY_CHANGES_COMMITTING_EVENT));
     }
 
     private requireReview() {

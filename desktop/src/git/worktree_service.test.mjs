@@ -1,8 +1,9 @@
-import { mkdir, mkdtemp, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { describe, expect, it, vi } from 'vitest';
+import { ACTIVE_REBASE_LINKED_WORKTREE_ERROR } from '../../../shared/worktree_errors.mjs';
 
 const require = createRequire(import.meta.url);
 const { runGit } = require('./git_commands');
@@ -69,6 +70,29 @@ function createFailedCleanGitRunner(cleanError, statusOutput) {
         return runGit(rootPath, argumentsValue);
     });
 }
+
+describe('WorktreeService refresh publication', () => {
+    it('does not notify listeners when a scheduled refresh produces equivalent state', async () => {
+        const service = createService();
+        const project = { branch: 'main', id: 'project', rootPath: 'C:\\project' };
+        const primaryStatus = { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false };
+        const record = {
+            branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:\\feature',
+            status: primaryStatus, valid: true,
+        };
+        service.project = project;
+        service.projectGeneration = 1;
+        vi.spyOn(service, 'primaryRepositoryStatus').mockResolvedValue({ ...primaryStatus });
+        vi.spyOn(service, 'readWorktreeRecords').mockResolvedValue([{ ...record, status: { ...record.status } }]);
+        const listener = vi.fn();
+        service.subscribe(listener);
+
+        await service.refreshLocal();
+        await service.refreshLocal();
+
+        expect(listener).toHaveBeenCalledTimes(2);
+    });
+});
 
 describe('WorktreeService linked worktree mutations', () => {
     it('creates a linked worktree and prepares its parking branch', async () => {
@@ -165,6 +189,60 @@ describe('WorktreeService linked worktree mutations', () => {
             const cleanCallIndex = mockedRunGit.mock.calls.findIndex(([, argumentsValue]) => argumentsValue[0] === 'clean');
             expect(mockedRunGit.mock.calls[cleanCallIndex + 1]).toEqual([repository.linkedPath, ['status', '--porcelain']]);
             expect(refreshAfterMutation).not.toHaveBeenCalled();
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+});
+
+describe('WorktreeService detached linked worktree guards', () => {
+    it.each(['rebase-merge', 'rebase-apply'])('rejects preparation during active %s state without changing the checkout', async (stateName) => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+
+        try {
+            await service.startProject(project);
+            const record = service.getRecords(project)[0];
+            const originalHead = await runGit(repository.linkedPath, ['rev-parse', 'HEAD']);
+            await writeFile(join(repository.linkedPath, 'keep.txt'), 'keep\n');
+            await runGit(repository.linkedPath, ['checkout', '--detach']);
+            const statePath = await runGit(repository.linkedPath, ['rev-parse', '--path-format=absolute', '--git-path', stateName]);
+            await mkdir(statePath);
+            vi.spyOn(service, 'resolveBranch').mockResolvedValue({ index: 1, record });
+            const runGitSpy = vi.spyOn(service, 'runGit');
+
+            await expect(service.prepare(project, 'feature', 'prepared-branch')).rejects.toMatchObject({
+                code: ACTIVE_REBASE_LINKED_WORKTREE_ERROR,
+                message: `Linked worktree is currently being rebased: ${repository.linkedPath}. Finish or abort the rebase, then retry.`,
+            });
+
+            expect(await runGit(repository.linkedPath, ['branch', '--show-current'])).toBe('');
+            expect(await runGit(repository.linkedPath, ['rev-parse', 'HEAD'])).toBe(originalHead);
+            expect(await readFile(join(repository.linkedPath, 'keep.txt'), 'utf8')).toBe('keep\n');
+            await expect(stat(statePath)).resolves.toMatchObject({});
+            expect(runGitSpy.mock.calls.some(([, argumentsValue]) => argumentsValue[0] === 'switch')).toBe(false);
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('keeps a genuinely detached checkout as an uncoded preparation error', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+
+        try {
+            await service.startProject(project);
+            const record = service.getRecords(project)[0];
+            await runGit(repository.linkedPath, ['checkout', '--detach']);
+            vi.spyOn(service, 'resolveBranch').mockResolvedValue({ index: 1, record });
+
+            const preparation = service.prepare(project, 'feature', 'prepared-branch');
+            await expect(preparation).rejects.toThrow(`Linked worktree has detached HEAD: ${repository.linkedPath}`);
+            await expect(preparation).rejects.not.toHaveProperty('code');
         } finally {
             service.stopProject();
             await rm(repository.folderPath, { force: true, recursive: true });
@@ -751,6 +829,143 @@ describe('WorktreeService selected record validation', () => {
             await expect(test.service.requireSelectedRecord(test.project, 'selected')).rejects.toThrow('Checkout is owned by a sequence');
         } finally {
             release();
+            await test.cleanup();
+        }
+    });
+});
+
+async function createFocusedMutationHarness(options = {}) {
+    const repository = await createRepository();
+    const { folderPath, primaryPath } = repository;
+    const selectedPath = repository.linkedPath;
+    const unrelatedPath = join(folderPath, 'unrelated');
+    await runGit(primaryPath, ['worktree', 'add', '-b', 'unrelated', unrelatedPath, 'main']);
+    const project = { branch: 'main', id: primaryPath, rootPath: primaryPath };
+    const status = { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false };
+    const selected = { branch: 'selected', error: null, parkingBranch: null, path: selectedPath, status, valid: true };
+    const unrelated = { branch: 'unrelated', error: null, parkingBranch: null, path: unrelatedPath, status, valid: true };
+    let primaryCommitted = false;
+    const runGitMock = vi.fn(async (rootPath, argumentsValue) => {
+        const [command, option] = argumentsValue;
+        if (command === 'rev-parse' && option === '--git-common-dir') return primaryPath;
+        if (command === 'rev-parse' && option === '--git-dir') return `.git/worktrees/${rootPath === selectedPath ? 'selected' : 'unrelated'}`;
+        if (command === 'rev-parse' && option === 'HEAD') return 'selected-head';
+        if (command === 'branch' && option === '--show-current') return `${rootPath === primaryPath ? 'main' : 'selected'}\n`;
+        if (command === 'status') {
+            if (rootPath === primaryPath) return options.primaryDirty && !primaryCommitted ? ' M primary.txt' : '';
+            if (rootPath === selectedPath) return options.selectedDirty ? ' M selected.txt' : '';
+            return '';
+        }
+        if (command === 'rev-list') return '0\t0';
+        if (command === 'for-each-ref') return '';
+        if (command === 'check-ref-format') return '';
+        if (command === 'show-ref') {
+            if (options.branchExists) return '';
+            const error = new Error('Missing branch');
+            error.code = 1;
+            throw error;
+        }
+        if (command === 'switch') return '';
+        if (command === 'add') return '';
+        if (command === 'commit') {
+            primaryCommitted = true;
+            return '';
+        }
+        if (command === 'rebase') {
+            if (options.rebaseConflict) throw new Error('Rebase conflict');
+            return '';
+        }
+        if (command === 'worktree' && option === 'list') {
+            const selectedBranch = options.preparedBranch ?? 'selected';
+            return [
+                `worktree ${primaryPath}`, 'HEAD primary-head', 'branch refs/heads/main', '',
+                `worktree ${selectedPath}`, 'HEAD selected-head', `branch refs/heads/${selectedBranch}`, '',
+                `worktree ${unrelatedPath}`, 'HEAD unrelated-head', 'branch refs/heads/unrelated', '',
+            ].join('\n');
+        }
+        throw new Error(`Unexpected mocked Git command: ${argumentsValue.join(' ')}`);
+    });
+    const service = new WorktreeService({ clearTimeout: () => {}, runGit: runGitMock, setTimeout: () => 1 });
+    service.project = project;
+    service.records = [selected, unrelated];
+
+    return {
+        cleanup: () => rm(folderPath, { force: true, recursive: true }),
+        primaryPath,
+        project,
+        runGit: runGitMock,
+        selectedPath,
+        service,
+        unrelatedPath,
+    };
+}
+
+describe('WorktreeService focused assignment and update commands', () => {
+    it.each([
+        { branchExists: true, expectedSwitch: ['switch', 'card-branch'], label: 'existing' },
+        { branchExists: false, expectedSwitch: ['switch', '-c', 'card-branch', 'main'], label: 'new' },
+    ])('prepares an $label card branch without inspecting unrelated worktrees', async ({ branchExists, expectedSwitch }) => {
+        const test = await createFocusedMutationHarness({ branchExists, preparedBranch: 'card-branch' });
+        try {
+            await test.service.prepare(test.project, 'selected', 'card-branch');
+
+            expect(test.runGit).toHaveBeenCalledWith(test.selectedPath, expectedSwitch);
+            expect(test.runGit.mock.calls.some(([rootPath]) => rootPath === test.unrelatedPath)).toBe(false);
+            expect(test.runGit.mock.calls.filter(([, argumentsValue]) => argumentsValue[0] === 'worktree')).toHaveLength(1);
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('rejects dirty selected worktree after one validation and before assignment mutation', async () => {
+        const test = await createFocusedMutationHarness({ selectedDirty: true });
+        try {
+            await expect(test.service.prepare(test.project, 'selected', 'card-branch')).rejects.toThrow('uncommitted changes');
+
+            expect(test.runGit.mock.calls.filter(([, argumentsValue]) => argumentsValue[0] === 'status')).toHaveLength(1);
+            expect(test.runGit.mock.calls.some(([, argumentsValue]) => argumentsValue[0] === 'switch')).toBe(false);
+            expect(test.runGit.mock.calls.some(([rootPath]) => rootPath === test.unrelatedPath)).toBe(false);
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('rebases and refreshes only selected worktree when primary HEAD stays unchanged', async () => {
+        const test = await createFocusedMutationHarness();
+        try {
+            await expect(test.service.rebase(test.project, 'selected')).resolves.toEqual({ status: 'completed' });
+
+            expect(test.runGit).toHaveBeenCalledWith(test.selectedPath, ['rebase', 'main']);
+            expect(test.runGit.mock.calls.some(([rootPath]) => rootPath === test.unrelatedPath)).toBe(false);
+            expect(test.runGit.mock.calls.some(([, argumentsValue]) => argumentsValue[0] === 'add')).toBe(false);
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('checkpoints dirty primary HEAD and refreshes every worktree comparison status', async () => {
+        const test = await createFocusedMutationHarness({ primaryDirty: true });
+        try {
+            await expect(test.service.rebase(test.project, 'selected')).resolves.toEqual({ status: 'completed' });
+
+            expect(test.runGit).toHaveBeenCalledWith(test.primaryPath, ['add', '-A']);
+            expect(test.runGit).toHaveBeenCalledWith(test.primaryPath, ['commit', '-m', 'Save project changes before worktree synchronization']);
+            expect(test.runGit.mock.calls.some(([rootPath]) => rootPath === test.unrelatedPath)).toBe(true);
+        } finally {
+            await test.cleanup();
+        }
+    });
+
+    it('publishes selected conflict state without inspecting unrelated worktrees', async () => {
+        const test = await createFocusedMutationHarness({ rebaseConflict: true });
+        const session = { id: 'conflict-session' };
+        vi.spyOn(test.service, 'createConflictSession').mockResolvedValue(session);
+        try {
+            await expect(test.service.rebase(test.project, 'selected')).resolves.toEqual({ session, status: 'conflict' });
+
+            expect(test.runGit.mock.calls.some(([rootPath]) => rootPath === test.unrelatedPath)).toBe(false);
+            expect(test.runGit.mock.calls.filter(([, argumentsValue]) => argumentsValue[0] === 'rebase')).toHaveLength(1);
+        } finally {
             await test.cleanup();
         }
     });

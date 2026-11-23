@@ -14,7 +14,7 @@ import { dialogService } from '../../services/dialog_service'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { useOpenFiles } from '../hooks/use_open_files'
 
-type OpenTabKind = 'action' | 'card' | 'markdown'
+type OpenTabKind = 'action' | 'card' | 'json' | 'markdown'
 
 interface OpenTab {
     color: string | null
@@ -53,6 +53,11 @@ function tabKind(card: Card, actionsFolder: string): OpenTabKind {
 }
 
 function tabData(cardTypes: CardTypeConfig[], actionsFolder: string, document: OpenDocument): OpenTab | null {
+    if (document.kind === 'json') {
+        const label = document.path.split('/').at(-1) ?? document.path
+
+        return { color: null, document, id: null, key: `json:${document.path}`, kind: 'json', label, title: label }
+    }
     if (document.kind === 'action') {
         const action = document.getObject()
         if (!action.sourcePath) return null
@@ -156,6 +161,7 @@ export function TabBar(props: TabBarProps) {
                                 {tab.kind === 'action' ? <LightningBolt sx={{ flexShrink: 0, fontSize: 16 }} titleAccess="Action file" /> : null}
                                 {tab.kind === 'card' ? <CardsOutline sx={{ flexShrink: 0, fontSize: 16 }} titleAccess="Card" /> : null}
                                 {tab.kind === 'markdown' ? <FileDocumentOutline sx={{ flexShrink: 0, fontSize: 16 }} titleAccess="Markdown file" /> : null}
+                                {tab.kind === 'json' ? <FileDocumentOutline sx={{ flexShrink: 0, fontSize: 16 }} titleAccess="JSON file" /> : null}
                                 {tab.id ? (
                                     <Box
                                         component="span"

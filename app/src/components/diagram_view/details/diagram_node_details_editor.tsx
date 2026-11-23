@@ -8,7 +8,6 @@ import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined
 import { useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react'
 import {
     DIAGRAM_NODE_KINDS,
-    DIAGRAM_ROLES,
     requireDiagramNodeKind,
     type DiagramEntityField,
     type DiagramLegendEntryData,
@@ -257,10 +256,7 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
                 <Stack spacing={2} sx={{ pt: 0.5 }}>
                     {validationError ? <Alert severity="error">{validationError}</Alert> : null}
                     <TextField autoFocus label="Label" name="label" onChange={handleFieldChange} required size="small" value={draft.label} />
-                    <TextField label="Role" name="role" onChange={handleFieldChange} select size="small" value={draft.role}>
-                        {DIAGRAM_ROLES.map((role) => <MenuItem key={role} value={role}>{role}</MenuItem>)}
-                    </TextField>
-                    <TextField label="Legend entry" name="legendEntryId" onChange={handleLegendEntryChange} select size="small" value={draft.legendEntryId}>
+                    <TextField label="Role" name="legendEntryId" onChange={handleLegendEntryChange} select size="small" value={draft.legendEntryId}>
                         {legendEntries.map((entry) => <MenuItem key={entry.id} value={entry.id}>{entry.label}</MenuItem>)}
                     </TextField>
                     {diagramType === 'flow' ? (

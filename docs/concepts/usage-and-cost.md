@@ -7,7 +7,7 @@ Stats uses saved project activity and provider observations. This page defines w
 | Source | What it provides |
 | --- | --- |
 | Card and project activity files | Action status, agent and model attribution, conversations, measured duration, tool calls, and cumulative conversation tokens |
-| `usage_metrics.csv` | Timestamped project-token deltas and observed Claude or Codex account-limit changes |
+| `usage_metrics.csv` | Timestamped project-token deltas and observed Claude or Codex account-limit changes, scoped to the account that produced them |
 | Agent profiles | Optional monthly subscription cost used for estimates |
 
 Current activity is stored under the configured project activity folder. Activity from completed releases is loaded from the configured releases folder. Stats keeps release membership from those locations; paths are not used as card or conversation identity.
@@ -52,7 +52,7 @@ Claude and Codex account observations describe the provider account, not only th
 
 For that reason, project tokens and completed actions are compared with account usage as a correlation. Account-limit consumption must not be described as usage caused exclusively by the selected project.
 
-Different provider limits and reset windows remain separate. Stats does not add unlike account windows together. Negative corrections in provider telemetry are not used for displayed ratios or estimates.
+Different accounts, provider limits, and reset windows remain separate when calculating changes. Provider totals may combine their measurements, but Stats does not calculate one account's delta from another account's baseline or add unlike account windows together. Negative corrections in provider telemetry are not used for displayed ratios or estimates.
 
 ## Estimated subscription cost
 

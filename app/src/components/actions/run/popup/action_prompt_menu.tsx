@@ -82,6 +82,9 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
                 failurePolicy: forEach?.failurePolicy ?? 'logAndContinue',
                 fileName: file.name,
                 mode: forEach?.mode ?? 'addPrompt',
+                recordsPerBatch: forEach?.recordsPerBatch ?? 1,
+                startIndex: forEach?.startIndex ?? 0,
+                stepByStep: forEach?.stepByStep ?? false,
                 value,
             };
             await saveForEach(config);
@@ -134,7 +137,7 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
             };
             const accepted = await actionCompactService.request(request);
             if (mounted.current && accepted?.runId && conversationStore.getSnapshot().selectedConversation?.id === request.conversationId) {
-                await conversationStore.select(request.conversationId);
+                conversationStore.bindRun(accepted.runId, request.conversationId);
             }
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Compaction failed' });
@@ -147,7 +150,7 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
     }, []);
 
     return (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             {forEach ? (
                 <ActionForEachMenu config={forEach} disabled={loopRunning} onChange={changeForEach}
                     onRemove={removeForEach} onView={viewForEach} />
@@ -179,6 +182,6 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
             </Menu>
             <input aria-label="Add files" hidden multiple onChange={handleFiles} ref={fileInput} type="file" />
             <input accept=".json,application/json" aria-label="For-each JSON" hidden onChange={handleForEachFile} ref={forEachFileInput} type="file" />
-        </>
+        </div>
     );
 }

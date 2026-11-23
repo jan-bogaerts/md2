@@ -20,3 +20,10 @@ export async function copyTextToClipboard(text: string): Promise<void> {
         textarea.remove()
     }
 }
+
+/** Reads plain text through Clipboard API for user-initiated paste commands. */
+export async function readTextFromClipboard(): Promise<string> {
+    if (!navigator.clipboard?.readText) throw new Error('Clipboard reading is not available')
+
+    return navigator.clipboard.readText()
+}

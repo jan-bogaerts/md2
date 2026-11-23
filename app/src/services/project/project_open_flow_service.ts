@@ -1,4 +1,5 @@
 import type { BranchReference, ProjectReference, RepositoryReference } from '../../data/data_types'
+import { NOT_A_GIT_REPOSITORY_ERROR } from '../../../../shared/bridge_errors.mjs'
 import { unwrapBridgeResult } from '../../data/bridge_error_rehydration'
 import { getElectronDataBridge } from '../../data/electron_data_bridge'
 import {
@@ -18,7 +19,7 @@ import {
 } from './project_session_service'
 
 export type ProjectOpenSource = 'local' | 'personal' | 'public'
-export type ProjectOpenPhase = 'closed' | 'selecting' | 'loading' | 'folder-setup'
+export type ProjectOpenPhase = 'closed' | 'selecting' | 'loading' | 'folder-setup' | 'git-initialization'
 
 export type ProjectOpenRequest =
     | { source: 'local'; rootPath: string }
@@ -29,10 +30,12 @@ export interface ProjectOpenFlowState {
     source: ProjectOpenSource | null
     resolution: ProjectOpenResolution | null
     folderValues: ProjectFolderValues | null
+    includeProjectFolderInGit: boolean
     branches: BranchReference[]
     repositories: RepositoryReference[]
     recentLocalRepositories: string[]
     isGithubAuthenticated: boolean
+    gitInitializationRootPath: string | null
 }
 
 interface ProjectOpenEntry {
@@ -52,21 +55,12 @@ function folderSetupOf(resolution: ProjectOpenResolution | null): ProjectFolderS
         : null
 }
 
-/** Resolves a command-line folder to its local project; reports failures and returns null. */
-async function resolveStartupProject(rootPath: string) {
-    const bridge = getElectronDataBridge()
-    if (!bridge) {
-        dialogService.displayError('Local project bridge is unavailable')
+function notGitRepositoryRootPath(error: unknown) {
+    if (!error || typeof error !== 'object') return null
+    const localGitError = error as { code?: unknown; rootPath?: unknown }
+    if (localGitError.code !== NOT_A_GIT_REPOSITORY_ERROR || typeof localGitError.rootPath !== 'string') return null
 
-        return null
-    }
-    try {
-        return unwrapBridgeResult(await bridge.resolveProject({ branch: '', id: rootPath, rootPath }))
-    } catch (error) {
-        dialogService.error(error, { fallbackMessage: 'Could not open project folder' })
-
-        return null
-    }
+    return localGitError.rootPath
 }
 
 export function isDesktopProjectMode() {
@@ -81,16 +75,19 @@ export function canBrowseProjectFolders() {
 export class ProjectOpenFlowService extends EventTarget {
     private accessToken: string | null = null
     private isGithubAuthenticated = false
+    private gitInitializationEntry: 'dialog' | 'startup' | null = null
     private pendingLocalRootPath: string | null = null
     private state: ProjectOpenFlowState = {
         phase: 'closed',
         source: null,
         resolution: null,
         folderValues: null,
+        includeProjectFolderInGit: true,
         branches: [],
         repositories: [],
         recentLocalRepositories: [],
         isGithubAuthenticated: false,
+        gitInitializationRootPath: null,
     }
 
     getSnapshot() {
@@ -118,31 +115,40 @@ export class ProjectOpenFlowService extends EventTarget {
     show(entry: ProjectOpenEntry = {}) {
         const resolution = entry.resolution ?? null
         const folderSetup = folderSetupOf(resolution)
+        this.gitInitializationEntry = null
         this.pendingLocalRootPath = null
         this.update({
             phase: folderSetup ? 'folder-setup' : 'selecting',
             source: entry.source ?? null,
             resolution,
             folderValues: folderSetup?.values ?? null,
+            includeProjectFolderInGit: folderSetup?.includeProjectFolderInGit ?? true,
             branches: [],
             repositories: [],
             recentLocalRepositories: readRecentLocalRepositories(),
+            gitInitializationRootPath: null,
         })
         if (this.isGithubAuthenticated && !folderSetup) void this.loadRepositories()
     }
 
     close() {
+        this.gitInitializationEntry = null
         this.pendingLocalRootPath = null
-        this.update({ phase: 'closed', resolution: null, folderValues: null })
+        this.update({ phase: 'closed', resolution: null, folderValues: null, gitInitializationRootPath: null })
         projectSessionService.setError(null)
     }
 
     setSource(source: ProjectOpenSource) {
-        this.update({ source, branches: [], resolution: null })
+        this.gitInitializationEntry = null
+        this.update({ source, branches: [], resolution: null, gitInitializationRootPath: null })
     }
 
     setFolderValues(values: ProjectFolderValues) {
         this.update({ folderValues: values })
+    }
+
+    setIncludeProjectFolderInGit(includeProjectFolderInGit: boolean) {
+        this.update({ includeProjectFolderInGit })
     }
 
     async loadRepositories() {
@@ -195,6 +201,8 @@ export class ProjectOpenFlowService extends EventTarget {
             const project = unwrapBridgeResult(await bridge.openProjectFolder())
             if (project) await this.openResolvedProject('local', project)
         } catch (error) {
+            if (this.offerGitInitialization(error, 'dialog')) return
+
             dialogService.error(error, { fallbackMessage: 'Local project selection failed' })
         }
     }
@@ -275,7 +283,13 @@ export class ProjectOpenFlowService extends EventTarget {
 
         this.update({ phase: 'loading', folderValues: values })
         try {
-            await projectSessionService.confirmProjectFolderSetup(resolution, values, this.accessToken)
+            const setupValues = { folderValues: values, includeProjectFolderInGit: this.state.includeProjectFolderInGit }
+            const confirmed = await projectSessionService.confirmProjectFolderSetup(resolution, setupValues, this.accessToken)
+            if (!confirmed) {
+                this.update({ phase: 'folder-setup' })
+
+                return
+            }
             await this.recordOpenedLocalProject()
             this.update({ phase: 'closed', resolution: null, folderValues: null })
         } catch {
@@ -286,26 +300,53 @@ export class ProjectOpenFlowService extends EventTarget {
 
     /** Opens the folder passed on the command line; failures fall back to the local open dialog. */
     async openStartupProject(rootPath: string) {
-        const project = await resolveStartupProject(rootPath)
-        if (!project) {
+        const bridge = getElectronDataBridge()
+        if (!bridge) {
+            dialogService.displayError('Local project bridge is unavailable')
             this.show({ source: 'local' })
 
             return
         }
         try {
-            const resolution = await projectSessionService.openProject('local', project, null)
-            this.pendingLocalRootPath = project.rootPath ?? null
-            const folderSetup = folderSetupOf(resolution)
-            if (folderSetup) {
-                this.update({ phase: 'folder-setup', resolution: folderSetup, folderValues: folderSetup.values })
+            const project = unwrapBridgeResult(await bridge.resolveProject({ branch: '', id: rootPath, rootPath }))
+            await this.openResolvedStartupProject(project)
+        } catch (error) {
+            if (this.offerGitInitialization(error, 'startup')) return
 
-                return
-            }
-            await this.recordOpenedLocalProject()
-        } catch {
-            // ProjectSessionService emits the user-visible error.
+            dialogService.error(error, { fallbackMessage: 'Could not open project folder' })
             this.show({ source: 'local' })
         }
+    }
+
+    async confirmGitInitialization() {
+        const rootPath = this.state.gitInitializationRootPath
+        const entry = this.gitInitializationEntry
+        if (!rootPath || !entry) throw new Error('Git initialization confirmation is missing')
+        const bridge = getElectronDataBridge()
+        if (!bridge?.initializeLocalProject) {
+            dialogService.displayError('Local project bridge is unavailable')
+            this.declineGitInitialization()
+
+            return
+        }
+
+        this.update({ phase: 'loading' })
+        try {
+            const project = unwrapBridgeResult(await bridge.initializeLocalProject(rootPath))
+            this.gitInitializationEntry = null
+            this.update({ gitInitializationRootPath: null })
+            if (entry === 'startup') await this.openResolvedStartupProject(project)
+            else await this.openResolvedProject('local', project)
+        } catch (error) {
+            this.gitInitializationEntry = null
+            dialogService.error(error, { fallbackMessage: 'Local Git repository initialization failed' })
+            this.update({ phase: 'selecting', source: 'local', gitInitializationRootPath: null })
+        }
+    }
+
+    declineGitInitialization() {
+        this.gitInitializationEntry = null
+        this.update({ phase: 'selecting', source: 'local', gitInitializationRootPath: null })
     }
 
     discardGithubPendingCommits(project: ProjectReference) {
@@ -325,8 +366,43 @@ export class ProjectOpenFlowService extends EventTarget {
             const project = unwrapBridgeResult(await bridge.resolveProject({ branch: '', id: normalizedPath, rootPath: normalizedPath }))
             await this.openResolvedProject('local', project)
         } catch (error) {
+            if (this.offerGitInitialization(error, 'dialog')) return
+
             dialogService.error(error, { fallbackMessage: 'Local project selection failed' })
             this.update({ phase: 'closed' })
+        }
+    }
+
+    private offerGitInitialization(error: unknown, entry: 'dialog' | 'startup') {
+        const rootPath = notGitRepositoryRootPath(error)
+        if (rootPath === null) return false
+
+        this.gitInitializationEntry = entry
+        this.update({ phase: 'git-initialization', source: 'local', gitInitializationRootPath: rootPath })
+
+        return true
+    }
+
+    private async openResolvedStartupProject(project: ProjectReference) {
+        try {
+            const resolution = await projectSessionService.openProject('local', project, null)
+            this.pendingLocalRootPath = project.rootPath ?? null
+            const folderSetup = folderSetupOf(resolution)
+            if (folderSetup) {
+                this.update({
+                    phase: 'folder-setup',
+                    resolution: folderSetup,
+                    folderValues: folderSetup.values,
+                    includeProjectFolderInGit: folderSetup.includeProjectFolderInGit,
+                })
+
+                return
+            }
+            await this.recordOpenedLocalProject()
+            this.update({ phase: 'closed' })
+        } catch {
+            // ProjectSessionService emits the user-visible error.
+            this.show({ source: 'local' })
         }
     }
 
@@ -341,6 +417,7 @@ export class ProjectOpenFlowService extends EventTarget {
                     phase: folderSetup ? 'folder-setup' : 'selecting',
                     resolution,
                     folderValues: folderSetup?.values ?? null,
+                    includeProjectFolderInGit: folderSetup?.includeProjectFolderInGit ?? true,
                 })
 
                 return

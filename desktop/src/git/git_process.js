@@ -74,6 +74,8 @@ class GitProcess {
     handleComplete(error, stdout, stderr) {
         if (this.settled || this.timedOut) return;
         if (error) {
+            error.stdout = stdout;
+            error.stderr = stderr;
             this.settleError(error);
             return;
         }

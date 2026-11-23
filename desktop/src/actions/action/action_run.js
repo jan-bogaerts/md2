@@ -2,12 +2,15 @@ const crypto = require('node:crypto');
 const { ActionCancellationError } = require('./action_cancellation_error');
 const { executeCommandAction } = require('./action_command_executor');
 const { ActionPhaseError } = require('./action_phase_error');
+const { ActionPromptQueueClosedError } = require('./action_prompt_queue_closed_error');
 const { runWithGitOperationContext } = require('../../git/git_operation_context');
 const { resolveDiagramFile } = require('./action_diagram_output');
 const { ActionDiagramOutputWatcher } = require('./action_diagram_output_watcher');
 const { resolvePopupPrompt } = require('./action_text');
 const { validateVersion } = require('./action_run_request');
 const { forEachRecords } = require('../../../../shared/action_for_each.mjs');
+const { agentTokenUsageFilePath } = require('../../../../shared/agent_token_usage_summary.mjs');
+const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 const {
     captureCommitReferences,
     combineOutput,
@@ -61,7 +64,7 @@ class ActionRun {
         this.changedPaths = new Set();
         this.conversationIds = [];
         this.completion = null;
-        this.initialConversationSaved = Promise.withResolvers();
+        this.conversationStartup = Promise.withResolvers();
         this.controller = new AbortController();
         this.rootDetails = null;
         this.rootConversationId = null;
@@ -77,7 +80,12 @@ class ActionRun {
         this.compactTarget = snapshot.compactTarget ?? null;
         this.activeConversationId = this.compactTarget?.conversationId
             ?? snapshot.runInput.conversationId ?? snapshot.conversationReservation?.conversationId ?? null;
+        this.activeConversationReference = this.compactTarget?.reference ?? snapshot.runInput.continueFrom ?? null;
         this.activeAgentProvider = null;
+        this.forEachProgress = null;
+        this.rootAgentConversationId = null;
+        // A successor run's first prompt was submitted to its predecessor; it is published as queued until dispatched.
+        this.continuationPrompt = snapshot.continuationPrompt ?? null;
     }
 
     start(finalize) {
@@ -85,15 +93,15 @@ class ActionRun {
         this.completion = finalize(runCompletion);
     }
 
-    async waitForInitialConversationSave() {
-        const completedBeforeSave = this.completion.then((result) => {
+    async waitForConversationStartup() {
+        const completedBeforeStartup = this.completion.then((result) => {
             throw new Error(result.failure ?? 'Agent run ended before its conversation was saved');
         });
-        await Promise.race([this.initialConversationSaved.promise, completedBeforeSave]);
+        await Promise.race([this.conversationStartup.promise, completedBeforeStartup]);
     }
 
-    markInitialConversationSaved() {
-        this.initialConversationSaved.resolve();
+    markConversationStartupComplete() {
+        this.conversationStartup.resolve();
     }
 
     cancel() {
@@ -203,6 +211,17 @@ class ActionRun {
         this.agentRunnerService.finish(this.activeAgentRunId);
     }
 
+    advanceForEachRecord() {
+        if (!this.runInput.forEach?.stepByStep) throw new Error('Action run is not using step-by-step for-each');
+        if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
+        if (!this.agentRunnerService.isWaitingForInput(this.activeAgentRunId)) {
+            throw new Error('Action run is not waiting for input');
+        }
+        if (this.agentInteractionPending()) throw new Error('Answer pending agent question or approval before advancing');
+        this.discardQueuedPrompts();
+        this.agentRunnerService.finish(this.activeAgentRunId);
+    }
+
     queuePromptOperation(operation) {
         const queuedOperation = this.promptQueueOperations.then(operation);
         this.promptQueueOperations = queuedOperation.catch(() => undefined);
@@ -211,9 +230,8 @@ class ActionRun {
     }
 
     requirePromptQueueOpen() {
-        if (this.promptQueueClosed || this.controller.signal.aborted) {
-            throw new Error(`Action run no longer accepts queued prompts: ${this.runId}`);
-        }
+        if (this.controller.signal.aborted) throw new Error(`Action run no longer accepts queued prompts: ${this.runId}`);
+        if (this.promptQueueClosed) throw new ActionPromptQueueClosedError(this.runId);
         if (this.activeAction?.type !== 'agent') throw new Error(`Action run has no active agent: ${this.runId}`);
     }
 
@@ -378,6 +396,10 @@ class ActionRun {
             );
         }
         this.publish(this.rootAction, 'main', 'running', { type: 'run' });
+        if (this.continuationPrompt) {
+            const update = { entry: { ...this.continuationPrompt }, kind: 'agentPromptQueued' };
+            this.publish(this.rootAction, 'main', 'running', { type: 'update', update });
+        }
         let result;
         try {
             if (this.requestedInput && this.runInput[this.requestedInput.type] === undefined) {
@@ -397,6 +419,7 @@ class ActionRun {
         }
 
         this.publish(this.rootAction, 'main', result.status, {
+            ...(result.activityPath ? { activityPath: result.activityPath } : {}),
             changedPaths: result.changedPaths,
             ...(this.rootAction.output?.kind === 'diagram' && this.diagramPath ? { diagramPath: this.diagramPath } : {}),
             message: result.failure,
@@ -423,8 +446,15 @@ class ActionRun {
         }
         this.discardQueuedPrompts();
         const status = this.controller.signal.aborted ? 'cancelled' : failure ? 'failed' : 'completed';
-        const result = { changedPaths: [], failure: failure ? errorMessage(failure, 'Compact session failed') : null, runId: this.runId, status };
-        this.publish(this.rootAction, 'main', status, { message: result.failure, type: 'run' });
+        const activityPath = this.compactTarget?.reference.split('#')[0];
+        const result = {
+            ...(activityPath ? { activityPath } : {}),
+            changedPaths: [],
+            failure: failure ? errorMessage(failure, 'Compact session failed') : null,
+            runId: this.runId,
+            status,
+        };
+        this.publish(this.rootAction, 'main', status, { ...(activityPath ? { activityPath } : {}), message: result.failure, type: 'run' });
         return result;
     }
 
@@ -472,9 +502,11 @@ class ActionRun {
         this.discardQueuedPrompts();
 
         let changedPaths = [];
+        let activityPath = null;
         try {
-            const activityPersisted = await this.persistRootActivity(status, failure);
-            if (activityPersisted) changedPaths = [...this.changedPaths];
+            if (status === 'cancelled') await this.persistCancelledForEachProgress();
+            activityPath = await this.persistRootActivity(status, failure);
+            changedPaths = [...this.changedPaths];
         } catch (error) {
             failure = error;
             status = 'failed';
@@ -483,6 +515,7 @@ class ActionRun {
         }
 
         const result = {
+            ...(activityPath ? { activityPath } : {}),
             changedPaths,
             ...(this.rootAction.output?.kind === 'diagram' && this.diagramPath ? { diagramPath: this.diagramPath } : {}),
             runId: this.runId,
@@ -680,25 +713,30 @@ class ActionRun {
             startedAt: this.startedAt,
             status,
         };
-        await this.localGitService.appendAndCommitActionActivity(
+        const { relativePath } = await this.localGitService.appendActionActivity(
             this.project,
             this.projectFolder,
             this.activityOrigin,
             record,
-            `Record ${this.rootAction.label} activity`,
         );
+        if (this.runInput.forEach) {
+            const deferredPaths = [agentTokenUsageFilePath(this.projectFolder)];
+            if (typeof this.context.file === 'string' && this.context.file.length > 0) deferredPaths.push(this.context.file);
+            uncommittedProjectWrites.mark(this.project.rootPath, deferredPaths);
+        }
 
-        return true;
+        return relativePath;
     }
 
     async commitTrackedAgentChanges(project, action, result) {
         if (action.type !== 'agent' || !action.trackFileChanges) return result;
         if (result.exitCode !== 0 || this.controller.signal.aborted) return result;
         const changedPaths = result.changedPaths ?? [];
-        if (changedPaths.length === 0) return result;
+        const gitPaths = uncommittedProjectWrites.gitPaths(project.rootPath, changedPaths);
+        if (gitPaths.length === 0) return result;
         const trackedCommit = await this.localGitService.commitTrackedPaths(
             project.rootPath,
-            changedPaths,
+            gitPaths,
             action.label,
             this.controller.signal,
         );
@@ -743,28 +781,41 @@ class ActionRun {
 
     async executeAgentForEach(action, phase, project) {
         const config = this.runInput.forEach;
-        const records = forEachRecords(config.value);
-        if (records.length === 0) {
+        const records = forEachRecords(config.value, config.dataPath);
+        const recordsPerBatch = config.recordsPerBatch ?? 1;
+        const startIndex = config.startIndex ?? 0;
+        const recordsToProcess = records.slice(startIndex);
+        if (recordsToProcess.length === 0) {
+            this.markConversationStartupComplete();
             return { changedPaths: [], command: '', conversationId: null, conversationIds: [], exitCode: 0, stderr: '', stdout: '' };
         }
 
+        this.publishForEachProgress(action, phase, startIndex, records.length);
         const changedPaths = new Set();
         const conversationIds = [];
         let firstConversationId = null;
+        let firstFailure = null;
         let previousResult = null;
         let stderr = '';
         let stdout = '';
-        for (const [index, record] of records.entries()) {
+        for (const [recordOffset, record] of recordsToProcess.entries()) {
+            const index = startIndex + recordOffset;
             this.throwIfCancelled();
-            const continueConversation = config.mode !== 'newConversation' && previousResult?.reference;
+            const startsLaterBatch = config.mode === 'newConversation'
+                && recordOffset > 0
+                && recordOffset % recordsPerBatch === 0;
+            const continueConversation = !startsLaterBatch && previousResult?.reference;
             const runInput = {
                 ...this.runInput,
                 ...(continueConversation ? { continueFrom: previousResult.reference, conversationId: previousResult.conversationId } : {}),
-                ...(!continueConversation && index > 0 ? { conversationId: `agent-${crypto.randomUUID()}` } : {}),
+                ...(!continueConversation && recordOffset > 0 ? { conversationId: `agent-${crypto.randomUUID()}` } : {}),
             };
             if (config.mode === 'newConversation') {
-                delete runInput.continueFrom;
-                if (index > 0 || this.runInput.continueFrom) runInput.conversationId = `agent-${crypto.randomUUID()}`;
+                if (startsLaterBatch) delete runInput.continueFrom;
+                if (recordOffset === 0 && this.runInput.continueFrom) {
+                    delete runInput.continueFrom;
+                    runInput.conversationId = `agent-${crypto.randomUUID()}`;
+                }
             }
             try {
                 const result = await this.executeAgentActionOnce(
@@ -774,8 +825,9 @@ class ActionRun {
                     project,
                     runInput,
                     record,
-                    index === 0 ? this.conversationReservation : null,
+                    recordOffset === 0 ? this.conversationReservation : null,
                 );
+                this.throwIfCancelled();
                 if (!firstConversationId && result.conversationId) firstConversationId = result.conversationId;
                 if (result.conversationId) conversationIds.push(result.conversationId);
                 for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);
@@ -784,16 +836,19 @@ class ActionRun {
                 previousResult = result;
                 if (result.exitCode !== 0) {
                     await this.recordLoopFailure(result.reference, index, result.stderr || 'Agent turn failed');
+                    this.publishForEachProgress(action, phase, index + 1, records.length);
                     if (config.failurePolicy === 'stopOnFirstFailure') {
                         return { ...result, changedPaths: [...changedPaths], conversationIds, stderr, stdout };
                     }
                     continue;
                 }
-                if (config.mode === 'compact' && index < records.length - 1) {
+                const completedBatch = (recordOffset + 1) % recordsPerBatch === 0;
+                if (config.mode === 'compact' && completedBatch && recordOffset < recordsToProcess.length - 1) {
                     const compactInput = {
                         agent: result.agent,
                         conversationId: result.conversationId,
                         continueFrom: result.reference,
+                        deferProjectWriteQueue: true,
                         extraPrompt: '',
                     };
                     const compactResult = await this.executeAgentActionOnce(
@@ -801,13 +856,19 @@ class ActionRun {
                     );
                     if (compactResult.exitCode !== 0) throw new Error(compactResult.stderr || 'Loop compaction failed');
                 }
+                this.publishForEachProgress(action, phase, index + 1, records.length);
             } catch (error) {
+                this.throwIfCancelled();
+                firstFailure ??= error;
                 const message = errorMessage(error, 'For-each record failed');
                 await this.recordLoopFailure(previousResult?.reference, index, message);
                 stderr += `${message}\n`;
+                this.publishForEachProgress(action, phase, index + 1, records.length);
                 if (config.failurePolicy === 'stopOnFirstFailure') throw error;
             }
         }
+
+        if (!previousResult && firstFailure) throw firstFailure;
 
         const result = previousResult ?? { command: '', exitCode: 0, reference: null };
         return {
@@ -819,6 +880,24 @@ class ActionRun {
             stderr,
             stdout,
         };
+    }
+
+    publishForEachProgress(action, phase, processedCount, totalCount) {
+        this.forEachProgress = { processedCount, totalCount };
+        this.publish(action, phase, 'running', {
+            type: 'update',
+            update: { kind: 'forEachProgress', processedCount, totalCount },
+        });
+    }
+
+    async persistCancelledForEachProgress() {
+        if (!this.runInput.forEach || !this.forEachProgress || !this.activeConversationReference) return;
+
+        await this.localGitService.updateActivityConversationForEachProgress(
+            this.project,
+            this.activeConversationReference,
+            this.forEachProgress,
+        );
     }
 
     async recordLoopFailure(reference, recordIndex, message) {
@@ -864,15 +943,29 @@ class ActionRun {
                 void this.dispatchStreamingPrompt().catch(() => undefined);
                 return;
             }
+            if (agentEvent.type === 'turnCompleted') {
+                if (forEachRecord !== undefined && !this.runInput.forEach?.stepByStep
+                    && !agentEvent.error && !this.agentInteractionPending()) {
+                    this.requestAutoFinish();
+                }
+                return;
+            }
             if (agentEvent.type === 'started') {
                 const { continued, conversation } = agentEvent;
                 this.activeConversationId = conversation.id;
+                if (typeof conversation.path === 'string' && conversation.path.length > 0) {
+                    this.activeConversationReference = conversation.path;
+                }
+                if (isRoot) this.rootAgentConversationId = conversation.id;
                 this.activeAgentProvider = agentEvent.provider;
                 const update = { continued, conversation, kind: 'agentStarted', provider: agentEvent.provider };
                 this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 return;
             }
             if (agentEvent.type === 'closed') {
+                if (typeof agentEvent.conversation.path === 'string' && agentEvent.conversation.path.length > 0) {
+                    this.activeConversationReference = agentEvent.conversation.path;
+                }
                 const update = {
                     conversation: agentEvent.conversation,
                     kind: 'agentClosed',
@@ -1005,7 +1098,7 @@ class ActionRun {
             runId: this.runId,
             ...(forEachRecord !== undefined ? { forEachRecord } : {}),
             onActiveRunChange,
-            ...(isRoot ? { onConversationSaved: this.markInitialConversationSaved.bind(this) } : {}),
+            ...(isRoot ? { onConversationSaved: this.markConversationStartupComplete.bind(this) } : {}),
             onEvent,
             project,
             projectFolder: this.projectFolder,
@@ -1026,7 +1119,11 @@ class ActionRun {
         try {
             if (watcher) await watcher.start();
             this.throwDiagramWatcherFailure();
+            this.dispatchContinuationPrompt(isRoot, runInput);
             let result = await this.agentExecutor.execute(input);
+            if (typeof result.reference === 'string' && result.reference.length > 0) {
+                this.activeConversationReference = result.reference;
+            }
             this.throwDiagramWatcherFailure();
             const changedPaths = new Set(result.changedPaths ?? []);
             let stderr = result.stderr ?? '';
@@ -1044,6 +1141,9 @@ class ActionRun {
                         submissionId: queuedPrompt.id,
                     },
                 });
+                if (typeof result.reference === 'string' && result.reference.length > 0) {
+                    this.activeConversationReference = result.reference;
+                }
                 this.throwDiagramWatcherFailure();
                 for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);
                 stderr += result.stderr ?? '';
@@ -1055,6 +1155,14 @@ class ActionRun {
         } finally {
             if (watcher) await watcher.close();
         }
+    }
+
+    /** Publishes the successor's first prompt as dispatched when its agent turn starts with it. */
+    dispatchContinuationPrompt(isRoot, runInput) {
+        const entry = this.continuationPrompt;
+        if (!isRoot || !entry || runInput.submissionId !== entry.id) return;
+        this.continuationPrompt = null;
+        this.publishPromptQueueUpdate('agentPromptDispatched', { promptId: entry.id, revision: entry.revision });
     }
 
     handleDiagramWatcherFailure(error) {

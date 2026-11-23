@@ -132,7 +132,7 @@ describe('ConfigPage', () => {
         expect(screen.getByRole('region', { name: 'Project' })).toBeInTheDocument()
     })
 
-    it('holds diff command, push mode, branch cleanup and the auto commit delay in the git group', () => {
+    it('holds push mode, branch cleanup and the auto commit delay in the git group without a diff command', () => {
         mockMatchMedia(false)
         configService.init()
         configService.loadProjectConfig(null)
@@ -142,7 +142,7 @@ describe('ConfigPage', () => {
 
         expect(within(gitGroup).getByText(/branch cleanup/u)).toBeInTheDocument()
         expect(within(gitGroup).getByText(/auto-commit waits/u)).toBeInTheDocument()
-        expect(within(gitGroup).getByRole('textbox', { name: 'Diff command' })).toBeInTheDocument()
+        expect(within(gitGroup).queryByRole('textbox', { name: 'Diff command' })).not.toBeInTheDocument()
         expect(within(gitGroup).getByRole('combobox', { name: 'Push mode' })).toBeInTheDocument()
         expect(within(gitGroup).getByRole('switch', { name: 'Delete integrated card branch' })).toBeInTheDocument()
         expect(within(gitGroup).getByRole('switch', { name: 'Delete released card branches' })).toBeInTheDocument()
@@ -150,7 +150,6 @@ describe('ConfigPage', () => {
 
         const groupText = gitGroup.textContent ?? ''
         const fieldOrder = [
-            'Diff command',
             'Push mode',
             'Delete integrated card branch',
             'Delete released card branches',
@@ -268,6 +267,42 @@ describe('ConfigPage', () => {
 
         expect(configService.getDraft()).toBeNull()
         vi.useRealTimers()
+    })
+
+    it('hides the project folder Git option for storage that cannot keep the folder local', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        const supportsLocalOnly = vi.spyOn(dataService.projectLoading, 'supportsLocalOnlyProjectFolder').mockReturnValue(false)
+
+        renderConfigPage('')
+
+        expect(screen.queryByRole('switch', { name: 'Include project folder in Git' })).toBeNull()
+        supportsLocalOnly.mockRestore()
+    })
+
+    it('shows the project folder Git option on for a local project without the field', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig({ workingFolder: 'active' })
+        const supportsLocalOnly = vi.spyOn(dataService.projectLoading, 'supportsLocalOnlyProjectFolder').mockReturnValue(true)
+
+        renderConfigPage('')
+
+        expect(screen.getByRole('switch', { name: 'Include project folder in Git' })).toBeChecked()
+        supportsLocalOnly.mockRestore()
+    })
+
+    it('does not allow keeping a repository-root project folder out of Git', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig({ projectFolder: '' })
+        const supportsLocalOnly = vi.spyOn(dataService.projectLoading, 'supportsLocalOnlyProjectFolder').mockReturnValue(true)
+
+        renderConfigPage('')
+
+        expect(screen.getByRole('switch', { name: 'Include project folder in Git' })).toBeDisabled()
+        supportsLocalOnly.mockRestore()
     })
 
     it('saves draft edits into active config', () => {
@@ -705,6 +740,7 @@ describe('ConfigPage', () => {
             agentProfiles: BUILTIN_AGENT_PROFILES,
             agentTaskTrackingEnabled: true,
             codexSearchEnabled: false,
+            diffViewType: 'split',
             editorCommand: 'notepad "{{file}}"',
             mergeConflictResolverCommand: '',
             remoteControlPort: 20877,
@@ -846,6 +882,7 @@ describe('ConfigPage', () => {
             agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['host-model'], name: 'custom' }],
             agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,
+            diffViewType: 'split',
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
             remoteControlPort: 20877,
@@ -880,6 +917,7 @@ describe('ConfigPage', () => {
             agentProfiles: BUILTIN_AGENT_PROFILES,
             agentTaskTrackingEnabled: false,
             codexSearchEnabled: true,
+            diffViewType: 'split',
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
             remoteControlPort: 20877,

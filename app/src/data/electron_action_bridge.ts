@@ -22,6 +22,7 @@ import type {
 } from './action_run_types'
 
 export interface ActionRunRecoveryTerminalResult {
+    activityPath?: string
     changedPaths: string[]
     diagramPath?: string
     failure: string | null
@@ -120,27 +121,16 @@ export interface CommandActionRunHistoryEntry extends ActionRunHistoryEntryBase 
 
 export type ActionRunHistoryEntry = AgentActionRunHistoryEntry | CommandActionRunHistoryEntry
 
-/** Request to render a commit's diff through the configured Electron command template. */
+/** Request to render a commit's diff through Git; `filePath` limits the patch to one repository path. */
 export interface DiffRequest {
-    actionsFolder: string
-    branch: string
     commit: string
-    filePath: string
-    projectFolder: string
-    releasesFolder: string
-    template: string
-    workingFolder: string
+    filePath?: string
 }
 
-/**
- * One changed file in a diff. `oldValue`/`newValue` are the reconstructed sides fed to the viewer;
- * `oldLineNumbers`/`newLineNumbers` map each rendered side line back to its real file line.
- */
+/** One changed file. Reconstructed values remain available for card-body Markdown diffs. */
 export interface DiffFile {
     changeType?: 'added' | 'deleted' | 'modified' | 'renamed'
-    newLineNumbers: number[]
     newValue: string
-    oldLineNumbers: number[]
     oldPath?: string
     oldValue: string
     path: string
@@ -149,6 +139,7 @@ export interface DiffFile {
 export interface DiffResult {
     commit: string
     files: DiffFile[]
+    patch: string
     repositoryRoot?: string
 }
 
@@ -159,6 +150,31 @@ export interface WorktreeDiffRequest {
 
 export interface WorktreeDiffResult {
     files: DiffFile[]
+    patch: string
+    repositoryRoot: string
+    revision: string
+}
+
+/** Changed-file metadata for one worktree path; contents are not read. */
+export interface WorktreeChangedFile {
+    changeType: NonNullable<DiffFile['changeType']>
+    oldPath?: string
+    path: string
+}
+
+export interface WorktreeChangesResult {
+    files: WorktreeChangedFile[]
+    repositoryRoot: string
+    revision: string
+}
+
+export interface WorktreeFileDiffRequest extends WorktreeDiffRequest {
+    path: string
+}
+
+export interface WorktreeFileDiffResult {
+    file: DiffFile
+    patch: string
     repositoryRoot: string
 }
 
@@ -182,6 +198,7 @@ export interface ActionConversationViewedEvent {
 }
 
 export interface ElectronActionBridge {
+    advanceActionForEachRecord?(runId: string): Promise<void>
     compactActionConversation?(request: ActionCompactRequest): Promise<ActionCompactState>;
     answerActionInput?(runId: string, response: ActionUserInputResponse): Promise<void>
     acquireReleaseCardLocks?(cardInternalIds: string[]): Promise<string>
@@ -197,9 +214,10 @@ export interface ElectronActionBridge {
     enqueueActionPrompt?(runId: string, content: string, submissionId: string): Promise<ActionQueuedPrompt>
     finishActionRun?(runId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
-    generateWorktreeDiff(request: WorktreeDiffRequest): Promise<WorktreeDiffResult>
+    generateWorktreeFileDiff(request: WorktreeFileDiffRequest): Promise<WorktreeFileDiffResult>
     listActiveActionRuns?(): Promise<ActiveActionRun[]>
     listActiveSchedules?(): Promise<AnySchedule[]>
+    listWorktreeChanges(request: WorktreeDiffRequest): Promise<WorktreeChangesResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
     loadActionRunRecoverySnapshot?(rendererRunIds: string[]): Promise<ActionRunRecoverySnapshot>
     loadCardActivity?(request: CardActivityRequest): Promise<CardActivityFile>
@@ -209,6 +227,7 @@ export interface ElectronActionBridge {
     onActionConversationViewed?(callback: (event: ActionConversationViewedEvent) => void): () => void
     onActionRun(callback: (event: ActionRunEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>
+    openLocalFileWithSystem?(request: OpenInEditorRequest): Promise<void>
     prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt>
     readFileAtCommit?(request: ReadFileAtCommitRequest): Promise<HistoricalFileContent>
     releaseReleaseCardLocks?(leaseId: string): Promise<void>

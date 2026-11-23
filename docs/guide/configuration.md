@@ -42,14 +42,14 @@ Linked worktrees are managed from this section too — see [Worktrees](worktrees
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `desktop.agent` | `codex` | Default agent profile for actions. |
-| `desktop.model` | *(empty)* | Default model; empty uses the profile default. |
-| `desktop.thinkingLevel` | `none` | Default reasoning level. |
+| `desktop.agentSelection` | built-in defaults | Active agent plus remembered account, model, reasoning, speed, and permission settings for each agent. Use the **Run** tab rather than editing the JSON directly. |
+| `desktop.agentAccounts` | Initial Codex and Claude accounts | Account metadata. Manage it through **Agent accounts** in the configuration dialog; additional accounts use separate provider configuration folders. |
+| `desktop.agentTaskTrackingEnabled` | `false` | Let Codex and Claude publish task lists shown in conversations and as progress below a running card's **Run** button. Uses additional context. |
 | `desktop.codexSearchEnabled` | `true` | Allow Codex runs to use web search. |
 | `desktop.mergeConflictResolverCommand` | *(empty)* | Command that opens a conflicted file in an external merge tool. Requires {% raw %}`{{file}}`{% endraw %}; {% raw %}`{{repository-folder}}`{% endraw %} is optional. Empty disables the **External resolver** button. See [Worktrees](worktrees.md#merge-conflicts). |
 | `desktop.agentProfiles` | built-ins | Agent profile definitions, including optional monthly subscription cost for Stats estimates. See [Agent setup](../actions/agent-setup.md). |
 
-Agent, model, and reasoning level can also be set straight from the **Run** tab of the menu.
+Agent, account, model, and reasoning level can be set straight from the **Run** tab of the menu. See [Agent setup](../actions/agent-setup.md) for account management and override precedence.
 
 ## Markdown
 

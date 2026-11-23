@@ -55,7 +55,7 @@ This dataset aligns several day- or week-based charts:
 - Actions per percent of account limit used.
 - Project activity by agent and action.
 
-Claude and Codex series keep distinct color families across these charts. Hover or focus a bar for its exact value and calculation context.
+Claude and Codex series keep distinct color families across these charts. Accounts of the same provider remain separate where account identity matters, while provider totals combine their measurements. Hover or focus a bar for its exact value and calculation context.
 
 Account usage is account-wide. It may include other projects and direct CLI sessions, so these charts compare project work with account consumption; they do not prove that all account consumption came from this project.
 

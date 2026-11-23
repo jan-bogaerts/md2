@@ -2,6 +2,7 @@ const { JsonLineBuffer } = require('./agent_event_utils');
 const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
+const { AgentStreamingEventPublisher } = require('./agent_streaming_event_publisher');
 const { createPhaseTracker } = require('./agent_conversation_phases');
 const { findProviderSession } = require('./agent_conversation');
 const { createProviderEventEntryIndexes } = require('./agent_run_transcript');
@@ -77,6 +78,7 @@ function createRun({
         claudeUsageTracker: null,
         conversation,
         codexCacheErrorReported: false,
+        claudeAuthenticationFailureEntryIndex: null,
         currentAssistantEntryIndex: null,
         currentAssistantMessageId: null,
         environment,
@@ -114,6 +116,7 @@ function createRun({
         startedAt,
         streaming,
         streamingFailure: null,
+        streamingEventPublisher: null,
         turnStarted: false,
         turnIndex: 1,
         turnActive: streaming && !request.compactOnly,
@@ -135,6 +138,7 @@ function attachRunProtocol(run, {
     onMalformedOutput,
     onProviderEvent,
     onStreamingEvent,
+    onStreamingEventError,
     onStreamingLine,
     providerConversationId,
     rootPath,
@@ -146,11 +150,14 @@ function attachRunProtocol(run, {
     run.claudeUsageTracker = run.agent === 'claude'
         ? new ClaudeUsageTracker(providerConversationId, usageBaseline)
         : null;
+    run.streamingEventPublisher = run.streaming
+        ? new AgentStreamingEventPublisher(onStreamingEvent, { onDeferredError: onStreamingEventError })
+        : null;
     run.streamingAdapter = run.streaming
         ? createAgentStreamingAdapter(
             run.agent,
             writeLine,
-            onStreamingEvent,
+            (event) => run.streamingEventPublisher.publish(event),
             rootPath,
             providerConversationId,
             onCodexRuntimeEvent,

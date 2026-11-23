@@ -139,7 +139,7 @@ describe('MergeConflictDialog', () => {
     })
 
     it('lists exact current paths and only explicit merge conflict agent actions', () => {
-        const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts', 'src/two.ts']) })
+        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts', 'src/two.ts']) })
         renderDialog(service, [
             action('Resolve conflict', 'merge-conflict'),
             action('Project agent', 'project'),
@@ -156,7 +156,7 @@ describe('MergeConflictDialog', () => {
     })
 
     it('explains empty resolver configuration while agent and cancel remain available', () => {
-        const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts'], false) })
+        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts'], false) })
         renderDialog(service, [action('Resolve conflict', 'merge-conflict')])
 
         expect(screen.getByText(/External resolver disabled/u)).toBeInTheDocument()
@@ -166,7 +166,7 @@ describe('MergeConflictDialog', () => {
     })
 
     it('delegates resolver and staging, then opens delayed per-file and resolve-all popups', async () => {
-        const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts']) })
+        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts']) })
         const resolveAction = action('Resolve conflict', 'merge-conflict')
         renderDialog(service, [resolveAction])
 
@@ -198,7 +198,7 @@ describe('MergeConflictDialog', () => {
     })
 
     it('disables Git mutations and unrelated agents while reopening matching active popup', async () => {
-        const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts']) })
+        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts']) })
         renderDialog(service, [
             action('Resolve conflict', 'merge-conflict'),
             action('Other agent', 'merge-conflict'),
@@ -212,7 +212,7 @@ describe('MergeConflictDialog', () => {
             runId: 'run-1',
             status: 'running',
         }
-        service.setSnapshot({ busy: false, session: session(['src/one.ts']) })
+        service.setSnapshot({ busy: false, continuing: false, session: session(['src/one.ts']) })
 
         await waitFor(() => expect(screen.getByRole('button', { name: 'External resolver' })).toBeDisabled())
         expect(screen.getByRole('button', { name: 'Mark resolved' })).toBeDisabled()
@@ -235,7 +235,7 @@ describe('MergeConflictDialog', () => {
 
                 return vi.fn()
             })
-            const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts']) })
+            const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts']) })
             renderDialog(service, [action('Resolve conflict', 'merge-conflict')])
             fireEvent.click(screen.getAllByRole('button', { name: /Resolve conflict/u })[0])
             await waitFor(() => expect(actionEventListener).not.toBeNull())
@@ -269,7 +269,7 @@ describe('MergeConflictDialog', () => {
             severity: 'error',
             title: '',
         })
-        const service = new FakeMergeConflictService({ busy: false, session: session(['src/one.ts']) })
+        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session(['src/one.ts']) })
         service.createActionContext.mockImplementationOnce(() => {
             throw new Error('popup failed')
         })
@@ -293,8 +293,72 @@ describe('MergeConflictDialog', () => {
         await waitFor(() => expect(reportError).toHaveBeenCalledWith(expect.any(Error), {fallbackMessage: 'Could not rescan merge conflicts after agent action'}))
     })
 
+    it('shows finishing feedback immediately and stays open until Continue closes the session', async () => {
+        let finishContinue: () => void = () => undefined
+        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session([]) })
+        service.continue.mockImplementationOnce(async () => {
+            service.setSnapshot({ busy: true, continuing: true, session: session([]) })
+            await new Promise<void>((resolve) => {
+                finishContinue = resolve
+            })
+            service.setSnapshot({ busy: false, continuing: false, session: null })
+        })
+        renderDialog(service, [])
+
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+        expect(screen.getByLabelText('Finishing integration')).toBeInTheDocument()
+        expect(screen.getByText('Finishing integration and updating project...')).toBeInTheDocument()
+        expect(screen.queryByText('All conflict entries are staged. Continue when ready.')).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Finishing...' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+        expect(screen.getByRole('dialog', { name: 'Resolve merge conflicts' })).toBeInTheDocument()
+
+        finishContinue()
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Resolve merge conflicts' })).not.toBeInTheDocument())
+    })
+
+    it('disables every conflict control while Continue is finishing', () => {
+        const service = new FakeMergeConflictService({ busy: true, continuing: true, session: session(['src/one.ts']) })
+        renderDialog(service, [action('Resolve conflict', 'merge-conflict')])
+
+        expect(screen.getByRole('button', { name: 'External resolver' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Mark resolved' })).toBeDisabled()
+        expect(screen.getAllByRole('button', { name: /Resolve conflict/u }).every((button) => button.hasAttribute('disabled'))).toBe(true)
+        expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Finishing...' })).toBeDisabled()
+    })
+
+    it('ends finishing feedback after failure and leaves Continue available for retry', async () => {
+        const reportError = vi.spyOn(dialogService, 'error').mockReturnValue({
+            critical: false,
+            id: 1,
+            message: '',
+            severity: 'error',
+            title: '',
+        })
+        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session([]) })
+        service.continue.mockImplementationOnce(async () => {
+            service.setSnapshot({ busy: true, continuing: true, session: session([]) })
+            await Promise.resolve()
+            service.setSnapshot({ busy: false, continuing: false, session: session([]) })
+            throw new Error('finalization failed')
+        })
+        renderDialog(service, [])
+
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(expect.any(Error), {fallbackMessage: 'Could not continue paused Git operation'}))
+        expect(screen.getByRole('dialog', { name: 'Resolve merge conflicts' })).toBeInTheDocument()
+        expect(screen.getByText('All conflict entries are staged. Continue when ready.')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        await waitFor(() => expect(service.continue).toHaveBeenCalledTimes(2))
+    })
+
     it('enables Continue only after Git reports no unmerged paths', async () => {
-        const service = new FakeMergeConflictService({ busy: false, session: session([]) })
+        const service = new FakeMergeConflictService({ busy: false, continuing: false, session: session([]) })
         renderDialog(service, [])
 
         expect(screen.getByText('All conflict entries are staged. Continue when ready.')).toBeInTheDocument()

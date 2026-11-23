@@ -6,6 +6,7 @@ import { OpenFilesService, type OpenDocumentEventDetail, type OpenFilesSnapshot 
 import { editableActionDefinition, type ActionDraftState, type ActionService } from './actions/action_service'
 import { ACTIONS_CHANGED_EVENT } from './actions/action_service_events'
 import { CARD_CHANGED_EVENT, type CardChangedEventDetail } from './data/data_service'
+import { JsonDataDocument } from './json/json_data_document'
 
 function card(internalId: string, path = `design/${internalId}.md`, content = `# ${internalId}`): Card {
     return {
@@ -91,6 +92,40 @@ function serviceWithOpenCards(internalIds: string[]) {
 }
 
 describe('OpenFilesService', () => {
+    it('opens, reuses, closes, and retains dirty JSON documents by project path', () => {
+        const ownerState = owners()
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        const document = new JsonDataDocument('design/data.json', { value: 1 }, false)
+
+        expect(service.openJsonDocument(document)).toBe(document)
+        expect(service.openJsonDocument(document)).toBe(document)
+        expect(service.getSnapshot()).toEqual({ activeDocument: document, documents: [document] })
+
+        document.setCurrentChild('value', 2)
+        service.closeDocument(document)
+        expect(service.getSnapshot()).toEqual({ activeDocument: null, documents: [] })
+        expect(service.getRegisteredDocuments()).toContain(document)
+
+        document.createSaveReference().acknowledge()
+        expect(service.getRegisteredDocuments()).not.toContain(document)
+    })
+
+    it('registers popup JSON for persistence without creating a list tab', () => {
+        const ownerState = owners()
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        const document = new JsonDataDocument('design/data.json', { value: 1 }, false)
+
+        service.openJsonPopupDocument(document)
+
+        expect(service.getSnapshot()).toEqual({ activeDocument: null, documents: [] })
+        expect(service.getRegisteredDocuments()).toContain(document)
+
+        service.closeJsonPopupDocument(document)
+        expect(service.getRegisteredDocuments()).not.toContain(document)
+    })
+
     it('opens instruction documents by path, refreshes clean content, and removes disappeared files', () => {
         const ownerState = owners()
         let files = [{ content: '# Initial', path: 'docs/AGENTS.md' }]
@@ -170,6 +205,26 @@ describe('OpenFilesService', () => {
         expect(service.getSnapshot().documents).toEqual([document])
         expect(document.getObject()).toBe(renewedFile)
         expect(() => service.openBoardDocument(plainFile)).toThrow('Card identity was not added before opening')
+    })
+
+    it('reopens one dirty regular Markdown document without duplicating its tab or resetting its draft', () => {
+        const plainFile = card('notes', 'design/architecture/notes.md')
+        plainFile.header.internalId = null
+        const ownerState = owners([plainFile])
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        const document = service.openDocument(plainFile)
+        if (document.kind !== 'card') throw new Error('Expected regular Markdown document')
+        document.updateDraft({ content: '# Edited notes' })
+
+        service.openDocument(plainFile)
+        service.closeDocument(document)
+        const reopened = service.openDocument(plainFile)
+        service.openDocument(plainFile)
+
+        expect(reopened).toBe(document)
+        expect(reopened.getDraft()).toEqual({ content: '# Edited notes' })
+        expect(service.getSnapshot()).toEqual({ activeDocument: document, documents: [document] })
     })
 
     it('does not publish a Markdown replacement when only a dirty document object renews', () => {

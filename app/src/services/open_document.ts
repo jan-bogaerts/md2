@@ -1,6 +1,7 @@
 import type { ActionDefinition, RawActionDefinition } from '../data/action_types'
 import type { Card } from '../data/data_types'
 import type { AgentInstructionFile } from './agent_instructions/agent_instruction_file'
+import type { JsonDataDocument } from './json/json_data_document'
 
 export type OpenDocumentObject = ActionDefinition | AgentInstructionFile | Card
 export interface CardBodyDraft {
@@ -43,4 +44,6 @@ export interface InstructionOpenDocument extends OpenDocumentBase<AgentInstructi
     readonly kind: 'instruction'
 }
 
-export type OpenDocument = ActionOpenDocument | CardOpenDocument | InstructionOpenDocument
+export type JsonOpenDocument = JsonDataDocument
+
+export type OpenDocument = ActionOpenDocument | CardOpenDocument | InstructionOpenDocument | JsonOpenDocument

@@ -46,6 +46,7 @@ const CardDragButton = styled('button')(({ theme }) => ({
 
 interface CardDragContainerProps {
     cardId: string
+    cardInternalId: string | null
     cardPath: string
     children: ReactNode
     interactions: CardDragInteractions
@@ -57,7 +58,7 @@ interface CardDragContainerProps {
 
 /** Lightweight sortable adapter that updates only card drag DOM around stable card content. */
 export function CardDragContainer(props: CardDragContainerProps) {
-    const {cardId, cardPath, children, interactions, isBodyOpen, isMobile, isSelected, onCardElementChange} = props
+    const {cardId, cardInternalId, cardPath, children, interactions, isBodyOpen, isMobile, isSelected, onCardElementChange} = props
     const readOnly = useProjectReadOnly()
     const { onClick, onContextMenu, onDragOver, onDrop } = interactions
     const sortable = useSortable({ disabled: readOnly, id: cardPath })
@@ -86,6 +87,7 @@ export function CardDragContainer(props: CardDragContainerProps) {
                 aria-expanded={isBodyOpen}
                 aria-haspopup="dialog"
                 aria-label={`Drag ${cardId}`}
+                data-card-internal-id={cardInternalId ?? undefined}
                 onClick={onClick}
                 ref={setActivatorNodeRef}
                 data-dragging={isDragging ? 'true' : undefined}

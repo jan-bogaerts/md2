@@ -5,16 +5,23 @@ import { actionRunRegistry } from '../../../../services/actions/action_run_regis
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { cardAgentState } from '../../../../services/agents/card_agent_state'
 import { historicalCardActivityService } from '../../../../services/actions/historical_card_activity_service'
-import { CUSTOM_PROMPT_ACTION_ID } from '../../../../data/action_types'
+import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
 import type { ProjectSnapshot } from '../../../../data/data_types'
 import { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'
 import { useActions } from '../../../hooks/use_actions'
 import { useProjectReference } from '../../../hooks/use_project_reference'
 import { useActionAssignmentContext } from '../../../hooks/use_action_assignment_context';
+import { useActionVisibilityConversations } from '../../../hooks/use_action_visibility_conversations'
 import { ActionPopupContent } from './action_popup_content'
+import { ActionPopupEmptyState } from './action_popup_empty_state'
 import { resolveInitialActionId, type PersistedActionStates } from './action_popup_initial_action'
 import { historicalActionHistory, historicalCardActions } from './historical_card_actions'
 import { useHistoricalActivityKey } from './use_historical_activity_key'
+import { allPopupActions, liveConversationLogActions } from './action_visibility'
+import {
+    actionVisibilityModeStore,
+    type ActionVisibilityMode,
+} from './action_visibility_mode_store'
 
 export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'
 
@@ -81,7 +88,17 @@ export function ActionPopup(props: ActionPopupProps) {
     const project = useProjectReference()
     const effectiveContext = useActionAssignmentContext(context);
     const applicableActions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])
-    const activityKey = useHistoricalActivityKey(context)
+    const releasesFolder = dataService.getConfig()?.releasesFolder
+    const released = !!releasesFolder && isReleasedCardActionContext(effectiveContext, releasesFolder)
+    const storedVisibilityMode = useSyncExternalStore(
+        actionVisibilityModeStore.subscribe,
+        actionVisibilityModeStore.getSnapshot,
+        actionVisibilityModeStore.getSnapshot,
+    )
+    const actionVisibilityMode: ActionVisibilityMode = storedVisibilityMode
+        ?? (released ? 'has-conversation-log' : 'specific-for-context')
+    const liveConversations = useActionVisibilityConversations(effectiveContext)
+    const activityKey = useHistoricalActivityKey(context, releasesFolder)
     const historicalCardInternalId = activityKey ? context.cardInternalId ?? null : null
     const subscribeActivity = useCallback((listener: () => void) => activityKey
         ? historicalCardActivityService.subscribe(activityKey, listener)
@@ -97,31 +114,53 @@ export function ActionPopup(props: ActionPopupProps) {
 
         return () => controller.abort()
     }, [activityKey, historicalCardInternalId])
-    const actions = useMemo(() => activities
-        ? historicalCardActions(applicableActions, loadedActions, activities)
-        : applicableActions, [activities, applicableActions, loadedActions])
-    const [selectedActionId, setSelectedActionId] = useState<string | null>(() => resolveInitialActionId(
-        actions,
-        initialActionId,
-        actionRunRegistry.getContextActiveSnapshot(effectiveContext),
-        persistedActionStates(actions, effectiveContext, dataService.getState().snapshot),
-        resolveColumnDefaultActionId(effectiveContext),
-    ))
+    const actions = useMemo(() => {
+        if (actionVisibilityMode === 'all') return allPopupActions(loadedActions)
+        if (actionVisibilityMode === 'specific-for-context') return applicableActions
+        if (activityKey) return activities ? historicalCardActions(loadedActions, activities) : []
+
+        return liveConversationLogActions(loadedActions, liveConversations)
+    }, [actionVisibilityMode, activities, activityKey, applicableActions, liveConversations, loadedActions])
+    const activeRuns = actionRunRegistry.getContextActiveSnapshot(effectiveContext)
+    const [selection, setSelection] = useState(() => {
+        const resolvedActionId = resolveInitialActionId(
+            actions,
+            initialActionId,
+            activeRuns,
+            persistedActionStates(actions, effectiveContext, dataService.getState().snapshot),
+            resolveColumnDefaultActionId(effectiveContext),
+        )
+        const actionId = actions.some(({ id }) => id === resolvedActionId) ? resolvedActionId : actions[0]?.id ?? null
+
+        return { actionId, actions }
+    })
+    let selectedActionId = selection.actionId
     const [fullHeight, setFullHeight] = useState(false)
     const titleId = useId()
     // A run that edits its own card changes the context (state, title, worktree), so the
     // selected action can drop out of the filtered list mid-run. Keep it selectable instead
     // of closing the popup or silently switching to another action.
-    const retainedAction = selectedActionId ? loadedActions.find(({ id }) => id === selectedActionId) ?? null : null
-    const selectedAction = actions.find(({ id }) => id === selectedActionId) ?? retainedAction ?? actions[0] ?? null
+    const selectedActionIsRunning = !!selectedActionId
+        && activeRuns.some(({ rootActionId }) => rootActionId === selectedActionId)
+    const retainedAction = actionVisibilityMode === 'specific-for-context' && selectedActionIsRunning && selectedActionId
+        ? loadedActions.find(({ id }) => id === selectedActionId) ?? null
+        : null
+    let selectedAction: ActionDefinition | null = actions.find(({ id }) => id === selectedActionId)
+        ?? retainedAction
+        ?? actions[0]
+        ?? null
+    if (selection.actions !== actions) {
+        selectedActionId = selectedAction?.id ?? null
+        setSelection({ actionId: selectedActionId, actions })
+        selectedAction = actions.find(({ id }) => id === selectedActionId) ?? retainedAction ?? null
+    }
     const selectableActions = selectedAction && !actions.some(({ id }) => id === selectedAction.id)
         ? [...actions, selectedAction]
         : actions
-    const releasesFolder = dataService.getConfig()?.releasesFolder
     const historicalSelectionReadOnly = !!activityKey && selectedAction
         && selectedAction.id !== CUSTOM_PROMPT_ACTION_ID
         && !applicableActions.some(({ id }) => id === selectedAction.id)
-    const readOnlyMessage = releasesFolder && isReleasedCardActionContext(effectiveContext, releasesFolder)
+    const readOnlyMessage = released
         ? RELEASED_CARD_RUN_MESSAGE
         : historicalSelectionReadOnly
             ? 'Historical action cannot be run in this card context.'
@@ -131,7 +170,7 @@ export function ActionPopup(props: ActionPopupProps) {
         : null, [activities, selectedAction, project])
 
     const handleSelectAction = (actionId: string) => {
-        setSelectedActionId(actionId)
+        setSelection({ actionId, actions })
     }
 
     const handleClose = () => {
@@ -140,14 +179,32 @@ export function ActionPopup(props: ActionPopupProps) {
     }
 
     const handleToggleFullHeight = () => setFullHeight((current) => !current)
+    const handleVisibilityModeChange = (mode: ActionVisibilityMode) => actionVisibilityModeStore.setMode(mode)
 
-    if (!selectedAction) return null
+    if (!selectedAction) {
+        return (
+            <ActionPopupEmptyState
+                {...props}
+                actionVisibilityMode={actionVisibilityMode}
+                assignmentContext={effectiveContext}
+                baseContext={context}
+                fullHeight={fullHeight}
+                onClose={handleClose}
+                onToggleFullHeight={handleToggleFullHeight}
+                onVisibilityModeChange={handleVisibilityModeChange}
+                open={open ?? !!anchorElement}
+                readOnlyMessage={readOnlyMessage}
+                titleId={titleId}
+            />
+        )
+    }
 
     return (
         <ActionPopupContent
             {...props}
             action={selectedAction}
             actions={selectableActions}
+            actionVisibilityMode={actionVisibilityMode}
             assignmentContext={effectiveContext}
             baseContext={context}
             fullHeight={fullHeight}
@@ -157,6 +214,7 @@ export function ActionPopup(props: ActionPopupProps) {
             onClose={handleClose}
             onSelectAction={handleSelectAction}
             onToggleFullHeight={handleToggleFullHeight}
+            onVisibilityModeChange={handleVisibilityModeChange}
             open={open ?? !!anchorElement}
             primaryPath={project?.rootPath ?? project?.id ?? null}
             readOnlyMessage={readOnlyMessage}

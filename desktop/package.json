@@ -1,6 +1,6 @@
 {
   "name": "desktop",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "description": "MD² Electron host shell",
   "main": "main.js",
@@ -22,7 +22,7 @@
   "devDependencies": {
     "@electron/asar": "^4.2.0",
     "@eslint/js": "^9.39.4",
-    "electron": "^43.0.0",
+    "electron": "^43.8.12",
     "electron-builder": "^26.15.3",
     "eslint": "^9.39.4",
     "eslint-plugin-import": "^2.32.0",
@@ -36,6 +36,7 @@
     "@sentry/electron": "^7.15.0",
     "@xterm/headless": "^6.0.0",
     "cross-spawn": "^7.0.6",
+    "diff": "^8.0.4",
     "electron-store": "^8.2.0",
     "electron-window-state": "^5.0.3",
     "node-pty": "^1.1.0",

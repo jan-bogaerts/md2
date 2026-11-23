@@ -186,7 +186,10 @@ describe('executeCommandAction', () => {
         expect(onOutput).toHaveBeenCalledWith({ command, stderr: '', stdout: 'chunk' });
     });
 
-    it.each(['card-file', 'this-card'])('rejects missing %s context before command start', async (placeholderName) => {
+    it.each([
+        ['card-file', 'Cannot resolve card-file placeholder without a file context'],
+        ['this-card', 'Cannot prepare action prompt: {{this-card}} requires a card or file context'],
+    ])('rejects missing %s context before command start', async (placeholderName, expectedError) => {
         const commandRunner = vi.fn();
         const input = {
             action: { showCommandWindow: false },
@@ -202,7 +205,7 @@ describe('executeCommandAction', () => {
             signal: new AbortController().signal,
         };
 
-        expect(() => executeCommandAction(input)).toThrow(`Cannot resolve ${placeholderName} placeholder without a file context`);
+        expect(() => executeCommandAction(input)).toThrow(expectedError);
         expect(commandRunner).not.toHaveBeenCalled();
     });
 

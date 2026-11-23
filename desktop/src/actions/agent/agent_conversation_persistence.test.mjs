@@ -11,6 +11,7 @@ const {
     persistInitialCardConversation,
     persistTerminalConversation,
 } = require('./agent_conversation_persistence');
+const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 
 function initialRun(rootPath) {
     return {
@@ -44,18 +45,17 @@ describe('agent conversation persistence', () => {
             .rejects.toThrow('Missing agent activityProject');
     });
 
-    it('writes initial activity before linking and commits both backend-owned files', async () => {
+    it('writes initial activity before linking and queues both backend-owned files', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-persistence-'));
         const appendCardActivityReference = vi.fn(async (_project, _cardPath, _cardInternalId, activityPath) => {
             const activity = JSON.parse(await readFile(join(rootPath, activityPath), 'utf8'));
             expect(activity.conversations).toHaveLength(1);
         });
-        const commitTrackedPaths = vi.fn(async () => 'commit');
+        const mark = vi.spyOn(uncommittedProjectWrites, 'mark');
         try {
             await persistInitialCardConversation(initialRun(rootPath), {
                 appendCardActivityReference,
                 assertGitRoot: vi.fn(async () => undefined),
-                commitTrackedPaths,
             });
 
             expect(appendCardActivityReference).toHaveBeenCalledWith(
@@ -64,33 +64,49 @@ describe('agent conversation persistence', () => {
                 'card-1',
                 'design/activity/card__card-1.json',
             );
-            expect(commitTrackedPaths).toHaveBeenCalledWith(
-                rootPath,
-                ['design/activity/card__card-1.json', 'design/F-1.md'],
-                'Start card agent activity',
-            );
+            expect(mark).toHaveBeenCalledWith(rootPath, ['design/F-1.md']);
+            expect(mark).toHaveBeenCalledWith(rootPath, [join(rootPath, 'design', 'activity', 'card__card-1.json')]);
             expect(appendCardActivityReference.mock.invocationCallOrder[0])
-                .toBeLessThan(commitTrackedPaths.mock.invocationCallOrder[0]);
+                .toBeLessThan(mark.mock.invocationCallOrder[0]);
         } finally {
+            mark.mockRestore();
             await rm(rootPath, { force: true, recursive: true });
         }
     });
 
-    it('does not commit or report a start-ready operation when card linking fails', async () => {
+    it('does not queue a start-ready operation when card linking fails', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-persistence-'));
         const failure = new Error('Card identity mismatch');
-        const commitTrackedPaths = vi.fn();
+        const mark = vi.spyOn(uncommittedProjectWrites, 'mark');
         try {
             await expect(persistInitialCardConversation(initialRun(rootPath), {
                 appendCardActivityReference: vi.fn(async () => { throw failure; }),
                 assertGitRoot: vi.fn(async () => undefined),
-                commitTrackedPaths,
             })).rejects.toBe(failure);
 
-            expect(commitTrackedPaths).not.toHaveBeenCalled();
+            expect(mark).not.toHaveBeenCalled();
             const activity = JSON.parse(await readFile(join(rootPath, 'design/activity/card__card-1.json'), 'utf8'));
             expect(activity.conversations).toHaveLength(1);
         } finally {
+            mark.mockRestore();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('defers queueing initial for-each conversation files', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-persistence-'));
+        const run = initialRun(rootPath);
+        run.request.deferProjectWriteQueue = true;
+        const mark = vi.spyOn(uncommittedProjectWrites, 'mark');
+        try {
+            await persistInitialCardConversation(run, {
+                appendCardActivityReference: vi.fn(async () => undefined),
+                assertGitRoot: vi.fn(async () => undefined),
+            });
+
+            expect(mark).not.toHaveBeenCalled();
+        } finally {
+            mark.mockRestore();
             await rm(rootPath, { force: true, recursive: true });
         }
     });
@@ -112,5 +128,27 @@ describe('agent conversation persistence', () => {
 
         expect(persistInitialCardConversation).toHaveBeenCalledOnce();
         expect(upsertActivityConversation).toHaveBeenCalledTimes(2);
+    });
+
+    it('defers queueing continued for-each conversation checkpoints', async () => {
+        const persistInitialCardConversation = vi.fn(async () => undefined);
+        const upsertActivityConversation = vi.fn(async () => undefined);
+        const run = initialRun('C:/repo');
+        run.request = {
+            ...run.request,
+            conversation: run.conversation,
+            deferProjectWriteQueue: true,
+        };
+
+        await persistConversationCheckpoint(run, { persistInitialCardConversation, upsertActivityConversation });
+
+        expect(persistInitialCardConversation).not.toHaveBeenCalled();
+        expect(upsertActivityConversation).toHaveBeenCalledWith(
+            run.request.activityProject,
+            run.request.projectFolder,
+            run.request.activityOrigin,
+            run.conversation,
+            { markProjectWrite: false },
+        );
     });
 });

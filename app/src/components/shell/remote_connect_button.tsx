@@ -43,7 +43,9 @@ export function RemoteConnectButton() {
         remoteConnectionService.getSnapshot,
         remoteConnectionService.getSnapshot,
     )
-    const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [isDialogOpen, setIsDialogOpen] = useState(
+        connection.status === 'disconnected' && connection.errorMessage !== null,
+    )
     const connectedEndpoint = connection.status === 'ready' || connection.status === 'reconnecting'
         ? connection.endpoint
         : null

@@ -7,8 +7,10 @@ export const APPLICATION_STATE_MIGRATION_KEY = 'md2.localStorageMigrationComplet
 export const APPLICATION_STATE_MIGRATION_VALUE = '1'
 
 export const MIGRATED_APPLICATION_STORAGE_KEYS = [
+    'md2.actionVisibilityMode',
     'md2.actionPromptHeight',
     'md2.actionQuestionsBlockHeight',
+    'md2.cardBodyPopover.diffSize',
     'md2.cardBodyPopover.size',
     'md2.cardRunPopupSize',
     'md2.colorScheme',

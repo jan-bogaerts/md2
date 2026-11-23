@@ -37,6 +37,7 @@ export {
     type ConfigValues,
     type ConfigValueType,
     type DesktopConfigValues,
+    type DiffViewType,
 } from './config_entries'
 
 interface ConfigServiceInitDependencies {
@@ -45,6 +46,7 @@ interface ConfigServiceInitDependencies {
 
 interface ProjectConfigPersistence {
     saveProjectConfig(config: ProjectConfig): Promise<void>
+    saveProjectFolderGitInclusion(config: ProjectConfig, removeTrackedFiles: boolean): Promise<void>
 }
 
 interface DeferredSave {
@@ -115,6 +117,13 @@ function validateProjectFolderPaths(values: ConfigValues) {
         if (conflict) throw new Error(`Config folders ${conflict.key} and ${key} must not overlap`)
 
         configuredPaths.push({ key, path })
+    }
+}
+
+/** Rejects keeping the repository root out of Git; only a separate project folder can stay local. */
+function validateProjectFolderGitInclusion(values: ConfigValues) {
+    if (!values['project.includeProjectFolderInGit'] && values['project.projectFolder'].length === 0) {
+        throw new Error('The project folder cannot be kept out of Git when it is the repository root')
     }
 }
 
@@ -296,9 +305,9 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
         cardTypes: values['project.cardTypes'],
         deleteBranchAfterIntegration: values['project.deleteBranchAfterIntegration'],
         deleteBranchesAfterRelease: values['project.deleteBranchesAfterRelease'],
-        diffCommand: values['project.diffCommand'],
         diagramFooter: values['project.diagramFooter'],
         diagramsFolder: values['project.diagramsFolder'],
+        includeProjectFolderInGit: values['project.includeProjectFolderInGit'],
         pinnedConversations: values['project.pinnedConversations'],
         projectFolder: values['project.projectFolder'],
         pushMode: values['project.pushMode'],
@@ -315,6 +324,7 @@ function readDesktopConfig(values: ConfigValues): DesktopConfigValues {
         agentProfiles: values['desktop.agentProfiles'],
         agentTaskTrackingEnabled: values['desktop.agentTaskTrackingEnabled'],
         codexSearchEnabled: values['desktop.codexSearchEnabled'],
+        diffViewType: values['desktop.diffViewType'],
         editorCommand: values['desktop.editorCommand'],
         mergeConflictResolverCommand: values['desktop.mergeConflictResolverCommand'],
         remoteControlPort: values['desktop.remoteControlPort'],
@@ -363,6 +373,7 @@ function replaceDesktopValues(values: ConfigValues, desktopConfig: Partial<Deskt
     if (desktopConfig.codexSearchEnabled !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
     }
+    if (desktopConfig.diffViewType !== undefined) nextValues = mergeValue(nextValues, 'desktop.diffViewType', desktopConfig.diffViewType)
     if (desktopConfig.editorCommand !== undefined) nextValues = mergeValue(nextValues, 'desktop.editorCommand', desktopConfig.editorCommand)
     if (desktopConfig.mergeConflictResolverCommand !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.mergeConflictResolverCommand', desktopConfig.mergeConflictResolverCommand)
@@ -479,6 +490,28 @@ export class ConfigService extends EventTarget {
         })
     }
 
+    /**
+     * Persists the project folder and its Git inclusion together with the matching ignore rule,
+     * then publishes both values. A failed host operation leaves the published values unchanged.
+     */
+    async setProjectFolderGitInclusion(projectFolder: string, included: boolean, removeTrackedFiles: boolean) {
+        this.requireInitialized()
+
+        return this.withProjectConfigSave(async () => {
+            const folderValues = mergeValue(this.values, 'project.projectFolder', projectFolder)
+            const nextValues = mergeValue(folderValues, 'project.includeProjectFolderInGit', included)
+            validateProjectFolderPaths(nextValues)
+            validateProjectFolderGitInclusion(nextValues)
+            await this.requireProjectConfigPersistence().saveProjectFolderGitInclusion(readProjectConfig(nextValues), removeTrackedFiles)
+            this.values = nextValues
+            if (this.draftValues) {
+                const draftFolderValues = mergeValue(this.draftValues, 'project.projectFolder', projectFolder)
+                this.draftValues = mergeValue(draftFolderValues, 'project.includeProjectFolderInGit', included)
+            }
+            this.dispatchChanged()
+        })
+    }
+
     clear() {
         this.values = createDefaultValues()
         this.draftValues = null
@@ -532,10 +565,12 @@ export class ConfigService extends EventTarget {
             nextValues = mergeValue(nextValues, 'project.backgroundShade', projectConfig.backgroundShade)
         }
         if (projectConfig?.projectFolder !== undefined) nextValues = mergeValue(nextValues, 'project.projectFolder', projectConfig.projectFolder)
-        if (projectConfig?.diffCommand !== undefined) nextValues = mergeValue(nextValues, 'project.diffCommand', projectConfig.diffCommand)
         if (projectConfig?.diagramFooter !== undefined) nextValues = mergeValue(nextValues, 'project.diagramFooter', projectConfig.diagramFooter)
         if (projectConfig?.diagramsFolder !== undefined) {
             nextValues = mergeValue(nextValues, 'project.diagramsFolder', projectConfig.diagramsFolder)
+        }
+        if (projectConfig?.includeProjectFolderInGit !== undefined) {
+            nextValues = mergeValue(nextValues, 'project.includeProjectFolderInGit', projectConfig.includeProjectFolderInGit)
         }
         if (projectConfig?.pushMode !== undefined) nextValues = mergeValue(nextValues, 'project.pushMode', projectConfig.pushMode)
         if (projectConfig?.autoCommitDelayMs !== undefined) {
@@ -561,6 +596,7 @@ export class ConfigService extends EventTarget {
         if (projectConfig?.lastVersion !== undefined) nextValues = mergeValue(nextValues, 'project.lastVersion', projectConfig.lastVersion)
 
         validateProjectFolderPaths(nextValues)
+        validateProjectFolderGitInclusion(nextValues)
         this.values = nextValues
         if (this.draftValues) {
             this.draftValues = mergeValue(
@@ -617,6 +653,7 @@ export class ConfigService extends EventTarget {
         const draft = this.requireDraft()
         for (const key of PROJECT_KEYS) validateValue(key, draft[key])
         validateProjectFolderPaths(draft)
+        validateProjectFolderGitInclusion(draft)
         this.values = draft
         this.draftValues = null
         this.dispatchChanged()

@@ -83,10 +83,6 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().resolveProject(project)
     }
 
-    async createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference> {
-        return this.requireBridge().createProject(project, folders)
-    }
-
     async loadProject(
         project: ProjectReference,
         workingFolder: string,
@@ -114,6 +110,13 @@ export class LocalGitStorageService implements StorageService {
         if (!bridge.loadImageFile) throw new Error('Electron local Git bridge cannot load image files')
 
         return bridge.loadImageFile(filePath)
+    }
+
+    async loadLocalJsonFile(filePath: string) {
+        const bridge = this.requireBridge()
+        if (!bridge.loadLocalJsonFile) throw new Error('Electron local Git bridge cannot load local JSON files')
+
+        return bridge.loadLocalJsonFile(filePath)
     }
 
     async loadTextFile(project: ProjectReference, path: string) {
@@ -171,6 +174,13 @@ export class LocalGitStorageService implements StorageService {
         if (!bridge.stopAgent) throw new Error('Electron local Git bridge cannot stop agents')
 
         await bridge.stopAgent(runId)
+    }
+
+    async hasTrackedProjectFolderFiles(project: ProjectReference, projectFolder: string): Promise<boolean> {
+        const bridge = this.requireBridge()
+        if (!bridge.hasTrackedProjectFolderFiles) throw new Error('Electron local Git bridge cannot inspect the project folder')
+
+        return bridge.hasTrackedProjectFolderFiles(project, projectFolder)
     }
 
     async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {
@@ -395,6 +405,13 @@ export class LocalGitStorageService implements StorageService {
         this.pendingPushBranches.add(project.branch)
     }
 
+    async saveProjectFolderGitInclusion(project: ProjectReference, config: ProjectConfig, removeTrackedFiles: boolean): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.saveProjectFolderGitInclusion) throw new Error('Electron local Git bridge cannot keep the project folder out of Git')
+
+        await bridge.saveProjectFolderGitInclusion(project, config, removeTrackedFiles)
+    }
+
     async selectWorktreeFolder(): Promise<string | null> {
         const bridge = this.requireBridge()
         if (!bridge.selectWorktreeFolder) throw new Error('Electron local Git bridge cannot select worktree folders')
@@ -433,6 +450,13 @@ export class LocalGitStorageService implements StorageService {
 
     async writeFiles(request: WriteFilesRequest): Promise<void> {
         await this.requireBridge().writeFiles(request)
+    }
+
+    async saveLocalJsonFile(file: Parameters<NonNullable<StorageService['saveLocalJsonFile']>>[0]): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.saveLocalJsonFile) throw new Error('Electron local Git bridge cannot save local JSON files')
+
+        await bridge.saveLocalJsonFile(file)
     }
 
     private requireBridge() {

@@ -8,8 +8,9 @@ import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY } from '.
 function createActionBridge(): ElectronActionBridge {
     return {
         cancelActionRun: vi.fn(async () => {}),
-        generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [] })),
-        generateWorktreeDiff: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree' })),
+        generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [], patch: '' })),
+        generateWorktreeFileDiff: vi.fn(async () => ({ file: { newValue: '', oldValue: '', path: '' }, patch: '', repositoryRoot: 'C:/worktree' })),
+        listWorktreeChanges: vi.fn(async () => ({ files: [], repositoryRoot: 'C:/worktree', revision: 'worktree-1' })),
         loadActionRunHistory: vi.fn(async () => []),
         onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(),
@@ -23,7 +24,6 @@ function createDataBridge(): ElectronDataBridge {
     return {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
-        createProject: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         hasPendingPush: vi.fn(async () => false),

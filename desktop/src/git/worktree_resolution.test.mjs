@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DIRTY_LINKED_WORKTREE_ERROR } from '../../../shared/worktree_errors.mjs';
 
 const require = createRequire(import.meta.url);
 const indexCoordinator = require('./git_index_coordinator');
@@ -102,8 +103,30 @@ describe('live worktree resolution', () => {
 
                 return mockedGit(folder, argumentsList);
             });
-            await expect(service[operation](project, selected.branch, 'message')).rejects.toThrow(/uncommitted changes/u);
+            await expect(service[operation](project, selected.branch, 'message')).rejects.toMatchObject({
+                code: DIRTY_LINKED_WORKTREE_ERROR,
+                message: expect.stringMatching(/uncommitted changes/u),
+            });
             expect(service.runGit.mock.calls.some(([, argumentsList]) => ['add', 'commit', 'reset', 'clean', 'rebase', 'switch', 'pull'].includes(argumentsList[0]))).toBe(false);
+        },
+    );
+
+    it.each(['synchronizeConflict', 'parkConflict'])(
+        'preserves dirty checkout protection for conflict recovery through %s', async (operation) => {
+            const service = createService([selected]);
+            const getInternalSession = () => ({ worktreeBranch: selected.branch, worktreeRoot: selected.path });
+            service.mergeConflictService = { getInternalSession };
+            service.runGit.mockImplementation(async (folder, argumentsList) => {
+                if (argumentsList.join(' ') === 'status --porcelain') return ' M dirty.txt';
+
+                return mockedGit(folder, argumentsList);
+            });
+
+            await expect(service[operation](project)).rejects.toMatchObject({
+                code: DIRTY_LINKED_WORKTREE_ERROR,
+                message: expect.stringMatching(/uncommitted changes/u),
+            });
+            expect(service.runGit.mock.calls.some(([, argumentsList]) => ['reset', 'switch'].includes(argumentsList[0]))).toBe(false);
         },
     );
 

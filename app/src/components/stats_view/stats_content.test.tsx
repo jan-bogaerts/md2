@@ -25,7 +25,7 @@ const config: ProjectConfig = {
 
 function storage(files: Record<string, string>): StorageService {
     return {
-        checkoutBranch: vi.fn(), commit: vi.fn(), createProject: vi.fn(), deleteFile: vi.fn(), deleteFolder: vi.fn(),
+        checkoutBranch: vi.fn(), commit: vi.fn(), deleteFile: vi.fn(), deleteFolder: vi.fn(),
         listBranches: vi.fn(), listRepositories: vi.fn(), listRepositoryFiles: vi.fn(async () => Object.keys(files)),
         listTopLevelFolders: vi.fn(), loadActionFiles: vi.fn(), loadProject: vi.fn(), loadProjectConfig: vi.fn(),
         loadProjectRoot: vi.fn(), loadTextFile: vi.fn(async (_project, path) => ({ content: files[path], path })),

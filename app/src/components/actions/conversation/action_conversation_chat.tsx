@@ -16,6 +16,7 @@ import type { ActionRunBindingStore } from '../run/state/action_run_binding_stor
 import type { ActionUsageValuesService } from '../run/popup/action_usage_values_service'
 import type { ActionConversationSearchService } from './search/action_conversation_search_service'
 import { AgentTaskList } from './tasks/agent_task_list'
+import { ForEachProgressIndicator } from './tasks/for_each_progress_indicator'
 
 interface ActionConversationChatProps {
     actionId: string
@@ -63,6 +64,7 @@ export function ActionConversationChat(
                 store={store}
             />
             <ConversationMetaInfo bindingStore={bindingStore} store={store} usageValuesService={usageValuesService} />
+            <ForEachProgressIndicator bindingStore={bindingStore} store={store} />
             <AgentTaskList bindingStore={bindingStore} store={store} />
         </Stack>
     )
