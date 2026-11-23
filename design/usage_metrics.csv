@@ -13224,3 +13224,7 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-11-23T11:31:33.400Z,account_usage,claude,default,weekly,10080,2026-11-29T16:59:00.000Z,,,,,,2,0,claude-initial
 2026-11-23T11:39:33.465Z,account_usage,claude,default,weekly,10080,2026-11-29T17:00:00.000Z,,,,,,2,0,claude-initial
 2026-11-23T11:41:33.496Z,account_usage,claude,default,weekly,10080,2026-11-29T16:59:00.000Z,,,,,,2,0,claude-initial
+2026-11-23T11:43:33.511Z,account_usage,claude,default,weekly,10080,2026-11-29T17:00:00.000Z,,,,,,2,0,claude-initial
+2026-11-23T11:45:33.528Z,account_usage,claude,default,weekly,10080,2026-11-29T16:59:00.000Z,,,,,,2,0,claude-initial
+2026-11-23T11:47:33.540Z,account_usage,claude,default,weekly,10080,2026-11-29T17:00:00.000Z,,,,,,2,0,claude-initial
+2026-11-23T11:53:33.595Z,account_usage,claude,default,weekly,10080,2026-11-29T16:59:00.000Z,,,,,,2,0,claude-initial
