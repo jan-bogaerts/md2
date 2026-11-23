@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 89074
+        "usedTokens": 103230
       },
       "entries": [
         {
@@ -1420,6 +1420,290 @@
           "role": "user",
           "sequence": 102,
           "timestamp": "2026-11-23T12:32:36.579Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-103",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c21f1e0254676f7016b04326819d487d2aa5ad9671054f85b",
+          "sequence": 103,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:32:39.107Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’m using the technical-writer skill because this is a design-document update. I’ll turn the current inventory into a precise refactoring plan, including the schedule lifecycle constraint and the two exceptions: the shared worktree selector adapter and dead preset-name code.\n\n",
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 104,
+          "timestamp": "2026-11-23T12:32:40.425Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "durationMs": 124,
+          "exitCode": 0,
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-105",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\.agents\\\\skills\\\\technical-writer\\\\SKILL.md'\"",
+          "providerItemId": "exec-383bf8fc-7753-422f-84dc-c2c7b2cd88d1",
+          "sequence": 105,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:32:43.038Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-106",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c21f1e0254676f7016b043271a19c87d2a11a1ec7608049fd",
+          "sequence": 106,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:32:48.894Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The implementation review shows one completed refactor (`ActionPromptOwner`), eight owner/child pairs that still need consolidation, one action-specific adapter that should remain but be renamed, and one unused pair to remove. I’m now verifying the affected tests and the schedule mounting contract before writing those requirements into F_260.\n\n",
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 107,
+          "timestamp": "2026-11-23T12:32:50.291Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/run/schedule/action_schedule_owner.test.tsx'",
+          "content": "import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'\r\nimport { afterEach, describe, expect, it, vi } from 'vitest'\r\nimport type { ActionDefinition } from '../../../../data/action_types'\r\nimport { ActionPromptDraft } from '../../../../services/actions/action_prompt_draft_service'\r\nimport { dataService } from '../../../../services/data/data_service'\r\nimport { dialogService } from '../../../../services/dialog_service'\r\nimport { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'\r\nimport { useCodexRateLimits } from '../../../hooks/use_codex_rate_limits'\r\nimport { useProjectConfig } from '../../../hooks/use_project_config'\r\nimport { defaultScheduleAction } from '../popup/action_popup_defaults'\r\nimport { ActionScheduleOwner } from './action_schedule_owner'\r\nimport { ActionScheduleStore } from './action_schedule_store'\r\n\r\nvi.mock('../../../hooks/use_claude_rate_limits', () => ({ useClaudeRateLimits: vi.fn() }))\r\nvi.mock('../../../hooks/use_codex_rate_limits', () => ({ useCodexRateLimits: vi.fn() }))\r\nvi.mock('../../../hooks/use_project_config', () => ({ useProjectConfig: vi.fn() }))\r\nvi.mock('../popup/action_popup_defaults', () => ({ defaultScheduleAction: vi.fn() }))\r\n\r\nconst action = { id: 'implement', label: 'Implement' } as ActionDefinition\r\nconst context = { cardInternalId: 'card-1', kind: 'card' as const }\r\n\r\nfunction configureSources() {\r\n    vi.mocked(useClaudeRateLimits).mockReturnValue({ receivedAt: null, snapshot: null, stale: false })\r\n    vi.mocked(useCodexRateLimits).mockReturnValue({ receivedAt: null, snapshot: null, stale: false })\r\n    vi.mocked(useProjectConfig).mockReturnValue(null)\r\n    vi.spyOn(dataService, 'getState').mockReturnValue({ project: null, runningAgents: [], snapshot: null })\r\n}\r\n\r\nfunction createDateStore() {\r\n    const store = new ActionScheduleStore()\r\n    store.setTimestamp('2099-07-07T10:30')\r\n\r\n    return store\r\n}\r\n\r\nfunction renderOpenOwner(\r\n    store = createDateStore(),\r\n    promptDraft = new ActionPromptDraft('Prepared prompt', false),\r\n    conversationId: string | null = null,\r\n    accountId?: string,\r\n) {\r\n    render(\r\n        <div data-testid=\"action-popup-scroll-body\">\r\n            <button type=\"button\">Schedule anchor</button>\r\n            <ActionScheduleOwner\r\n                accountId={accountId} action={action} context={context} conversationId={conversationId}\r\n                promptDraft={promptDraft} store={store}\r\n            />\r\n        </div>,\r\n    )\r\n    const anchorElement = screen.getByRole('button', { name: 'Schedule anchor' })\r\n    act(() => store.toggle(anchorElement))\r\n\r\n    return { anchorElement, store }\r\n}\r\n\r\ndescribe('ActionScheduleOwner registration', () => {\r\n    afterEach(() => {\r\n        cleanup()\r\n        vi.restoreAllMocks()\r\n    })\r\n\r\n    it('does not subscribe to project cards or render while scheduling is closed', () => {\r\n        configureSources()\r\n        vi.mocked(useProjectConfig).mockClear()\r\n        const addEventListener = vi.spyOn(dataService, 'addEventListener')\r\n        const store = createDateStore()\r\n        render(\r\n            <ActionScheduleOwner\r\n                action={action} context={context} conversationId={null}\r\n                promptDraft={new ActionPromptDraft('Prepared prompt', false)} store={store}\r\n            />,\r\n        )\r\n\r\n        expect(addEventListener).not.toHaveBeenCalledWith('changed', expect.any(Function))\r\n        expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument()\r\n        expect(useProjectConfig).not.toHaveBeenCalled()\r\n    })\r\n\r\n    it('registers selected trigger and closes only schedule popover after refresh', async () => {\r\n        configureSources()\r\n        let confirmRegistration!: () => void\r\n        const registration = new Promise<void>((resolve) => { confirmRegistration = resolve })\r\n        vi.mocked(defaultScheduleAction).mockReturnValue(registration)\r\n        renderOpenOwner(undefined, undefined, null, '11111111-1111-4111-8111-111111111111')\r\n\r\n        fireEvent.click(screen.getByRole('button', { \n[262 characters omitted]\nrompt',\r\n            undefined,\r\n            '11111111-1111-4111-8111-111111111111',\r\n        ))\r\n        expect(screen.getByRole('dialog', { name: 'Schedule action' })).toBeInTheDocument()\r\n        confirmRegistration()\r\n        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())\r\n        expect(screen.getByTestId('action-popup-scroll-body')).toBeInTheDocument()\r\n    })\r\n\r\n    it('flushes editor buffer and registers latest effective prompt', async () => {\r\n        configureSources()\r\n        vi.mocked(defaultScheduleAction).mockResolvedValue(undefined)\r\n        const promptDraft = new ActionPromptDraft('Earlier prompt', false)\r\n        promptDraft.markdownDraft.addEventListener('flushRequested', () => promptDraft.edit('Latest prompt'))\r\n        renderOpenOwner(createDateStore(), promptDraft)\r\n\r\n        fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))\r\n\r\n        await waitFor(() => expect(defaultScheduleAction).toHaveBeenCalledWith(\r\n            action,\r\n            context,\r\n            { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },\r\n            'Latest prompt',\r\n            undefined,\r\n            undefined,\r\n        ))\r\n    })\r\n\r\n    it('registers displayed conversation identity', async () => {\r\n        configureSources()\r\n        vi.mocked(defaultScheduleAction).mockResolvedValue(undefined)\r\n        renderOpenOwner(createDateStore(), new ActionPromptDraft('Continue work', false), 'conversation-1')\r\n\r\n        fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))\r\n\r\n        await waitFor(() => expect(defaultScheduleAction).toHaveBeenCalledWith(\r\n            action,\r\n            context,\r\n            { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },\r\n            'Continue work',\r\n            'conversation-1',\r\n            undefined,\r\n        ))\r\n    })\r\n\r\n    it('reports backend errors through dialogService without crashing form', async () => {\r\n        configureSources()\r\n        const error = new Error('Backend unavailable')\r\n        vi.mocked(defaultScheduleAction).mockRejectedValue(error)\r\n        const reportError = vi.spyOn(dialogService, 'error')\r\n        renderOpenOwner()\r\n\r\n        fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))\r\n\r\n        await waitFor(() => expect(reportError).toHaveBeenCalledWith(error, { fallbackMessage: 'Could not register schedule' }))\r\n        expect(screen.getByRole('button', { name: 'Schedule action' })).toBeInTheDocument()\r\n        expect(screen.queryByRole('status')).not.toBeInTheDocument()\r\n    })\r\n\r\n    it('renders an accessible portal outside the action popup scroll body', () => {\r\n        configureSources()\r\n        renderOpenOwner()\r\n\r\n        const scrollBody = screen.getByTestId('action-popup-scroll-body')\r\n        const popover = screen.getByRole('dialog', { name: 'Schedule action' })\r\n\r\n        expect(scrollBody.contains(popover)).toBe(false)\r\n        expect(screen.getByRole('button', { name: 'Schedule action' })).toBeInTheDocument()\r\n    })\r\n\r\n    it('closes on Escape and backdrop click while keeping its parent mounted', async () => {\r\n        configureSources()\r\n        const { anchorElement, store } = renderOpenOwner()\r\n\r\n        fireEvent.keyDown(screen.getByRole('dialog', { name: 'Schedule action' }), { key: 'Escape' })\r\n        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())\r\n        expect(screen.getByTestId('action-popup-scroll-body')).toBeInTheDocument()\r\n\r\n        act(() => store.toggle(anchorElement))\r\n        const backdrop = document.querySelector('.MuiBackdrop-root')\r\n        if (!(backdrop instanceof HTMLElement)) throw new Error('Expected schedule popover backdrop')\r\n        fireEvent.click(backdrop)\r\n\r\n        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())\r\n        expect(screen.getByTestId('action-popup-scroll-body')).toBeInTheDocument()\r\n    })\r\n})\r\n",
+          "durationMs": 258,
+          "exitCode": 0,
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-108",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/run/schedule/action_schedule_owner.test.tsx'",
+          "providerItemId": "exec-2643b49b-f2e7-4530-ba2b-a7dbf5411eeb",
+          "sequence": 108,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:32:57.036Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files app/src/components/actions app/src/components | Select-String -Pattern '(action_agent_question|action_schedule|action_phrase_buttons|action_log_error|action_usage_summary|action_conversation_picker|action_run_status|action_run_history|worktree_selector|action_agent_preset_name).*test'\"",
+          "content": "\r\napp/src/components\\worktree_selector.test.tsx\r\napp/src/components/actions\\run\\schedule\\action_schedule_form.test.tsx\r\napp/src/components/actions\\run\\schedule\\action_schedule_options.node.test.ts\r\napp/src/components/actions\\run\\state\\action_run_status.grouped.test.tsx\r\napp/src/components/actions\\run\\state\\action_run_history_order.node.test.ts\r\napp/src/components/actions\\run\\state\\action_run_history_entry.test.tsx\r\napp/src/components/actions\\run\\state\\action_run_history.test.tsx\r\napp/src/components/actions\\run\\schedule\\action_schedule_trigger.node.test.ts\r\napp/src/components/actions\\run\\schedule\\action_schedule_store.node.test.ts\r\napp/src/components/actions\\run\\schedule\\action_schedule_owner.test.tsx\r\napp/src/components\\actions\\agent\\action_agent_question.grouped.test.tsx\r\napp/src/components\\actions\\conversation\\picker\\action_conversation_picker.grouped.test.tsx\r\napp/src/components\\actions\\run\\state\\action_run_history.test.tsx\r\napp/src/components\\actions\\run\\state\\action_run_history_entry.test.tsx\r\napp/src/components/actions\\run\\popup\\action_usage_summary.grouped.test.tsx\r\napp/src/components\\actions\\run\\state\\action_run_history_order.node.test.ts\r\napp/src/components\\actions\\run\\state\\action_run_status.grouped.test.tsx\r\napp/src/components\\actions\\conversation\\errors\\action_log_error_owner.node.test.ts\r\napp/src/components\\actions\\conversation\\errors\\action_log_error_display.grouped.test.tsx\r\napp/src/components/actions\\run\\popup\\action_usage_summary_owner.grouped.test.tsx\r\napp/src/components/actions\\run\\popup\\action_usage_summary_data.node.test.ts\r\napp/src/components/actions\\conversation\\picker\\action_conversation_picker.grouped.test.tsx\r\napp/src/components\\actions\\run\\schedule\\action_schedule_form.test.tsx\r\napp/src/components\\actions\\run\\schedule\\action_schedule_options.node.test.ts\r\napp/src/components\\actions\\run\\schedule\\action_schedule_owner.test.tsx\r\napp/src/components\\actions\\run\\schedule\\action_schedule_store.node.test.ts\r\napp/src/components\\actions\\run\\schedule\\action_schedule_trigger.node.test.ts\r\napp/src/components/actions\\agent\\action_agent_question.grouped.test.tsx\r\napp/src/components/actions\\conversation\\errors\\action_log_error_owner.node.test.ts\r\napp/src/components/actions\\conversation\\errors\\action_log_error_display.grouped.test.tsx\r\napp/src/components\\actions\\run\\popup\\action_usage_summary.grouped.test.tsx\r\napp/src/components\\actions\\run\\popup\\action_usage_summary_data.node.test.ts\r\napp/src/components\\actions\\run\\popup\\action_usage_summary_owner.grouped.test.tsx\r\n\r\n\r\n",
+          "durationMs": 361,
+          "exitCode": 0,
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-109",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files app/src/components/actions app/src/components | Select-String -Pattern '(action_agent_question|action_schedule|action_phrase_buttons|action_log_error|action_usage_summary|action_conversation_picker|action_run_status|action_run_history|worktree_selector|action_agent_preset_name).*test'\"",
+          "providerItemId": "exec-f29535e0-0b79-4353-b64e-4a2f50350af7",
+          "sequence": 109,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:32:57.192Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/architecture/architectural_decisions.md'",
+          "content": "---\r\ninternalId: 583d9c88-b71c-4560-92ad-3e23d33bf1d0\r\n---\r\n\r\n# Architectural decisions\r\n\r\nProject-wide decisions for MDÂ². The app is a Vite React web app in `app/`; `desktop/` is a separate Electron host that can load the website and expose local capabilities through preload bridges.\r\n\r\n## File naming\r\n\r\n| Decision | Rule | Rationale |\r\n| --- | --- | --- |\r\n| Code files use lowercase snake_case names. | All code files in `app/src/` and `desktop/` use lowercase words separated by underscores, for example `github_auth_service.ts`, `project_workspace.tsx`, and `local_git_service.js`. Test files keep the same base name with `.test` before the extension, for example `github_auth_service.test.ts`. Exported symbols keep normal TypeScript/JavaScript casing such as `GithubAuthService`, `ProjectWorkspace`, and `useGithubAuth`. | A single file naming convention avoids mixed PascalCase, camelCase, and hyphenated filenames, and keeps imports predictable across Windows and case-sensitive environments. |\r\n\r\n## Services and state\r\n\r\n| Decision | Rule | Rationale |\r\n| --- | --- | --- |\r\n| Global singleton services own domain state and logic. | Each domain is a class in `src/services/**`, instantiated once at module level and exported, for example `export const indexesService = new IndexesService()`. React components do not own domain state. | Keeps business logic out of components, testable without a DOM, and shared across windows/views without Redux, Zustand, or Context stores. |\r\n| Service location follows usage scope. | If a service is specific to one UI element and used only there, place it beside that component. Generic or shared services, such as logging, database access, config, storage, or cross-screen domain logic, belong in `src/services/`. | Keeps component-owned behavior local while preserving `src/services/` for reusable application services. |\r\n| Consumers use direct imports or the service injector. | Direct import when no import cycle exists; use `src/services/service_injector.js` when a cycle would occur. Every global singleton service registers itself in its constructor with `inj.register('myService', this)`. | The service graph is dense; the injector is a bare global registry that defers resolution to call time. |\r\n| Services have a two-phase lifecycle. | Constructors only register and set unloaded state such as `null`. Config-dependent or service-dependent work runs in `init()`, `start()`, app bootstrap (`App.jsx`), or a `loaded` lifecycle event. `configService.config` is private; callers use `get`, `set`, and `clear`. | Module evaluation order is not guaranteed, so `configService` is not usable at import time. Reading config in a constructor is a bug. |\r\n\r\n## Card state\r\n\r\n| Decision | Rule | Rationale |\r\n| --- | --- | --- |\r\n| The application has one `Card` domain type. | Do not create separate canonical, project, snapshot, or editor card types. The card-owning service holds the loaded cards and exposes focused operations that change only the requested field. React snapshots and editor drafts are read values; they must never replace or merge a complete card. Parser bookkeeping may remain private persistence metadata, but it is not another card model. | One card concept gives state a clear owner and prevents stale copies from overwriting newer worktree, activity, ordering, policy, or body values. |\r\n| Card UI subscribes at field level. | A component subscribes only to the primitive or stable reference it renders, using granular `EventTarget` events and `useSyncExternalStore`. Do not clone or stringify a complete card to detect a field change. Group fields only in a deliberately small, stable projection when they are always rendered together. | A one-field change allocates and rerenders only what consumes that field, keeping memory use bounded and the UI responsive. |\r\n| Cards are serialized only at persistence boundaries. | Mutate the owned `Card` through a focused operation, then serialize its current state when the persistence batch flushes. Editor changes update only the edited field. Activity linking updates only activity references. External file changes are parsed and applied deliberately without replacing dirty local state. | Persistence remains deterministic while concurrent saves and external updates cannot discard unrelated newer values. |\r\n\r\n\r\n## Events and React integration\r\n\r\n| Decision | Rule | Rationale |\r\n| --- | --- | --- |\r\n| Services notify observers through their own `EventTarget`. | Services expose an `EventTarget` and dispatch named `CustomEvent` domain events such as `activeIndex`, `added`, `deleted`, or `changedBox`. Observers subscribe with `addEventListener` and unsubscribe with `removeEventListener` on the owning service. | Decouples producers from consumers without depending on Node `EventEmitter`, which is not available in the browser-first React app. |\r\n| Custom hooks bridge service events to functional components. | Hooks in `src/components/hooks/`, such as `useActiveIndex` and `useProjectConfig`, seed `useState` from a service property, subscribe in `useEffect`, unsubscribe in cleanup, and return the value. Prefer hook + service over prop chains. | Components stay declarative and avoid direct event plumbing. |\r\n| Components subscribe at the smallest rendering boundary. | Root and layout components compose UI regions and pass structural inputs. Components that render changing application data subscribe through hooks themselves. Do not hoist changing data into ancestors only to pass it downward. | Limits rerenders to affected UI, protects transient state such as open popups, and avoids broad prop chains. |\r\n| Components use the app theme service path. | `App` owns theme mode through `useThemeMode()`, builds the MUI theme with `createAppTheme(mode)`, and provides it through `ThemeProvider`. Components read theme values with MUI APIs such as `useTheme`, `useMediaQuery`, and `sx`; only controls that change the palette mode receive `mode` and `onToggleTheme`. | Theme state, persistence, and palette construction stay centralized while components remain presentation-focused. |\r\n",
+          "durationMs": 233,
+          "exitCode": 0,
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-110",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/architecture/architectural_decisions.md'",
+          "providerItemId": "exec-29091a92-cc3b-459f-9f5e-8bec04b585d7",
+          "sequence": 110,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:32:57.109Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"ActionAgentPresetNameOwner|ActionAgentPresetName\" app/src -g \"*.tsx\" -g \"*.ts\"'",
+          "content": "app/src\\components\\actions\\agent\\action_agent_preset_name.tsx:4:interface ActionAgentPresetNameProps {\napp/src\\components\\actions\\agent\\action_agent_preset_name.tsx:11:export function ActionAgentPresetName({ actionLabel, onActionLabelChange, onRunShortcut }: ActionAgentPresetNameProps) {\napp/src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:11:import { ActionAgentPresetName } from './action_agent_preset_name'\napp/src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:15:interface ActionAgentPresetNameOwnerProps {\napp/src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:28:export function ActionAgentPresetNameOwner(props: ActionAgentPresetNameOwnerProps) {\napp/src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:72:        <ActionAgentPresetName\n",
+          "durationMs": 137,
+          "exitCode": 0,
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-111",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"ActionAgentPresetNameOwner|ActionAgentPresetName\" app/src -g \"*.tsx\" -g \"*.ts\"'",
+          "providerItemId": "exec-b1a32695-eedb-4f3c-af20-551a8305219a",
+          "sequence": 111,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:32:57.343Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-112",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c21f1e0254676f7016b0432849e7487d298881035edd3d6b5",
+          "sequence": 112,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:33:07.616Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-113",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c21f1e0254676f7016b04328df1b087d29ce2e4f1ffa20b73",
+          "sequence": 113,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:33:16.926Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-114",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c21f1e0254676f7016b04328f467887d29476c104c77a8462",
+          "sequence": 114,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:33:18.242Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The schedule case needs a deliberate exception to the normal merge: React needs a component boundary so the expensive hooks are not mounted while closed. I’ll document it as a lifecycle component named `ActionSchedule`, with `ActionSchedulePopover` mounted only when open; this removes the `_owner` paradigm while preserving the verified subscription behavior.\n\n",
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 115,
+          "timestamp": "2026-11-23T12:33:19.692Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_260_remove_owner_components.md",
+          "deletions": 4,
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-116",
+          "insertions": 109,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-05e2fc0e-3576-4c83-b18b-27ea951f0efb",
+          "sequence": 116,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:33:52.109Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-117",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c21f1e0254676f7016b0432b2ef5887d29d922ade86d583f0",
+          "sequence": 117,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:33:53.970Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The document now specifies the exact destination for every remaining owner component. I’ve also made the schedule’s closed-state subscription behavior an explicit requirement and acceptance criterion, rather than leaving it as an implementation note.\n\n",
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 118,
+          "timestamp": "2026-11-23T12:33:54.922Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- design/feature_descriptions/F_260_remove_owner_components.md'",
+          "content": "diff --git a/design/feature_descriptions/F_260_remove_owner_components.md b/design/feature_descriptions/F_260_remove_owner_components.md\nindex 9b3add857..63c41c433 100644\n--- a/design/feature_descriptions/F_260_remove_owner_components.md\n+++ b/design/feature_descriptions/F_260_remove_owner_components.md\n@@ -12,10 +12,115 @@ policy:\n after: 9700b31c-8ed5-4ec1-bf04-012a1bef1eb5\n ---\n \n-we currently have a lot of components that wrap another component, have the same name as the componet they wrap with '\\_owner' appended and just wrap those components in order to pass a prop into them.\n+# Problem\n \n-This is the wrong architectural approach. we don't want to use this. The idea comes from an instruction that those components need to be self contained: a change in the property should not trigger a render in the parent. Meaning, these should never have been properties. Updates to these properties come from events and this should be handled within the component.\n+The action UI still contains components whose names end in `_owner`. Most split one feature into a\n+subscription/behavior component and a presentation component that has no other production caller. This adds a\n+component and prop boundary without reuse.\n \n-So we need to refactor and remove all those \\_owner versions, put the value updates inside the components, remove the properties and replace the '\\_owner' versions with the proper components.\n+Changing service data must still rerender only the smallest component that displays it. The component rendered by\n+the feature parent must therefore subscribe to its own changing data instead of making the parent subscribe and pass\n+derived values down.\n \n-ex: `app\\src\\components\\actions\\run\\popup\\action_usage_summary_owner.tsx` and `app\\src\\components\\actions\\run\\popup\\action_usage_summary.tsx`\n\\ No newline at end of file\n+`ActionPromptOwner` has already been removed. `ActionAgentPrompt` now owns its subscriptions and behavior and is\n+rendered directly by agent and command actions.\n+\n+# Refactoring rule\n+\n+For an `_owner` component whose child has no other production caller:\n+\n+* Move the subscriptions, event handlers, effects, and conditional rendering into the named feature component.\n+* Change callers to render that feature component directly and pass services, stores, and structural inputs.\n+* Remove props that only carried values or callbacks derived by the `_owner` component.\n+* Delete the `_owner` file and update its tests.\n+\n+Keep a separate component boundary only where it has a verified independent purpose. Give that component a name\n+that describes its feature or lifecycle role; do not use `Owner` or `_owner`.\n+\n+Do not move subscriptions into `ActionAgentPrompt`, `AgentAction`, `CommandAction`, `ActionPopupFrame`,\n+`ConversationMetaInfo`, or another layout parent merely to remove an `_owner` file. Subscriptions remain at the\n+smallest component that renders the changing value.\n+\n+# Required changes\n+\n+## Merge owner and child\n+\n+The following children have no second production caller. Each must absorb the behavior currently held by its\n+corresponding `_owner` component.\n+\n+| Current owner | Target component | Production caller(s) after refactoring |\n+| --- | --- | --- |\n+| `actions/agent/action_agent_question_owner.tsx` | `ActionAgentQuestion` | `ActionAgentPrompt` |\n+| `actions/editor/action_phrase_buttons_owner.tsx` | `ActionPhraseButtons` | `ActionAgentPrompt` |\n+| `actions/conversation/errors/action_log_error_owner.tsx` | `ActionLogError` (rename `ActionLogErrorDisplay`) | `AgentAction` |\n+| `actions/run/popup/action_usage_summary_owner.tsx` | `ActionUsageSummary` | `ConversationMetaInfo` |\n+| `actions/conversation/picker/action_conversation_picker_owner.tsx` | `ActionConversationPicker` | `ActionPopupFrame` |\n+| `actions/run/state/action_run_status_owner.tsx` | `ActionRunStatus` | `AgentAction`, `CommandAction` |\n+| `actions/run/state/action_run_history_owner.tsx` | `ActionRunHistory` | `AgentAction`, `CommandAction` |\n+\n+Preserve the existing behavior in each target, including live-run precedence over stored results, restored agent\n+questions, conversation loading and pinning, history loading, phrase insertion and double-click execution, usage\n+scope switching, and the current empty-state rendering.\n+\n+## Preserve the schedule mounting boundary\n+\n+Rename `ActionScheduleOwner` and `action_schedule_owner.tsx` to `ActionSchedule` and `action_schedule.tsx`.\n+`ActionAgentPrompt` renders `ActionSchedule` directly.\n+\n+`ActionSchedule` subscribes only to `ActionScheduleStore.getOpenSnapshot`. While the schedule is closed it returns\n+`null` and must not mount `ActionSchedulePopover`. Consequently, the closed schedule must not:\n+\n+* subscribe to project-card changes through `dataService`;\n+* read project configuration;\n+* subscribe to Claude or Codex rate-limit data;\n+* mount the MUI popover or its form.\n+\n+When the schedule opens, `ActionSchedule` mounts `ActionSchedulePopover`, which retains the existing form,\n+registration, prompt-flush, error-reporting, portal, and close behavior. This is a deliberate lifecycle boundary,\n+not an owner/presentation split.\n+\n+## Keep and rename the worktree adapter\n+\n+`WorktreeSelector` is genuinely shared by the card view and action popup. Keep the action-specific adapter, but\n+rename `ActionWorktreeSelectorOwner` and `action_worktree_selector_owner.tsx` to `ActionWorktreeSelector` and\n+`action_worktree_selector.tsx`.\n+\n+The adapter continues to own the bound-run, active-sequence-worktree, and open-worktree subscriptions. It must\n+preserve sequence assignment display, the disabled reason, and the key that resets selector-local state when the\n+displayed assignment switches between the normal and sequence worktree.\n+\n+## Remove unused preset-name components\n+\n+`ActionAgentPresetNameOwner` and `ActionAgentPresetName` have no production callers. Delete both files instead of\n+merging them. Do not add a replacement or compatibility export.\n+\n+# Compatibility and failure cases\n+\n+* Do not change service or store state ownership, event names, snapshot shapes, or action execution behavior.\n+* Do not replace granular subscriptions with a complete action, card, conversation, or run snapshot in a parent.\n+* Preserve `AgentConversation.id` as conversation identity. Paths remain persistence and selection references.\n+* Keep schedule subscriptions unmounted while closed. A hidden popover whose data hooks remain subscribed does not\n+  satisfy this requirement.\n+* Preserve error reporting through `dialogService` and safe empty states.\n+* Do not add compatibility aliases for removed `Owner` exports.\n+\n+# Testing\n+\n+* Rename owner-focused tests to the resulting component names and keep their user-visible assertions.\n+* Keep the schedule regression test that verifies no project-card subscription, project-config read, or dialog exists\n+  while scheduling is closed. Run the schedule registration, portal, close, prompt-flush, and error tests after the\n+  rename.\n+* Move the log-error and usage-summary owner integration coverage to `ActionLogError` and `ActionUsageSummary`.\n+* Run the existing question, conversation-picker, run-status, run-history, and worktree-selector tests affected by\n+  the changed imports and props.\n+* Run `npm run lint` in `app` after the refactoring.\n+\n+# Acceptance criteria\n+\n+* `app/src` contains no `_owner` files, `Owner` component exports, or `_owner` imports.\n+* The seven unshared owner/child pairs above are consolidated into their named feature components.\n+* The schedule and worktree boundaries remain, with names that describe their roles.\n+* The unused preset-name pair is removed.\n+* Opening and closing the schedule preserves its current lazy subscription lifecycle.\n+* Changing action state rerenders the smallest component that displays the change, without adding subscriptions to\n+  layout parents.\n",
+          "durationMs": 159,
+          "exitCode": 0,
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-119",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- design/feature_descriptions/F_260_remove_owner_components.md'",
+          "providerItemId": "exec-53cbfd60-6a17-4971-b547-7163f9d3adac",
+          "sequence": 119,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:34:00.784Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff --check -- design/feature_descriptions/F_260_remove_owner_components.md'",
+          "content": "",
+          "durationMs": 144,
+          "exitCode": 0,
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-120",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff --check -- design/feature_descriptions/F_260_remove_owner_components.md'",
+          "providerItemId": "exec-dffa3ce2-af1b-4533-a763-7003fb079955",
+          "sequence": 120,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:34:00.784Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/F_260_remove_owner_components.md'",
+          "content": "---\r\nauthor: \r\nid: F_260\r\ninternalId: 2775052a-2e84-4466-a320-155c8ec05bac\r\ntitle: remove owner components\r\nstatus: design\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__2775052a-2e84-4466-a320-155c8ec05bac.json\r\npolicy:\r\nafter: 9700b31c-8ed5-4ec1-bf04-012a1bef1eb5\r\n---\r\n\r\n# Problem\r\n\r\nThe action UI still contains components whose names end in `_owner`. Most split one feature into a\r\nsubscription/behavior component and a presentation component that has no other production caller. This adds a\r\ncomponent and prop boundary without reuse.\r\n\r\nChanging service data must still rerender only the smallest component that displays it. The component rendered by\r\nthe feature parent must therefore subscribe to its own changing data instead of making the parent subscribe and pass\r\nderived values down.\r\n\r\n`ActionPromptOwner` has already been removed. `ActionAgentPrompt` now owns its subscriptions and behavior and is\r\nrendered directly by agent and command actions.\r\n\r\n# Refactoring rule\r\n\r\nFor an `_owner` component whose child has no other production caller:\r\n\r\n* Move the subscriptions, event handlers, effects, and conditional rendering into the named feature component.\r\n* Change callers to render that feature component directly and pass services, stores, and structural inputs.\r\n* Remove props that only carried values or callbacks derived by the `_owner` component.\r\n* Delete the `_owner` file and update its tests.\r\n\r\nKeep a separate component boundary only where it has a verified independent purpose. Give that component a name\r\nthat describes its feature or lifecycle role; do not use `Owner` or `_owner`.\r\n\r\nDo not move subscriptions into `ActionAgentPrompt`, `AgentAction`, `CommandAction`, `ActionPopupFrame`,\r\n`ConversationMetaInfo`, or another layout parent merely to remove an `_owner` file. Subscriptions remain at the\r\nsmallest component that renders the changing value.\r\n\r\n# Required changes\r\n\r\n## Merge owner and child\r\n\r\nThe following children have no second production caller. Each must absorb the behavior currently held by its\r\ncorresponding `_owner` component.\r\n\r\n| Current owner | Target component | Production caller(s) after refactoring |\r\n| --- | --- | --- |\r\n| `actions/agent/action_agent_question_owner.tsx` | `ActionAgentQuestion` | `ActionAgentPrompt` |\r\n| `actions/editor/action_phrase_buttons_owner.tsx` | `ActionPhraseButtons` | `ActionAgentPrompt` |\r\n| `actions/conversation/errors/action_log_error_owner.tsx` | `ActionLogError` (rename `ActionLogErrorDisplay`) | `AgentAction` |\r\n| `actions/run/popup/action_usage_summary_owner.tsx` | `ActionUsageSummary` | `ConversationMetaInfo` |\r\n| `actions/conversation/picker/action_conversation_picker_owner.tsx` | `ActionConversationPicker` | `ActionPopupFrame` |\r\n| `actions/run/state/action_run_status_owner.tsx` | `ActionRunStatus` | `AgentAction`, `CommandAction` |\r\n| `actions/run/state/action_run_history_owner.tsx` | `ActionRunHistory` | `AgentAction`, `CommandAction` |\r\n\r\nPreserve the existing behavior in each target, including live-run precedence over stored results, restored agent\r\nquestions, conversation loading and pinning, history loading, phrase insertion and double-click execution, usage\r\nscope switching, and the current empty-state rendering.\r\n\r\n## Preserve the schedule mounting boundary\r\n\r\nRename `ActionScheduleOwner` and `action_schedule_owner.tsx` to `ActionSchedule` and `action_schedule.tsx`.\r\n`ActionAgentPrompt` renders `ActionSchedule` directly.\r\n\r\n`ActionSchedule` subscribes only to `ActionScheduleStore.getOpenSnapshot`. While the schedule is closed it returns\r\n`null` and must not mount `ActionSchedulePopover`. Consequently, the closed schedule must not:\r\n\r\n* subscribe to project-card changes through `dataService`;\r\n* read project configuration;\r\n* subscribe to Claude or Codex rate-limit data;\r\n* mount the MUI popover or its form.\r\n\r\nWhen the schedule opens, `ActionSchedule` mounts `ActionSchedulePopover`, which retains the existing form,\r\nregistration, prompt-flush, error-reporting, portal, and close behavior. This is a deliberate lifecycle boundary,\r\nnot an owner/presentation split.\r\n\r\n## Keep and rename the worktree adapter\r\n\r\n`WorktreeSelector` is genuinely shared by the card view and action popup. Keep the action-specific adapter, but\r\nrename `ActionWorktreeSelectorOwner` and `action_worktree_selector_owner.tsx` to `ActionWorktreeSelector` and\r\n`action_worktree_selector.tsx`.\r\n\r\nThe adapter continues to own the bound-run, active-sequence-worktree, and open-worktree subscriptions. It must\r\npreserve sequence assignment display, the disabled reason, and the key that resets selector-local state when the\r\ndisplayed assignment switches between the normal and sequence worktree.\r\n\r\n## Remove unused preset-name components\r\n\r\n`ActionAgentPresetNameOwner` and `ActionAgentPresetName` have no production callers. Delete both files instead of\r\nmerging them. Do not add a replacement or compatibility export.\r\n\r\n# Compatibility and failure cases\r\n\r\n* Do not change service or store state ownership, event names, snapshot shapes, or action execution behavior.\r\n* Do not replace granular subscriptions with a complete action, card, conversation, or run snapshot in a parent.\r\n* Preserve `AgentConversation.id` as conversation identity. Paths remain persistence and selection references.\r\n* Keep schedule subscriptions unmounted while closed. A hidden popover whose data hooks remain subscribed does not\r\n  satisfy this requirement.\r\n* Preserve error reporting through `dialogService` and safe empty states.\r\n* Do not add compatibility aliases for removed `Owner` exports.\r\n\r\n# Testing\r\n\r\n* Rename owner-focused tests to the resulting component names and keep their user-visible assertions.\r\n* Keep the schedule regression test that verifies no project-card subscription, project-config read, or dialog exists\r\n  while scheduling is closed. Run the schedule registration, portal, close, prompt-flush, and error tests after the\r\n  rename.\r\n* Move the log-error and usage-summary owner integration coverage to `ActionLogError` and `ActionUsageSummary`.\r\n* Run the existing question, conversation-picker, run-status, run-history, and worktree-selector tests affected by\r\n  the changed imports and props.\r\n* Run `npm run lint` in `app` after the refactoring.\r\n\r\n# Acceptance criteria\r\n\r\n* `app/src` contains no `_owner` files, `Owner` component exports, or `_owner` imports.\r\n* The seven unshared owner/child pairs above are consolidated into their named feature components.\r\n* The schedule and worktree boundaries remain, with names that describe their roles.\r\n* The unused preset-name pair is removed.\r\n* Opening and closing the schedule preserves its current lazy subscription lifecycle.\r\n* Changing action state rerenders the smallest component that displays the change, without adding subscriptions to\r\n  layout parents.\r\n",
+          "durationMs": 138,
+          "exitCode": 0,
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-121",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/F_260_remove_owner_components.md'",
+          "providerItemId": "exec-9f8275d9-5903-4551-8e5a-ba1a91d56f10",
+          "sequence": 121,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:34:00.823Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff --stat -- design/feature_descriptions/F_260_remove_owner_components.md'",
+          "content": " .../F_260_remove_owner_components.md               | 113 ++++++++++++++++++++-\n 1 file changed, 109 insertions(+), 4 deletions(-)\n",
+          "durationMs": 97,
+          "exitCode": 0,
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-122",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff --stat -- design/feature_descriptions/F_260_remove_owner_components.md'",
+          "providerItemId": "exec-1bd8a3f2-a1f4-4832-a640-bda366bb6412",
+          "sequence": 122,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:34:01.336Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-event-123",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c21f1e0254676f7016b0432be802087d29ba517ad6a30df70",
+          "sequence": 123,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:34:05.901Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_260_remove_owner_components.md](/C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_260_remove_owner_components.md).\n\nIt now specifies:\n\n- Seven owner/child pairs to merge.\n- `ActionScheduleOwner` renamed to `ActionSchedule`, retaining the lazy mounting boundary and closed-state subscription guarantees.\n- `ActionWorktreeSelectorOwner` retained as a valid shared-component adapter and renamed.\n- The unused preset-name pair removed.\n- Required compatibility behavior, affected callers, testing implications, and acceptance criteria.\n- `ActionPromptOwner` recorded as already completed.\n\n`git diff --check` passes. No code or feature status was changed.\n\n",
+          "id": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 124,
+          "timestamp": "2026-11-23T12:34:08.881Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1430,30 +1714,30 @@
           "agent": "codex",
           "conversationId": "01a0d2b7-98c4-7233-8575-976ce64cb727",
           "createdAt": "2026-09-24T09:21:52.952Z",
-          "lastUsedAt": "2026-11-23T12:32:36.638Z",
-          "synchronizedThroughMessageId": "submission-800ce5c5-a18a-4517-a691-ed263c4f98d5"
+          "lastUsedAt": "2026-11-23T12:34:08.881Z",
+          "synchronizedThroughMessageId": "agent-turn-4d4add79-e701-42f5-8c79-c3f2fd38fc60-turn-2-assistant-5"
         }
       ],
       "startedAt": "2026-09-24T09:20:42.266Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
-          "reasoningMs": 26121,
-          "toolMs": 4578
+          "reasoningMs": 26163,
+          "toolMs": 6150
         },
-        "elapsedMs": 231816,
-        "runningStartedAt": "2026-11-23T12:32:36.579Z"
+        "elapsedMs": 324118,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 775424,
-        "inputTokens": 134272,
-        "outputTokens": 5648,
-        "reasoningTokens": 3165,
-        "totalTokens": 918509
+        "cachedInputTokens": 1242368,
+        "inputTokens": 144942,
+        "outputTokens": 8489,
+        "reasoningTokens": 4707,
+        "totalTokens": 1400506
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
