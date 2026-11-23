@@ -57,6 +57,29 @@ function diagram(type: DiagramType = 'architecture', flowPreset: DiagramFlowPres
     }))
 }
 
+function configureCustomRoleLegend(data: DiagramData) {
+    data.meta.legend = [
+        { id: 'customer-service', label: 'Customer service', role: 'focal' },
+        { id: 'internal-service', label: 'Internal service', role: 'backend' },
+        { id: 'connection', kind: 'connection', label: 'Connection', useLabelAsDefault: false },
+    ]
+    data.nodes[0].legendEntryId = 'customer-service'
+    data.nodes[1].legendEntryId = 'internal-service'
+    data.nodes[1].role = 'backend'
+    data.edges[0].legendEntryId = 'connection'
+}
+
+function configureCustomNodeKindLegend(data: DiagramData) {
+    data.meta.legend = [
+        { id: 'process-step', label: 'Process step', nodeKind: 'step' },
+        { id: 'decision-point', label: 'Decision point', nodeKind: 'decision' },
+        { id: 'flow', kind: 'flow', label: 'Flow', useLabelAsDefault: false },
+    ]
+    data.nodes[0].legendEntryId = 'process-step'
+    data.nodes[1].legendEntryId = 'process-step'
+    data.edges[0].legendEntryId = 'flow'
+}
+
 class DiagramSourceStub extends EventTarget {
     private readonly source: DiagramViewSourceSnapshot
 
@@ -74,8 +97,14 @@ class DiagramSourceStub extends EventTarget {
     }
 }
 
-function renderHarness(type: DiagramType = 'architecture', flowPreset: DiagramFlowPreset = 'flowchart') {
-    const source = { diagram: parseDiagramData(JSON.stringify(diagram(type, flowPreset))), record }
+function renderHarness(
+    type: DiagramType = 'architecture',
+    flowPreset: DiagramFlowPreset = 'flowchart',
+    configureDiagram?: (data: DiagramData) => void,
+) {
+    const data = diagram(type, flowPreset)
+    configureDiagram?.(data)
+    const source = { diagram: parseDiagramData(JSON.stringify(data)), record }
     const session = new DiagramEditSessionService(new DiagramSourceStub(source))
     session.bindProject(project)
     session.start()
@@ -208,7 +237,7 @@ describe('diagram object details dialog', () => {
     })
 
     it('saves changed node fields through their scoped operations only', async () => {
-        const { session } = renderHarness()
+        const { session } = renderHarness('architecture', 'flowchart', configureCustomRoleLegend)
         const user = userEvent.setup()
         const node = session.read.getNodeSnapshot('orders')
         const labelChanged = vi.fn()
@@ -227,7 +256,7 @@ describe('diagram object details dialog', () => {
         await user.clear(label)
         await user.type(label, 'Order intake')
         await user.click(screen.getByRole('combobox', { name: 'Role' }))
-        await user.click(screen.getByRole('option', { name: 'backend' }))
+        await user.click(screen.getByRole('option', { name: 'Internal service' }))
         await user.type(screen.getByRole('textbox', { name: 'Tag' }), 'API')
         await user.type(screen.getByRole('textbox', { name: 'Sublabel' }), 'Receives orders')
         await user.click(screen.getByRole('combobox', { name: 'Drill-down' }))
@@ -246,6 +275,62 @@ describe('diagram object details dialog', () => {
         expect(sublabelChanged).toHaveBeenCalledOnce()
         expect(drilldownChanged).toHaveBeenCalledOnce()
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    })
+
+    it('lists custom node legend labels in Role without exposing raw roles or a duplicate legend control', async () => {
+        const { details } = renderHarness('architecture', 'flowchart', configureCustomRoleLegend)
+        const user = userEvent.setup()
+        act(() => { details.open({ objectId: 'orders', objectKind: 'node' }) })
+
+        const role = screen.getByRole('combobox', { name: 'Role' })
+        expect(role).toHaveTextContent('Customer service')
+        expect(screen.queryByRole('combobox', { name: 'Legend entry' })).toBeNull()
+
+        await user.click(role)
+        expect(screen.getAllByRole('option').map(({ textContent }) => textContent)).toEqual([
+            'Customer service',
+            'Internal service',
+        ])
+        expect(screen.queryByRole('option', { name: 'focal' })).toBeNull()
+        expect(screen.queryByRole('option', { name: 'backend' })).toBeNull()
+    })
+
+    it('saves a role-based legend choice as one node classification operation', async () => {
+        const { details, session } = renderHarness('architecture', 'flowchart', configureCustomRoleLegend)
+        const user = userEvent.setup()
+        const setNodeClassification = vi.spyOn(session.objects, 'setNodeClassification')
+        act(() => { details.open({ objectId: 'orders', objectKind: 'node' }) })
+
+        await user.click(screen.getByRole('combobox', { name: 'Role' }))
+        await user.click(screen.getByRole('option', { name: 'Internal service' }))
+        await user.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(setNodeClassification).toHaveBeenCalledOnce()
+        expect(setNodeClassification).toHaveBeenCalledWith('orders', {
+            kind: undefined,
+            legendEntryId: 'internal-service',
+            role: 'backend',
+        })
+        expect(session.read.getNodeSnapshot('orders')).toMatchObject({
+            legendEntryId: 'internal-service',
+            role: 'backend',
+        })
+    })
+
+    it('keeps a changed role legend choice local when Cancel closes the dialog', async () => {
+        const { details, session } = renderHarness('architecture', 'flowchart', configureCustomRoleLegend)
+        const user = userEvent.setup()
+        const node = { ...session.read.getNodeSnapshot('orders') }
+        const setNodeClassification = vi.spyOn(session.objects, 'setNodeClassification')
+        act(() => { details.open({ objectId: 'orders', objectKind: 'node' }) })
+
+        await user.click(screen.getByRole('combobox', { name: 'Role' }))
+        await user.click(screen.getByRole('option', { name: 'Internal service' }))
+        await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+        expect(setNodeClassification).not.toHaveBeenCalled()
+        expect(session.read.getNodeSnapshot('orders')).toEqual(node)
+        expect(session.read.getDirtySnapshot()).toBe(false)
     })
 
     it('keeps invalid node draft inside dialog and Cancel changes nothing', async () => {
@@ -340,6 +425,31 @@ describe('diagram object details dialog', () => {
         await user.dblClick(screen.getByRole('button', { name: 'Orders' }))
         expect(screen.getByRole('combobox', { name: 'Kind' })).toBeInTheDocument()
         expect(screen.queryByText('Entity fields')).toBeNull()
+    })
+
+    it('saves a node-kind legend choice while preserving the node role', async () => {
+        const { details, session } = renderHarness('flow', 'flowchart', configureCustomNodeKindLegend)
+        const user = userEvent.setup()
+        const setNodeClassification = vi.spyOn(session.objects, 'setNodeClassification')
+        act(() => { details.open({ objectId: 'orders', objectKind: 'node' }) })
+
+        expect(screen.getByRole('combobox', { name: 'Kind' })).toHaveTextContent('step')
+        await user.click(screen.getByRole('combobox', { name: 'Role' }))
+        await user.click(screen.getByRole('option', { name: 'Decision point' }))
+        expect(screen.getByRole('combobox', { name: 'Kind' })).toHaveTextContent('decision')
+        await user.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(setNodeClassification).toHaveBeenCalledOnce()
+        expect(setNodeClassification).toHaveBeenCalledWith('orders', {
+            kind: 'decision',
+            legendEntryId: 'decision-point',
+            role: 'focal',
+        })
+        expect(session.read.getNodeSnapshot('orders')).toMatchObject({
+            kind: 'decision',
+            legendEntryId: 'decision-point',
+            role: 'focal',
+        })
     })
 
     it('exposes state-node details with only state-preset kinds', async () => {
