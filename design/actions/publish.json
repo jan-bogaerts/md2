@@ -1,0 +1,8 @@
+{
+  "description": "create new release on github and upload exe",
+  "id": "8defd290-97ce-4caf-ad94-a25efbb61798",
+  "label": "publish",
+  "phrases": [],
+  "type": "command",
+  "command": ""
+}
