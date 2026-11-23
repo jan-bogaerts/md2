@@ -5,10 +5,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "9700b31c-8ed5-4ec1-bf04-012a1bef1eb5",
       "cardPath": "design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md",
-      "completedAt": null,
+      "completedAt": "2026-11-23T12:29:25.786Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 74906
+        "usedTokens": 91809
       },
       "entries": [
         {
@@ -290,6 +290,201 @@
           "role": "user",
           "sequence": 22,
           "timestamp": "2026-11-23T12:27:41.077Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-23",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07c041816c468240016b043147d4c887d2b6b31c44887431d2",
+          "sequence": 23,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:27:51.105Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Defaults clear. `Specific for context` remains normal default; released cards start with `Has conversation log`. User override persists globally. Right-click opens selector context menu. Completing design now.\n\n",
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 24,
+          "timestamp": "2026-11-23T12:27:51.735Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\services\\\\storage\\\\application_storage.ts'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\use_historical_activity_key.ts'; Get-Content -Raw 'app\\\\src\\\\services\\\\actions\\\\historical_card_activity_service.ts'; Get-Content -Raw 'shared\\\\released_card_actions.mjs'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_initial_action.ts'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_selector.test.tsx'\"",
+          "content": "import {\n    getElectronApplicationStateBridge,\n    type ElectronApplicationStateBridge,\n} from './electron_application_state_bridge'\n\nexport const APPLICATION_STATE_MIGRATION_KEY = 'md2.localStorageMigrationComplete'\nexport const APPLICATION_STATE_MIGRATION_VALUE = '1'\n\nexport const MIGRATED_APPLICATION_STORAGE_KEYS = [\n    'md2.actionPromptHeight',\n    'md2.actionQuestionsBlockHeight',\n    'md2.cardBodyPopover.diffSize',\n    'md2.cardBodyPopover.size',\n    'md2.cardRunPopupSize',\n    'md2.colorScheme',\n    'md2.customMarkdownStyle',\n    'md2.github.accessToken',\n    'md2.github.pendingCommitHeads',\n    'md2.lastProject',\n    'md2.markdownFileSearchMenuSize',\n    'md2.markdownStyle',\n    'md2.projectAgentPopupSize',\n    'md2.reactConfig',\n    'md2.recentLocalRepositories',\n    'md2.remoteControl.endpoint',\n    'md2.sentry.connections',\n    'md2.splitWidth',\n    'md2.themeMode',\n    'search-panel-results-size',\n] as const\n\nfunction requireStoredValues(value: Record<string, string> | string | null): Record<string, string> {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) {\n        throw new Error('Desktop application-state snapshot is invalid')\n    }\n    if (Object.values(value).some((storedValue) => typeof storedValue !== 'string')) {\n        throw new Error('Desktop application-state snapshot values must be strings')\n    }\n\n    return { ...value }\n}\n\nfunction requireStoredValue(value: Record<string, string> | string | null): string | null {\n    if (value === null || typeof value === 'string') return value\n\n    throw new Error('Desktop application-state value is invalid')\n}\n\nfunction requireBrowserMode() {\n    if (getElectronApplicationStateBridge()) {\n        throw new Error('Desktop application state must be initialized before use')\n    }\n}\n\nasync function migrateLegacyValues(bridge: ElectronApplicationStateBridge, storedValues: Record<string, string>) {\n    if (storedValues[APPLICATION_STATE_MIGRATION_KEY] === APPLICATION_STATE_MIGRATION_VALUE) return\n\n    for (const key of MIGRATED_APPLICATION_STORAGE_KEYS) {\n        if (storedValues[key] !== undefined) continue\n\n        const legacyValue = window.localStorage.getItem(key)\n        if (legacyValue === null) continue\n\n        await bridge.write(key, legacyValue)\n        storedValues[key] = legacyValue\n    }\n\n    await bridge.write(APPLICATION_STATE_MIGRATION_KEY, APPLICATION_STATE_MIGRATION_VALUE)\n    storedValues[APPLICATION_STATE_MIGRATION_KEY] = APPLICATION_STATE_MIGRATION_VALUE\n}\n\nasync function removeDesktopValue(bridge: ElectronApplicationStateBridge, key: string) {\n    try {\n        await bridge.remove(key)\n    } catch (error) {\n        console.error('Desktop application-state remove failed', error)\n    }\n}\n\nasync function writeDesktopValue(bridge: ElectronApplicationStateBridge, key: string, value: string) {\n    try {\n        await bridge.write(key, value)\n    } catch (error) {\n        console.error('Desktop application-state write failed', error)\n    }\n}\n\n/** Provides synchronous reads from a loaded desktop snapshot or browser localStorage. */\nexport class ApplicationStorage implements Pick<Storage, 'getItem' | 'removeItem' | 'setItem'> {\n    private bridge: ElectronApplicationStateBridge | null = null\n    private desktopValues: Record<string, string> | null = null\n\n    async initialize() {\n        const bridge = getElectronApplicationStateBridge()\n        if (!bridge) return\n\n        const storedValues = requireStoredValues(await bridge.read(null))\n        await migrateLegacyValues(bridge, storedValues)\n        this.bridge = bridge\n        this.desktopValues = storedValues\n    }\n\n    getItem(key: string) {\n        if (this.desktopValues) return this.desktopValues[key] ?? null\n        requireBrowserMode()\n\n        return window.localStorage.getItem(key)\n    }\n\n    removeItem(key: string) {\n        if (this.desktopValues && this.bridge) {\n            delete this.desktopValues[key]\n            void removeDesktopValue(this.bridge, key)\n\n            return\n        }\n        requireBrowserMode()\n        window.localStorage.removeI\n[14128 characters omitted]\neduled timer and warning color only for matching action', () => {\n        actionStates.scheduled = { selected: true }\n        const theme = createAppTheme('light')\n        render(\n            <ThemeProvider theme={theme}>\n                <ActionSelector actions={actions} context={context} onSelect={vi.fn()} selectedAction={actions[0]} />\n            </ThemeProvider>,\n        )\n\n        const selectedButton = screen.getByRole('button', { name: /Selected action.*Action scheduled/u })\n        expect(selectedButton).toHaveStyle({ color: theme.palette.warning.main })\n        expect(within(selectedButton).getByTestId('TimerOutlinedIcon')).toBeInTheDocument()\n        expect(screen.getByRole('button', { name: 'Unselected action' })).not.toHaveStyle({ color: theme.palette.warning.main })\n    })\n\n    it('renders custom prompt as one accessible plus action with an explanatory tooltip', async () => {\n        actionStates.live = {}\n        render(\n            <ThemeProvider theme={createAppTheme('light')}>\n                <ActionSelector\n                    actions={[BUILTIN_CUSTOM_PROMPT]}\n                    context={context}\n                    onSelect={vi.fn()}\n                    selectedAction={BUILTIN_CUSTOM_PROMPT}\n                />\n            </ThemeProvider>,\n        )\n        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))\n        const customPrompt = actionGroup.getByRole('button', { name: 'Custom prompt' })\n\n        expect(customPrompt).toHaveTextContent('+')\n        expect(actionGroup.getAllByRole('button')).toHaveLength(1)\n        expect(screen.queryByRole('button', { name: 'Add action' })).not.toBeInTheDocument()\n        fireEvent.mouseOver(customPrompt)\n        expect(await screen.findByRole('tooltip')).toHaveTextContent('Send a custom prompt to the agent.')\n    })\n\n    it.each([\n        ['waiting for input', 'Agent is waiting for input'],\n        ['unseen result', 'New agent result available'],\n    ] as const)('shows persisted %s state without a live run', (persistedState, description) => {\n        actionStates.persisted = { selected: persistedState }\n        render(\n            <ThemeProvider theme={createAppTheme('light')}>\n                <ActionSelector actions={actions} context={context} onSelect={vi.fn()} selectedAction={actions[0]} />\n            </ThemeProvider>,\n        )\n\n        const selectedButton = screen.getByRole('button', { name: new RegExp(`Selected action.*${description}`, 'u') })\n        if (persistedState === 'waiting for input') {\n            expect(within(selectedButton).getByTestId('HelpCircleOutlineIcon')).toBeInTheDocument()\n        } else {\n            expect(within(selectedButton).getByTestId('CircleIcon')).toBeInTheDocument()\n        }\n    })\n\n    it.each([\n        ['queued', 'waiting for input', 'Action is queued'],\n        ['running', 'waiting for input', 'Agent is running'],\n        ['waitingForInput', 'running', 'Agent is waiting for input'],\n    ] as const)('lets live project %s state override conflicting persisted state', (liveStatus, persistedState, description) => {\n        actionStates.persisted = { selected: persistedState }\n        actionStates.live = { selected: liveStatus }\n        render(\n            <ThemeProvider theme={createAppTheme('light')}>\n                <ActionSelector actions={actions} context={{ kind: 'project' }} onSelect={vi.fn()} selectedAction={actions[0]} />\n            </ThemeProvider>,\n        )\n\n        const selectedButton = screen.getByRole('button', { name: new RegExp(`Selected action.*${description}`, 'u') })\n        if (liveStatus === 'running') expect(within(selectedButton).getByTestId('PlayIcon')).toBeInTheDocument()\n        if (liveStatus === 'waitingForInput') expect(within(selectedButton).getByTestId('HelpCircleOutlineIcon')).toBeInTheDocument()\n        if (liveStatus === 'queued') {\n            expect(within(selectedButton).queryByTestId('PlayIcon')).not.toBeInTheDocument()\n            expect(within(selectedButton).queryByTestId('HelpCircleOutlineIcon')).not.toBeInTheDocument()\n        }\n    })\n})\n\r\n",
+          "durationMs": 103,
+          "exitCode": 0,
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-25",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\services\\\\storage\\\\application_storage.ts'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\use_historical_activity_key.ts'; Get-Content -Raw 'app\\\\src\\\\services\\\\actions\\\\historical_card_activity_service.ts'; Get-Content -Raw 'shared\\\\released_card_actions.mjs'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_initial_action.ts'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_selector.test.tsx'\"",
+          "providerItemId": "exec-f179cec4-4796-4a1b-b041-8ee1356ab989",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:27:56.137Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-26",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07c041816c468240016b04315841e487d2b77b1d4414860953",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:28:07.267Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-27",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07c041816c468240016b043161951087d2b25a3437b3726140",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:28:16.670Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"getAgentConversations|getProjectAgentConversationsSnapshot|subscribe.*Conversation|agentConversation\\\" app/src/components/hooks app/src/services/agents app/src/services/data/data_service.ts app/src/services/data --glob '*.ts' --glob '*.tsx'\"",
+          "content": "app/src/services/data/data_service.ts:10:import { agentConversationService, loadAgentConversation } from '../agents/agent_conversation_service'\napp/src/services/data/data_service.ts:113:        return !isSameArray(previousCard.agentConversations, card.agentConversations)\napp/src/services/data/data_service.ts:114:            || !isSameArray(previousCard.agentConversationErrors, card.agentConversationErrors)\napp/src/services/data/data_service.ts:187:        agentConversationService.subscribe(() => {\napp/src/services/data/data_service.ts:257:            runningAgents: agentConversationService.getRunningAgents(),\napp/src/services/data\\data_service.ts:10:import { agentConversationService, loadAgentConversation } from '../agents/agent_conversation_service'\napp/src/services/data\\data_service.ts:113:        return !isSameArray(previousCard.agentConversations, card.agentConversations)\napp/src/services/data\\data_service.ts:114:            || !isSameArray(previousCard.agentConversationErrors, card.agentConversationErrors)\napp/src/services/data\\data_service.ts:187:        agentConversationService.subscribe(() => {\napp/src/services/data\\data_service.ts:257:            runningAgents: agentConversationService.getRunningAgents(),\napp/src/services/agents\\agent_reference_migration.node.test.ts:7:        agentConversationErrors: [],\napp/src/services/agents\\agent_reference_migration.node.test.ts:8:        agentConversations: [],\napp/src/services/agents\\agent_conversation_service.ts:42:        register('agentConversationService', this)\napp/src/services/agents\\agent_conversation_service.ts:77:export const agentConversationService = new AgentConversationService()\napp/src/services/agents\\agent_usage.node.test.ts:29:    const agentConversations = usages.map((agentUsage, index) => ({\napp/src/services/agents\\agent_usage.node.test.ts:47:        agentConversationErrors: [],\napp/src/services/agents\\agent_usage.node.test.ts:48:        agentConversations,\napp/src/services/agents\\agent_usage.node.test.ts:62:        const conversation = card('design/F-1.md', [undefined]).agentConversations[0]\napp/src/services/agents\\agent_usage.node.test.ts:90:            ...card('design/F-1.md', [usage(10, 2, 3, 1), usage(20, 4, 6, 2)]).agentConversations,\napp/src/services/agents\\agent_usage.node.test.ts:91:            ...card('design/F-2.md', [usage(100, 0, 0, 0)]).agentConversations,\napp/src/services/agents\\agent_usage.node.test.ts:164:            backgroundCards: [{ ...releasedCard, agentConversations: [] }],\napp/src/services/agents\\agent_integration.ts:155:    readonly subscribePinnedConversations = (listener: () => void) => {\napp/src/services/agents\\agent_integration.ts:329:        return this.getAgentConversations(cardInternalId)\napp/src/services/agents\\agent_integration.ts:354:    getProjectAgentConversationsSnapshot() {\napp/src/services/agents\\agent_integration.ts:450:    getAgentConversations(cardInternalId: string) {\napp/src/services/agents\\agent_integration.ts:456:        card.agentConversationErrors = cardInternalId ? this.errorsByCardInternalId.get(cardInternalId) ?? [] : []\napp/src/services/agents\\agent_integration.ts:457:        card.agentConversations = cardInternalId ? this.conversationsByCardInternalId.get(cardInternalId) ?? [] : []\napp/src/services/agents\\agent_integration.test.ts:57:            expect(service.agents.getAgentConversations('root-card')).toEqual([newConversation]);\napp/src/services/agents\\agent_integration.test.ts:58:            expect(service.getState().snapshot?.activeCards[0].agentConversationErrors).toEqual([]);\napp/src/services/agents\\agent_integration.test.ts:213:            expect(movedCard?.agentConversationErrors).toEqual([\napp/src/services/agents\\agent_integration.test.ts:263:            expect(movedCard?.agentConversationErrors).toHaveLength(1)\napp/src/services/agents\\agent_integration.test.ts:270:        expect(renamedCard?.agentConversationErrors).toEqual([\napp/src/services/agents\\agent_integration.test.ts:332:        expect(snapshot.activeCards[0].agentConversations).toHaveLength(0)\napp/src/services/agents\\age\n[4371 characters omitted]\nrds[0].agentConversations.map(({ id }) => id)).toEqual(['loaded'])\napp/src/services/agents\\agent_integration.test.ts:1410:        expect(desktopService.getState().snapshot?.activeCards[0].agentConversations).toEqual([runningConversation])\napp/src/services/agents\\agent_integration.test.ts:1411:        expect(remoteService.getState().snapshot?.activeCards[0].agentConversations).toEqual([runningConversation])\napp/src/services/agents\\agent_integration.test.ts:1423:        expect(desktopService.getState().snapshot?.activeCards[0].agentConversations).toEqual([completedConversation])\napp/src/services/agents\\agent_integration.test.ts:1424:        expect(remoteService.getState().snapshot?.activeCards[0].agentConversations).toEqual([completedConversation])\napp/src/services/agents\\agent_integration.test.ts:1457:        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([completedConversation])\napp/src/services/agents\\agent_integration.test.ts:1486:        const conversationsBefore = cardBefore?.agentConversations\napp/src/services/agents\\agent_integration.test.ts:1495:        expect(cardAgentState(cardAfter?.agentConversations ?? [])).toBe('waiting for input')\napp/src/services/agents\\agent_integration.test.ts:1499:        expect(cardAfter?.agentConversations).toBe(conversationsBefore)\napp/src/services/agents\\agent_integration.test.ts:1528:        expect(cardAgentState(service.getState().snapshot?.activeCards[0].agentConversations ?? [])).toBe('running')\napp/src/services/agents\\agent_integration.test.ts:1532:        const conversations = service.getState().snapshot?.activeCards[0].agentConversations ?? []\napp/src/services/data\\markdown_parsing_service.ts:435:            agentConversationErrors: [],\napp/src/services/data\\markdown_parsing_service.ts:436:            agentConversations: [],\napp/src/services/agents\\agent_usage.ts:25:    const conversations = Array.isArray(source) ? source : source.agentConversations\napp/src/services/agents\\agent_usage.ts:74:    const currentUsage = sumAgentTokenUsage(activeCards.map(({ agentConversations }) => cardAgentTokenUsage(agentConversations)))\napp/src/services/agents\\agent_usage.ts:78:            .map(({ agentConversations }) => cardAgentTokenUsage(agentConversations)),\napp/src/components/hooks\\use_active_card.test.tsx:10:        agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true,\napp/src/components/hooks\\project_toolbar_snapshots.test.tsx:12:        agentConversationErrors: [],\napp/src/components/hooks\\project_toolbar_snapshots.test.tsx:13:        agentConversations: [],\napp/src/components/hooks\\project_toolbar_snapshots.test.tsx:63:                ...activeCard, agentConversations: [{\napp/src/components/hooks\\use_active_document.test.ts:9:        agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true, path,\napp/src/services/agents\\conversation_pin_service.node.test.ts:43:        service.subscribeConversation('conversation-1', conversationListener)\napp/src/components/hooks\\use_agent_acknowledgements.ts:21:    return cardInternalId ? dataService.agents.getAgentConversations(cardInternalId) : []\napp/src/components/hooks\\use_agent_acknowledgements.ts:51:        dataService.agents.getProjectAgentConversationsSnapshot()\napp/src/services/agents\\conversation_pin_service.ts:49:    subscribeConversation(conversationId: string, listener: () => void) {\napp/src/components/hooks\\use_context_action_agent_state.ts:31:            ? dataService.agents.getProjectAgentConversationsSnapshot()\napp/src/components/hooks\\use_context_action_agent_state.ts:33:                ? dataService.agents.getAgentConversations(cardInternalId)\napp/src/components/hooks\\use_conversation_pinned.ts:9:        conversationId ? dataService.conversationPins.subscribeConversation(conversationId, listener) : () => undefined\napp/src/components/hooks\\use_open_files.test.ts:8:    agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true, path: 'design/card.md',\n",
+          "durationMs": 222,
+          "exitCode": 0,
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-28",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"getAgentConversations|getProjectAgentConversationsSnapshot|subscribe.*Conversation|agentConversation\\\" app/src/components/hooks app/src/services/agents app/src/services/data/data_service.ts app/src/services/data --glob '*.ts' --glob '*.tsx'\"",
+          "providerItemId": "exec-eaf8a8d2-4fc0-401f-af1e-7478926b5bb2",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:28:19.835Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\hooks\\\\use_context_action_agent_state.ts'; Get-Content 'app\\\\src\\\\services\\\\agents\\\\agent_integration.ts' | Select-Object -Skip 130 -First 55; Get-Content 'app\\\\src\\\\services\\\\agents\\\\agent_integration.ts' | Select-Object -Skip 315 -First 155; Get-Content 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_frame.tsx' | Select-Object -Skip 150 -First 65\"",
+          "content": "import { useCallback, useSyncExternalStore } from 'react'\nimport type { ActionContext } from '../../data/action_context'\nimport {\n    actionAcknowledgementEvent,\n    agentAcknowledgementService,\n    PROJECT_ACKNOWLEDGEMENT_EVENT,\n} from '../../services/agents/agent_acknowledgement_service'\nimport { cardAgentState } from '../../services/agents/card_agent_state'\nimport { dataService } from '../../services/data/data_service'\nimport { useActionContextCard } from './use_action_context_card'\n\n/** Persisted agent state for one action in a card or project context. */\nexport function useContextActionAgentState(actionId: string, context: ActionContext) {\n    const { card } = useActionContextCard(context)\n    const cardInternalId = card?.header.internalId ?? context.cardInternalId\n    const isProject = context.kind === 'project'\n    const subscribe = useCallback((onStoreChange: () => void) => {\n        const eventType = isProject\n            ? PROJECT_ACKNOWLEDGEMENT_EVENT\n            : cardInternalId\n                ? actionAcknowledgementEvent(cardInternalId, actionId)\n                : null\n        if (!eventType) return () => undefined\n\n        agentAcknowledgementService.addEventListener(eventType, onStoreChange)\n\n        return () => agentAcknowledgementService.removeEventListener(eventType, onStoreChange)\n    }, [actionId, cardInternalId, isProject])\n    const getSnapshot = useCallback(() => {\n        const conversations = isProject\n            ? dataService.agents.getProjectAgentConversationsSnapshot()\n            : cardInternalId\n                ? dataService.agents.getAgentConversations(cardInternalId)\n                : []\n\n        return cardAgentState(conversations.filter((conversation) => conversation.actionId === actionId))\n    }, [actionId, cardInternalId, isProject])\n\n    return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)\n}\n\r\n    reset() {\r\n        this.stopScheduledRunWatch()\r\n        this.resetLoadedConversations()\r\n    }\r\n\r\n    resetLoadedConversations() {\r\n        this.cardLoadsInFlight.clear()\r\n        this.conversationsByCardInternalId.clear()\r\n        this.conversationLoadGeneration += 1\r\n        this.conversationWriteSequenceById.clear()\r\n        this.currentProjectLoadToken = null\r\n        this.errorsByCardInternalId.clear()\r\n        this.loadedCardInternalIds.clear()\r\n        this.projectConversations = []\r\n        this.projectLoad = null\r\n        this.projectLoadCompleted = false\r\n        this.resetPinnedConversations()\r\n        this.reportedLoadErrorKeys.clear()\r\n        agentAcknowledgementService.reset()\r\n        agentAcknowledgementService.announceConversationsChanged(null, [])\r\n    }\r\n\r\n    readonly getPinnedConversationsSnapshot = () => this.pinnedConversations\r\n\r\n    readonly subscribePinnedConversations = (listener: () => void) => {\r\n        this.pinnedConversationEvents.addEventListener(PINNED_CONVERSATIONS_CHANGED_EVENT, listener)\r\n\r\n        return () => this.pinnedConversationEvents.removeEventListener(PINNED_CONVERSATIONS_CHANGED_EVENT, listener)\r\n    }\r\n\r\n    /** Gates activity-file refreshes that only serve the pinned-conversation popup. */\r\n    setPinnedConversationsPopupOpen(open: boolean) {\r\n        this.pinnedPopupOpen = open\r\n    }\r\n\r\n    /** Loads conversations from activity files identified by current pin locators. */\r\n    async ensurePinnedConversationsLoaded() {\r\n        if (this.pinnedLoadCompleted) return this.pinnedConversations\r\n        if (this.pinnedLoad) {\r\n            await this.pinnedLoad\r\n\r\n            return this.pinnedConversations\r\n        }\r\n\r\n        const project = this.dependencies.project()\r\n        if (!project) throw new Error('Cannot load pinned conversations before a project is open')\r\n        const projectLoadToken = this.requireProjectLoadToken()\r\n        const generation = this.conversationLoadGeneration\r\n        const tracked = this.loadPinnedConversations(project, projectLoadToken, generation)\r\n        this.pinnedLoad = tracked\r\n        try {\r\n            await tracked\r\n            if (this.canApplyLoad(generation, project, proje\n[7357 characters omitted]\n {\r\n        const cardInternalId = card.header.internalId\r\n        card.agentConversationErrors = cardInternalId ? this.errorsByCardInternalId.get(cardInternalId) ?? [] : []\r\n        card.agentConversations = cardInternalId ? this.conversationsByCardInternalId.get(cardInternalId) ?? [] : []\r\n\r\n        return card\r\n    }\r\n\r\n    /** Applies a persisted conversation returned by an atomic backend update. */\r\n    updateAgentConversation(conversation: AgentConversation) {\r\n        this.updateProjectConversation(conversation)\r\n        const referencingCardInternalIds = [...this.conversationsByCardInternalId]\r\n            .filter(([, conversations]) => conversations.some(({ path }) => path === conversation.path))\r\n            .map(([cardInternalId]) => cardInternalId)\r\n        if (referencingCardInternalIds.length > 0) {\r\n            referencingCardInternalIds.forEach((cardInternalId) => this.upsertAgentConversation(cardInternalId, conversation))\r\n            return\r\n                            <ActionPopupTargetBadge context={baseContext} />\r\n                            {assignmentTarget && !readOnlyMessage ? (\r\n                                <ActionWorktreeSelectorOwner\r\n                                    assignment={worktreeAssignment}\r\n                                    assignmentTarget={assignmentTarget}\r\n                                    bindingStore={bindingStore}\r\n                                    primaryPath={primaryPath}\r\n                                    sequenceCardInternalId={baseContext.kind === 'card' ? baseContext.cardInternalId ?? null : null}\r\n                                />\r\n                            ) : null}\r\n                            {action.type === 'agent' ? (\r\n                                <ActionConversationPickerOwner\r\n                                    actionId={action.id}\r\n                                    bindingStore={bindingStore}\r\n                                    context={assignmentContext}\r\n                                    store={conversationStore}\r\n                                />\r\n                            ) : null}\r\n                            <Box sx={{ flex: 1 }} />\r\n                            <ActionConversationSearchButton service={conversationSearchService} />\r\n                            {!isMobile ? (\r\n                                <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>\r\n                                    <IconButton\r\n                                        aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}\r\n                                        onClick={onToggleFullHeight}\r\n                                        size=\"small\"\r\n                                        sx={{ flexShrink: 0, height: 30, width: 30 }}\r\n                                    >\r\n                                        {fullHeight\r\n                                            ? <ArrowCollapseVertical sx={{ fontSize: 18 }} />\r\n                                            : <ArrowExpandVertical sx={{ fontSize: 18 }} />}\r\n                                    </IconButton>\r\n                                </Tooltip>\r\n                            ) : null}\r\n                            <IconButton aria-label=\"Close\" onClick={onClose} size=\"small\" sx={{ flexShrink: 0, height: 30, width: 30 }}>\r\n                                <Close sx={{ fontSize: 18 }} />\r\n                            </IconButton>\r\n                        </Box>\r\n                        <ActionSelector\r\n                            actions={actions}\r\n                            context={assignmentContext}\r\n                            onSelect={onSelectAction}\r\n                            selectedAction={action}\r\n                            selectedHasForEach={selectedHasForEach}\r\n                        />\r\n                        <ActionConversationSearchRow service={conversationSearchService} />\r\n                    </Box>\r\n                    {children}\r\n                </Box>\r\n            </MarkdownTypeaheadLayerProvider>\r\n        </ResizablePopper>\r\n    )\r\n}\r\n",
+          "durationMs": 133,
+          "exitCode": 0,
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-29",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\hooks\\\\use_context_action_agent_state.ts'; Get-Content 'app\\\\src\\\\services\\\\agents\\\\agent_integration.ts' | Select-Object -Skip 130 -First 55; Get-Content 'app\\\\src\\\\services\\\\agents\\\\agent_integration.ts' | Select-Object -Skip 315 -First 155; Get-Content 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_popup_frame.tsx' | Select-Object -Skip 150 -First 65\"",
+          "providerItemId": "exec-dcb281c8-6c40-49fc-8e8e-131876e40689",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:28:25.664Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-30",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07c041816c468240016b043175b4f487d297dcd6773454731a",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:28:36.769Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-31",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07c041816c468240016b04317f07d087d2bd44b7e2d78eea34",
+          "sequence": 31,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:28:46.617Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-32",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07c041816c468240016b043180e29087d29fd328a81310a494",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:28:47.865Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_472_no_filters_on_actions_for_released_cards.md",
+          "deletions": 2,
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-33",
+          "insertions": 36,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-2148863a-bb4d-4e58-a0e1-e62ece26782f",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:29:09.164Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-34",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07c041816c468240016b0431982c0487d297f02bd333fd66d1",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:29:11.151Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md'; git diff -- 'design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md'; git status --short -- 'design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md'\"",
+          "content": "diff --git a/design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md b/design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md\nindex b5bf7798e..7a26f932b 100644\n--- a/design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md\n+++ b/design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md\n@@ -3,7 +3,7 @@ author:\n id: F_472\n internalId: 9700b31c-8ed5-4ec1-bf04-012a1bef1eb5\n title: no filters on actions for released cards\n-status: design\n+status: ready for implementation\n owner: \n affects:\n agents:\n@@ -19,4 +19,38 @@ In fact this should be an option that is always available on the action popup (t\n \n * all\n * specific for context\n-* only those that have conversation logs\n\\ No newline at end of file\n+* only those that have conversation logs\n+\n+## Current state\n+\n+`ActionPopup` gets its normal selector entries from `displayActionsForContext`, which applies each action's `appliesTo` filters. For a background card, `useHistoricalActivityKey` and `HistoricalCardActivityService` load referenced activity files. `historicalCardActions` then adds action identities found in stored runs or conversations to the context-specific actions. This already makes historical actions visible on many released cards, but it is automatic and cannot be changed by the user.\n+\n+Released-card detection only makes execution read-only. `ActionSelector` renders the supplied actions in a horizontal button row and has no context menu or visibility preference. No service owns or persists an action-visibility mode.\n+\n+Here, **conversation log** means a stored `AgentConversation` for the popup's current card or project context. Command run history without an `AgentConversation` is not a conversation log.\n+\n+## implementation details\n+\n+- Add three action-visibility modes: `All`, `Specific for context`, and `Has conversation log`.\n+- Store an explicit user choice globally through `applicationStorage`, not project configuration. A small `EventTarget`-based store beside the action-popup code owns the persisted value and exposes a stable snapshot for `useSyncExternalStore`.\n+- When no persisted choice exists, use `Specific for context` for normal popups and `Has conversation log` for released cards. Once the user chooses a mode, that global choice overrides both defaults in every project.\n+- Keep `displayActionsForContext` as the source for `Specific for context`. `All` contains every loaded user-defined action plus the built-in custom-prompt action, without applying `appliesTo`. `Has conversation log` contains only action IDs present in stored `AgentConversation` records for the current context.\n+- For a logged action that is no longer loaded, keep using a synthetic historical definition so its conversation remains selectable. Include the custom-prompt action in `Has conversation log` only when that context has a custom-prompt conversation. Do not treat command-only activity records as conversation logs.\n+- Use live card and project conversation snapshots for active contexts. Use referenced historical activity for background and released cards. Keep lists reactive when conversations are added or loaded.\n+- Open a MUI context menu when the user right-clicks the action-selector row. Show all three modes as mutually exclusive selected menu items. Prevent the browser context menu only within that row.\n+- When a mode change hides the selected action, select the first visible action using existing selector order. Preserve current protection for an action that drops out only because its card context changes during a live run.\n+- Keep the popup open while released-card activity is loading. Do not temporarily label context-specific actions as conversation-backed. If `Has conversation log` has no entries, show an empty selector state that can still be right-clicked to change mode.\n+- Keep released-card execution read-only in every mode. `All` changes selector visibility; it does not bypass released-card validation.\n+- Add focused store, action-derivation, selector-context-menu, popup-default, persistence, loading, empty-state, selection-change, and released-card regression tests.\n+\n+## acceptance criteria\n+\n+- With no saved preference, a normal action popup shows `Specific for context`; a released-card popup shows only actions having conversation logs.\n+- Right-clicking the action-selector row opens a menu containing `All`, `Specific for context`, and `Has conversation log`, with the active mode selected.\n+- Selecting a mode updates the open popup immediately and persists that choice globally across popup reopen, project change, and application restart.\n+- `All` shows every loaded user-defined action and custom prompt regardless of `appliesTo`; `Specific for context` keeps current applicability behavior.\n+- `Has conversation log` shows current, removed, and custom-prompt actions only when the current context has a stored `AgentConversation` for that action. Command-only history does not make an action visible.\n+- Released-card conversation actions remain selectable and their historical conversations remain readable, but no action can run from the released card.\n+- Changing mode never leaves a hidden action selected. A live action lost only through a card-context change remains available as it does now.\n+- While released-card activity loads, the popup remains visible without showing an incorrect action set. With no matching conversations, it shows an empty selector state and still allows mode changes through right-click.\n+- Normal action selection, initial-action resolution, active-run indicators, conversation loading, and horizontal selector scrolling continue to work.\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n M design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md\n",
+          "durationMs": 181,
+          "exitCode": 0,
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-35",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md'; git diff -- 'design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md'; git status --short -- 'design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md'\"",
+          "providerItemId": "exec-cb10d5e3-88d1-4888-a655-2ae7905082b5",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-11-23T12:29:14.348Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-event-36",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07c041816c468240016b04319e52a487d2bde2646bad7a73ab",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T12:29:17.582Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_472_no_filters_on_actions_for_released_cards.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_472_no_filters_on_actions_for_released_cards.md).\n\nAdded:\n\n- `Current state`\n- `implementation details`\n- `acceptance criteria`\n- Global persisted visibility choice\n- Released-card default\n- Right-click context menu behavior\n- Loading, empty-state, selection, and test requirements\n\nStatus now `ready for implementation`. Diff check passed. Nothing staged or committed.\n\n",
+          "id": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 37,
+          "timestamp": "2026-11-23T12:29:25.786Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -300,12 +495,12 @@
           "agent": "codex",
           "conversationId": "01a1f35e-b9ff-74d1-bf43-14aa07c77e40",
           "createdAt": "2026-11-19T10:33:55.206Z",
-          "lastUsedAt": "2026-11-23T12:27:41.863Z",
-          "synchronizedThroughMessageId": "submission-ebeb4f58-5840-4e3c-8913-2a4437538d7c"
+          "lastUsedAt": "2026-11-23T12:29:25.786Z",
+          "synchronizedThroughMessageId": "agent-turn-d1da4279-a1c1-4734-8745-65e13b28907a-turn-1-assistant-2"
         }
       ],
       "startedAt": "2026-11-19T10:33:53.730Z",
-      "status": "running",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -321,39 +516,39 @@
           {
             "id": "2",
             "subject": "Clarify selector default, persistence, and context-menu placement",
-            "status": "inProgress"
+            "status": "completed"
           },
           {
             "id": "3",
             "subject": "Update feature sections and status",
-            "status": "pending"
+            "status": "completed"
           },
           {
             "id": "4",
             "subject": "Verify diff and document consistency",
-            "status": "pending"
+            "status": "completed"
           }
         ],
-        "updatedAt": "2026-11-19T10:35:02.475Z"
+        "updatedAt": "2026-11-23T12:29:19.777Z"
       },
       "timer": {
         "breakdown": {
-          "reasoningMs": 52,
-          "toolMs": 3093
+          "reasoningMs": 54,
+          "toolMs": 5776
         },
-        "elapsedMs": 71885,
-        "runningStartedAt": "2026-11-23T12:27:41.077Z"
+        "elapsedMs": 176594,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 471808,
-        "inputTokens": 55703,
-        "outputTokens": 1610,
-        "reasoningTokens": 911,
-        "totalTokens": 530032
+        "cachedInputTokens": 1004032,
+        "inputTokens": 125548,
+        "outputTokens": 3558,
+        "reasoningTokens": 3457,
+        "totalTokens": 1136595
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -387,6 +582,45 @@
       "startedAt": "2026-11-19T10:33:53.727Z",
       "status": "cancelled",
       "rootConversationId": "agent-ec453f05-41c2-408f-9470-2466737dc617"
+    },
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "0ac2680efae41eecc47a129f43af7bfe466bab4d",
+          "committedAt": "2026-11-23T13:29:26+01:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_472_no_filters_on_actions_for_released_cards.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 36
+        }
+      ],
+      "completedAt": "2026-11-23T12:29:26.739Z",
+      "conversationIds": [
+        "agent-ec453f05-41c2-408f-9470-2466737dc617"
+      ],
+      "details": {
+        "accountId": "codex-initial",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-5.6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-743b0f68-db7b-4e94-b68b-8c1587c4631f",
+      "origin": {
+        "cardInternalId": "9700b31c-8ed5-4ec1-bf04-012a1bef1eb5",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-ec453f05-41c2-408f-9470-2466737dc617",
+      "startedAt": "2026-11-23T12:27:41.075Z",
+      "status": "completed"
     }
   ],
   "version": 5
