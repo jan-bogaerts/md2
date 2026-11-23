@@ -10099,7 +10099,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-11-23T09:54:05.762Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 74632
@@ -10569,7 +10569,7 @@
         }
       ],
       "startedAt": "2026-11-23T09:20:16.901Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "taskList": {
         "tasks": [
           {
@@ -11181,14 +11181,14 @@
         "agent-961195c1-59da-4fc7-8ffe-8dfec8a295a1"
       ],
       "details": {
+        "type": "agent",
         "accountId": "codex-initial",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-7af8930f-a103-4643-998f-362128b5888b",
       "origin": {
@@ -11196,9 +11196,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-961195c1-59da-4fc7-8ffe-8dfec8a295a1",
       "startedAt": "2026-11-23T09:20:16.898Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-961195c1-59da-4fc7-8ffe-8dfec8a295a1"
     }
   ],
   "version": 5
