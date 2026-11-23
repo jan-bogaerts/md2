@@ -3181,14 +3181,14 @@
         "agent-05a81003-8b4a-42e8-a0b8-7629c7408efd"
       ],
       "details": {
+        "type": "agent",
         "accountId": "codex-initial",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-5.6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-454204ca-4d62-4cd1-a3ab-a5405913a10b",
       "origin": {
@@ -3196,9 +3196,27 @@
       },
       "rootActionId": "08f06be2-ad73-4e24-8d05-f63b5f5c8340",
       "rootActionLabel": "describe on website",
-      "rootConversationId": "agent-05a81003-8b4a-42e8-a0b8-7629c7408efd",
       "startedAt": "2026-11-23T13:52:18.076Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-05a81003-8b4a-42e8-a0b8-7629c7408efd"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-11-23T14:58:55.020Z",
+      "conversationIds": [],
+      "details": {
+        "command": "powershell.exe -NoProfile -File \"C:\\Users\\janbo\\Documents\\dev\\md2\\scripts\\publish_release.ps1\"",
+        "output": "Release notes file missing: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0.12.0\\release_notes.md\r\nAt C:\\Users\\janbo\\Documents\\dev\\md2\\scripts\\publish_release.ps1:23 char:5\r\n+     throw \"Release notes file missing: $notesPath\"\r\n+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (Release notes f...elease_notes.md:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : Release notes file missing: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\releases\\0.12.0\\rele \r\n   ase_notes.md\r\n \r\n",
+        "type": "command"
+      },
+      "runId": "action-f54a565e-553b-4840-ab63-79e393d53d97",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "8defd290-97ce-4caf-ad94-a25efbb61798",
+      "rootActionLabel": "publish",
+      "startedAt": "2026-11-23T14:58:54.518Z",
+      "status": "failed"
     }
   ],
   "version": 5
