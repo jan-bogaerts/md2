@@ -3,7 +3,7 @@ author:
 id: F_472
 internalId: 9700b31c-8ed5-4ec1-bf04-012a1bef1eb5
 title: no filters on actions for released cards
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,23 @@ agents:
 policy:
 branch: f_472_no_filters_on_actions_for_released_cards
 worktree: 3
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup.tsx
+  - app/src/components/actions/run/popup/action_popup_empty_state.tsx
+  - app/src/components/actions/run/popup/action_popup_frame.tsx
+  - app/src/components/actions/run/popup/action_popup_types.ts
+  - app/src/components/actions/run/popup/action_selector.test.tsx
+  - app/src/components/actions/run/popup/action_selector.tsx
+  - app/src/components/actions/run/popup/action_visibility.node.test.ts
+  - app/src/components/actions/run/popup/action_visibility.ts
+  - app/src/components/actions/run/popup/action_visibility_mode_store.test.ts
+  - app/src/components/actions/run/popup/action_visibility_mode_store.ts
+  - app/src/components/actions/run/popup/historical_card_actions.node.test.ts
+  - app/src/components/actions/run/popup/historical_card_actions.ts
+  - app/src/components/actions/run/popup/use_historical_activity_key.ts
+  - app/src/components/hooks/use_action_visibility_conversations.ts
+  - app/src/services/storage/application_storage.ts
 ---
 
 When opening the action-popup for a released card from list-view, (so action popup is opened from the card-editor), we only get the '+' action, so we can't see any historical conversation logs. this is not ok.
