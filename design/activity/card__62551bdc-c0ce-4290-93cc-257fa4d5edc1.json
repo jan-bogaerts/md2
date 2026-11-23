@@ -1093,6 +1093,36 @@
       "startedAt": "2026-11-23T08:46:45.032Z",
       "status": "completed",
       "rootConversationId": "agent-99c010c9-de41-4172-9510-979d3f60e157"
+    },
+    {
+      "commits": [
+        {
+          "commit": "9bd4e57fbb8ae1430abfcf72d690bdcb5ef139f4",
+          "committedAt": "2026-11-23T09:56:19+01:00",
+          "deletions": 10,
+          "filePaths": [
+            "app/src/components/hooks/use_primary_changes.ts",
+            "app/src/components/primary_change_message_field.tsx",
+            "app/src/components/primary_changes_cancel_button.tsx",
+            "app/src/components/primary_changes_commit_progress.tsx",
+            "app/src/components/primary_changes_confirm_button.tsx",
+            "app/src/components/primary_changes_dialog.test.tsx",
+            "app/src/components/primary_changes_dialog.tsx",
+            "app/src/services/project/primary_changes_service.node.test.ts",
+            "app/src/services/project/primary_changes_service.ts"
+          ],
+          "filesChanged": 9,
+          "insertions": 255,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-23T09:56:19+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "62551bdc-c0ce-4290-93cc-257fa4d5edc1",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
