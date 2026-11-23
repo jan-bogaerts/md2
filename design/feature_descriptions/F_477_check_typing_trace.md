@@ -3,7 +3,7 @@ author:
 id: F_477
 internalId: 1281ca20-aa25-484f-a577-8c52cfcf02ee
 title: check typing trace
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,15 @@ agents:
 policy:
 branch: f_477_check_typing_trace
 worktree: 1
+changedFiles:
+  - app/src/components/worktree_selector.test.tsx
+  - app/src/components/worktree_selector.tsx
+  - app/src/components/worktree_selector_assignment_state.ts
+  - app/src/components/worktree_selector_controller.tsx
+  - app/src/components/worktree_selector_status_button.tsx
+  - app/src/components/worktree_selector_types.ts
+  - app/src/services/project/worktree_service.node.test.ts
+  - desktop/src/git/worktree_service.test.mjs
 ---
 
 Check this trace: [Trace-typing.json](file:///C:/Users/janbo/Documents/dev/Trace-typing.json)
