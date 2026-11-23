@@ -1595,6 +1595,14 @@
           "role": "assistant",
           "sequence": 42,
           "timestamp": "2026-11-23T12:15:41.500Z"
+        },
+        {
+          "content": "go",
+          "id": "submission-d11d6c5f-baab-4ba8-94f7-901098e696cb",
+          "kind": "message",
+          "role": "user",
+          "sequence": 43,
+          "timestamp": "2026-11-23T12:21:25.427Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1605,12 +1613,12 @@
           "agent": "codex",
           "conversationId": "01a20853-b8b7-7a91-bfdb-55e2b8c5ef5b",
           "createdAt": "2026-11-23T12:13:55.394Z",
-          "lastUsedAt": "2026-11-23T12:15:41.500Z",
-          "synchronizedThroughMessageId": "agent-turn-080f4c40-ca74-4dfb-aa17-f779b9d6593f-turn-1-assistant-4"
+          "lastUsedAt": "2026-11-23T12:21:25.769Z",
+          "synchronizedThroughMessageId": "submission-d11d6c5f-baab-4ba8-94f7-901098e696cb"
         }
       ],
       "startedAt": "2026-11-23T12:13:54.061Z",
-      "status": "waitingForInput",
+      "status": "running",
       "taskList": {
         "tasks": [
           {
@@ -1662,7 +1670,7 @@
           "toolMs": 3307
         },
         "elapsedMs": 107439,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-11-23T12:21:25.427Z"
       },
       "title": "implement",
       "usage": {
@@ -1673,7 +1681,7 @@
         "totalTokens": 339316
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
