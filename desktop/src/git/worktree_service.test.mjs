@@ -71,6 +71,29 @@ function createFailedCleanGitRunner(cleanError, statusOutput) {
     });
 }
 
+describe('WorktreeService refresh publication', () => {
+    it('does not notify listeners when a scheduled refresh produces equivalent state', async () => {
+        const service = createService();
+        const project = { branch: 'main', id: 'project', rootPath: 'C:\\project' };
+        const primaryStatus = { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false };
+        const record = {
+            branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:\\feature',
+            status: primaryStatus, valid: true,
+        };
+        service.project = project;
+        service.projectGeneration = 1;
+        vi.spyOn(service, 'primaryRepositoryStatus').mockResolvedValue({ ...primaryStatus });
+        vi.spyOn(service, 'readWorktreeRecords').mockResolvedValue([{ ...record, status: { ...record.status } }]);
+        const listener = vi.fn();
+        service.subscribe(listener);
+
+        await service.refreshLocal();
+        await service.refreshLocal();
+
+        expect(listener).toHaveBeenCalledTimes(2);
+    });
+});
+
 describe('WorktreeService linked worktree mutations', () => {
     it('creates a linked worktree and prepares its parking branch', async () => {
         const repository = await createRepository();

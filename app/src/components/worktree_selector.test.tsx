@@ -53,6 +53,18 @@ function renderAssignedWorktree(record: WorktreeRecord) {
     )
 }
 
+function TrackedWorktreeSelector({ onRender }: { onRender: () => void }) {
+    onRender()
+
+    return (
+        <WorktreeSelector
+            assignment={{ branch: 'feature', worktree: 1 }}
+            assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+            primaryPath={null}
+        />
+    )
+}
+
 describe('WorktreeSelector', () => {
     beforeEach(() => configService.init())
 
@@ -247,6 +259,46 @@ describe('WorktreeSelector', () => {
         })
 
         expect(screen.getByRole('button', { name: /project changes pending yes/u })).toBeInTheDocument()
+    })
+
+    it('updates only the status button while closed and opens with latest record state', () => {
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([worktrees[0]])
+        const ownerRender = vi.fn()
+        render(<AppThemeProvider><TrackedWorktreeSelector onRender={ownerRender} /></AppThemeProvider>)
+        ownerRender.mockClear()
+        const changedRecord = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+
+        act(() => {
+            records.mockReturnValue([changedRecord])
+            worktreeService.dispatchEvent(new CustomEvent('recordChanged', { detail: { branch: 'feature', record: changedRecord } }))
+        })
+
+        expect(ownerRender).not.toHaveBeenCalled()
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+        const button = screen.getByRole('button', { name: /dirty yes/u })
+        fireEvent.click(button)
+        expect(screen.getByRole('menuitem', { name: 'Commit' })).not.toHaveAttribute('aria-disabled')
+    })
+
+    it('updates action availability when assigned record changes while menu is open', () => {
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([worktrees[0]])
+        render(<AppThemeProvider>
+            <WorktreeSelector
+                assignment={{ branch: 'feature', worktree: 1 }}
+                assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
+                primaryPath={null}
+            />
+        </AppThemeProvider>)
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        expect(screen.getByRole('menuitem', { name: 'Commit' })).toHaveAttribute('aria-disabled', 'true')
+        const changedRecord = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+
+        act(() => {
+            records.mockReturnValue([changedRecord])
+            worktreeService.dispatchEvent(new CustomEvent('recordChanged', { detail: { branch: 'feature', record: changedRecord } }))
+        })
+
+        expect(screen.getByRole('menuitem', { name: 'Commit' })).not.toHaveAttribute('aria-disabled')
     })
 
     it('blocks lifecycle controls for a missing branch while offering explicit reselection', () => {

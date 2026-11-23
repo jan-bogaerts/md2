@@ -183,16 +183,30 @@ describe('WorktreeService', () => {
         expect(storage.rebaseWorktree).not.toHaveBeenCalled();
     });
 
-    it('replaces records from pushed state and preserves identity for equal records', () => {
+    it('preserves record identity and emits no events for equivalent pushed state', () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()
         initService(service, storage)
         emit(project, [first])
         const records = service.getRecords()
+        const record = records[0]
+        const changed = vi.fn()
+        const recordChanged = vi.fn()
+        const recordsChanged = vi.fn()
+        const primaryStatusChanged = vi.fn()
+        service.addEventListener('changed', changed)
+        service.addEventListener('recordChanged', recordChanged)
+        service.addEventListener('recordsChanged', recordsChanged)
+        service.addEventListener('primaryStatusChanged', primaryStatusChanged)
 
         emit(project, [{ ...first, status: { ...first.status } }])
 
         expect(service.getRecords()).toBe(records)
+        expect(service.getRecords()[0]).toBe(record)
+        expect(changed).not.toHaveBeenCalled()
+        expect(recordChanged).not.toHaveBeenCalled()
+        expect(recordsChanged).not.toHaveBeenCalled()
+        expect(primaryStatusChanged).not.toHaveBeenCalled()
     })
 
     it('replaces the old subscription when initialized again', () => {
@@ -287,14 +301,23 @@ describe('WorktreeService', () => {
         emit(project, [first]);
         const assignment = service.getAssignmentSnapshot();
         const assignmentChanged = vi.fn();
+        const changed = vi.fn();
+        const primaryStatusChanged = vi.fn();
+        const recordsChanged = vi.fn();
         const statusChanged = vi.fn();
         service.addEventListener('assignmentChanged', assignmentChanged);
+        service.addEventListener('changed', changed);
+        service.addEventListener('primaryStatusChanged', primaryStatusChanged);
+        service.addEventListener('recordsChanged', recordsChanged);
         service.addEventListener('recordChanged', statusChanged);
 
         emit(project, [{ ...first, status: { ...first.status, dirty: true, baseAhead: 2 } }]);
 
         expect(service.getAssignmentSnapshot()).toBe(assignment);
         expect(assignmentChanged).not.toHaveBeenCalled();
+        expect(changed).not.toHaveBeenCalled();
+        expect(primaryStatusChanged).not.toHaveBeenCalled();
+        expect(recordsChanged).not.toHaveBeenCalled();
         expect(statusChanged).toHaveBeenCalledOnce();
         expect((statusChanged.mock.calls[0][0] as CustomEvent).detail.branch).toBe(first.branch);
         expect(service.getRecords()[0].status).toMatchObject({ dirty: true, baseAhead: 2 });
@@ -325,7 +348,13 @@ describe('WorktreeService', () => {
         const service = new WorktreeService()
         initService(service, storage)
         const recordsChanged = vi.fn()
+        const changed = vi.fn()
+        const recordChanged = vi.fn()
+        const primaryStatusChanged = vi.fn()
+        service.addEventListener('changed', changed)
+        service.addEventListener('recordChanged', recordChanged)
         service.addEventListener('recordsChanged', recordsChanged)
+        service.addEventListener('primaryStatusChanged', primaryStatusChanged)
 
         emit(project, [first])
         emit(project, [first, second])
@@ -333,6 +362,9 @@ describe('WorktreeService', () => {
         emit(project, [second])
 
         expect(recordsChanged).toHaveBeenCalledTimes(4)
+        expect(changed).not.toHaveBeenCalled()
+        expect(recordChanged).not.toHaveBeenCalled()
+        expect(primaryStatusChanged).not.toHaveBeenCalled()
         expect(service.getAssignmentState({ branch: second.branch, worktree: 2 })).toMatchObject({ index: 1, record: second })
     })
 
@@ -342,12 +374,21 @@ describe('WorktreeService', () => {
         initService(service, storage)
         emit(project, [first])
         const records = service.getRecords()
+        const changed = vi.fn()
+        const recordChanged = vi.fn()
+        const recordsChanged = vi.fn()
         const primaryStatusChanged = vi.fn()
+        service.addEventListener('changed', changed)
+        service.addEventListener('recordChanged', recordChanged)
+        service.addEventListener('recordsChanged', recordsChanged)
         service.addEventListener('primaryStatusChanged', primaryStatusChanged)
 
         emit(project, [{ ...first }], null, { ...first.status, dirty: true })
 
         expect(service.getRecords()).toBe(records)
+        expect(changed).not.toHaveBeenCalled()
+        expect(recordChanged).not.toHaveBeenCalled()
+        expect(recordsChanged).not.toHaveBeenCalled()
         expect(primaryStatusChanged).toHaveBeenCalledOnce()
         expect(service.getPrimaryStatus()?.dirty).toBe(true)
     })
