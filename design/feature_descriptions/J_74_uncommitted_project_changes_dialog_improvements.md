@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__62551bdc-c0ce-4290-93cc-257fa4d5edc1.json
 policy:
+branch: j_74_uncommitted_project_changes_dialog_improvements
+worktree: 1
 ---
 
 While the commit operation is running, the dialog is simply disabled. we should add some animation to show a process is running and include a little text to show what is occuring.
