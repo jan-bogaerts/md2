@@ -10,8 +10,6 @@ agents:
   - design/activity/card__41d340e6-afae-44bd-82e7-41ab673c94e0.json
 policy:
 after: 5221030b-ed7e-4860-bd8f-177274dc9a02
-branch: f_449_config_dialog_for_diagram_items
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/details/diagram_node_details_editor.tsx
   - app/src/components/diagram_view/details/diagram_object_details_dialog.test.tsx

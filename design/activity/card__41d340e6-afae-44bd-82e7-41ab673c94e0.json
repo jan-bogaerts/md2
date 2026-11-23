@@ -1715,6 +1715,29 @@
       "startedAt": "2026-11-23T12:25:43.833Z",
       "status": "completed",
       "rootConversationId": "agent-a5a6b8c6-f65f-48bf-9d1e-311a6d259c57"
+    },
+    {
+      "commits": [
+        {
+          "commit": "3672633f3f7092f6e9bc16d46e3c881edf7d4908",
+          "committedAt": "2026-11-23T13:34:47+01:00",
+          "deletions": 9,
+          "filePaths": [
+            "app/src/components/diagram_view/details/diagram_node_details_editor.tsx",
+            "app/src/components/diagram_view/details/diagram_object_details_dialog.test.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 115,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-11-23T13:34:47+01:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "41d340e6-afae-44bd-82e7-41ab673c94e0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
