@@ -1,5 +1,20 @@
 {
-  "actionSettings": {},
+  "actionSettings": {
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
   "conversations": [
     {
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
@@ -518,6 +533,219 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "62551bdc-c0ce-4290-93cc-257fa4d5edc1",
+      "cardPath": "design/feature_descriptions/J_74_uncommitted_project_changes_dialog_improvements.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 64073
+      },
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/J_74_uncommitted_project_changes_dialog_improvements.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/J_74_uncommitted_project_changes_dialog_improvements.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "submission-d348d280-1fcf-43e7-8e69-dd65aa5716cb",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-11-23T08:46:47.884Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de3cc21f-3923-49af-92d1-2bbe3c77f0c4-event-2",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011ChKZvoBDRGtEK2giWC6VF:thinking:0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T08:46:53.084Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_74_uncommitted_project_changes_dialog_improvements.md\"",
+          "content": "---\nauthor: \nid: J_74\ninternalId: 62551bdc-c0ce-4290-93cc-257fa4d5edc1\ntitle: uncommitted project changes dialog improvements\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__62551bdc-c0ce-4290-93cc-257fa4d5edc1.json\npolicy:\nbranch: j_74_uncommitted_project_changes_dialog_improvements\nworktree: 1\n---\n\nWhile the commit operation is running, the dialog is simply disabled. we should add some animation to show a process is running and include a little text to show what is occuring.\n\nwe just recently did something similar for merge I think, perhaps use similar style\n\n## Current state\n\n`PrimaryChangesDialog` opens when worktree integration finds changes in the primary project branch. `PrimaryChangesService.confirm` marks the service busy, calls `StorageService.commitPrimaryChanges`, and closes the dialog after success. `WorktreeService` then retries integration. A failed commit is reported through `dialogService`; the dialog remains open with the entered message so the user can retry.\n\nThe shared busy state covers both committing and moving a file to trash. It disables the OK and trash controls and makes Cancel a no-op, but it does not identify which operation is running. During a commit, the dialog shows no progress animation or status text, and the commit-message field remains editable. The merge-conflict dialog already uses the intended pattern: an informational alert with `CircularProgress`, explanatory text, and a progress state on the primary action.\n\n## implementation details\n\n* Add commit-specific state to `PrimaryChangesService`, separate from its generic busy state. Expose that state through a granular `EventTarget` event and a `useSyncExternalStore` hook. File-trash operations must remain busy without being presented as commits.\n* Set commit-specific state immediately before `commitPrimaryChanges` starts. Clear it after failure, and reset it when the review finishes after success, cancellation, service reinitialization, or cleanup.\n* While commit-specific state is active, show an informational alert in `PrimaryChangesDialog` with an accessible `CircularProgress` and text stating that project changes are being committed. Change the OK button label to `Committing...` and include a small spinner, matching the merge-conflict completion feedback.\n* Disable the commit-message field, OK, Cancel, file-trash actions, backdrop close, and Escape close until the commit finishes. The commit is non-cancellable: after the storage call starts, dialog controls cannot stop it safely.\n* Keep the dialog open while the commit promise is pending. On success, preserve current behavior: close the review, resolve it as confirmed, then let `WorktreeService` retry integration. On failure, remove progress feedback, keep the message and file list, report the existing error, and restore controls for retry.\n* Add focused component tests with a deferred commit promise to verify immediate feedback, accessible progress, disabled controls, pending-dialog visibility, success closure, and failure recovery. Add service tests for commit-specific state and events. Keep storage and worktree integration contracts unchanged.\n\n## acceptance criteria\n\n* Starting a commit immediately shows a progress animation and text that identifies project changes as the operation in progress.\n* While the commit is pending, the dialog stays open and no field, file action, button, backdrop click, or Escape key can start another action or close the review.\n* Moving a file to trash does not show commit progress or the `Committing...` label.\n* Successful commit closes the dialog, resolves the review as confirmed, and allows the existing integration retry to continue.\n* Failed commit removes progress feedback, preserves the commit message and file list, reports the existing error, and permits retry or cancellation.\n* Progress feedback is accessible and uses theme-backed MUI styling consistent with merge-conflict completion feedback.\n* Focused `PrimaryChangesService` and `PrimaryChangesDialog` tests pass, and `npm run lint` passes.",
+          "id": "agent-turn-de3cc21f-3923-49af-92d1-2bbe3c77f0c4-event-3",
+          "kind": "event",
+          "label": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_74_uncommitted_project_changes_dialog_improvements.md\"",
+          "providerItemId": "toolu_01Ei8EDaAwinuhbqsJx55Wds",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-11-23T08:46:56.198Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"pattern\":\"PrimaryChanges\",\"path\":\"C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src\"}",
+          "id": "agent-turn-de3cc21f-3923-49af-92d1-2bbe3c77f0c4-event-4",
+          "kind": "event",
+          "label": "Grep",
+          "output": "Found 16 files\napp\\src\\data\\data_types.ts\napp\\src\\app.tsx\napp\\src\\services\\project\\save_state_service.ts\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts\napp\\src\\services\\data\\remote_control_storage_service.ts\napp\\src\\services\\data\\local_git_storage_service.ts\napp\\src\\data\\electron_data_bridge.ts\napp\\src\\services\\project\\primary_changes_service.node.test.ts\napp\\src\\services\\project\\primary_changes_service.ts\napp\\src\\components\\primary_changes_dialog.tsx\napp\\src\\components\\primary_change_row.tsx\napp\\src\\components\\primary_changes_confirm_button.tsx\napp\\src\\components\\primary_changes_dialog.test.tsx\napp\\src\\components\\hooks\\use_primary_changes.ts\napp\\src\\components\\primary_change_list.tsx\napp\\src\\components\\primary_change_message_field.tsx",
+          "providerItemId": "toolu_019a1TjTcPpAxUw2PaVErWut",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-11-23T08:46:59.951Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"pattern\":\"CircularProgress\",\"path\":\"C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src\",\"glob\":\"*onflict*\"}",
+          "id": "agent-turn-de3cc21f-3923-49af-92d1-2bbe3c77f0c4-event-5",
+          "kind": "event",
+          "label": "Grep",
+          "output": "Found 1 file\napp\\src\\components\\merge_conflict_dialog.tsx",
+          "providerItemId": "toolu_01BUajmsaoygAAXS9GNsDSdf",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-11-23T08:47:00.314Z",
+          "type": "tool.Grep"
+        },
+        {
+          "command": "cd C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src; cat -n services/project/primary_changes_service.ts components/primary_changes_dialog.tsx components/primary_changes_confirm_button.tsx components/hooks/use_primary_changes.ts components/primary_change_list.tsx components/primary_change_message_field.tsx components/primary_change_row.tsx",
+          "content": "     1\timport type { ProjectReference, StorageService } from '../../data/data_types';\n     2\timport type { PrimaryChange } from '../../data/primary_change_types';\n     3\timport { dialogService } from '../dialog_service';\n     4\timport { register } from '../service_injector';\n     5\t\n     6\texport const PRIMARY_CHANGES_OPEN_EVENT = 'open';\n     7\texport const PRIMARY_CHANGES_LIST_EVENT = 'changes';\n     8\texport const PRIMARY_CHANGES_MESSAGE_EVENT = 'message';\n     9\texport const PRIMARY_CHANGES_BUSY_EVENT = 'busy';\n    10\t\n    11\tconst NO_CHANGES: PrimaryChange[] = [];\n    12\t\n    13\tinterface PrimaryChangesServiceDependencies {\n    14\t    storage: StorageService;\n    15\t}\n    16\t\n    17\tinterface PrimaryChangesReview {\n    18\t    project: ProjectReference;\n    19\t    resolve: (confirmed: boolean) => void;\n    20\t}\n    21\t\n    22\t/** Owns the review of uncommitted primary worktree changes that blocks a worktree integration. */\n    23\texport class PrimaryChangesService extends EventTarget {\n    24\t    private busy = false;\n    25\t    private changes: PrimaryChange[] = NO_CHANGES;\n    26\t    private dependencies: PrimaryChangesServiceDependencies | null = null;\n    27\t    private message = '';\n    28\t    private activeReview: PrimaryChangesReview | null = null;\n    29\t\n    30\t    constructor() {\n    31\t        super();\n    32\t        register('primaryChangesService', this);\n    33\t    }\n    34\t\n    35\t    init(dependencies: PrimaryChangesServiceDependencies) {\n    36\t        this.finishReview(false);\n    37\t        this.dependencies = dependencies;\n    38\t    }\n    39\t\n    40\t    clear() {\n    41\t        this.finishReview(false);\n    42\t        this.dependencies = null;\n    43\t    }\n    44\t\n    45\t    isOpen() {\n    46\t        return !!this.activeReview;\n    47\t    }\n    48\t\n    49\t    isBusy() {\n    50\t        return this.busy;\n    51\t    }\n    52\t\n    53\t    getChanges() {\n    54\t        return this.changes;\n    55\t    }\n    56\t\n    57\t    getMessage() {\n    58\t        return this.message;\n    59\t    }\n    60\t\n    61\t    /** Opens the review dialog; resolves true after the listed changes were committed, false on cancel. */\n    62\t    review(project: ProjectReference, changes: PrimaryChange[]) {\n    63\t        if (this.activeReview) throw new Error('A primary changes review is already open');\n    64\t\n    65\t        const reviewResult = new Promise<boolean>((resolve) => {\n    66\t            this.activeReview = { project, resolve };\n    67\t        });\n    68\t        this.setChanges(changes);\n    69\t        this.setMessage('');\n    70\t        this.dispatchEvent(new Event(PRIMARY_CHANGES_OPEN_EVENT));\n    71\t\n    72\t        return reviewResult;\n    73\t    }\n    74\t\n    75\t    setMessage(message: string) {\n    76\t        if (this.message === message) return;\n    77\t\n    78\t        this.message = message;\n    79\t        this.dispatchEvent(new Event(PRIMARY_CHANGES_MESSAGE_EVENT));\n    80\t    }\n    81\t\n    82\t    async trash(path: string) {\n    83\t        const { project, storage } = this.requireReview();\n    84\t        if (this.busy) return;\n    85\t        if (!storage.trashPrimaryChange) throw new Error('Moving files to the trash requires Electron local mode');\n    86\t\n    87\t        this.setBusy(true);\n    88\t        try {\n    89\t            const trashRequest = { path, project };\n    90\t            const changes = await storage.trashPrimaryChange(trashRequest);\n    91\t            this.setChanges(changes);\n    92\t        } catch (error) {\n    93\t            dialogService.error(error, { fallbackMessage: `Could not move ${path} to the trash` });\n    94\t        } finally {\n    95\t            this.setBusy(false);\n    96\t        }\n    97\t    }\n    98\t\n    99\t    /** OK is allowed when idle and either nothing is left to commit or a commit message was entered. */\n   100\t    canConfirm() {\n   101\t        return !this.busy && (this.changes.length === 0 || this.message.trim().length > 0);\n   102\t    }\n   103\t\n   104\t    async confirm() {\n   105\t        const { project, storage } = this.requireReview();\n   106\t        if (!\n[9806 characters omitted]\n   331\t\n   332\t    const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {\n   333\t        if (event.key !== 'Enter') return;\n   334\t\n   335\t        event.preventDefault();\n   336\t        onSubmit();\n   337\t    };\n   338\t\n   339\t    return (\n   340\t        <TextField\n   341\t            autoFocus\n   342\t            fullWidth\n   343\t            label=\"Commit message\"\n   344\t            onChange={handleChange}\n   345\t            onKeyDown={handleKeyDown}\n   346\t            size=\"small\"\n   347\t            value={message}\n   348\t        />\n   349\t    );\n   350\t}\n   351\timport DeleteOutlined from '@mui/icons-material/DeleteOutlined';\n   352\timport { Box, IconButton, Tooltip, Typography } from '@mui/material';\n   353\timport type { PrimaryChange } from '../data/primary_change_types';\n   354\timport { primaryChangesService } from '../services/project/primary_changes_service';\n   355\timport { dialogService } from '../services/dialog_service';\n   356\timport { usePrimaryChangesBusy } from './hooks/use_primary_changes';\n   357\t\n   358\tinterface PrimaryChangeRowProps {\n   359\t    change: PrimaryChange;\n   360\t}\n   361\t\n   362\tconst STATE_DOT_SIZE = 8;\n   363\t\n   364\t/** Dot color and tooltip that tell whether an entry is tracked by Git and how it changed. */\n   365\tfunction trackedIndicator({ kind, tracked }: PrimaryChange) {\n   366\t    if (!tracked) return { color: 'info.main', label: 'Untracked: not yet in Git' };\n   367\t    if (kind === 'deleted') return { color: 'error.main', label: 'Tracked: deleted' };\n   368\t\n   369\t    return { color: 'warning.main', label: `Tracked: ${kind}` };\n   370\t}\n   371\t\n   372\t/** One dirty primary worktree entry with its tracked state and an optional trash action. */\n   373\texport function PrimaryChangeRow({ change }: PrimaryChangeRowProps) {\n   374\t    const busy = usePrimaryChangesBusy();\n   375\t    const { color, label } = trackedIndicator(change);\n   376\t    const displayPath = change.originalPath ? `${change.originalPath} → ${change.path}` : change.path;\n   377\t    const trashLabel = `Move ${change.path} to trash`;\n   378\t\n   379\t    const handleTrash = async () => {\n   380\t        try {\n   381\t            await primaryChangesService.trash(change.path);\n   382\t        } catch (error) {\n   383\t            dialogService.error(error, { fallbackMessage: `Could not move ${change.path} to the trash` });\n   384\t        }\n   385\t    };\n   386\t\n   387\t    return (\n   388\t        <Box\n   389\t            component=\"li\"\n   390\t            sx={{\n   391\t                alignItems: 'center',\n   392\t                borderRadius: 1,\n   393\t                display: 'flex',\n   394\t                gap: 1,\n   395\t                minHeight: 34,\n   396\t                minWidth: 0,\n   397\t                px: 1,\n   398\t                '&:hover': { bgcolor: 'custom.track' },\n   399\t                '&:focus-within .primary-change-actions, &:hover .primary-change-actions': { opacity: 1 },\n   400\t            }}\n   401\t        >\n   402\t            <Tooltip title={label}>\n   403\t                <Box\n   404\t                    aria-label={label}\n   405\t                    component=\"span\"\n   406\t                    role=\"img\"\n   407\t                    sx={{ bgcolor: color, borderRadius: '50%', flexShrink: 0, height: STATE_DOT_SIZE, width: STATE_DOT_SIZE }}\n   408\t                />\n   409\t            </Tooltip>\n   410\t            <Typography sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }} variant=\"body2\">{displayPath}</Typography>\n   411\t            {change.onDisk ? (\n   412\t                <Tooltip title={trashLabel}>\n   413\t                    <Box className=\"primary-change-actions\" component=\"span\" sx={{ opacity: 0 }}>\n   414\t                        <IconButton aria-label={trashLabel} disabled={busy} onClick={handleTrash} size=\"small\">\n   415\t                            <DeleteOutlined sx={{ fontSize: 16 }} />\n   416\t                        </IconButton>\n   417\t                    </Box>\n   418\t                </Tooltip>\n   419\t            ) : null}\n   420\t        </Box>\n   421\t    );\n   422\t}",
+          "id": "agent-turn-de3cc21f-3923-49af-92d1-2bbe3c77f0c4-event-6",
+          "kind": "event",
+          "label": "cd C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src; cat -n services/project/primary_changes_service.ts components/primary_changes_dialog.tsx components/primary_changes_confirm_button.tsx components/hooks/use_primary_changes.ts components/primary_change_list.tsx components/primary_change_message_field.tsx components/primary_change_row.tsx",
+          "providerItemId": "toolu_01FjtnMdJ3CfDTarvEzyPUbD",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-11-23T08:47:04.541Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src; cat -n components/merge_conflict_dialog.tsx; cat -n components/primary_changes_dialog.test.tsx; cat -n services/project/primary_changes_service.node.test.ts",
+          "content": "     1\timport BuildOutlined from '@mui/icons-material/BuildOutlined'\n     2\timport SmartToyOutlined from '@mui/icons-material/SmartToyOutlined'\n     3\timport {\n     4\t    Alert,\n     5\t    Box,\n     6\t    Button,\n     7\t    CircularProgress,\n     8\t    Dialog,\n     9\t    DialogActions,\n    10\t    DialogContent,\n    11\t    DialogTitle,\n    12\t    Divider,\n    13\t    Stack,\n    14\t    Tooltip,\n    15\t    Typography,\n    16\t} from '@mui/material'\n    17\timport { useEffect, useState } from 'react'\n    18\timport type { MouseEvent } from 'react'\n    19\timport { actionContextIdentity, type ActionContext } from '../data/action_context'\n    20\timport type { ActionRunEvent, ActionRunStatus } from '../data/action_run_types'\n    21\timport type { ActionDefinition } from '../data/action_types'\n    22\timport { actionRunRegistry, type ActiveActionRun } from '../services/actions/action_run_registry'\n    23\timport { dialogService } from '../services/dialog_service'\n    24\timport {\n    25\t    mergeConflictService,\n    26\t    type MergeConflictService,\n    27\t} from '../services/project/merge_conflict_service'\n    28\timport { useMergeConflict } from './hooks/use_merge_conflict'\n    29\timport { useActions } from './hooks/use_actions'\n    30\timport { useRunningActionForContext } from './hooks/use_action_runs'\n    31\timport { ActionPopup } from './actions/run/popup/action_popup'\n    32\t\n    33\tinterface MergeConflictDialogProps {\n    34\t    actions?: ActionDefinition[]\n    35\t    service?: MergeConflictService\n    36\t}\n    37\t\n    38\tinterface MergeConflictPopupState {\n    39\t    actionId: string\n    40\t    anchorElement: HTMLElement\n    41\t    context: ActionContext\n    42\t    open: boolean\n    43\t}\n    44\t\n    45\tconst EMPTY_MERGE_CONFLICT_CONTEXT: ActionContext = { conflictSessionId: '', kind: 'merge-conflict' }\n    46\tconst TERMINAL_ACTION_STATUSES = new Set<ActionRunStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])\n    47\t\n    48\tfunction isMatchingPopupAction(\n    49\t    popupState: MergeConflictPopupState | null,\n    50\t    activeRun: ActiveActionRun | null,\n    51\t    actionId: string,\n    52\t    path?: string,\n    53\t) {\n    54\t    if (!popupState || popupState.context.conflictFile !== path) return false\n    55\t\n    56\t    return popupState.actionId === actionId || activeRun?.rootActionId === actionId\n    57\t}\n    58\t\n    59\t/** Global resolver for one desktop-owned paused Git conflict session. */\n    60\texport function MergeConflictDialog(props: MergeConflictDialogProps) {\n    61\t    const service = props.service ?? mergeConflictService\n    62\t    const { busy, continuing, session } = useMergeConflict(service)\n    63\t    const [popupState, setPopupState] = useState<MergeConflictPopupState | null>(null)\n    64\t    const actionState = useActions()\n    65\t    const actions = (props.actions ?? actionState.actions).filter((action) => (\n    66\t        action.type === 'agent' && action.appliesTo?.kind === 'merge-conflict'\n    67\t    ))\n    68\t    const paths = session?.conflictedPaths ?? []\n    69\t    const resolverConfigured = session?.externalResolverConfigured ?? false\n    70\t    const popupContext = popupState?.context ?? null\n    71\t    const retainedContext = popupContext && popupContext.conflictSessionId === session?.id\n    72\t        ? popupContext\n    73\t        : EMPTY_MERGE_CONFLICT_CONTEXT\n    74\t    const activeRun = useRunningActionForContext(retainedContext)\n    75\t    const controlsDisabled = busy || !!activeRun\n    76\t\n    77\t    useEffect(() => {\n    78\t        const context = popupState?.context\n    79\t        const sessionId = context?.conflictSessionId\n    80\t        if (!context || !sessionId) return\n    81\t\n    82\t        const handleActionEvent = (event: ActionRunEvent) => {\n    83\t            if (event.type !== 'run' || !TERMINAL_ACTION_STATUSES.has(event.status)) return\n    84\t\n    85\t            void service.rescanSession(sessionId).catch((error: unknown) => {\n    86\t                dialogService.error(error, { fallbackMessage: 'Could not rescan merge conflicts after agent action' })\n   \n[20091 characters omitted]\n      await service.confirm();\n    50\t\n    51\t        expect(storage.commitPrimaryChanges).not.toHaveBeenCalled();\n    52\t        await expect(review).resolves.toBe(true);\n    53\t    });\n    54\t\n    55\t    it('replaces the list with the refreshed changes after trashing a file', async () => {\n    56\t        const { service, storage } = createHarness();\n    57\t        const listListener = vi.fn();\n    58\t        void service.review(project, [modifiedChange, untrackedChange]);\n    59\t        service.addEventListener(PRIMARY_CHANGES_LIST_EVENT, listListener);\n    60\t\n    61\t        await service.trash('base.txt');\n    62\t\n    63\t        expect(storage.trashPrimaryChange).toHaveBeenCalledWith({ path: 'base.txt', project });\n    64\t        expect(service.getChanges()).toEqual([deletedChange]);\n    65\t        expect(listListener).toHaveBeenCalledOnce();\n    66\t        expect(service.isBusy()).toBe(false);\n    67\t    });\n    68\t\n    69\t    it('reports a failing commit and keeps the dialog open', async () => {\n    70\t        const failure = new Error('commit failed');\n    71\t        const { service } = createHarness({ commitPrimaryChanges: vi.fn(async () => { throw failure; }) });\n    72\t        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as ReturnType<typeof dialogService.error>);\n    73\t        void service.review(project, [modifiedChange]);\n    74\t        service.setMessage('Save');\n    75\t\n    76\t        await service.confirm();\n    77\t\n    78\t        expect(reportError).toHaveBeenCalledWith(failure, { fallbackMessage: 'Could not commit project changes' });\n    79\t        expect(service.isOpen()).toBe(true);\n    80\t        expect(service.isBusy()).toBe(false);\n    81\t        expect(service.getMessage()).toBe('Save');\n    82\t    });\n    83\t\n    84\t    it('reports a failing trash and keeps the list', async () => {\n    85\t        const failure = new Error('trash failed');\n    86\t        const { service } = createHarness({ trashPrimaryChange: vi.fn(async () => { throw failure; }) });\n    87\t        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => ({}) as ReturnType<typeof dialogService.error>);\n    88\t        const changes = [modifiedChange];\n    89\t        void service.review(project, changes);\n    90\t\n    91\t        await service.trash('base.txt');\n    92\t\n    93\t        expect(reportError).toHaveBeenCalledWith(failure, { fallbackMessage: 'Could not move base.txt to the trash' });\n    94\t        expect(service.isOpen()).toBe(true);\n    95\t        expect(service.getChanges()).toBe(changes);\n    96\t    });\n    97\t\n    98\t    it('resolves the review with false on cancel', async () => {\n    99\t        const { service, storage } = createHarness();\n   100\t        const review = service.review(project, [modifiedChange]);\n   101\t\n   102\t        service.cancel();\n   103\t\n   104\t        await expect(review).resolves.toBe(false);\n   105\t        expect(storage.commitPrimaryChanges).not.toHaveBeenCalled();\n   106\t        expect(service.getChanges()).toEqual([]);\n   107\t    });\n   108\t\n   109\t    it('signals only the message event when the message changes', () => {\n   110\t        const { service } = createHarness();\n   111\t        const messageListener = vi.fn();\n   112\t        const listListener = vi.fn();\n   113\t        void service.review(project, [modifiedChange]);\n   114\t        service.addEventListener(PRIMARY_CHANGES_MESSAGE_EVENT, messageListener);\n   115\t        service.addEventListener(PRIMARY_CHANGES_LIST_EVENT, listListener);\n   116\t\n   117\t        service.setMessage('S');\n   118\t\n   119\t        expect(messageListener).toHaveBeenCalledOnce();\n   120\t        expect(listListener).not.toHaveBeenCalled();\n   121\t    });\n   122\t\n   123\t    it('resolves an open review with false on clear', async () => {\n   124\t        const { service } = createHarness();\n   125\t        const review = service.review(project, [modifiedChange]);\n   126\t\n   127\t        service.clear();\n   128\t\n   129\t        await expect(review).resolves.toBe(false);\n   130\t    });\n   131\t});",
+          "id": "agent-turn-de3cc21f-3923-49af-92d1-2bbe3c77f0c4-event-7",
+          "kind": "event",
+          "label": "cd C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src; cat -n components/merge_conflict_dialog.tsx; cat -n components/primary_changes_dialog.test.tsx; cat -n services/project/primary_changes_service.node.test.ts",
+          "providerItemId": "toolu_01Q4y5SpSSAAbBPFHZt7ViKG",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-11-23T08:47:09.062Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de3cc21f-3923-49af-92d1-2bbe3c77f0c4-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011ChKZxDnbK4dwZHiD2QtmP:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T08:47:18.464Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"query\":\"select:TaskCreate,TaskUpdate\",\"max_results\":2}",
+          "id": "agent-turn-de3cc21f-3923-49af-92d1-2bbe3c77f0c4-event-9",
+          "kind": "event",
+          "label": "ToolSearch",
+          "output": "[{\"type\":\"tool_reference\",\"tool_name\":\"TaskCreate\"},{\"type\":\"tool_reference\",\"tool_name\":\"TaskUpdate\"}]",
+          "providerItemId": "toolu_01CCCvhokbmP93qVU1ENgJF4",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-11-23T08:47:18.942Z",
+          "type": "tool.ToolSearch"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de3cc21f-3923-49af-92d1-2bbe3c77f0c4-event-10",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011ChKZyTPAzCpeLgKzJmifu:thinking:0",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-11-23T08:47:33.859Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "I read the spec and the code and made three tasks. Here is the plan. Nothing is edited yet; I'm waiting for your approval.\n\n## Change plan for J_74\n\n**Block 1: commit state in the service** (`app/src/services/project/primary_changes_service.ts`, `app/src/components/hooks/use_primary_changes.ts`)\n- Add a private `committing` flag, an `isCommitting()` getter, a `PRIMARY_CHANGES_COMMITTING_EVENT = 'committing'` event, and a private `setCommitting()` that fires the event only when the value changes.\n- In `confirm()`, `setCommitting(true)` runs right before `commitPrimaryChanges`, and only when there are changes. An empty list skips the commit, so it shows no progress.\n- If the commit fails, clear both the commit flag and the busy flag, then report the error as today.\n- `finishReview()` clears the commit flag. That covers success, cancel, `init()` and `clear()`.\n- `trash()` only sets busy, never the commit flag.\n- Add a `usePrimaryChangesCommitting()` hook.\n- New service tests:\n  - the flag and its event are set while the commit is pending;\n  - the flag is cleared after failure, with the message and list kept;\n  - it is reset after success;\n  - trash never sets it.\n\n**Block 2: progress display in the dialog**\n- **New `primary_changes_commit_progress.tsx`:** shows an `Alert severity=\"info\"` with `CircularProgress aria-label=\"Committing project changes\"` and the text \"Committing project changes...\", only while a commit runs. It looks the same as the merge-conflict \"Finishing integration\" alert.\n- **New `primary_changes_cancel_button.tsx`:** Cancel is disabled while a commit runs. The dialog itself doesn't subscribe to the state, because the smallest component that shows a value should own that subscription.\n- **`primary_changes_confirm_button.tsx`:** while committing, the label becomes `Committing...`, with a small `CircularProgress` (16px, `aria-hidden`) as the start icon.\n- **`primary_change_message_field.tsx`:** the field is `disabled` while committing.\n- **Trash buttons:** already disabled whenever the dialog is busy, so no change.\n- **Backdrop click and Escape:** `onClose` calls `cancel()`, which already does nothing while busy. I'll add no extra flag and will test that this works.\n\n**Block 3: tests, lint, status**\n- New tests in `primary_changes_dialog.test.tsx`, using a commit promise the test resolves or rejects itself:\n  - progress shows immediately;\n  - the progressbar has an accessible name;\n  - the field, OK, Cancel and trash are disabled;\n  - Escape keeps the dialog open;\n  - success closes it and resolves the review as true;\n  - failure removes the progress, keeps the message and list, and enables the controls again;\n  - trashing a file shows no commit progress.\n- Run only the two related test files, then `npm run lint`.\n- Set `status: ready` in `C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\J_74_...md`.\n\nOne unclear point in the spec: the message field and Cancel will be disabled only during a commit, not during a trash, because the spec names only the commit. Say if you want them disabled during trash as well.\n\nApprove?",
+          "id": "agent-turn-de3cc21f-3923-49af-92d1-2bbe3c77f0c4-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 11,
+          "timestamp": "2026-11-23T08:47:37.674Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-99c010c9-de41-4172-9510-979d3f60e157",
+      "providerSessions": [
+        {
+          "accountId": "claude-initial",
+          "agent": "claude",
+          "conversationId": "f22661ab-b4c1-41b5-9e55-031642f796f2",
+          "createdAt": "2026-11-23T08:46:52.862Z",
+          "lastUsedAt": "2026-11-23T08:47:37.674Z",
+          "synchronizedThroughMessageId": "agent-turn-de3cc21f-3923-49af-92d1-2bbe3c77f0c4-turn-1-assistant-1",
+          "usageBaseline": {
+            "costUsd": 0.5029682,
+            "resultId": "e824ac77-f0cd-4a99-aa37-96aec15e434a",
+            "tokens": {
+              "cachedInputTokens": 352895,
+              "inputTokens": 14,
+              "outputTokens": 3250,
+              "reasoningTokens": 0,
+              "totalTokens": 356159
+            }
+          }
+        }
+      ],
+      "startedAt": "2026-11-23T08:46:47.884Z",
+      "status": "waitingForInput",
+      "taskList": {
+        "tasks": [
+          {
+            "id": "1",
+            "subject": "Block 1: commit state in PrimaryChangesService",
+            "status": "pending",
+            "activeForm": "Adding commit state to service"
+          },
+          {
+            "id": "2",
+            "subject": "Block 2: dialog commit progress UI",
+            "status": "pending",
+            "activeForm": "Building commit progress UI"
+          },
+          {
+            "id": "3",
+            "subject": "Block 3: dialog tests, lint, status update",
+            "status": "pending",
+            "activeForm": "Testing and linting"
+          }
+        ],
+        "updatedAt": "2026-11-23T08:47:25.804Z"
+      },
+      "timer": {
+        "breakdown": {
+          "reasoningMs": 12692,
+          "toolMs": 8305
+        },
+        "elapsedMs": 49790,
+        "runningStartedAt": null
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 352895,
+        "inputTokens": 14,
+        "outputTokens": 3250,
+        "reasoningTokens": 0,
+        "totalTokens": 356159,
+        "costUsd": 0.5029682
+      },
+      "usageSchemaVersion": 1,
+      "viewed": false
     }
   ],
   "origin": {
