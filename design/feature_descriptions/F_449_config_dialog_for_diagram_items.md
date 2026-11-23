@@ -9,7 +9,9 @@ affects:
 agents:
   - design/activity/card__41d340e6-afae-44bd-82e7-41ab673c94e0.json
 policy:
-after: 2775052a-2e84-4466-a320-155c8ec05bac
+after: 5221030b-ed7e-4860-bd8f-177274dc9a02
+branch: f_449_config_dialog_for_diagram_items
+worktree: 2
 ---
 
 The configuration dialog uses a **Role** dropdown. It should contain the legend items instead of the internal role definitions.
