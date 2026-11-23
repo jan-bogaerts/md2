@@ -3,7 +3,7 @@ author:
 id: J_74
 internalId: 62551bdc-c0ce-4290-93cc-257fa4d5edc1
 title: uncommitted project changes dialog improvements
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,11 @@ agents:
 policy:
 branch: j_74_uncommitted_project_changes_dialog_improvements
 worktree: 1
+changedFiles:
+  - app/src/components/primary_changes_cancel_button.tsx
+  - app/src/components/primary_changes_commit_progress.tsx
+  - app/src/components/primary_changes_confirm_button.tsx
+  - app/src/components/primary_changes_dialog.test.tsx
 ---
 
 While the commit operation is running, the dialog is simply disabled. we should add some animation to show a process is running and include a little text to show what is occuring.
