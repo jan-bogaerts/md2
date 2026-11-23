@@ -518,6 +518,68 @@ describe('WorktreeService', () => {
         expect(secondNotifications).not.toHaveBeenCalled()
     })
 
+    it('publishes a card-scoped committing phase and clears it after failure', async () => {
+        const pendingCommit = createDeferred<void>()
+        const { emit, storage } = createStorage()
+        storage.commitWorktree = vi.fn(() => pendingCommit.promise)
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        const cardInternalId = assignedCard.header.internalId!
+        initService(service, storage, snapshot([assignedCard]))
+        emit(project, [first])
+        const firstNotifications = vi.fn()
+        const secondNotifications = vi.fn()
+        service.addEventListener(cardWorktreeOperationEventType(cardInternalId), firstNotifications)
+        service.addEventListener(cardWorktreeOperationEventType('card-2'), secondNotifications)
+
+        const commit = service.commitCardWorktree(assignedCard.path, 'Commit card')
+        expect(service.getCardOperationPhase(cardInternalId)).toBe('committing')
+        expect(service.getCardOperationPhase('card-2')).toBeNull()
+        expect(firstNotifications).toHaveBeenCalledOnce()
+        expect(secondNotifications).not.toHaveBeenCalled()
+
+        const failure = new Error('commit failed')
+        pendingCommit.reject(failure)
+        await expect(commit).rejects.toBe(failure)
+        expect(service.getCardOperationPhase(cardInternalId)).toBeNull()
+        expect(firstNotifications).toHaveBeenCalledTimes(2)
+        expect(secondNotifications).not.toHaveBeenCalled()
+    })
+
+    it('publishes saving, integrating, and finalizing phases for card integration', async () => {
+        const pendingFlush = createDeferred<void>()
+        const pendingIntegration = createDeferred<{ activityPath: string; status: 'completed' }>()
+        const pendingActivity = createDeferred<void>()
+        const { emit, storage } = createStorage()
+        storage.integrateWorktree = vi.fn(() => pendingIntegration.promise)
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        const cardInternalId = assignedCard.header.internalId!
+        const flushPendingChanges = vi.fn(() => pendingFlush.promise)
+        const { queueIntegratedActivity } = initService(service, storage, snapshot([assignedCard]), flushPendingChanges)
+        queueIntegratedActivity.mockImplementation(() => pendingActivity.promise)
+        emit(project, [first])
+        const notifications = vi.fn()
+        service.addEventListener(cardWorktreeOperationEventType(cardInternalId), notifications)
+
+        const integration = service.integrateCardWorktree(assignedCard.path, false)
+        expect(service.getCardOperationPhase(cardInternalId)).toBe('savingProjectChanges')
+        expect(notifications).toHaveBeenCalledOnce()
+
+        pendingFlush.resolve()
+        await vi.waitFor(() => expect(service.getCardOperationPhase(cardInternalId)).toBe('integrating'))
+        expect(notifications).toHaveBeenCalledTimes(2)
+
+        pendingIntegration.resolve({ activityPath: 'design/activity/card__card-1.json', status: 'completed' })
+        await vi.waitFor(() => expect(service.getCardOperationPhase(cardInternalId)).toBe('finalizing'))
+        expect(notifications).toHaveBeenCalledTimes(3)
+
+        pendingActivity.resolve()
+        await integration
+        expect(service.getCardOperationPhase(cardInternalId)).toBeNull()
+        expect(notifications).toHaveBeenCalledTimes(4)
+    })
+
     it('keeps update pending through save flush and clears scoped state after failure', async () => {
         const pendingFlush = createDeferred<void>()
         const { emit, storage } = createStorage()

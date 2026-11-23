@@ -41,6 +41,7 @@ export function WorktreeSelectorController(props: WorktreeSelectorControllerProp
     const cardInternalId = assignmentTarget.kind === 'card' ? assignmentTarget.cardInternalId : null
     const assignedWorktree = assignment.worktree ?? null
     const {
+        operationPhase,
         preparing,
         projectDirty: hasPendingProjectChanges,
         record: assignedRecord,
@@ -334,7 +335,6 @@ export function WorktreeSelectorController(props: WorktreeSelectorControllerProp
             ) : null}
             {integrationDialogOpen ? (
                 <WorktreeIntegrationDialog
-                    busy={preparing}
                     commitMessage={assignedRecord?.status.dirty ? commitMessage : null}
                     deleteBranch={deleteBranch}
                     onClose={handleIntegrationClose}
@@ -342,6 +342,7 @@ export function WorktreeSelectorController(props: WorktreeSelectorControllerProp
                     onDeleteBranchChange={handleDeleteBranchChange}
                     onIntegrate={handleIntegration}
                     open
+                    phase={operationPhase}
                 />
             ) : null}
             {unassignDialogOpen ? (

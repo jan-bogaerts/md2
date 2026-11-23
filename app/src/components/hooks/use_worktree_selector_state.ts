@@ -1,7 +1,11 @@
 import { useCallback, useRef, useSyncExternalStore } from 'react'
 import type { WorktreeAssignment, WorktreeRecord } from '../../data/data_types';
 import { projectPersistenceService } from '../../services/project/project_persistence_service'
-import { cardWorktreeOperationEventType, worktreeService } from '../../services/project/worktree_service'
+import {
+    cardWorktreeOperationEventType,
+    type CardWorktreeOperationPhase,
+    worktreeService,
+} from '../../services/project/worktree_service'
 
 export interface WorktreeSelectorTarget {
     /** The assigned linked worktree, or null when the target sits on the primary worktree. */
@@ -12,6 +16,7 @@ export interface WorktreeSelectorTarget {
 
 export interface WorktreeSelectorState {
     index: number | null
+    operationPhase: CardWorktreeOperationPhase | null
     preparing: boolean
     /** Whether the project holds changes the assigned worktree has not taken in yet. */
     projectDirty: boolean
@@ -54,17 +59,19 @@ export function useWorktreeSelectorState(target: WorktreeSelectorTarget): Worktr
         const preparing = cardInternalId === null
             ? worktreeService.isPreparingProjectWorktree()
             : worktreeService.isPreparingCard(cardInternalId)
+        const operationPhase = cardInternalId === null ? null : worktreeService.getCardOperationPhase(cardInternalId)
         const projectDirty = record
             ? projectPersistenceService.getSnapshot().hasPendingSave || !!worktreeService.getPrimaryStatus()?.dirty
             : false
         const current = cache.current
         if (current
             && current.index === index
+            && current.operationPhase === operationPhase
             && current.preparing === preparing
             && current.projectDirty === projectDirty
             && current.record === record) return current
 
-        const next = { index, preparing, projectDirty, record }
+        const next = { index, operationPhase, preparing, projectDirty, record }
         cache.current = next
 
         return next

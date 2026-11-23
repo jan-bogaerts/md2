@@ -57,6 +57,8 @@ export interface SequenceWorktreeReservation {
     worktreeBranch: string
 }
 
+export type CardWorktreeOperationPhase = 'generic' | 'committing' | 'savingProjectChanges' | 'integrating' | 'finalizing'
+
 /** Review rounds before integration gives up on a primary worktree that keeps getting new changes. */
 const MAX_PRIMARY_REVIEW_ROUNDS = 3
 
@@ -88,7 +90,7 @@ export class WorktreeService extends EventTarget {
     private draft: WorktreeDraft | null = null
     private flushPendingChanges: (() => Promise<void>) | null = null
     private pendingAssignments = new Map<string, string>();
-    private preparingCardInternalIds = new Set<string>()
+    private cardOperationPhases = new Map<string, CardWorktreeOperationPhase>()
     private preparingProjectWorktree = false
     private projectActionWorktree: number | null = null
     private projectActionWorktreeBranch: string | null = null;
@@ -159,7 +161,11 @@ export class WorktreeService extends EventTarget {
     }
 
     isPreparingCard(cardInternalId: string) {
-        return this.preparingCardInternalIds.has(cardInternalId)
+        return this.getCardOperationPhase(cardInternalId) !== null
+    }
+
+    getCardOperationPhase(cardInternalId: string) {
+        return this.cardOperationPhases.get(cardInternalId) ?? null
     }
 
     isPreparingProjectWorktree() {
@@ -294,7 +300,7 @@ export class WorktreeService extends EventTarget {
     async setCardWorktree(path: string, selectedBranch: string | null) {
         const card = this.requireCard(path)
         const cardInternalId = requireCardInternalId(card, path)
-        if (this.preparingCardInternalIds.has(cardInternalId)) throw new Error(`Worktree preparation is already in progress for ${path}`)
+        if (this.isPreparingCard(cardInternalId)) throw new Error(`Worktree preparation is already in progress for ${path}`)
 
         if (selectedBranch === null) {
             const assignment = this.getAssignmentState(card.header);
@@ -305,7 +311,7 @@ export class WorktreeService extends EventTarget {
 
             const { project, storage, worktree, worktreeBranch } = this.requireCardOperation(path);
             if (!storage.parkWorktree) throw new Error('Worktree parking requires Electron local mode')
-            this.startCardOperation(cardInternalId, path)
+            this.startCardOperation(cardInternalId, path, 'generic')
             try {
                 await storage.parkWorktree({ project, worktree, worktreeBranch });
                 this.requireUnassignmentWriter()(path)
@@ -333,7 +339,7 @@ export class WorktreeService extends EventTarget {
         const request = { branchName, project, worktree, worktreeBranch: selectedBranch };
         this.pendingAssignments.set(selectedBranch, cardInternalId);
         this.pendingAssignments.set(branchName, cardInternalId);
-        this.startCardOperation(cardInternalId, path)
+        this.startCardOperation(cardInternalId, path, 'generic')
         try {
             await storage.prepareWorktree(request)
             if (this.requireProject() !== project) throw new Error('Opened project changed during worktree preparation')
@@ -363,7 +369,7 @@ export class WorktreeService extends EventTarget {
         const { cardInternalId, project, storage, worktree, worktreeBranch } = this.requireCardOperation(path)
         if (!storage.commitWorktree) throw new Error('Worktree commits require Electron local mode')
 
-        this.startCardOperation(cardInternalId, path)
+        this.startCardOperation(cardInternalId, path, 'committing')
         try {
             await storage.commitWorktree({ message, project, worktree, worktreeBranch })
         } finally {
@@ -379,9 +385,10 @@ export class WorktreeService extends EventTarget {
         if (deleteBranch && !branch) throw new Error(`Cannot delete branch without stored branch identity: ${path}`)
         const projectFolder = this.requireProjectFolder()
 
-        this.startCardOperation(cardInternalId, path)
+        this.startCardOperation(cardInternalId, path, 'savingProjectChanges')
         try {
             await this.requirePendingChangesFlusher()()
+            this.setCardOperationPhase(cardInternalId, 'integrating')
             const request = {
                 ...(branch ? { branchName: branch } : {}),
                 cardInternalId: card.header.internalId,
@@ -392,10 +399,13 @@ export class WorktreeService extends EventTarget {
                 worktreeBranch,
             }
             const outcome = await this.integrateWithPrimaryReview(project, request)
-            if (outcome.status === 'completed' && outcome.activityPath) await this.requireActivityQueue()(outcome.activityPath)
-            if (outcome.status === 'completed' && deleteBranch) {
-                this.requireUnassignmentWriter()(path)
-                this.requireBranchClearer()(path)
+            if (outcome.status === 'completed') {
+                this.setCardOperationPhase(cardInternalId, 'finalizing')
+                if (outcome.activityPath) await this.requireActivityQueue()(outcome.activityPath)
+                if (deleteBranch) {
+                    this.requireUnassignmentWriter()(path)
+                    this.requireBranchClearer()(path)
+                }
             }
 
             return outcome
@@ -408,7 +418,7 @@ export class WorktreeService extends EventTarget {
         const { cardInternalId, project, storage, worktree, worktreeBranch } = this.requireCardOperation(path)
         if (!storage.rebaseWorktree) throw new Error('Worktree updates require Electron local mode')
 
-        this.startCardOperation(cardInternalId, path)
+        this.startCardOperation(cardInternalId, path, 'generic')
         try {
             await this.requirePendingChangesFlusher()()
             const outcome = await storage.rebaseWorktree({ project, worktree, worktreeBranch })
@@ -470,7 +480,7 @@ export class WorktreeService extends EventTarget {
         if (!storage.discardWorktreeChanges) throw new Error('Discarding worktree changes requires Electron local mode')
         if (!storage.parkWorktree) throw new Error('Worktree parking requires Electron local mode')
 
-        this.startCardOperation(cardInternalId, path)
+        this.startCardOperation(cardInternalId, path, 'generic')
         try {
             await storage.discardWorktreeChanges({ project, worktree, worktreeBranch })
             await storage.parkWorktree({ project, worktree, worktreeBranch })
@@ -633,15 +643,22 @@ export class WorktreeService extends EventTarget {
         return this.snapshotProvider?.()?.activeCards ?? []
     }
 
-    private startCardOperation(cardInternalId: string, path: string) {
-        if (this.preparingCardInternalIds.has(cardInternalId)) throw new Error(`Worktree operation is already in progress for ${path}`)
+    private startCardOperation(cardInternalId: string, path: string, phase: CardWorktreeOperationPhase) {
+        if (this.isPreparingCard(cardInternalId)) throw new Error(`Worktree operation is already in progress for ${path}`)
 
-        this.preparingCardInternalIds.add(cardInternalId)
+        this.cardOperationPhases.set(cardInternalId, phase)
+        this.dispatchEvent(new Event(cardWorktreeOperationEventType(cardInternalId)))
+    }
+
+    private setCardOperationPhase(cardInternalId: string, phase: CardWorktreeOperationPhase) {
+        if (!this.isPreparingCard(cardInternalId)) throw new Error(`Cannot update inactive card operation: ${cardInternalId}`)
+
+        this.cardOperationPhases.set(cardInternalId, phase)
         this.dispatchEvent(new Event(cardWorktreeOperationEventType(cardInternalId)))
     }
 
     private finishCardOperation(cardInternalId: string) {
-        this.preparingCardInternalIds.delete(cardInternalId)
+        this.cardOperationPhases.delete(cardInternalId)
         this.dispatchEvent(new Event(cardWorktreeOperationEventType(cardInternalId)))
     }
 
