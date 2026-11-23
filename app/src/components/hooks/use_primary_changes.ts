@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import {
     PRIMARY_CHANGES_BUSY_EVENT,
+    PRIMARY_CHANGES_COMMITTING_EVENT,
     PRIMARY_CHANGES_LIST_EVENT,
     PRIMARY_CHANGES_MESSAGE_EVENT,
     PRIMARY_CHANGES_OPEN_EVENT,
@@ -31,6 +32,10 @@ function readMessage() {
 
 function readBusy() {
     return primaryChangesService.isBusy();
+}
+
+function readCommitting() {
+    return primaryChangesService.isCommitting();
 }
 
 function readConfirmable() {
@@ -68,4 +73,9 @@ export function usePrimaryChangesMessage() {
 
 export function usePrimaryChangesBusy() {
     return usePrimaryChangesValue(PRIMARY_CHANGES_BUSY_EVENT, readBusy);
+}
+
+/** Whether the reviewed changes are being committed; stays false while a file is moved to the trash. */
+export function usePrimaryChangesCommitting() {
+    return usePrimaryChangesValue(PRIMARY_CHANGES_COMMITTING_EVENT, readCommitting);
 }
